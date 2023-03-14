@@ -28,7 +28,8 @@ public final class UtOptional<T> {
     }
 
     public UtOptional(T value) {
-        Objects.requireNonNull(value);
+        // In different Java versions Optional.EMPTY is created differently - using the empty constructor in Java 8 and 11,
+        // and with this constructor in Java 17. It means we cannot use `requireNonNull` here because it fails for Java 17.
         visit(this);
         this.value = value;
     }

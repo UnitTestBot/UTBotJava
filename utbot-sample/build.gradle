@@ -12,10 +12,3 @@ dependencies {
     implementation group: 'javax.validation', name: 'validation-api', version: '2.0.0.Final'
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
 }
-
-test {
-    minHeapSize = "128m"
-    maxHeapSize = "3072m"
-
-    jvmArgs '-XX:MaxHeapSize=3072m'
-}

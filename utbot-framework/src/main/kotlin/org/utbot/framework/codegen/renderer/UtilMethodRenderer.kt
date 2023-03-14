@@ -128,6 +128,27 @@ private fun getEnumConstantByName(visibility: Visibility, language: CodegenLangu
         }
     }.trimIndent()
 
+private fun getFieldRetrievingBlock(language : CodegenLanguage, fullClassName : String, fieldName : String, resultName : String): String {
+    val methodName = "methodForGetDeclaredFields${System.nanoTime()}"
+    val fieldsName = "allFieldsFromFieldClass${System.nanoTime()}"
+    return when (language) {
+        CodegenLanguage.JAVA ->
+            """
+                    java.lang.reflect.Method $methodName = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
+                    $methodName.setAccessible(true);
+                    java.lang.reflect.Field[] $fieldsName = (java.lang.reflect.Field[]) $methodName.invoke($fullClassName.class, false);
+                    $resultName = java.util.Arrays.stream($fieldsName).filter(field1 -> field1.getName().equals("$fieldName")).findFirst().get();
+    """
+
+        CodegenLanguage.KOTLIN ->
+            """
+                    val $methodName = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
+                    $methodName.isAccessible = true
+                    val $fieldsName = $methodName.invoke($fullClassName::class.java, false) as kotlin.Array<java.lang.reflect.Field>
+                    $resultName = $fieldsName.filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }.first()
+    """
+    }
+}
 private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
@@ -139,13 +160,19 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
                     try {
                         field = clazz.getDeclaredField(fieldName);
                         field.setAccessible(true);
-                        java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
+                        
+                        java.lang.reflect.Field modifiersField;
+                        ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                         modifiersField.setAccessible(true);
                         modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
                         
                         return field.get(null);
                     } catch (NoSuchFieldException e) {
                         clazz = clazz.getSuperclass();
+                    } catch (NoSuchMethodException e2) {
+                        e2.printStackTrace();
+                    } catch (java.lang.reflect.InvocationTargetException e3) {
+                        e3.printStackTrace();
                     }
                 } while (clazz != null);
         
@@ -162,7 +189,10 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
                     try {
                         field = currentClass!!.getDeclaredField(fieldName)
                         field.isAccessible = true
-                        val modifiersField: java.lang.reflect.Field = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
+
+                        val modifiersField: java.lang.reflect.Field
+                        ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
+
                         modifiersField.isAccessible = true
                         modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
                         
@@ -182,12 +212,14 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static Object getFieldValue(Object obj, String fieldClassName, String fieldName) throws ClassNotFoundException, IllegalAccessException, NoSuchFieldException {
+            ${visibility by language}static Object getFieldValue(Object obj, String fieldClassName, String fieldName) throws ClassNotFoundException, NoSuchMethodException, java.lang.reflect.InvocationTargetException, IllegalAccessException, NoSuchFieldException {
                 Class<?> clazz = Class.forName(fieldClassName);
                 java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
                 
                 field.setAccessible(true);
-                java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
+                
+                java.lang.reflect.Field modifiersField;
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
                 
@@ -202,7 +234,9 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
                 val field: java.lang.reflect.Field = clazz.getDeclaredField(fieldName)
                 
                 field.isAccessible = true
-                val modifiersField: java.lang.reflect.Field = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
+                
+                val modifiersField: java.lang.reflect.Field
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
                 
@@ -219,6 +253,7 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
             ${visibility by language}static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
                 java.lang.reflect.Field field;
     
+                try {
                 do {
                     try {
                         field = clazz.getDeclaredField(fieldName);
@@ -228,12 +263,20 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
                     }
                 } while (field == null);
                 
-                java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
+                java.lang.reflect.Field modifiersField;
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
     
                 field.setAccessible(true);
                 field.set(null, fieldValue);
+                }
+                catch(java.lang.reflect.InvocationTargetException e){
+                    e.printStackTrace();
+                }
+                catch(NoSuchMethodException e2) {
+                    e2.printStackTrace();
+                }
             }
         """
         }
@@ -252,7 +295,8 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
                     }
                 } while (field == null)
         
-                val modifiersField: java.lang.reflect.Field = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
+                val modifiersField: java.lang.reflect.Field
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
         
@@ -267,17 +311,18 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static void setField(Object object, String fieldClassName, String fieldName, Object fieldValue) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
-                Class<?> clazz = Class.forName(fieldClassName);
-                java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
-                
-                java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
-                modifiersField.setAccessible(true);
-                modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+            ${visibility by language}static void setField(Object object, String fieldClassName, String fieldName, Object fieldValue) throws ClassNotFoundException, NoSuchFieldException, NoSuchMethodException, IllegalAccessException, java.lang.reflect.InvocationTargetException {
+            Class<?> clazz = Class.forName(fieldClassName);
+            java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
     
-                field.setAccessible(true);
-                field.set(object, fieldValue);
-            }
+            java.lang.reflect.Field modifiersField;
+            ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+    
+            field.setAccessible(true);
+            field.set(object, fieldValue);
+        }
         """
         }
         CodegenLanguage.KOTLIN -> {
@@ -286,7 +331,8 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
                 val clazz: Class<*> = Class.forName(fieldClassName)
                 val field: java.lang.reflect.Field = clazz.getDeclaredField(fieldName)
         
-                val modifiersField: java.lang.reflect.Field = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
+                val modifiersField: java.lang.reflect.Field
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
         
@@ -1099,14 +1145,19 @@ private fun getLookupIn(language: CodegenLanguage) =
              * @return {@link java.lang.invoke.MethodHandles.Lookup} instance for the given {@code clazz}.
              * It can be used, for example, to search methods of this {@code clazz}, even the {@code private} ones.
              */
-            private static java.lang.invoke.MethodHandles.Lookup getLookupIn(Class<?> clazz) throws IllegalAccessException, NoSuchFieldException {
+            private static java.lang.invoke.MethodHandles.Lookup getLookupIn(Class<?> clazz) throws IllegalAccessException, NoSuchFieldException, java.lang.NoSuchMethodException, java.lang.reflect.InvocationTargetException {
                 java.lang.invoke.MethodHandles.Lookup lookup = java.lang.invoke.MethodHandles.lookup().in(clazz);
         
                 // Allow lookup to access all members of declaringClass, including the private ones.
                 // For example, it is useful to access private synthetic methods representing lambdas.
-                java.lang.reflect.Field allowedModes = java.lang.invoke.MethodHandles.Lookup.class.getDeclaredField("allowedModes");
+                
+                java.lang.reflect.Field allowedModes;
+                java.lang.reflect.Field allModesField;
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "allowedModes", "allowedModes")}
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "ALL_MODES", "allModesField")}
+                allModesField.setAccessible(true);
                 allowedModes.setAccessible(true);
-                allowedModes.setInt(lookup, java.lang.reflect.Modifier.PUBLIC | java.lang.reflect.Modifier.PROTECTED | java.lang.reflect.Modifier.PRIVATE | java.lang.reflect.Modifier.STATIC);
+                allowedModes.setInt(lookup, (Integer) allModesField.get(null));
         
                 return lookup;
             }
@@ -1123,9 +1174,13 @@ private fun getLookupIn(language: CodegenLanguage) =
     
                 // Allow lookup to access all members of declaringClass, including the private ones.
                 // For example, it is useful to access private synthetic methods representing lambdas.
-                val allowedModes = java.lang.invoke.MethodHandles.Lookup::class.java.getDeclaredField("allowedModes")
+                val allowedModes: java.lang.reflect.Field
+                val allModesField: java.lang.reflect.Field
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "allowedModes", "allowedModes")}
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "ALL_MODES", "allModesField")}
                 allowedModes.isAccessible = true
-                allowedModes.setInt(lookup, java.lang.reflect.Modifier.PUBLIC or java.lang.reflect.Modifier.PROTECTED or java.lang.reflect.Modifier.PRIVATE or java.lang.reflect.Modifier.STATIC)
+                allModesField.isAccessible = true
+                allowedModes.setInt(lookup, allModesField.get(null) as Int)
     
                 return lookup
             }

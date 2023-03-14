@@ -56,6 +56,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.process.OpenModulesContainer
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -1354,9 +1355,10 @@ enum class CodegenLanguage(
                 "-d", buildDirectory,
                 "-cp", classPath,
                 "-XDignore.symbol.file", // to let javac use classes from rt.jar
-                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
-                "--add-exports", "java.base/sun.text=ALL-UNNAMED",
-            ).plus(sourcesFiles)
+            ).plus(OpenModulesContainer.javaVersionSpecificArguments.toMutableList().apply {
+                if (last().contains("illegal"))
+                    removeLast()
+            }).plus(sourcesFiles)
 
             // TODO: -Xskip-prerelease-check is needed to handle #1262, check if this is good enough solution
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath, "-Xskip-prerelease-check").plus(sourcesFiles)

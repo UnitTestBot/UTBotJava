@@ -1,10 +1,13 @@
-package org.utbot.framework.plugin.api.util
+package org.utbot.framework.plugin.api.util.constructor
 
 import java.lang.invoke.LambdaMetafactory
 import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodHandles.Lookup
 import java.lang.invoke.MethodType
+import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import org.utbot.common.Reflection
 
 /**
  * This class represents the `type` and `value` of a value captured by lambda.
@@ -18,17 +21,18 @@ data class CapturedArgument(val type: Class<*>, val value: Any?)
  * @return [MethodHandles.Lookup] instance for the given [clazz].
  * It can be used, for example, to search methods of this [clazz], even the `private` ones.
  */
-private fun getLookupIn(clazz: Class<*>): MethodHandles.Lookup {
+@Suppress("UNCHECKED_CAST")
+private fun getLookupIn(clazz: Class<*>): Lookup {
     val lookup = MethodHandles.lookup().`in`(clazz)
 
     // Allow lookup to access all members of declaringClass, including the private ones.
     // For example, it is useful to access private synthetic methods representing lambdas.
-    val allowedModes = MethodHandles.Lookup::class.java.getDeclaredField("allowedModes")
+    val fields = Reflection.getDeclaredFields0Method.invoke(Lookup::class.java, false) as Array<Field>
+    val allowedModes = fields.single { it.name == "allowedModes" }
+    val allModesField = fields.single { it.name == "ALL_MODES" }
     allowedModes.isAccessible = true
-    allowedModes.setInt(
-        lookup,
-        Modifier.PUBLIC or Modifier.PROTECTED or Modifier.PRIVATE or Modifier.STATIC
-    )
+    allModesField.isAccessible = true
+    allowedModes.setInt(lookup, allModesField.get(null) as Int)
 
     return lookup
 }
@@ -66,7 +70,7 @@ private fun getLambdaMethod(declaringClass: Class<*>, lambdaName: String): Metho
  * We obtain this info in [prepareLambdaInfo] to avoid duplicated code in [constructLambda] and [constructStaticLambda].
  */
 private data class LambdaMetafactoryInfo(
-    val caller: MethodHandles.Lookup,
+    val caller: Lookup,
     val invokedName: String,
     val samMethodType: MethodType,
     val lambdaMethod: Method,

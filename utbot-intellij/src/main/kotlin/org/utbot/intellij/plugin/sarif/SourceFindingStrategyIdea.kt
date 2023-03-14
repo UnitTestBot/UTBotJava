@@ -2,7 +2,7 @@ package org.utbot.intellij.plugin.sarif
 
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
-import org.jetbrains.kotlin.idea.search.allScope
+import com.intellij.psi.search.GlobalSearchScope
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.safeRelativize
 import org.utbot.common.PathUtil.toPath
@@ -59,7 +59,7 @@ class SourceFindingStrategyIdea(testClass: PsiClass) : SourceFindingStrategy() {
      */
     private fun findPsiClass(classFqn: String): PsiClass? {
         val psiFacade = JavaPsiFacade.getInstance(project)
-        val psiClass = psiFacade.findClass(classFqn, project.allScope())
+        val psiClass = psiFacade.findClass(classFqn, GlobalSearchScope.allScope(project))
         if (psiClass != null)
             return psiClass
 

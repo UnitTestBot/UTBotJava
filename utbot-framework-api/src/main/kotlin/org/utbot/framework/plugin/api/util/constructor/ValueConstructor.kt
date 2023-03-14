@@ -37,10 +37,7 @@ import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.UtValueExecutionState
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
-import org.utbot.framework.plugin.api.util.CapturedArgument
 import org.utbot.framework.plugin.api.util.anyInstance
-import org.utbot.framework.plugin.api.util.constructLambda
-import org.utbot.framework.plugin.api.util.constructStaticLambda
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass

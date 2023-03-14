@@ -33,7 +33,7 @@ env:
 jobs:
     run-chosen-tests:
       runs-on: ubuntu-20.04
-      container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
 
       steps:
       - name: Print environment variables

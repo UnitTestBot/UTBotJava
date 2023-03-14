@@ -79,7 +79,7 @@ jobs:
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.framework-tests-matrix) }}
     runs-on: ubuntu-20.04
     container:
-      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      image: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
       volumes:
         - "/home/runner/runners:/home/runner/runners"
         - "/tmp/filebeat:/tmp/filebeat"
@@ -169,7 +169,7 @@ jobs:
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.combined-projects-matrix) }}
     runs-on: ubuntu-20.04
     container:
-      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      image: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
       volumes:
         - "/home/runner/runners:/home/runner/runners"
         - "/tmp/filebeat:/tmp/filebeat"
@@ -245,7 +245,7 @@ jobs:
         project: [utbot-core, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]
     runs-on: ubuntu-20.04
     container:
-      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      image: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
       volumes:
         - "/home/runner/runners:/home/runner/runners"
         - "/tmp/filebeat:/tmp/filebeat"

@@ -100,7 +100,7 @@ open class BaseTestsModel(
             "org.springframework.boot.test.context.TestConfiguration",
             "org.springframework.context.annotation.Configuration"
         ).mapNotNull {
-            JavaPsiFacade.getInstance(project).findClass(it, project.allScope())
+            JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.allScope(project))
         }
 
         return annotationClasses.flatMap { annotation ->

@@ -1155,12 +1155,25 @@ class WildcardTypeParameter : TypeParameters(emptyList())
  * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
 open class StandardApplicationContext(
-    val mockFrameworkInstalled: Boolean = true,
+    mockFrameworkInstalled: Boolean = true,
     val staticsMockingIsConfigured: Boolean = true,
 ) {
+    var mockFrameworkInstalled = mockFrameworkInstalled
+        private set
+
     init {
-        if (!mockFrameworkInstalled) {
-            require(!staticsMockingIsConfigured) { "Static mocking cannot be used without mock framework" }
+        /**
+         * Situation when mock framework is not installed but static mocking is configured is semantically incorrect.
+         *
+         * However, it may be obtained in real application after this actions:
+         * - fully configure mocking (dependency installed + resource file created)
+         * - remove mockito-core dependency from project
+         * - forget to remove mock-maker file from resource directory
+         *
+         * Here we transform this configuration to semantically correct.
+         */
+        if (!mockFrameworkInstalled && staticsMockingIsConfigured) {
+            this.mockFrameworkInstalled = false
         }
     }
 }

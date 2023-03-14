@@ -13,6 +13,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import org.jetbrains.kotlin.idea.core.getPackage
+import org.jetbrains.kotlin.idea.search.allScope
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.jetbrains.kotlin.idea.util.sourceRoot
@@ -73,42 +74,36 @@ open class BaseTestsModel(
     )
 
     /**
-     * Searches for classes marked with `@Configuration` and `@TestConfiguration` annotations
-     * in source module and its test modules.
+     * Searches configuration classes in Spring application.
      *
-     * Classes are sorted in the following order:
+     * Classes are selected and sorted in the following order:
      *   - Classes marked with `@TestConfiguration` annotation
      *   - Classes marked with `@Configuration` annotation
-     *
-     * Inside one group classes are sorted by their roots in the following order:
-     *   - Classes from test roots
-     *   - Classes from source roots
-     *
-     * Classes from the test roots are additionally sorted by their roots
-     * in the order provided by [getSortedTestRoots]
+     *      - firstly, from test source roots (in the order provided by [getSortedTestRoots])
+     *      - after that, from source roots
      */
     fun getSortedSpringConfigurationClasses(): List<PsiClass> {
-        val psiFacade = JavaPsiFacade.getInstance(project)
         val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
 
-        // not using `srcModule.testModules(project)` here because it returns
-        // test modules for dependencies of source module if no test roots are found
-        // for the source module itself, however we don't want to search for
-        // configurations there because they are unlikely to be of any use
-        val testModules = ModuleManager.getInstance(project).modules.filter { module ->
-            srcModule == TestModuleProperties.getInstance(module).productionModule
-        }
+        // Not using `srcModule.testModules(project)` here because it returns
+        // test modules for dependent modules if no test roots are found in the source module itself.
+        // We don't want to search configurations there because they seem useless.
+        val testModules = ModuleManager.getInstance(project)
+            .modules
+            .filter { module -> TestModuleProperties.getInstance(module).productionModule == srcModule }
 
         val searchScope = testModules.fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
             accScope.union(GlobalSearchScope.moduleScope(module))
         }
 
-        return listOf(
+        val annotationClasses =  listOf(
             "org.springframework.boot.test.context.TestConfiguration",
             "org.springframework.context.annotation.Configuration"
         ).mapNotNull {
-            psiFacade.findClass(it, ProjectScope.getLibrariesScope(project))
-        }.flatMap { annotation ->
+            JavaPsiFacade.getInstance(project).findClass(it, project.allScope())
+        }
+
+        return annotationClasses.flatMap { annotation ->
             AnnotatedElementsSearch
                 .searchPsiClasses(annotation, searchScope)
                 .findAll()

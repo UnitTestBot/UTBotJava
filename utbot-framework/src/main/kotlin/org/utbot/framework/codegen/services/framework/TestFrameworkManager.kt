@@ -203,7 +203,14 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     abstract fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int)
 
-    open fun expectTimeout(timeoutMs: Long, block: () -> Unit) {}
+    /**
+     * Most frameworks don't have special timeout assertion, so only tested
+     * method call is generated, while timeout is set using
+     * [timeout argument][timeoutArgumentName] of the test annotation
+     *
+     * @see setTestExecutionTimeout
+     */
+    open fun expectTimeout(timeoutMs: Long, block: () -> Unit): Unit = block()
 
     open fun setTestExecutionTimeout(timeoutMs: Long) {
         val timeout = CgNamedAnnotationArgument(

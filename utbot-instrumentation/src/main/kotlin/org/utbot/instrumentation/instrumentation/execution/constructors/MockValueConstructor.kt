@@ -1,6 +1,5 @@
 package org.utbot.instrumentation.instrumentation.execution.constructors
 
-import java.io.Closeable
 import java.lang.reflect.Modifier
 import java.util.IdentityHashMap
 import kotlin.reflect.KClass
@@ -9,9 +8,9 @@ import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
 import org.utbot.common.Reflection
 import org.utbot.common.invokeCatching
-import org.utbot.framework.plugin.api.util.CapturedArgument
-import org.utbot.framework.plugin.api.util.constructLambda
-import org.utbot.framework.plugin.api.util.constructStaticLambda
+import org.utbot.framework.plugin.api.util.constructor.CapturedArgument
+import org.utbot.framework.plugin.api.util.constructor.constructLambda
+import org.utbot.framework.plugin.api.util.constructor.constructStaticLambda
 import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockController
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockController

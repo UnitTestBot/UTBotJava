@@ -139,6 +139,7 @@ abstract class CodeGenerationIntegrationTest(
                         TestCodeGeneratorPipeline.defaultTestFrameworkConfiguration(language, parameterizationMode)
                     TestCodeGeneratorPipeline(config).runClassesCodeGenerationTests(classStages)
                 } catch (e: RuntimeException) {
+                    logger.warn(e) { "error in test pipeline" }
                     pipelineErrors.add(e.message)
                 }
             }

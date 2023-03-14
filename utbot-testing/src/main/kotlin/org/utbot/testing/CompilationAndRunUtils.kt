@@ -6,6 +6,7 @@ import java.nio.file.Path
 import org.utbot.common.FileUtil
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.process.OpenModulesContainer
 
 data class ClassUnderTest(
     val testClassSimpleName: String,
@@ -59,11 +60,10 @@ fun runTests(
 ) {
     val classpath = System.getProperty("java.class.path") + File.pathSeparator + buildDirectory
     val executionInvoke = generatedLanguage.executorInvokeCommand
-    val additionalArguments = listOf(
-        "--add-opens",
-        "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
-        "-ea", // Enable assertions
-    )
+    val additionalArguments = buildList {
+        addAll(OpenModulesContainer.javaVersionSpecificArguments)
+        add("-ea")
+    }
 
     val command = testFramework.getRunTestsCommand(
         executionInvoke,

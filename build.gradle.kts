@@ -65,6 +65,7 @@ allprojects {
                 "-XX:MaxHeapSize=3072m",
                 "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED",
                 "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
+                "--add-opens", "java.base/java.util.concurrent.locks=ALL-UNNAMED",
                 "--add-opens", "java.base/java.text=ALL-UNNAMED",
                 "--add-opens", "java.base/sun.security.util=ALL-UNNAMED",
                 "--add-opens", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",

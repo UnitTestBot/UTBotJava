@@ -20,6 +20,7 @@ object OpenModulesContainer {
             openPackage("java.base", "java.util")
             openPackage("java.base", "java.util.stream")
             openPackage("java.base", "java.util.concurrent")
+            openPackage("java.base", "java.util.concurrent.locks")
             openPackage("java.base", "java.math")
             openPackage("java.base", "java.lang.ref")
             openPackage("java.base", "java.lang.reflect")

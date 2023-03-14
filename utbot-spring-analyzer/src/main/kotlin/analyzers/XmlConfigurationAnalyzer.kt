@@ -2,15 +2,12 @@ package analyzers
 
 import org.w3c.dom.Document
 import org.w3c.dom.Element
-import utils.ResourceNames
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 
-class XmlConfigurationAnalyzer(private val userXmlFilePath: String) {
-    private val fakeXmlFilePath = this.javaClass.classLoader.getResource(ResourceNames.fakeApplicationXmlFileName)?.path
-        ?: error("The path must exist")
+class XmlConfigurationAnalyzer(private val userXmlFilePath: String, private val fakeXmlFilePath: String) {
 
     fun fillFakeApplicationXml() {
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()

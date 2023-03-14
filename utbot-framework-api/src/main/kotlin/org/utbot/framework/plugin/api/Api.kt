@@ -1155,10 +1155,10 @@ class WildcardTypeParameter : TypeParameters(emptyList())
  * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
 open class StandardApplicationContext(
-    mockFrameworkInstalled: Boolean = true,
-    val staticsMockingIsConfigured: Boolean = true,
+    val mockFrameworkInstalled: Boolean = true,
+    staticsMockingIsConfigured: Boolean = true,
 ) {
-    var mockFrameworkInstalled = mockFrameworkInstalled
+    var staticsMockingIsConfigured = staticsMockingIsConfigured
         private set
 
     init {
@@ -1173,7 +1173,7 @@ open class StandardApplicationContext(
          * Here we transform this configuration to semantically correct.
          */
         if (!mockFrameworkInstalled && staticsMockingIsConfigured) {
-            this.mockFrameworkInstalled = false
+            this.staticsMockingIsConfigured = false
         }
     }
 }

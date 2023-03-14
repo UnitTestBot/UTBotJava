@@ -121,7 +121,9 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.SpringApplicationContext
+import org.utbot.framework.plugin.api.TypeReplacementMode.AnyImplementor
+import org.utbot.framework.plugin.api.TypeReplacementMode.KnownImplementor
+import org.utbot.framework.plugin.api.TypeReplacementMode.NoImplementors
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
@@ -1365,7 +1367,7 @@ class Traverser(
         traverseException(current, symException)
     }
 
-    // TODO HACK violation of encapsulation
+    // TODO: HACK violation of encapsulation
     fun createObject(
         addr: UtAddrExpression,
         type: RefType,
@@ -1374,8 +1376,13 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
-        val concreteClassId = applicationContext.replaceTypeIfNeeded(type)
-        concreteClassId?.let {
+        val replacedClassId = when (applicationContext.typeReplacementMode) {
+            KnownImplementor -> applicationContext.replaceTypeIfNeeded(type)
+            AnyImplementor,
+            NoImplementors -> null
+        }
+
+        replacedClassId?.let {
             val sootType = typeResolver.classOrDefault(it.canonicalName)
             val typeStorage = typeResolver.constructTypeStorage(sootType, useConcreteType = false)
 
@@ -1481,58 +1488,66 @@ class Traverser(
             return it
         }
 
-        // In Spring application we may rely on concrete types obtained from bean definitions only,
-        // and this potential replacement has already been suggested in the beginning of the method
-        val useConcreteTypes = applicationContext !is SpringApplicationContext
+        if (typeStorage.possibleConcreteTypes.isEmpty()) {
+            requireNotNull(mockInfoGenerator) {
+                "An object with $addr and $type doesn't have concrete possible types," +
+                        "but there is no mock info generator provided to construct a mock value."
+            }
 
-        if (useConcreteTypes && typeStorage.possibleConcreteTypes.any()) {
-            // If we have this$0 with UtArrayList type, we have to create such instance.
-            // We should create an object with typeStorage of all possible real types and concrete implementation
-            // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
-            val concreteImplementation = wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
-            val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
+            val mockInfo = mockInfoGenerator.generate(addr)
+            val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
 
-            queuedSymbolicStateUpdates += typeHardConstraint
+            val mockedObject: ObjectValue = when (mockedObjectInfo) {
+                is NoMock -> error("Value must be mocked after the force mock")
+                is ExpectedMock -> mockedObjectInfo.value
+                is UnexpectedMock -> {
+                    // if mock occurs, but it is unexpected due to some reasons
+                    // (e.g. we do not have mock framework installed),
+                    // we can only generate a test that uses null value for mocked object
+                    queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
+
+                    mockedObjectInfo.value
+                }
+            }
+
+            if (mockedObjectInfo is UnexpectedMock) {
+                return mockedObject
+            }
+
+            queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
+
+            // add typeConstraint for mocked object. It's a declared type of the object.
+            val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+            val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+
+            queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
             queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
-            return ObjectValue(typeStorage, addr, concreteImplementation)
-        }
-
-        requireNotNull(mockInfoGenerator) {
-            "An object with $addr and $type doesn't have concrete possible types," +
-                    "but there is no mock info generator provided to construct a mock value."
-        }
-
-        val mockInfo = mockInfoGenerator.generate(addr)
-        val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
-
-        val mockedObject: ObjectValue = when (mockedObjectInfo) {
-            is NoMock -> error("Value must be mocked after the force mock")
-            is ExpectedMock -> mockedObjectInfo.value
-            is UnexpectedMock -> {
-                // if mock occurs, but it is unexpected due to some reasons
-                // (e.g. we do not have mock framework installed),
-                // we can only generate a test that uses null value for mocked object
-                queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
-
-                mockedObjectInfo.value
-            }
-        }
-
-        if (mockedObjectInfo is UnexpectedMock) {
             return mockedObject
         }
 
-        queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
+        val concreteImplementation = when (applicationContext.typeReplacementMode) {
+            AnyImplementor -> {
+                val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
 
-        // add typeConstraint for mocked object. It's a declared type of the object.
-        val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
-        val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+                queuedSymbolicStateUpdates += typeHardConstraint
+                queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
-        queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
-        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+                // If we have this$0 with UtArrayList type, we have to create such instance.
+                // We should create an object with typeStorage of all possible real types and concrete implementation
+                // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
+                wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
+            }
+            // In case of known implementor we should have already tried to replace type using `replaceTypeIfNeeded`.
+            KnownImplementor,
+            // If no implementors are allowed, we should have already generated a mock object.
+            NoImplementors -> {
+                queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
+                null
+            }
+        }
 
-        return mockedObject
+        return ObjectValue(typeStorage, addr, concreteImplementation)
     }
 
 

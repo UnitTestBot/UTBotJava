@@ -1481,12 +1481,11 @@ class Traverser(
             return it
         }
 
-        // In Spring application we may rely on concrete types only
-        // if this type is obtained from bean definitions,
-        // this has already been checked in
-        val allowsConcreteTypes = applicationContext !is SpringApplicationContext
+        // In Spring application we may rely on concrete types obtained from bean definitions only,
+        // and this potential replacement has already been suggested in the beginning of the method
+        val useConcreteTypes = applicationContext !is SpringApplicationContext
 
-        if (allowsConcreteTypes && typeStorage.possibleConcreteTypes.any()) {
+        if (useConcreteTypes && typeStorage.possibleConcreteTypes.any()) {
             // If we have this$0 with UtArrayList type, we have to create such instance.
             // We should create an object with typeStorage of all possible real types and concrete implementation
             // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.

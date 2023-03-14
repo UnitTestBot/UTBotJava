@@ -1200,6 +1200,7 @@ class SpringApplicationContext(
     val beanQualifiedNames: List<String> = emptyList(),
     val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+    
     private val springInjectedClasses: List<ClassId> by lazy {
         beanQualifiedNames
             .map { fqn -> utContext.classLoader.loadClass(fqn) }

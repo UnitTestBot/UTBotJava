@@ -1550,7 +1550,6 @@ class Traverser(
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
 
-
     private fun TraversalContext.resolveConstant(constant: Constant): SymbolicValue =
         when (constant) {
             is IntConstant -> constant.value.toPrimitiveValue()

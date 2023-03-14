@@ -101,7 +101,8 @@ jobs:
         project: ${{ fromJson(needs.setup_matrix.outputs.projects) }}
         value: ${{ fromJson(needs.setup_matrix.outputs.matrix) }}
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    s
+    container: unittestbot/java-env:java17-zulu-jdk-fx-gradle7.6.1-kotlinc1.8.0
     steps:
       - name: Install git
         run: |

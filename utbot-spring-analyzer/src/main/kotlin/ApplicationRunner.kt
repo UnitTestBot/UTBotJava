@@ -1,13 +1,19 @@
 package application
 
 import analyzers.SpringApplicationAnalyzer
+import utils.PathsUtils
 
+/**
+ * To run this app, arguments must be passed in the following way:
+ * args[0] - classpath of current project
+ * args[1] - fully qualified name of configuration class
+ * args[2] - `.properties` file paths, separated via `;`, empty string if no files exist
+ * args[3] - `.xml` configuration file paths
+ *
+ * Several items in one arg are separated via `;`.
+ * If there are no files, empty string should be passed.
+ */
 fun main(args: Array<String>) {
-    /*
-        arg2 contains .properties files, arg3 contains .xml files.
-        If there are several files, they are transmitted via ";".
-        If there are no files, then an empty string "" is passed
-    */
 
     /* FOR EXAMPLE
     val arg0 = "/Users/kirillshishin/IdeaProjects/spring-starter-lesson-28/build/classes/java/main"
@@ -19,8 +25,8 @@ fun main(args: Array<String>) {
     val springApplicationAnalyzer = SpringApplicationAnalyzer(
         applicationPath = args[0],
         configurationClassFqn = args[1],
-        propertyFilesPaths = args[2].split(";"),
-        xmlConfigurationPaths = args[3].split(";"),
+        propertyFilesPaths = args[2].split(";").filter { it != PathsUtils.EMPTY_PATH },
+        xmlConfigurationPaths = args[3].split(";").filter { it != PathsUtils.EMPTY_PATH },
     )
 
     springApplicationAnalyzer.analyze()

@@ -31,7 +31,7 @@ class SpringApplicationAnalyzer(
 
         val configurationManager = ConfigurationManager(classLoader, userConfigurationClass)
         val propertiesConfigurator = PropertiesConfigurator(propertyFilesPaths, configurationManager)
-        val xmlFilesConfigurator = XmlFilesConfigurator(xmlConfigurationPaths, configurationManager, fakeFileManager)
+        val xmlFilesConfigurator = XmlFilesConfigurator(xmlConfigurationPaths, configurationManager)
 
         propertiesConfigurator.configure()
         xmlFilesConfigurator.configure()

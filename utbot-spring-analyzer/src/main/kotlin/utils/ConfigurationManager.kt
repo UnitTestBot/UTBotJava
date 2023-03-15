@@ -9,32 +9,15 @@ import kotlin.reflect.KClass
 
 class ConfigurationManager(private val classLoader: ClassLoader, private val userConfigurationClass: Class<*>) {
 
-    fun clearPropertySourceAnnotation(){
-        patchAnnotation(
-            PropertySource::class, null
-        )
-    }
+    fun clearPropertySourceAnnotation() = patchAnnotation(PropertySource::class, null)
 
-    fun clearImportResourceAnnotation(){
-        patchAnnotation(
-            ImportResource::class, null
-        )
-    }
+    fun clearImportResourceAnnotation() = patchAnnotation(ImportResource::class, null)
 
     fun patchPropertySourceAnnotation(userPropertiesFileName: Path) =
-        patchAnnotation(
-            PropertySource::class, String.format(
-                "classpath:%s", "fake_$userPropertiesFileName"
-            )
-        )
+        patchAnnotation(PropertySource::class, String.format("classpath:%s", "fake_$userPropertiesFileName"))
 
     fun patchImportResourceAnnotation(userXmlFilePath: Path) =
-        patchAnnotation(
-            ImportResource::class,
-            String.format(
-                "classpath:%s", "fake_$userXmlFilePath"
-            )
-        )
+        patchAnnotation(ImportResource::class, String.format("classpath:%s", "fake_$userXmlFilePath"))
 
     private fun patchAnnotation(annotationClass: KClass<*>, newValue: String?) {
         val proxyClass = classLoader.loadClass("java.lang.reflect.Proxy")

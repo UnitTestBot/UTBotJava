@@ -1,31 +1,34 @@
 package application.utils
 
-import utils.Paths
+import utils.PathsUtils
 import java.io.File
-import kotlin.io.path.Path
+import java.io.IOException
 
 class FakeFileManager(private val fakeFilesList: List<String>) {
 
-    private val buildResourcesPath =
-        Path(this.javaClass.classLoader.getResource(Paths.GAG_FILE)!!.path).parent.toString()
-
     fun createFakeFiles() {
         for (fileName in fakeFilesList) {
-            if(fileName == Paths.EMPTY_FILENAME)continue
-            val fakeXmlFileAbsolutePath = getFakeFilePath(fileName)
-            File(fakeXmlFileAbsolutePath).createNewFile()
+            val fakeXmlFileAbsolutePath = PathsUtils.createFakeFilePath(fileName)
+
+            try {
+                File(fakeXmlFileAbsolutePath).createNewFile()
+            } catch (e: IOException) {
+                println("Fake xml file creation failed with exception $e")
+            }
+
         }
     }
 
     fun deleteFakeFiles() {
         for (fileName in fakeFilesList) {
-            if(fileName == Paths.EMPTY_FILENAME)continue
-            val fakeXmlFileAbsolutePath = getFakeFilePath(fileName)
-            File(fakeXmlFileAbsolutePath).delete()
-        }
-    }
+            val fakeXmlFileAbsolutePath = PathsUtils.createFakeFilePath(fileName)
 
-    fun getFakeFilePath(fileName: String): String {
-        return Path(buildResourcesPath, "fake_${Path(fileName).fileName}").toString()
+            try {
+                File(fakeXmlFileAbsolutePath).delete()
+            } catch (e: IOException) {
+                println("Fake xml file deletion failed with exception $e")
+            }
+
+        }
     }
 }

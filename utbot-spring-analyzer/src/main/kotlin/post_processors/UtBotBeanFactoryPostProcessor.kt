@@ -1,6 +1,5 @@
 package post_processors
 
-import org.springframework.beans.BeansException
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
@@ -13,9 +12,26 @@ import java.util.Arrays
 
 class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered {
 
+    /**
+     * Sets the priority of post processor to highest to avoid side effects from others.
+     */
+    override fun getOrder(): Int = PriorityOrdered.HIGHEST_PRECEDENCE
+
     override fun postProcessBeanFactory(beanFactory: ConfigurableListableBeanFactory) {
         println("Started post-processing bean factory in UtBot")
 
+        val beanClassNames = findBeanClassNames(beanFactory)
+        //TODO: will be replaced with more appropriate IPC approach.
+        writeToFile(beanClassNames)
+
+        // After desired post-processing is completed we destroy bean definitions
+        // to avoid further possible actions with beans that may be unsafe.
+        destroyBeanDefinitions(beanFactory)
+
+        println("Finished post-processing bean factory in UtBot")
+    }
+
+    private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): ArrayList<String> {
         val beanClassNames = ArrayList<String>()
         for (beanDefinitionName in beanFactory.beanDefinitionNames) {
             val beanDefinition = beanFactory.getBeanDefinition(beanDefinitionName)
@@ -33,12 +49,15 @@ class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered 
                 className?.let { beanClassNames.add(it) }
             }
         }
+
+        return beanClassNames
+    }
+
+    private fun destroyBeanDefinitions(beanFactory: ConfigurableListableBeanFactory) {
         for (beanDefinitionName in beanFactory.beanDefinitionNames) {
             val beanRegistry = beanFactory as BeanDefinitionRegistry
             beanRegistry.removeBeanDefinition(beanDefinitionName)
         }
-
-        writeToFile(beanClassNames)
     }
 
     private fun writeToFile(beanClassNames: ArrayList<String>) {
@@ -58,14 +77,10 @@ class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered 
 
             fileWriter.flush()
             fileWriter.close()
-        } catch (e: Throwable) {
-            println("Storing bean information failed")
-        } finally {
-            println("Finished post-processing bean factory in UtBot")
-        }
-    }
 
-    override fun getOrder(): Int {
-        return PriorityOrdered.HIGHEST_PRECEDENCE
+            println("Storing bean information completed successfully")
+        } catch (e: Throwable) {
+            println("Storing bean information failed with exception $e")
+        }
     }
 }

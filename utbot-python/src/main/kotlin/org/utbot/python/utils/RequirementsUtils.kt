@@ -4,7 +4,7 @@ object RequirementsUtils {
     val requirements: List<String> = listOf(
         "mypy==1.0.0",
         "coverage==6.5.0",
-        "utbot-executor==1.1.37",
+        "utbot-executor==1.2.0",
         "utbot-mypy-runner==0.2.8",
     )
 

@@ -6,8 +6,6 @@ import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.tree.CgComponents
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -18,8 +16,6 @@ import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(cgContext) {
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         return valueByModel.getOrPut(model) {
             when (model) {
@@ -73,7 +69,7 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 if (assistant.memoryObjects.containsKey(id)) {
                     val tree = assistant.memoryObjectsModels[id]
                     val savedObj = assistant.memoryObjects[id]
-                    if (tree == objectNode && savedObj != null) {
+                    if (tree != null && savedObj != null && tree.softEquals(objectNode)) {
                         return Pair(savedObj, emptyList())
                     }
                 }

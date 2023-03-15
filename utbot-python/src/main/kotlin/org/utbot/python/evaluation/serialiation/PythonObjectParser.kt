@@ -180,7 +180,7 @@ fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode
             val dictitemsObjs = memoryDump.getById(dictitems) as DictMemoryObject
             PythonTree.ReduceNode(
                 this.id.toLong(),
-                PythonClassId(this.kind, this.module),
+                PythonClassId(this.module, this.kind),
                 PythonClassId(this.constructor),
                 arguments.items.map { memoryDump.getById(it).toPythonTree(memoryDump) },
                 stateObjs.items.entries.associate {

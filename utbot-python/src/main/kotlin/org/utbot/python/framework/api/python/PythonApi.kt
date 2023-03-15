@@ -1,6 +1,5 @@
 package org.utbot.python.framework.api.python
 
-import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
@@ -75,7 +74,7 @@ class PythonTreeModel(
 
     override fun equals(other: Any?): Boolean {
         if (other is PythonTreeModel) {
-            return tree == other.tree
+            return tree.softEquals(other.tree)
         }
         return false
     }

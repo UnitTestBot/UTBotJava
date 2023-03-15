@@ -12,7 +12,7 @@ RUN apt-get update \
 
 # Install Kotlin compiler
 
-ENV KOTLIN_COMPILER_VERSION=1.7.0
+ENV KOTLIN_COMPILER_VERSION=1.8.0
 ENV KOTLIN_HOME="/opt/kotlin/kotlinc"
 ENV PATH="${KOTLIN_HOME}/bin:${PATH}"
 

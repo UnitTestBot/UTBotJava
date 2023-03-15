@@ -9,6 +9,8 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import org.jetbrains.kotlin.asJava.elements.KtLightMember
 import org.jetbrains.kotlin.asJava.elements.KtLightMethod
+import org.jetbrains.kotlin.asJava.elements.isGetter
+import org.jetbrains.kotlin.asJava.elements.isSetter
 import org.jetbrains.kotlin.psi.KtClass
 import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
@@ -23,7 +25,7 @@ private val PsiMember.isKotlinGetterOrSetter: Boolean
     get() {
         if (this !is KtLightMethod)
             return false
-        return isGetter || isSetter
+        return this.isGetter || this.isSetter
     }
 
 private val PsiMember.isKotlinAndProtected: Boolean

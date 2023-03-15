@@ -2,6 +2,7 @@ val kotlinLoggingVersion: String by rootProject
 val ideType: String by rootProject
 val ideVersion: String by rootProject
 val semVer: String? by rootProject
+val slf4jVersion: String by rootProject
 val androidStudioPath: String? by rootProject
 
 plugins {
@@ -51,5 +52,5 @@ dependencies {
     implementation(group = "org.jetbrains", name = "annotations", version = "16.0.2")
     implementation(project(":utbot-api"))
     implementation(project(":utbot-framework"))
-    implementation(group = "org.slf4j", name = "slf4j-api", version = "1.7.25")
+    implementation(group = "org.slf4j", name = "slf4j-api", version = slf4jVersion)
 }

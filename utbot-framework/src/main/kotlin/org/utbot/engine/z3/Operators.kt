@@ -15,9 +15,9 @@ import soot.CharType
 import soot.IntType
 import soot.ShortType
 
-typealias BinOperator = Operator<out Expr>
+typealias BinOperator = Operator<out Expr<*>>
 
-sealed class Operator<T : Expr>(
+sealed class Operator<T : Expr<*>>(
     val onBitVec: (Context, BitVecExpr, BitVecExpr) -> T,
     val onFP: (Context, FPExpr, FPExpr) -> T = { _, _, _ -> TODO() },
     val onBool: (Context, BoolExpr, BoolExpr) -> T = { _, _, _ -> TODO() }
@@ -32,7 +32,7 @@ sealed class Operator<T : Expr>(
             doAction(context, aleft, aright)
         }
 
-    protected fun doAction(context: Context, left: Expr, right: Expr): T = when {
+    protected fun doAction(context: Context, left: Expr<*>, right: Expr<*>): T = when {
         left is BitVecExpr && right is BitVecExpr -> onBitVec(context, left, right)
         left is FPExpr && right is FPExpr -> onFP(context, left, right)
         left is BoolExpr && right is BoolExpr -> onBool(context, left, right)
@@ -55,7 +55,7 @@ object Gt : BoolOperator(Context::mkBVSGT, Context::mkFPGt)
 object Eq : BoolOperator(Context::mkEq, Context::mkFPEq, Context::mkEq)
 object Ne : BoolOperator(::ne, ::fpNe, ::ne)
 
-private fun ne(context: Context, left: Expr, right: Expr): BoolExpr = context.mkNot(context.mkEq(left, right))
+private fun ne(context: Context, left: Expr<*>, right: Expr<*>): BoolExpr = context.mkNot(context.mkEq(left, right))
 private fun fpNe(context: Context, left: FPExpr, right: FPExpr): BoolExpr = context.mkNot(context.mkFPEq(left, right))
 
 internal object Rem : BinOperator(Context::mkBVSRem, Context::mkFPRem)
@@ -129,7 +129,7 @@ internal object Cmp : BinOperator(::bvCmp, ::fpCmp)
 internal object Cmpl : BinOperator(::bvCmp, ::fpCmpl)
 internal object Cmpg : BinOperator(::bvCmp, ::fpCmpg)
 
-private fun bvCmp(context: Context, left: BitVecExpr, right: BitVecExpr): Expr =
+private fun bvCmp(context: Context, left: BitVecExpr, right: BitVecExpr): Expr<*> =
     context.mkITE(
         context.mkBVSLE(left, right),
         context.mkITE(context.mkEq(left, right), context.mkBV(0, 32), context.mkBV(-1, 32)),
@@ -146,7 +146,7 @@ private fun fpCmp(context: Context, left: FPExpr, right: FPExpr) =
         context.mkBV(1, 32)
     )
 
-private fun fpCmpl(context: Context, left: FPExpr, right: FPExpr): Expr =
+private fun fpCmpl(context: Context, left: FPExpr, right: FPExpr): Expr<*> =
     context.mkITE(
         context.mkOr(context.mkFPIsNaN(left), context.mkFPIsNaN(right)), context.mkBV(-1, 32),
         context.mkITE(
@@ -156,7 +156,7 @@ private fun fpCmpl(context: Context, left: FPExpr, right: FPExpr): Expr =
         )
     )
 
-private fun fpCmpg(context: Context, left: FPExpr, right: FPExpr): Expr =
+private fun fpCmpg(context: Context, left: FPExpr, right: FPExpr): Expr<*> =
     context.mkITE(
         context.mkOr(context.mkFPIsNaN(left), context.mkFPIsNaN(right)), context.mkBV(1, 32),
         context.mkITE(
@@ -166,7 +166,7 @@ private fun fpCmpg(context: Context, left: FPExpr, right: FPExpr): Expr =
         )
     )
 
-fun negate(context: Context, variable: Z3Variable): Expr = when (variable.expr) {
+fun negate(context: Context, variable: Z3Variable): Expr<*> = when (variable.expr) {
     is BitVecExpr -> context.mkBVNeg(context.alignVar(variable).expr as BitVecExpr)
     is FPExpr -> context.mkFPNeg(variable.expr)
     is BoolExpr -> context.mkNot(variable.expr)
@@ -183,7 +183,7 @@ fun negate(context: Context, variable: Z3Variable): Expr = when (variable.expr) 
  * @see <a href="https://docs.oracle.com/javase/specs/jls/se11/html/jls-5.html#jls-5.6.2">
  * Java Language Specification: Binary Numeric Promotion</a>
  */
-fun Context.alignVars(left: Z3Variable, right: Z3Variable): Pair<Expr, Expr> {
+fun Context.alignVars(left: Z3Variable, right: Z3Variable): Pair<Expr<*>, Expr<*>> {
     val maxSort = maxOf(left.expr.sort, right.expr.sort, mkBitVecSort(Int.SIZE_BITS), compareBy { it.rank() })
     return convertVar(left, maxSort) to convertVar(right, maxSort)
 }
@@ -198,7 +198,7 @@ fun Context.alignVars(left: Z3Variable, right: Z3Variable): Pair<Expr, Expr> {
  * @see <a href="https://docs.oracle.com/javase/specs/jls/se11/html/jls-5.html#jls-5.6.2">
  * Java Language Specification: Binary Numeric Promotion</a>
  */
-internal fun Context.alignVarAndConst(left: Z3Variable, right: Number): Pair<Expr, Expr> {
+internal fun Context.alignVarAndConst(left: Z3Variable, right: Number): Pair<Expr<*>, Expr<*>> {
     val maxSort = maxOf(left.expr.sort, toSort(right), mkBitVecSort(Int.SIZE_BITS), compareBy { it.rank() })
     return convertVar(left, maxSort) to makeConst(right, maxSort)
 }

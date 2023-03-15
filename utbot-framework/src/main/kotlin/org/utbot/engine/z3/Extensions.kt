@@ -32,15 +32,15 @@ import soot.Type
 private val Z3Variable.unsigned: Boolean
     get() = this.type is CharType
 
-fun Expr.value(unsigned: Boolean = false): Any = when (this) {
+fun Expr<*>.value(unsigned: Boolean = false): Any = when (this) {
     is BitVecNum -> this.toIntNum(unsigned)
     is FPNum -> this.toFloatingPointNum()
     is BoolExpr -> this.boolValue == Z3_lbool.Z3_L_TRUE
-    is SeqExpr -> convertSolverString(this.string)
+    is SeqExpr<*> -> convertSolverString(this.string)
     else -> error("${this::class}: $this")
 }
 
-internal fun Expr.intValue() = this.value() as Int
+internal fun Expr<*>.intValue() = this.value() as Int
 
 /**
  * Converts a variable to given type.
@@ -64,7 +64,7 @@ fun Context.convertVar(variable: Z3Variable, toType: Type): Z3Variable {
  *
  * @throws IllegalStateException if given expression cannot be convert to given sort
  */
-internal fun Context.convertVar(variable: Z3Variable, sort: Sort): Expr {
+internal fun Context.convertVar(variable: Z3Variable, sort: Sort): Expr<*> {
     val expr = variable.expr
     return when {
         sort == expr.sort -> expr
@@ -94,7 +94,7 @@ internal fun Context.convertVar(variable: Z3Variable, sort: Sort): Expr {
  * - convert to int for other types, with second step conversion by taking lowest bits
  * (can lead to significant changes if value outside of target type range).
  */
-private fun Context.convertFPtoBV(variable: Z3Variable, sortSize: Int): Expr = when (sortSize) {
+private fun Context.convertFPtoBV(variable: Z3Variable, sortSize: Int): Expr<*> = when (sortSize) {
     Long.SIZE_BITS -> convertFPtoBV(variable, sortSize, Long.MIN_VALUE, Long.MAX_VALUE)
     else -> doNarrowConversion(
         convertFPtoBV(variable, Int.SIZE_BITS, Int.MIN_VALUE, Int.MAX_VALUE) as BitVecExpr,
@@ -105,7 +105,7 @@ private fun Context.convertFPtoBV(variable: Z3Variable, sortSize: Int): Expr = w
 /**
  * Converts FP to BV covering special cases for NaN, Infinity and values outside of [minValue, maxValue] range.
  */
-private fun Context.convertFPtoBV(variable: Z3Variable, sortSize: Int, minValue: Number, maxValue: Number): Expr =
+private fun Context.convertFPtoBV(variable: Z3Variable, sortSize: Int, minValue: Number, maxValue: Number): Expr<*> =
     mkITE(
         mkFPIsNaN(variable.expr as FPExpr), makeConst(0, mkBitVecSort(sortSize)),
         mkITE(
@@ -128,7 +128,7 @@ internal fun Context.doNarrowConversion(expr: BitVecExpr, sortSize: Int): BitVec
 /**
  * Converts a constant value to Z3 constant of given sort - BitVec or FP.
  */
-fun Context.makeConst(const: Number, sort: Sort): Expr = when (sort) {
+fun Context.makeConst(const: Number, sort: Sort): Expr<*> = when (sort) {
     is BitVecSort -> this.makeBV(const, sort.size)
     is FPSort -> this.makeFP(const, sort)
     else -> error("Wrong sort $sort")

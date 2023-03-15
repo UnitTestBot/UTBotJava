@@ -1,13 +1,3 @@
-repositories {
-    flatDir {
-        dirs 'dist'
-    }
-}
-
-configurations {
-    z3native
-}
-
 dependencies {
 
     api project(':utbot-fuzzers')
@@ -29,7 +19,6 @@ dependencies {
 
     implementation group: 'com.charleskorn.kaml', name: 'kaml', version: kamlVersion
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
-    implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgenVersion
     implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2Version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
@@ -43,15 +32,6 @@ dependencies {
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
 
-    z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3Version, ext: 'zip'
-    z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3Version, ext: 'zip'
-    z3native group: 'com.microsoft.z3', name: 'z3-native-osx', version: z3Version, ext: 'zip'
-}
-
-processResources {
-    configurations.z3native.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-        from(zipTree(artifact.getFile())) {
-            into "lib/x64"
-        }
-    }
+    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
+    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
 }

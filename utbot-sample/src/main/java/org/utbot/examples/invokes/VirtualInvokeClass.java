@@ -1,6 +1,6 @@
 package org.utbot.examples.invokes;
 
-public class VirtualInvokeClass {
+public class VirtualInvokeClass implements VirtualInvokeInterface<Integer, byte[]> {
     int foo(int value) {
         if (value > 0) {
             return 1;
@@ -21,6 +21,28 @@ public class VirtualInvokeClass {
 
     Object getObject() {
         return 10;
+    }
+
+    @Override
+    public final int narrowParameterTypeInInheritorObjectCast(Integer object) {
+        if (object == null) {
+            return 0;
+        }
+
+        if (object == 1) {
+            return 1;
+        }
+
+        return object;
+    }
+
+    @Override
+    public final int narrowParameterTypeInInheritorArrayCast(byte[] object) {
+        if (object == null) {
+            return 0;
+        }
+
+        return object[0];
     }
 }
 

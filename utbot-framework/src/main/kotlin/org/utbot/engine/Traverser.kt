@@ -1905,6 +1905,12 @@ class Traverser(
         // if we're trying to cast type A to it's predecessor
         if (typeAfterCast in ancestors) return objectValue
 
+        // TODO add a comment
+        if (typeAfterCast is ArrayType) {
+            queuedSymbolicStateUpdates += nullConstraint.asHardConstraint()
+            return objectValue.copy(addr = nullObjectAddr)
+        }
+
         require(typeAfterCast is RefType)
 
         val castedObject = typeResolver.downCast(objectValue, typeAfterCast)
@@ -1943,10 +1949,16 @@ class Traverser(
         // cast A[] to A[]
         if (arrayValue.type == typeAfterCast) return arrayValue
 
+        val nullConstraint = addrEq(arrayValue.addr, nullObjectAddr)
+
+        // TODO add a comment about it
+        if (typeAfterCast is RefType) {
+            queuedSymbolicStateUpdates += nullConstraint.asHardConstraint()
+            return arrayValue.copy(addr = nullObjectAddr)
+        }
+
         val baseTypeBeforeCast = arrayValue.type.baseType
         val baseTypeAfterCast = typeAfterCast.baseType
-
-        val nullConstraint = addrEq(arrayValue.addr, nullObjectAddr)
 
         // i.e. cast Object[] -> int[][]
         if (baseTypeBeforeCast.isJavaLangObject() && baseTypeAfterCast is PrimType) {
@@ -3801,6 +3813,15 @@ class Traverser(
      * we ignore potential exception throwing if the typeAfterCast is one of the generics included in that type.
      */
     private fun TraversalContext.classCastExceptionCheck(valueToCast: ReferenceValue, typeAfterCast: Type) {
+        // TODO add comments about it
+        if (valueToCast.type is ArrayType && typeAfterCast is RefType) {
+            return
+        }
+
+        if (!valueToCast.type.isJavaLangObject() && typeAfterCast is ArrayType) {
+            return
+        }
+
         val baseTypeAfterCast = if (typeAfterCast is ArrayType) typeAfterCast.baseType else typeAfterCast
         val addr = valueToCast.addr
 

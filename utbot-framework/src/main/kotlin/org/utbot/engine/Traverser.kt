@@ -1376,6 +1376,11 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
+        // Some types (e.g., interfaces) need to be mocked or replaced with the concrete implementor.
+        // Typically, this implementor is selected by SMT solver later.
+        // However, if we have the restriction on implementor type (it may be obtained
+        // from Spring bean definitions, for example), we can just create a symbolic object
+        // with hard constraint on the mentioned type.
         val replacedClassId = when (applicationContext.typeReplacementMode) {
             KnownImplementor -> applicationContext.replaceTypeIfNeeded(type)
             AnyImplementor,
@@ -1383,7 +1388,7 @@ class Traverser(
         }
 
         replacedClassId?.let {
-            val sootType = typeResolver.classOrDefault(it.canonicalName)
+            val sootType = Scene.v().getSootClass(it.canonicalName).type
             val typeStorage = typeResolver.constructTypeStorage(sootType, useConcreteType = false)
 
             val typeHardConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
@@ -1494,36 +1499,7 @@ class Traverser(
                         "but there is no mock info generator provided to construct a mock value."
             }
 
-            val mockInfo = mockInfoGenerator.generate(addr)
-            val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
-
-            val mockedObject: ObjectValue = when (mockedObjectInfo) {
-                is NoMock -> error("Value must be mocked after the force mock")
-                is ExpectedMock -> mockedObjectInfo.value
-                is UnexpectedMock -> {
-                    // if mock occurs, but it is unexpected due to some reasons
-                    // (e.g. we do not have mock framework installed),
-                    // we can only generate a test that uses null value for mocked object
-                    queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
-
-                    mockedObjectInfo.value
-                }
-            }
-
-            if (mockedObjectInfo is UnexpectedMock) {
-                return mockedObject
-            }
-
-            queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
-
-            // add typeConstraint for mocked object. It's a declared type of the object.
-            val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
-            val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
-
-            queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
-            queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
-
-            return mockedObject
+            return createMockedObject(addr, type, mockInfoGenerator)
         }
 
         val concreteImplementation = when (applicationContext.typeReplacementMode) {
@@ -1538,16 +1514,64 @@ class Traverser(
                 // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
                 wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
             }
-            // In case of known implementor we should have already tried to replace type using `replaceTypeIfNeeded`.
+            // In case of `KnownImplementor` mode we should have already tried to replace type using `replaceTypeIfNeeded`.
+            // However, this replacement attempt might be unsuccessful even if some possible concrete types are present.
+            // For example, we may have two concrete implementors present in Spring bean definitions, so we do not know
+            // which one to use. In such case we try to mock this type, if it is possible, or prune branch as unsatisfiable.
+            //
+            // In case of `NoImplementors` mode we should try to mock this type or prune branch as unsatisfiable.
+            // Mocking can be impossible here as there are no guaranties that `mockInfoGenerator` is instantiated.
             KnownImplementor,
-            // If no implementors are allowed, we should have already generated a mock object.
             NoImplementors -> {
+                mockInfoGenerator?.let {
+                    return createMockedObject(addr, type, it)
+                }
+
                 queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
                 null
             }
         }
 
         return ObjectValue(typeStorage, addr, concreteImplementation)
+    }
+
+    private fun createMockedObject(
+        addr: UtAddrExpression,
+        type: RefType,
+        mockInfoGenerator: UtMockInfoGenerator,
+    ): ObjectValue {
+        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
+
+        val mockInfo = mockInfoGenerator.generate(addr)
+        val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
+
+        val mockedObject: ObjectValue = when (mockedObjectInfo) {
+            is NoMock -> error("Value must be mocked after the force mock")
+            is ExpectedMock -> mockedObjectInfo.value
+            is UnexpectedMock -> {
+                // if mock occurs, but it is unexpected due to some reasons
+                // (e.g. we do not have mock framework installed),
+                // we can only generate a test that uses null value for mocked object
+                queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
+
+                mockedObjectInfo.value
+            }
+        }
+
+        if (mockedObjectInfo is UnexpectedMock) {
+            return mockedObject
+        }
+
+        queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
+
+        // add typeConstraint for mocked object. It's a declared type of the object.
+        val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+        val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+
+        queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
+        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+
+        return mockedObject
     }
 
     private fun TraversalContext.resolveConstant(constant: Constant): SymbolicValue =

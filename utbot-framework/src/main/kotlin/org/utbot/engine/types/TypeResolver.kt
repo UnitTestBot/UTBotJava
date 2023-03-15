@@ -95,7 +95,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             .toSet()
     }
 
-    fun classOrDefault(typeName: String): RefType =
+    private fun classOrDefault(typeName: String): RefType =
         runCatching { Scene.v().getRefType(typeName) }.getOrDefault(OBJECT_TYPE)
 
     fun findFields(type: RefType) = typeRegistry.findFields(type) {

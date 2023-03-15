@@ -1157,18 +1157,20 @@ class WildcardTypeParameter : TypeParameters(emptyList())
  */
 enum class TypeReplacementMode {
     /**
-     * Any possible implementor may be used.
+     * Any possible implementor (that is preferred by solver) may be used.
      */
     AnyImplementor,
 
     /**
      * There is a known implementor to be used.
-     * For example, it is found in Spring bean definitions.
+     * For example, it is obtained from bean definitions in Spring application.
      */
     KnownImplementor,
 
     /**
      * Using implementors is not allowed.
+     * If mocking is allowed, mock of this type will be used.
+     * Otherwise, branch will be pruned as unsatisfiable.
      */
     NoImplementors,
 }

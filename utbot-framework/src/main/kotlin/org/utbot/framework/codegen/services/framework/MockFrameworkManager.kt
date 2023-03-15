@@ -22,7 +22,6 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
 import org.utbot.framework.codegen.domain.models.CgAssignment
-import org.utbot.framework.codegen.domain.models.CgBreakStatement
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgDeclaration
 import org.utbot.framework.codegen.domain.models.CgExecutableCall
@@ -69,7 +68,6 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.voidClassId
-import java.util.Locale
 
 abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgContextOwner by context,
@@ -337,7 +335,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         val mockParameter = variableConstructor.declareParameter(
             classId,
             nameGenerator.variableName(
-                classId.simpleName.replaceFirstChar { it.lowercase(Locale.getDefault()) },
+                classId,
                 isMock = true
             )
         )

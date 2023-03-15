@@ -2,7 +2,7 @@ package org.utbot.taint.parser.yaml
 
 import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
-import org.utbot.taint.parser.model.Configuration
+import org.utbot.taint.parser.model.DtoTaintConfiguration
 import org.utbot.taint.parser.yaml.Constants.KEY_CLEANERS
 import org.utbot.taint.parser.yaml.Constants.KEY_PASSES
 import org.utbot.taint.parser.yaml.Constants.KEY_SINKS
@@ -10,7 +10,7 @@ import org.utbot.taint.parser.yaml.Constants.KEY_SOURCES
 import kotlin.contracts.ExperimentalContracts
 
 @OptIn(ExperimentalContracts::class)
-object ConfigurationParser {
+object TaintConfigurationParser {
 
     /**
      * Expects a [YamlMap] with keys [KEY_SOURCES], [KEY_PASSES], [KEY_CLEANERS] and [KEY_SINKS].
@@ -24,7 +24,7 @@ object ConfigurationParser {
      * sinks: [ ... ]
      * ```
      */
-    fun parseConfiguration(node: YamlNode): Configuration {
+    fun parseConfiguration(node: YamlNode): DtoTaintConfiguration {
         validate(node is YamlMap, "The root node should be a map", node)
         validateYamlMapKeys(node, setOf(KEY_SOURCES, KEY_PASSES, KEY_CLEANERS, KEY_SINKS))
 
@@ -33,11 +33,11 @@ object ConfigurationParser {
         val cleanersNode = node.get<YamlNode>(KEY_CLEANERS)
         val sinksNode = node.get<YamlNode>(KEY_SINKS)
 
-        val sources = sourcesNode?.let(RuleParser::parseSources) ?: listOf()
-        val passes = passesNode?.let(RuleParser::parsePasses) ?: listOf()
-        val cleaners = cleanersNode?.let(RuleParser::parseCleaners) ?: listOf()
-        val sinks = sinksNode?.let(RuleParser::parseSinks) ?: listOf()
+        val sources = sourcesNode?.let(TaintRuleParser::parseSources) ?: listOf()
+        val passes = passesNode?.let(TaintRuleParser::parsePasses) ?: listOf()
+        val cleaners = cleanersNode?.let(TaintRuleParser::parseCleaners) ?: listOf()
+        val sinks = sinksNode?.let(TaintRuleParser::parseSinks) ?: listOf()
 
-        return Configuration(sources, passes, cleaners, sinks)
+        return DtoTaintConfiguration(sources, passes, cleaners, sinks)
     }
 }

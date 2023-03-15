@@ -73,7 +73,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse underscore as ArgumentTypeAny`() {
             val yamlScalar = Yaml.default.parseToYamlNode(k__)
-            val expectedArgumentType = ArgumentTypeAny
+            val expectedArgumentType = DtoArgumentTypeAny
 
             val actualArgumentType = MethodArgumentParser.parseArgumentType(yamlScalar)
             assertEquals(expectedArgumentType, actualArgumentType)
@@ -82,7 +82,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse type fqn in brackets`() {
             val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}double${k_gt}")
-            val expectedArgumentType = ArgumentTypeString("double")
+            val expectedArgumentType = DtoArgumentTypeString("double")
 
             val actualArgumentType = MethodArgumentParser.parseArgumentType(yamlScalar)
             assertEquals(expectedArgumentType, actualArgumentType)
@@ -92,7 +92,7 @@ class MethodArgumentParserTest {
         fun `should fail on another yaml type`() {
             val yamlMap = Yaml.default.parseToYamlNode("type: ${k_lt}double${k_gt}")
 
-            assertThrows<ConfigurationParseError> {
+            assertThrows<TaintParseError> {
                 MethodArgumentParser.parseArgumentType(yamlMap)
             }
         }
@@ -104,7 +104,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse yaml null as ArgumentValueNull`() {
             val yamlNull = Yaml.default.parseToYamlNode("null")
-            val expectedArgumentValue = ArgumentValueNull
+            val expectedArgumentValue = DtoArgumentValueNull
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlNull)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -113,7 +113,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse boolean yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("false")
-            val expectedArgumentValue = ArgumentValueBoolean(false)
+            val expectedArgumentValue = DtoArgumentValueBoolean(false)
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -122,7 +122,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse long yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("17")
-            val expectedArgumentValue = ArgumentValueLong(17L)
+            val expectedArgumentValue = DtoArgumentValueLong(17L)
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -131,7 +131,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse double yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("1.2")
-            val expectedArgumentValue = ArgumentValueDouble(1.2)
+            val expectedArgumentValue = DtoArgumentValueDouble(1.2)
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -140,7 +140,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse string yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("some-string")
-            val expectedArgumentValue = ArgumentValueString("some-string")
+            val expectedArgumentValue = DtoArgumentValueString("some-string")
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -150,7 +150,7 @@ class MethodArgumentParserTest {
         fun `should fail on another yaml type`() {
             val yamlList = Yaml.default.parseToYamlNode("[ some-string ]")
 
-            assertThrows<ConfigurationParseError> {
+            assertThrows<TaintParseError> {
                 MethodArgumentParser.parseArgumentValue(yamlList)
             }
         }

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.utbot.taint.parser.constants.*
 import org.utbot.taint.parser.model.*
-import org.utbot.taint.parser.yaml.ConfigurationParseError
+import org.utbot.taint.parser.yaml.TaintParseError
 
 class TaintAnalysisConfigurationParserTest {
 
@@ -27,7 +27,7 @@ class TaintAnalysisConfigurationParserTest {
     @Test
     fun `parse should throw exception on incorrect yaml`() {
         val incorrectYamlInput = yamlInput.replace(k_not, "net")
-        assertThrows<ConfigurationParseError> {
+        assertThrows<TaintParseError> {
             TaintAnalysisConfigurationParser.parse(incorrectYamlInput)
         }
     }
@@ -72,50 +72,50 @@ class TaintAnalysisConfigurationParserTest {
               $k_marks: environment
     """.trimIndent()
 
-    private val expectedConfiguration = Configuration(
+    private val expectedConfiguration = DtoTaintConfiguration(
         sources = listOf(
-            Source(
-                methodFqn = MethodFqn(listOf("java", "lang"), "System", "getenv"),
-                addTo = TaintEntitiesSet(setOf(ReturnValue)),
-                marks = TaintMarksSet(setOf(TaintMark("environment"))),
-                signature = SignatureList(listOf(ArgumentTypeString("java.lang.String"))),
-                conditions = NoConditions
+            DtoTaintSource(
+                methodFqn = DtoMethodFqn(listOf("java", "lang"), "System", "getenv"),
+                addTo = DtoTaintEntitiesSet(setOf(DtoTaintEntityReturn)),
+                marks = DtoTaintMarksSet(setOf(DtoTaintMark("environment"))),
+                signature = DtoTaintSignatureList(listOf(DtoArgumentTypeString("java.lang.String"))),
+                conditions = DtoNoTaintConditions
             )
         ),
         passes = listOf(
-            Pass(
-                methodFqn = MethodFqn(listOf("java", "lang"), "String", "concat"),
-                getFrom = TaintEntitiesSet(setOf(ThisObject)),
-                addTo = TaintEntitiesSet(setOf(ReturnValue)),
-                marks = TaintMarksSet(setOf(TaintMark("sensitive-data"))),
-                signature = AnySignature,
-                conditions = ConditionsMap(mapOf(ThisObject to NotCondition(ValueCondition(ArgumentValueString("")))))
+            DtoTaintPass(
+                methodFqn = DtoMethodFqn(listOf("java", "lang"), "String", "concat"),
+                getFrom = DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)),
+                addTo = DtoTaintEntitiesSet(setOf(DtoTaintEntityReturn)),
+                marks = DtoTaintMarksSet(setOf(DtoTaintMark("sensitive-data"))),
+                signature = DtoTaintSignatureAny,
+                conditions = DtoTaintConditionsMap(mapOf(DtoTaintEntityThis to DtoTaintConditionNot(DtoTaintConditionEqualValue(DtoArgumentValueString("")))))
             ),
-            Pass(
-                methodFqn = MethodFqn(listOf("java", "lang"), "String", "concat"),
-                getFrom = TaintEntitiesSet(setOf(MethodArgument(1u))),
-                addTo = TaintEntitiesSet(setOf(ReturnValue)),
-                marks = TaintMarksSet(setOf(TaintMark("sensitive-data"))),
-                signature = AnySignature,
-                conditions = ConditionsMap(mapOf(MethodArgument(1u) to NotCondition(ValueCondition(ArgumentValueString("")))))
+            DtoTaintPass(
+                methodFqn = DtoMethodFqn(listOf("java", "lang"), "String", "concat"),
+                getFrom = DtoTaintEntitiesSet(setOf(DtoTaintEntityArgument(1u))),
+                addTo = DtoTaintEntitiesSet(setOf(DtoTaintEntityReturn)),
+                marks = DtoTaintMarksSet(setOf(DtoTaintMark("sensitive-data"))),
+                signature = DtoTaintSignatureAny,
+                conditions = DtoTaintConditionsMap(mapOf(DtoTaintEntityArgument(1u) to DtoTaintConditionNot(DtoTaintConditionEqualValue(DtoArgumentValueString("")))))
             )
         ),
         cleaners = listOf(
-            Cleaner(
-                methodFqn = MethodFqn(listOf("java", "lang"), "String", "isEmpty"),
-                removeFrom = TaintEntitiesSet(setOf(ThisObject)),
-                marks = TaintMarksSet(setOf(TaintMark("sql-injection"), TaintMark("xss"))),
-                signature = AnySignature,
-                conditions = ConditionsMap(mapOf(ReturnValue to ValueCondition(ArgumentValueBoolean(true))))
+            DtoTaintCleaner(
+                methodFqn = DtoMethodFqn(listOf("java", "lang"), "String", "isEmpty"),
+                removeFrom = DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)),
+                marks = DtoTaintMarksSet(setOf(DtoTaintMark("sql-injection"), DtoTaintMark("xss"))),
+                signature = DtoTaintSignatureAny,
+                conditions = DtoTaintConditionsMap(mapOf(DtoTaintEntityReturn to DtoTaintConditionEqualValue(DtoArgumentValueBoolean(true))))
             )
         ),
         sinks = listOf(
-            Sink(
-                methodFqn = MethodFqn(listOf("org", "example"), "util", "unsafe"),
-                check = TaintEntitiesSet(setOf(MethodArgument(2u))),
-                marks = TaintMarksSet(setOf(TaintMark("environment"))),
-                signature = SignatureList(argumentTypes = listOf(ArgumentTypeAny, ArgumentTypeString("java.lang.Integer"))),
-                conditions = ConditionsMap(mapOf(MethodArgument(2u) to ValueCondition(ArgumentValueLong(0L))))
+            DtoTaintSink(
+                methodFqn = DtoMethodFqn(listOf("org", "example"), "util", "unsafe"),
+                check = DtoTaintEntitiesSet(setOf(DtoTaintEntityArgument(2u))),
+                marks = DtoTaintMarksSet(setOf(DtoTaintMark("environment"))),
+                signature = DtoTaintSignatureList(argumentTypes = listOf(DtoArgumentTypeAny, DtoArgumentTypeString("java.lang.Integer"))),
+                conditions = DtoTaintConditionsMap(mapOf(DtoTaintEntityArgument(2u) to DtoTaintConditionEqualValue(DtoArgumentValueLong(0L))))
             )
         )
     )

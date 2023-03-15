@@ -10,7 +10,7 @@ import org.utbot.taint.parser.constants.*
 import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
-class SignatureParserTest {
+class TaintSignatureParserTest {
 
     @Nested
     @DisplayName("parseSignatureKey")
@@ -18,18 +18,18 @@ class SignatureParserTest {
         @Test
         fun `should parse yaml list of the argument types`() {
             val yamlList = Yaml.default.parseToYamlNode("[ ${k_lt}int${k_gt}, $k__, ${k_lt}java.lang.String${k_gt} ]")
-            val expectedSignature = SignatureList(listOf(ArgumentTypeString("int"), ArgumentTypeAny, ArgumentTypeString("java.lang.String")))
+            val expectedSignature = DtoTaintSignatureList(listOf(DtoArgumentTypeString("int"), DtoArgumentTypeAny, DtoArgumentTypeString("java.lang.String")))
 
-            val actualSignature = SignatureParser.parseSignature(yamlList)
+            val actualSignature = TaintSignatureParser.parseSignature(yamlList)
             assertEquals(expectedSignature, actualSignature)
         }
 
         @Test
         fun `should parse empty yaml list`() {
             val yamlList = Yaml.default.parseToYamlNode("[]")
-            val expectedSignature = SignatureList(listOf())
+            val expectedSignature = DtoTaintSignatureList(listOf())
 
-            val actualSignature = SignatureParser.parseSignature(yamlList)
+            val actualSignature = TaintSignatureParser.parseSignature(yamlList)
             assertEquals(expectedSignature, actualSignature)
         }
 
@@ -37,8 +37,8 @@ class SignatureParserTest {
         fun `should fail on incorrect signature`() {
             val yamlList = Yaml.default.parseToYamlNode("[ 0, $k__, 2 ]")
 
-            assertThrows<ConfigurationParseError> {
-                SignatureParser.parseSignature(yamlList)
+            assertThrows<TaintParseError> {
+                TaintSignatureParser.parseSignature(yamlList)
             }
         }
 
@@ -46,8 +46,8 @@ class SignatureParserTest {
         fun `should fail on another yaml type`() {
             val yamlMap = Yaml.default.parseToYamlNode("$k_signature: []")
 
-            assertThrows<ConfigurationParseError> {
-                SignatureParser.parseSignature(yamlMap)
+            assertThrows<TaintParseError> {
+                TaintSignatureParser.parseSignature(yamlMap)
             }
         }
     }
@@ -58,18 +58,18 @@ class SignatureParserTest {
         @Test
         fun `should parse yaml map with a key 'signature'`() {
             val yamlList = Yaml.default.parseToYamlNode("$k_signature: [ $k__, $k__, ${k_lt}int${k_gt} ]").yamlMap
-            val expectedSignature = SignatureList(listOf(ArgumentTypeAny, ArgumentTypeAny, ArgumentTypeString("int")))
+            val expectedSignature = DtoTaintSignatureList(listOf(DtoArgumentTypeAny, DtoArgumentTypeAny, DtoArgumentTypeString("int")))
 
-            val actualSignature = SignatureParser.parseSignatureKey(yamlList)
+            val actualSignature = TaintSignatureParser.parseSignatureKey(yamlList)
             assertEquals(expectedSignature, actualSignature)
         }
 
         @Test
         fun `should parse yaml map without a key 'signature' as AnySignature`() {
             val yamlMap = Yaml.default.parseToYamlNode("$k_marks: []").yamlMap
-            val expectedSignature = AnySignature
+            val expectedSignature = DtoTaintSignatureAny
 
-            val actualSignature = SignatureParser.parseSignatureKey(yamlMap)
+            val actualSignature = TaintSignatureParser.parseSignatureKey(yamlMap)
             assertEquals(expectedSignature, actualSignature)
         }
     }

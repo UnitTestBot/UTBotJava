@@ -4,7 +4,6 @@ import com.microsoft.z3.Context
 import com.microsoft.z3.Global
 import org.utbot.common.FileUtil
 import java.io.File
-import java.nio.file.Files.createTempDirectory
 
 abstract class Z3Initializer : AutoCloseable {
     protected val context: Context by lazy {
@@ -27,27 +26,30 @@ abstract class Z3Initializer : AutoCloseable {
             val arch = System.getProperty("os.arch")
             require(arch in supportedArchs) { "Not supported arch: $arch" }
 
-            val osProperty = System.getProperty("os.name").toLowerCase()
+            val osProperty = System.getProperty("os.name").lowercase()
             val (ext, allLibraries) = when {
                 osProperty.startsWith("windows") -> ".dll" to vcWinLibrariesToLoadBefore + libraries
                 osProperty.startsWith("linux") -> ".so" to libraries
                 osProperty.startsWith("mac") -> ".dylib" to libraries
                 else -> error("Unknown OS: $osProperty")
             }
-            val libZ3DllUrl = Z3Initializer::class.java
+
+            val dist = if (arch == "aarch64") "arm" else "x64"
+
+            val libZ3FilesUrl = Z3Initializer::class.java
                 .classLoader
-                .getResource("lib/x64/libz3.dll") ?: error("Can't find native library folder")
+                .getResource("lib/$dist/libz3$ext") ?: error("Can't find native library folder")
             // can't take resource of parent folder right here because in obfuscated jar parent folder
             // can be missed (e.g., in case if obfuscation was applied)
 
             val libFolder: String?
-            if (libZ3DllUrl.toURI().scheme == "jar") {
+            if (libZ3FilesUrl.toURI().scheme == "jar") {
                 val tempDir = FileUtil.createTempDirectory("libs-").toFile()
 
                 allLibraries.forEach { name ->
                     Z3Initializer::class.java
                         .classLoader
-                        .getResourceAsStream("lib/x64/$name$ext")
+                        .getResourceAsStream("lib/$dist/$name$ext")
                         ?.use { input ->
                             File(tempDir, "$name$ext")
                                 .outputStream()
@@ -57,7 +59,7 @@ abstract class Z3Initializer : AutoCloseable {
 
                 libFolder = "$tempDir"
             } else {
-                libFolder = File(libZ3DllUrl.file).parent
+                libFolder = File(libZ3FilesUrl.file).parent
             }
 
             allLibraries.forEach { System.load("$libFolder/$it$ext") }

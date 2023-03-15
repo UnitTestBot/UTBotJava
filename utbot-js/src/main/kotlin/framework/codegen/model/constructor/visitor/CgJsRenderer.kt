@@ -408,7 +408,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type}")
     }
 
-    override fun escapeNamePossibleKeywordImpl(s: String): String = ""
+    override fun escapeNamePossibleKeywordImpl(s: String): String = s
 
     override fun renderClassVisibility(classId: ClassId) {
         TODO("Not yet implemented")

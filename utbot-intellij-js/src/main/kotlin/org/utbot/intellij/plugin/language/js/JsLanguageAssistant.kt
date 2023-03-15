@@ -85,11 +85,16 @@ object JsLanguageAssistant : LanguageAssistant() {
         // TODO: generate tests for all classes, not only the first one
         //  (currently not possible since breaks JsTestGenerator routine)
         if (memberInfos.isEmpty()) {
+            val classes = file.statements.filterIsInstance<ES6Class>()
+            if (classes.isEmpty()) return null
+
             memberInfos = generateMemberInfo(
                 e.project!!,
                 emptyList(),
-                file.statements.filterIsInstance<ES6Class>().first()
+                classes.first()
             )
+            if (memberInfos.isEmpty()) return null
+
             focusedMethodMI = memberInfos.first()
         }
         return PsiTargets(

@@ -375,16 +375,16 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         val answerValues = mockAnswerStatements.values
         // If we have no more than one branch or all branches are empty,
         // it means we do not need this switch and mock counter itself at all.
-        val moreThanOneBranch = answerValues.size <= 1 || answerValues.all { statements -> statements.isEmpty() }
-        val (mockConstructionBody, isMockCounterRequired) = if (moreThanOneBranch) {
-            (answerValues.singleOrNull() ?: emptyList()) to false
+        val atMostOneBranchOrAllEmpty = answerValues.size <= 1 || answerValues.all { statements -> statements.isEmpty() }
+        val mockConstructionBody = if (atMostOneBranchOrAllEmpty) {
+            answerValues.singleOrNull() ?: emptyList()
         } else {
             val caseLabels = mockAnswerStatements.map { (index, statements) ->
                 CgSwitchCaseLabel(CgLiteral(intClassId, index), statements)
             }
             val switchCase = CgSwitchCase(mockClassCounter[atomicIntegerGet](), caseLabels)
 
-            listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]())) to true
+            listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
         }
 
         val answersBlock = CgAnonymousFunction(
@@ -395,7 +395,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
 
         return MockConstructionBlock(
             mockitoClassId[MockitoStaticMocking.mockConstructionMethodId](clazz, answersBlock),
-            isMockCounterRequired
+            !atMostOneBranchOrAllEmpty
         )
     }
 

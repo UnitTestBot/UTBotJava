@@ -5,7 +5,7 @@ package com.microsoft.z3
 import java.lang.Integer.parseUnsignedInt
 import java.lang.Long.parseUnsignedLong
 
-fun Model.eval(expr: Expr): Expr = this.eval(expr, true)
+fun Model.eval(expr: Expr<*>): Expr<*> = this.eval(expr, true)
 
 fun BitVecNum.toIntNum(unsigned: Boolean = false): Any = when (sortSize) {
     Byte.SIZE_BITS -> parseUnsignedLong(this.toBinaryString(), 2).toByte()
@@ -44,7 +44,7 @@ fun FPNum.toFloatingPointNum(): Number = when (sort) {
     else -> error("Unknown type: $sort")
 }
 
-fun Context.mkSeqNth(s: SeqExpr, index: Expr): Expr {
+fun Context.mkSeqNth(s: SeqExpr<*>, index: Expr<*>): Expr<*> {
     this.checkContextMatch(s, index)
     return Expr.create(this, Native.mkSeqNth(nCtx(), s.nativeObject, index.nativeObject))
 }

@@ -43,7 +43,7 @@ public class ProcessWithRdServer
                 var wire = new SocketWire.Server(Lifetime, scheduler, socket);
                 var serializers = new Serializers();
                 var identities = new Identities(IdKind.Server);
-                var startInfo = new ProcessStartInfo("dotnet", $"\"{exePath}\" {port}")
+                var startInfo = new ProcessStartInfo("dotnet", $"--roll-forward LatestMajor \"{exePath}\" {port}")
                 {
                     WorkingDirectory = workingDir
                 };

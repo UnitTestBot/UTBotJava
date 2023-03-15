@@ -11,7 +11,8 @@
     <ItemGroup>
       <ProjectReference Include="..\UtBot.Rd\UtBot.Rd.csproj" />
     </ItemGroup>
+
     <ItemGroup>
-        <PackageReference Include="VSTeam.VSharp" Version="0.0.6" />
+      <PackageReference Include="VSTeam.VSharp" Version="0.0.7" />
     </ItemGroup>
 </Project>

@@ -9,22 +9,25 @@ object VSharpModel: Ext(CSharpRoot) {
     val methodDescriptor = structdef {
         field("methodName", PredefinedType.string)
         field("typeName", PredefinedType.string)
+        field("hasNoOverloads", PredefinedType.bool)
+        field("parameters", immutableList(PredefinedType.string))
     }
 
     val generateArguments = structdef {
         field("assemblyPath", PredefinedType.string)
         field("projectCsprojPath", PredefinedType.string)
         field("solutionFilePath", PredefinedType.string)
-        field("method", methodDescriptor)
+        field("methods", immutableList(methodDescriptor))
         field("generationTimeoutInSeconds", PredefinedType.int)
         field("targetFramework", PredefinedType.string.nullable)
     }
 
     val generateResults = structdef {
-        field("isGenerated", PredefinedType.bool)
-        field("generatedProjectPath", PredefinedType.string)
-        field("generatedFilesPaths", array(PredefinedType.string))
+        field("generatedProjectPath", PredefinedType.string.nullable)
+        field("generatedFilesPaths", immutableList(PredefinedType.string))
         field("exceptionMessage", PredefinedType.string.nullable)
+        field("testsCount", PredefinedType.int)
+        field("errorsCount", PredefinedType.int)
     }
 
     init {

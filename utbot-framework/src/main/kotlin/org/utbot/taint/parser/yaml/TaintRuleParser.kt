@@ -4,42 +4,42 @@ import com.charleskorn.kaml.YamlList
 import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
 import org.utbot.taint.parser.model.*
-import org.utbot.taint.parser.yaml.ConditionParser.parseConditionsKey
-import org.utbot.taint.parser.yaml.SignatureParser.parseSignatureKey
+import org.utbot.taint.parser.yaml.TaintConditionParser.parseConditionsKey
+import org.utbot.taint.parser.yaml.TaintSignatureParser.parseSignatureKey
 import org.utbot.taint.parser.yaml.TaintEntityParser.parseTaintEntities
 import org.utbot.taint.parser.yaml.TaintMarkParser.parseTaintMarks
 import kotlin.contracts.ExperimentalContracts
 
 @OptIn(ExperimentalContracts::class)
-object RuleParser {
+object TaintRuleParser {
 
     /**
      * Recursively parses source rules.
      * @see parseRules
      */
-    fun parseSources(node: YamlNode): List<Source> =
-        parseRules(node, RuleParser::isSourceRule, RuleParser::parseSourceRule)
+    fun parseSources(node: YamlNode): List<DtoTaintSource> =
+        parseRules(node, TaintRuleParser::isSourceRule, TaintRuleParser::parseSourceRule)
 
     /**
      * Recursively parses pass-through rules.
      * @see parseRules
      */
-    fun parsePasses(node: YamlNode): List<Pass> =
-        parseRules(node, RuleParser::isPassRule, RuleParser::parsePassRule)
+    fun parsePasses(node: YamlNode): List<DtoTaintPass> =
+        parseRules(node, TaintRuleParser::isPassRule, TaintRuleParser::parsePassRule)
 
     /**
      * Recursively parses cleaner rules.
      * @see parseRules
      */
-    fun parseCleaners(node: YamlNode): List<Cleaner> =
-        parseRules(node, RuleParser::isCleanerRule, RuleParser::parseCleanerRule)
+    fun parseCleaners(node: YamlNode): List<DtoTaintCleaner> =
+        parseRules(node, TaintRuleParser::isCleanerRule, TaintRuleParser::parseCleanerRule)
 
     /**
      * Recursively parses sink rules.
      * @see parseRules
      */
-    fun parseSinks(node: YamlNode): List<Sink> =
-        parseRules(node, RuleParser::isSinkRule, RuleParser::parseSinkRule)
+    fun parseSinks(node: YamlNode): List<DtoTaintSink> =
+        parseRules(node, TaintRuleParser::isSinkRule, TaintRuleParser::parseSinkRule)
 
     /**
      * Recursively parses rules (sources/passes/cleaners/sinks).
@@ -76,25 +76,25 @@ object RuleParser {
 
 
     /**
-     * Checks that the [node] can be parsed to [Source].
+     * Checks that the [node] can be parsed to [DtoTaintSource].
      */
     fun isSourceRule(node: YamlNode): Boolean =
         node.containsKey(Constants.KEY_ADD_TO) && node.containsKey(Constants.KEY_MARKS)
 
     /**
-     * Checks that the [node] can be parsed to [Pass].
+     * Checks that the [node] can be parsed to [DtoTaintPass].
      */
     fun isPassRule(node: YamlNode): Boolean =
         node.containsKey(Constants.KEY_GET_FROM) && node.containsKey(Constants.KEY_ADD_TO) && node.containsKey(Constants.KEY_MARKS)
 
     /**
-     * Checks that the [node] can be parsed to [Cleaner].
+     * Checks that the [node] can be parsed to [DtoTaintCleaner].
      */
     fun isCleanerRule(node: YamlNode): Boolean =
         node.containsKey(Constants.KEY_REMOVE_FROM) && node.containsKey(Constants.KEY_MARKS)
 
     /**
-     * Checks that the [node] can be parsed to [Sink].
+     * Checks that the [node] can be parsed to [DtoTaintSink].
      */
     fun isSinkRule(node: YamlNode): Boolean =
         node.containsKey(Constants.KEY_CHECK) && node.containsKey(Constants.KEY_MARKS)
@@ -118,7 +118,7 @@ object RuleParser {
      * marks: ...
      * ```
      */
-    fun parseSourceRule(node: YamlNode, methodNameParts: List<String>): Source {
+    fun parseSourceRule(node: YamlNode, methodNameParts: List<String>): DtoTaintSource {
         validate(node is YamlMap, "The source-rule node should be a map", node)
         validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_ADD_TO, Constants.KEY_MARKS))
 
@@ -128,7 +128,7 @@ object RuleParser {
         val addTo = parseTaintEntities(node[Constants.KEY_ADD_TO]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
 
-        return Source(methodFqn, addTo, marks, signature, conditions)
+        return DtoTaintSource(methodFqn, addTo, marks, signature, conditions)
     }
 
     /**
@@ -144,7 +144,7 @@ object RuleParser {
      * marks: ...
      * ```
      */
-    fun parsePassRule(node: YamlNode, methodNameParts: List<String>): Pass {
+    fun parsePassRule(node: YamlNode, methodNameParts: List<String>): DtoTaintPass {
         validate(node is YamlMap, "The pass-rule node should be a map", node)
         validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_GET_FROM, Constants.KEY_ADD_TO, Constants.KEY_MARKS))
 
@@ -155,7 +155,7 @@ object RuleParser {
         val addTo = parseTaintEntities(node[Constants.KEY_ADD_TO]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
 
-        return Pass(methodFqn, getFrom, addTo, marks, signature, conditions)
+        return DtoTaintPass(methodFqn, getFrom, addTo, marks, signature, conditions)
     }
 
     /**
@@ -170,7 +170,7 @@ object RuleParser {
      * marks: ...
      * ```
      */
-    fun parseCleanerRule(node: YamlNode, methodNameParts: List<String>): Cleaner {
+    fun parseCleanerRule(node: YamlNode, methodNameParts: List<String>): DtoTaintCleaner {
         validate(node is YamlMap, "The cleaner-rule node should be a map", node)
         validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_REMOVE_FROM, Constants.KEY_MARKS))
 
@@ -180,7 +180,7 @@ object RuleParser {
         val removeFrom = parseTaintEntities(node[Constants.KEY_REMOVE_FROM]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
 
-        return Cleaner(methodFqn, removeFrom, marks, signature, conditions)
+        return DtoTaintCleaner(methodFqn, removeFrom, marks, signature, conditions)
     }
 
     /**
@@ -195,7 +195,7 @@ object RuleParser {
      * marks: ...
      * ```
      */
-    fun parseSinkRule(node: YamlNode, methodNameParts: List<String>): Sink {
+    fun parseSinkRule(node: YamlNode, methodNameParts: List<String>): DtoTaintSink {
         validate(node is YamlMap, "The sink-rule node should be a map", node)
         validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_CHECK, Constants.KEY_MARKS))
 
@@ -205,21 +205,21 @@ object RuleParser {
         val check = parseTaintEntities(node[Constants.KEY_CHECK]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
 
-        return Sink(methodFqn, check, marks, signature, conditions)
+        return DtoTaintSink(methodFqn, check, marks, signature, conditions)
     }
 
     /**
-     * Constructs [MethodFqn] from the given [methodNameParts].
+     * Constructs [DtoMethodFqn] from the given [methodNameParts].
      *
      * __Input example:__
      *
      * `["org.example", "server", "Controller", "start"]`
      */
-    private fun getMethodFqnFromParts(methodNameParts: List<String>): MethodFqn {
+    private fun getMethodFqnFromParts(methodNameParts: List<String>): DtoMethodFqn {
         val parts = methodNameParts.flatMap { it.split('.') }
         validate(parts.size >= 2, "Method fqn should contain at least the class name and the method name")
         val packageNames = parts.dropLast(2)
         val (className, methodName) = parts.takeLast(2)
-        return MethodFqn(packageNames, className, methodName)
+        return DtoMethodFqn(packageNames, className, methodName)
     }
 }

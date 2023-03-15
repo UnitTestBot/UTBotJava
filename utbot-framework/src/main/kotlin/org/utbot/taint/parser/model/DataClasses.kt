@@ -3,87 +3,87 @@ package org.utbot.taint.parser.model
 /**
  * See "docs/TaintAnalysis.md" for configuration format.
  */
-data class Configuration(
-    val sources: List<Source>,
-    val passes: List<Pass>,
-    val cleaners: List<Cleaner>,
-    val sinks: List<Sink>
+data class DtoTaintConfiguration(
+    val sources: List<DtoTaintSource>,
+    val passes: List<DtoTaintPass>,
+    val cleaners: List<DtoTaintCleaner>,
+    val sinks: List<DtoTaintSink>
 )
 
-data class Source(
-    val methodFqn: MethodFqn,
-    val addTo: TaintEntities,
-    val marks: TaintMarks,
-    val signature: Signature = AnySignature,
-    val conditions: Conditions = NoConditions,
+data class DtoTaintSource(
+    val methodFqn: DtoMethodFqn,
+    val addTo: DtoTaintEntities,
+    val marks: DtoTaintMarks,
+    val signature: DtoTaintSignature = DtoTaintSignatureAny,
+    val conditions: DtoTaintConditions = DtoNoTaintConditions,
 )
 
-data class Pass(
-    val methodFqn: MethodFqn,
-    val getFrom: TaintEntities,
-    val addTo: TaintEntities,
-    val marks: TaintMarks,
-    val signature: Signature = AnySignature,
-    val conditions: Conditions = NoConditions,
+data class DtoTaintPass(
+    val methodFqn: DtoMethodFqn,
+    val getFrom: DtoTaintEntities,
+    val addTo: DtoTaintEntities,
+    val marks: DtoTaintMarks,
+    val signature: DtoTaintSignature = DtoTaintSignatureAny,
+    val conditions: DtoTaintConditions = DtoNoTaintConditions,
 )
 
-data class Cleaner(
-    val methodFqn: MethodFqn,
-    val removeFrom: TaintEntities,
-    val marks: TaintMarks,
-    val signature: Signature = AnySignature,
-    val conditions: Conditions = NoConditions,
+data class DtoTaintCleaner(
+    val methodFqn: DtoMethodFqn,
+    val removeFrom: DtoTaintEntities,
+    val marks: DtoTaintMarks,
+    val signature: DtoTaintSignature = DtoTaintSignatureAny,
+    val conditions: DtoTaintConditions = DtoNoTaintConditions,
 )
 
-data class Sink(
-    val methodFqn: MethodFqn,
-    val check: TaintEntities,
-    val marks: TaintMarks,
-    val signature: Signature = AnySignature,
-    val conditions: Conditions = NoConditions,
+data class DtoTaintSink(
+    val methodFqn: DtoMethodFqn,
+    val check: DtoTaintEntities,
+    val marks: DtoTaintMarks,
+    val signature: DtoTaintSignature = DtoTaintSignatureAny,
+    val conditions: DtoTaintConditions = DtoNoTaintConditions,
 )
 
-data class MethodFqn(
+data class DtoMethodFqn(
     val packageNames: List<String>,
     val className: String,
     val methodName: String
 )
 
-sealed interface TaintEntities
-data class TaintEntitiesSet(val entities: Set<TaintEntity>) : TaintEntities
+sealed interface DtoTaintEntities
+data class DtoTaintEntitiesSet(val entities: Set<DtoTaintEntity>) : DtoTaintEntities
 
-sealed interface TaintMarks
-object AllTaintMarks : TaintMarks
-data class TaintMarksSet(val marks: Set<TaintMark>) : TaintMarks
+sealed interface DtoTaintMarks
+object DtoTaintMarksAll : DtoTaintMarks
+data class DtoTaintMarksSet(val marks: Set<DtoTaintMark>) : DtoTaintMarks
 
-sealed interface Signature
-object AnySignature : Signature
-data class SignatureList(val argumentTypes: List<ArgumentType>) : Signature
+sealed interface DtoTaintSignature
+object DtoTaintSignatureAny : DtoTaintSignature
+data class DtoTaintSignatureList(val argumentTypes: List<DtoArgumentType>) : DtoTaintSignature
 
-sealed interface Conditions
-object NoConditions : Conditions
-data class ConditionsMap(val entityToCondition: Map<TaintEntity, Condition>) : Conditions
+sealed interface DtoTaintConditions
+object DtoNoTaintConditions : DtoTaintConditions
+data class DtoTaintConditionsMap(val entityToCondition: Map<DtoTaintEntity, DtoTaintCondition>) : DtoTaintConditions
 
-sealed interface TaintEntity
-object ThisObject : TaintEntity
-object ReturnValue : TaintEntity
-data class MethodArgument(/** one-based */ val index: UInt) : TaintEntity
+sealed interface DtoTaintEntity
+object DtoTaintEntityThis : DtoTaintEntity
+data class DtoTaintEntityArgument(/** one-based */ val index: UInt) : DtoTaintEntity
+object DtoTaintEntityReturn : DtoTaintEntity
 
-data class TaintMark(val name: String)
+data class DtoTaintMark(val name: String)
 
-sealed interface Condition
-data class ValueCondition(val argumentValue: ArgumentValue) : Condition
-data class TypeCondition(val argumentType: ArgumentType) : Condition
-data class NotCondition(val inner: Condition) : Condition
-data class OrCondition(val inners: List<Condition>) : Condition
+sealed interface DtoTaintCondition
+data class DtoTaintConditionEqualValue(val argumentValue: DtoArgumentValue) : DtoTaintCondition
+data class DtoTaintConditionIsType(val argumentType: DtoArgumentType) : DtoTaintCondition
+data class DtoTaintConditionNot(val inner: DtoTaintCondition) : DtoTaintCondition
+data class DtoTaintConditionOr(val inners: List<DtoTaintCondition>) : DtoTaintCondition
 
-sealed interface ArgumentValue
-object ArgumentValueNull : ArgumentValue
-data class ArgumentValueBoolean(val value: Boolean) : ArgumentValue
-data class ArgumentValueLong(val value: Long) : ArgumentValue
-data class ArgumentValueDouble(val value: Double) : ArgumentValue
-data class ArgumentValueString(val value: String) : ArgumentValue
+sealed interface DtoArgumentValue
+object DtoArgumentValueNull : DtoArgumentValue
+data class DtoArgumentValueBoolean(val value: Boolean) : DtoArgumentValue
+data class DtoArgumentValueLong(val value: Long) : DtoArgumentValue
+data class DtoArgumentValueDouble(val value: Double) : DtoArgumentValue
+data class DtoArgumentValueString(val value: String) : DtoArgumentValue
 
-sealed interface ArgumentType
-object ArgumentTypeAny : ArgumentType
-data class ArgumentTypeString(val typeFqn: String) : ArgumentType
+sealed interface DtoArgumentType
+object DtoArgumentTypeAny : DtoArgumentType
+data class DtoArgumentTypeString(val typeFqn: String) : DtoArgumentType

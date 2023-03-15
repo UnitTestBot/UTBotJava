@@ -10,7 +10,7 @@ import org.utbot.taint.parser.yaml.TaintEntityParser.taintEntityByName
 import kotlin.contracts.ExperimentalContracts
 
 @OptIn(ExperimentalContracts::class)
-object ConditionParser {
+object TaintConditionParser {
 
     /**
      * Expects a [YamlMap] with (or without) a key [Constants.KEY_CONDITIONS].
@@ -25,8 +25,8 @@ object ConditionParser {
      *   return: [ "", { not: <java.lang.String> } ]
      * ```
      */
-    fun parseConditionsKey(ruleMap: YamlMap): Conditions =
-        ruleMap.get<YamlNode>(Constants.KEY_CONDITIONS)?.let(ConditionParser::parseConditions) ?: NoConditions
+    fun parseConditionsKey(ruleMap: YamlMap): DtoTaintConditions =
+        ruleMap.get<YamlNode>(Constants.KEY_CONDITIONS)?.let(TaintConditionParser::parseConditions) ?: DtoNoTaintConditions
 
     /**
      * Expects a [YamlMap] with taint entities as keys.
@@ -40,41 +40,41 @@ object ConditionParser {
      * return: [ "", { not: <java.lang.String> } ]
      * ```
      */
-    fun parseConditions(node: YamlNode): Conditions {
+    fun parseConditions(node: YamlNode): DtoTaintConditions {
         validate(node is YamlMap, "The conditions node should be a map", node)
         return if (node.entries.isEmpty()) {
-            NoConditions
+            DtoNoTaintConditions
         } else {
             val entityToCondition = node.entries.map { (taintEntityNameScalar, conditionNode) ->
                 taintEntityByName(taintEntityNameScalar.content) to parseCondition(conditionNode)
             }.toMap()
-            ConditionsMap(entityToCondition)
+            DtoTaintConditionsMap(entityToCondition)
         }
     }
 
     /**
      * Expects a [YamlNode] that describes one condition.
      */
-    fun parseCondition(node: YamlNode): Condition =
+    fun parseCondition(node: YamlNode): DtoTaintCondition =
         when (node) {
             // example: `null`
             is YamlNull -> {
-                ValueCondition(parseArgumentValue(node))
+                DtoTaintConditionEqualValue(parseArgumentValue(node))
             }
 
             // examples: `227`, `"some string"`, `<java.lang.String>`
             is YamlScalar -> {
                 when {
-                    isArgumentType(node) -> TypeCondition(parseArgumentType(node))
-                    isArgumentValue(node) -> ValueCondition(parseArgumentValue(node))
-                    else -> throw ConfigurationParseError("The condition scalar should be a type or a value", node)
+                    isArgumentType(node) -> DtoTaintConditionIsType(parseArgumentType(node))
+                    isArgumentValue(node) -> DtoTaintConditionEqualValue(parseArgumentValue(node))
+                    else -> throw TaintParseError("The condition scalar should be a type or a value", node)
                 }
             }
 
             // examples: `[ true, 1, "yes" ]`, `[ "", { not: <java.lang.String> } ]`
             is YamlList -> {
-                val innerConditions = node.items.map(ConditionParser::parseCondition)
-                OrCondition(innerConditions)
+                val innerConditions = node.items.map(TaintConditionParser::parseCondition)
+                DtoTaintConditionOr(innerConditions)
             }
 
             // examples: `{ not: null }`, `{ not: [1, 2, 3] }`
@@ -82,11 +82,11 @@ object ConditionParser {
                 validateYamlMapKeys(node, setOf(Constants.KEY_CONDITION_NOT))
                 val innerNode = node.get<YamlNode>(Constants.KEY_CONDITION_NOT)!!
                 val innerCondition = parseCondition(innerNode)
-                NotCondition(innerCondition)
+                DtoTaintConditionNot(innerCondition)
             }
 
             else -> {
-                throw ConfigurationParseError("The condition node has an unknown type", node)
+                throw TaintParseError("The condition node has an unknown type", node)
             }
         }
 }

@@ -9,7 +9,7 @@ import org.utbot.taint.parser.constants.*
 import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
-class ConfigurationParserTest {
+class TaintConfigurationParserTest {
 
     @Nested
     @DisplayName("parseConfiguration")
@@ -17,18 +17,18 @@ class ConfigurationParserTest {
         @Test
         fun `should parse yaml map as Configuration`() {
             val yamlMap = Yaml.default.parseToYamlNode("{ $k_sources: [], $k_passes: [], $k_cleaners: [], $k_sinks: [] }")
-            val expectedConfiguration = Configuration(listOf(), listOf(), listOf(), listOf())
+            val expectedConfiguration = DtoTaintConfiguration(listOf(), listOf(), listOf(), listOf())
 
-            val actualConfiguration = ConfigurationParser.parseConfiguration(yamlMap)
+            val actualConfiguration = TaintConfigurationParser.parseConfiguration(yamlMap)
             assertEquals(expectedConfiguration, actualConfiguration)
         }
 
         @Test
         fun `should not fail if yaml map does not contain some keys`() {
             val yamlMap = Yaml.default.parseToYamlNode("{ $k_sources: [], $k_sinks: [] }")
-            val expectedConfiguration = Configuration(listOf(), listOf(), listOf(), listOf())
+            val expectedConfiguration = DtoTaintConfiguration(listOf(), listOf(), listOf(), listOf())
 
-            val actualConfiguration = ConfigurationParser.parseConfiguration(yamlMap)
+            val actualConfiguration = TaintConfigurationParser.parseConfiguration(yamlMap)
             assertEquals(expectedConfiguration, actualConfiguration)
         }
 
@@ -36,8 +36,8 @@ class ConfigurationParserTest {
         fun `should fail on other yaml types`() {
             val yamlList = Yaml.default.parseToYamlNode("[]")
 
-            assertThrows<ConfigurationParseError> {
-                ConfigurationParser.parseConfiguration(yamlList)
+            assertThrows<TaintParseError> {
+                TaintConfigurationParser.parseConfiguration(yamlList)
             }
         }
 
@@ -47,8 +47,8 @@ class ConfigurationParserTest {
                 "{ $k_sources: [], $k_passes: [], $k_cleaners: [], $k_sinks: [], unknown-key: [] }"
             )
 
-            assertThrows<ConfigurationParseError> {
-                ConfigurationParser.parseConfiguration(yamlMap)
+            assertThrows<TaintParseError> {
+                TaintConfigurationParser.parseConfiguration(yamlMap)
             }
         }
     }

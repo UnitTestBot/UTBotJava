@@ -3,15 +3,15 @@ package org.utbot.taint.parser.yaml
 import com.charleskorn.kaml.YamlList
 import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
-import org.utbot.taint.parser.model.AnySignature
-import org.utbot.taint.parser.model.Signature
-import org.utbot.taint.parser.model.SignatureList
+import org.utbot.taint.parser.model.DtoTaintSignatureAny
+import org.utbot.taint.parser.model.DtoTaintSignature
+import org.utbot.taint.parser.model.DtoTaintSignatureList
 import org.utbot.taint.parser.yaml.MethodArgumentParser.isArgumentType
 import org.utbot.taint.parser.yaml.MethodArgumentParser.parseArgumentType
 import kotlin.contracts.ExperimentalContracts
 
 @OptIn(ExperimentalContracts::class)
-object SignatureParser {
+object TaintSignatureParser {
 
     /**
      * Expects a [YamlMap] with (or without) a key [Constants.KEY_SIGNATURE].
@@ -20,8 +20,8 @@ object SignatureParser {
      *
      * `signature: [ _, _, <java.lang.Object> ]`
      */
-    fun parseSignatureKey(ruleMap: YamlMap): Signature =
-        ruleMap.get<YamlNode>(Constants.KEY_SIGNATURE)?.let(SignatureParser::parseSignature) ?: AnySignature
+    fun parseSignatureKey(ruleMap: YamlMap): DtoTaintSignature =
+        ruleMap.get<YamlNode>(Constants.KEY_SIGNATURE)?.let(TaintSignatureParser::parseSignature) ?: DtoTaintSignatureAny
 
     /**
      * Expects a [YamlList] with argument types as keys.
@@ -30,10 +30,10 @@ object SignatureParser {
      *
      * `[ _, _, <java.lang.Object> ]`
      */
-    fun parseSignature(node: YamlNode): Signature {
+    fun parseSignature(node: YamlNode): DtoTaintSignature {
         validate(node is YamlList, "The signature node should be a list", node)
         validate(node.items.all(::isArgumentType), "All items should be argument types", node)
         val argumentTypes = node.items.map(::parseArgumentType)
-        return SignatureList(argumentTypes)
+        return DtoTaintSignatureList(argumentTypes)
     }
 }

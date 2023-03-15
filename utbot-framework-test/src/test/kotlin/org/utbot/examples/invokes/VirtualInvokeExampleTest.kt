@@ -145,4 +145,20 @@ internal class VirtualInvokeExampleTest : UtValueTestCaseChecker(testClass = Vir
             coverage = DoNotCalculate
         )
     }
+
+    @Test
+    fun testNarrowParameterTypeInInheritorArrayCastExample() {
+        check(
+            VirtualInvokeExample::narrowParameterTypeInInheritorArrayCastExample,
+            eq(-1)
+        )
+    }
+
+    @Test
+    fun testNarrowParameterTypeInInheritorObjectCastExample() {
+        check(
+            VirtualInvokeExample::narrowParameterTypeInInheritorObjectCastExample,
+            eq(-1)
+        )
+    }
 }

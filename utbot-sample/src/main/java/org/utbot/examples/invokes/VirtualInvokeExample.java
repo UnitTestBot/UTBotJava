@@ -68,4 +68,12 @@ public class VirtualInvokeExample {
         DefaultInterface object = new DerivedClass();
         return object.foo();
     }
+
+    public int narrowParameterTypeInInheritorArrayCastExample(VirtualInvokeInterface<byte[], Integer> callee, Integer param) {
+        return callee.narrowParameterTypeInInheritorArrayCast(param);
+    }
+
+    public int narrowParameterTypeInInheritorObjectCastExample(VirtualInvokeInterface<byte[], Integer> callee, byte[] param) {
+        return callee.narrowParameterTypeInInheritorObjectCast(param);
+    }
 }

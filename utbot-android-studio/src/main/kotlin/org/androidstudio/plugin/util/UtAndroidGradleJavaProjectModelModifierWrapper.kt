@@ -1,6 +1,7 @@
 package org.androidstudio.plugin.util
 
-import com.android.tools.idea.project.AndroidProjectInfo
+import com.android.tools.idea.model.AndroidModel
+import com.intellij.facet.ProjectFacetManager
 import com.intellij.ide.plugins.PluginManager
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.module.Module
@@ -10,6 +11,7 @@ import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.impl.IdeaProjectModelModifier
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.pom.java.LanguageLevel
+import org.jetbrains.android.facet.AndroidFacet
 import org.jetbrains.concurrency.Promise
 
 /*
@@ -55,6 +57,7 @@ class UtAndroidGradleJavaProjectModelModifierWrapper(val project: Project): Idea
             return false
         }
 
-        return AndroidProjectInfo.getInstance(project).requiresAndroidModel()
+        return ProjectFacetManager.getInstance(project).getFacets(AndroidFacet.ID).stream()
+            .anyMatch { AndroidModel.isRequired(it) }
     }
 }

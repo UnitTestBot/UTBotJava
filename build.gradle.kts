@@ -15,7 +15,7 @@ version = semVer ?: "$dateBasedVersion-SNAPSHOT"
 
 plugins {
     `java-library`
-    kotlin("jvm") version "1.8.10"
+    kotlin("jvm") version "1.8.0"
     `maven-publish`
 }
 

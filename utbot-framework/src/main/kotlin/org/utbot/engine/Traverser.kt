@@ -1388,7 +1388,7 @@ class Traverser(
         }
 
         replacedClassId?.let {
-            val sootType = Scene.v().getSootClass(it.canonicalName).type
+            val sootType = Scene.v().getRefType(it.canonicalName)
             val typeStorage = typeResolver.constructTypeStorage(sootType, useConcreteType = false)
 
             val typeHardConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()

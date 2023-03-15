@@ -64,6 +64,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
         var summariesGenerationType: SummariesGenerationType = UtSettings.summaryGenerationType,
+        var generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
         var enableExperimentalLanguagesSupport: Boolean = false,
     ) {
 
@@ -90,6 +91,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
             if (commentStyle != other.commentStyle) return false
             if (summariesGenerationType != other.summariesGenerationType) return false
+            if (generationTimeoutInMillis != other.generationTimeoutInMillis) return false
 
             return true
         }
@@ -110,6 +112,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
             result = 31 * result + summariesGenerationType.hashCode()
+            result = 31 * result + generationTimeoutInMillis.hashCode()
 
             return result
         }
@@ -130,6 +133,12 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         get() = state.hangingTestsTimeout
         set(value) {
             state.hangingTestsTimeout = value
+        }
+
+    var generationTimeoutInMillis : Long
+        get() = state.generationTimeoutInMillis
+        set(value) {
+            state.generationTimeoutInMillis = value
         }
 
     val staticsMocking: StaticsMocking get() = state.staticsMocking

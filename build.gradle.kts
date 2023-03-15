@@ -15,7 +15,7 @@ version = semVer ?: "$dateBasedVersion-SNAPSHOT"
 
 plugins {
     `java-library`
-    kotlin("jvm") version "1.7.10"
+    kotlin("jvm") version "1.8.0"
     `maven-publish`
 }
 
@@ -55,8 +55,8 @@ allprojects {
         withType<Test> {
             // uncomment if you want to see loggers output in console
             // this is useful if you debug in docker
-             testLogging.showStandardStreams = true
-             testLogging.showStackTraces = true
+            // testLogging.showStandardStreams = true
+            // testLogging.showStackTraces = true
 
             // set heap size for the test JVM(s)
             minHeapSize = "128m"

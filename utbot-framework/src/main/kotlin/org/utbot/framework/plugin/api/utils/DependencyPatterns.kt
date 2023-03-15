@@ -1,6 +1,12 @@
 package org.utbot.framework.plugin.api.utils
 
-import org.utbot.framework.codegen.domain.*
+import org.utbot.framework.codegen.domain.DependencyInjectionFramework
+import org.utbot.framework.codegen.domain.Junit4
+import org.utbot.framework.codegen.domain.Junit5
+import org.utbot.framework.codegen.domain.SpringBeans
+import org.utbot.framework.codegen.domain.SpringBoot
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.plugin.api.MockFramework
 
 data class Patterns(

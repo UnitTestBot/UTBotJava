@@ -97,9 +97,24 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.*
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.codegen.domain.ApplicationType
+import org.utbot.framework.codegen.domain.DependencyInjectionFramework
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.Junit4
+import org.utbot.framework.codegen.domain.Junit5
+import org.utbot.framework.codegen.domain.MockitoStaticMocking
+import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.TypeReplacementApproach
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.TestNg
+import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
+import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
@@ -117,7 +132,19 @@ import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.settings.loadStateFromModel
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import org.utbot.intellij.plugin.ui.utils.*
+import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
+import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
+import org.utbot.intellij.plugin.ui.utils.allLibraries
+import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
+import org.utbot.intellij.plugin.ui.utils.findDependencyInjectionLibrary
+import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
+import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
+import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
+import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
+import org.utbot.intellij.plugin.ui.utils.parseVersion
+import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
+import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
@@ -130,8 +157,6 @@ private const val RECENTS_KEY = "org.utbot.recents"
 private const val SAME_PACKAGE_LABEL = "same as for sources"
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
-private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
-private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 private const val ACTION_GENERATE = "Generate Tests"
 private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
@@ -151,7 +176,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         findTestPackageComboValue(),
         model.project,
         RECENTS_KEY,
-        "Choose destination package"
+        "Choose Destination Package"
     )
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
@@ -161,12 +186,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
     private val timeoutSpinner =
-        JBIntSpinner(
-            TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
-            Int.MAX_VALUE,
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
-        ).also {
+        JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
             when(val editor = it.editor) {
                 is JSpinner.DefaultEditor -> {
                     when(val formatter = editor.textField.formatter) {
@@ -502,6 +522,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
         model.testSourceRoot?.apply { model.updateSourceRootHistory(this.toNioPath().toString()) }
 
+        //TODO: obtain this values from UI controls https://github.com/UnitTestBot/UTBotJava/issues/1929
+        model.applicationType = ApplicationType.PURE_JVM
+        model.typeReplacementApproach = TypeReplacementApproach.DO_NOT_REPLACE
+
         val settings = model.project.service<Settings>()
         with(settings) {
             model.runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour
@@ -597,7 +621,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun showTestRootAbsenceErrorMessage() =
         Messages.showErrorDialog(
             "Test source root is not configured or is located out of content entry!",
-            "Generation error"
+            "Generation Error"
         )
 
     private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {

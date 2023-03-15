@@ -55,6 +55,9 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.common.isStatic
+import org.utbot.framework.plugin.api.TypeReplacementMode.*
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
 
@@ -1150,12 +1153,35 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList())
 class WildcardTypeParameter : TypeParameters(emptyList())
 
 /**
+ * Describes the way to replace abstract types with concrete implementors.
+ */
+enum class TypeReplacementMode {
+    /**
+     * Any possible implementor (that is preferred by solver) may be used.
+     */
+    AnyImplementor,
+
+    /**
+     * There is a known implementor to be used.
+     * For example, it is obtained from bean definitions in Spring application.
+     */
+    KnownImplementor,
+
+    /**
+     * Using implementors is not allowed.
+     * If mocking is allowed, mock of this type will be used.
+     * Otherwise, branch will be pruned as unsatisfiable.
+     */
+    NoImplementors,
+}
+
+/**
  * A context to use when no specific data is required.
  *
  * @param mockFrameworkInstalled shows if we have installed framework dependencies
  * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
-open class StandardApplicationContext(
+open class ApplicationContext(
     val mockFrameworkInstalled: Boolean = true,
     staticsMockingIsConfigured: Boolean = true,
 ) {
@@ -1177,22 +1203,53 @@ open class StandardApplicationContext(
             this.staticsMockingIsConfigured = false
         }
     }
+
+    /**
+     * Shows if there are any restrictions on type implementors.
+     */
+    open val typeReplacementMode: TypeReplacementMode = AnyImplementor
+
+    /**
+     * Finds a type to replace the original abstract type
+     * if it is guided with some additional information.
+     */
+    open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
 }
 
 /**
  * Data we get from Spring application context
  * to manage engine and code generator behaviour.
  *
- * @param beanQualifiedNames describes fqn of injected classes
+ * @param beanQualifiedNames describes fqn of types from bean definitions
+ * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
  */
 class SpringApplicationContext(
     mockInstalled: Boolean,
     staticsMockingIsConfigured: Boolean,
-    val beanQualifiedNames: List<String> = emptyList(),
-): StandardApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+    private val beanQualifiedNames: List<String> = emptyList(),
+    private val shouldUseImplementors: Boolean,
+): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+    
     private val springInjectedClasses: List<ClassId> by lazy {
-        beanQualifiedNames.map { fqn -> utContext.classLoader.loadClass(fqn).id }
+        beanQualifiedNames
+            .map { fqn -> utContext.classLoader.loadClass(fqn) }
+            .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
+            .map { it.id }
     }
+
+    override val typeReplacementMode: TypeReplacementMode
+        get() = if (shouldUseImplementors) KnownImplementor else NoImplementors
+
+    /**
+     * Replaces an interface type with its implementor type
+     * if there is the unique implementor in bean definitions.
+     */
+    override fun replaceTypeIfNeeded(type: RefType): ClassId? =
+        if (type.sootClass.isInterface || type.sootClass.isAbstract) {
+            springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
+        } else {
+            null
+        }
 }
 
 interface CodeGenerationSettingItem {

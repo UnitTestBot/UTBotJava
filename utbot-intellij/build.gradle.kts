@@ -19,6 +19,9 @@ val rdVersion: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
 
+val junit5Version: String by rootProject
+val junit4PlatformVersion: String by rootProject
+
 // https://plugins.jetbrains.com/docs/intellij/android-studio.html#configuring-the-plugin-pluginxml-file
 val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
 
@@ -176,8 +179,8 @@ dependencies {
     // Video Recording
     implementation("com.automation-remarks:video-recorder-junit5:2.0")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.7.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.7.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junit4PlatformVersion")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:$junit5Version")
 }

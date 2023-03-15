@@ -183,7 +183,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         classPath: String?,
         dependencyPaths: String,
         jdkInfo: JdkInfo,
-        applicationContext: StandardApplicationContext,
+        applicationContext: ApplicationContext,
         isCancelled: (Unit) -> Boolean
     ) {
         assertReadAccessNotAllowed()

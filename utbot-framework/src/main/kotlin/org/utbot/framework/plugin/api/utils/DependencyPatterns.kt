@@ -1,9 +1,6 @@
 package org.utbot.framework.plugin.api.utils
 
-import org.utbot.framework.codegen.domain.Junit4
-import org.utbot.framework.codegen.domain.Junit5
-import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.TestNg
+import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.plugin.api.MockFramework
 
 data class Patterns(
@@ -58,6 +55,21 @@ fun MockFramework.patterns(): Patterns {
     return Patterns(moduleLibraryPatterns, libraryPatterns)
 }
 
+fun DependencyInjectionFramework.patterns(): Patterns {
+    val moduleLibraryPatterns = when (this) {
+        SpringBoot -> springBootModulePatterns
+        SpringBeans -> springBeansModulePatterns
+        else -> throw UnsupportedOperationException()
+    }
+    val libraryPatterns = when (this) {
+        SpringBoot -> springBootPatterns
+        SpringBeans -> springBeansPatterns
+        else -> throw UnsupportedOperationException()
+    }
+
+    return Patterns(moduleLibraryPatterns, libraryPatterns)
+}
+
 val JUNIT_4_JAR_PATTERN = Regex("junit-4(\\.1[2-9])(\\.[0-9]+)?")
 val JUNIT_4_MVN_PATTERN = Regex("junit:junit:4(\\.1[2-9])(\\.[0-9]+)?")
 val junit4Patterns = listOf(JUNIT_4_JAR_PATTERN, JUNIT_4_MVN_PATTERN)
@@ -94,3 +106,17 @@ val mockitoModulePatterns = listOf(MOCKITO_BASIC_MODULE_PATTERN)
 const val MOCKITO_EXTENSIONS_FOLDER = "mockito-extensions"
 const val MOCKITO_MOCKMAKER_FILE_NAME = "org.mockito.plugins.MockMaker"
 val MOCKITO_EXTENSIONS_FILE_CONTENT = "mock-maker-inline"
+
+val SPRING_BEANS_JAR_PATTERN = Regex("spring-beans-([0-9]+)(\\.[0-9]+){1,2}")
+val SPRING_BEANS_MVN_PATTERN = Regex("org\\.springframework:spring-beans:([0-9]+)(\\.[0-9]+){1,2}")
+val springBeansPatterns = listOf(SPRING_BEANS_JAR_PATTERN, SPRING_BEANS_MVN_PATTERN)
+
+val SPRING_BEANS_BASIC_MODULE_PATTERN = Regex("spring-beans")
+val springBeansModulePatterns = listOf(SPRING_BEANS_BASIC_MODULE_PATTERN)
+
+val SPRING_BOOT_JAR_PATTERN = Regex("spring-boot-([0-9]+)(\\.[0-9]+){1,2}")
+val SPRING_BOOT_MVN_PATTERN = Regex("org\\.springframework\\.boot:spring-boot:([0-9]+)(\\.[0-9]+){1,2}")
+val springBootPatterns = listOf(SPRING_BOOT_JAR_PATTERN, SPRING_BOOT_MVN_PATTERN)
+
+val SPRING_BOOT_BASIC_MODULE_PATTERN = Regex("spring-boot")
+val springBootModulePatterns = listOf(SPRING_BOOT_BASIC_MODULE_PATTERN)

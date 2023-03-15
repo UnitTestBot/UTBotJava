@@ -711,3 +711,26 @@ enum class ParametrizedTestSource(
         override val allItems: List<ParametrizedTestSource> = values().toList()
     }
 }
+
+abstract class DependencyInjectionFramework(
+    override val id: String,
+    override val displayName: String,
+    override val description: String = "Use $displayName as dependency injection framework",
+) : CodeGenerationSettingItem {
+    var isInstalled = false
+
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: DependencyInjectionFramework get() = SpringBoot
+        override val allItems: List<DependencyInjectionFramework> get() = listOf(SpringBoot, SpringBeans)
+    }
+}
+
+object SpringBeans : DependencyInjectionFramework(
+    id = "spring-beans",
+    displayName = "Spring Beans"
+)
+
+object SpringBoot : DependencyInjectionFramework(
+    id = "spring-boot",
+    displayName = "Spring Boot"
+)

@@ -97,21 +97,9 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.Junit4
-import org.utbot.framework.codegen.domain.Junit5
-import org.utbot.framework.codegen.domain.MockitoStaticMocking
-import org.utbot.framework.codegen.domain.NoStaticMocking
-import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.TestNg
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.codegen.domain.*
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
@@ -129,18 +117,7 @@ import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.settings.loadStateFromModel
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
-import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
-import org.utbot.intellij.plugin.ui.utils.allLibraries
-import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
-import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
-import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
-import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
-import org.utbot.intellij.plugin.ui.utils.parseVersion
-import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
-import org.utbot.intellij.plugin.ui.utils.testRootType
+import org.utbot.intellij.plugin.ui.utils.*
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
@@ -239,6 +216,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
         MockFramework.allItems.forEach {
             it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
+        }
+        DependencyInjectionFramework.allItems.forEach {
+            it.isInstalled = findDependencyInjectionLibrary(model.project, model.testModule, it) != null
         }
         StaticsMocking.allItems.forEach {
             it.isConfigured = staticsMockingConfigured()

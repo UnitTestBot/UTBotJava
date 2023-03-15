@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
+import org.utbot.framework.codegen.domain.DependencyInjectionFramework
 import org.utbot.framework.plugin.api.utils.Patterns
 import org.utbot.framework.plugin.api.utils.parametrizedTestsPatterns
 import org.utbot.framework.plugin.api.utils.patterns
@@ -31,6 +32,13 @@ fun findParametrizedTestsLibrary(
     testFramework: TestFramework,
     scope: LibrarySearchScope = LibrarySearchScope.Module,
 ): LibraryOrderEntry? = findMatchingLibrary(project, testModule, testFramework.parametrizedTestsPatterns(), scope)
+
+fun findDependencyInjectionLibrary(
+    project: Project,
+    testModule: Module,
+    springModule: DependencyInjectionFramework,
+    scope: LibrarySearchScope = LibrarySearchScope.Module
+): LibraryOrderEntry? = findMatchingLibrary(project, testModule, springModule.patterns(), scope)
 
 private fun findMatchingLibrary(
     project: Project,

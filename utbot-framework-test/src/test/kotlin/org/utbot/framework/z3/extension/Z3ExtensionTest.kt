@@ -99,8 +99,8 @@ class Z3ExtensionTest : Z3Initializer() {
 
             val (aVal, bVal, cVal) = solver.model
                 .eval(a, b, c)
-                .filterIsInstance<SeqExpr>()
-                .map(SeqExpr::getString)
+                .filterIsInstance<SeqExpr<*>>()
+                .map(SeqExpr<*>::getString)
                 .also { list -> assertEquals(3, list.size) }
 
             assertEquals("abcd", "$aVal$bVal")

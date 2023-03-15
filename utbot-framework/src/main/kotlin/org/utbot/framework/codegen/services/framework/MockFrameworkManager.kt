@@ -69,6 +69,7 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import java.util.Locale
 
 abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgContextOwner by context,
@@ -232,7 +233,12 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             .instances
             .filterIsInstance<UtCompositeModel>()
             .filter { it.isMock }
-            .map { it.mocks }
+            .map {
+                // If there are no expected answers for the particular executable
+                // (this executable is never invoked during the execution, for example),
+                // we do not need to consider this executable at all.
+                it.mocks.filterTo(mutableMapOf()) { executableAnswers -> executableAnswers.value.isNotEmpty() }
+            }
 
         val modelClass = getClassOf(classId)
 
@@ -248,6 +254,8 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             +mockClassCounter
         }
 
+        // TODO this behavior diverges with expected by the symbolic engine,
+        //  see https://github.com/UnitTestBot/UTBotJava/issues/1953 for more details
         val mockedConstructionDeclaration = CgDeclaration(
             MockitoStaticMocking.mockedConstructionClassId,
             nameGenerator.variableName(MOCKED_CONSTRUCTION_NAME),
@@ -276,10 +284,10 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                     listOf(
                         CgStatementExecutableCall(
                             CgMethodCall(
-                        caller = null,
-                        methodId,
-                        matchers.toList()
-                    )
+                                caller = null,
+                                methodId,
+                                matchers.toList()
+                            )
                         )
                     )
                 )
@@ -328,20 +336,28 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
     ): MockConstructionBlock {
         val mockParameter = variableConstructor.declareParameter(
             classId,
-            nameGenerator.variableName(classId.simpleName, isMock = true)
+            nameGenerator.variableName(
+                classId.simpleName.replaceFirstChar { it.lowercase(Locale.getDefault()) },
+                isMock = true
+            )
         )
         val contextParameter = variableConstructor.declareParameter(
             mockedConstructionContextClassId,
             nameGenerator.variableName("context")
         )
 
-        val caseLabels = mutableListOf<CgSwitchCaseLabel>()
+        val mockAnswerStatements = mutableMapOf<Int, List<CgStatement>>()
+
         for ((index, mockWhenAnswers) in mocksWhenAnswers.withIndex()) {
             val statements = mutableListOf<CgStatement>()
             for ((executable, values) in mockWhenAnswers) {
                 // For now, all constructors are considered like void methods, but it is proposed to be changed
                 // for better constructors testing.
                 if (executable.returnType == voidClassId) continue
+
+                require(values.isNotEmpty()) {
+                    "Expected at least one mocked answer for $executable but got 0"
+                }
 
                 when (executable) {
                     is MethodId -> {
@@ -355,17 +371,22 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 }
             }
 
-            caseLabels += CgSwitchCaseLabel(CgLiteral(intClassId, index), statements)
+            mockAnswerStatements[index] = statements
         }
 
-        val switchCase = CgSwitchCase(mockClassCounter[atomicIntegerGet](), caseLabels)
-
-        // If all switch-case labels are empty,
+        val answerValues = mockAnswerStatements.values
+        // If we have no more than one branch or all branches are empty,
         // it means we do not need this switch and mock counter itself at all.
-        val mockConstructionBody = if (caseLabels.map { it.statements }.all { it.isEmpty() }) {
-            emptyList()
+        val moreThanOneBranch = answerValues.size <= 1 || answerValues.all { statements -> statements.isEmpty() }
+        val (mockConstructionBody, isMockCounterRequired) = if (moreThanOneBranch) {
+            (answerValues.singleOrNull() ?: emptyList()) to false
         } else {
-            listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
+            val caseLabels = mockAnswerStatements.map { (index, statements) ->
+                CgSwitchCaseLabel(CgLiteral(intClassId, index), statements)
+            }
+            val switchCase = CgSwitchCase(mockClassCounter[atomicIntegerGet](), caseLabels)
+
+            listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]())) to true
         }
 
         val answersBlock = CgAnonymousFunction(
@@ -376,7 +397,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
 
         return MockConstructionBlock(
             mockitoClassId[MockitoStaticMocking.mockConstructionMethodId](clazz, answersBlock),
-            mockConstructionBody.isNotEmpty()
+            isMockCounterRequired
         )
     }
 

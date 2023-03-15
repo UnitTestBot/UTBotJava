@@ -81,7 +81,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
         Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
-        val applicationContext: StandardApplicationContext = kryoHelper.readObject(params.applicationContext)
+        val applicationContext: ApplicationContext = kryoHelper.readObject(params.applicationContext)
 
         testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
@@ -99,7 +99,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         logger.debug().measureTime({ "starting generation for ${methods.size} methods, starting with ${methods.first()}" }) {
             val generateFlow = when (testGenerator.applicationContext) {
                 is SpringApplicationContext -> defaultSpringFlow(params.generationTimeout)
-                is StandardApplicationContext -> testFlow {
+                is ApplicationContext -> testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                     isFuzzingEnabled = params.isFuzzingEnabled

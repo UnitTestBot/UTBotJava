@@ -711,3 +711,32 @@ enum class ParametrizedTestSource(
         override val allItems: List<ParametrizedTestSource> = values().toList()
     }
 }
+
+enum class ApplicationType {
+    /**
+     * Standard JVM application without DI frameworks.
+     */
+    PURE_JVM,
+
+    /**
+     * Spring or Spring Boot application.
+     */
+    SPRING_APPLICATION,
+}
+
+enum class TypeReplacementApproach {
+    /**
+     * Do not replace interfaces and abstract classes with concrete implementors.
+     * Use mocking instead of it.
+     */
+    DO_NOT_REPLACE,
+
+    /**
+     * Try to replace interfaces and abstract classes with concrete implementors
+     * obtained from bean definitions.
+     * If it is impossible, use mocking.
+     *
+     * Currently used in Spring applications only.
+     */
+    REPLACE_IF_POSSIBLE,
+}

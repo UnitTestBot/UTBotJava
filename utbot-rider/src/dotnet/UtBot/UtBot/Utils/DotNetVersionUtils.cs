@@ -78,13 +78,12 @@ internal class DotNetVersionUtils
         return new(defaultTfm, true);
     }
 
-    // TODO: is there a case when --list-runtimes is not available, but runtime is installed?
     private static bool GetCanRunVSharp(string workingDir)
     {
         var sdksInfo = RunProcess(new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = "--list-runtimes",
+            Arguments = "--list-sdks",
             WorkingDirectory = workingDir
         });
 
@@ -93,7 +92,7 @@ internal class DotNetVersionUtils
             return false;
         }
 
-        var matches = Regex.Matches(sdksInfo, @"\.(\S+)\.App (\d+)\.(\d+)\.(\d+)");
+        var matches = Regex.Matches(sdksInfo, @"(\d+)\.(\d+)\.(\d+)");
 
         if (matches.Count < 1)
         {
@@ -102,12 +101,7 @@ internal class DotNetVersionUtils
 
         for (var i = 0; i < matches.Count; ++i)
         {
-            if (matches[i].Groups[1].Value == "AspNetCore")
-            {
-                continue;
-            }
-
-            if (!int.TryParse(matches[i].Groups[2].Value, out var majorVersion))
+            if (!int.TryParse(matches[i].Groups[1].Value, out var majorVersion))
             {
                 continue;
             }

@@ -68,11 +68,10 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         _notifications.Refresh();
 
         var timeoutString = context.GetOption(TimeoutGeneratorOption.Id);
-        var timeout = -1;
 
-        if (!timeoutString.IsNullOrEmpty() && (!int.TryParse(timeoutString, out timeout) || timeout <= 0))
+        if (!int.TryParse(timeoutString, out var timeout) || timeout <= 0)
         {
-            _notifications.ShowError("Invalid timeout value. Timeout should be an integer number greater than zero or left empty for no timeout");
+            _notifications.ShowError("Invalid timeout value. Timeout should be an integer number greater than zero");
             return;
         }
 
@@ -80,7 +79,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
 
         if (!_dotNetVersionUtils.CanRunVSharp)
         {
-            _notifications.ShowError($"At least .NET {DotNetVersionUtils.MinCompatibleSdkMajor} runtime is required for UnitTestBot.NET");
+            _notifications.ShowError($"At least .NET {DotNetVersionUtils.MinCompatibleSdkMajor} SDK is required for UnitTestBot.NET");
             return;
         }
 
@@ -119,8 +118,6 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         var indicator =
             _backgroundProgressIndicatorManager.CreateIndicator(progressLifetimeDef.Lifetime, true, true,
                 "Generating unit tests");
-
-
 
         _shellLocks.Tasks.StartNew(_lifetime, Scheduling.FreeThreaded, () =>
         {
@@ -241,12 +238,12 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         var intervalMs = intervalS > 0 ? intervalS * 1000 : 500;
         using var methodProgressTimer = new Timer(intervalMs);
         var i = 0;
-        methodProgressTimer.Elapsed += (_, _) =>
+        void ChangeMethodName()
         {
             progressIndicator.Header.SetValue(methodNames[i]);
             i = (i + 1) % methodNames.Length;
-        };
-
+        }
+        methodProgressTimer.Elapsed += (_, _) => ChangeMethodName();
         _logger.Catch(() =>
         {
             var name = VSharpMain.VSharpProcessName;
@@ -257,8 +254,11 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
             var projectCsprojPath = project.ProjectFileLocation.FullPath;
             var args = new GenerateArguments(assemblyPath, projectCsprojPath, solutionFilePath, descriptors,
                 timeout, testProjectFramework.FrameworkMoniker.Name);
+            var vSharpTimeout = TimeSpan.FromSeconds(timeout);
+            var rpcTimeout = new RpcTimeouts(vSharpTimeout + TimeSpan.FromSeconds(1), vSharpTimeout + TimeSpan.FromSeconds(30));
+            ChangeMethodName();
             methodProgressTimer.Start();
-            var result = proc.VSharpModel?.Generate.Sync(args, RpcTimeouts.Maximal);
+            var result = proc.VSharpModel?.Generate.Sync(args, rpcTimeout);
             methodProgressTimer.Stop();
             _logger.Info("Result acquired");
             if (result is { GeneratedProjectPath: not null })

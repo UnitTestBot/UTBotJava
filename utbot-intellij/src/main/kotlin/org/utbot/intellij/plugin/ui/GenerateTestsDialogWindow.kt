@@ -153,8 +153,6 @@ private const val RECENTS_KEY = "org.utbot.recents"
 private const val SAME_PACKAGE_LABEL = "same as for sources"
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
-private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
-private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 private const val ACTION_GENERATE = "Generate Tests"
 private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
@@ -174,7 +172,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         findTestPackageComboValue(),
         model.project,
         RECENTS_KEY,
-        "Choose destination package"
+        "Choose Destination Package"
     )
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
@@ -184,12 +182,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
     private val timeoutSpinner =
-        JBIntSpinner(
-            TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
-            Int.MAX_VALUE,
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
-        ).also {
+        JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
             when(val editor = it.editor) {
                 is JSpinner.DefaultEditor -> {
                     when(val formatter = editor.textField.formatter) {
@@ -617,7 +610,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun showTestRootAbsenceErrorMessage() =
         Messages.showErrorDialog(
             "Test source root is not configured or is located out of content entry!",
-            "Generation error"
+            "Generation Error"
         )
 
     private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {

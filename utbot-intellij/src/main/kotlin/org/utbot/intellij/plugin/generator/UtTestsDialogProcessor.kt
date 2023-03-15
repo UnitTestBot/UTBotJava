@@ -109,7 +109,7 @@ object UtTestsDialogProcessor {
             srcClasses,
             extractMembersFromSrcClasses,
             focusedMethods,
-            UtSettings.utBotGenerationTimeoutInMillis,
+            project.service<Settings>().generationTimeoutInMillis
         )
         if (model.getAllTestSourceRoots().isEmpty() && project.isBuildWithGradle) {
             val errorMessage = """
@@ -308,7 +308,7 @@ object UtTestsDialogProcessor {
                                     Messages.showInfoMessage(
                                         model.project,
                                         "No methods for test generation were found among selected items",
-                                        "No methods found"
+                                        "No Methods Found"
                                     )
                                 }
                                 return

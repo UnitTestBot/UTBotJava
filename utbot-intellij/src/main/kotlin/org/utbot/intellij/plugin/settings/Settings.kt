@@ -26,6 +26,7 @@ private fun fromGenerateTestsModel(model: GenerateTestsModel): Settings.State {
         fuzzingValue = model.fuzzingValue,
         runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,
         commentStyle = model.commentStyle,
+        generationTimeoutInMillis = model.timeout,
         summariesGenerationType = model.summariesGenerationType
     )
 }

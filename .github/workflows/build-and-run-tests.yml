@@ -29,7 +29,8 @@ jobs:
 
   publish-cli-image:
     needs: build-and-run-tests
-    if: ${{ github.event_name == 'push' }}
+    # temporary commented to check image publishing
+#    if: ${{ github.event_name == 'push' }}
     strategy:
       fail-fast: false  # force to execute all jobs even though some of them have failed
       matrix:
@@ -90,7 +91,7 @@ jobs:
 
     - name: Docker meta
       id: meta
-      uses: docker/metadata-action@v3
+      uses: docker/metadata-action@v4
       with:
         images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.configuration.image_name }}
         tags: |

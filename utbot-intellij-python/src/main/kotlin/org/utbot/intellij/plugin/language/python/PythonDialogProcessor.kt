@@ -137,7 +137,7 @@ object PythonDialogProcessor {
                     .mapNotNull {
                         val functionName = it.name ?: return@mapNotNull null
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
-                        val containingClassId = it.containingClass?.name?.let{ PythonClassId(it) }
+                        val containingClassId = it.containingClass?.name?.let{ cls -> PythonClassId(cls) }
                         return@mapNotNull PythonMethodHeader(
                                 functionName,
                                 moduleFilename,

@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
@@ -69,7 +70,7 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 if (assistant.memoryObjects.containsKey(id)) {
                     val tree = assistant.memoryObjectsModels[id]
                     val savedObj = assistant.memoryObjects[id]
-                    if (tree != null && savedObj != null && tree.softEquals(objectNode)) {
+                    if (tree != null && savedObj != null && comparePythonTree(tree, objectNode)) {
                         return Pair(savedObj, emptyList())
                     }
                 }

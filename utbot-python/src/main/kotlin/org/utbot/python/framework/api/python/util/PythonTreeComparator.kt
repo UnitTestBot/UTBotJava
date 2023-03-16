@@ -6,6 +6,12 @@ enum class VisitStatus {
     OPENED, CLOSED
 }
 
+/*
+ * Compare python tree by structure. Returns false if:
+ *  - objects have different types
+ *  - incomparable and have different ids
+ *  - have the same type but structures aren't equal recursively
+ */
 fun comparePythonTree(
     left: PythonTree.PythonTreeNode,
     right: PythonTree.PythonTreeNode,

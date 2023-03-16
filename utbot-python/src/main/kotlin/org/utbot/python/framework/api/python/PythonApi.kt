@@ -3,6 +3,7 @@ package org.utbot.python.framework.api.python
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.moduleOfType
 
 /**
@@ -73,10 +74,10 @@ class PythonTreeModel(
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other is PythonTreeModel) {
-            return tree.softEquals(other.tree)
+        if (other !is PythonTreeModel) {
+            return false
         }
-        return false
+        return comparePythonTree(tree, other.tree)
     }
 
     override fun hashCode(): Int {

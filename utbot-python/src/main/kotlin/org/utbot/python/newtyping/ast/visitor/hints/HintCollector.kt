@@ -102,11 +102,13 @@ class HintCollector(
         }
         if (processIsinstanceCall(parsed, node))
             return
-        val type = mypyTypes[parsed.function.beginOffset to parsed.function.endOffset]
-        val typeDescription = type?.getPythonAttributeByName(
+        val rawType = mypyTypes[parsed.function.beginOffset to parsed.function.endOffset]
+        val attr = rawType?.getPythonAttributeByName(
             storage,
             "__call__"
-        )?.type?.pythonDescription()
+        )
+        val type = attr?.type
+        val typeDescription = type?.pythonDescription()
         val callType = createPythonCallableType(
             parsed.args.size,
             List(parsed.args.size) { PythonCallableTypeDescription.ArgKind.ARG_POS },

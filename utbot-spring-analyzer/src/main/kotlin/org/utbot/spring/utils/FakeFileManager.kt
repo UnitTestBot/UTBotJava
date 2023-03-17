@@ -1,12 +1,12 @@
-package application.utils
+package org.utbot.spring.utils
 
-import utils.PathsUtils
+import org.utbot.spring.utils.PathsUtils
 import java.io.File
 import java.io.IOException
 
 class FakeFileManager(private val fakeFilesList: List<String>) {
 
-    fun createFakeFiles() {
+    fun createTempFiles() {
         for (fileName in fakeFilesList) {
             val fakeXmlFileAbsolutePath = PathsUtils.createFakeFilePath(fileName)
 
@@ -19,7 +19,7 @@ class FakeFileManager(private val fakeFilesList: List<String>) {
         }
     }
 
-    fun deleteFakeFiles() {
+    fun deleteTempFiles() {
         for (fileName in fakeFilesList) {
             val fakeXmlFileAbsolutePath = PathsUtils.createFakeFilePath(fileName)
 

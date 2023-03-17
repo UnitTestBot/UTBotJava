@@ -1,4 +1,4 @@
-package utils
+package org.utbot.spring.utils
 
 import org.springframework.context.annotation.ImportResource
 import org.springframework.context.annotation.PropertySource

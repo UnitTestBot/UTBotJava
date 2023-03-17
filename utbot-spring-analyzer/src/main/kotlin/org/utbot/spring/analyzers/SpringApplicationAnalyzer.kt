@@ -1,30 +1,26 @@
-package analyzers
+package org.utbot.spring.analyzers
 
-import application.utils.FakeFileManager
-import application.configurators.PropertiesConfigurator
-import application.configurators.XmlFilesConfigurator
-import config.TestApplicationConfiguration
+import org.utbot.spring.utils.FakeFileManager
+import org.utbot.spring.configurators.PropertiesConfigurator
+import org.utbot.spring.configurators.XmlFilesConfigurator
+import org.utbot.spring.config.TestApplicationConfiguration
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.springframework.context.ApplicationContextException
-import utils.ConfigurationManager
+import org.utbot.spring.postProcessors.UtBotSpringShutdownException
+import org.utbot.spring.utils.ConfigurationManager
 import java.net.URL
 import java.net.URLClassLoader
-import java.nio.file.Path
 
 
 class SpringApplicationAnalyzer(
-    private val applicationPath: String,
+    private val applicationUrl: URL,
     private val configurationClassFqn: String,
     private val propertyFilesPaths: List<String>,
     private val xmlConfigurationPaths: List<String>,
 ) {
 
-    private val applicationUrl: URL
-        get() = Path.of(applicationPath).toUri().toURL()
-
     fun analyze() {
         val fakeFileManager = FakeFileManager(propertyFilesPaths + xmlConfigurationPaths)
-        fakeFileManager.createFakeFiles()
+        fakeFileManager.createTempFiles()
 
         val classLoader: ClassLoader = URLClassLoader(arrayOf(applicationUrl))
         val userConfigurationClass = classLoader.loadClass(configurationClassFqn)
@@ -45,10 +41,10 @@ class SpringApplicationAnalyzer(
         try {
             app.build()
             app.run()
-        } catch (e: ApplicationContextException) {
+        } catch (e: UtBotSpringShutdownException) {
             println("Bean analysis finished successfully")
         }finally {
-            fakeFileManager.deleteFakeFiles()
+            fakeFileManager.deleteTempFiles()
         }
     }
 }

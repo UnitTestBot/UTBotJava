@@ -1,7 +1,8 @@
-package application
+package org.utbot.spring
 
-import analyzers.SpringApplicationAnalyzer
-import utils.PathsUtils
+import org.utbot.spring.analyzers.SpringApplicationAnalyzer
+import org.utbot.spring.utils.PathsUtils
+import java.nio.file.Path
 
 /**
  * To run this app, arguments must be passed in the following way:
@@ -23,7 +24,7 @@ fun main(args: Array<String>) {
     */
 
     val springApplicationAnalyzer = SpringApplicationAnalyzer(
-        applicationPath = args[0],
+        applicationUrl = Path.of(args[0]).toUri().toURL(),
         configurationClassFqn = args[1],
         propertyFilesPaths = args[2].split(";").filter { it != PathsUtils.EMPTY_PATH },
         xmlConfigurationPaths = args[3].split(";").filter { it != PathsUtils.EMPTY_PATH },

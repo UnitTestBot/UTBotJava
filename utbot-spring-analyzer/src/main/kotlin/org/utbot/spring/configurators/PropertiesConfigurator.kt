@@ -1,7 +1,7 @@
-package application.configurators
+package org.utbot.spring.configurators
 
-import utils.ConfigurationManager
-import utils.PathsUtils
+import org.utbot.spring.utils.ConfigurationManager
+import org.utbot.spring.utils.PathsUtils
 import java.io.BufferedReader
 import java.io.FileReader
 import kotlin.io.path.Path

@@ -1,4 +1,4 @@
-package post_processors
+package org.utbot.spring.postProcessors
 
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
@@ -29,6 +29,7 @@ class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered 
         destroyBeanDefinitions(beanFactory)
 
         println("Finished post-processing bean factory in UtBot")
+        throw UtBotSpringShutdownException("Finished post-processing bean factory in UtBot")
     }
 
     private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): ArrayList<String> {

@@ -1,4 +1,4 @@
-package analyzers
+package org.utbot.spring.configurators
 
 import org.w3c.dom.Document
 import org.w3c.dom.Element
@@ -7,7 +7,7 @@ import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 
-class XmlConfigurationAnalyzer(private val userXmlFilePath: String, private val fakeXmlFilePath: String) {
+class XmlConfigurationParser(private val userXmlFilePath: String, private val fakeXmlFilePath: String) {
 
     fun fillFakeApplicationXml() {
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()

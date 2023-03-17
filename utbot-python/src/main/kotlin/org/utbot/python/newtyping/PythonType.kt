@@ -28,6 +28,12 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
         else
             name.prefix.joinToString(".") + "." + name.name
     }
+    fun getModuleName(): String {
+        return name.prefix.joinToString(".")
+    }
+    fun getName(): String {
+        return name.name
+    }
     fun getModules(type: Type): Set<String> {
         val cur = if (name.prefix.isNotEmpty())
             setOf(name.prefix.joinToString(separator = "."))

@@ -45,68 +45,75 @@ class MemoryDump(
 sealed class MemoryObject(
     val id: String,
     val kind: String,
+    val module: String,
     val comparable: Boolean,
-)
+) {
+    val qualname: String = if (module.isEmpty()) kind else "$module.$kind"
+}
 
 class ReprMemoryObject(
     id: String,
     kind: String,
+    module: String,
     comparable: Boolean,
     val value: String,
-): MemoryObject(id, kind, comparable)
+): MemoryObject(id, kind, module, comparable)
 
 class ListMemoryObject(
     id: String,
     kind: String,
+    module: String,
     comparable: Boolean,
     val items: List<String>,
-): MemoryObject(id, kind, comparable)
+): MemoryObject(id, kind, module, comparable)
 
 class DictMemoryObject(
     id: String,
     kind: String,
+    module: String,
     comparable: Boolean,
     val items: Map<String, String>,
-): MemoryObject(id, kind, comparable)
+): MemoryObject(id, kind, module, comparable)
 
 class ReduceMemoryObject(
     id: String,
     kind: String,
+    module: String,
     comparable: Boolean,
     val constructor: String,
     val args: String,
     val state: String,
     val listitems: String,
     val dictitems: String
-): MemoryObject(id, kind, comparable)
+): MemoryObject(id, kind, module, comparable)
 
 fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump): String {
     val obj = when(this) {
         is PythonTree.PrimitiveNode -> {
-            ReprMemoryObject(this.id.toString(), this.type.name, this.comparable, this.repr)
+            ReprMemoryObject(this.id.toString(), this.type.name, this.type.moduleName, this.comparable, this.repr)
         }
         is PythonTree.ListNode -> {
             val items = this.items.entries
                 .sortedBy { it.key }
                 .map { it.value.toMemoryObject(memoryDump) }
-            ListMemoryObject(this.id.toString(), this.type.name, this.comparable, items)
+            ListMemoryObject(this.id.toString(), this.type.name, this.type.moduleName, this.comparable, items)
         }
         is PythonTree.TupleNode -> {
             val items = this.items.entries
                 .sortedBy { it.key }
                 .map { it.value.toMemoryObject(memoryDump) }
-            ListMemoryObject(this.id.toString(), this.type.name, this.comparable, items)
+            ListMemoryObject(this.id.toString(), this.type.name, this.type.moduleName, this.comparable, items)
         }
         is PythonTree.SetNode -> {
             val items = this.items.map { it.toMemoryObject(memoryDump) }
-            ListMemoryObject(this.id.toString(), this.type.name, this.comparable, items)
+            ListMemoryObject(this.id.toString(), this.type.name, this.type.moduleName, this.comparable, items)
         }
         is PythonTree.DictNode -> {
             val items = this.items.entries
                 .associate {
                     it.key.toMemoryObject(memoryDump) to it.value.toMemoryObject(memoryDump)
                 }
-            DictMemoryObject(this.id.toString(), this.type.name, this.comparable, items)
+            DictMemoryObject(this.id.toString(), this.type.name, this.type.moduleName, this.comparable, items)
         }
         is PythonTree.ReduceNode -> {
             val stateObjId = PythonTree.DictNode(this.state.entries.associate { PythonTree.PrimitiveNode(pythonStrClassId, it.key) to it.value }.toMutableMap())
@@ -116,6 +123,7 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump): String {
             ReduceMemoryObject(
                 this.id.toString(),
                 this.type.name,
+                this.type.moduleName,
                 this.comparable,
                 this.constructor.name,
                 argsIds.toMemoryObject(memoryDump),
@@ -137,7 +145,7 @@ fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode
         is ReprMemoryObject -> {
             PythonTree.PrimitiveNode(
                 this.id.toLong(),
-                PythonClassId(this.kind),
+                PythonClassId(this.module, this.kind),
                 this.value
             )
         }
@@ -153,7 +161,7 @@ fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode
             val elementsMap = items.withIndex().associate {
                     it.index to memoryDump.getById(it.value).toPythonTree(memoryDump)
                 }.toMutableMap()
-            when (this.kind) {
+            when (this.qualname) {
                 "builtins.tuple" -> {
                     PythonTree.TupleNode(this.id.toLong(), elementsMap)
                 }
@@ -172,7 +180,7 @@ fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode
             val dictitemsObjs = memoryDump.getById(dictitems) as DictMemoryObject
             PythonTree.ReduceNode(
                 this.id.toLong(),
-                PythonClassId(this.kind),
+                PythonClassId(this.module, this.kind),
                 PythonClassId(this.constructor),
                 arguments.items.map { memoryDump.getById(it).toPythonTree(memoryDump) },
                 stateObjs.items.entries.associate {

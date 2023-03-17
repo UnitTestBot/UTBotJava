@@ -14,7 +14,7 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 
 object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        return type.pythonTypeName() == "builtins.complex" || type.isAny()
+        return type.pythonTypeName() == pythonComplexClassId.canonicalName || type.isAny()
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {

@@ -4,6 +4,7 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.getSuitableConstantsFromCode
@@ -12,7 +13,7 @@ import org.utbot.python.newtyping.general.Type
 
 object TupleValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        return type.pythonTypeName() == "builtins.tuple"
+        return type.pythonTypeName() == pythonTupleClassId.canonicalName
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {

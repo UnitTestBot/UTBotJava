@@ -1,4 +1,4 @@
-package org.utbot.spring.post_processors
+package org.utbot.spring.postProcessors
 
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor

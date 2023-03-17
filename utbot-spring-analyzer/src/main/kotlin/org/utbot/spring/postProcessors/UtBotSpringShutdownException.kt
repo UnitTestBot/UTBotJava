@@ -1,4 +1,4 @@
-package org.utbot.spring.post_processors
+package org.utbot.spring.postProcessors
 
 /**
  * Use this exception to shutdown this application

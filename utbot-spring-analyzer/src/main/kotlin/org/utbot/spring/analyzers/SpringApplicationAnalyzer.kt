@@ -5,8 +5,7 @@ import org.utbot.spring.configurators.PropertiesConfigurator
 import org.utbot.spring.configurators.XmlFilesConfigurator
 import org.utbot.spring.config.TestApplicationConfiguration
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.springframework.context.ApplicationContextException
-import org.utbot.spring.post_processors.UtBotSpringShutdownException
+import org.utbot.spring.postProcessors.UtBotSpringShutdownException
 import org.utbot.spring.utils.ConfigurationManager
 import java.net.URL
 import java.net.URLClassLoader

@@ -11,19 +11,20 @@ the same names).
 
 **Suggested custom tags (NOT ALL OF THEM ARE USED)**
 
-| Name                       | Description                        | Usage example                                                   |
-|----------------------------|------------------------------------|-----------------------------------------------------------------|
-| `@utbot.classUnderTest`    | Inline link to the enclosing class | `@utbot.methodUnderTest {@link main.IntMath}`                   |     
-| `@utbot.methodUnderTest`   | Inline link to the method we test. | `@utbot.methodUnderTest {@link main.IntMath#pow(int, int)}`     |
-| `@utbot.expectedResult`    | Value we expect to get.            | `@utbot.expectedResult 4`                                       |
-| `@utbot.actualResult`      | Value we got.                      | `@utbot.actualResult 64`                                        |
-| `@utbot.executes`          | Executed condition.                | `@utbot.executes {@code (k < Integer.SIZE): True}`              |
-| `@utbot.invokes`           | Invoked method.                    | `@utbot.invokes {@link main.IntMath#mul(int, int)}`             |
-| `@utbot.triggersRecursion` | Triggered recursion.               | `@utbot.recursion triggers recursion of leftBinSearch`          |
-| `@utbot.activatesSwitch`   | Activated switch case.             | `@utbot.activatesSwitch {code case 10}`                         |
-| `@utbot.returnsFrom`       | Statement we return from.          | `@utbot.returnsFrom {@code return (k == 0) ? 1 : 0;}`           |
-| `@utbot.throwsException`   | Thrown exception.                  | `@utbot.throwsException {@link java.lang.NullPointerException}` |
-| `@utbot.caughtException`   | Caught exception.                  | `@utbot.caughtException {@code RuntimeException e}`             |
+| Name                       | Description                        | Usage example                                                               |
+|----------------------------|------------------------------------|-----------------------------------------------------------------------------|
+| `@utbot.classUnderTest`    | Inline link to the enclosing class | `@utbot.methodUnderTest {@link main.IntMath}`                               |     
+| `@utbot.methodUnderTest`   | Inline link to the method we test. | `@utbot.methodUnderTest {@link main.IntMath#pow(int, int)}`                 |
+| `@utbot.expectedResult`    | Value we expect to get.            | `@utbot.expectedResult 4`                                                   |
+| `@utbot.actualResult`      | Value we got.                      | `@utbot.actualResult 64`                                                    |
+| `@utbot.executesCondition` | Executed condition.                | `@utbot.executesCondition {@code (k < Integer.SIZE): True}`                 |
+| `@utbot.invokes`           | Invoked method.                    | `@utbot.invokes {@link main.IntMath#mul(int, int)}`                         |
+| `@utbot.triggersRecursion` | Triggered recursion.               | `@utbot.recursion triggers recursion of leftBinSearch`                      |
+| `@utbot.activatesSwitch`   | Activated switch case.             | `@utbot.activatesSwitch {code case 10}`                                     |
+| `@utbot.returnsFrom`       | Statement we return from.          | `@utbot.returnsFrom {@code return (k == 0) ? 1 : 0;}`                       |
+| `@utbot.throwsException`   | Thrown exception.                  | `@utbot.throwsException {@link java.lang.NullPointerException}`             |
+| `@utbot.caughtException`   | Caught exception.                  | `@utbot.caughtException {@code RuntimeException e}`                         |
+| `@utbot.iterates`          | Cycle inside user code iterated.   | `@utbot.iterates iterate the loop {@code for(int i = 0; i < x; i++)} once`  |
 
 ## Settings
 

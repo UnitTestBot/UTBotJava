@@ -223,7 +223,7 @@ class EngineProcess private constructor(val project: Project, private val classN
 
         val bySignature = executeWithTimeoutSuspended {
             DumbService.getInstance(project).runReadActionInSmartMode(Computable {
-                methods.associate { it.methodDescription() to it.paramNames() }
+                methods.map { it.methodDescription() to it.paramNames() }
             })
         }
         val arguments = FindMethodParamNamesArguments(

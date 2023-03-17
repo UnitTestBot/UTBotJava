@@ -119,6 +119,8 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: [compileKotlin, generat
     }
 }
 
+classes.dependsOn(generatePluginDescriptor)
+
 publishing {
     publications {
         pluginMaven(MavenPublication) {

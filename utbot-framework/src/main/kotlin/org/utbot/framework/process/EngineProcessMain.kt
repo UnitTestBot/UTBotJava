@@ -273,7 +273,7 @@ private fun processInitialWarnings(report: TestsGenerationReport, params: Genera
 }
 
 private fun destinationWarningMessage(testPackageName: String?, classUnderTestPackageName: String): String? {
-    return if (classUnderTestPackageName != testPackageName) {
+    return if (!testPackageName.isNullOrEmpty() && classUnderTestPackageName != testPackageName) {
         """
             Warning: Destination package $testPackageName does not match package of the class $classUnderTestPackageName.
             This may cause unnecessary usage of reflection for protected or package-private fields and methods access.

@@ -18,7 +18,7 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.ApplicationType
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
@@ -43,7 +43,7 @@ class GenerateTestsModel(
     override var sourceRootHistory = project.service<Settings>().sourceRootHistory
     override var codegenLanguage = project.service<Settings>().codegenLanguage
 
-    lateinit var applicationType: ApplicationType
+    lateinit var projectType: ProjectType
 
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi

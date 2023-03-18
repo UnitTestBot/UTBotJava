@@ -712,7 +712,7 @@ enum class ParametrizedTestSource(
     }
 }
 
-enum class ApplicationType {
+enum class ProjectType {
     /**
      * Standard JVM application without DI frameworks.
      */

@@ -1,3 +1,7 @@
+java {
+    withSourcesJar()
+}
+
 configurations {
     fetchSpringAnalyzerJar
 }

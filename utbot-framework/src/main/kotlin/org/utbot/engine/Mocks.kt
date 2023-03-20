@@ -333,7 +333,7 @@ class Mocker(
 
     companion object {
 
-        val javaDefaultClasses: Set<Class<*>> = setOf(java.util.Random::class.java)
+        val javaDefaultClasses: Set<Class<*>> = setOf()
 
         private val loggerSuperClasses: Set<Class<*>> = setOf(
             org.slf4j.Logger::class.java,

@@ -6,16 +6,13 @@ import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.services.JdkInfo
-import soot.G
-import soot.PackManager
-import soot.Scene
-import soot.SootClass
-import soot.SootMethod
+import soot.*
 import soot.jimple.JimpleBody
 import soot.options.Options
 import soot.toolkits.graph.ExceptionalUnitGraph
 import java.io.File
 import java.nio.file.Path
+import java.util.function.Consumer
 
 object SootUtils {
     /**
@@ -54,6 +51,11 @@ object SootUtils {
 }
 
 /**
+ * This option is only needed to fast changing from other tools.
+ */
+var sootOptionConfiguration: Consumer<Options> = Consumer { _ -> }
+
+/**
  * Convert code to Jimple
  */
 private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo) {
@@ -67,6 +69,7 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
         // set true to debug. Disabled because of a bug when two different variables
         // from the source code have the same name in the jimple body.
         setPhaseOption("jb", "use-original-names:false")
+        sootOptionConfiguration.accept(this)
         set_soot_classpath(
             FileUtil.isolateClassFiles(*classesToLoad).absolutePath
                     + if (!classpath.isNullOrEmpty()) File.pathSeparator + "$classpath" else ""

@@ -13,6 +13,7 @@ compileTestKotlin {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
 }
 
 dependencies {
@@ -34,10 +35,6 @@ dependencies {
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
-}
-
-java {
-    withSourcesJar()
 }
 
 jar {

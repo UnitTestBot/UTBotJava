@@ -1369,8 +1369,6 @@ class Traverser(
         traverseException(current, symException)
     }
 
-    private val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
-
     // TODO: HACK violation of encapsulation
     fun createObject(
         addr: UtAddrExpression,
@@ -1379,6 +1377,7 @@ class Traverser(
         mockInfoGenerator: UtMockInfoGenerator? = null
     ): ObjectValue {
         touchAddress(addr)
+        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
 
         // Some types (e.g., interfaces) need to be mocked or replaced with the concrete implementor.
         // Typically, this implementor is selected by SMT solver later.
@@ -1501,11 +1500,11 @@ class Traverser(
                         "but there is no mock info generator provided to construct a mock value."
             }
 
-            return createMockedObject(addr, type, mockInfoGenerator)
+            return createMockedObject(addr, type, mockInfoGenerator, nullEqualityConstraint)
         }
 
         val concreteImplementation = when (applicationContext.typeReplacementMode) {
-            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint)
+            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
 
             // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
             // we should just still use concrete implementation that represents itself
@@ -1521,11 +1520,11 @@ class Traverser(
             KnownImplementor,
             NoImplementors -> {
                 if (!type.isAbstractType) {
-                    findConcreteImplementation(addr, type, typeHardConstraint)
+                    findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
                 }
 
                 mockInfoGenerator?.let {
-                    return createMockedObject(addr, type, it)
+                    return createMockedObject(addr, type, it, nullEqualityConstraint)
                 }
 
                 queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
@@ -1540,6 +1539,7 @@ class Traverser(
         addr: UtAddrExpression,
         type: RefType,
         typeHardConstraint: HardConstraint,
+        nullEqualityConstraint: UtBoolExpression,
     ): Concrete? {
         val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
 
@@ -1556,6 +1556,7 @@ class Traverser(
         addr: UtAddrExpression,
         type: RefType,
         mockInfoGenerator: UtMockInfoGenerator,
+        nullEqualityConstraint: UtBoolExpression,
     ): ObjectValue {
         val mockInfo = mockInfoGenerator.generate(addr)
         val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))

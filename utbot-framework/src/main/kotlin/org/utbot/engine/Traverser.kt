@@ -126,6 +126,7 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.KnownImplementor
 import org.utbot.framework.plugin.api.TypeReplacementMode.NoImplementors
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.isAbstractType
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
@@ -1517,7 +1518,7 @@ class Traverser(
             // Mocking can be impossible here as there are no guaranties that `mockInfoGenerator` is instantiated.
             KnownImplementor,
             NoImplementors -> {
-                if (!type.sootClass.isAbstract && !type.sootClass.isInterface) {
+                if (!type.isAbstractType) {
                     findConcreteImplementation(addr, type, typeHardConstraint)
                 }
 

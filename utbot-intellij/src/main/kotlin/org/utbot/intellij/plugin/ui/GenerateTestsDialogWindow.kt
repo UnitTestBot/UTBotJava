@@ -247,9 +247,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         DependencyInjectionFramework.allItems.forEach {
             it.isInstalled = findDependencyInjectionLibrary(model.project, model.testModule, it) != null
         }
-        model.projectType =
-            if (SpringBeans.isInstalled) ProjectType.SPRING_APPLICATION
-            else ProjectType.PURE_JVM
+        model.projectType = if (SpringBeans.isInstalled) ProjectType.Spring else ProjectType.PureJvm
+
         StaticsMocking.allItems.forEach {
             it.isConfigured = staticsMockingConfigured()
         }

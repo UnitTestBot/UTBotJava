@@ -4,6 +4,8 @@ import mu.KotlinLogging
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -28,6 +30,8 @@ import java.time.format.DateTimeFormatter
 
 open class CodeGenerator(
     val classUnderTest: ClassId,
+    //TODO: support setting `projectType` in Sarif plugins, UtBotJava api, etc.
+    val projectType: ProjectType = PureJvm,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     generateUtilClassFile: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
@@ -48,6 +52,7 @@ open class CodeGenerator(
 
     open var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
+        projectType = projectType,
         generateUtilClassFile = generateUtilClassFile,
         paramNames = paramNames,
         testFramework = testFramework,
@@ -76,10 +81,11 @@ open class CodeGenerator(
         val cgTestSets = testSets.map { CgMethodTestSet(it) }.toList()
         return withCustomContext(testClassCustomName) {
             context.withTestClassFileScope {
-                if (context.isSpringClass) {
-                    generateForSpringClass(cgTestSets)
-                } else {
-                    generateForSimpleClass(cgTestSets)
+                when (context.projectType) {
+                    PureJvm,
+                    Python,
+                    JavaScript -> generateForSimpleClass(cgTestSets)
+                    Spring -> generateForSpringClass(cgTestSets)
                 }
             }
         }

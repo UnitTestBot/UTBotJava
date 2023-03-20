@@ -33,6 +33,7 @@ class JsCodeGenerator(
 ) {
     private var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
+        projectType = ProjectType.JavaScript,
         paramNames = paramNames,
         testFramework = testFramework,
         mockFramework = MockFramework.MOCKITO,

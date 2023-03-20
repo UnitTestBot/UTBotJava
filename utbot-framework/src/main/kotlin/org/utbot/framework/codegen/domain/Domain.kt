@@ -714,14 +714,24 @@ enum class ParametrizedTestSource(
 
 enum class ProjectType {
     /**
-     * Standard JVM application without DI frameworks.
+     * Standard JVM project without DI frameworks
      */
-    PURE_JVM,
+    PureJvm,
 
     /**
-     * Spring or Spring Boot application.
+     * Spring or Spring Boot project
      */
-    SPRING_APPLICATION,
+    Spring,
+
+    /**
+     * Python project
+     */
+    Python,
+
+    /**
+     * JavaScript project
+     */
+    JavaScript,
 }
 
 enum class TypeReplacementApproach {

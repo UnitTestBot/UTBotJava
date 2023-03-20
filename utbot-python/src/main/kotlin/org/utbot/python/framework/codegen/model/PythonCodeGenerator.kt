@@ -5,6 +5,7 @@ import org.utbot.framework.codegen.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -42,7 +43,6 @@ import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.framework.codegen.toPythonRawString
-import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonName
 
 class PythonCodeGenerator(
@@ -60,6 +60,7 @@ class PythonCodeGenerator(
     testClassPackageName: String = classUnderTest.packageName
 ) : CodeGenerator(
     classUnderTest = classUnderTest,
+    projectType = ProjectType.Python,
     paramNames = paramNames,
     generateUtilClassFile = true,
     testFramework = testFramework,

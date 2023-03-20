@@ -60,8 +60,6 @@ internal class Notifications
         bool closeAfterExecution = true,
         UserNotificationCommand command = null)
     {
-        _logger.Error(message: body);
-
         ShowNotification(
             NotificationSeverity.CRITICAL,
             Title,

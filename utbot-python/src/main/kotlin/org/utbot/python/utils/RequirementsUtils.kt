@@ -3,7 +3,7 @@ package org.utbot.python.utils
 object RequirementsUtils {
     val requirements: List<String> = listOf(
         "mypy==1.0.0",
-        "utbot-executor==0.100.1",
+        "utbot-executor==1.3.1",
         "utbot-mypy-runner==0.2.8",
     )
 
@@ -25,6 +25,7 @@ object RequirementsUtils {
                 requirementsScript.path
             ) + requirementList
         )
+        requirementsScript.delete()
         return result.exitValue == 0
     }
 

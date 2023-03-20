@@ -12,14 +12,12 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 
 private val logger = KotlinLogging.logger {}
-const val ADDITIONAL_EXECUTION_TIME = 250
 
 class PythonWorkerManager(
     private val serverSocket: ServerSocket,
     val pythonPath: String,
     val until: Long,
     val pythonCodeExecutorConstructor: (PythonWorker) -> PythonCodeExecutor,
-    private val timeoutForRun: Int
 ) {
     private val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor.log", "log", true)
 
@@ -40,7 +38,7 @@ class PythonWorkerManager(
             "localhost",
             serverSocket.localPort.toString(),
             "--logfile", logfile.absolutePath,
-            "--loglevel", "DEBUG",  // "DEBUG", "INFO", "WARNING", "ERROR"
+            "--loglevel", "INFO",  // "DEBUG", "INFO", "WARNING", "ERROR"
         ))
         timeout = max(until - processStartTime, 0)
         workerSocket = try {
@@ -54,7 +52,7 @@ class PythonWorkerManager(
         }
         logger.debug { "Worker connected successfully" }
 
-//        workerSocket.soTimeout = timeoutForRun + ADDITIONAL_EXECUTION_TIME  // TODO: maybe +eps for serialization/deserialization?
+//        workerSocket.soTimeout = timeoutForRun  // TODO: maybe +eps for serialization/deserialization?
         val pythonWorker = PythonWorker(workerSocket)
         codeExecutor = pythonCodeExecutorConstructor(pythonWorker)
     }

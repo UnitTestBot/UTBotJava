@@ -19,13 +19,13 @@ fun TestFramework.patterns(): Patterns {
         Junit4 -> junit4ModulePatterns
         Junit5 -> junit5ModulePatterns
         TestNg -> testNgModulePatterns
-        else -> throw UnsupportedOperationException()
+        else -> throw UnsupportedOperationException("Unknown test framework $this")
     }
     val libraryPatterns = when (this) {
         Junit4 -> junit4Patterns
         Junit5 -> junit5Patterns
         TestNg -> testNgPatterns
-        else -> throw UnsupportedOperationException()
+        else -> throw UnsupportedOperationException("Unknown test framework $this")
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)
@@ -37,13 +37,13 @@ fun TestFramework.parametrizedTestsPatterns(): Patterns {
         Junit4 -> emptyList()
         Junit5 -> emptyList()   // emptyList here because JUnit5 module may not be enough for parametrized tests if :junit-jupiter-params: is not installed
         TestNg -> testNgModulePatterns
-        else -> throw UnsupportedOperationException()
+        else -> throw UnsupportedOperationException("Unknown test framework $this")
     }
     val libraryPatterns = when (this) {
         Junit4 -> emptyList()
         Junit5 -> junit5ParametrizedTestsPatterns
         TestNg -> testNgPatterns
-        else -> throw UnsupportedOperationException()
+        else -> throw UnsupportedOperationException("Unknown test framework $this")
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)
@@ -65,12 +65,12 @@ fun DependencyInjectionFramework.patterns(): Patterns {
     val moduleLibraryPatterns = when (this) {
         SpringBoot -> springBootModulePatterns
         SpringBeans -> springBeansModulePatterns
-        else -> throw UnsupportedOperationException()
+        else -> throw UnsupportedOperationException("Unknown dependency injection framework $this")
     }
     val libraryPatterns = when (this) {
         SpringBoot -> springBootPatterns
         SpringBeans -> springBeansPatterns
-        else -> throw UnsupportedOperationException()
+        else -> throw UnsupportedOperationException("Unknown dependency injection framework $this")
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)

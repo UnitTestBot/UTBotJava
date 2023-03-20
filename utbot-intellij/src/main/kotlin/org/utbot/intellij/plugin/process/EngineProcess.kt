@@ -278,6 +278,7 @@ class EngineProcess private constructor(val project: Project, private val classN
     fun render(
         testSetsId: Long,
         classUnderTest: ClassId,
+        projectType: ProjectType,
         paramNames: MutableMap<ExecutableId, List<String>>,
         generateUtilClassFile: Boolean,
         testFramework: TestFramework,
@@ -296,6 +297,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         val params = RenderParams(
             testSetsId,
             kryoHelper.writeObject(classUnderTest),
+            projectType.toString(),
             kryoHelper.writeObject(paramNames),
             generateUtilClassFile,
             testFramework.id.lowercase(),

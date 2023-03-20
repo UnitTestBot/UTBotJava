@@ -25,6 +25,7 @@ import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
 import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.ClassId
@@ -177,8 +178,10 @@ object UtTestsDialogProcessor {
                         val staticMockingConfigured = model.staticsMocking.isConfigured
 
                         val applicationContext = when (model.projectType) {
-                            ProjectType.PURE_JVM -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
-                            ProjectType.SPRING_APPLICATION -> {
+                            PureJvm,
+                            Python,
+                            JavaScript -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
+                            Spring -> {
                                 val shouldUseImplementors = when (model.typeReplacementApproach) {
                                     TypeReplacementApproach.DO_NOT_REPLACE -> false
                                     TypeReplacementApproach.REPLACE_IF_POSSIBLE -> true

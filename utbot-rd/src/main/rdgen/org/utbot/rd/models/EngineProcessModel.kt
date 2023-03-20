@@ -62,6 +62,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val renderParams = structdef {
         field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
+        field("projectType", PredefinedType.string)
         field("paramNames", array(PredefinedType.byte))
         field("generateUtilClassFile", PredefinedType.bool)
         field("testFramework", PredefinedType.string)

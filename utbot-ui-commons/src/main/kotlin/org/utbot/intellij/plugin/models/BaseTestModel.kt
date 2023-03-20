@@ -11,12 +11,11 @@ import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
-import com.intellij.util.containers.mapSmart
 import org.jetbrains.kotlin.idea.core.getPackage
-import org.jetbrains.kotlin.idea.refactoring.memberInfo.qualifiedClassNameForRendering
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.jetbrains.kotlin.idea.util.sourceRoot
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
@@ -40,6 +39,7 @@ open class BaseTestsModel(
     var testPackageName: String? = null
     open var sourceRootHistory : MutableList<String> = mutableListOf()
     open lateinit var codegenLanguage: CodegenLanguage
+    open lateinit var projectType: ProjectType
 
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
         requireNotNull(newTestSourceRoot)

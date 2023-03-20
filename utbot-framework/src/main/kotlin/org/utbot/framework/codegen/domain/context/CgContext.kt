@@ -22,6 +22,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
@@ -66,8 +67,8 @@ interface CgContextOwner {
     // current class under test
     val classUnderTest: ClassId
 
-    // If test class is configured with Spring, we should do some extra analysis
-    val isSpringClass: Boolean
+    // If project under test is configured with Spring, we should do some extra analysis
+    val projectType: ProjectType
 
     // test class currently being generated (if series of nested classes is generated, it is the outermost one)
     val outerMostTestClass: ClassId
@@ -434,7 +435,7 @@ interface CgContextOwner {
  */
 data class CgContext(
     override val classUnderTest: ClassId,
-    override val isSpringClass: Boolean = false,
+    override val projectType: ProjectType,
     val generateUtilClassFile: Boolean = false,
     override var currentExecutable: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),

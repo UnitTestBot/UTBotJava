@@ -126,11 +126,13 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.KnownImplementor
 import org.utbot.framework.plugin.api.TypeReplacementMode.NoImplementors
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.isAbstractType
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
@@ -1375,6 +1377,7 @@ class Traverser(
         mockInfoGenerator: UtMockInfoGenerator? = null
     ): ObjectValue {
         touchAddress(addr)
+        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
 
         // Some types (e.g., interfaces) need to be mocked or replaced with the concrete implementor.
         // Typically, this implementor is selected by SMT solver later.
@@ -1396,8 +1399,6 @@ class Traverser(
 
             return ObjectValue(typeStorage, addr)
         }
-
-        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
 
         if (mockInfoGenerator != null) {
             val mockInfo = mockInfoGenerator.generate(addr)
@@ -1499,21 +1500,16 @@ class Traverser(
                         "but there is no mock info generator provided to construct a mock value."
             }
 
-            return createMockedObject(addr, type, mockInfoGenerator)
+            return createMockedObject(addr, type, mockInfoGenerator, nullEqualityConstraint)
         }
 
         val concreteImplementation = when (applicationContext.typeReplacementMode) {
-            AnyImplementor -> {
-                val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
+            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
 
-                queuedSymbolicStateUpdates += typeHardConstraint
-                queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
-
-                // If we have this$0 with UtArrayList type, we have to create such instance.
-                // We should create an object with typeStorage of all possible real types and concrete implementation
-                // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
-                wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
-            }
+            // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
+            // we should just still use concrete implementation that represents itself
+            //
+            // Otherwise:
             // In case of `KnownImplementor` mode we should have already tried to replace type using `replaceTypeIfNeeded`.
             // However, this replacement attempt might be unsuccessful even if some possible concrete types are present.
             // For example, we may have two concrete implementors present in Spring bean definitions, so we do not know
@@ -1523,8 +1519,12 @@ class Traverser(
             // Mocking can be impossible here as there are no guaranties that `mockInfoGenerator` is instantiated.
             KnownImplementor,
             NoImplementors -> {
+                if (!type.isAbstractType) {
+                    findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
+                }
+
                 mockInfoGenerator?.let {
-                    return createMockedObject(addr, type, it)
+                    return createMockedObject(addr, type, it, nullEqualityConstraint)
                 }
 
                 queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
@@ -1535,13 +1535,29 @@ class Traverser(
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
 
+    private fun findConcreteImplementation(
+        addr: UtAddrExpression,
+        type: RefType,
+        typeHardConstraint: HardConstraint,
+        nullEqualityConstraint: UtBoolExpression,
+    ): Concrete? {
+        val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
+
+        queuedSymbolicStateUpdates += typeHardConstraint
+        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+
+        // If we have this$0 with UtArrayList type, we have to create such instance.
+        // We should create an object with typeStorage of all possible real types and concrete implementation
+        // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
+        return wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
+    }
+
     private fun createMockedObject(
         addr: UtAddrExpression,
         type: RefType,
         mockInfoGenerator: UtMockInfoGenerator,
+        nullEqualityConstraint: UtBoolExpression,
     ): ObjectValue {
-        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
-
         val mockInfo = mockInfoGenerator.generate(addr)
         val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
 

@@ -1245,12 +1245,15 @@ class SpringApplicationContext(
      * if there is the unique implementor in bean definitions.
      */
     override fun replaceTypeIfNeeded(type: RefType): ClassId? =
-        if (type.sootClass.isInterface || type.sootClass.isAbstract) {
+        if (type.isAbstractType) {
             springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
         } else {
             null
         }
 }
+
+val RefType.isAbstractType
+ get() = this.sootClass.isAbstract || this.sootClass.isInterface
 
 interface CodeGenerationSettingItem {
     val id: String

@@ -1,7 +1,5 @@
 package org.utbot.python.evaluation
 
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.Instruction
@@ -78,22 +76,22 @@ class PythonCodeSocketExecutor(
             logger.info { "Send data error" }
             return parseExecutionResult(FailExecution("Send data error"))
         }
-        var response: String? = null
 
-        val job = launch {
-            response = pythonWorker.receiveMessage()
+        val (status, response) = UtExecutorThread.run(pythonWorker, executionTimeout)
+        return when (status) {
+            UtExecutorThread.Status.TIMEOUT -> {
+                PythonEvaluationTimeout()
+            }
+
+            UtExecutorThread.Status.OK -> {
+                val executionResult = response?.let {
+                    ExecutionResultDeserializer.parseExecutionResult(it)
+                        ?: error("Cannot parse execution result: $it")
+                } ?: FailExecution("Execution result error")
+
+                parseExecutionResult(executionResult)
+            }
         }
-        delay(executionTimeout)
-        job.cancelAndJoin()
-
-
-        val executionResult = response?.let {
-            ExecutionResultDeserializer.parseExecutionResult(response!!)
-                ?: error("Cannot parse execution result: $response")
-        } ?: FailExecution("Execution result error")
-
-
-        return parseExecutionResult(executionResult)
     }
 
     private fun parseExecutionResult(executionResult: PythonExecutionResult): PythonEvaluationResult {

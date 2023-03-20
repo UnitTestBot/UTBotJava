@@ -288,7 +288,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     null
                 )
             }
-            if (model.projectType == ProjectType.SPRING_APPLICATION) {
+            if (model.projectType == ProjectType.Spring) {
                 row("Spring configuration:") {
                     makePanelWithHelpTooltip(
                         springConfig,
@@ -1040,7 +1040,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val mockStrategyIsSupported = mockStrategies.item == MockStrategyApi.NO_MOCKS
 
         // We do not support PUT in Spring projects
-        val isSupportedProjectType = model.projectType == ProjectType.PURE_JVM
+        val isSupportedProjectType = model.projectType == ProjectType.PureJvm
         parametrizedTestSources.isEnabled =
             isSupportedProjectType && languageIsSupported && frameworkIsSupported && mockStrategyIsSupported
 
@@ -1076,7 +1076,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun updateSpringConfigurationEnabled() {
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
-        springConfig.isEnabled = model.projectType == ProjectType.SPRING_APPLICATION
+        springConfig.isEnabled = model.projectType == ProjectType.Spring
                 && modelSpringConfigs.size > 1
 
         if (!springConfig.isEnabled) {

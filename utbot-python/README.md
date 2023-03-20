@@ -1,48 +1,33 @@
-# UTBot for Python
+# UnitTestBot Python
 
-UTBot is the tool for automated unit test generation. You can read more about this project [on the official website](https://www.utbot.org/).
+[UnitTestBot](https://www.utbot.org/) is the tool for automated unit test generation available as an IntelliJ IDEA plugin, or a command-line interface.
 
-This is the support of UTBot for Python.
+Now UnitTestBot provides fuzzing-based support for Python.
 
-UTBot tries to maximize the code coverage while minimizing the number of tests. For now, we use only the fuzzing technique for Python.
+## Requirements
 
-# Get started
+1. Python 3.8 or 3.9 (UnitTestBot Python has been tested to provide support for these versions; some Python 3.10 syntax is not supported)
+2. [Python plugin](https://plugins.jetbrains.com/plugin/631-python) for IntelliJ IDEA
+3. IntelliJ IDEA 2022.1
 
-There are two ways to use UTBot: as an IntelliJ IDEA plugin or through a command line interface.
+If you already have a Python project, you usually have no need to install or configure anything else, but if you have trouble with launching UnitTestBot Python, please refer to [advanced requirements section](docs/CLI.md#requirements).
 
-You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/2956160534).
+_Note:_ the `com.intellij.modules.python` package should be specified in `/utbot-intellij/resources/plugin.xml` as a dependency for using Python PSI tree.
 
-## Python requirements
+## How to install and use
 
-UTBot Python has been tested on Python 3.8 and 3.9. Some syntax from Python 3.10 is not supported.
+To try UnitTestBot Python as an _**IntelliJ IDEA plugin**_:
+1. Download the corresponding [archive](https://github.com/UnitTestBot/UTBotJava/actions/runs/2956160534).
+2. [Install](https://www.jetbrains.com/help/idea/managing-plugins.html#install_plugin_from_disk) the plugin from the downloaded archive.
+3. Configure the Python interpreter for your project and make sure IntelliJ IDEA resolves all the imports.
+4. In your IntelliJ IDEA, go to **File** > **Settings** > **Tools**, choose **UnitTestBot** and enable **Experimental languages support**.
 
-Usually nothing has to be done manually, but if you have any troubles with requirements, refer to [requirements section](docs/CLI.md#requirements) in CLI documentation.
+    **(!) NOTE:** be sure to enable this option for **_each_** project.
 
-## IntelliJ IDEA plugin
+5. To generate tests, place the caret at the required function and press **Alt+Shift+U** (**Alt+U, Alt+T** in Ubuntu).
 
-IntelliJ IDEA version should be 2022.1.
+To use UnitTestBot Python via _**command-line interface**_, please refer to the [CLI guide](docs/CLI.md).
 
-1. Make sure you already have the Python plugin installed.
+## How to contribute and get support
 
-2. Download the archive with the plugin and install it following [this instruction](https://www.jetbrains.com/help/idea/managing-plugins.html#install_plugin_from_disk).
-
-3. Configure the Python interpreter for your project and make sure that IDEA resolves all imports.
-
-4. After indexing has finished, move the cursor to a function, press ALT+SHIFT+U (or ALT+U, ALT+T in Ubuntu), and generate tests.
-
-### Dependency
-
-Package `com.intellij.modules.python` in `/utbot-intellij/resources/plugin.xml` is necessary dependecy for now, it is needed to use Python Psi tree.  
-
-
-## Command line interface
-
-You can find documentation on CLI usage [here](docs/CLI.md).
-
-# Contribute
-
-Read more in [UTBot Java Readme](../README.md#contribute-to-utbot-java).
-
-# Support
-
-Read more in [UTBot Java Readme](../README.md#find-support).
+To get information on contributing and getting support, please see [UnitTestBot Java Readme](https://github.com/UnitTestBot/UTBotJava#readme).

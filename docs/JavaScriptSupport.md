@@ -1,38 +1,42 @@
-# UnitTestBot JavaScript plugin setup
+# UnitTestBot JavaScript
 
-## How to start using UnitTestBot JavaScript
+[UnitTestBot](https://www.utbot.org/) is the tool for automated unit test generation available as an IntelliJ IDEA plugin, or a command-line interface.
 
-1. [Install](https://www.jetbrains.com/idea/download/) the latest version of IntelliJ IDEA Ultimate.
-2. [Install](https://plugins.jetbrains.com/plugin/19445-unittestbot) the latest version of UnitTestBot plugin.
-3. [Install](https://nodejs.org/en/download/) Node.js 10.0.0 or later. Add Node.js to environment variables for better experience.
-4. In your IntelliJ IDEA, go to **File** > **Settings** > **Tools** > **UnitTestBot** and enable **Experimental languages support**.
-5. Go to **File** > **Settings** > **Languages & Frameworks**, choose **Node.js** and check if the path to Node.js executable file is specified.
-6. In a JavaScript file, press **Alt+Shift+U** to open the generation dialog.
+Now UnitTestBot provides fuzzing-based support for JavaScript.
 
-## Troubleshooting: _npm_ cannot install requirements
+## IntelliJ IDEA plugin
 
-1. The system prohibits installation
+### Requirements
 
-Solution: run _cmd_ via `sudo` or with administrator access, run `npm install -g <missing requirement>`.
+1. The [latest version of IntelliJ IDEA Ultimate](https://www.jetbrains.com/idea/download/)
+2. The [latest version of UnitTestBot plugin](https://plugins.jetbrains.com/plugin/19445-unittestbot)
+3. [Node.js 10.0.0 or later](https://nodejs.org/en/download/) (we recommend that you add Node.js to environment variables)
+ 
+_Note:_ when _npm_ cannot install requirements, try troubleshooting.
+1. If the system prohibits installation: run _cmd_ via `sudo` or with administrator access, run `npm install -g <missing requirement>`.
+2. If Node.js is missing, or _npm_ is not installed: install Node.js with default configuration from the official website.
 
-2. Node.js is missing, or _npm_ is not installed
+### How to use
 
-Solution: install Node.js with default configuration from the official website.
+1. In your IntelliJ IDEA, go to **File** > **Settings** > **Tools**, choose **UnitTestBot** and enable **Experimental languages support**.
+   
+    **(!) NOTE:** be sure to enable this option for **_each_** project.
 
-# JavaScript Command Line Interface usage
+2. Go to **File** > **Settings** > **Languages & Frameworks**, choose **Node.js** and check if the path to Node.js executable file is specified.
+3. In a JavaScript file, press **Alt+Shift+U** to open the generation dialog.
 
-## Build
+## Command-line interface (CLI)
+
+### Build
 
 JAR file can be built in [GitHub Actions](https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli-from-branch.yml) with the `publish-plugin-and-cli-from-branch` script.
 
-## Requirements
+### Requirements
 
-* [Install](https://nodejs.org/en/download/) Node.js 10.0.0 or later
-* [Install](https://www.oracle.com/java/technologies/downloads/) Java 11 or later
-* Install _nyc_ 15.1.0 or later: `> npm install -g nyc`
-* Install Mocha 10.0.0 or later: `> npm install -g mocha`
-
-## Basic usage
+* [Node.js 10.0.0 or later](https://nodejs.org/en/download/)
+* [Java 11 or later](https://www.oracle.com/java/technologies/downloads/)
+* _nyc_ 15.1.0 or later: `> npm install -g nyc`
+* Mocha 10.0.0 or later: `> npm install -g mocha`
 
 ### Generate tests: `generate_js`
 

@@ -217,7 +217,7 @@ class SettingsWindow(val project: Project) {
                 )
                 .constraints(CCFlags.growX)
                 .component.apply {
-                    toolTipText = "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout</body></html>"
+                    toolTipText = "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout. The slide has no effect for Spring Projects.</body></html>"
                     addChangeListener {
                         fuzzLabel.text = "Fuzzing " + "%.0f %%".format(100.0 * (granularity - value) / granularity)
                         symLabel.text = "%.0f %%".format(100.0 * value / granularity) + " Symbolic execution"

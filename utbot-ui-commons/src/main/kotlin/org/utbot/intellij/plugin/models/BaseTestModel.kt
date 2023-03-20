@@ -10,10 +10,10 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
+import com.intellij.util.containers.mapSmart
 import org.jetbrains.kotlin.idea.core.getPackage
-import org.jetbrains.kotlin.idea.search.allScope
+import org.jetbrains.kotlin.idea.refactoring.memberInfo.qualifiedClassNameForRendering
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.jetbrains.kotlin.idea.util.sourceRoot
@@ -82,7 +82,7 @@ open class BaseTestsModel(
      *      - firstly, from test source roots (in the order provided by [getSortedTestRoots])
      *      - after that, from source roots
      */
-    fun getSortedSpringConfigurationClasses(): List<PsiClass> {
+    fun getSortedSpringConfigurationClasses(): List<String> {
         val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
 
         // Not using `srcModule.testModules(project)` here because it returns
@@ -108,7 +108,7 @@ open class BaseTestsModel(
                 .searchPsiClasses(annotation, searchScope)
                 .findAll()
                 .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-        }
+        }.mapNotNull { it.qualifiedName }
     }
 
     fun updateSourceRootHistory(path: String) {

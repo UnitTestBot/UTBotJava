@@ -98,12 +98,14 @@ import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ApplicationType
+import org.utbot.framework.codegen.domain.DependencyInjectionFramework
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.SpringBeans
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -135,6 +137,7 @@ import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.allLibraries
 import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
+import org.utbot.intellij.plugin.ui.utils.findDependencyInjectionLibrary
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
@@ -235,6 +238,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         MockFramework.allItems.forEach {
             it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
         }
+        DependencyInjectionFramework.allItems.forEach {
+            it.isInstalled = findDependencyInjectionLibrary(model.project, model.testModule, it) != null
+        }
+        model.applicationType =
+            if (SpringBeans.isInstalled) ApplicationType.SPRING_APPLICATION
+            else ApplicationType.PURE_JVM
         StaticsMocking.allItems.forEach {
             it.isConfigured = staticsMockingConfigured()
         }

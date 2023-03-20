@@ -105,6 +105,7 @@ import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.SpringBeans
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -240,6 +241,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         DependencyInjectionFramework.allItems.forEach {
             it.isInstalled = findDependencyInjectionLibrary(model.project, model.testModule, it) != null
         }
+        model.applicationType =
+            if (SpringBeans.isInstalled) ApplicationType.SPRING_APPLICATION
+            else ApplicationType.PURE_JVM
         StaticsMocking.allItems.forEach {
             it.isConfigured = staticsMockingConfigured()
         }

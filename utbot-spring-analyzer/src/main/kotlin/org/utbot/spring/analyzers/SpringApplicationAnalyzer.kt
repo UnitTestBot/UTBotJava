@@ -5,7 +5,7 @@ import org.utbot.spring.configurators.PropertiesConfigurator
 import org.utbot.spring.configurators.XmlFilesConfigurator
 import org.utbot.spring.config.TestApplicationConfiguration
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.utbot.spring.postProcessors.UtBotSpringShutdownException
+import org.springframework.context.ApplicationContextException
 import org.utbot.spring.utils.ConfigurationManager
 import java.net.URL
 import java.net.URLClassLoader
@@ -41,9 +41,12 @@ class SpringApplicationAnalyzer(
         try {
             app.build()
             app.run()
-        } catch (e: UtBotSpringShutdownException) {
+        } catch (e: ApplicationContextException) {
+            // UtBotBeanFactoryPostProcessor destroys bean definitions
+            // to prevent Spring application from actually starting and
+            // that causes it to throw ApplicationContextException
             println("Bean analysis finished successfully")
-        }finally {
+        } finally {
             fakeFileManager.deleteTempFiles()
         }
     }

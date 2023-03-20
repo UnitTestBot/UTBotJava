@@ -23,6 +23,7 @@ application {
     mainClass.set("org.utbot.spring.ApplicationRunnerKt")
 }
 
+// see more details about this task -- https://github.com/spring-projects/spring-boot/issues/1828
 tasks.withType(ShadowJar::class.java) {
     isZip64 = true
     // Required for Spring

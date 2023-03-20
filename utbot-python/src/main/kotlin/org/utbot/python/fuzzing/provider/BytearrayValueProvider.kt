@@ -13,7 +13,7 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 
 object BytearrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        return type.pythonTypeName() == "builtins.bytearray"
+        return type.pythonTypeName() == pythonBytearrayClassId.canonicalName
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {

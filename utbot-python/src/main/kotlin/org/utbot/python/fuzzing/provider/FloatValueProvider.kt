@@ -4,6 +4,8 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.IEEE754Value
 import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.util.pythonFloatClassId
+import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
@@ -16,7 +18,7 @@ import java.math.BigInteger
 
 object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        return type.pythonTypeName() == "builtins.float" || type.isAny()
+        return type.pythonTypeName() == pythonFloatClassId.canonicalName || type.isAny()
     }
 
     private fun getFloatConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<IEEE754Value> {
@@ -31,7 +33,7 @@ object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
 
     private fun getIntConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<IEEE754Value> {
         return concreteValues
-            .filter { it.type.pythonTypeName() == "builtins.int" }
+            .filter { it.type.pythonTypeName() == pythonIntClassId.canonicalName }
             .map { fuzzedValue ->
                 (fuzzedValue.value as BigInteger).let {
                     IEEE754Value.fromValue(it.toDouble())

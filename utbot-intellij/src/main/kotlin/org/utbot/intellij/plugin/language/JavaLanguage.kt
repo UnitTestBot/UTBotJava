@@ -109,7 +109,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
                     }
                 }
             } else {
-                val someSelection = e.getData(PlatformDataKeys.SELECTED_ITEMS)?: return null
+                val someSelection = e.getData(PlatformDataKeys.PSI_ELEMENT_ARRAY)?: return null
                 someSelection.forEach {
                     when(it) {
                         is PsiFileSystemItem  -> srcClasses += getAllClasses(project, arrayOf(it.virtualFile))

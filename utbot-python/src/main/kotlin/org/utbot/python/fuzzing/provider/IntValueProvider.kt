@@ -8,6 +8,7 @@ import org.utbot.fuzzing.seeds.BitVectorValue
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.seeds.Signed
 import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
@@ -23,7 +24,7 @@ object IntValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
     private val configurationStubWithNoUsage = Configuration()
 
     override fun accept(type: Type): Boolean {
-        return type.pythonTypeName() == "builtins.int" || type.isAny()
+        return type.pythonTypeName() == pythonIntClassId.canonicalName || type.isAny()
     }
 
     private fun BitVectorValue.change(func: BitVectorValue.() -> Unit): BitVectorValue {

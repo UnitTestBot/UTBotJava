@@ -43,6 +43,7 @@ import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.framework.codegen.toPythonRawString
 import org.utbot.python.newtyping.pythonDescription
+import org.utbot.python.newtyping.pythonName
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -139,7 +140,7 @@ class PythonCodeGenerator(
                     if (containingClass == null)
                         method.name
                     else
-                        "${containingClass.pythonDescription().name.name}.${method.name}"
+                        "${containingClass.pythonName()}.${method.name}"
                 if (functionModule.isNotEmpty()) {
                     functionTextName = "$functionModule.$functionTextName"
                 }

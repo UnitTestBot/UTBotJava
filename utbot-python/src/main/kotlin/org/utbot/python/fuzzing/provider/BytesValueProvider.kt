@@ -13,7 +13,7 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 
 object BytesValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        return type.pythonTypeName() == "builtins.bytes"
+        return type.pythonTypeName() == pythonBytesClassId.canonicalName
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {

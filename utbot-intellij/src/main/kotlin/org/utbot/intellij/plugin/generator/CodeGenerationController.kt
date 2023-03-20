@@ -242,6 +242,7 @@ object CodeGenerationController {
             )
         }
     }
+
     private fun createUtilityClassIfNeeded(
         utilClassListener: UtilClassListener,
         model: GenerateTestsModel,

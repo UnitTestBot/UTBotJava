@@ -1,9 +1,9 @@
 package org.utbot.python.framework.api.python
 
-import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.moduleOfType
 
 /**
@@ -17,17 +17,18 @@ import org.utbot.python.framework.api.python.util.moduleOfType
 const val pythonBuiltinsModuleName = "builtins"
 
 class PythonClassId(
-    name: String  // includes module (like "_ast.Assign")
-) : ClassId(name) {
-    override fun toString(): String = name
-    val rootModuleName: String = this.toString().split(".")[0]
-    override val simpleName: String = name.split(".").last()
-    val moduleName: String
-        get() {
-            return moduleOfType(name) ?: pythonBuiltinsModuleName
-        }
-    override val packageName = moduleName
+    val moduleName: String,
+    val typeName: String,
+) : ClassId("$moduleName.$typeName") {
+    constructor(fullName: String) : this(
+        moduleOfType(fullName) ?: pythonBuiltinsModuleName,
+        fullName.removePrefix(moduleOfType(fullName) ?: pythonBuiltinsModuleName).removePrefix(".")
+    )
+    override fun toString(): String = canonicalName
+    val rootModuleName: String = moduleName.split(".").first()
+    override val simpleName: String = typeName
     override val canonicalName = name
+    override val packageName = moduleName
 }
 
 open class RawPythonAnnotation(
@@ -73,114 +74,13 @@ class PythonTreeModel(
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other is PythonTreeModel) {
-            return tree == other.tree
+        if (other !is PythonTreeModel) {
+            return false
         }
-        return false
+        return comparePythonTree(tree, other.tree)
     }
 
     override fun hashCode(): Int {
         return tree.hashCode()
-    }
-}
-
-class PythonDefaultModel(
-    val repr: String,
-    classId: PythonClassId
-): PythonModel(classId) {
-    override fun toString() = repr
-}
-
-class PythonPrimitiveModel(
-    val value: Any,
-    classId: PythonClassId
-): PythonModel(classId) {
-    override fun toString() = "$value"
-}
-
-class PythonBoolModel(val value: Boolean): PythonModel(classId) {
-    override fun toString() =
-        if (value) "True" else "False"
-    companion object {
-        val classId = PythonClassId("builtins.bool")
-    }
-}
-
-class PythonInitObjectModel(
-    val type: String,
-    val initValues: List<PythonModel>
-): PythonModel(PythonClassId(type)) {
-    override fun toString(): String {
-        val params = initValues.joinToString(separator = ", ") { it.toString() }
-        return "$type($params)"
-    }
-
-    override val allContainingClassIds: Set<PythonClassId>
-        get() = super.allContainingClassIds + initValues.flatMap { it.allContainingClassIds }
-}
-
-class PythonListModel(
-    val length: Int = 0,
-    val stores: List<PythonModel>
-) : PythonModel(classId) {
-    override fun toString() =
-        (0 until length).joinToString(", ", "[", "]") { stores[it].toString() }
-
-    override val allContainingClassIds: Set<PythonClassId>
-        get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }
-
-    companion object {
-        val classId = PythonClassId("builtins.list")
-    }
-}
-
-class PythonTupleModel(
-    val length: Int = 0,
-    val stores: List<PythonModel>
-) : PythonModel(classId) {
-    override fun toString() =
-        (0 until length).joinToString(", ", "(", ")") { stores[it].toString() }
-
-    override val allContainingClassIds: Set<PythonClassId>
-        get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }
-
-    companion object {
-        val classId = PythonClassId("builtins.tuple")
-    }
-}
-
-class PythonDictModel(
-    val length: Int = 0,
-    val stores: Map<PythonModel, PythonModel>
-) : PythonModel(classId) {
-    override fun toString() = withToStringThreadLocalReentrancyGuard {
-        stores.entries.joinToString(", ", "{", "}") { "${it.key}: ${it.value}" }
-    }
-
-    override val allContainingClassIds: Set<PythonClassId>
-        get() = super.allContainingClassIds +
-                stores.entries.flatMap { it.key.allContainingClassIds + it.value.allContainingClassIds }
-
-    companion object {
-        val classId = PythonClassId("builtins.dict")
-    }
-}
-
-class PythonSetModel(
-    val length: Int = 0,
-    val stores: Set<PythonModel>
-) : PythonModel(classId) {
-    override fun toString() = withToStringThreadLocalReentrancyGuard {
-        if (stores.isEmpty())
-            "set()"
-        else
-            stores.joinToString(", ", "{", "}") { it.toString() }
-    }
-
-    override val allContainingClassIds: Set<PythonClassId>
-        get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }
-
-    companion object {
-        val classId = PythonClassId("builtins.set")
     }
 }

@@ -124,9 +124,9 @@ object PythonTestGenerationProcessor {
 
             val classId =
                 if (containingClassName == null)
-                    PythonClassId("$currentPythonModule.TopLevelFunctions")
+                    PythonClassId(currentPythonModule, "TopLevelFunctions")
                 else
-                    PythonClassId("$currentPythonModule.$containingClassName")
+                    PythonClassId(currentPythonModule, containingClassName)
 
             val methodIds = notEmptyTests.associate {
                 it.method to PythonMethodId(

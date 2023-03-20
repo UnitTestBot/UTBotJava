@@ -50,7 +50,6 @@ import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
-import org.utbot.framework.codegen.services.language.isLanguageKeyword
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
@@ -409,8 +408,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type}")
     }
 
-    override fun escapeNamePossibleKeywordImpl(s: String): String =
-        if (isLanguageKeyword(s, context.cgLanguageAssistant)) "`$s`" else s
+    override fun escapeNamePossibleKeywordImpl(s: String): String = s
 
     override fun renderClassVisibility(classId: ClassId) {
         TODO("Not yet implemented")

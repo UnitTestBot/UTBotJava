@@ -170,7 +170,8 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     }
     watchdog.measureTimeForActiveCall(findMethodParamNames, "Find method parameters names") { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
-        val byMethodDescription = kryoHelper.readObject<Map<MethodDescription, List<String>>>(params.bySignature)
+        val bySignatureRaw = kryoHelper.readObject<List<Pair<MethodDescription, List<String>>>>(params.bySignature)
+        val byMethodDescription = bySignatureRaw.associate { it.first to it.second }
         FindMethodParamNamesResult(kryoHelper.writeObject(classId.jClass.allNestedClasses.flatMap { clazz -> clazz.id.allMethods.mapNotNull { it.method.kotlinFunction } }
             .mapNotNull { method -> byMethodDescription[method.methodDescription()]?.let { params -> method.executableId to params } }
             .toMap()))
@@ -272,7 +273,7 @@ private fun processInitialWarnings(report: TestsGenerationReport, params: Genera
 }
 
 private fun destinationWarningMessage(testPackageName: String?, classUnderTestPackageName: String): String? {
-    return if (classUnderTestPackageName != testPackageName) {
+    return if (!testPackageName.isNullOrEmpty() && classUnderTestPackageName != testPackageName) {
         """
             Warning: Destination package $testPackageName does not match package of the class $classUnderTestPackageName.
             This may cause unnecessary usage of reflection for protected or package-private fields and methods access.

@@ -1369,6 +1369,8 @@ class Traverser(
         traverseException(current, symException)
     }
 
+    private val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
+
     // TODO: HACK violation of encapsulation
     fun createObject(
         addr: UtAddrExpression,
@@ -1398,8 +1400,6 @@ class Traverser(
 
             return ObjectValue(typeStorage, addr)
         }
-
-        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
 
         if (mockInfoGenerator != null) {
             val mockInfo = mockInfoGenerator.generate(addr)
@@ -1507,7 +1507,9 @@ class Traverser(
         val concreteImplementation = when (applicationContext.typeReplacementMode) {
             AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint)
 
-            // If our type is not abstract, we should just still use concrete implementation that represents itself
+            // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
+            // we should just still use concrete implementation that represents itself
+            //
             // Otherwise:
             // In case of `KnownImplementor` mode we should have already tried to replace type using `replaceTypeIfNeeded`.
             // However, this replacement attempt might be unsuccessful even if some possible concrete types are present.
@@ -1539,7 +1541,6 @@ class Traverser(
         type: RefType,
         typeHardConstraint: HardConstraint,
     ): Concrete? {
-        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
         val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
 
         queuedSymbolicStateUpdates += typeHardConstraint
@@ -1556,8 +1557,6 @@ class Traverser(
         type: RefType,
         mockInfoGenerator: UtMockInfoGenerator,
     ): ObjectValue {
-        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
-
         val mockInfo = mockInfoGenerator.generate(addr)
         val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
 

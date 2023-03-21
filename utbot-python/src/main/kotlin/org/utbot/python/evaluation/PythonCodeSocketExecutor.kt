@@ -76,15 +76,22 @@ class PythonCodeSocketExecutor(
             logger.info { "Send data error" }
             return parseExecutionResult(FailExecution("Send data error"))
         }
-        val response = pythonWorker.receiveMessage()
-        val executionResult = if (response == null) {
-            logger.info { "Response error" }
-            FailExecution("Execution result error")
-        } else {
-            ExecutionResultDeserializer.parseExecutionResult(response)
-                ?: error("Cannot parse execution result: $response")
+
+        val (status, response) = UtExecutorThread.run(pythonWorker, executionTimeout)
+        return when (status) {
+            UtExecutorThread.Status.TIMEOUT -> {
+                PythonEvaluationTimeout()
+            }
+
+            UtExecutorThread.Status.OK -> {
+                val executionResult = response?.let {
+                    ExecutionResultDeserializer.parseExecutionResult(it)
+                        ?: error("Cannot parse execution result: $it")
+                } ?: FailExecution("Execution result error")
+
+                parseExecutionResult(executionResult)
+            }
         }
-        return parseExecutionResult(executionResult)
     }
 
     private fun parseExecutionResult(executionResult: PythonExecutionResult): PythonEvaluationResult {

@@ -44,8 +44,9 @@ object SarifReportIdea {
         IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator, "Save SARIF report for ${classId.name}") {
             try {
                 val sarifReportAsJson = proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
-                val sarifReport = Sarif.fromJson(sarifReportAsJson)
-                srcClassPathToSarifReport[srcClassPath] = sarifReport
+                val newSarifReport = Sarif.fromJson(sarifReportAsJson)
+                val oldSarifReport = srcClassPathToSarifReport[srcClassPath] ?: Sarif.empty()
+                srcClassPathToSarifReport[srcClassPath] = oldSarifReport + newSarifReport
             } catch (e: Exception) {
                 logger.error { e }
             } finally {

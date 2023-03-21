@@ -27,12 +27,15 @@ class FuzzerSmokeTest {
 
     @Test
     fun `fuzzing throws an exception if no values generated for some type`() {
-        assertThrows<IllegalStateException> {
+        assertThrows<NoSeedValueException> {
             runBlocking {
                 var count = 0
                 runFuzzing<Unit, Unit, Description<Unit>, BaseFeedback<Unit, Unit, Unit>>(
-                    { _, _ -> sequenceOf() },
-                    Description(listOf(Unit))
+                    provider = { _, _ -> sequenceOf() },
+                    description = Description(listOf(Unit)),
+                    configuration = Configuration(
+                        generateEmptyCollectionsForMissedTypes = false
+                    )
                 ) { _, _ ->
                     count += 1
                     BaseFeedback(Unit, Control.STOP)

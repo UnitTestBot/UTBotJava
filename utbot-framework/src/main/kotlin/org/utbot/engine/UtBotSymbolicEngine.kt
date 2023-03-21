@@ -357,6 +357,12 @@ class UtBotSymbolicEngine(
             names,
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
         ) { thisInstance, descr, values ->
+            if (thisInstance?.model is UtNullModel) {
+                // We should not try to run concretely any models with null-this.
+                // But fuzzer does generate such values, because it can fail to generate any "good" values.
+                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
+            }
+
             val diff = until - System.currentTimeMillis()
             val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
             // to concretely execute that values because request to instrumentation process involves

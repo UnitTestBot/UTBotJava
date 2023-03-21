@@ -18,6 +18,18 @@ on:
           description: "Upload artifacts or not"
           required: false
           default: false
+        commit_sha:
+          required: false
+          type: string
+          description: "(optional) Commit SHA"
+        custom_year:
+          required: false
+          type: string
+          description: "(optional) Year"
+        custom_month:
+          required: false
+          type: string
+          description: "(optional) Month"
 
   workflow_dispatch:
     inputs:
@@ -50,6 +62,18 @@ on:
           options:
           - true
           - false
+        commit_sha:
+          required: false
+          type: string
+          description: "(optional) Commit SHA"
+        custom_year:
+          required: false
+          type: string
+          description: "(optional) Year"
+        custom_month:
+          required: false
+          type: string
+          description: "(optional) Month"
 
 jobs:
     publish_plugin_and_cli:
@@ -65,27 +89,55 @@ jobs:
       container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
       steps:
       - uses: actions/checkout@v3
+      - name: Check out ${{ github.event.inputs.commit_sha }} commit
+        if: github.event.inputs.commit_sha != ''
+        run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git fetch
+          git checkout ${{ github.event.inputs.commit_sha }}
 
       # "You can make an environment variable available to any subsequent steps in a workflow job by
       # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
-      - name: Set environment variables
-        run: |
-          echo "VERSION="$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}"" >> $GITHUB_ENV
-          echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
-      - name: Set production version
-        if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
-        run: |
-          echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
-      - name: Set version for minor release
+      - name: Construct version | Set year
+        run: echo "VERSION=$(date +%Y)" >> $GITHUB_ENV
+      - name: Construct version | Set custom year
+        if: ${{ github.event.inputs.custom_year != '' }}
+        run: echo "VERSION=${{ github.event.inputs.custom_year }}" >> $GITHUB_ENV
+      - name: Construct version | Set month
+        run: echo "VERSION=${{ env.VERSION }}.$(date +%-m)" >> $GITHUB_ENV
+      - name: Construct version | Set custom month
+        if: ${{ github.event.inputs.custom_month != '' }}
+        run: echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.custom_month }}" >> $GITHUB_ENV
+      - name: Construct version | Set run number if no-postfix
+        if: ${{ github.event.inputs.version-postfix == 'no-postfix' }}
+        run: echo "VERSION=${{ env.VERSION }}.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+      - name: Construct version | Set minor release
         if: ${{ github.event.inputs.minor-release != 'none' }}
-        run: |
-          echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
-      - name: Create version with postfix
-        if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
-        run:
-          echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
+        run: echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
+      - name: Construct version | Create version with postfix
+        if: ${{ github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
+        run: echo "VERSION=${{ env.VERSION }}-${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
       - name: Print environment variables
         run: printenv
+
+#      - name: Set environment variables
+#        run: |
+#          echo "VERSION="$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}"" >> $GITHUB_ENV
+#          echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
+#      - name: Set production version
+#        if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
+#        run: |
+#          echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+#      - name: Set version for minor release
+#        if: ${{ github.event.inputs.minor-release != 'none' }}
+#        run: |
+#          echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
+#      - name: Create version with postfix
+#        if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
+#        run:
+#          echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
+#      - name: Print environment variables
+#        run: printenv
 
       - name: Build UTBot IntelliJ IDEA plugin
         run: |

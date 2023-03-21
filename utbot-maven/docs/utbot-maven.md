@@ -41,6 +41,7 @@ For example, the following configuration may be used:
     <sarifReportsRelativeRoot>target/generated/sarif</sarifReportsRelativeRoot>
     <markGeneratedTestsDirectoryAsTestSourcesRoot>true</markGeneratedTestsDirectoryAsTestSourcesRoot>
     <testPrivateMethods>false</testPrivateMethods>
+    <projectType>purejvm</projectType>
     <testFramework>junit5</testFramework>
     <mockFramework>mockito</mockFramework>
     <generationTimeout>60000L</generationTimeout>
@@ -83,6 +84,14 @@ For example, the following configuration may be used:
 - `testPrivateMethods`&ndash;
     - Generate tests for private methods or not.
     - By default, `false` is used.
+
+- `projectType` &ndash;
+    - The type of project being analyzed.
+    - Can be one of:
+        - `'purejvm'` _(by default)_
+        - `'spring'`
+        - `'python'`
+        - `'javascript'`
 
 - `testFramework` &ndash;
     - The name of the test framework to be used.

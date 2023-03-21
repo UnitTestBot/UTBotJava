@@ -20,6 +20,7 @@ import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
@@ -211,6 +212,8 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         return CodeGenerator(
             testFramework = testFrameworkByName(testFramework),
             classUnderTest = classUnderTest,
+            //TODO: Support Spring projects in utbot-cli if requested
+            projectType = ProjectType.PureJvm,
             codegenLanguage = codegenLanguage,
             cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
             staticsMocking = staticsMocking,

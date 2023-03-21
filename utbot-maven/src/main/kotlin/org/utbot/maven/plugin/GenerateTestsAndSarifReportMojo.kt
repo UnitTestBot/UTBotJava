@@ -81,6 +81,12 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     internal var testPrivateMethods: Boolean = false
 
     /**
+     * Can be one of: 'purejvm', 'spring', 'python', 'javascript'.
+     */
+    @Parameter(defaultValue = "purejvm")
+    internal lateinit var projectType: String
+
+    /**
      * Can be one of: 'junit4', 'junit5', 'testng'.
      */
     @Parameter(defaultValue = "junit5")

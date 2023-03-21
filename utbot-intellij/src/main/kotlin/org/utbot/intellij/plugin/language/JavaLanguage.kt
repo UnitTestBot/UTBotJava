@@ -64,7 +64,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
             val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
-                val srcClass = psiElementHandler.containingClass(element) ?: return null
+                val srcClass = psiElementHandler.identifiedContainingClass(element) ?: return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
                 val focusedMethod = focusedMethodOrNull(element, srcMembers, psiElementHandler)
@@ -94,7 +94,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
                 val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
                 if (psiElementHandler.isCreateTestActionAvailable(element)) {
-                    psiElementHandler.containingClass(element)?.let {
+                    psiElementHandler.identifiedContainingClass(element)?.let {
                         srcClasses += setOf(it)
                         extractMembersFromSrcClasses = true
                         val memberInfoList = runReadAction<List<MemberInfo>> {
@@ -146,6 +146,11 @@ object JvmLanguageAssistant : LanguageAssistant() {
             return Triple(srcClasses.toSet(), selectedMethods.toSet(), extractMembersFromSrcClasses)
         }
         return null
+    }
+
+    private fun PsiElementHandler.identifiedContainingClass(element: PsiElement): PsiClass? {
+        val clazz = containingClass(element)
+        return if (clazz is PsiAnonymousClass) PsiTreeUtil.getParentOfType(clazz, PsiClass::class.java) else clazz
     }
 
     /**

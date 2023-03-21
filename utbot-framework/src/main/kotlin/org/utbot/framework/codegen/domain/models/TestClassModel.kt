@@ -3,6 +3,8 @@ package org.utbot.framework.codegen.domain.models
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 
+typealias ClassModels = Map<ClassId, Set<UtModel>>
+
 /**
  * Stores method test sets in a structure that replicates structure of their methods in [classUnderTest].
  * I.e., if some method is declared in nested class of [classUnderTest], its testset will be put
@@ -30,7 +32,7 @@ class SpringTestClassModel(
     classUnderTest: ClassId,
     methodTestSets: List<CgMethodTestSet>,
     nestedClasses: List<SimpleTestClassModel>,
-    val injectedMockModels: Map<ClassId, Set<UtModel>> = mapOf(),
-    val mockedModels: Map<ClassId, Set<UtModel>> = mapOf(),
+    val injectedMockModels: ClassModels = mapOf(),
+    val mockedModels: ClassModels = mapOf(),
 ): TestClassModel(classUnderTest, methodTestSets, nestedClasses)
 

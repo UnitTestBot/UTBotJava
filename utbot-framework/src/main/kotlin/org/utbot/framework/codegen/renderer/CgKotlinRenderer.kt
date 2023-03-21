@@ -572,7 +572,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
             VisibilityModifier.PRIVATE -> print("private ")
             VisibilityModifier.PROTECTED -> print("protected ")
             VisibilityModifier.INTERNAL -> print("internal ")
-            else -> error("Kotlin: unexpected visibility modifier -- $modifier")
+            VisibilityModifier.PACKAGE_PRIVATE -> error("Kotlin: unexpected visibility modifier -- $modifier")
         }
     }
 

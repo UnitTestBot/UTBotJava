@@ -30,7 +30,7 @@ import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.CgParameterKind
-import org.utbot.framework.codegen.domain.withId
+import org.utbot.framework.codegen.domain.withExecutionId
 import org.utbot.framework.codegen.services.access.Block
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
@@ -232,7 +232,7 @@ interface CgContextOwner {
      * Gives a unique identifier to model in test set.
      * Determines which execution current model belongs to.
      */
-    var modelIds: Map<UtModel, ModelId>
+    var modelIds: PersistentMap<UtModel, ModelId>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -492,7 +492,7 @@ data class CgContext(
     override lateinit var actual: CgVariable
     override lateinit var successfulExecutionsModels: List<UtModel>
 
-    override var modelIds: Map<UtModel, ModelId> = mapOf()
+    override var modelIds: PersistentMap<UtModel, ModelId> = persistentMapOf()
 
     /**
      * This property cannot be accessed outside of test class file scope
@@ -572,12 +572,13 @@ data class CgContext(
     }
 
     override fun getIdByModel(model: UtModel): ModelId {
-        if (model !in this.modelIds) {
-            this.modelIds += model.withId()
+        if (model !in modelIds) {
+            modelIds.put(model, model.withExecutionId())
         }
 
-        return modelIds[model]
-            ?: error("ModelId for $model should have also been created")
+        return modelIds.getOrElse(model) {
+            error("ModelId for $model should have also been created")
+        }
     }
 
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {

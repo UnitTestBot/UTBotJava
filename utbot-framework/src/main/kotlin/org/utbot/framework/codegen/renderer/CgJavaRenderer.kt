@@ -402,9 +402,8 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
             VisibilityModifier.PUBLIC -> print("public ")
             VisibilityModifier.PRIVATE -> print("private ")
             VisibilityModifier.PROTECTED -> print("protected ")
-            VisibilityModifier.INTERNAL -> print("internal ")
-            VisibilityModifier.PACKAGEPRIVATE -> Unit
-            else -> error("Java: unexpected visibility modifier -- $modifier")
+            VisibilityModifier.PACKAGE_PRIVATE -> Unit
+            VisibilityModifier.INTERNAL -> error("Java: unexpected visibility modifier -- $modifier")
         }
     }
 

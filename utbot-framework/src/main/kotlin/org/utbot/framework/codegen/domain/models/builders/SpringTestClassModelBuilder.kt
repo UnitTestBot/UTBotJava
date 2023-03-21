@@ -2,8 +2,9 @@ package org.utbot.framework.codegen.domain.models.builders
 
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
+import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
-import org.utbot.framework.codegen.domain.withId
+import org.utbot.framework.codegen.domain.withExecutionId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -34,9 +35,7 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
         )
     }
 
-    private fun collectInjectedAndMockedModels(
-        testSets: List<CgMethodTestSet>,
-    ): Pair<Map<ClassId, Set<UtModel>>, Map<ClassId, Set<UtModel>>> {
+    private fun collectInjectedAndMockedModels(testSets: List<CgMethodTestSet>): Pair<ClassModels, ClassModels> {
         val thisInstances = mutableSetOf<UtModel>()
         val thisInstancesDependentModels = mutableSetOf<UtModel>()
 
@@ -61,20 +60,26 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
     }
 
     private fun collectByThisInstanceModel(model: UtModel, executionIndex: Int): Set<UtModel> {
-        context.modelIds += model.withId(executionIndex)
+        context.modelIds.put(model, model.withExecutionId(executionIndex))
 
         val dependentModels = mutableSetOf<UtModel>()
         collectRecursively(model, dependentModels)
 
         dependentModels.forEach { model ->
-            context.modelIds += model.withId(executionIndex)
+            context.modelIds.put(model, model.withExecutionId(executionIndex))
         }
 
         return dependentModels
     }
 
-    private fun Set<UtModel>.groupByClassId(): Map<ClassId, Set<UtModel>> {
-        return this.groupBy { it.classId }.mapValues { it.value.toSet() }
+    private fun Set<UtModel>.groupByClassId(): ClassModels {
+        val classModels = mutableMapOf<ClassId, Set<UtModel>>()
+
+        for (modelGroup in this.groupBy { it.classId }) {
+            classModels[modelGroup.key] = modelGroup.value.toSet()
+        }
+
+        return classModels
     }
 
     private fun collectRecursively(currentModel: UtModel, allModels: MutableSet<UtModel>) {

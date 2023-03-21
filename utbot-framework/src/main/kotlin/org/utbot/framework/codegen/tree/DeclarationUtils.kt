@@ -22,5 +22,5 @@ enum class VisibilityModifier {
     PRIVATE,
     PROTECTED,
     INTERNAL,
-    PACKAGEPRIVATE,
+    PACKAGE_PRIVATE,
 }

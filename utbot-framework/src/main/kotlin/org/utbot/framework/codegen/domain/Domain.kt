@@ -788,5 +788,5 @@ data class ModelId(
     private val executionId: Int,
 )
 
-fun UtModel.withId(executionId: Int = -1) = this to ModelId(this.idOrNull(), executionId)
+fun UtModel.withExecutionId(executionId: Int = -1) = ModelId(this.idOrNull(), executionId)
 

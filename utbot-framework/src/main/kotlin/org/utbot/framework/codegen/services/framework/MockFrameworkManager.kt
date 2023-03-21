@@ -140,7 +140,7 @@ class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(
 
     fun createMockForVariable(model: UtCompositeModel, variable: CgVariable) =
         withMockFramework {
-            require(model.isMock) { "Mock model is expected in MockObjectConstructor" }
+            require(model.isMock) { "Mock model $model is expected in MockObjectConstructor" }
             objectMocker.mockForVariable(model, variable)
         }
 

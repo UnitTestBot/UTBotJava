@@ -20,6 +20,7 @@ import org.utbot.framework.codegen.domain.models.CgSimpleRegion
 import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -85,7 +86,7 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
     }
 
     private fun constructClassFields(
-        groupedModelsByClassId: Map<ClassId, Set<UtModel>>,
+        groupedModelsByClassId: ClassModels,
         annotationClassId: ClassId
     ): MutableList<CgFieldDeclaration> {
         if (annotationClassId != injectMocksClassId && annotationClassId != mockClassId) {
@@ -98,7 +99,7 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         for ((classId, listOfUtModels) in groupedModelsByClassId) {
             val model = listOfUtModels.firstOrNull() ?: continue
             val createdVariable = variableConstructor.getOrCreateVariable(model) as? CgVariable
-                ?: error("[UtCompositeModel] model was expected")
+                ?: error("`UtCompositeModel` model was expected, but $model was found")
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
             constructedDeclarations += CgFieldDeclaration(ownerClassId = currentTestClass, declaration, annotation)

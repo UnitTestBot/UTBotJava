@@ -47,6 +47,7 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
     private fun findCgValueByModel(model: UtModel, modelToValueMap: Map<Set<UtModel>, CgValue>): CgValue? =
         modelToValueMap
             .filter { it.key.contains(model) }
-            .firstOrNull()
+            .asSequence()
+            .singleOrNull()
             ?.value
 }

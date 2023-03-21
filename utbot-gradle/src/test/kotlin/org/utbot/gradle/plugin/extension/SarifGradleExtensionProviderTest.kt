@@ -13,6 +13,8 @@ import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
@@ -252,6 +254,69 @@ class SarifGradleExtensionProviderTest {
 
         private fun setTestPrivateMethodsInTaskParameters(value: Boolean) {
             extensionProvider.taskParameters = mapOf("testPrivateMethods" to "$value")
+        }
+    }
+
+    @Nested
+    @DisplayName("projectType")
+    inner class ProjectTypeTest {
+        @Test
+        fun `should be ProjectType defaultItem by default`() {
+            setProjectTypeInExtension(null)
+            assertEquals(PureJvm, extensionProvider.projectType)
+        }
+
+        @Test
+        fun `should be equal to PureJvm`() {
+            setProjectTypeInExtension("purejvm")
+            assertEquals(PureJvm, extensionProvider.projectType)
+        }
+
+        @Test
+        fun `should be equal to Spring`() {
+            setProjectTypeInExtension("spring")
+            assertEquals(Spring, extensionProvider.projectType)
+        }
+
+        @Test
+        fun `should be equal to Python`() {
+            setProjectTypeInExtension("python")
+            assertEquals(Python, extensionProvider.projectType)
+        }
+
+        @Test
+        fun `should be equal to JavaScript`() {
+            setProjectTypeInExtension("javascript")
+            assertEquals(JavaScript, extensionProvider.projectType)
+        }
+
+        @Test
+        fun `should fail on unknown project type`() {
+            setProjectTypeInExtension("unknown")
+            assertThrows<IllegalStateException> {
+                extensionProvider.projectType
+            }
+        }
+
+        @Test
+        fun `should be provided from the task parameters`() {
+            setProjectTypeInTaskParameters("spring")
+            assertEquals(Spring, extensionProvider.projectType)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setProjectTypeInTaskParameters("python")
+            setProjectTypeInExtension("javascript")
+            assertEquals(Python, extensionProvider.projectType)
+        }
+
+        private fun setProjectTypeInExtension(value: String?) {
+            Mockito.`when`(extensionMock.projectType).thenReturn(createStringProperty(value))
+        }
+
+        private fun setProjectTypeInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("projectType" to value)
         }
     }
 

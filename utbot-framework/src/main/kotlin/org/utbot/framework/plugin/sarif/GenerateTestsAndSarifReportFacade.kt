@@ -71,6 +71,7 @@ class GenerateTestsAndSarifReportFacade(
 
         return CodeGenerator(
             classUnderTest = targetClass.classUnderTest.id,
+            projectType = sarifProperties.projectType,
             testFramework = sarifProperties.testFramework,
             mockFramework = sarifProperties.mockFramework,
             staticsMocking = sarifProperties.staticsMocking,

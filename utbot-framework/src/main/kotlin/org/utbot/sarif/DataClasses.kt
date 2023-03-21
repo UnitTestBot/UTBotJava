@@ -47,6 +47,9 @@ data class Sarif(
             .writerWithDefaultPrettyPrinter()
             .writeValueAsString(this)
 
+    operator fun plus(other: Sarif): Sarif =
+        this.copy(runs = this.runs + other.runs)
+
     @JsonIgnore
     fun getAllResults(): List<SarifResult> =
         runs.flatMap { it.results }

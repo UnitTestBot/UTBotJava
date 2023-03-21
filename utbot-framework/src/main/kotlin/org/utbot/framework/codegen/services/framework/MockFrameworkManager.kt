@@ -372,7 +372,17 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             mockAnswerStatements[index] = statements
         }
 
-        val answerValues = mockAnswerStatements.values
+        val answerValues = mockAnswerStatements.values.let {
+            val uniqueMockingStatements = it.distinct()
+
+            // If we have only one unique mocking statement, we do not need switch-case with all statements - we can
+            // use only this unique statement.
+            if (uniqueMockingStatements.size == 1) {
+                uniqueMockingStatements
+            } else {
+                it
+            }
+        }
         // If we have no more than one branch or all branches are empty,
         // it means we do not need this switch and mock counter itself at all.
         val atMostOneBranchOrAllEmpty = answerValues.size <= 1 || answerValues.all { statements -> statements.isEmpty() }

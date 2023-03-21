@@ -458,7 +458,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         CgThrowStatement(exception()).also { currentBlock += it }
 
     override fun emptyLine() {
-        currentBlock += CgEmptyLine()
+        currentBlock += CgEmptyLine
     }
 
     /**

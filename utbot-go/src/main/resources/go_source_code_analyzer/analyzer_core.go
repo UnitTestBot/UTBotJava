@@ -55,7 +55,7 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 		name := t.Name()
 		result = AnalyzedPrimitiveType{Name: name}
 	case *types.Struct:
-		name := "struct"
+		name := "struct{}"
 
 		fields := []AnalyzedField{}
 		for i := 0; i < t.NumFields(); i++ {
@@ -101,7 +101,7 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 			ElementType: sliceElemType,
 		}
 	case *types.Interface:
-		name := "interface"
+		name := "interface{}"
 		isError := implementsError(t)
 		if !isError {
 			return nil, errors.New("currently only error interface is supported")

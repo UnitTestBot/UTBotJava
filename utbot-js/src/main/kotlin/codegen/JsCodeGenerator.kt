@@ -5,12 +5,7 @@ import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.JsImport
 import framework.codegen.Mocha
 import org.utbot.framework.codegen.CodeGeneratorResult
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.HangingTestsTimeout
-import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet

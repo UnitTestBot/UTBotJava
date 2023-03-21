@@ -178,9 +178,6 @@ object UtTestsDialogProcessor {
                         val staticMockingConfigured = model.staticsMocking.isConfigured
 
                         val applicationContext = when (model.projectType) {
-                            PureJvm,
-                            Python,
-                            JavaScript -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
                             Spring -> {
                                 val shouldUseImplementors = when (model.typeReplacementApproach) {
                                     TypeReplacementApproach.DO_NOT_REPLACE -> false
@@ -195,6 +192,7 @@ object UtTestsDialogProcessor {
                                     shouldUseImplementors = shouldUseImplementors,
                                 )
                             }
+                            else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
                         }
 
                         val process = EngineProcess.createBlocking(project, classNameToPath)

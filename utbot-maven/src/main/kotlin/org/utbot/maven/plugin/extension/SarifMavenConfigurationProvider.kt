@@ -1,6 +1,7 @@
 package org.utbot.maven.plugin.extension
 
 import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.ClassId
@@ -35,6 +36,9 @@ class SarifMavenConfigurationProvider(
 
     override val testPrivateMethods: Boolean
         get() = generateTestsAndSarifReportMojo.testPrivateMethods
+
+    override val projectType: ProjectType
+        get() = projectTypeParse(generateTestsAndSarifReportMojo.projectType)
 
     override val testFramework: TestFramework
         get() = testFrameworkParse(generateTestsAndSarifReportMojo.testFramework)

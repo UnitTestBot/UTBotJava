@@ -30,8 +30,7 @@ import java.time.format.DateTimeFormatter
 
 open class CodeGenerator(
     val classUnderTest: ClassId,
-    //TODO: support setting `projectType` in Sarif plugins, UtBotJava api, etc.
-    val projectType: ProjectType = PureJvm,
+    val projectType: ProjectType,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     generateUtilClassFile: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
@@ -82,10 +81,8 @@ open class CodeGenerator(
         return withCustomContext(testClassCustomName) {
             context.withTestClassFileScope {
                 when (context.projectType) {
-                    PureJvm,
-                    Python,
-                    JavaScript -> generateForSimpleClass(cgTestSets)
                     Spring -> generateForSpringClass(cgTestSets)
+                    else -> generateForSimpleClass(cgTestSets)
                 }
             }
         }

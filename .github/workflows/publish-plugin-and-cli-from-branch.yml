@@ -122,25 +122,6 @@ jobs:
       - name: Print environment variables
         run: printenv
 
-#      - name: Set environment variables
-#        run: |
-#          echo "VERSION="$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}"" >> $GITHUB_ENV
-#          echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
-#      - name: Set production version
-#        if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
-#        run: |
-#          echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
-#      - name: Set version for minor release
-#        if: ${{ github.event.inputs.minor-release != 'none' }}
-#        run: |
-#          echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
-#      - name: Create version with postfix
-#        if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
-#        run:
-#          echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
-#      - name: Print environment variables
-#        run: printenv
-
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
           gradle clean buildPlugin --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}

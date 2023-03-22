@@ -1,5 +1,6 @@
 package org.utbot.engine.overrides.collections;
 
+import org.utbot.engine.ResolverKt;
 import org.utbot.engine.overrides.UtArrayMock;
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -55,7 +56,7 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
     /**
      * Assume preconditions for elements in this Set.
      *
-     * <li> array.size in 0..3. </li>
+     * <li> array.size in 0..[getMaxInputSetSize()]. </li>
      * <li> All elements in set are distinct. </li>
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -64,12 +65,12 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
             setEqualGenericType(elementData);
             return;
         }
-        // assume that size is always less or equal to 3
+        // assume that size is always less or equal to maxInputSetSize
         setEqualGenericType(elementData);
         assume(elementData != null);
         assume(elementData.storage != null);
         assume(elementData.begin == 0);
-        assume(elementData.end >= 0 & elementData.end <= 3);
+        assume(elementData.end >= 0 & elementData.end <= ResolverKt.getMaxInputSetSize());
 
         parameter(elementData);
         parameter(elementData.storage);

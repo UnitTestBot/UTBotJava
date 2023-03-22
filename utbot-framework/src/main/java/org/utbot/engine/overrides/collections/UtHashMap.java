@@ -13,6 +13,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.utbot.engine.ResolverKt;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.makeSymbolic;
@@ -90,7 +91,7 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
 
         assume(keys != null);
         assume(keys.begin == 0);
-        assume(keys.end >= 0 & keys.end <= 2);
+        assume(keys.end >= 0 & keys.end <= ResolverKt.getMaxInputMapSize());
 
         assume(values != null);
         assume(values.touched != null);

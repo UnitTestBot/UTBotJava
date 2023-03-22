@@ -323,7 +323,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         val lastValue = resolver.resolveIntField(wrapper, endField)
 
         // check that size of array >= 0 and is not too big for resolver
-        val sizeValue = if (lastValue - firstValue in 0..MAX_RESOLVE_LIST_SIZE) lastValue - firstValue else 0
+        val sizeValue = if (lastValue - firstValue in 0..maxResolveListSize) lastValue - firstValue else 0
 
         // construct model values of an array
 

@@ -132,7 +132,6 @@ import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
@@ -1601,7 +1600,7 @@ class Traverser(
                 val refType = constant.type as RefType
 
                 // We disable creation of string literals to avoid unsats because of too long lines
-                if (UtSettings.ignoreStringLiterals && constant.value.length > MAX_STRING_SIZE) {
+                if (UtSettings.ignoreStringLiterals && constant.value.length > maxStringSize) {
                     // instead of it we create an unbounded symbolic variable
                     workaround(HACK) {
                         offerState(environment.state.withLabel(StateLabel.CONCRETE))
@@ -2014,7 +2013,18 @@ class Traverser(
         queuedSymbolicStateUpdates += Ge(length, 0).asHardConstraint()
         workaround(HACK) {
             if (size.expr is UtBvLiteral) {
-                softMaxArraySize = min(HARD_MAX_ARRAY_SIZE, max(size.expr.value.toInt(), softMaxArraySize))
+                val sizeValue = size.expr.value.toInt()
+                softMaxArraySize = min(hardMaxArraySize, max(sizeValue, softMaxArraySize))
+
+                if (sizeValue > hardMaxArraySize) {
+                    logger.warn(
+                        "The engine encountered an array initialization with $sizeValue size." +
+                                " It leads to elimination of paths containing current instruction."
+                    )
+                    logger.warn("Please, consider increasing `UtSettings.maxArraySize` value.")
+                }
+
+                softMaxArraySize
             }
         }
         queuedSymbolicStateUpdates += Le(length, softMaxArraySize).asHardConstraint() // TODO: fix big array length

@@ -1148,9 +1148,24 @@ class BuiltinConstructorId(
     }
 }
 
-open class TypeParameters(val parameters: List<ClassId> = emptyList())
+open class TypeParameters(val parameters: List<ClassId> = emptyList()) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-class WildcardTypeParameter : TypeParameters(emptyList())
+        other as TypeParameters
+
+        if (parameters != other.parameters) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return parameters.hashCode()
+    }
+}
+
+object WildcardTypeParameter : TypeParameters(emptyList())
 
 /**
  * Describes the way to replace abstract types with concrete implementors.

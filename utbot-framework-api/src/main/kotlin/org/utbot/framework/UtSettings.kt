@@ -522,36 +522,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      */
     var maxArraySize by getIntProperty(1024)
 
-    /**
-     * A maximum size for lists provided as a parameter into MUT.
-     */
-    var maxInputListSize by getIntProperty(10)
-
-    /**
-     * A maximum size for lists that can be constructed by the Resolver.
-     */
-    var maxResolveListSize by getIntProperty(256)
-
-    /**
-     * A maximum size of a string constant (not literal) that can be processed by the symbolic engine.
-     */
-    var maxStringSize by getIntProperty(40)
-
-    /**
-     * A maximum size of streams that can be processed by the symbolic engine.
-     */
-    var maxStreamSize by getIntProperty(256)
-
-    /**
-     * A maximum size of input maps that are processed by the symbolic engine.
-     */
-    var maxInputMapSize by getIntProperty(2)
-
-    /**
-     * A maximum size of input sets that are processed by the symbolic engine.
-     */
-    var maxInputSetSize by getIntProperty(3)
-
     // endregion
 }
 

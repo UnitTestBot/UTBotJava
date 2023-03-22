@@ -2021,10 +2021,11 @@ class Traverser(
                         "The engine encountered an array initialization with $sizeValue size." +
                                 " It leads to elimination of paths containing current instruction."
                     )
-                    logger.warn("Please, consider increasing `UtSettings.maxArraySize` value.")
+                    logger.warn("Current instruction: ${environment.state.stmt}")
+                    logger.warn("Please, consider increasing `UtSettings.maxArraySize` value, " +
+                            "currently it is ${UtSettings.maxArraySize}."
+                    )
                 }
-
-                softMaxArraySize
             }
         }
         queuedSymbolicStateUpdates += Le(length, softMaxArraySize).asHardConstraint() // TODO: fix big array length

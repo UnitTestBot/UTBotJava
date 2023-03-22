@@ -212,8 +212,11 @@ object JvmLanguageAssistant : LanguageAssistant() {
         // Thus, make transition to the Psi if it is required.
         val currentMethod = PsiTreeUtil.getParentOfType(element, psiElementHandler.methodClass)
             ?.let { psiElementHandler.toPsi(it, PsiMethod::class.java) }
+        val topmostCurrentMethod = PsiTreeUtil.getTopmostParentOfType(element, psiElementHandler.methodClass)
+            ?.let { psiElementHandler.toPsi(it, PsiMethod::class.java) }
 
         return methods.singleOrNull { it.member == currentMethod }
+            ?: methods.singleOrNull { it.member == topmostCurrentMethod }
     }
 
     private fun getAllClasses(directory: PsiDirectory): Set<PsiClass> {

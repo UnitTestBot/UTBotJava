@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.renderer.CgVisitor
 import org.utbot.framework.codegen.renderer.auxiliaryClassTextById
 import org.utbot.framework.codegen.renderer.utilMethodTextById
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -82,6 +83,7 @@ interface CgElement {
             is CgBreakStatement -> visit(element)
             is CgContinueStatement -> visit(element)
             is CgDeclaration -> visit(element)
+            is CgFieldDeclaration -> visit(element)
             is CgAssignment -> visit(element)
             is CgTypeCast -> visit(element)
             is CgIsInstance -> visit(element)
@@ -134,6 +136,7 @@ class CgClass(
     val body: CgClassBody,
     val isStatic: Boolean,
     val isNested: Boolean,
+    val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ): CgElement {
     val packageName
         get() = id.packageName
@@ -156,8 +159,21 @@ class CgClassBody(
     val methodRegions: List<CgMethodsCluster>,
     val staticDeclarationRegions: List<CgStaticsRegion>,
     val nestedClassRegions: List<CgNestedClassesRegion<*>>,
-    //TODO: use [CgFieldDeclaration] after PR-1788 merge
-    val fields: List<CgDeclaration> = emptyList(),
+    val fields: Set<CgFieldDeclaration> = emptySet(),
+) : CgElement
+
+/**
+ * Field of a class.
+ * @property ownerClassId [ClassId] of the field owner class.
+ * @property declaration declaration itself.
+ * @property annotation optional annotation.
+ * @property visibility field visibility.
+ */
+class CgFieldDeclaration(
+    val ownerClassId: ClassId,
+    val declaration: CgDeclaration,
+    val annotation: CgAnnotation? = null,
+    val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgElement
 
 /**
@@ -272,6 +288,7 @@ sealed class CgMethod(open val isStatic: Boolean) : CgElement {
     abstract val annotations: List<CgAnnotation>
     abstract val documentation: CgDocumentationComment
     abstract val requiredFields: List<CgParameterDeclaration>
+    abstract val visibility: VisibilityModifier
 }
 
 class CgTestMethod(
@@ -281,6 +298,7 @@ class CgTestMethod(
     override val statements: List<CgStatement>,
     override val exceptions: Set<ClassId>,
     override val annotations: List<CgAnnotation>,
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
     val type: CgTestMethodType,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
     override val requiredFields: List<CgParameterDeclaration> = emptyList(),
@@ -291,6 +309,7 @@ class CgFrameworkUtilMethod(
     override val statements: List<CgStatement>,
     override val exceptions: Set<ClassId>,
     override val annotations: List<CgAnnotation>,
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgMethod(isStatic = false) {
     override val returnType: ClassId = voidClassId
     override val parameters: List<CgParameterDeclaration> = emptyList()
@@ -301,7 +320,8 @@ class CgFrameworkUtilMethod(
 class CgErrorTestMethod(
     override val name: String,
     override val statements: List<CgStatement>,
-    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgMethod(isStatic = false) {
     override val exceptions: Set<ClassId> = emptySet()
     override val returnType: ClassId = voidClassId
@@ -316,6 +336,7 @@ class CgParameterizedTestDataProviderMethod(
     override val returnType: ClassId,
     override val annotations: List<CgAnnotation>,
     override val exceptions: Set<ClassId>,
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgMethod(isStatic = true) {
     override val parameters: List<CgParameterDeclaration> = emptyList()
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())

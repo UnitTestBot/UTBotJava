@@ -1502,7 +1502,7 @@ class Traverser(
             return createMockedObject(addr, type, mockInfoGenerator, nullEqualityConstraint)
         }
 
-        val concreteImplementation = when (applicationContext.typeReplacementMode) {
+        val concreteImplementation: Concrete? = when (applicationContext.typeReplacementMode) {
             AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
 
             // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
@@ -1520,14 +1520,14 @@ class Traverser(
             NoImplementors -> {
                 if (!type.isAbstractType) {
                     findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
-                }
+                } else {
+                    mockInfoGenerator?.let {
+                        return createMockedObject(addr, type, it, nullEqualityConstraint)
+                    }
 
-                mockInfoGenerator?.let {
-                    return createMockedObject(addr, type, it, nullEqualityConstraint)
+                    queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
+                    null
                 }
-
-                queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
-                null
             }
         }
 

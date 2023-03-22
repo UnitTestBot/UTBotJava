@@ -138,6 +138,12 @@ class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(
         objectMocker.createMock(model, baseName)
     }
 
+    fun createMockForVariable(model: UtCompositeModel, variable: CgVariable) =
+        withMockFramework {
+            require(model.isMock) { "Mock model $model is expected in MockObjectConstructor" }
+            objectMocker.mockForVariable(model, variable)
+        }
+
     fun mockNewInstance(mock: UtNewInstanceInstrumentation) {
         staticMocker?.mockNewInstance(mock)
     }
@@ -177,6 +183,12 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
         val modelClass = getClassOf(model.classId)
         val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
 
+        mockForVariable(model, mockObject)
+
+        return mockObject
+    }
+
+    fun mockForVariable(model: UtCompositeModel, mockObject: CgVariable) {
         for ((executable, values) in model.mocks) {
             // void method
             if (executable.returnType == voidClassId) {
@@ -201,8 +213,6 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                 else -> error("ConstructorId was not expected to appear in simple mocker but got $executable")
             }
         }
-
-        return mockObject
     }
 
     override fun mock(clazz: CgExpression): CgMethodCall =

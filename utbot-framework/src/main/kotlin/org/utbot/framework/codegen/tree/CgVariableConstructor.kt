@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.common.isStatic
+import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -102,7 +103,9 @@ open class CgVariableConstructor(val context: CgContext) :
     open fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
-        return if (model is UtReferenceModel) valueByModelId.getOrPut(model.id) {
+        val modelId: ModelId = context.getIdByModel(model)
+
+        return if (model is UtReferenceModel) valueByModelId.getOrPut(modelId) {
             when (model) {
                 is UtCompositeModel -> constructComposite(model, baseName)
                 is UtAssembleModel -> constructAssemble(model, baseName)
@@ -172,7 +175,8 @@ open class CgVariableConstructor(val context: CgContext) :
             newVar(variableType, baseName) { utilsClassId[createInstance](model.classId.name) }
         }
 
-        valueByModelId[model.id] = obj
+        val modelId = context.getIdByModel(model)
+        valueByModelId[modelId] = obj
 
         require(obj.type !is BuiltinClassId) {
             "Unexpected BuiltinClassId ${obj.type} found while constructing from composite model"
@@ -225,7 +229,8 @@ open class CgVariableConstructor(val context: CgContext) :
             }
         }
 
-        return valueByModelId.getValue(model.id)
+        val modelId = context.getIdByModel(model)
+        return valueByModelId.getValue(modelId)
     }
 
     private fun processInstantiationStatement(
@@ -248,7 +253,10 @@ open class CgVariableConstructor(val context: CgContext) :
         }
         newVar(type, model, baseName) {
             initExpr
-        }.also { valueByModelId[model.id] = it }
+        }.also {
+            val modelId = context.getIdByModel(model)
+            valueByModelId[modelId] = it
+        }
     }
 
 
@@ -345,7 +353,8 @@ open class CgVariableConstructor(val context: CgContext) :
         }
 
         val array = newVar(arrayModel.classId, baseName) { initializer }
-        valueByModelId[arrayModel.id] = array
+        val arrayModelId = context.getIdByModel(arrayModel)
+        valueByModelId[arrayModelId] = array
 
         if (canInitWithValues) {
             return array

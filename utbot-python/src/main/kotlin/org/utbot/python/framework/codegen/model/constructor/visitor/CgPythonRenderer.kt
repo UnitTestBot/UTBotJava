@@ -58,6 +58,7 @@ import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgRendererContext
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
@@ -420,7 +421,7 @@ internal class CgPythonRenderer(
     }
 
     override fun escapeNamePossibleKeywordImpl(s: String): String = s
-    override fun renderClassVisibility(classId: ClassId) {
+    override fun renderVisibility(modifier: VisibilityModifier) {
         throw UnsupportedOperationException()
     }
 

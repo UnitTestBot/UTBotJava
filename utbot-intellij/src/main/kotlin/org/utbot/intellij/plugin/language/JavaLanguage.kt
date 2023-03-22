@@ -212,6 +212,8 @@ object JvmLanguageAssistant : LanguageAssistant() {
         // Thus, make transition to the Psi if it is required.
         val currentMethod = PsiTreeUtil.getParentOfType(element, psiElementHandler.methodClass)
             ?.let { psiElementHandler.toPsi(it, PsiMethod::class.java) }
+        // For anonymous class, we cannot select the nearest parent method directly.
+        // So, we have to suggest the nearest "outer" method from the named class.
         val topmostCurrentMethod = PsiTreeUtil.getTopmostParentOfType(element, psiElementHandler.methodClass)
             ?.let { psiElementHandler.toPsi(it, PsiMethod::class.java) }
 

@@ -35,6 +35,11 @@ internal val ongoingStubbingClassId = BuiltinClassId(
     simpleName = "OngoingStubbing",
 )
 
+internal val stubberClassId = BuiltinClassId(
+    canonicalName = "org.mockito.stubbing.Stubber",
+    simpleName = "Stubber"
+)
+
 internal val answerClassId = BuiltinClassId(
     canonicalName = "org.mockito.stubbing.Answer",
     simpleName = "Answer",
@@ -81,6 +86,18 @@ internal val thenReturnMethodId = builtinMethodId(
     name = "thenReturn",
     returnType = ongoingStubbingClassId,
     arguments = arrayOf(objectClassId)
+)
+
+internal val doNothingMethodId = builtinStaticMethodId(
+    classId = mockitoClassId,
+    name = "doNothing",
+    returnType = stubberClassId,
+)
+
+internal val whenStubberMethodId = builtinMethodId(
+    classId = stubberClassId,
+    name = "when",
+    returnType = objectClassId,
 )
 
 // TODO: for this method and other static methods implement some utils that allow calling

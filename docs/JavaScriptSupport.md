@@ -9,7 +9,7 @@ Now UnitTestBot provides fuzzing-based support for JavaScript.
 ### Requirements
 
 1. The [latest version of IntelliJ IDEA Ultimate](https://www.jetbrains.com/idea/download/)
-2. The [latest version of UnitTestBot plugin](https://plugins.jetbrains.com/plugin/19445-unittestbot)
+2. UnitTestBot plugin: please refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJava/wiki/Install-or-update-plugin).
 3. [Node.js 10.0.0 or later](https://nodejs.org/en/download/) (we recommend that you add Node.js to environment variables)
  
 _Note:_ when _npm_ cannot install requirements, try troubleshooting.

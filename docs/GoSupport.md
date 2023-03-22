@@ -88,7 +88,7 @@ Please refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJav
 * Java SDK 11 or later
 * Go SDK 1.18 or later
 * Properly configured `go.mod` file for the code under test
-* GCC as well as `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0` Go modules installed
+* GCC and `github.com/stretchr/testify/assert` installed
 
 ### Installation
 
@@ -139,4 +139,4 @@ java -jar utbot-cli-2022.8-beta.jar runGo --help
 ## Contributing to UnitTestBot Go
 
 To take part in project development or learn more about UnitTestBot Go, check
-out the [Developer guide](docs/DEVELOPER_GUIDE.md) and our [plans](docs/FUTURE_PLANS.md).
+out the [Developer guide](../utbot-go/docs/DEVELOPER_GUIDE.md) and our [plans](../utbot-go/docs/FUTURE_PLANS.md).

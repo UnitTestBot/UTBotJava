@@ -99,22 +99,24 @@ jobs:
       # "You can make an environment variable available to any subsequent steps in a workflow job by
       # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
       - name: Construct version | Set year
-        run: echo "VERSION=$(date +%Y)" >> $GITHUB_ENV
+        run: echo "APP_YEAR=$(date +%Y)" >> $GITHUB_ENV
       - name: Construct version | Set custom year
         if: ${{ github.event.inputs.custom_year != '' }}
-        run: echo "VERSION=${{ github.event.inputs.custom_year }}" >> $GITHUB_ENV
+        run: echo "APP_YEAR=${{ github.event.inputs.custom_year }}" >> $GITHUB_ENV
       - name: Construct version | Set month
-        run: echo "VERSION=${{ env.VERSION }}.$(date +%-m)" >> $GITHUB_ENV
+        run: echo "APP_MONTH=$(date +%-m)" >> $GITHUB_ENV
       - name: Construct version | Set custom month
         if: ${{ github.event.inputs.custom_month != '' }}
-        run: echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.custom_month }}" >> $GITHUB_ENV
+        run: echo "APP_MONTH=${{ github.event.inputs.custom_month }}" >> $GITHUB_ENV
+      - name: Construct version | Set basic version
+        run: echo "VERSION=${{ env.APP_YEAR }}.${{ env.APP_MONTH }}" >> $GITHUB_ENV
       - name: Construct version | Set run number if no-postfix
         if: ${{ github.event.inputs.version-postfix == 'no-postfix' }}
         run: echo "VERSION=${{ env.VERSION }}.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
       - name: Construct version | Set minor release
         if: ${{ github.event.inputs.minor-release != 'none' }}
         run: echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
-      - name: Construct version | Create version with postfix
+      - name: Construct version | Set postfix
         if: ${{ github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
         run: echo "VERSION=${{ env.VERSION }}-${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
       - name: Print environment variables

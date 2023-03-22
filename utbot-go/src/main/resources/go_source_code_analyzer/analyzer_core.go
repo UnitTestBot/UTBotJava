@@ -45,9 +45,11 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 		checkError(err)
 
 		result = AnalyzedNamedType{
-			Name:            name,
-			PackageName:     packageName,
-			PackagePath:     packagePath,
+			Name: name,
+			SourcePackage: GoPackage{
+				PackageName: packageName,
+				PackagePath: packagePath,
+			},
 			ImplementsError: isError,
 			UnderlyingType:  underlyingType,
 		}

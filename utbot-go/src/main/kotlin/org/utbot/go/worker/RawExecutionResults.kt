@@ -14,15 +14,25 @@ data class PrimitiveValue(
     override val value: String,
 ) : RawValue(type, value) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
-        if (!type.isPrimitiveGoType && type !is GoInterfaceTypeId && !type.implementsError) {
+        if (type is GoNamedTypeId) {
+            return checkIsEqualTypes(type.underlyingTypeId)
+        }
+        if (!type.isPrimitiveGoType && type !is GoInterfaceTypeId) {
             return false
         }
         // for error support
-        if (this.type == "string" && type is GoInterfaceTypeId && type.implementsError) {
+        if (this.type == "string" && type is GoInterfaceTypeId) {
             return true
         }
         return GoPrimitiveTypeId(this.type) == type
     }
+}
+
+data class NamedValue(
+    override val type: String,
+    override val value: RawValue,
+) : RawValue(type, value) {
+    override fun checkIsEqualTypes(type: GoTypeId): Boolean = error("Not supported")
 }
 
 data class StructValue(
@@ -36,10 +46,10 @@ data class StructValue(
     )
 
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
-        if (type !is GoStructTypeId) {
-            return false
+        if (type is GoNamedTypeId) {
+            return this.type == type.canonicalName && checkIsEqualTypes(type.underlyingTypeId)
         }
-        if (this.type != type.canonicalName) {
+        if (type !is GoStructTypeId) {
             return false
         }
         if (value.size != type.fields.size) {
@@ -67,6 +77,9 @@ data class ArrayValue(
     override val value: List<RawValue>
 ) : RawValue(type, value) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
+        if (type is GoNamedTypeId) {
+            return checkIsEqualTypes(type.underlyingTypeId)
+        }
         if (type !is GoArrayTypeId) {
             return false
         }
@@ -84,6 +97,9 @@ data class SliceValue(
     override val value: List<RawValue>
 ) : RawValue(type, value) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
+        if (type is GoNamedTypeId) {
+            return checkIsEqualTypes(type.underlyingTypeId)
+        }
         if (type !is GoSliceTypeId) {
             return false
         }
@@ -178,23 +194,25 @@ fun convertRawExecutionResultToExecutionResult(
 
 private fun createGoUtModelFromRawValue(
     rawValue: RawValue?, typeId: GoTypeId, intSize: Int
-): GoUtModel = if (rawValue == null) {
-    GoUtNilModel(typeId)
-} else {
-    when (typeId) {
-        // Only for error interface
-        is GoInterfaceTypeId -> GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
+): GoUtModel = when (typeId) {
+    is GoNamedTypeId -> GoUtNamedModel(createGoUtModelFromRawValue(rawValue, typeId.underlyingTypeId, intSize), typeId)
 
-        is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, intSize)
-
-        is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
-
-        is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
-
-        is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
-
-        else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
+    // Only for error interface
+    is GoInterfaceTypeId -> if (rawValue == null) {
+        GoUtNilModel(typeId)
+    } else {
+        GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
     }
+
+    is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, intSize)
+
+    is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
+
+    is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
+
+    is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
+
+    else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
 }
 
 private fun createGoUtPrimitiveModelFromRawValue(

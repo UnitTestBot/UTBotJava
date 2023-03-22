@@ -153,18 +153,20 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     is GoStructTypeId -> GoUtStructModel(listOf(), this)
     is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
     is GoSliceTypeId -> GoUtSliceModel(hashMapOf(), this, 0)
+    is GoNamedTypeId -> GoUtNamedModel(this.underlyingTypeId.goDefaultValueModel(), this)
     else -> GoUtNilModel(this)
 }
 
-fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
-    is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
-        acc + (field.declaringType).getAllStructTypes()
+fun GoTypeId.getAllNamedTypes(): Set<GoNamedTypeId> = when (this) {
+    is GoStructTypeId -> fields.fold(emptySet()) { acc: Set<GoNamedTypeId>, field ->
+        acc + (field.declaringType).getAllNamedTypes()
     }
 
-    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllStructTypes()
+    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllNamedTypes()
+    is GoNamedTypeId -> setOf(this) + underlyingTypeId.getAllNamedTypes()
     else -> emptySet()
 }
 
-fun List<GoTypeId>.getAllStructTypes(): Set<GoStructTypeId> = this.fold(emptySet()) { acc, type ->
-    acc + type.getAllStructTypes()
+fun List<GoTypeId>.getAllNamedTypes(): Set<GoNamedTypeId> = this.fold(emptySet()) { acc, type ->
+    acc + type.getAllNamedTypes()
 }

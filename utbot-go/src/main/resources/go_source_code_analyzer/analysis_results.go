@@ -2,14 +2,18 @@ package main
 
 import "go/token"
 
+type GoPackage struct {
+	PackageName string `json:"packageName"`
+	PackagePath string `json:"packagePath"`
+}
+
 type AnalyzedType interface {
 	GetName() string
 }
 
 type AnalyzedNamedType struct {
 	Name            string       `json:"name"`
-	PackageName     string       `json:"packageName"`
-	PackagePath     string       `json:"packagePath"`
+	SourcePackage   GoPackage    `json:"sourcePackage"`
 	ImplementsError bool         `json:"implementsError"`
 	UnderlyingType  AnalyzedType `json:"underlyingType"`
 }

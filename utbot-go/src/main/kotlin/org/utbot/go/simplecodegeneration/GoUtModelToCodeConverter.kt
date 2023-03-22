@@ -18,16 +18,32 @@ class GoUtModelToCodeConverter(
             ExplicitCastMode.DEPENDS, ExplicitCastMode.NEVER -> primitiveModelToValueGoCode(model)
         }
 
-        is GoUtStructModel -> {
-            val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
-            "$typeName${structModelToGoCodeWithoutStructName(model)}"
-        }
-
         is GoUtArrayModel -> arrayModelToGoCode(model)
 
         is GoUtSliceModel -> sliceModelToGoCode(model)
 
-        else -> error("Converting a $javaClass to Go code isn't supported")
+        is GoUtNamedModel -> namedModelToGoCode(model)
+
+        else -> error("Converting a ${model.javaClass} to Go code isn't supported")
+    }
+
+    private fun toGoCodeWithoutTypeName(model: GoUtModel): String = when (model) {
+        is GoUtNilModel -> "nil"
+
+        is GoUtPrimitiveModel -> when (model.explicitCastMode) {
+            ExplicitCastMode.REQUIRED -> primitiveModelToCastedValueGoCode(model)
+            ExplicitCastMode.DEPENDS, ExplicitCastMode.NEVER -> primitiveModelToValueGoCode(model)
+        }
+
+        is GoUtStructModel -> structModelToGoCodeWithoutStructName(model)
+
+        is GoUtArrayModel -> arrayModelToGoCodeWithoutTypeName(model)
+
+        is GoUtSliceModel -> sliceModelToGoCodeWithoutTypeName(model)
+
+        is GoUtNamedModel -> toGoCodeWithoutTypeName(model.value)
+
+        else -> error("Converting a ${model.javaClass} to Go code isn't supported")
     }
 
     fun primitiveModelToValueGoCode(model: GoUtPrimitiveModel): String = when (model) {
@@ -46,107 +62,38 @@ class GoUtModelToCodeConverter(
             "${it.fieldId.name}: ${toGoCode(it.model)}"
         }
 
-    private fun arrayModelToGoCode(model: GoUtArrayModel): String =
-        when (val elementType = model.typeId.elementTypeId!!) {
-            is GoStructTypeId -> model.getElements().joinToString(
-                prefix = "[${model.length}]${
-                    elementType.getRelativeName(destinationPackage, aliases)
-                }{",
-                postfix = "}"
-            ) {
-                structModelToGoCodeWithoutStructName(it as GoUtStructModel)
-            }
-
-            is GoArrayTypeId -> model.getElements().joinToString(
-                prefix = "[${model.length}]${
-                    elementType.getRelativeName(destinationPackage, aliases)
-                }{",
-                postfix = "}"
-            ) {
-                arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
-            }
-
-            is GoSliceTypeId -> model.getElements().joinToString(
-                prefix = "[${model.length}]${
-                    elementType.getRelativeName(destinationPackage, aliases)
-                }{",
-                postfix = "}"
-            ) {
-                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
-            }
-
-            else -> model.getElements().joinToString(
-                prefix = "[${model.length}]${elementType.getRelativeName(destinationPackage, aliases)}{",
-                postfix = "}"
-            )
+    private fun arrayModelToGoCode(model: GoUtArrayModel): String {
+        val elementType = model.typeId.elementTypeId!!
+        val elementTypeName = elementType.getRelativeName(destinationPackage, aliases)
+        return model.getElements().joinToString(prefix = "[${model.length}]$elementTypeName{", postfix = "}") {
+            toGoCodeWithoutTypeName(it)
         }
+    }
 
     private fun arrayModelToGoCodeWithoutTypeName(model: GoUtArrayModel): String =
-        when (model.typeId.elementTypeId!!) {
-            is GoStructTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
-                structModelToGoCodeWithoutStructName(it as GoUtStructModel)
-            }
-
-            is GoArrayTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
-                arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
-            }
-
-            is GoSliceTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
-                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
-            }
-
-            else -> model.getElements().joinToString(prefix = "{", postfix = "}")
+        model.getElements().joinToString(prefix = "{", postfix = "}") {
+            toGoCodeWithoutTypeName(it)
         }
 
-    private fun sliceModelToGoCode(model: GoUtSliceModel): String =
-        when (val elementType = model.typeId.elementTypeId!!) {
-            is GoStructTypeId -> model.getElements().joinToString(
-                prefix = "[]${
-                    elementType.getRelativeName(destinationPackage, aliases)
-                }{",
-                postfix = "}"
-            ) {
-                structModelToGoCodeWithoutStructName(it as GoUtStructModel)
-            }
-
-            is GoArrayTypeId -> model.getElements().joinToString(
-                prefix = "[]${
-                    elementType.getRelativeName(destinationPackage, aliases)
-                }{",
-                postfix = "}"
-            ) {
-                arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
-            }
-
-            is GoSliceTypeId -> model.getElements().joinToString(
-                prefix = "[]${
-                    elementType.getRelativeName(destinationPackage, aliases)
-                }{",
-                postfix = "}"
-            ) {
-                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
-            }
-
-            else -> model.getElements().joinToString(
-                prefix = "[]${elementType.getRelativeName(destinationPackage, aliases)}{",
-                postfix = "}"
-            )
+    private fun sliceModelToGoCode(model: GoUtSliceModel): String {
+        val elementType = model.typeId.elementTypeId!!
+        val elementTypeName = elementType.getRelativeName(destinationPackage, aliases)
+        return model.getElements().joinToString(prefix = "[]$elementTypeName{", postfix = "}") {
+            toGoCodeWithoutTypeName(it)
         }
+    }
 
     private fun sliceModelToGoCodeWithoutTypeName(model: GoUtSliceModel): String =
-        when (model.typeId.elementTypeId!!) {
-            is GoStructTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
-                structModelToGoCodeWithoutStructName(it as GoUtStructModel)
-            }
-
-            is GoArrayTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
-                arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
-            }
-
-            is GoSliceTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
-                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
-            }
-
-            else -> model.getElements().joinToString(prefix = "{", postfix = "}")
+        model.getElements().joinToString(prefix = "{", postfix = "}") {
+            toGoCodeWithoutTypeName(it)
         }
+
+    private fun namedModelToGoCode(model: GoUtNamedModel): String {
+        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
+        return if (model.value is GoUtPrimitiveModel) {
+            "$typeName(${toGoCodeWithoutTypeName(model.value)})"
+        } else {
+            "$typeName${toGoCodeWithoutTypeName(model.value)}"
+        }
+    }
 }

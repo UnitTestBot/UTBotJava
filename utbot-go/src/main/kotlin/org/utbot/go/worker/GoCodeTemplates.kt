@@ -1,7 +1,10 @@
 package org.utbot.go.worker
 
+import org.utbot.go.api.GoNamedTypeId
 import org.utbot.go.api.GoStructTypeId
+import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoPackage
+import org.utbot.go.simplecodegeneration.GoUtModelToCodeConverter
 
 object GoCodeTemplates {
 
@@ -138,7 +141,7 @@ object GoCodeTemplates {
 
         		return reflect.ValueOf(uintptr(value)), nil
         	}
-        	return reflect.Value{}, fmt.Errorf("not supported type %s", v.Type)
+        	return reflect.Value{}, fmt.Errorf("primitive type '%s' is not supported", v.Type)
         }
     """.trimIndent()
 
@@ -243,11 +246,72 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private fun convertStringToReflectType(
-        structTypes: Set<GoStructTypeId>,
+    private val nilValueStruct = """
+        type __NilValue__ struct {
+        	Type string `json:"type"`
+        }
+    """.trimIndent()
+
+    private val nilValueToReflectValueMethod = """
+        func (v __NilValue__) __toReflectValue__() (reflect.Value, error) {
+        	typ, err := __convertStringToReflectType__(v.Type)
+        	__checkErrorAndExit__(err)
+
+        	return reflect.Zero(typ), nil
+        }
+    """.trimIndent()
+
+    private val namedValueStruct = """
+        type __NamedValue__ struct {
+        	Type  string       `json:"type"`
+        	Value __RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val namedValueToReflectValueMethod = """
+        func (v __NamedValue__) __toReflectValue__() (reflect.Value, error) {
+        	value, err := v.Value.__toReflectValue__()
+        	__checkErrorAndExit__(err)
+
+        	val, err := __typeConversionToNamedType__(v.Type, value.Interface())
+        	__checkErrorAndExit__(err)
+
+        	return reflect.ValueOf(val), nil
+        }
+    """.trimIndent()
+
+    private fun typeConversionToNamedType(
+        namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
         aliases: Map<GoPackage, String?>
     ) = """
+        func __typeConversionToNamedType__(typ string, value any) (any, error) {
+        	switch typ {
+        	${
+        namedTypes.joinToString(separator = "\n") {
+            val relativeName = it.getRelativeName(destinationPackage, aliases)
+            "case \"${relativeName}\": return ${relativeName}(value.(${
+                if (it.underlyingTypeId is GoStructTypeId) {
+                    relativeName
+                } else {
+                    it.underlyingTypeId.getRelativeName(destinationPackage, aliases)
+                }
+            })), nil"
+        }
+    }
+        	default:
+        		return nil, fmt.Errorf("unknown named type: %s", typ)
+        	}
+        }
+    """.trimIndent()
+
+    private fun convertStringToReflectType(
+        namedTypes: Set<GoNamedTypeId>,
+        destinationPackage: GoPackage,
+        aliases: Map<GoPackage, String?>
+    ): String {
+        val converter = GoUtModelToCodeConverter(destinationPackage, aliases)
+        return """
         func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
         	var result reflect.Type
 
@@ -325,18 +389,19 @@ object GoCodeTemplates {
         		case "uintptr":
         			result = reflect.TypeOf(uintptr(0))
                 ${
-        structTypes.joinToString(separator = "\n") {
-            val relativeName = it.getRelativeName(destinationPackage, aliases)
-            "case \"${relativeName}\": result = reflect.TypeOf(${relativeName}{})"
+            namedTypes.joinToString(separator = "\n") {
+                val relativeName = it.getRelativeName(destinationPackage, aliases)
+                "case \"${relativeName}\": result = reflect.TypeOf(${converter.toGoCode(it.goDefaultValueModel())})"
+            }
         }
-    }
         		default:
-        			return nil, fmt.Errorf("type '%s' not supported", typeName)
+        			return nil, fmt.Errorf("type '%s' is not supported", typeName)
         		}
         	}
         	return result, nil
         }
     """.trimIndent()
+    }
 
     private val panicMessageStruct = """
         type __RawPanicMessage__ struct {
@@ -586,13 +651,13 @@ object GoCodeTemplates {
         	var testInput __TestInput__
         	err := decoder.Decode(&testInput)
         	if err == io.EOF {
-        		return "", nil, err 
+        		return "", nil, err
         	}
         	__checkErrorAndExit__(err)
 
         	result := make([]__RawValue__, 0)
         	for _, arg := range testInput.Arguments {
-        		rawValue, err := __convertParsedJsonToRawValue__(arg)
+        		rawValue, err := __convertParsedJsonToRawValue__(arg, "")
         		__checkErrorAndExit__(err)
 
         		result = append(result, rawValue)
@@ -604,7 +669,7 @@ object GoCodeTemplates {
 
     private val convertParsedJsonToRawValueFunction = """
         //goland:noinspection GoPreferNilSlice
-        func __convertParsedJsonToRawValue__(rawValue map[string]interface{}) (__RawValue__, error) {
+        func __convertParsedJsonToRawValue__(rawValue map[string]interface{}, name string) (__RawValue__, error) {
         	typeName, ok := rawValue["type"]
         	if !ok {
         		return nil, fmt.Errorf("every rawValue must contain field 'type'")
@@ -616,12 +681,34 @@ object GoCodeTemplates {
 
         	v, ok := rawValue["value"]
         	if !ok {
-        		return nil, fmt.Errorf("every rawValue must contain field 'value'")
+        		return __NilValue__{Type: typeNameStr}, nil
         	}
 
         	switch {
+        	case typeNameStr == "struct{}":
+        		if name == "" {
+        			return nil, fmt.Errorf("anonymous structs is not supported")
+        		}
+
+        		value, ok := v.([]interface{})
+        		if !ok {
+        			return nil, fmt.Errorf("structValue field 'value' must be array")
+        		}
+
+        		values := []__FieldValue__{}
+        		for _, v := range value {
+        			nextValue, err := __convertParsedJsonToFieldValue__(v.(map[string]interface{}))
+        			__checkErrorAndExit__(err)
+
+        			values = append(values, nextValue)
+        		}
+
+        		return __StructValue__{
+        			Type:  name,
+        			Value: values,
+        		}, nil
         	case strings.HasPrefix(typeNameStr, "map["):
-        		return nil, fmt.Errorf("map type not supported")
+        		return nil, fmt.Errorf("map type is not supported")
         	case strings.HasPrefix(typeNameStr, "[]"):
         		elementType, ok := rawValue["elementType"]
         		if !ok {
@@ -647,7 +734,7 @@ object GoCodeTemplates {
 
         		values := []__RawValue__{}
         		for _, v := range value {
-        			nextValue, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}))
+        			nextValue, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}), "")
         			__checkErrorAndExit__(err)
 
         			values = append(values, nextValue)
@@ -684,7 +771,7 @@ object GoCodeTemplates {
 
         		values := []__RawValue__{}
         		for _, v := range value {
-        			nextValue, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}))
+        			nextValue, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}), "")
         			__checkErrorAndExit__(err)
 
         			values = append(values, nextValue)
@@ -708,23 +795,13 @@ object GoCodeTemplates {
         				Type:  typeNameStr,
         				Value: value,
         			}, nil
-        		default:
-        			value, ok := v.([]interface{})
-        			if !ok {
-        				return nil, fmt.Errorf("structValue field 'value' must be array")
-        			}
+        		default: // named type
+        			value, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}), typeNameStr)
+        			__checkErrorAndExit__(err)
 
-        			values := []__FieldValue__{}
-        			for _, v := range value {
-        				nextValue, err := __convertParsedJsonToFieldValue__(v.(map[string]interface{}))
-        				__checkErrorAndExit__(err)
-
-        				values = append(values, nextValue)
-        			}
-
-        			return __StructValue__{
+        			return __NamedValue__{
         				Type:  typeNameStr,
-        				Value: values,
+        				Value: value,
         			}, nil
         		}
         	}
@@ -754,7 +831,7 @@ object GoCodeTemplates {
         	if _, ok := p["value"]; !ok {
         		return __FieldValue__{}, fmt.Errorf("fieldValue must contain field 'value'")
         	}
-        	value, err := __convertParsedJsonToRawValue__(p["value"].(map[string]interface{}))
+        	value, err := __convertParsedJsonToRawValue__(p["value"].(map[string]interface{}), "")
         	__checkErrorAndExit__(err)
 
         	return __FieldValue__{
@@ -766,7 +843,7 @@ object GoCodeTemplates {
     """.trimIndent()
 
     fun getTopLevelHelperStructsAndFunctionsForWorker(
-        structTypes: Set<GoStructTypeId>,
+        namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
         aliases: Map<GoPackage, String?>,
         maxTraceLength: Int,
@@ -782,7 +859,12 @@ object GoCodeTemplates {
         arrayValueToReflectValueMethod,
         sliceValueStruct,
         sliceValueToReflectValueMethod,
-        convertStringToReflectType(structTypes, destinationPackage, aliases),
+        nilValueStruct,
+        nilValueToReflectValueMethod,
+        namedValueStruct,
+        namedValueToReflectValueMethod,
+        typeConversionToNamedType(namedTypes, destinationPackage, aliases),
+        convertStringToReflectType(namedTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,
         checkErrorFunction,

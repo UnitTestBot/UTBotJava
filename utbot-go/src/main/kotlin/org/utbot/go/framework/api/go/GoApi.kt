@@ -58,7 +58,9 @@ class GoFieldId(
 data class GoPackage(
     val packageName: String,
     val packagePath: String
-)
+) {
+    val isBuiltin = packageName == "" && packagePath == ""
+}
 
 /**
  * Class for Go import.

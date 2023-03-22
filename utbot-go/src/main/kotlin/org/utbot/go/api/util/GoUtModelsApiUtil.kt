@@ -22,6 +22,11 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             "${model.realValue}@${model.imagValue}"
         )
 
+        is GoUtNamedModel -> NamedValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            model.value.convertToRawValue(destinationPackage, aliases)
+        )
+
         is GoUtArrayModel -> ArrayValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
             model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),

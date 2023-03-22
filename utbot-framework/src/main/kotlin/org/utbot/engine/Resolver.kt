@@ -100,16 +100,20 @@ import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
 import org.utbot.framework.plugin.api.util.isStatic
 
 // hack
+// IMPORTANT, if these values are used in code for analysis (e.g., in the wrappers),
+// they must be a compilation time constant to avoid extra analysis.
 const val MAX_LIST_SIZE = 10
 const val MAX_RESOLVE_LIST_SIZE = 256
 const val MAX_STRING_SIZE = 40
-internal const val HARD_MAX_ARRAY_SIZE = 256
+internal const val MAX_STREAM_SIZE = 256
+internal val hardMaxArraySize = UtSettings.maxArraySize
 
 internal const val PREFERRED_ARRAY_SIZE = 2
 internal const val MIN_PREFERRED_INTEGER = -256
@@ -1303,7 +1307,7 @@ private fun Traverser.arrayToMethodResult(
     elementType: Type,
     takeElement: (Int) -> UtExpression
 ): MethodResult {
-    val updatedSize = min(size, HARD_MAX_ARRAY_SIZE)
+    val updatedSize = min(size, hardMaxArraySize)
     val newAddr = findNewAddr()
     val length = memory.findArrayLength(newAddr)
 

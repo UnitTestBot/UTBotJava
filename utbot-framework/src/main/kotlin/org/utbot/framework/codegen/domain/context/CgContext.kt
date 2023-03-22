@@ -571,15 +571,7 @@ data class CgContext(
         }
     }
 
-    override fun getIdByModel(model: UtModel): ModelId {
-        if (model !in modelIds) {
-            modelIds[model] = model.withExecutionId()
-        }
-
-        return modelIds.getOrElse(model) {
-            error("ModelId for $model should have also been created")
-        }
-    }
+    override fun getIdByModel(model: UtModel): ModelId = modelIds.getOrPut(model) { model.withExecutionId() }
 
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
@@ -599,6 +591,7 @@ data class CgContext(
         requiredUtilMethods.clear()
         valueByModel.clear()
         valueByModelId.clear()
+        modelIds.clear()
         mockFrameworkUsed = false
     }
 

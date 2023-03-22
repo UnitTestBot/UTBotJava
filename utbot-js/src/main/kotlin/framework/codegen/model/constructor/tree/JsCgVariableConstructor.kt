@@ -9,6 +9,7 @@ import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
+import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
 import org.utbot.framework.codegen.domain.models.CgArrayInitializer

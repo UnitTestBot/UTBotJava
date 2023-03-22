@@ -335,7 +335,8 @@ fun getDirectoriesForSysPath(
     file.fromImports.forEach { importTarget ->
         importTarget.resolveImportSourceCandidates().forEach {
             val directory = it.parent
-            if (directory is PsiDirectory ) {
+            val isRelativeImport = importTarget.relativeLevel > 0  // If we have `from . import a` we don't need to add syspath
+            if (directory is PsiDirectory && !isRelativeImport) {
                 // If we have `from a.b.c import d` we need to add syspath to module `a` only
                 val additionalLevel = importTarget.importSourceQName?.componentCount?.dec() ?: 0
                 directory.topParent(additionalLevel)?.let { dir ->

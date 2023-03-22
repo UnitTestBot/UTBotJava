@@ -112,7 +112,13 @@ object GoTestCasesGenerator {
                     val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
                     if (!processHasExited) {
                         process.destroy()
-                        throw TimeoutException("Timeout exceeded: Worker didn't finish")
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        throw TimeoutException(
+                            StringBuilder()
+                                .append("Timeout exceeded: Worker didn't finish. Process output: ")
+                                .appendLine()
+                                .append(processOutput).toString()
+                        )
                     }
                     val exitCode = process.exitValue()
                     if (exitCode != 0) {
@@ -132,7 +138,13 @@ object GoTestCasesGenerator {
                     val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
                     if (!processHasExited) {
                         process.destroy()
-                        logger.error { "Timeout exceeded: Worker didn't finish" }
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        logger.error {
+                            StringBuilder()
+                                .append("Timeout exceeded: Worker didn't finish. Process output: ")
+                                .appendLine()
+                                .append(processOutput).toString()
+                        }
                     }
                     val exitCode = process.exitValue()
                     if (exitCode != 0) {

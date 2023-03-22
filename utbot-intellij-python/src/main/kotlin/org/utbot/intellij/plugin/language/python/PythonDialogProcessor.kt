@@ -25,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
-import org.jetbrains.kotlin.konan.file.File
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
@@ -348,7 +347,9 @@ fun getDirectoriesForSysPath(
 
     // Select modules only from this project but not from installation directory
     importedPaths.forEach {
-        if (it.isProjectSubmodule(ancestor) && !it.path.split(File.separator).contains("site-packages")) {
+        val path = it.toNioPath()
+        val hasSitePackages = (0 until(path.nameCount)).any { i -> path.subpath(i, i+1).toString() == "site-packages"}
+        if (it.isProjectSubmodule(ancestor) && !hasSitePackages) {
             sources.add(it)
         }
     }

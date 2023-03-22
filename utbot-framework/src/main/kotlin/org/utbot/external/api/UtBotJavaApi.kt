@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
@@ -55,6 +56,7 @@ object UtBotJavaApi {
         classpath: String,
         dependencyClassPath: String,
         classUnderTest: Class<*>,
+        projectType: ProjectType = ProjectType.PureJvm,
         testFramework: TestFramework = Junit5,
         mockFramework: MockFramework = MockFramework.MOCKITO,
         codegenLanguage: CodegenLanguage = CodegenLanguage.JAVA,
@@ -82,6 +84,7 @@ object UtBotJavaApi {
         return withUtContext(utContext) {
             val codeGenerator = CodeGenerator(
                     classUnderTest = classUnderTest.id,
+                    projectType = projectType,
                     testFramework = testFramework,
                     mockFramework = mockFramework,
                     codegenLanguage = codegenLanguage,

@@ -3,6 +3,7 @@ package org.utbot.gradle.plugin.extension
 import org.gradle.api.Project
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.ClassId
@@ -56,6 +57,11 @@ class SarifGradleExtensionProvider(
         get() = taskParameters["testPrivateMethods"]?.let { it == "true"}
             ?: extension.testPrivateMethods.orNull
             ?: false
+
+    override val projectType: ProjectType
+        get() = (taskParameters["projectType"] ?: extension.projectType.orNull)
+            ?.let(::projectTypeParse)
+            ?: ProjectType.PureJvm
 
     override val testFramework: TestFramework
         get() = (taskParameters["testFramework"] ?: extension.testFramework.orNull)

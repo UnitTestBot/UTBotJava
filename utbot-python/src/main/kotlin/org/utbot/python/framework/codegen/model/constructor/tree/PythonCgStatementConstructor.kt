@@ -258,7 +258,7 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
         CgThrowStatement(exception()).also { currentBlock += it }
 
     override fun emptyLine() {
-        currentBlock += CgEmptyLine()
+        currentBlock += CgEmptyLine
     }
 
     override fun emptyLineIfNeeded() {

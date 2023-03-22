@@ -142,7 +142,7 @@ internal fun CgContextOwner.isUtil(method: MethodId): Boolean {
     return method in utilMethodProvider.utilMethodIds
 }
 
-val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
+val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter, isNullable = false)
 
 /**
  * A [MethodId] to add an item into [ArrayList].

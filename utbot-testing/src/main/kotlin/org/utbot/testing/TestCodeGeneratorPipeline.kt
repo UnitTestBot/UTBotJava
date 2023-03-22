@@ -9,6 +9,7 @@ import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.codegen.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
@@ -265,6 +266,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
             val codeGenerator = with(testFrameworkConfiguration) {
                 CodeGenerator(
                     classUnderTest.id,
+                    projectType = ProjectType.PureJvm,
                     generateUtilClassFile = generateUtilClassFile,
                     paramNames = params,
                     testFramework = testFramework,

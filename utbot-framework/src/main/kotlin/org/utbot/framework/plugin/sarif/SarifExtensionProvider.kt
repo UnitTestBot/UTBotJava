@@ -6,6 +6,8 @@ import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
@@ -51,6 +53,8 @@ interface SarifExtensionProvider {
      */
     val testPrivateMethods: Boolean
 
+    val projectType: ProjectType
+
     val testFramework: TestFramework
 
     val mockFramework: MockFramework
@@ -75,6 +79,15 @@ interface SarifExtensionProvider {
     val classesToMockAlways: Set<ClassId>
 
     // transform functions
+
+    fun projectTypeParse(projectType: String): ProjectType =
+        when (projectType.toLowerCase()) {
+            "purejvm" -> PureJvm
+            "spring" -> Spring
+            "python" -> Python
+            "javascript" -> JavaScript
+            else -> error("Parameter projectType == '$projectType', but it can take only 'pureJvm', 'spring', 'python' or 'javascript'")
+        }
 
     fun testFrameworkParse(testFramework: String): TestFramework =
         when (testFramework.toLowerCase()) {

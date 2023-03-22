@@ -353,9 +353,9 @@ abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgCustomTagStatement) {
-        if (element.statements.all { it.isEmpty() }) return
+        if (element.content.all { it.isEmpty() }) return
 
-        element.statements.forEach { it.accept(this) }
+        element.content.forEach { it.accept(this) }
     }
 
     override fun visit(element: CgDocCodeStmt) {

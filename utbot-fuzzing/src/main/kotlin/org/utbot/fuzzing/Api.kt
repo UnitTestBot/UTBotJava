@@ -248,7 +248,7 @@ private object EmptyFeedback : Feedback<Nothing, Nothing> {
     }
 }
 
-private class NoSeedValueException(
+class NoSeedValueException internal constructor(
     // this type cannot be generalized because Java forbids types for [Throwable].
     val type: Any?
 ) : Exception("No seed candidates generated for type: $type")
@@ -463,7 +463,11 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)
             ),
             modify = task.modify
-                .shuffled(random)
+                .toMutableList()
+                .transformIfNotEmpty {
+                    shuffle(random)
+                    take(random.nextInt(size + 1))
+                }
                 .mapTo(arrayListOf()) { routine ->
                     fuzz(
                         routine.types,
@@ -474,15 +478,13 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                         routine,
                         State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)
                     )
-                }.transformIfNotEmpty {
-                    take(random.nextInt(size + 1).coerceAtLeast(1))
                 }
         )
     } catch (nsv: NoSeedValueException) {
         @Suppress("UNCHECKED_CAST")
         state.missedTypes[nsv.type as TYPE] = task
         if (configuration.generateEmptyRecursiveForMissedTypes) {
-            Result.Empty { task.empty() }
+            Result.Empty { task.empty.builder() }
         } else {
             throw nsv
         }

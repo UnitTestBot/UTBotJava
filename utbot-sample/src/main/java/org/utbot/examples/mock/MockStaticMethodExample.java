@@ -11,4 +11,8 @@ public class MockStaticMethodExample {
 
         return 0;
     }
+
+    public void mockStaticMethodFromAlwaysMockClass() {
+        System.out.println("example");
+    }
 }

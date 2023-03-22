@@ -132,7 +132,6 @@ import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
@@ -2014,7 +2013,19 @@ class Traverser(
         queuedSymbolicStateUpdates += Ge(length, 0).asHardConstraint()
         workaround(HACK) {
             if (size.expr is UtBvLiteral) {
-                softMaxArraySize = min(HARD_MAX_ARRAY_SIZE, max(size.expr.value.toInt(), softMaxArraySize))
+                val sizeValue = size.expr.value.toInt()
+                softMaxArraySize = min(hardMaxArraySize, max(sizeValue, softMaxArraySize))
+
+                if (sizeValue > hardMaxArraySize) {
+                    logger.warn(
+                        "The engine encountered an array initialization with $sizeValue size." +
+                                " It leads to elimination of paths containing current instruction."
+                    )
+                    logger.warn("Current instruction: ${environment.state.stmt}")
+                    logger.warn("Please, consider increasing `UtSettings.maxArraySize` value, " +
+                            "currently it is ${UtSettings.maxArraySize}."
+                    )
+                }
             }
         }
         queuedSymbolicStateUpdates += Le(length, softMaxArraySize).asHardConstraint() // TODO: fix big array length

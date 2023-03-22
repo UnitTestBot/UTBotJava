@@ -43,11 +43,15 @@ class UnitTestBotInspectionContext(
     }
 
     override fun close(noSuspiciousCodeFound: Boolean) {
-        if (!noSuspiciousCodeFound && (view == null || view.isRerun)) {
-            return
+        try {
+            if (!noSuspiciousCodeFound && (view == null || view.isRerun)) {
+                return
+            }
+            myPresentationMap.clear()
+            super.close(noSuspiciousCodeFound)
+        } catch (_: Throwable) {
+            // already closed
         }
-        myPresentationMap.clear()
-        super.close(noSuspiciousCodeFound)
     }
 
     override fun cleanup() {

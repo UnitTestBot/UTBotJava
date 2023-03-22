@@ -5,7 +5,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 import static org.utbot.api.mock.UtMock.assume;
-import static org.utbot.engine.ResolverKt.getMaxStringSize;
+import static org.utbot.engine.ResolverKt.MAX_STRING_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
@@ -18,13 +18,13 @@ public class UtStringBuffer implements Appendable, Serializable, CharSequence {
 
     public UtStringBuffer(int capacity) {
         visit(this);
-        value = new char[getMaxStringSize()];
+        value = new char[MAX_STRING_SIZE];
         count = 0;
     }
 
     public UtStringBuffer() {
         visit(this);
-        value = new char[getMaxStringSize()];
+        value = new char[MAX_STRING_SIZE];
         count = 0;
     }
 
@@ -34,7 +34,7 @@ public class UtStringBuffer implements Appendable, Serializable, CharSequence {
         }
         assume(value != null);
         parameter(value);
-        assume(value.length <= getMaxStringSize());
+        assume(value.length <= MAX_STRING_SIZE);
         assume(count <= value.length && count >= 0);
 
         visit(this);
@@ -556,14 +556,14 @@ public class UtStringBuffer implements Appendable, Serializable, CharSequence {
 
     public UtStringBuffer(String str) {
         visit(this);
-        value = new char[getMaxStringSize()];
+        value = new char[MAX_STRING_SIZE];
         count = 0;
         append(str);
     }
 
     public UtStringBuffer(CharSequence seq) {
         visit(this);
-        value = new char[getMaxStringSize()];
+        value = new char[MAX_STRING_SIZE];
         count = 0;
         append(seq);
     }

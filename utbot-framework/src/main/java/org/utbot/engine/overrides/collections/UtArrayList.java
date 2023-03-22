@@ -1,6 +1,5 @@
 package org.utbot.engine.overrides.collections;
 
-import org.utbot.engine.ResolverKt;
 import org.utbot.engine.overrides.UtArrayMock;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -21,6 +20,7 @@ import org.utbot.engine.overrides.stream.UtStream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
+import static org.utbot.engine.ResolverKt.MAX_LIST_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
@@ -95,7 +95,7 @@ public class UtArrayList<E> extends AbstractList<E>
         int size = elementData.end;
         assume(elementData.begin == 0);
         assume(size >= 0);
-        assumeOrExecuteConcretely(size <= ResolverKt.getMaxInputListSize());
+        assumeOrExecuteConcretely(size <= MAX_LIST_SIZE);
 
         visit(this);
     }

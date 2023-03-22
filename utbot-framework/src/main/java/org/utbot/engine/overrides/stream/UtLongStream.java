@@ -1,6 +1,7 @@
 package org.utbot.engine.overrides.stream;
 
 import org.jetbrains.annotations.NotNull;
+import org.utbot.engine.ResolverKt;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException;
@@ -28,7 +29,6 @@ import java.util.stream.Stream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
-import static org.utbot.engine.ResolverKt.getMaxStreamSize;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
@@ -92,7 +92,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
         assume(elementData.end >= 0);
         // we can create a stream for an array using Stream.of
-        assumeOrExecuteConcretely(elementData.end <= getMaxStreamSize());
+        assumeOrExecuteConcretely(elementData.end <= ResolverKt.MAX_STREAM_SIZE);
 
         // As real primitive streams contain primitives, we cannot accept nulls.
         for (int i = 0; i < elementData.end; i++) {

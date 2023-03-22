@@ -1600,7 +1600,7 @@ class Traverser(
                 val refType = constant.type as RefType
 
                 // We disable creation of string literals to avoid unsats because of too long lines
-                if (UtSettings.ignoreStringLiterals && constant.value.length > maxStringSize) {
+                if (UtSettings.ignoreStringLiterals && constant.value.length > MAX_STRING_SIZE) {
                     // instead of it we create an unbounded symbolic variable
                     workaround(HACK) {
                         offerState(environment.state.withLabel(StateLabel.CONCRETE))

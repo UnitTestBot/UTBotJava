@@ -1,17 +1,23 @@
 package org.utbot.examples.stdlib
 
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.testcheckers.eq
+import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 
 internal class JavaIOFileInputStreamCheckTest : UtValueTestCaseChecker(
-    testClass = JavaIOFileInputStreamCheck::class
-) {
+    testClass = JavaIOFileInputStreamCheck::class,
+    testCodeGeneration = true,
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // because of mocks
+    )) {
     @Test
     fun testRead() {
             checkMocksAndInstrumentation(

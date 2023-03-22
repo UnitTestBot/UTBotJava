@@ -1,6 +1,5 @@
 package org.utbot.engine.overrides.collections;
 
-import org.utbot.engine.ResolverKt;
 import org.utbot.engine.overrides.UtArrayMock;
 import java.util.AbstractSequentialList;
 import java.util.Collection;
@@ -20,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.stream.UtStream;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.engine.ResolverKt.MAX_LIST_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -83,7 +83,7 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         parameter(elementData.storage);
         assume(elementData.begin == 0);
         assume(elementData.end >= 0);
-        assumeOrExecuteConcretely(elementData.end <= ResolverKt.getMaxInputListSize());
+        assumeOrExecuteConcretely(elementData.end <= MAX_LIST_SIZE);
 
         visit(this);
     }

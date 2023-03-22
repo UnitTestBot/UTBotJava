@@ -107,13 +107,13 @@ import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
 import org.utbot.framework.plugin.api.util.isStatic
 
 // hack
-val maxInputListSize = UtSettings.maxInputListSize
-val maxResolveListSize = UtSettings.maxResolveListSize
-val maxStringSize = UtSettings.maxStringSize
-internal val maxStreamSize = UtSettings.maxStreamSize
+// IMPORTANT, if these values are used in code for analysis (e.g., in the wrappers),
+// they must be a compilation time constant to avoid extra analysis.
+const val MAX_LIST_SIZE = 10
+const val MAX_RESOLVE_LIST_SIZE = 256
+const val MAX_STRING_SIZE = 40
+internal const val MAX_STREAM_SIZE = 256
 internal val hardMaxArraySize = UtSettings.maxArraySize
-val maxInputMapSize = UtSettings.maxInputMapSize
-val maxInputSetSize = UtSettings.maxInputSetSize
 
 internal const val PREFERRED_ARRAY_SIZE = 2
 internal const val MIN_PREFERRED_INTEGER = -256

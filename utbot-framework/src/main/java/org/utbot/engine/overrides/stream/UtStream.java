@@ -32,7 +32,6 @@ import java.util.stream.Stream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
-import static org.utbot.engine.ResolverKt.getMaxStreamSize;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
@@ -96,7 +95,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         assume(elementData.end >= 0);
         // we can create a stream for an array using Stream.of
-        assume(elementData.end <= ResolverKt.getMaxStreamSize());
+        assume(elementData.end <= ResolverKt.MAX_STREAM_SIZE);
 
         visit(this);
     }

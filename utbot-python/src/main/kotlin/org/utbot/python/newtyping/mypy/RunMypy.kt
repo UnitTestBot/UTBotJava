@@ -73,7 +73,7 @@ fun checkWithDMypy(pythonPath: String, fileWithCodePath: String, configFile: Fil
 }
 
 fun setConfigFile(directoriesForSysPath: Set<String>): File {
-    val file = TemporaryFileManager.assignTemporaryFile(configFilename)
+    val file = TemporaryFileManager.assignTemporaryFile(CONFIG_FILENAME)
     val dirForCache = TemporaryFileManager.assignTemporaryFile(tag = "mypy_cache")
     val configContent = """
             [mypy]
@@ -119,7 +119,7 @@ fun checkSuggestedSignatureWithDMypy(
     return errorNumber <= initialErrorNumber
 }
 
-private const val configFilename = "config.ini"
+private const val CONFIG_FILENAME = "config.ini"
 
 data class MypyReportLine(
     val line: Int,

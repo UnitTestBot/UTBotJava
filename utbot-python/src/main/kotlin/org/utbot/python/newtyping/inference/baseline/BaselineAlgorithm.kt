@@ -7,13 +7,14 @@ import org.utbot.python.newtyping.ast.visitor.hints.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.*
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
 import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
 import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 import kotlin.random.Random
 
-private val EDGES_TO_LINK = listOf(
+private val edgesToLink = listOf(
     EdgeSource.Identification,
     EdgeSource.Assign,
     EdgeSource.OpAssign,
@@ -33,7 +34,8 @@ class BaselineAlgorithm(
     private val initialErrorNumber: Int,
     private val configFile: File,
     private val additionalVars: String,
-    private val randomTypeFrequency: Int = 0
+    private val randomTypeFrequency: Int = 0,
+    private val constructFakeClasses: Boolean = false
 ) : TypeInferenceAlgorithm() {
     private val random = Random(0)
 
@@ -69,13 +71,13 @@ class BaselineAlgorithm(
                 }
 
                 val state = chooseState(states)
-                val newState = expandState(state, storage)
+                val newState = expandState(state, storage, constructFakeClasses)
                 if (newState != null) {
                     if (iterationCounter == 1) {
                         annotationHandler(initialState.signature)
                     }
                     logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
-                    if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
+                    if (checkSignature(newState, fileForMypyRuns, configFile)) {
                         logger.debug("Found new state!")
 //                        annotationHandler(newState.signature)
 //                        states.add(newState)
@@ -95,10 +97,10 @@ class BaselineAlgorithm(
         return iterationCounter
     }
 
-    private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {
+    private fun checkSignature(state: BaselineAlgorithmState, fileForMypyRuns: File, configFile: File): Boolean {
         pythonMethodCopy.definition = PythonFunctionDefinition(
             pythonMethodCopy.definition.meta,
-            signature
+            state.signature as FunctionType
         )
         return checkSuggestedSignatureWithDMypy(
             pythonMethodCopy,
@@ -109,8 +111,12 @@ class BaselineAlgorithm(
             pythonPath,
             configFile,
             initialErrorNumber,
-            additionalVars
+            constructAdditionalVars(state)
         )
+    }
+
+    private fun constructAdditionalVars(state: BaselineAlgorithmState): String {
+        return additionalVars + "\n" + state.fakeClassStorage.getAdditionalVars()
     }
 
     private fun chooseState(states: List<BaselineAlgorithmState>): BaselineAlgorithmState {
@@ -128,7 +134,7 @@ class BaselineAlgorithm(
         val argumentRootNodes = paramNames.map { hintCollectorResult.parameterToNode[it]!! }
         argumentRootNodes.forEachIndexed { index, node ->
             val visited: MutableSet<HintCollectorNode> = mutableSetOf()
-            visitNodesByReverseEdges(node, visited) { it is HintEdgeWithBound && EDGES_TO_LINK.contains(it.source) }
+            visitNodesByReverseEdges(node, visited) { it is HintEdgeWithBound && edgesToLink.contains(it.source) }
             val (lowerBounds, upperBounds) = collectBoundsFromComponent(visited)
             val decomposed = decompose(node.partialType, lowerBounds, upperBounds, 1, storage)
             allNodes.addAll(decomposed.nodes)
@@ -139,6 +145,6 @@ class BaselineAlgorithm(
             )
             addEdge(edge)
         }
-        return BaselineAlgorithmState(allNodes, generalRating, storage)
+        return BaselineAlgorithmState(allNodes, generalRating, storage, FakeClassStorage())
     }
 }

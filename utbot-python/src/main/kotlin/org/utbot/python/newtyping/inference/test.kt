@@ -4,12 +4,12 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 
 fun main() {
     TypeInferenceProcessor(
-        "python3.9",
-        directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples"),
-        "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/generics.py",
-        moduleOfSourceFile = "easy_samples.generics",
-        "set",
-        className = "LoggedVar"
+        "py",
+        directoriesForSysPath = setOf("C:\\Users\\tWX1238546\\IdeaProjects\\PythonRobotics"),
+        "C:\\Users\\tWX1238546\\IdeaProjects\\PythonRobotics\\PathPlanning\\Dijkstra\\dijkstra.py",
+        moduleOfSourceFile = "PathPlanning.Dijkstra.dijkstra",
+        "verify_node",
+        className = "Dijkstra"
     ).inferTypes(cancel = { false }).forEach {
         println(it.pythonTypeRepresentation())
     }

@@ -1,32 +1,65 @@
 package org.utbot.python.newtyping.inference.baseline
 
+import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.addEdge
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
+import org.utbot.python.newtyping.inference.constructors.constructFakeClass
+import org.utbot.python.newtyping.inference.constructors.fakeClassCanBeConstructed
 import org.utbot.python.newtyping.pythonAnnotationParameters
 import org.utbot.python.newtyping.pythonDescription
 import java.util.LinkedList
 import java.util.Queue
 
-fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage): BaselineAlgorithmState? {
+fun expandState(
+    state: BaselineAlgorithmState,
+    typeStorage: PythonTypeStorage,
+    constructFakeClasses: Boolean
+): BaselineAlgorithmState? {
     if (state.anyNodes.isEmpty())
         return null
     val types = state.candidateGraph.getNext() ?: return null
-    return expandState(state, typeStorage, types)
+    val fakeClassStorage = state.fakeClassStorage.copy()
+    val modifiedTypes = types.map { type ->
+        val description = type.pythonDescription()
+        if (constructFakeClasses && fakeClassCanBeConstructed(
+                type,
+                typeStorage
+            ) && description is PythonConcreteCompositeTypeDescription
+        ) {
+            constructFakeClass(description.castToCompatibleTypeApi(type), description, fakeClassStorage)
+        } else {
+            type
+        }
+    }
+    return expandState(state, typeStorage, modifiedTypes, fakeClassStorage)
 }
 
-fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage, types: List<Type>): BaselineAlgorithmState? {
+fun expandState(
+    state: BaselineAlgorithmState,
+    typeStorage: PythonTypeStorage,
+    types: List<Type>,
+    fakeClassStorage: FakeClassStorage? = null
+): BaselineAlgorithmState? {
     if (types.isEmpty())
         return null
     val substitution = (state.anyNodes zip types).associate { it }
-    return expandNodes(state, substitution, state.generalRating, typeStorage)
+    return expandNodes(
+        state,
+        substitution,
+        state.generalRating,
+        typeStorage,
+        fakeClassStorage ?: state.fakeClassStorage.copy()
+    )
 }
 
 private fun expandNodes(
     state: BaselineAlgorithmState,
     substitution: Map<AnyTypeNode, Type>,
     generalRating: List<Type>,
-    storage: PythonTypeStorage
+    storage: PythonTypeStorage,
+    fakeClassStorage: FakeClassStorage
 ): BaselineAlgorithmState {
     val (newAnyNodeMap, allNewNodes) = substitution.entries.fold(
         Pair(emptyMap<AnyTypeNode, BaselineAlgorithmNode>(), emptySet<BaselineAlgorithmNode>())
@@ -48,7 +81,12 @@ private fun expandNodes(
             addEdge(newEdge)
         }
     }
-    return BaselineAlgorithmState(newNodeMap.values.toSet() + allNewNodes, generalRating, storage)
+    return BaselineAlgorithmState(
+        newNodeMap.values.toSet() + allNewNodes,
+        generalRating,
+        storage,
+        fakeClassStorage
+    )
 }
 
 private fun expansionBFS(

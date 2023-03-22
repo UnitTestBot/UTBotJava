@@ -15,10 +15,11 @@ class Variable(
     val name: String,
     val isProperty: Boolean,
     val isSelf: Boolean,
+    val isInitializedInClass: Boolean,
     type: MypyAnnotation
 ): MypyDefinition(type) {
     override fun getUtBotDescription(): PythonVariableDescription =
-        PythonVariableDescription(name, isProperty = isProperty, isSelf = isSelf)
+        PythonVariableDescription(name, isProperty = isProperty, isSelf = isSelf, isInitializedInClass = isInitializedInClass)
     override fun getUtBotDefinition(): PythonDefinition =
         PythonDefinition(getUtBotDescription(), getUtBotType())
 }

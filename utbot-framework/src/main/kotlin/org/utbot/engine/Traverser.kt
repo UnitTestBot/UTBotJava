@@ -634,8 +634,8 @@ class Traverser(
     ): Pair<SymbolicStateUpdate, SymbolicValue?> {
         val jClass = type.id.jClass
 
-        // symbolic value for enum class itself
-        val enumClassValue = findOrCreateStaticObject(type)
+        // symbolic value for enum class itself, we don't want to have mocks for this value
+        val enumClassValue = findOrCreateStaticObject(type, mockInfoGenerator = null)
 
         // values for enum constants
         val enumConstantConcreteValues = jClass.enumConstants.filterIsInstance<Enum<*>>()
@@ -708,8 +708,10 @@ class Traverser(
         val initializedFieldUpdate =
             MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
+        val mockInfoGenerator = UtMockInfoGenerator { addr -> UtStaticObjectMockInfo(declaringClass.id, addr) }
+
         val objectUpdate = objectUpdate(
-            instance = findOrCreateStaticObject(declaringClass.type),
+            instance = findOrCreateStaticObject(declaringClass.type, mockInfoGenerator),
             field = field,
             value = valueToExpression(symbolicValue, field.type)
         )
@@ -2187,7 +2189,7 @@ class Traverser(
      */
     private fun findOrCreateStaticObject(
         classType: RefType,
-        mockInfoGenerator: UtMockInfoGenerator? = null
+        mockInfoGenerator: UtMockInfoGenerator?
     ): ObjectValue {
         val fromMemory = locateStaticObject(classType)
 

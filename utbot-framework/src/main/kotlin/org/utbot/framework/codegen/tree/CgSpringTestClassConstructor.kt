@@ -39,12 +39,16 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
 
             // TODO: support inner classes here
 
-            fields += constructClassFields(testClassModel.injectedMockModels, injectMocksClassId)
-            fields += constructClassFields(testClassModel.mockedModels, mockClassId)
+            val mockedFields = constructClassFields(testClassModel.mockedModels, mockClassId)
 
-            val (closeableField, closeableMethods) = constructMockitoCloseables()
-            fields += closeableField
-            methodRegions += closeableMethods
+            if (mockedFields.isNotEmpty()) {
+                fields += constructClassFields(testClassModel.injectedMockModels, injectMocksClassId)
+                fields += mockedFields
+
+                val (closeableField, closeableMethods) = constructMockitoCloseables()
+                fields += closeableField
+                methodRegions += closeableMethods
+            }
 
             for (testSet in testClassModel.methodTestSets) {
                 updateCurrentExecutable(testSet.executableId)
@@ -89,8 +93,8 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         groupedModelsByClassId: ClassModels,
         annotationClassId: ClassId
     ): MutableList<CgFieldDeclaration> {
-        if (annotationClassId != injectMocksClassId && annotationClassId != mockClassId) {
-            error("Unexpected annotation ClassId -- $annotationClassId")
+        require(annotationClassId == injectMocksClassId || annotationClassId == mockClassId) {
+            error("Unexpected annotation classId -- $annotationClassId")
         }
 
         val annotation = statementConstructor.annotation(annotationClassId)

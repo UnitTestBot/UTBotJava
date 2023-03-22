@@ -69,15 +69,19 @@
     </description>
     <change-notes>
         <![CDATA[
-        Try out the latest UnitTestBot release — сheck the new features and improvements available for IntelliJ IDEA 2022.1–2022.2:
+        Check out UnitTestBot new features and major improvements in the latest release:
         <ul>
-            <li>Automated unit test generation for Go code (supported for IntelliJ IDEA Ultimate)</li>
-            <li>Major improvements to Python support: new fuzzing platform, redesigned type inference algorithm, support for generics and protocols, 10x faster performance when running functions</li>
-            <li>Enhanced test generation for JavaScript: streamlined installation and configuration process, new fuzzing platform, improved UI, support for collections</li>
-            <li>Symbolic execution improvements for generating Java/Kotlin tests: support for ARM architecture on macOS devices, better support for generics, support for virtual invokes on <i>enum</i> instances, processing <i>clinit</i> sections</li>
-            <li>Mocking improvements for generating Java/Kotlin tests: symbolic mocks for popular but insignificant methods, assertions using <i>deep equality</i> for mocks</li>
-            <li>Bug fixes and refactoring for the major components</li>
-            <li>Documentation updates</li>
+            <li>Generating tests for Python and JavaScript</li>
+            <li>New fuzzing platform providing support for multiple languages</li>
+            <li>Improved test generation for Kotlin code</li>
+            <li>Multiprocess architecture based on the <a href="https://github.com/JetBrains/rd">Reactive Distributed communication framework</a> with advanced logging and debugging options</li>
+            <li>Symbolic execution engine with higher priority and fewer false UNSAT verdicts</li>
+            <li>UI/UX improvements for test sources root, <code>setting.properties</code> file, cancellation, timeout settings, notifications</li>
+            <li>Summaries with fine-grained settings</li>
+            <li>SARIF reports enabled by default, displaying sandbox-related and timeout test failures, properly addressing source files</li>
+            <li>Improved monitoring visualized with Grafana</li>
+            <li>Test generation bug fixes</li>
+            <li>Detailed documentation on UnitTestBot components including UnitTestBot architecture overview</li>
         </ul>
     ]]>
     </change-notes>

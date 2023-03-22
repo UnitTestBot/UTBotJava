@@ -52,31 +52,54 @@ abstract class UtModelTestCaseChecker(
         method: KFunction2<*, *, *>,
         branches: ExecutionsNumberMatcher,
         vararg matchers: (UtModel, UtExecutionResult) -> Boolean,
-        mockStrategy: MockStrategyApi = NO_MOCKS
-    ) = internalCheck(method, mockStrategy, branches, matchers)
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method,
+        mockStrategy,
+        branches,
+        matchers,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
 
     protected fun check(
         method: KFunction3<*, *, *, *>,
         branches: ExecutionsNumberMatcher,
         vararg matchers: (UtModel, UtModel, UtExecutionResult) -> Boolean,
-        mockStrategy: MockStrategyApi = NO_MOCKS
-    ) = internalCheck(method, mockStrategy, branches, matchers)
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method,
+        mockStrategy,
+        branches,
+        matchers,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
 
     protected fun checkStatic(
         method: KFunction1<*, *>,
         branches: ExecutionsNumberMatcher,
         vararg matchers: (UtModel, UtExecutionResult) -> Boolean,
-        mockStrategy: MockStrategyApi = NO_MOCKS
-    ) = internalCheck(method, mockStrategy, branches, matchers)
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method,
+        mockStrategy,
+        branches,
+        matchers,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
 
     protected fun checkStaticsAfter(
         method: KFunction2<*, *, *>,
         branches: ExecutionsNumberMatcher,
         vararg matchers: (UtModel, StaticsModelType, UtExecutionResult) -> Boolean,
-        mockStrategy: MockStrategyApi = NO_MOCKS
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers,
-        arguments = ::withStaticsAfter
+        arguments = ::withStaticsAfter,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     private fun internalCheck(
@@ -84,7 +107,8 @@ abstract class UtModelTestCaseChecker(
         mockStrategy: MockStrategyApi,
         branches: ExecutionsNumberMatcher,
         matchers: Array<out Function<Boolean>>,
-        arguments: (UtExecution) -> List<Any?> = ::withResult
+        arguments: (UtExecution) -> List<Any?> = ::withResult,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
         workaround(HACK) {
             // @todo change to the constructor parameter
@@ -94,7 +118,7 @@ abstract class UtModelTestCaseChecker(
         val executableId = method.executableId
 
         withUtContext(UtContext(method.declaringClazz.classLoader)) {
-            val testSet = executions(executableId, mockStrategy)
+            val testSet = executions(executableId, mockStrategy, additionalMockAlwaysClasses)
 
             assertTrue(testSet.errors.isEmpty()) {
                 "We have errors: ${testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
@@ -138,7 +162,8 @@ abstract class UtModelTestCaseChecker(
 
     private fun executions(
         method: ExecutableId,
-        mockStrategy: MockStrategyApi
+        mockStrategy: MockStrategyApi,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ): UtMethodTestSet {
         val classLocation = locateClass(method.classId.jClass)
         if (classLocation != previousClassLocation) {
@@ -156,7 +181,7 @@ abstract class UtModelTestCaseChecker(
                 )
             }
 
-        return testCaseGenerator.generate(method, mockStrategy)
+        return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
     }
 
     protected inline fun <reified T> UtExecutionResult.isException(): Boolean = exceptionOrNull() is T
@@ -190,6 +215,7 @@ abstract class UtModelTestCaseChecker(
                 .singleOrNull { it.fieldId == fieldId }
             fieldAccess?.fieldModel ?: fieldId.type.defaultValueModel()
         }
+
         else -> error("Can't get ${fieldId.name} from $this")
     }
 

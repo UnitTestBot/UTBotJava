@@ -512,6 +512,17 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * it is more important not to fall at all rather than work precisely.
      */
     var treatAbsentMethodsAsUnboundedValue by getBooleanProperty(false)
+
+    // region preferred size options
+    // Changes in this region might severe influence on the performance of symbolic execution.
+
+    /**
+     * A maximum size for any array in the program. Note that input arrays might be less than this value
+     * due to the symbolic engine limitation, see `org.utbot.engine.Traverser.softMaxArraySize`.
+     */
+    var maxArraySize by getIntProperty(1024)
+
+    // endregion
 }
 
 /**

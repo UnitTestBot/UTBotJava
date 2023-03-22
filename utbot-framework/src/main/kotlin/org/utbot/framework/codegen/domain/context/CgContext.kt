@@ -232,7 +232,7 @@ interface CgContextOwner {
      * Gives a unique identifier to model in test set.
      * Determines which execution current model belongs to.
      */
-    var modelIds: PersistentMap<UtModel, ModelId>
+    var modelIds: MutableMap<UtModel, ModelId>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -492,7 +492,7 @@ data class CgContext(
     override lateinit var actual: CgVariable
     override lateinit var successfulExecutionsModels: List<UtModel>
 
-    override var modelIds: PersistentMap<UtModel, ModelId> = persistentMapOf()
+    override var modelIds: MutableMap<UtModel, ModelId> = mutableMapOf()
 
     /**
      * This property cannot be accessed outside of test class file scope
@@ -573,7 +573,7 @@ data class CgContext(
 
     override fun getIdByModel(model: UtModel): ModelId {
         if (model !in modelIds) {
-            modelIds.put(model, model.withExecutionId())
+            modelIds[model] = model.withExecutionId()
         }
 
         return modelIds.getOrElse(model) {

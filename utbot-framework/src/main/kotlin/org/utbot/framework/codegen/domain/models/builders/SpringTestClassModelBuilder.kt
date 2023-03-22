@@ -60,13 +60,13 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
     }
 
     private fun collectByThisInstanceModel(model: UtModel, executionIndex: Int): Set<UtModel> {
-        context.modelIds.put(model, model.withExecutionId(executionIndex))
+        context.modelIds[model] = model.withExecutionId(executionIndex)
 
         val dependentModels = mutableSetOf<UtModel>()
         collectRecursively(model, dependentModels)
 
         dependentModels.forEach { model ->
-            context.modelIds.put(model, model.withExecutionId(executionIndex))
+            context.modelIds[model] = model.withExecutionId(executionIndex)
         }
 
         return dependentModels

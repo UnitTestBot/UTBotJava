@@ -75,6 +75,9 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
         PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
             withStepsLimit(pathSelectorStepsLimit)
         }
+        PathSelectorType.BFS_SELECTOR -> bfsSelector(graph, StrategyOption.VISIT_COUNTING) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
         PathSelectorType.SUBPATH_GUIDED_SELECTOR -> subpathGuidedSelector(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }

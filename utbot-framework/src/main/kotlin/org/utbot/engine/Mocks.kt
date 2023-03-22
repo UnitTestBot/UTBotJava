@@ -26,6 +26,7 @@ import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
+import java.util.*
 
 /**
  * Generates mock with address provided.
@@ -333,7 +334,7 @@ class Mocker(
 
     companion object {
 
-        val javaDefaultClasses: Set<Class<*>> = setOf()
+        val javaDefaultClasses: Set<Class<*>> = emptySet()
 
         private val loggerSuperClasses: Set<Class<*>> = setOf(
             org.slf4j.Logger::class.java,

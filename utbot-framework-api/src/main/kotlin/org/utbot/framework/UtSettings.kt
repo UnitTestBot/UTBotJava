@@ -564,6 +564,11 @@ enum class PathSelectorType {
     INHERITORS_SELECTOR,
 
     /**
+     * [BFSSelector]
+     */
+    BFS_SELECTOR,
+
+    /**
      * [SubpathGuidedSelector]
      */
     SUBPATH_GUIDED_SELECTOR,

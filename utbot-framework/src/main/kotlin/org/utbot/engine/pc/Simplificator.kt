@@ -607,6 +607,12 @@ open class Simplificator(
             applySimplification(expr.right)
         )
 
+    override fun visit(expr: UtMulNoOverflowExpression): UtExpression =
+        UtMulNoOverflowExpression(
+            applySimplification(expr.left),
+            applySimplification(expr.right)
+        )
+
     // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-negConcrete
     // Neg (Concrete a) ---> Concrete (-a)
     override fun visit(expr: UtNegExpression): UtExpression =

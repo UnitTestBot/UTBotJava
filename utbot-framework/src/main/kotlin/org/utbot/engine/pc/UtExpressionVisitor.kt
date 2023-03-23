@@ -41,4 +41,5 @@ interface UtExpressionVisitor<TResult> {
     // Add and Sub with overflow detection
     fun visit(expr: UtAddNoOverflowExpression): TResult
     fun visit(expr: UtSubNoOverflowExpression): TResult
+    fun visit(expr: UtMulNoOverflowExpression): TResult
 }

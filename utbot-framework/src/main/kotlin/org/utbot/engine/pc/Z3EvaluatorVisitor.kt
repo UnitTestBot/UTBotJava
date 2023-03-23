@@ -210,6 +210,12 @@ class Z3EvaluatorVisitor(private val model: Model, private val translator: Z3Tra
         }
     }
 
+    override fun visit(expr: UtMulNoOverflowExpression): Expr<*> = expr.run {
+        translator.withContext {
+            mkBVMulNoOverflow(eval(expr.left) as BitVecExpr, eval(expr.right) as BitVecExpr , true)
+        }
+    }
+
     override fun visit(expr: UtNegExpression): Expr<*> = expr.run {
         translator.withContext {
             negate(this, eval(variable.expr).z3Variable(variable.type))

@@ -1,12 +1,12 @@
 package org.utbot.python.fuzzing.provider.utils
 
 import org.utbot.fuzzing.seeds.BitVectorValue
-import org.utbot.fuzzing.seeds.Bool
 import org.utbot.fuzzing.seeds.DefaultFloatBound
 import org.utbot.fuzzing.seeds.IEEE754Value
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.seeds.Signed
 import org.utbot.fuzzing.seeds.StringValue
+import org.utbot.python.framework.codegen.toPythonRawString
 
 fun <T : KnownValue> T.valueToString(): String {
     when (this) {
@@ -34,6 +34,9 @@ fun <T : KnownValue> T.valueToString(): String {
             }
         }
         is StringValue -> {
+            if (value.contains("\"\"\"")) {
+                return value.toPythonRawString()
+            }
             return "'$value'"
         }
         else -> return toString()

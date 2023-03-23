@@ -1,7 +1,6 @@
 package org.utbot.python.fuzzing.provider.utils
 
 import org.utbot.fuzzing.seeds.BitVectorValue
-import org.utbot.fuzzing.seeds.Bool
 import org.utbot.fuzzing.seeds.DefaultFloatBound
 import org.utbot.fuzzing.seeds.IEEE754Value
 import org.utbot.fuzzing.seeds.KnownValue
@@ -34,6 +33,10 @@ fun <T : KnownValue> T.valueToString(): String {
             }
         }
         is StringValue -> {
+            if (value.contains("\"\"\"")) {
+                val newValue = value.replace("\"", "\\\"")
+                return "'$newValue'"
+            }
             return "'$value'"
         }
         else -> return toString()

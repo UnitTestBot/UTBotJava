@@ -3767,21 +3767,40 @@ class Traverser(
     private fun TraversalContext.intOverflowCheck(op: BinopExpr, leftRaw: PrimitiveValue, rightRaw: PrimitiveValue) {
         // cast to the bigger type
         val sort = simpleMaxSort(leftRaw, rightRaw) as UtPrimitiveSort
-        val left = leftRaw.expr.toPrimitiveValue(sort.type)
-        val right = rightRaw.expr.toPrimitiveValue(sort.type)
+        val left = UtCastExpression(leftRaw, sort.type)
+        val right = UtCastExpression(rightRaw, sort.type)
+
+        val leftPrimValue = left.toPrimitiveValue(left.type)
+        val rightPrimValue = right.toPrimitiveValue(right.type)
 
         val overflow = when (op) {
-            is JAddExpr -> {
-                mkNot(UtAddNoOverflowExpression(left.expr, right.expr))
-            }
-            is JSubExpr -> {
-                mkNot(UtSubNoOverflowExpression(left.expr, right.expr))
-            }
+            is JAddExpr -> mkNot(UtAddNoOverflowExpression(left, right))
+            is JSubExpr -> mkNot(UtSubNoOverflowExpression(left, right))
             is JMulExpr -> when (sort.type) {
-                is ByteType -> lowerIntMulOverflowCheck(left, right, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt())
-                is ShortType -> lowerIntMulOverflowCheck(left, right, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                is IntType -> higherIntMulOverflowCheck(left, right, Int.SIZE_BITS, Int.MIN_VALUE.toLong()) { it: UtExpression -> it.toIntValue() }
-                is LongType -> higherIntMulOverflowCheck(left, right, Long.SIZE_BITS, Long.MIN_VALUE) { it: UtExpression -> it.toLongValue() }
+                is ByteType -> lowerIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Byte.MIN_VALUE.toInt(),
+                    Byte.MAX_VALUE.toInt()
+                )
+                is ShortType -> lowerIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Short.MIN_VALUE.toInt(),
+                    Short.MAX_VALUE.toInt()
+                )
+                is IntType -> higherIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Int.SIZE_BITS,
+                    Int.MIN_VALUE.toLong()
+                ) { it: UtExpression -> it.toIntValue() }
+                is LongType -> higherIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Long.SIZE_BITS,
+                    Long.MIN_VALUE
+                ) { it: UtExpression -> it.toLongValue() }
                 else -> null
             }
             else -> null

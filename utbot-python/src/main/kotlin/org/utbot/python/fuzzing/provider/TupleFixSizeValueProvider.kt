@@ -33,10 +33,7 @@ object TupleFixSizeValueProvider : ValueProvider<Type, PythonFuzzedValue, Python
                 )
             },
             modify = modifications.asSequence(),
-            empty = Routine.Empty { PythonFuzzedValue(
-                PythonTree.TupleNode(emptyMap<Int, PythonTree.PythonTreeNode>().toMutableMap()),
-                "%var% = ${type.pythonTypeRepresentation()}"
-            )}
+            empty =  Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
         ))
     }
 }

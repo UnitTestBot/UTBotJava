@@ -6,7 +6,6 @@ import org.utbot.fuzzing.seeds.IEEE754Value
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.seeds.Signed
 import org.utbot.fuzzing.seeds.StringValue
-import org.utbot.python.framework.codegen.toPythonRawString
 
 fun <T : KnownValue> T.valueToString(): String {
     when (this) {
@@ -35,7 +34,8 @@ fun <T : KnownValue> T.valueToString(): String {
         }
         is StringValue -> {
             if (value.contains("\"\"\"")) {
-                return value.toPythonRawString()
+                val newValue = value.replace("\"", "\\\"")
+                return "'$newValue'"
             }
             return "'$value'"
         }

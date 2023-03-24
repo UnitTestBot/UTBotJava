@@ -18,7 +18,6 @@ class PythonWorkerManager(
     val pythonPath: String,
     val until: Long,
     val pythonCodeExecutorConstructor: (PythonWorker) -> PythonCodeExecutor,
-    private val timeoutForRun: Int
 ) {
     private val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor.log", "log", true)
 
@@ -39,22 +38,21 @@ class PythonWorkerManager(
             "localhost",
             serverSocket.localPort.toString(),
             "--logfile", logfile.absolutePath,
-            "--loglevel", "INFO",  // "DEBUG", "INFO", "ERROR"
+            "--loglevel", "INFO",  // "DEBUG", "INFO", "WARNING", "ERROR"
         ))
         timeout = max(until - processStartTime, 0)
         workerSocket = try {
             serverSocket.soTimeout = timeout.toInt()
             serverSocket.accept()
         } catch (e: SocketTimeoutException) {
-            timeout = max(until - processStartTime, 0)
-            val result = getResult(process, timeout)
-            logger.info("utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}.")
+            val result = getResult(process, max(until - processStartTime, 0))
+            logger.info("utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}, stdout: ${result.stdout}.")
             process.destroy()
             throw TimeoutException("Worker not connected")
         }
         logger.debug { "Worker connected successfully" }
 
-        workerSocket.soTimeout = timeoutForRun  // TODO: maybe +eps for serialization/deserialization?
+//        workerSocket.soTimeout = timeoutForRun  // TODO: maybe +eps for serialization/deserialization?
         val pythonWorker = PythonWorker(workerSocket)
         codeExecutor = pythonCodeExecutorConstructor(pythonWorker)
     }

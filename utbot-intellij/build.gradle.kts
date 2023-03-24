@@ -5,8 +5,6 @@ val jacksonVersion: String? by rootProject
 
 val ideType: String? by rootProject
 val ideVersion: String? by rootProject
-val kotlinPluginVersion: String? by rootProject
-
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 val goPluginVersion: String? by rootProject
@@ -21,11 +19,14 @@ val rdVersion: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
 
+val junit5Version: String by rootProject
+val junit4PlatformVersion: String by rootProject
+
 // https://plugins.jetbrains.com/docs/intellij/android-studio.html#configuring-the-plugin-pluginxml-file
 val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
 
 plugins {
-    id("org.jetbrains.intellij") version "1.7.0"
+    id("org.jetbrains.intellij") version "1.13.1"
 }
 
 intellij {
@@ -33,8 +34,7 @@ intellij {
     val androidPlugins = listOf("org.jetbrains.android")
 
     val jvmPlugins = mutableListOf(
-        "java",
-        "org.jetbrains.kotlin:$kotlinPluginVersion"
+        "java"
     )
 
     androidStudioPath?.let { jvmPlugins += androidPlugins }
@@ -79,15 +79,15 @@ val remoteRobotVersion = "0.11.16"
 tasks {
     compileKotlin {
         kotlinOptions {
-            jvmTarget = "11"
+            jvmTarget = "17"
             freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
             allWarningsAsErrors = false
         }
     }
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     runIde {
@@ -97,8 +97,8 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("212")
-        untilBuild.set("222.*")
+        sinceBuild.set("223")
+        untilBuild.set("223.*")
         version.set(semVer)
     }
 
@@ -178,4 +178,9 @@ dependencies {
 
     // Video Recording
     implementation("com.automation-remarks:video-recorder-junit5:2.0")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junit4PlatformVersion")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:$junit5Version")
 }

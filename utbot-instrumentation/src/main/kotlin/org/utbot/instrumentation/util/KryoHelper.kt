@@ -12,6 +12,8 @@ import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
  * Helpful class for working with the kryo.
@@ -24,34 +26,15 @@ class KryoHelper constructor(
     private val kryoInput= Input()
     private val sendKryo: Kryo = TunedKryo()
     private val receiveKryo: Kryo = TunedKryo()
+    private val myLockObject = ReentrantLock()
 
     init {
+        sendKryo.setAutoReset(true)
+        receiveKryo.setAutoReset(true)
         lifetime.onTermination {
             kryoInput.close()
             kryoOutput.close()
         }
-    }
-
-    fun <T> register(clazz: Class<T>, serializer: Serializer<T>) {
-        sendKryo.register(clazz, serializer)
-        receiveKryo.register(clazz, serializer)
-    }
-
-    private fun <T> addInstantiatorOnKryo(kryo: Kryo, clazz: Class<T>, factory: () -> T)  {
-        val instantiator = kryo.instantiatorStrategy
-        kryo.instantiatorStrategy = object : InstantiatorStrategy {
-            override fun <R : Any?> newInstantiatorOf(type: Class<R>): ObjectInstantiator<R> {
-                return if (type === clazz) {
-                    ObjectInstantiator<R> { factory() as R }
-                }
-                else
-                    instantiator.newInstantiatorOf(type)
-            }
-        }
-    }
-    fun <T> addInstantiator(clazz: Class<T>, factory: () -> T) {
-        addInstantiatorOnKryo(sendKryo, clazz, factory)
-        addInstantiatorOnKryo(receiveKryo, clazz, factory)
     }
 
     fun setKryoClassLoader(classLoader: ClassLoader) {
@@ -64,7 +47,7 @@ class KryoHelper constructor(
      *
      * @throws WritingToKryoException wraps all exceptions
      */
-    fun <T> writeObject(obj: T): ByteArray {
+    fun <T> writeObject(obj: T): ByteArray = myLockObject.withLock {
         lifetime.throwIfNotAlive()
         try {
             sendKryo.writeClassAndObject(kryoOutput, obj)
@@ -84,13 +67,16 @@ class KryoHelper constructor(
      *
      * @throws ReadingFromKryoException wraps all exceptions
      */
-    fun <T> readObject(byteArray: ByteArray): T {
+    fun <T> readObject(byteArray: ByteArray): T = myLockObject.withLock {
         lifetime.throwIfNotAlive()
         return try {
             kryoInput.buffer = byteArray
             receiveKryo.readClassAndObject(kryoInput) as T
         } catch (e: Exception) {
             throw ReadingFromKryoException(e)
+        }
+        finally {
+            receiveKryo.reset()
         }
     }
 }

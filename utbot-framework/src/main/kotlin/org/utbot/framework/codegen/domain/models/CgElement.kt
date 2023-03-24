@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.renderer.CgVisitor
 import org.utbot.framework.codegen.renderer.auxiliaryClassTextById
 import org.utbot.framework.codegen.renderer.utilMethodTextById
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -82,6 +83,7 @@ interface CgElement {
             is CgBreakStatement -> visit(element)
             is CgContinueStatement -> visit(element)
             is CgDeclaration -> visit(element)
+            is CgFieldDeclaration -> visit(element)
             is CgAssignment -> visit(element)
             is CgTypeCast -> visit(element)
             is CgIsInstance -> visit(element)
@@ -134,6 +136,7 @@ class CgClass(
     val body: CgClassBody,
     val isStatic: Boolean,
     val isNested: Boolean,
+    val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ): CgElement {
     val packageName
         get() = id.packageName
@@ -156,15 +159,29 @@ class CgClassBody(
     val methodRegions: List<CgMethodsCluster>,
     val staticDeclarationRegions: List<CgStaticsRegion>,
     val nestedClassRegions: List<CgNestedClassesRegion<*>>,
-    //TODO: use [CgFieldDeclaration] after PR-1788 merge
-    val fields: List<CgDeclaration> = emptyList(),
+    val fields: Set<CgFieldDeclaration> = emptySet(),
+) : CgElement
+
+/**
+ * Field of a class.
+ * @property ownerClassId [ClassId] of the field owner class.
+ * @property declaration declaration itself.
+ * @property annotation optional annotation.
+ * @property visibility field visibility.
+ */
+class CgFieldDeclaration(
+    val ownerClassId: ClassId,
+    val declaration: CgDeclaration,
+    val annotation: CgAnnotation? = null,
+    val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgElement
 
 /**
  * A class representing the IntelliJ IDEA's regions.
  * A region is a part of code between the special starting and ending comments.
  *
- * [header] The header of the region.
+ * @property header The header of the region,
+ * no ///region and ///endregion comments are generated if [header] is `null`
  */
 sealed class CgRegion<out T : CgElement> : CgElement {
     abstract val header: String?
@@ -271,6 +288,7 @@ sealed class CgMethod(open val isStatic: Boolean) : CgElement {
     abstract val annotations: List<CgAnnotation>
     abstract val documentation: CgDocumentationComment
     abstract val requiredFields: List<CgParameterDeclaration>
+    abstract val visibility: VisibilityModifier
 }
 
 class CgTestMethod(
@@ -280,6 +298,7 @@ class CgTestMethod(
     override val statements: List<CgStatement>,
     override val exceptions: Set<ClassId>,
     override val annotations: List<CgAnnotation>,
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
     val type: CgTestMethodType,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
     override val requiredFields: List<CgParameterDeclaration> = emptyList(),
@@ -290,6 +309,7 @@ class CgFrameworkUtilMethod(
     override val statements: List<CgStatement>,
     override val exceptions: Set<ClassId>,
     override val annotations: List<CgAnnotation>,
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgMethod(isStatic = false) {
     override val returnType: ClassId = voidClassId
     override val parameters: List<CgParameterDeclaration> = emptyList()
@@ -300,7 +320,8 @@ class CgFrameworkUtilMethod(
 class CgErrorTestMethod(
     override val name: String,
     override val statements: List<CgStatement>,
-    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgMethod(isStatic = false) {
     override val exceptions: Set<ClassId> = emptySet()
     override val returnType: ClassId = voidClassId
@@ -315,6 +336,7 @@ class CgParameterizedTestDataProviderMethod(
     override val returnType: ClassId,
     override val annotations: List<CgAnnotation>,
     override val exceptions: Set<ClassId>,
+    override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
 ) : CgMethod(isStatic = true) {
     override val parameters: List<CgParameterDeclaration> = emptyList()
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
@@ -353,7 +375,7 @@ class CgMultipleArgsAnnotation(
     val arguments: MutableList<CgNamedAnnotationArgument>
 ) : CgAnnotation()
 
-class CgArrayAnnotationArgument(
+data class CgArrayAnnotationArgument(
     val values: List<CgExpression>
 ) : CgExpression {
     override val type: ClassId = objectArrayClassId // TODO: is this type correct?
@@ -372,7 +394,7 @@ interface CgStatement : CgElement
 
 sealed class CgComment : CgStatement
 
-class CgSingleLineComment(val comment: String) : CgComment()
+data class CgSingleLineComment(val comment: String) : CgComment()
 
 /**
  * A comment that consists of multiple lines.
@@ -387,19 +409,19 @@ sealed class CgAbstractMultilineComment : CgComment() {
 /**
  * Multiline comment where each line starts with ///
  */
-class CgTripleSlashMultilineComment(override val lines: List<String>) : CgAbstractMultilineComment()
+data class CgTripleSlashMultilineComment(override val lines: List<String>) : CgAbstractMultilineComment()
 
 /**
  * Classic Java multiline comment starting with &#47;* and ending with *&#47;
  */
-class CgMultilineComment(override val lines: List<String>) : CgAbstractMultilineComment() {
+data class CgMultilineComment(override val lines: List<String>) : CgAbstractMultilineComment() {
     constructor(line: String) : this(listOf(line))
 }
 
 //class CgDocumentationComment(val lines: List<String>) : CgComment {
 //    constructor(text: String?) : this(text?.split("\n") ?: listOf())
 //}
-class CgDocumentationComment(val lines: List<CgDocStatement>) : CgComment() {
+data class CgDocumentationComment(val lines: List<CgDocStatement>) : CgComment() {
     constructor(text: String?) : this(text?.split("\n")?.map { CgDocRegularStmt(it) }?.toList() ?: listOf())
 
     override fun equals(other: Any?): Boolean =
@@ -412,71 +434,54 @@ sealed class CgDocStatement : CgStatement { //todo is it really CgStatement or m
     abstract fun isEmpty(): Boolean
 }
 
-sealed class CgDocTagStatement(val content: List<CgDocStatement>) : CgDocStatement() {
+sealed class CgDocTagStatement : CgDocStatement() {
+    abstract val content: List<CgDocStatement>
+
     override fun isEmpty(): Boolean = content.all { it.isEmpty() }
 }
 
-class CgDocPreTagStatement(content: List<CgDocStatement>) : CgDocTagStatement(content) {
-    override fun equals(other: Any?): Boolean =
-        if (other is CgDocPreTagStatement) this.hashCode() == other.hashCode() else false
-
-    override fun hashCode(): Int = content.hashCode()
-}
+data class CgDocPreTagStatement(override val content: List<CgDocStatement>) : CgDocTagStatement()
 
 /**
  * Represents a type for statements containing custom JavaDoc tags.
  */
-data class CgCustomTagStatement(val statements: List<CgDocStatement>) : CgDocTagStatement(statements)
+data class CgCustomTagStatement(override val content: List<CgDocStatement>) : CgDocTagStatement()
 
-class CgDocCodeStmt(val stmt: String) : CgDocStatement() {
+data class CgDocCodeStmt(val stmt: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = stmt.isEmpty()
-
-    override fun equals(other: Any?): Boolean =
-        if (other is CgDocCodeStmt) this.hashCode() == other.hashCode() else false
-
-    override fun hashCode(): Int = stmt.hashCode()
 }
 
-class CgDocRegularStmt(val stmt: String) : CgDocStatement() {
+data class CgDocRegularStmt(val stmt: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = stmt.isEmpty()
-
-    override fun equals(other: Any?): Boolean =
-        if (other is CgDocRegularStmt) this.hashCode() == other.hashCode() else false
-
-    override fun hashCode(): Int = stmt.hashCode()
 }
 
 /**
  * Represents an element of a whole line of a multiline comment.
  */
-class CgDocRegularLineStmt(val stmt: String) : CgDocStatement() {
+data class CgDocRegularLineStmt(val stmt: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = stmt.isEmpty()
-
-    override fun equals(other: Any?): Boolean =
-        if (other is CgDocRegularLineStmt) this.hashCode() == other.hashCode() else false
-
-    override fun hashCode(): Int = stmt.hashCode()
 }
 
 open class CgDocClassLinkStmt(val className: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = className.isEmpty()
 
-    override fun equals(other: Any?): Boolean =
-        if (other is CgDocClassLinkStmt) this.hashCode() == other.hashCode() else false
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-    override fun hashCode(): Int = className.hashCode()
-}
+        other as CgDocClassLinkStmt
 
-class CgDocMethodLinkStmt(val methodName: String, stmt: String) : CgDocClassLinkStmt(stmt) {
-    override fun equals(other: Any?): Boolean =
-        if (other is CgDocMethodLinkStmt) this.hashCode() == other.hashCode() else false
+        if (className != other.className) return false
+
+        return true
+    }
 
     override fun hashCode(): Int {
-        var result = super.hashCode()
-        result = 31 * result + methodName.hashCode()
-        return result
+        return className.hashCode()
     }
 }
+
+data class CgDocMethodLinkStmt(val methodName: String, val stmt: String) : CgDocClassLinkStmt(stmt)
 
 fun convertDocToCg(stmt: DocStatement): CgDocStatement {
     return when (stmt) {
@@ -486,7 +491,7 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
         }
         is DocCustomTagStatement -> {
             val stmts = stmt.content.map { convertDocToCg(it) }
-            CgCustomTagStatement(statements = stmts)
+            CgCustomTagStatement(content = stmts)
         }
         is DocRegularStmt -> CgDocRegularStmt(stmt = stmt.stmt)
         is DocRegularLineStmt -> CgDocRegularLineStmt(stmt = stmt.stmt)
@@ -498,7 +503,7 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
 
 // Anonymous function (lambda)
 
-class CgAnonymousFunction(
+data class CgAnonymousFunction(
     override val type: ClassId,
     val parameters: List<CgParameterDeclaration>,
     val body: List<CgStatement>
@@ -506,13 +511,13 @@ class CgAnonymousFunction(
 
 // Return statement
 
-class CgReturnStatement(val expression: CgExpression) : CgStatement
+data class CgReturnStatement(val expression: CgExpression) : CgStatement
 
 // Array element access
 
 // TODO: check nested array element access expressions e.g. a[0][1][2]
 // TODO in general it is not CgReferenceExpression because array element can have a primitive type
-class CgArrayElementAccess(val array: CgExpression, val index: CgExpression) : CgReferenceExpression {
+data class CgArrayElementAccess(val array: CgExpression, val index: CgExpression) : CgReferenceExpression {
     override val type: ClassId = array.type.elementClassId ?: objectClassId
 }
 
@@ -524,30 +529,30 @@ sealed class CgComparison : CgExpression {
     override val type: ClassId = booleanClassId
 }
 
-class CgLessThan(
+data class CgLessThan(
     override val left: CgExpression,
     override val right: CgExpression
 ) : CgComparison()
 
-class CgGreaterThan(
+data class CgGreaterThan(
     override val left: CgExpression,
     override val right: CgExpression
 ) : CgComparison()
 
-class CgEqualTo(
+data class CgEqualTo(
     override val left: CgExpression,
     override val right: CgExpression
 ) : CgComparison()
 
 // Increment and decrement
 
-class CgIncrement(val variable: CgVariable) : CgStatement
+data class CgIncrement(val variable: CgVariable) : CgStatement
 
-class CgDecrement(val variable: CgVariable) : CgStatement
+data class CgDecrement(val variable: CgVariable) : CgStatement
 
 // Inner block in method (keeps parent method fields visible)
 
-class CgInnerBlock(val statements: List<CgStatement>) : CgStatement
+data class CgInnerBlock(val statements: List<CgStatement>) : CgStatement
 
 // Try-catch
 
@@ -576,19 +581,19 @@ sealed class CgLoop : CgStatement {
     abstract val statements: List<CgStatement>
 }
 
-class CgForLoop(
+data class CgForLoop(
     val initialization: CgDeclaration,
     override val condition: CgExpression,
     val update: CgStatement,
     override val statements: List<CgStatement>
 ) : CgLoop()
 
-class CgWhileLoop(
+data class CgWhileLoop(
     override val condition: CgExpression,
     override val statements: List<CgStatement>
 ) : CgLoop()
 
-class CgDoWhileLoop(
+data class CgDoWhileLoop(
     override val condition: CgExpression,
     override val statements: List<CgStatement>
 ) : CgLoop()
@@ -598,7 +603,7 @@ class CgDoWhileLoop(
  * @property iterable represents iterable in foreach loop
  * @property statements represents statements in foreach loop
  */
-class CgForEachLoop(
+data class CgForEachLoop(
     override val condition: CgExpression,
     override val statements: List<CgStatement>,
     val iterable: CgReferenceExpression,
@@ -623,7 +628,7 @@ class CgDeclaration(
 
 // Variable assignment
 
-class CgAssignment(
+data class CgAssignment(
     val lValue: CgExpression,
     val rValue: CgExpression
 ) : CgStatement
@@ -643,7 +648,7 @@ interface CgReferenceExpression : CgExpression
  *
  * @property isSafetyCast shows if we should use "as?" instead of "as" in Kotlin code
  */
-class CgTypeCast(
+data class CgTypeCast(
     val targetType: ClassId,
     val expression: CgExpression,
     val isSafetyCast: Boolean = false,
@@ -654,7 +659,7 @@ class CgTypeCast(
 /**
  * Represents [java.lang.Class.isInstance] method.
  */
-class CgIsInstance(
+data class CgIsInstance(
     val classExpression: CgExpression,
     val value: CgExpression,
 ): CgExpression {
@@ -668,7 +673,7 @@ interface CgValue : CgReferenceExpression
 
 // This instance
 
-class CgThisInstance(override val type: ClassId) : CgValue
+data class CgThisInstance(override val type: ClassId) : CgValue
 
 // Variables
 
@@ -705,7 +710,7 @@ open class CgVariable(
  *
  * In Kotlin the difference is in addition of "!!" to the expression
  */
-class CgNotNullAssertion(val expression: CgExpression) : CgValue {
+data class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId
         get() = when (val expressionType = expression.type) {
             is BuiltinClassId -> BuiltinClassId(
@@ -760,7 +765,7 @@ sealed class CgParameterKind {
 
 // Primitive and String literals
 
-class CgLiteral(override val type: ClassId, val value: Any?) : CgValue {
+data class CgLiteral(override val type: ClassId, val value: Any?) : CgValue {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -781,21 +786,27 @@ class CgLiteral(override val type: ClassId, val value: Any?) : CgValue {
 }
 
 // Runnable like this::toString or (new Object())::toString (non-static) or Random::nextRandomInt (static) etc
-abstract class CgRunnable(override val type: ClassId, val methodId: MethodId) : CgValue
+abstract class CgRunnable : CgValue {
+    abstract val methodId: MethodId
+}
 
 /**
  * [referenceExpression] is "this" in this::toString or (new Object()) in (new Object())::toString (non-static)
  */
-class CgNonStaticRunnable(
-    type: ClassId,
+data class CgNonStaticRunnable(
+    override val type: ClassId,
     val referenceExpression: CgReferenceExpression,
-    methodId: MethodId
-) : CgRunnable(type, methodId)
+    override val methodId: MethodId
+) : CgRunnable()
 
 /**
  * [classId] is Random is Random::nextRandomInt (static) etc
  */
-class CgStaticRunnable(type: ClassId, val classId: ClassId, methodId: MethodId) : CgRunnable(type, methodId)
+data class CgStaticRunnable(
+    override val type: ClassId,
+    val classId: ClassId,
+    override val methodId: MethodId,
+) : CgRunnable()
 
 // Array allocation
 
@@ -825,10 +836,10 @@ open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int) :
 /**
  * Allocation of an array with initialization. For example: `new String[] {"a", "b", null}`.
  */
-class CgAllocateInitializedArray(val initializer: CgArrayInitializer) :
+data class CgAllocateInitializedArray(val initializer: CgArrayInitializer) :
     CgAllocateArray(initializer.arrayType, initializer.elementType, initializer.size)
 
-class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val values: List<CgExpression>) :
+data class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val values: List<CgExpression>) :
     CgExpression {
     val size: Int
         get() = values.size
@@ -840,7 +851,7 @@ class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val v
 
 // Spread operator (for Kotlin, empty for Java)
 
-class CgSpread(override val type: ClassId, val array: CgExpression) : CgExpression
+data class CgSpread(override val type: ClassId, val array: CgExpression) : CgExpression
 
 // Interpolated string
 // e.g. String.format() for Java, "${}" for Kotlin
@@ -866,12 +877,12 @@ abstract class CgAbstractFieldAccess : CgReferenceExpression {
         get() = fieldId.type
 }
 
-class CgFieldAccess(
+data class CgFieldAccess(
     val caller: CgExpression,
     override val fieldId: FieldId
 ) : CgAbstractFieldAccess()
 
-class CgStaticFieldAccess(
+data class CgStaticFieldAccess(
     override val fieldId: FieldId
 ) : CgAbstractFieldAccess() {
     val declaringClass: ClassId = fieldId.declaringClass
@@ -880,7 +891,7 @@ class CgStaticFieldAccess(
 
 // Conditional statements
 
-class CgIfStatement(
+data class CgIfStatement(
     val condition: CgExpression,
     val trueBranch: List<CgStatement>,
     val falseBranch: List<CgStatement>? = null // false branch may be absent
@@ -900,14 +911,14 @@ data class CgSwitchCase(
 
 // Binary logical operators
 
-class CgLogicalAnd(
+data class CgLogicalAnd(
     val left: CgExpression,
     val right: CgExpression
 ) : CgExpression {
     override val type: ClassId = booleanClassId
 }
 
-class CgLogicalOr(
+data class CgLogicalOr(
     val left: CgExpression,
     val right: CgExpression
 ) : CgExpression {
@@ -919,23 +930,25 @@ class CgLogicalOr(
 /**
  * @param variable represents an array variable
  */
-class CgGetLength(val variable: CgVariable) : CgExpression {
+data class CgGetLength(val variable: CgVariable) : CgExpression {
     override val type: ClassId = intClassId
 }
 
 // Acquisition of java or kotlin class, e.g. MyClass.class in Java, MyClass::class.java in Kotlin or MyClass::class for Kotlin classes
 
-sealed class CgGetClass(val classId: ClassId) : CgReferenceExpression {
+sealed class CgGetClass : CgReferenceExpression {
+    abstract val classId: ClassId
+
     override val type: ClassId = Class::class.id
 }
 
-class CgGetJavaClass(classId: ClassId) : CgGetClass(classId)
+data class CgGetJavaClass(override val classId: ClassId) : CgGetClass()
 
-class CgGetKotlinClass(classId: ClassId) : CgGetClass(classId)
+data class CgGetKotlinClass(override val classId: ClassId) : CgGetClass()
 
 // Executable calls
 
-class CgStatementExecutableCall(val call: CgExecutableCall) : CgStatement
+data class CgStatementExecutableCall(val call: CgExecutableCall) : CgStatement
 
 // TODO in general it is not CgReferenceExpression because returned value can have a primitive type
 //  (or no value can be returned)
@@ -945,7 +958,7 @@ abstract class CgExecutableCall : CgReferenceExpression {
     abstract val typeParameters: TypeParameters
 }
 
-class CgConstructorCall(
+data class CgConstructorCall(
     override val executableId: ConstructorId,
     override val arguments: List<CgExpression>,
     override val typeParameters: TypeParameters = TypeParameters()
@@ -953,7 +966,7 @@ class CgConstructorCall(
     override val type: ClassId = executableId.classId
 }
 
-class CgMethodCall(
+data class CgMethodCall(
     val caller: CgExpression?,
     override val executableId: MethodId,
     override val arguments: List<CgExpression>,
@@ -966,13 +979,13 @@ fun CgExecutableCall.toStatement(): CgStatementExecutableCall = CgStatementExecu
 
 // Throw statement
 
-class CgThrowStatement(
+data class CgThrowStatement(
     val exception: CgExpression
 ) : CgStatement
 
 // Empty line
 
-class CgEmptyLine : CgStatement
+object CgEmptyLine : CgStatement
 
 data class CgExceptionHandler(
     val exception: CgVariable,

@@ -25,9 +25,13 @@ import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
 import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.ProjectType.*
+import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.EmptyApplicationContext
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
+import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -109,7 +113,7 @@ object UtTestsDialogProcessor {
             srcClasses,
             extractMembersFromSrcClasses,
             focusedMethods,
-            UtSettings.utBotGenerationTimeoutInMillis,
+            project.service<Settings>().generationTimeoutInMillis
         )
         if (model.getAllTestSourceRoots().isEmpty() && project.isBuildWithGradle) {
             val errorMessage = """
@@ -165,14 +169,31 @@ object UtTestsDialogProcessor {
                         var processedClasses = 0
                         val totalClasses = model.srcClasses.size
                         val classNameToPath = runReadAction {
-                            model.srcClasses.map { psiClass ->
+                            model.srcClasses.associate { psiClass ->
                                 psiClass.canonicalName to psiClass.containingFile.virtualFile.canonicalPath
-                            }.toMap()
+                            }
                         }
 
-                        val applicationContext = EmptyApplicationContext
-                        // TODO: obtain bean definitions and other info from `utbot-spring-analyzer`
-                        //SpringApplicationContext(beanQualifiedNames = emptyList())
+                        val mockFrameworkInstalled = model.mockFramework.isInstalled
+                        val staticMockingConfigured = model.staticsMocking.isConfigured
+
+                        val applicationContext = when (model.projectType) {
+                            Spring -> {
+                                val shouldUseImplementors = when (model.typeReplacementApproach) {
+                                    TypeReplacementApproach.DO_NOT_REPLACE -> false
+                                    TypeReplacementApproach.REPLACE_IF_POSSIBLE -> true
+                                }
+
+                                SpringApplicationContext(
+                                    mockFrameworkInstalled,
+                                    staticMockingConfigured,
+                                    // TODO: obtain bean definitions and other info from `utbot-spring-analyzer`
+                                    beanQualifiedNames = emptyList(),
+                                    shouldUseImplementors = shouldUseImplementors,
+                                )
+                            }
+                            else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
+                        }
 
                         val process = EngineProcess.createBlocking(project, classNameToPath)
 
@@ -249,8 +270,6 @@ object UtTestsDialogProcessor {
                                     .executeSynchronously()
 
                                 withStaticsSubstitutionRequired(true) {
-                                    val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
-
                                     val startTime = System.currentTimeMillis()
                                     val timerHandler =
                                         AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
@@ -266,8 +285,6 @@ object UtTestsDialogProcessor {
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
                                         val rdGenerateResult = process.generate(
-                                            mockFrameworkInstalled,
-                                            model.staticsMocking.isConfigured,
                                             model.conflictTriggers,
                                             methods,
                                             model.mockStrategy,
@@ -309,7 +326,7 @@ object UtTestsDialogProcessor {
                                     Messages.showInfoMessage(
                                         model.project,
                                         "No methods for test generation were found among selected items",
-                                        "No methods found"
+                                        "No Methods Found"
                                     )
                                 }
                                 return

@@ -186,7 +186,7 @@ internal fun isAccessible(member: Member, packageName: String?): Boolean {
 
 internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
     return Modifier.isPublic(clazz.modifiers) ||
-            (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.declaringClass.`package`?.name == packageName)
+            (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
 
 private fun isNotPrivateOrProtected(modifiers: Int): Boolean {

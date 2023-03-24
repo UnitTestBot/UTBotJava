@@ -275,7 +275,7 @@ internal class UtilClassFileMethodProvider(language: CodegenLanguage)
      *
      * **IMPORTANT** if you make any changes to util methods (see [utilMethodTextById]), do not forget to update this version.
      */
-    val UTIL_CLASS_VERSION = "2.0"
+    val UTIL_CLASS_VERSION = "2.1"
 }
 
 internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)

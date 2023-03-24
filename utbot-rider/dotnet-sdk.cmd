@@ -251,9 +251,10 @@ if not exist "%DOTNET_TARGET_DIR%\dotnet.exe" (
 
 REM Prevent globally installed .NET Core from leaking into this runtime's lookup
 SET DOTNET_MULTILEVEL_LOOKUP=0
+SET DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 for /f "tokens=2 delims=:." %%c in ('chcp') do set /a PREV_CODE_PAGE=%%c
-chcp 65001 >nul && call "%DOTNET_TARGET_DIR%\dotnet.exe" %*
+call "%DOTNET_TARGET_DIR%\dotnet.exe" %*
 set /a DOTNET_EXIT_CODE=%ERRORLEVEL%
 chcp %PREV_CODE_PAGE% >nul
 

@@ -11,6 +11,7 @@ import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
@@ -62,7 +63,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     val afterThisInstance = execution.stateAfter.thisInstance
                     val assertThisObject = emptyList<Pair<CgVariable, UtModel>>().toMutableList()
                     if (beforeThisInstance is PythonTreeModel && afterThisInstance is PythonTreeModel) {
-                        if (beforeThisInstance != afterThisInstance) {
+                        if (!comparePythonTree(beforeThisInstance.tree, afterThisInstance.tree)) {
                             thisInstance = thisInstance?.let {
                                 val newValue =
                                     if (it is CgPythonTree) {
@@ -91,7 +92,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
                         val afterValue = execution.stateAfter.parameters[index]
                         if (afterValue is PythonTreeModel && param is PythonTreeModel) {
-                            if (afterValue != param) {
+                            if (!comparePythonTree(afterValue.tree, param.tree)) {
                                 if (argument !is CgVariable) {
                                     argument = newVar(argument.type, name) {argument}
                                 }

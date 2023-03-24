@@ -16,13 +16,13 @@ object MethodArgumentParser {
     /**
      * This method is expected to be called only if the [isArgumentType] method returned `true`.
      */
-    fun parseArgumentType(node: YamlNode): ArgumentType {
+    fun parseArgumentType(node: YamlNode): DtoArgumentType {
         validate(node is YamlScalar, "The argument type node should be a scalar", node)
         return when (val typeDescription = node.content) {
-            ARGUMENT_TYPE_UNDERSCORE -> ArgumentTypeAny
+            ARGUMENT_TYPE_UNDERSCORE -> DtoArgumentTypeAny
             else -> {
                 val typeFqn = typeDescription.removeSurrounding(ARGUMENT_TYPE_PREFIX, ARGUMENT_TYPE_SUFFIX)
-                ArgumentTypeString(typeFqn)
+                DtoArgumentTypeString(typeFqn)
             }
         }
     }
@@ -30,15 +30,15 @@ object MethodArgumentParser {
     /**
      * This method is expected to be called only if the [isArgumentValue] method returned `true`.
      */
-    fun parseArgumentValue(node: YamlNode): ArgumentValue {
+    fun parseArgumentValue(node: YamlNode): DtoArgumentValue {
         return when (node) {
-            is YamlNull -> ArgumentValueNull
+            is YamlNull -> DtoArgumentValueNull
             is YamlScalar -> {
-                val conversions: List<(YamlScalar) -> ArgumentValue> = listOf(
-                    { ArgumentValueBoolean(it.toBoolean()) },
-                    { ArgumentValueLong(it.toLong()) },
-                    { ArgumentValueDouble(it.toDouble()) },
-                    { ArgumentValueString(it.content) },
+                val conversions: List<(YamlScalar) -> DtoArgumentValue> = listOf(
+                    { DtoArgumentValueBoolean(it.toBoolean()) },
+                    { DtoArgumentValueLong(it.toLong()) },
+                    { DtoArgumentValueDouble(it.toDouble()) },
+                    { DtoArgumentValueString(it.content) },
                 )
 
                 for (conversion in conversions) {
@@ -48,16 +48,16 @@ object MethodArgumentParser {
                         continue
                     }
                 }
-                throw ConfigurationParseError("All conversions failed for the argument value node", node)
+                throw TaintParseError("All conversions failed for the argument value node", node)
             }
             else -> {
-                throw ConfigurationParseError("The argument value node should be a null or a scalar", node)
+                throw TaintParseError("The argument value node should be a null or a scalar", node)
             }
         }
     }
 
     /**
-     * Checks that the [node] can be parsed to [ArgumentType].
+     * Checks that the [node] can be parsed to [DtoArgumentType].
      */
     fun isArgumentType(node: YamlNode): Boolean {
         val content = (node as? YamlScalar)?.content ?: return false
@@ -69,7 +69,7 @@ object MethodArgumentParser {
     }
 
     /**
-     * Checks that the [node] can be parsed to [ArgumentValue].
+     * Checks that the [node] can be parsed to [DtoArgumentValue].
      */
     fun isArgumentValue(node: YamlNode): Boolean =
         (node is YamlNull) || (node is YamlScalar) && !isArgumentType(node)

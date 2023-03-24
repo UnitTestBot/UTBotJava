@@ -4,8 +4,6 @@ import mu.KotlinLogging
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.fuzzer.FuzzedContext
-import org.utbot.fuzzer.IdGenerator
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Configuration
 import org.utbot.fuzzing.Control
@@ -18,13 +16,8 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.PythonProtocolDescription
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.pythonTypeRepresentation
-import java.util.*
-import java.util.concurrent.atomic.AtomicLong
 
 private val logger = KotlinLogging.logger {}
 
@@ -47,6 +40,8 @@ class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecution
 class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
 class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
+class CachedExecutionFeedback(val cachedFeedback: FuzzingExecutionFeedback) : FuzzingExecutionFeedback
+object FakeNodeFeedback : FuzzingExecutionFeedback
 
 data class PythonExecutionResult(
     val fuzzingExecutionFeedback: FuzzingExecutionFeedback,
@@ -63,7 +58,7 @@ class PythonFuzzedValue(
     val summary: String? = null,
 )
 
-fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
+fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
     NoneValueProvider,
     BoolValueProvider,
     IntValueProvider,
@@ -80,7 +75,8 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
     BytearrayValueProvider,
     ReduceValueProvider,
     ConstantValueProvider,
-    TypeAliasValueProvider
+    TypeAliasValueProvider,
+    SubtypeValueProvider(typeStorage)
 )
 
 class PythonFuzzing(
@@ -88,39 +84,22 @@ class PythonFuzzing(
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
 ) : Fuzzing<Type, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
-    private fun generateDefault(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonFuzzedValue>> {
-        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
-        pythonDefaultValueProviders(idGenerator).asSequence().forEach { provider ->
+    private fun generateDefault(description: PythonMethodDescription, type: Type)= sequence<Seed<Type, PythonFuzzedValue>> {
+        pythonDefaultValueProviders(pythonTypeStorage).asSequence().forEach { provider ->
             if (provider.accept(type)) {
-                logger.info { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
-                providers += provider.generate(description, type)
+                logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
+                yieldAll(provider.generate(description, type))
             }
         }
-        return providers
-    }
-
-    private fun generateSubtype(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonFuzzedValue>> {
-        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
-        if (type.meta is PythonProtocolDescription) {
-            val subtypes = pythonTypeStorage.allTypes.filter {
-                PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, it, pythonTypeStorage)
-            }
-            subtypes.forEach {
-                providers += generateDefault(description, it, idGenerator)
-            }
-        }
-        return providers
     }
 
     override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
-        val idGenerator = PythonIdGenerator()
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
 
         if (type.isAny()) {
-            logger.info("Any does not have provider")
+            logger.debug("Any does not have provider")
         } else {
-            providers += generateDefault(description, type, idGenerator)
-            providers += generateSubtype(description, type, idGenerator)
+            providers += generateDefault(description, type)
         }
 
         return providers
@@ -136,22 +115,5 @@ class PythonFuzzing(
         configuration: Configuration
     ) {
         super.update(description, statistic, configuration)
-    }
-}
-
-class PythonIdGenerator(lowerBound: Long = DEFAULT_LOWER_BOUND) : IdentityPreservingIdGenerator<Long> {
-    private val lastId: AtomicLong = AtomicLong(lowerBound)
-    private val cache: IdentityHashMap<Any?, Long> = IdentityHashMap()
-
-    override fun getOrCreateIdForValue(value: Any): Long {
-        return cache.getOrPut(value) { createId() }
-    }
-
-    override fun createId(): Long {
-        return lastId.incrementAndGet()
-    }
-
-    companion object {
-        const val DEFAULT_LOWER_BOUND: Long = 1500_000_000
     }
 }

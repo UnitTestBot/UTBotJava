@@ -50,6 +50,12 @@ abstract class SarifGradleExtension {
     abstract val testPrivateMethods: Property<Boolean>
 
     /**
+     * Can be one of: 'purejvm', 'spring', 'python', 'javascript`.
+     */
+    @get:Input
+    abstract val projectType: Property<String>
+
+    /**
      * Can be one of: 'junit4', 'junit5', 'testng'.
      */
     @get:Input

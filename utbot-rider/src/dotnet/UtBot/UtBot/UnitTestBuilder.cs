@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Timers;
+using JetBrains.Application.Notifications;
 using JetBrains.Application.Progress;
 using JetBrains.Application.Threading;
 using JetBrains.Application.Threading.Tasks;
 using JetBrains.Application.UI.Controls;
-using JetBrains.DataFlow;
 using JetBrains.Lifetimes;
 using JetBrains.ProjectModel;
-using JetBrains.ProjectModel.Features.SolutionBuilders;
 using JetBrains.ProjectModel.ProjectsHost;
 using JetBrains.Rd.Tasks;
 using JetBrains.RdBackend.Common.Features;
@@ -17,10 +20,12 @@ using JetBrains.ReSharper.Feature.Services.CSharp.Generate;
 using JetBrains.ReSharper.Feature.Services.Generate;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp;
+using JetBrains.ReSharper.Psi.Util;
 using JetBrains.Rider.Model;
 using JetBrains.Util;
-using JetBrains.Util.Dotnet.TargetFrameworkIds;
+using UtBot.Rd;
 using UtBot.Rd.Generated;
+using UtBot.Utils;
 using UtBot.VSharp;
 
 namespace UtBot;
@@ -28,49 +33,97 @@ namespace UtBot;
 [GeneratorBuilder(GenerateUnitTestWorkflow.Kind, typeof(CSharpLanguage))]
 internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorContext>
 {
+    private const string PublishDirName = "utbot-publish";
+
     private readonly IBackgroundProgressIndicatorManager _backgroundProgressIndicatorManager;
     private readonly Lifetime _lifetime;
     private readonly ILogger _logger;
     private readonly IShellLocks _shellLocks;
-    private readonly ISolutionBuilder _solutionBuilder;
-    private const int GenerationTimeout = 10;
+
+    private readonly Notifications _notifications;
+    private readonly DotNetVersionUtils _dotNetVersionUtils;
+
+    private readonly ProjectPublisher _publisher;
 
     public UnitTestBuilder(
+        ProjectPublisher publisher,
         Lifetime lifetime,
         IShellLocks shellLocks,
         IBackgroundProgressIndicatorManager backgroundProgressIndicatorManager,
-        ISolutionBuilder solutionBuilder,
-        ILogger logger)
+        ILogger logger,
+        Notifications notifications,
+        DotNetVersionUtils dotNetVersionUtils)
     {
         _lifetime = lifetime;
         _shellLocks = shellLocks;
         _backgroundProgressIndicatorManager = backgroundProgressIndicatorManager;
-        _solutionBuilder = solutionBuilder;
         _logger = logger;
+        _notifications = notifications;
+        _dotNetVersionUtils = dotNetVersionUtils;
+        _publisher = publisher;
     }
 
     protected override void Process(CSharpGeneratorContext context, IProgressIndicator progress)
     {
+        _notifications.Refresh();
+
+        var timeoutString = context.GetOption(TimeoutGeneratorOption.Id);
+
+        if (!int.TryParse(timeoutString, out var timeout) || timeout <= 0)
+        {
+            _notifications.ShowError("Invalid timeout value. Timeout should be an integer number greater than zero");
+            return;
+        }
+
         if (context.PsiModule.ContainingProjectModule is not IProject project) return;
+
+        if (!_dotNetVersionUtils.CanRunVSharp)
+        {
+            _notifications.ShowError($"At least .NET {DotNetVersionUtils.MinCompatibleSdkMajor} SDK is required for UnitTestBot.NET");
+            return;
+        }
+
         var typeElement = context.ClassDeclaration.DeclaredElement;
         if (typeElement == null) return;
         if (typeElement is not IClass && typeElement is not IStruct) return;
-        var tfm = context.PsiModule.TargetFrameworkId;
-        var assembly = project.GetOutputFilePath(tfm);
+        var testProjectTfm = _dotNetVersionUtils.GetTestProjectFramework(project);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
         var descriptors = new List<MethodDescriptor>();
-        foreach (var inputElement in context.InputElements.WithProgress(progress, "Generating Unit tests")
+        foreach (var inputElement in context.InputElements.WithProgress(progress, "Generating unit tests")
                      .OfType<GeneratorDeclaredElement<IMethod>>())
-            descriptors.Add(new MethodDescriptor(inputElement.DeclaredElement.ShortName, typeElement.GetClrName().FullName));
+        {
+            var methodName = inputElement.DeclaredElement.ShortName;
+            var hasNoOverLoads = typeElement.GetMembers().Count(m => m.ShortName == methodName) == 1;
+
+            var parameterDescriptors = new List<string>();
+
+            if (!hasNoOverLoads)
+            {
+                foreach (var parameter in inputElement.DeclaredElement.Parameters)
+                {
+                    var typeDescriptor = ToTypeDescriptor(parameter.Type, inputElement.DeclaredElement, typeElement);
+                    parameterDescriptors.Add(JsonSerializer.Serialize(typeDescriptor, jsonOptions));
+                }
+            }
+
+            descriptors.Add(new MethodDescriptor(methodName, typeElement.GetClrName().FullName, hasNoOverLoads, parameterDescriptors));
+        }
 
         var progressLifetimeDef = _lifetime.CreateNested();
         var indicator =
             _backgroundProgressIndicatorManager.CreateIndicator(progressLifetimeDef.Lifetime, true, true,
-                "Generating Unit Tests");
+                "Generating unit tests");
+
         _shellLocks.Tasks.StartNew(_lifetime, Scheduling.FreeThreaded, () =>
         {
             try
             {
-                Generate(indicator, project, assembly, descriptors, tfm);
+                Generate(indicator, project, descriptors, testProjectTfm, timeout);
             }
             finally
             {
@@ -79,8 +132,63 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         });
     }
 
+    private TypeDescriptor ToTypeDescriptor(IType typ, IMethod declMethod, ITypeElement declTyp)
+    {
+        var par = typ.GetTypeParameterType();
+
+        if (declMethod.TypeParameters.Contains(par))
+        {
+            return new TypeDescriptor
+            {
+                ArrayRank = null,
+                Name = null,
+                MethodParameterPosition = declMethod.TypeParameters.IndexOf(par),
+                TypeParameterPosition = null,
+                Parameters = new()
+            };
+        }
+
+        if (declTyp.TypeParameters.Contains(par))
+        {
+            return new TypeDescriptor
+            {
+                ArrayRank = null,
+                Name = null,
+                MethodParameterPosition = null,
+                TypeParameterPosition = declTyp.TypeParameters.IndexOf(par),
+                Parameters = new()
+            };
+        }
+
+        if (typ is IArrayType arr)
+        {
+            var elementType = ToTypeDescriptor(typ.GetScalarType(), declMethod, declTyp);
+
+            return new TypeDescriptor
+            {
+                ArrayRank = arr.Rank,
+                Name = null,
+                MethodParameterPosition = null,
+                TypeParameterPosition = null,
+                Parameters = new List<TypeDescriptor> { elementType }
+            };
+        }
+
+        var subst = typ.GetScalarType().GetSubstitution();
+        var pars = typ.GetTypeElement().TypeParameters.Select(p => ToTypeDescriptor(subst[p], declMethod, declTyp));
+
+        return new TypeDescriptor
+        {
+            ArrayRank = null,
+            Name = typ.GetScalarType()?.GetClrName().FullName,
+            MethodParameterPosition = null,
+            TypeParameterPosition = null,
+            Parameters = pars.ToList()
+        };
+    }
+
     private void Generate(IBackgroundProgressIndicator progressIndicator, IProject project,
-        VirtualFileSystemPath assemblyPath, List<MethodDescriptor> descriptors, TargetFrameworkId tfm)
+        List<MethodDescriptor> descriptors, TestProjectTargetFramework testProjectFramework, int timeout)
     {
         var solution = project.GetSolution();
         var solutionMark = solution.GetSolutionMark();
@@ -91,65 +199,106 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
 
         project.Locks.AssertNonMainThread();
 
-        SolutionBuilderRequest buildRequest;
-        using (_shellLocks.UsingReadLock())
+        var config = project.ProjectProperties.ActiveConfigurations.Configurations.First();
+        var outputDir = project.GetOutputDirectory(config.TargetFrameworkId).Combine(PublishDirName);
+        progressIndicator.Header.SetValue($"Publishing dependencies to {PublishDirName}...");
+        try
         {
-            if (!project.IsValid()) return;
-            buildRequest = _solutionBuilder.CreateBuildRequest(BuildSessionTarget.Build,
-                new[] { project },
-                SolutionBuilderRequestSilentMode.Silent,
-                new SolutionBuilderRequestAdvancedSettings(null,
-                    false, verbosityLevel: LoggerVerbosityLevel.Normal, isRestoreRequest: true));
-
-            _solutionBuilder.ExecuteBuildRequest(buildRequest);
+            _publisher.PublishSync(project, config, outputDir);
+        }
+        catch (Exception e)
+        {
+            var title = $"Cannot build project {project.Name}";
+            var openExceptionMessageCommand = new UserNotificationCommand(
+                "Show error info",
+                () => MessageBox.ShowError(e.Message, title));
+            _notifications.ShowError(title, command: openExceptionMessageCommand);
+            return;
         }
 
-        buildRequest.State.WaitForValue(_lifetime, state => state.HasFlag(BuildRunState.Completed));
+        var assemblyFileName = project.GetOutputFilePath(config.TargetFrameworkId).Name;
+        var assemblyPath =  Directory.GetFiles(outputDir.FullPath, assemblyFileName, SearchOption.AllDirectories).FirstOrDefault();
+        if (assemblyPath is null)
+        {
+            _notifications.ShowError($"Cannot build project {project.Name}");
+            return;
+        }
+
+        var typeName = descriptors.Select(m => m.TypeName).Distinct().SingleOrDefault();
+
+        _logger.Verbose($"Start Generation for {typeName}");
+        progressIndicator.Lifetime.ThrowIfNotAlive();
+        progressIndicator.Header.SetValue(typeName);
 
         var pluginPath = FileSystemPath.Parse(Assembly.GetExecutingAssembly().Location).Parent;
         var vsharpRunner = pluginPath.Combine("UtBot.VSharp.dll");
 
-        foreach (var descriptor in descriptors)
+        var methodNames = descriptors.Select(m => $"{m.TypeName}.{m.MethodName}").ToArray();
+        var intervalS = (double)timeout / methodNames.Length;
+        var intervalMs = intervalS > 0 ? intervalS * 1000 : 500;
+        using var methodProgressTimer = new Timer(intervalMs);
+        var i = 0;
+        void ChangeMethodName()
         {
-            var currentGeneratedItem = $"{descriptor.TypeName}.{descriptor.MethodName}";
-            _logger.Verbose($"Start Generation for {currentGeneratedItem}");
-            progressIndicator.Lifetime.ThrowIfNotAlive();
-            progressIndicator.Header.SetValue(currentGeneratedItem);
-
-            _logger.Catch(() =>
-            {
-                var name = VSharpMain.VSharpProcessName;
-                var workingDir = project.ProjectFileLocation.Directory.FullPath;
-                var port = NetworkUtil.GetFreePort();
-                var runnerPath = vsharpRunner.FullPath;
-                var proc = new ProcessWithRdServer(name, workingDir, port, runnerPath, project.Locks, _lifetime, _logger);
-                var projectCsprojPath = project.ProjectFileLocation.FullPath;
-                var vSharpProjectTarget = calculateTestProjectTarget(tfm);
-                var args = new GenerateArguments(assemblyPath.FullPath, projectCsprojPath, solutionFilePath, descriptor,
-                    GenerationTimeout, vSharpProjectTarget);
-                var result = proc.VSharpModel?.Generate.Sync(args, RpcTimeouts.Maximal);
-                _logger.Info("Result acquired");
-                if (result is { IsGenerated: true })
-                {
-                    _shellLocks.ExecuteOrQueue(_lifetime, "UnitTestBuilder::Generate", () =>
-                    {
-                        if (solution.IsValid())
-                        {
-                            solution.GetProtocolSolution().GetFileSystemModel().RefreshPaths
-                                .Start(_lifetime,
-                                    new RdFsRefreshRequest(new List<string> { result.GeneratedProjectPath }, true));
-                        }
-                    });
-                }
-                else
-                {
-                    var ex = result == null ? "Could not start V#" : result.ExceptionMessage;
-                    _logger.Info($"Could not generate tests for ${currentGeneratedItem}, exception - {ex}");
-                }
-            });
-
-            _logger.Verbose($"Generation finished for {currentGeneratedItem}");
+            progressIndicator.Header.SetValue(methodNames[i]);
+            i = (i + 1) % methodNames.Length;
         }
+        methodProgressTimer.Elapsed += (_, _) => ChangeMethodName();
+        _logger.Catch(() =>
+        {
+            var name = VSharpMain.VSharpProcessName;
+            var workingDir = project.ProjectFileLocation.Directory.FullPath;
+            var port = NetworkUtil.GetFreePort();
+            var runnerPath = vsharpRunner.FullPath;
+            var proc = new ProcessWithRdServer(name, workingDir, port, runnerPath, project.Locks, _lifetime, _logger);
+            var projectCsprojPath = project.ProjectFileLocation.FullPath;
+            var args = new GenerateArguments(assemblyPath, projectCsprojPath, solutionFilePath, descriptors,
+                timeout, testProjectFramework.FrameworkMoniker.Name);
+            var vSharpTimeout = TimeSpan.FromSeconds(timeout);
+            var rpcTimeout = new RpcTimeouts(vSharpTimeout + TimeSpan.FromSeconds(1), vSharpTimeout + TimeSpan.FromSeconds(30));
+            ChangeMethodName();
+            methodProgressTimer.Start();
+            var result = proc.VSharpModel?.Generate.Sync(args, rpcTimeout);
+            methodProgressTimer.Stop();
+            _logger.Info("Result acquired");
+            if (result is { GeneratedProjectPath: not null })
+            {
+                _shellLocks.ExecuteOrQueue(_lifetime, "UnitTestBuilder::Generate", () =>
+                {
+                    if (solution.IsValid())
+                    {
+                        solution.GetProtocolSolution().GetFileSystemModel().RefreshPaths
+                            .Start(_lifetime,
+                                new RdFsRefreshRequest(new List<string> { result.GeneratedProjectPath }, true));
+
+                    }
+                });
+
+                _notifications.ShowInfo(
+                    $"Generated {result.TestsCount} tests and found {result.ErrorsCount} errors for {typeName}");
+
+                if (testProjectFramework.IsDefault)
+                {
+                    _notifications.ShowWarning(
+                        $"Generated test project targets {testProjectFramework.FrameworkMoniker}, which is not directly targeted by {project.Name}. " +
+                        "Test project may fail to compile due to reference errors");
+                }
+            }
+            else
+            {
+                var ex = result == null ? "Could not start V#" : result.ExceptionMessage;
+                _logger.Info($"Could not generate tests for ${typeName}, exception - {ex}");
+
+                var title = $"Could not generate tests for {typeName}";
+                var openExceptionMessageCommand = new UserNotificationCommand(
+                    "Show error info",
+                    () => MessageBox.ShowError(ex ?? "Cannot get error info", title));
+                _notifications.ShowError(title, command: openExceptionMessageCommand);
+            }
+        });
+
+        methodProgressTimer.Stop();
+        _logger.Verbose($"Generation finished for {typeName}");
 
         _shellLocks.ExecuteOrQueue(_lifetime, "UnitTestBuilder::Generate", () =>
         {
@@ -158,39 +307,5 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
                     .Start(_lifetime,
                         new RdFsRefreshRequest(new List<string> { solutionMark.Location.FullPath }, true));
         });
-    }
-
-    private static HashSet<String> possibleTargets = new()
-    {
-        "net7.0",
-        "net6.0",
-        "netcoreapp1.0",
-        "netcoreapp1.1",
-        "netcoreapp2.0",
-        "netcoreapp2.1",
-        "netcoreapp2.2",
-        "netcoreapp3.0",
-        "netcoreapp3.1",
-        "net35",
-        "net40",
-        "net451",
-        "net452",
-        "net46",
-        "net461",
-        "net462",
-        "net47",
-        "net471",
-        "net472",
-        "net48"
-    };
-
-    private static string calculateTestProjectTarget(TargetFrameworkId tfm)
-    {
-        var id = tfm.TryGetShortIdentifier();
-
-        if (possibleTargets.Contains(id))
-            return id;
-
-        return "net6.0";
     }
 }

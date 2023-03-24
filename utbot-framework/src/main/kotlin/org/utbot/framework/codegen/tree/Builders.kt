@@ -13,6 +13,7 @@ import org.utbot.framework.codegen.domain.models.CgElement
 import org.utbot.framework.codegen.domain.models.CgErrorTestMethod
 import org.utbot.framework.codegen.domain.models.CgExceptionHandler
 import org.utbot.framework.codegen.domain.models.CgExpression
+import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgForEachLoop
 import org.utbot.framework.codegen.domain.models.CgForLoop
 import org.utbot.framework.codegen.domain.models.CgLoop
@@ -66,7 +67,7 @@ class CgClassBodyBuilder(val classId: ClassId) : CgBuilder<CgClassBody> {
     val methodRegions: MutableList<CgMethodsCluster> = mutableListOf()
     val staticDeclarationRegions: MutableList<CgStaticsRegion> = mutableListOf()
     val nestedClassRegions: MutableList<CgNestedClassesRegion<*>> = mutableListOf()
-    val fields: MutableList<CgDeclaration> = mutableListOf()
+    val fields: MutableSet<CgFieldDeclaration> = mutableSetOf()
 
     override fun build() = CgClassBody(classId, methodRegions, staticDeclarationRegions, nestedClassRegions, fields)
 }
@@ -101,8 +102,8 @@ class CgTestMethodBuilder : CgMethodBuilder<CgTestMethod> {
         statements,
         exceptions,
         annotations,
-        methodType,
-        documentation,
+        type = methodType,
+        documentation = documentation,
     )
 }
 

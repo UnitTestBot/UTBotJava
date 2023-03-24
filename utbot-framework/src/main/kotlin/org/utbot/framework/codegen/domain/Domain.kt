@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.domain
 import org.utbot.framework.DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
 import org.utbot.framework.codegen.domain.builtin.mockitoClassId
 import org.utbot.framework.codegen.domain.builtin.ongoingStubbingClassId
+import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.tree.argumentsClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -11,6 +12,8 @@ import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -711,3 +714,79 @@ enum class ParametrizedTestSource(
         override val allItems: List<ParametrizedTestSource> = values().toList()
     }
 }
+
+enum class ProjectType {
+    /**
+     * Standard JVM project without DI frameworks
+     */
+    PureJvm,
+
+    /**
+     * Spring or Spring Boot project
+     */
+    Spring,
+
+    /**
+     * Python project
+     */
+    Python,
+
+    /**
+     * JavaScript project
+     */
+    JavaScript,
+}
+
+enum class TypeReplacementApproach {
+    /**
+     * Do not replace interfaces and abstract classes with concrete implementors.
+     * Use mocking instead of it.
+     */
+    DO_NOT_REPLACE,
+
+    /**
+     * Try to replace interfaces and abstract classes with concrete implementors
+     * obtained from bean definitions.
+     * If it is impossible, use mocking.
+     *
+     * Currently used in Spring applications only.
+     */
+    REPLACE_IF_POSSIBLE,
+}
+
+abstract class DependencyInjectionFramework(
+    override val id: String,
+    override val displayName: String,
+    override val description: String = "Use $displayName as dependency injection framework",
+) : CodeGenerationSettingItem {
+    var isInstalled = false
+
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: DependencyInjectionFramework get() = SpringBoot
+        override val allItems: List<DependencyInjectionFramework> get() = listOf(SpringBoot, SpringBeans)
+    }
+}
+
+object SpringBeans : DependencyInjectionFramework(
+    id = "spring-beans",
+    displayName = "Spring Beans"
+)
+
+object SpringBoot : DependencyInjectionFramework(
+    id = "spring-boot",
+    displayName = "Spring Boot"
+)
+
+/**
+ * Extended id of [UtModel], unique for whole test set.
+ *
+ * Allows to distinguish models from different executions,
+ * even if they have the same value of `UtModel.id`.
+ */
+data class ModelId(
+    private val id: Int?,
+    private val executionId: Int,
+)
+
+fun UtModel.withExecutionId(executionId: Int = -1) = ModelId(this.idOrNull(), executionId)
+

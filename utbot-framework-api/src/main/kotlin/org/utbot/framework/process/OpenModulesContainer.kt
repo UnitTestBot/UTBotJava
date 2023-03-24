@@ -10,8 +10,20 @@ object OpenModulesContainer {
 
     init {
         modulesContainer = buildList {
+            openPackage("java.base", "sun.security.util")
+            openPackage("java.base", "java.text")
+            openPackage("java.base", "java.lang.invoke")
             openPackage("java.base", "jdk.internal.misc")
+            openPackage("java.base", "sun.reflect.generics.repository")
+            openPackage("java.base", "java.io")
             openPackage("java.base", "java.lang")
+            openPackage("java.base", "java.security")
+            openPackage("java.base", "java.util")
+            openPackage("java.base", "java.util.stream")
+            openPackage("java.base", "java.util.concurrent")
+            openPackage("java.base", "java.util.concurrent.locks")
+            openPackage("java.base", "java.math")
+            openPackage("java.base", "java.lang.ref")
             openPackage("java.base", "java.lang.reflect")
             openPackage("java.base", "sun.security.provider")
             openPackage("java.base", "jdk.internal.event")

@@ -2,7 +2,6 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import mu.KotlinLogging
 import org.parsers.python.PythonParser
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.PythonSystemImport
@@ -10,7 +9,6 @@ import org.utbot.python.framework.codegen.model.PythonUserImport
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
@@ -30,14 +28,11 @@ import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.Cleaner
-import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
 import org.utbot.python.utils.getLineOfFunction
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
-
-private val logger = KotlinLogging.logger {}
 
 object PythonTestGenerationProcessor {
     fun processTestGeneration(
@@ -58,7 +53,6 @@ object PythonTestGenerationProcessor {
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
         installingRequirementsAction: () -> Unit = {},
-        testFrameworkInstallationAction: () -> Unit = {},
         requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
             MissingRequirementsActionResult.NOT_INSTALLED
         },
@@ -73,10 +67,6 @@ object PythonTestGenerationProcessor {
         Cleaner.restart()
 
         try {
-            if (!testFramework.isInstalled) {
-                testFrameworkInstallationAction()
-                installRequirements(pythonPath, listOf(testFramework.mainPackage))
-            }
             if (!doNotCheckRequirements) {
                 checkingRequirementsAction()
                 if (!requirementsAreInstalled(pythonPath)) {
@@ -134,9 +124,9 @@ object PythonTestGenerationProcessor {
 
             val classId =
                 if (containingClassName == null)
-                    PythonClassId("$currentPythonModule.TopLevelFunctions")
+                    PythonClassId(currentPythonModule, "TopLevelFunctions")
                 else
-                    PythonClassId("$currentPythonModule.$containingClassName")
+                    PythonClassId(currentPythonModule, containingClassName)
 
             val methodIds = notEmptyTests.associate {
                 it.method to PythonMethodId(

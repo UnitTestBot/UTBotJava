@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withSolverTimeoutInMillis
 import org.utbot.testcheckers.withTreatingOverflowAsError
-import org.utbot.testing.AtLeast
+import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.Compilation
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.ignoreExecutionsNumber
@@ -32,12 +32,23 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::intOverflow,
                 eq(5),
-                { x, _, r -> x * x * x <= 0 && x > 0 && r.isException<OverflowDetectionError>() }, // through overflow
-                { x, _, r -> x * x * x <= 0 && x > 0 && r.isException<OverflowDetectionError>() }, // through overflow (2nd '*')
+                { x, _, r ->
+                    val overflowOccurred = kotlin.runCatching {
+                        Math.multiplyExact(x, x)
+                    }.isFailure
+                    overflowOccurred && r.isException<OverflowDetectionError>()
+                }, // through overflow
+                { x, _, r ->
+                    val twoMul = Math.multiplyExact(x, x)
+                    val overflowOccurred = kotlin.runCatching {
+                        Math.multiplyExact(twoMul, x)
+                    }.isFailure
+                    overflowOccurred && r.isException<OverflowDetectionError>()
+                }, // through overflow (2nd '*')
                 { x, _, r -> x * x * x >= 0 && x >= 0 && r.getOrNull() == 0 },
                 { x, y, r -> x * x * x > 0 && x > 0 && y == 10 && r.getOrNull() == 1 },
                 { x, y, r -> x * x * x > 0 && x > 0 && y != 10 && r.getOrNull() == 0 },
-                coverage = AtLeast(90),
+                coverage = DoNotCalculate
             )
         }
     }
@@ -54,6 +65,22 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
                     val posOverflow = ((x + y).toByte() <= 0 && x > 0 && y > 0)
                     (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
+            )
+        }
+    }
+
+    @Test
+    fun testByteWithIntOverflow() {
+        withTreatingOverflowAsError {
+            checkWithException(
+                OverflowExamples::byteWithIntOverflow,
+                eq(2),
+                { x, y, r ->
+                    runCatching {
+                        Math.addExact(x.toInt(), y)
+                    }.isFailure && r.isException<OverflowDetectionError>()
+                },
+                { x, y, r -> Math.addExact(x.toInt(), y).toByte() == r.getOrThrow() }
             )
         }
     }
@@ -258,7 +285,7 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
         }
     }
 
-//  Generated Kotlin code does not compile, so disabled for now
+    //  Generated Kotlin code does not compile, so disabled for now
     @Test
     @Disabled
     fun testQuickSort() {

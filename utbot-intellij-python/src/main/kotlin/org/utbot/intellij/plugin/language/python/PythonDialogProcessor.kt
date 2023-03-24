@@ -25,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
-import org.jetbrains.kotlin.konan.file.File
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
@@ -137,7 +136,7 @@ object PythonDialogProcessor {
                     .mapNotNull {
                         val functionName = it.name ?: return@mapNotNull null
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
-                        val containingClassId = it.containingClass?.name?.let{ PythonClassId(it) }
+                        val containingClassId = it.containingClass?.name?.let{ cls -> PythonClassId(cls) }
                         return@mapNotNull PythonMethodHeader(
                                 functionName,
                                 moduleFilename,
@@ -166,6 +165,10 @@ object PythonDialogProcessor {
                 }
                 try {
                     val methods = findSelectedPythonMethods(model)
+                    val requirementsList = requirements.toMutableList()
+                    if (!model.testFramework.isInstalled) {
+                        requirementsList += model.testFramework.mainPackage
+                    }
 
                     processTestGeneration(
                         pythonPath = model.pythonPath,
@@ -185,9 +188,8 @@ object PythonDialogProcessor {
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
                         installingRequirementsAction = { indicator.text = "Installing requirements..." },
-                        testFrameworkInstallationAction = { indicator.text = "Test framework installation" },
                         requirementsAreNotInstalledAction = {
-                            askAndInstallRequirementsLater(model.project, model.pythonPath)
+                            askAndInstallRequirementsLater(model.project, model.pythonPath, requirementsList)
                             PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                         },
                         startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
@@ -245,11 +247,11 @@ object PythonDialogProcessor {
         }
     }
 
-    private fun askAndInstallRequirementsLater(project: Project, pythonPath: String) {
+    private fun askAndInstallRequirementsLater(project: Project, pythonPath: String, requirementsList: List<String>) {
         val message = """
             Some requirements are not installed.
             Requirements: <br>
-            ${requirements.joinToString("<br>")}
+            ${requirementsList.joinToString("<br>")}
             <br>
             Install them?
         """.trimIndent()
@@ -267,7 +269,7 @@ object PythonDialogProcessor {
 
             ProgressManager.getInstance().run(object : Backgroundable(project, "Installing requirements") {
                 override fun run(indicator: ProgressIndicator) {
-                    val installResult = installRequirements(pythonPath)
+                    val installResult = installRequirements(pythonPath, requirementsList)
 
                     if (installResult.exitValue != 0) {
                         showErrorDialogLater(
@@ -275,7 +277,7 @@ object PythonDialogProcessor {
                             "Requirements installing failed.<br>" +
                                     "${installResult.stderr}<br><br>" +
                                     "Try to install with pip:<br>" +
-                                    " ${requirements.joinToString("<br>")}",
+                                    " ${requirementsList.joinToString("<br>")}",
                             "Requirements error"
                         )
                     }
@@ -332,7 +334,8 @@ fun getDirectoriesForSysPath(
     file.fromImports.forEach { importTarget ->
         importTarget.resolveImportSourceCandidates().forEach {
             val directory = it.parent
-            if (directory is PsiDirectory ) {
+            val isRelativeImport = importTarget.relativeLevel > 0  // If we have `from . import a` we don't need to add syspath
+            if (directory is PsiDirectory && !isRelativeImport) {
                 // If we have `from a.b.c import d` we need to add syspath to module `a` only
                 val additionalLevel = importTarget.importSourceQName?.componentCount?.dec() ?: 0
                 directory.topParent(additionalLevel)?.let { dir ->
@@ -344,7 +347,9 @@ fun getDirectoriesForSysPath(
 
     // Select modules only from this project but not from installation directory
     importedPaths.forEach {
-        if (it.isProjectSubmodule(ancestor) && !it.path.split(File.separator).contains("site-packages")) {
+        val path = it.toNioPath()
+        val hasSitePackages = (0 until(path.nameCount)).any { i -> path.subpath(i, i+1).toString() == "site-packages"}
+        if (it.isProjectSubmodule(ancestor) && !hasSitePackages) {
             sources.add(it)
         }
     }

@@ -119,6 +119,8 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: [compileKotlin, generat
     }
 }
 
+classes.dependsOn(generatePluginDescriptor)
+
 publishing {
     publications {
         pluginMaven(MavenPublication) {
@@ -146,6 +148,7 @@ generatePluginDescriptor.dependsOn([
     project(':utbot-framework'),
     project(':utbot-framework-api'),
     project(':utbot-fuzzers'),
+    project(':utbot-fuzzing'),
     project(':utbot-rd'),
     project(':utbot-summary')
 ]*.tasks.publishToMavenLocal)

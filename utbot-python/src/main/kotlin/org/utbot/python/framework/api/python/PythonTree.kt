@@ -1,10 +1,15 @@
 package org.utbot.python.framework.api.python
 
 import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonDictClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonObjectClassId
+import org.utbot.python.framework.api.python.util.pythonSetClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.framework.api.python.util.toPythonRepr
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
@@ -24,6 +29,19 @@ object PythonTree {
             return true
         visited.add(tree)
         return tree.children.any { isRecursiveObjectDFS(it, visited) }
+    }
+
+    fun containsFakeNode(tree: PythonTreeNode): Boolean {
+        return containsFakeNodeDFS(tree, mutableSetOf())
+    }
+
+    private fun containsFakeNodeDFS(tree: PythonTreeNode, visited: MutableSet<PythonTreeNode>): Boolean {
+        if (visited.contains(tree))
+            return false
+        if (tree is FakeNode)
+            return true
+        visited.add(tree)
+        return tree.children.any { containsFakeNodeDFS(it, visited) }
     }
 
     open class PythonTreeNode(
@@ -69,6 +87,8 @@ object PythonTree {
             1 + children.fold(0) { acc, child -> acc + child.diversity() }
     }
 
+    object FakeNode: PythonTreeNode(0L, PythonClassId(""))
+
     class PrimitiveNode(
         id: Long,
         type: PythonClassId,
@@ -106,7 +126,7 @@ object PythonTree {
     class ListNode(
         id: Long,
         val items: MutableMap<Int, PythonTreeNode>
-    ) : PythonTreeNode(id, PythonClassId("builtins.list")) {
+    ) : PythonTreeNode(id, pythonListClassId) {
         constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
 
         override val children: List<PythonTreeNode>
@@ -124,7 +144,7 @@ object PythonTree {
     class DictNode(
         id: Long,
         val items: MutableMap<PythonTreeNode, PythonTreeNode>
-    ) : PythonTreeNode(id, PythonClassId("builtins.dict")) {
+    ) : PythonTreeNode(id, pythonDictClassId) {
         constructor(items: MutableMap<PythonTreeNode, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
 
         override val children: List<PythonTreeNode>
@@ -144,7 +164,7 @@ object PythonTree {
     class SetNode(
         id: Long,
         val items: MutableSet<PythonTreeNode>
-    ) : PythonTreeNode(id, PythonClassId("builtins.set")) {
+    ) : PythonTreeNode(id, pythonSetClassId) {
         constructor(items: MutableSet<PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
 
         override val children: List<PythonTreeNode>
@@ -167,7 +187,7 @@ object PythonTree {
     class TupleNode(
         id: Long,
         val items: MutableMap<Int, PythonTreeNode>
-    ) : PythonTreeNode(id, PythonClassId("builtins.tuple")) {
+    ) : PythonTreeNode(id, pythonTupleClassId) {
         constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
 
         override val children: List<PythonTreeNode>
@@ -244,7 +264,7 @@ object PythonTree {
 
     fun fromObject(): PrimitiveNode {
         return PrimitiveNode(
-            PythonClassId("builtins.object"),
+            pythonObjectClassId,
             "object()"
         )
     }

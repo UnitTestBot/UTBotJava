@@ -7,16 +7,16 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.analytics.AnalyticsConfigureUtil
 import org.utbot.common.*
-import org.utbot.engine.util.mockListeners.ForceMockListener
-import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.reports.TestsGenerationReport
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MethodDescription
 import org.utbot.framework.plugin.api.util.UtContext
@@ -26,7 +26,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
@@ -99,19 +98,9 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     watchdog.measureTimeForActiveCall(generate, "Generating tests") { params ->
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)
         logger.debug().measureTime({ "starting generation for ${methods.size} methods, starting with ${methods.first()}" }) {
-            val mockFrameworkInstalled = params.mockInstalled
-            val conflictTriggers = ConflictTriggers(kryoHelper.readObject(params.conflictTriggers))
-            if (!mockFrameworkInstalled) {
-                ForceMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
-            }
-            val staticsMockingConfigured = params.staticsMockingIsConfigureda
-            if (!staticsMockingConfigured) {
-                ForceStaticMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
-            }
-
             val generateFlow = when (testGenerator.applicationContext) {
                 is SpringApplicationContext -> defaultSpringFlow(params.generationTimeout)
-                is EmptyApplicationContext -> testFlow {
+                is ApplicationContext -> testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                     isFuzzingEnabled = params.isFuzzingEnabled
@@ -147,11 +136,13 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         val testSetsId: Long = params.testSetsId
         val codeGenerator = CodeGenerator(
             classUnderTest = classId,
+            projectType = ProjectType.valueOf(params.projectType),
             generateUtilClassFile = params.generateUtilClassFile,
             paramNames = kryoHelper.readObject(params.paramNames),
             testFramework = testFramework,
             mockFramework = MockFramework.valueOf(params.mockFramework),
             codegenLanguage = CodegenLanguage.valueOf(params.codegenLanguage),
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.valueOf(params.codegenLanguage)),
             parameterizedTestSource = ParametrizedTestSource.valueOf(params.parameterizedTestSource),
             staticsMocking = staticMocking,
             forceStaticMocking = kryoHelper.readObject(params.forceStaticMocking),
@@ -181,7 +172,8 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     }
     watchdog.measureTimeForActiveCall(findMethodParamNames, "Find method parameters names") { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
-        val byMethodDescription = kryoHelper.readObject<Map<MethodDescription, List<String>>>(params.bySignature)
+        val bySignatureRaw = kryoHelper.readObject<List<Pair<MethodDescription, List<String>>>>(params.bySignature)
+        val byMethodDescription = bySignatureRaw.associate { it.first to it.second }
         FindMethodParamNamesResult(kryoHelper.writeObject(classId.jClass.allNestedClasses.flatMap { clazz -> clazz.id.allMethods.mapNotNull { it.method.kotlinFunction } }
             .mapNotNull { method -> byMethodDescription[method.methodDescription()]?.let { params -> method.executableId to params } }
             .toMap()))
@@ -283,7 +275,7 @@ private fun processInitialWarnings(report: TestsGenerationReport, params: Genera
 }
 
 private fun destinationWarningMessage(testPackageName: String?, classUnderTestPackageName: String): String? {
-    return if (classUnderTestPackageName != testPackageName) {
+    return if (!testPackageName.isNullOrEmpty() && classUnderTestPackageName != testPackageName) {
         """
             Warning: Destination package $testPackageName does not match package of the class $classUnderTestPackageName.
             This may cause unnecessary usage of reflection for protected or package-private fields and methods access.

@@ -5,6 +5,7 @@ import org.utbot.framework.codegen.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -42,7 +43,7 @@ import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.framework.codegen.toPythonRawString
-import org.utbot.python.newtyping.pythonDescription
+import org.utbot.python.newtyping.pythonName
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -59,6 +60,7 @@ class PythonCodeGenerator(
     testClassPackageName: String = classUnderTest.packageName
 ) : CodeGenerator(
     classUnderTest = classUnderTest,
+    projectType = ProjectType.Python,
     paramNames = paramNames,
     generateUtilClassFile = true,
     testFramework = testFramework,
@@ -139,7 +141,7 @@ class PythonCodeGenerator(
                     if (containingClass == null)
                         method.name
                     else
-                        "${containingClass.pythonDescription().name.name}.${method.name}"
+                        "${containingClass.pythonName()}.${method.name}"
                 if (functionModule.isNotEmpty()) {
                     functionTextName = "$functionModule.$functionTextName"
                 }
@@ -211,7 +213,8 @@ class PythonCodeGenerator(
         methodAnnotations: Map<String, Type>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
-        namesInModule: Collection<String>
+        namesInModule: Collection<String>,
+        additionalVars: String
     ): String {
         val cgRendererContext = CgRendererContext.fromCgContext(context)
         val printer = CgPrinterImpl()
@@ -242,6 +245,8 @@ class PythonCodeGenerator(
 
         val mypyCheckCode = listOf(
             renderer.toString(),
+            "",
+            additionalVars,
             "",
             functionName,
         ) + method.codeAsString.split("\n").map { "    $it" }

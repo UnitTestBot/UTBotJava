@@ -1,5 +1,5 @@
 import java.text.SimpleDateFormat
-import org.gradle.api.JavaVersion.VERSION_11
+import org.gradle.api.JavaVersion.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "org.utbot"
@@ -15,13 +15,13 @@ version = semVer ?: "$dateBasedVersion-SNAPSHOT"
 
 plugins {
     `java-library`
-    kotlin("jvm") version "1.7.10"
+    kotlin("jvm") version "1.8.0"
     `maven-publish`
 }
 
 configure<JavaPluginExtension> {
     sourceCompatibility = VERSION_11
-    targetCompatibility = VERSION_11
+    targetCompatibility = VERSION_17
 }
 
 allprojects {
@@ -61,8 +61,52 @@ allprojects {
             // set heap size for the test JVM(s)
             minHeapSize = "128m"
             maxHeapSize = "3072m"
-
-            jvmArgs = listOf("-XX:MaxHeapSize=3072m")
+            jvmArgs = listOf(
+                "-XX:MaxHeapSize=3072m",
+                "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED",
+                "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
+                "--add-opens", "java.base/java.util.concurrent.locks=ALL-UNNAMED",
+                "--add-opens", "java.base/java.text=ALL-UNNAMED",
+                "--add-opens", "java.base/java.io=ALL-UNNAMED",
+                "--add-opens", "java.base/sun.security.util=ALL-UNNAMED",
+                "--add-opens", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
+                "--add-opens", "java.base/java.security=ALL-UNNAMED",
+                "--add-opens", "java.base/java.lang.ref=ALL-UNNAMED",
+                "--add-opens", "java.base/java.math=ALL-UNNAMED",
+                "--add-opens", "java.base/java.util.stream=ALL-UNNAMED",
+                "--add-opens", "java.base/java.util=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
+                "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+                "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
+                "--add-opens", "java.base/sun.security.provider=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.event=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.jimage=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.jimage.decompressor=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.jmod=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.jtrfs=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.loader=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.logger=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.math=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.module=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.org.objectweb.asm.commons=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.org.objectweb.asm.signature=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.org.objectweb.asm.tree.analysis=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.org.objectweb.asm.util=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.org.xml.sax=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.org.xml.sax.helpers=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.perf=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.platform=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.ref=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.reflect=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.util=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.util.jar=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.util.xml=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.util.xml.impl=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.vm=ALL-UNNAMED",
+                "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+            )
 
             useJUnitPlatform {
                 excludeTags = setOf("slow", "IntegrationTest")
@@ -89,6 +133,7 @@ allprojects {
 
     repositories {
         mavenCentral()
+        maven("https://jitpack.io")
         maven("https://s01.oss.sonatype.org/content/repositories/orgunittestbotsoot-1004/")
         maven("https://plugins.gradle.org/m2")
         maven("https://www.jetbrains.com/intellij-repository/releases")

@@ -1,5 +1,9 @@
 package framework.codegen.model.constructor.visitor
 
+import framework.api.js.JsClassId
+import framework.api.js.util.isExportable
+import framework.codegen.JsImport
+import framework.codegen.ModuleType
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
@@ -47,6 +51,7 @@ import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.services.language.isLanguageKeyword
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
@@ -107,6 +112,10 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         this == Double.POSITIVE_INFINITY -> "Number.POSITIVE_INFINITY"
         this == Double.NEGATIVE_INFINITY -> "Number.NEGATIVE_INFINITY"
         else -> "$this"
+    }
+
+    override fun renderRegularImport(regularImport: RegularImport) {
+        println("const ${regularImport.packageName} = require(\"${regularImport.className}\")")
     }
 
     override fun visit(element: CgStaticsRegion) {
@@ -196,13 +205,14 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     override fun visit(element: CgArrayInitializer) {
         val elementType = element.elementType
         val elementsInLine = arrayElementsInLine(elementType)
-
+        print("[")
         element.values.renderElements(elementsInLine)
+        print("]")
     }
 
     override fun visit(element: CgClassFile) {
-        element.imports.filterIsInstance<RegularImport>().forEach {
-            renderRegularImport(it)
+        element.imports.filterIsInstance<JsImport>().forEach {
+            renderImport(it)
         }
         println()
         element.declaredClass.accept(this)
@@ -247,14 +257,20 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun visit(element: CgConstructorCall) {
-        print("new $fileUnderTestAliases.${element.executableId.classId.name}")
+        val importPrefix = "$fileUnderTestAliases.".takeIf {
+            (element.executableId.classId as JsClassId).isExportable
+        } ?: ""
+        print("new $importPrefix${element.executableId.classId.name}")
         print("(")
         element.arguments.renderSeparated()
         print(")")
     }
 
-    override fun renderRegularImport(regularImport: RegularImport) {
-        println("const ${regularImport.packageName} = require(\"${regularImport.className}\")")
+    private fun renderImport(import: JsImport) = with(import) {
+        when (type) {
+            ModuleType.COMMONJS -> println("const $aliases = require(\"$path\")")
+            ModuleType.MODULE -> println("import $name as $aliases from \"$path\"")
+        }
     }
 
     override fun renderStaticImport(staticImport: StaticImport) {
@@ -394,10 +410,9 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type}")
     }
 
-    override fun escapeNamePossibleKeywordImpl(s: String): String =
-        if (isLanguageKeyword(s, context.cgLanguageAssistant)) "`$s`" else s
+    override fun escapeNamePossibleKeywordImpl(s: String): String = s
 
-    override fun renderClassVisibility(classId: ClassId) {
+    override fun renderVisibility(modifier: VisibilityModifier) {
         TODO("Not yet implemented")
     }
 

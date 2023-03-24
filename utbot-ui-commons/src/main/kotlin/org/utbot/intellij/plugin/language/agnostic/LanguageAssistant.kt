@@ -45,7 +45,7 @@ abstract class LanguageAssistant {
                         element.containingFile?.let { getLanguageFromFile(it) }
                     }
                     else -> {
-                        val someSelection = e.getData(PlatformDataKeys.SELECTED_ITEMS)?: return null
+                        val someSelection = e.getData(PlatformDataKeys.PSI_ELEMENT_ARRAY)?: return null
                         someSelection.firstNotNullOfOrNull {
                             when(it) {
                                 is PsiFileSystemItem -> findLanguageRecursively(project, arrayOf(it.virtualFile))

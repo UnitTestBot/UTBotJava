@@ -1,23 +1,13 @@
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11
+        jvmTarget = JavaVersion.VERSION_17
         freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
     }
 }
 
 tasks.withType(JavaCompile) {
     sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-
-repositories {
-    flatDir {
-        dirs 'dist'
-    }
-}
-
-configurations {
-    z3native
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
@@ -39,7 +29,6 @@ dependencies {
 
     implementation group: 'com.charleskorn.kaml', name: 'kaml', version: kamlVersion
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
-    implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgenVersion
     implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2Version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
@@ -66,24 +55,11 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     testImplementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
 
-    z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3Version, ext: 'zip'
-    z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3Version, ext: 'zip'
-    z3native group: 'com.microsoft.z3', name: 'z3-native-osx', version: z3Version, ext: 'zip'
+    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
+    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
 }
 
-
 test {
-
-    minHeapSize = "128m"
-    maxHeapSize = "2048m"
-
-    jvmArgs '-XX:MaxHeapSize=2048m'
-
-    // To use JUnit4, comment out useJUnitPlatform and uncomment useJUnit. Please also check "dependencies" section
-    //useJUnit()
-    useJUnitPlatform() {
-        excludeTags 'slow', 'IntegrationTest'
-    }
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }

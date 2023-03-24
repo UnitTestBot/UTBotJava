@@ -64,7 +64,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
             val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
-                val srcClass = psiElementHandler.containingClass(element) ?: return null
+                val srcClass = psiElementHandler.identifiedContainingClass(element) ?: return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
                 val focusedMethod = focusedMethodOrNull(element, srcMembers, psiElementHandler)
@@ -94,7 +94,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
                 val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
                 if (psiElementHandler.isCreateTestActionAvailable(element)) {
-                    psiElementHandler.containingClass(element)?.let {
+                    psiElementHandler.identifiedContainingClass(element)?.let {
                         srcClasses += setOf(it)
                         extractMembersFromSrcClasses = true
                         val memberInfoList = runReadAction<List<MemberInfo>> {
@@ -109,7 +109,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
                     }
                 }
             } else {
-                val someSelection = e.getData(PlatformDataKeys.SELECTED_ITEMS)?: return null
+                val someSelection = e.getData(PlatformDataKeys.PSI_ELEMENT_ARRAY)?: return null
                 someSelection.forEach {
                     when(it) {
                         is PsiFileSystemItem  -> srcClasses += getAllClasses(project, arrayOf(it.virtualFile))
@@ -146,6 +146,11 @@ object JvmLanguageAssistant : LanguageAssistant() {
             return Triple(srcClasses.toSet(), selectedMethods.toSet(), extractMembersFromSrcClasses)
         }
         return null
+    }
+
+    private fun PsiElementHandler.identifiedContainingClass(element: PsiElement): PsiClass? {
+        val clazz = containingClass(element)
+        return if (clazz is PsiAnonymousClass) PsiTreeUtil.getParentOfType(clazz, PsiClass::class.java) else clazz
     }
 
     /**
@@ -207,8 +212,13 @@ object JvmLanguageAssistant : LanguageAssistant() {
         // Thus, make transition to the Psi if it is required.
         val currentMethod = PsiTreeUtil.getParentOfType(element, psiElementHandler.methodClass)
             ?.let { psiElementHandler.toPsi(it, PsiMethod::class.java) }
+        // For anonymous class, we cannot select the nearest parent method directly.
+        // So, we have to suggest the nearest "outer" method from the named class.
+        val topmostCurrentMethod = PsiTreeUtil.getTopmostParentOfType(element, psiElementHandler.methodClass)
+            ?.let { psiElementHandler.toPsi(it, PsiMethod::class.java) }
 
         return methods.singleOrNull { it.member == currentMethod }
+            ?: methods.singleOrNull { it.member == topmostCurrentMethod }
     }
 
     private fun getAllClasses(directory: PsiDirectory): Set<PsiClass> {

@@ -105,7 +105,7 @@ class UtBotSymbolicEngine(
     dependencyPaths: String,
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
-    applicationContext: ApplicationContext?,
+    applicationContext: ApplicationContext,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
@@ -129,7 +129,8 @@ class UtBotSymbolicEngine(
         classUnderTest,
         hierarchy,
         chosenClassesToMockAlways,
-        MockListenerController(controller)
+        MockListenerController(controller),
+        applicationContext = applicationContext,
     )
 
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
@@ -356,6 +357,12 @@ class UtBotSymbolicEngine(
             names,
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
         ) { thisInstance, descr, values ->
+            if (thisInstance?.model is UtNullModel) {
+                // We should not try to run concretely any models with null-this.
+                // But fuzzer does generate such values, because it can fail to generate any "good" values.
+                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
+            }
+
             val diff = until - System.currentTimeMillis()
             val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
             // to concretely execute that values because request to instrumentation process involves

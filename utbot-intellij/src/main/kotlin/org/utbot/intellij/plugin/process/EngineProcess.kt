@@ -10,10 +10,6 @@ import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.jetbrains.rd.util.ConcurrentHashMap
-import com.jetbrains.rd.util.ILoggerFactory
-import com.jetbrains.rd.util.Logger
-import com.jetbrains.rd.util.Statics
-import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
@@ -42,7 +38,6 @@ import org.utbot.rd.generated.SettingForResult
 import org.utbot.rd.generated.SettingsModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.generated.synchronizationModel
-import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.loggers.overrideDefaultRdLoggerFactoryWithKLogger
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
@@ -228,7 +223,7 @@ class EngineProcess private constructor(val project: Project, private val classN
 
         val bySignature = executeWithTimeoutSuspended {
             DumbService.getInstance(project).runReadActionInSmartMode(Computable {
-                methods.associate { it.methodDescription() to it.paramNames() }
+                methods.map { it.methodDescription() to it.paramNames() }
             })
         }
         val arguments = FindMethodParamNamesArguments(
@@ -252,8 +247,6 @@ class EngineProcess private constructor(val project: Project, private val classN
     }
 
     fun generate(
-        mockInstalled: Boolean,
-        staticsMockingIsConfigured: Boolean,
         conflictTriggers: ConflictTriggers,
         methods: List<ExecutableId>,
         mockStrategyApi: MockStrategyApi,
@@ -267,9 +260,6 @@ class EngineProcess private constructor(val project: Project, private val classN
     ): RdTestGenerationResult {
         assertReadAccessNotAllowed()
         val params = GenerateParams(
-            mockInstalled,
-            staticsMockingIsConfigured,
-            kryoHelper.writeObject(conflictTriggers.toMutableMap()),
             kryoHelper.writeObject(methods),
             mockStrategyApi.name,
             kryoHelper.writeObject(chosenClassesToMockAlways),
@@ -288,6 +278,7 @@ class EngineProcess private constructor(val project: Project, private val classN
     fun render(
         testSetsId: Long,
         classUnderTest: ClassId,
+        projectType: ProjectType,
         paramNames: MutableMap<ExecutableId, List<String>>,
         generateUtilClassFile: Boolean,
         testFramework: TestFramework,
@@ -306,6 +297,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         val params = RenderParams(
             testSetsId,
             kryoHelper.writeObject(classUnderTest),
+            projectType.toString(),
             kryoHelper.writeObject(paramNames),
             generateUtilClassFile,
             testFramework.id.lowercase(),

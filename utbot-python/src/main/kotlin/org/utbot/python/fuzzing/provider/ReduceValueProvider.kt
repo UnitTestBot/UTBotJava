@@ -5,32 +5,33 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.toPythonRepr
+import org.utbot.python.framework.api.python.util.*
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.fuzzing.provider.utils.isConcreteType
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 
 object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     private val unsupportedTypes = listOf(
-        "builtins.list",
-        "builtins.set",
-        "builtins.tuple",
-        "builtins.dict",
-        "builtins.bytes",
-        "builtins.bytearray",
-        "builtins.complex",
-        "builtins.int",
-        "builtins.float",
-        "builtins.str",
-        "builtins.bool",
+        pythonListClassId.canonicalName,
+        pythonSetClassId.canonicalName,
+        pythonTupleClassId.canonicalName,
+        pythonDictClassId.canonicalName,
+        pythonBytesClassId.canonicalName,
+        pythonBytearrayClassId.canonicalName,
+        pythonComplexClassId.canonicalName,
+        pythonIntClassId.canonicalName,
+        pythonFloatClassId.canonicalName,
+        pythonStrClassId.canonicalName,
+        pythonBoolClassId.canonicalName,
     )
 
     override fun accept(type: Type): Boolean {
         val hasSupportedType =
             !unsupportedTypes.contains(type.pythonTypeName())
-        return hasSupportedType && type.meta is PythonConcreteCompositeTypeDescription // && (hasInit || hasNew)
+        return hasSupportedType && isConcreteType(type) // && (hasInit || hasNew)
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
@@ -92,20 +93,15 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
             construct = Routine.Create(nonSelfArgs) { v ->
                 PythonFuzzedValue(
                     PythonTree.ReduceNode(
-                        PythonClassId(type.pythonTypeName()),
-                        PythonClassId(type.pythonTypeName()),
+                        PythonClassId(type.pythonModuleName(), type.pythonName()),
+                        PythonClassId(type.pythonModuleName(), type.pythonName()),
                         v.map { it.tree },
                     ),
                     "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },
             modify = modifications,
-            empty = Routine.Empty {
-                PythonFuzzedValue(
-                    PythonTree.fromObject(),
-                    "%var% = ${type.pythonTypeRepresentation()}"
-                )
-            }
+            empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
         )
     }
 

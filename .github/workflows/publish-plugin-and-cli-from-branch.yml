@@ -62,7 +62,7 @@ jobs:
             - plugin_type: IU
               extra_options: "-PideType=IU"
       runs-on: ubuntu-20.04
-      container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
       steps:
       - uses: actions/checkout@v3
 
@@ -95,10 +95,10 @@ jobs:
           rm utbot-intellij-${{ env.VERSION }}.zip
 
       - name: Archive UTBot IntelliJ IDEA plugin
-        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
+        if: ${{ inputs.upload-artifact == 'true' }}
         uses: actions/upload-artifact@v3
         with:
-          name: utbot-intellij-${{ env.VERSION }}
+          name: utbot-intellij-${{ matrix.configuration.plugin_type }}-${{ env.VERSION }}
           path: utbot-intellij/build/distributions/*
 
       - name: Build UTBot CLI

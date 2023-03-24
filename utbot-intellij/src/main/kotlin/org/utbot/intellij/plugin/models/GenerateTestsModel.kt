@@ -18,6 +18,7 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
@@ -52,6 +53,8 @@ class GenerateTestsModel(
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle
+
+    lateinit var typeReplacementApproach: TypeReplacementApproach
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 

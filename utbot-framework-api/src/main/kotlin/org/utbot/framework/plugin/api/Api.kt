@@ -55,7 +55,11 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.common.isStatic
+import org.utbot.framework.plugin.api.TypeReplacementMode.*
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.process.OpenModulesContainer
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -1144,33 +1148,127 @@ class BuiltinConstructorId(
     }
 }
 
-open class TypeParameters(val parameters: List<ClassId> = emptyList())
+open class TypeParameters(val parameters: List<ClassId> = emptyList()) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-class WildcardTypeParameter : TypeParameters(emptyList())
+        other as TypeParameters
+
+        if (parameters != other.parameters) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return parameters.hashCode()
+    }
+}
+
+object WildcardTypeParameter : TypeParameters(emptyList())
 
 /**
- * Additional data describing user project.
+ * Describes the way to replace abstract types with concrete implementors.
  */
-interface ApplicationContext
+enum class TypeReplacementMode {
+    /**
+     * Any possible implementor (that is preferred by solver) may be used.
+     */
+    AnyImplementor,
+
+    /**
+     * There is a known implementor to be used.
+     * For example, it is obtained from bean definitions in Spring application.
+     */
+    KnownImplementor,
+
+    /**
+     * Using implementors is not allowed.
+     * If mocking is allowed, mock of this type will be used.
+     * Otherwise, branch will be pruned as unsatisfiable.
+     */
+    NoImplementors,
+}
 
 /**
- * A context to use when no additional data is required.
+ * A context to use when no specific data is required.
+ *
+ * @param mockFrameworkInstalled shows if we have installed framework dependencies
+ * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
-object EmptyApplicationContext: ApplicationContext
+open class ApplicationContext(
+    val mockFrameworkInstalled: Boolean = true,
+    staticsMockingIsConfigured: Boolean = true,
+) {
+    var staticsMockingIsConfigured = staticsMockingIsConfigured
+        private set
+
+    init {
+        /**
+         * Situation when mock framework is not installed but static mocking is configured is semantically incorrect.
+         *
+         * However, it may be obtained in real application after this actions:
+         * - fully configure mocking (dependency installed + resource file created)
+         * - remove mockito-core dependency from project
+         * - forget to remove mock-maker file from resource directory
+         *
+         * Here we transform this configuration to semantically correct.
+         */
+        if (!mockFrameworkInstalled && staticsMockingIsConfigured) {
+            this.staticsMockingIsConfigured = false
+        }
+    }
+
+    /**
+     * Shows if there are any restrictions on type implementors.
+     */
+    open val typeReplacementMode: TypeReplacementMode = AnyImplementor
+
+    /**
+     * Finds a type to replace the original abstract type
+     * if it is guided with some additional information.
+     */
+    open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
+}
 
 /**
  * Data we get from Spring application context
  * to manage engine and code generator behaviour.
  *
- * @param beanQualifiedNames describes fqn of injected classes
+ * @param beanQualifiedNames describes fqn of types from bean definitions
+ * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
  */
-data class SpringApplicationContext(
-    val beanQualifiedNames: List<String> = emptyList(),
-): ApplicationContext {
+class SpringApplicationContext(
+    mockInstalled: Boolean,
+    staticsMockingIsConfigured: Boolean,
+    private val beanQualifiedNames: List<String> = emptyList(),
+    private val shouldUseImplementors: Boolean,
+): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+    
     private val springInjectedClasses: List<ClassId> by lazy {
-        beanQualifiedNames.map { fqn -> utContext.classLoader.loadClass(fqn).id }
+        beanQualifiedNames
+            .map { fqn -> utContext.classLoader.loadClass(fqn) }
+            .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
+            .map { it.id }
     }
+
+    override val typeReplacementMode: TypeReplacementMode
+        get() = if (shouldUseImplementors) KnownImplementor else NoImplementors
+
+    /**
+     * Replaces an interface type with its implementor type
+     * if there is the unique implementor in bean definitions.
+     */
+    override fun replaceTypeIfNeeded(type: RefType): ClassId? =
+        if (type.isAbstractType) {
+            springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
+        } else {
+            null
+        }
 }
+
+val RefType.isAbstractType
+ get() = this.sootClass.isAbstract || this.sootClass.isInterface
 
 interface CodeGenerationSettingItem {
     val id: String
@@ -1332,9 +1430,10 @@ enum class CodegenLanguage(
                 "-d", buildDirectory,
                 "-cp", classPath,
                 "-XDignore.symbol.file", // to let javac use classes from rt.jar
-                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
-                "--add-exports", "java.base/sun.text=ALL-UNNAMED",
-            ).plus(sourcesFiles)
+            ).plus(OpenModulesContainer.javaVersionSpecificArguments.toMutableList().apply {
+                if (last().contains("illegal"))
+                    removeLast()
+            }).plus(sourcesFiles)
 
             // TODO: -Xskip-prerelease-check is needed to handle #1262, check if this is good enough solution
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath, "-Xskip-prerelease-check").plus(sourcesFiles)

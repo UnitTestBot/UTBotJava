@@ -52,6 +52,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.framework.SummariesGenerationType
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.*
@@ -221,6 +222,7 @@ fun runGeneration(
 
     val codeGenerator = CodeGenerator(
             cut.classId,
+            projectType = ProjectType.PureJvm,
             testFramework = junitByVersion(junitVersion),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,

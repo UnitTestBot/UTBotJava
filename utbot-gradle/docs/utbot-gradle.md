@@ -41,6 +41,7 @@ __Groovy:__
       sarifReportsRelativeRoot = 'build/generated/sarif'
       markGeneratedTestsDirectoryAsTestSourcesRoot = true
       testPrivateMethods = false
+      projectType = 'purejvm'
       testFramework = 'junit5'
       mockFramework = 'mockito'
       generationTimeout = 60000L
@@ -60,6 +61,7 @@ __Kotlin DSL:__
       sarifReportsRelativeRoot.set("build/generated/sarif")
       markGeneratedTestsDirectoryAsTestSourcesRoot.set(true)
       testPrivateMethods.set(false)
+      projectType.set("purejvm")
       testFramework.set("junit5")
       mockFramework.set("mockito")
       generationTimeout.set(60000L)
@@ -81,6 +83,7 @@ generateTestsAndSarifReport
     -PgeneratedTestsRelativeRoot='build/generated/test'
     -PsarifReportsRelativeRoot='build/generated/sarif'
     -PtestPrivateMethods='false'
+    -PtestProjectType=purejvm
     -PtestFramework=junit5
     -PmockFramework=mockito
     -PgenerationTimeout=60000
@@ -118,6 +121,14 @@ generateTestsAndSarifReport
 - `testPrivateMethods`&ndash;
   - Generate tests for private methods or not.
   - By default, `false` is used.
+
+- `projectType` &ndash;
+  - The type of project being analyzed.
+  - Can be one of:
+    - `'purejvm'` _(by default)_
+    - `'spring'`
+    - `'python'`
+    - `'javascript'`
 
 - `testFramework` &ndash;
   - The name of the test framework to be used.

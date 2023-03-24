@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.cellvalidators.ValidatingTableCellRendererWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.ColumnInfo
@@ -25,7 +26,6 @@ import javax.swing.JTextField
 import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.TableCellEditor
 import javax.swing.table.TableCellRenderer
-import org.jetbrains.kotlin.idea.search.allScope
 
 @Suppress("UnstableApiUsage")
 internal class MockAlwaysClassesTable(project: Project) : ListTableWithButtons<MockAlwaysClassesTable.Item>() {
@@ -123,7 +123,7 @@ internal class MockAlwaysClassesTable(project: Project) : ListTableWithButtons<M
         private val validatorsDisposable = Disposer.newDisposable()
 
         private fun checkPsiClassByName(classFullyQualifiedName: String): PsiClass? =
-            JavaPsiFacade.getInstance(project).findClass(classFullyQualifiedName, project.allScope())
+            JavaPsiFacade.getInstance(project).findClass(classFullyQualifiedName, GlobalSearchScope.allScope(project))
     }
 
     internal data class Item(var fullyQualifiedName: String) {

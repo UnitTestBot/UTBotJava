@@ -41,6 +41,7 @@ import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgMethodsCluster
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
+import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgForEachLoop
 import org.utbot.framework.codegen.domain.models.CgForLoop
 import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
@@ -83,6 +84,7 @@ import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgUtilMethod
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.CgWhileLoop
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -190,9 +192,10 @@ abstract class CgAbstractRenderer(
     private fun CgRegion<*>.render(printLineAfterContentEnd: Boolean = false) {
         if (content.isEmpty() || isInterrupted) return
 
-        print(regionStart)
-        header?.let { print(" $it") }
-        println()
+        header?.let {
+            print(regionStart)
+            println(" $it")
+        }
 
         if (this is CgTestMethodCluster) description?.accept(this@CgAbstractRenderer)
 
@@ -208,7 +211,9 @@ abstract class CgAbstractRenderer(
 
         if (printLineAfterContentEnd) println()
 
-        println(regionEnd)
+        header?.let {
+            println(regionEnd)
+        }
 
         if (isLimitExceeded && !isInterrupted) {
             visit(CgSingleLineComment("Abrupt generation termination: file size exceeds configured limit (${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())})"))
@@ -350,9 +355,9 @@ abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgCustomTagStatement) {
-        if (element.statements.all { it.isEmpty() }) return
+        if (element.content.all { it.isEmpty() }) return
 
-        element.statements.forEach { it.accept(this) }
+        element.content.forEach { it.accept(this) }
     }
 
     override fun visit(element: CgDocCodeStmt) {
@@ -569,6 +574,14 @@ abstract class CgAbstractRenderer(
             it.accept(this)
         }
         println(statementEnding)
+    }
+
+    // Class field declaration
+
+    override fun visit(element: CgFieldDeclaration) {
+        element.annotation?.accept(this)
+        renderVisibility(element.visibility)
+        element.declaration.accept(this)
     }
 
     // Variable assignment
@@ -888,7 +901,7 @@ abstract class CgAbstractRenderer(
         }
     }
 
-    protected abstract fun renderClassVisibility(classId: ClassId)
+    protected abstract fun renderVisibility(modifier: VisibilityModifier)
 
     protected abstract fun renderClassModality(aClass: CgClass)
 

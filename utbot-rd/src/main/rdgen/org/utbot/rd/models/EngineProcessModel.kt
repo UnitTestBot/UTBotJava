@@ -42,10 +42,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("applicationContext", array(PredefinedType.byte))
     }
     val generateParams = structdef {
-        // mocks
-        field("mockInstalled", PredefinedType.bool)
-        field("staticsMockingIsConfigureda", PredefinedType.bool)
-        field("conflictTriggers", array(PredefinedType.byte))
         // generate
         field("methods", array(PredefinedType.byte))
         field("mockStrategy", PredefinedType.string)
@@ -66,6 +62,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val renderParams = structdef {
         field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
+        field("projectType", PredefinedType.string)
         field("paramNames", array(PredefinedType.byte))
         field("generateUtilClassFile", PredefinedType.bool)
         field("testFramework", PredefinedType.string)

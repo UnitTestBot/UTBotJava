@@ -76,6 +76,7 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgDocRegularLineStmt
+import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgFormattedString
 import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgNestedClassesRegion
@@ -184,6 +185,9 @@ interface CgVisitor<R> {
 
     // Variable declaration
     fun visit(element: CgDeclaration): R
+
+    // Field declaration
+    fun visit(element: CgFieldDeclaration): R
 
     // Variable assignment
     fun visit(element: CgAssignment): R

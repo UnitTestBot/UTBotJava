@@ -28,6 +28,12 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
         else
             name.prefix.joinToString(".") + "." + name.name
     }
+    fun getModuleName(): String {
+        return name.prefix.joinToString(".")
+    }
+    fun getName(): String {
+        return name.name
+    }
     fun getModules(type: Type): Set<String> {
         val cur = if (name.prefix.isNotEmpty())
             setOf(name.prefix.joinToString(separator = "."))
@@ -199,6 +205,26 @@ class PythonCallableTypeDescription(
         return "$root[[${
             functionType.arguments.joinToString(separator = ", ") { it.pythonTypeRepresentation() }
         }], ${functionType.returnValue.pythonTypeRepresentation()}]"
+    }
+
+    fun removeNonPositionalArgs(type: Type): FunctionType {
+        val functionType = castToCompatibleTypeApi(type)
+        val argsCount = argumentKinds.count { it == ArgKind.ARG_POS }
+        return createPythonCallableType(
+            functionType.parameters.size,
+            argumentKinds.take(argsCount),
+            argumentNames.take(argsCount)
+        ) { self ->
+            val substitution = (functionType.parameters zip self.parameters).associate {
+                Pair(it.first as TypeParameter, it.second)
+            }
+            FunctionTypeCreator.InitializationData(
+                functionType.arguments.take(argsCount).map {
+                    DefaultSubstitutionProvider.substitute(it, substitution)
+                },
+                DefaultSubstitutionProvider.substitute(functionType.returnValue, substitution)
+            )
+        }
     }
 }
 

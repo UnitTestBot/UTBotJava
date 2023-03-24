@@ -69,3 +69,5 @@ if (goIde.split(",").contains(ideType)) {
     include("utbot-cli-go")
     include("utbot-intellij-go")
 }
+
+include("utbot-spring-analyzer")

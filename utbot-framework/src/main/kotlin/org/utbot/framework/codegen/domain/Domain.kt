@@ -737,12 +737,12 @@ enum class ProjectType {
     JavaScript,
 }
 
-enum class TypeReplacementApproach {
+sealed class TypeReplacementApproach {
     /**
      * Do not replace interfaces and abstract classes with concrete implementors.
      * Use mocking instead of it.
      */
-    DO_NOT_REPLACE,
+    object DoNotReplace : TypeReplacementApproach()
 
     /**
      * Try to replace interfaces and abstract classes with concrete implementors
@@ -751,7 +751,7 @@ enum class TypeReplacementApproach {
      *
      * Currently used in Spring applications only.
      */
-    REPLACE_IF_POSSIBLE,
+    class ReplaceIfPossible(val configFqn: String) : TypeReplacementApproach()
 }
 
 abstract class DependencyInjectionFramework(

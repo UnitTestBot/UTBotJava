@@ -546,8 +546,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.typeReplacementApproach =
             when (springConfig.item) {
-                NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DO_NOT_REPLACE
-                else -> TypeReplacementApproach.REPLACE_IF_POSSIBLE
+                NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DoNotReplace
+                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item)
             }
 
         val settings = model.project.service<Settings>()

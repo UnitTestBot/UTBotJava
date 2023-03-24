@@ -180,8 +180,8 @@ object UtTestsDialogProcessor {
                         val applicationContext = when (model.projectType) {
                             Spring -> {
                                 val shouldUseImplementors = when (model.typeReplacementApproach) {
-                                    TypeReplacementApproach.DO_NOT_REPLACE -> false
-                                    TypeReplacementApproach.REPLACE_IF_POSSIBLE -> true
+                                    TypeReplacementApproach.DoNotReplace -> false
+                                    is TypeReplacementApproach.ReplaceIfPossible -> true
                                 }
 
                                 SpringApplicationContext(

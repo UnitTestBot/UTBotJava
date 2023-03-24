@@ -201,7 +201,9 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                     // Sometimes void methods are called explicitly, e.g. annotated with @Mock fields in Spring test classes.
                     // We would like to mark that this field is used and must not be removed from test class.
                     // Without `doNothing` call Intellij Idea suggests removing this field as unused.
-                    is MethodId -> mockitoClassId[doNothingMethodId]()[whenStubberMethodId](mockObject)[executable](*matchers)
+                    is MethodId -> {
+                        +mockitoClassId[doNothingMethodId]()[whenStubberMethodId](mockObject)[executable](*matchers)
+                    }
                     else -> error("Only MethodId and ConstructorId was expected to appear in simple mocker but got $executable")
                 }
             } else {

@@ -6,9 +6,9 @@ Now UnitTestBot provides fuzzing-based support for Python.
 
 ## Requirements
 
-1. Python 3.8 or later
-2. [Python plugin](https://plugins.jetbrains.com/plugin/631-python) for IntelliJ IDEA
-3. IntelliJ IDEA 2022.1
+1. IntelliJ IDEA 2022.2 or later
+2. Python 3.8 or later
+3. [Python plugin](https://plugins.jetbrains.com/plugin/631-python) for IntelliJ IDEA
 
 If you already have a Python project, you usually have no need to install or configure anything else, but if you have trouble with launching UnitTestBot Python, please refer to [advanced requirements section](../utbot-python/docs/CLI.md#requirements).
 

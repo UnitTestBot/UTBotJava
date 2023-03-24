@@ -62,7 +62,7 @@ Go projects automatically.
 
 ### Requirements
 
-* IntelliJ IDEA (Ultimate Edition) — versions from 2022.2 to 2022.2.4
+* IntelliJ IDEA Ultimate 2022.2 or later
 * Go SDK 1.18 or later
 * Compatible [Go plugin](https://plugins.jetbrains.com/plugin/9568-go) for IntelliJ IDEA
 * Properly configured `go.mod` file for the code under test

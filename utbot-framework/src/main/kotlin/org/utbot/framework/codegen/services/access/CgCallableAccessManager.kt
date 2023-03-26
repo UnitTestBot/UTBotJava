@@ -10,6 +10,7 @@ import org.utbot.framework.codegen.domain.builtin.getTargetException
 import org.utbot.framework.codegen.domain.builtin.invoke
 import org.utbot.framework.codegen.domain.builtin.newInstance
 import org.utbot.framework.codegen.domain.builtin.setAccessible
+import org.utbot.framework.codegen.domain.builtin.stubberClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
@@ -192,8 +193,16 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         when {
             // method of the current test class can be called on its 'this' instance
             currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
+
             // method of a class can be called on an object of this class or any of its subtypes
             this.type isSubtypeOf executable.classId -> true
+
+            // We allow callers with [stubberClassId] classId to call any executable.
+            // Example to see why: doNothing().when(entityManagerMock).persist(any()).
+            // Here [persist()] cannot be called on [doNothing().when(entityManagerMock)],
+            // because it requires [EntityManager] classId caller.
+            this.type == stubberClassId -> true
+
             else -> false
         }
 

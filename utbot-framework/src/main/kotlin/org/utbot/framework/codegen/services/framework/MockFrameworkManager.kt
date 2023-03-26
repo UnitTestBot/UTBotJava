@@ -202,6 +202,8 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                     // We would like to mark that this field is used and must not be removed from test class.
                     // Without `doNothing` call Intellij Idea suggests removing this field as unused.
                     is MethodId -> {
+                        // We allow [stubberClassId] to be a receiver of [executable].
+                        // See [CgExpression.canBeReceiverOf]
                         +mockitoClassId[doNothingMethodId]()[whenStubberMethodId](mockObject)[executable](*matchers)
                     }
                     else -> error("Only MethodId and ConstructorId was expected to appear in simple mocker but got $executable")

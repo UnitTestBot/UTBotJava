@@ -97,7 +97,8 @@ internal val doNothingMethodId = builtinStaticMethodId(
 internal val whenStubberMethodId = builtinMethodId(
     classId = stubberClassId,
     name = "when",
-    returnType = objectClassId,
+    returnType = stubberClassId,
+    arguments = arrayOf(objectClassId)
 )
 
 // TODO: for this method and other static methods implement some utils that allow calling

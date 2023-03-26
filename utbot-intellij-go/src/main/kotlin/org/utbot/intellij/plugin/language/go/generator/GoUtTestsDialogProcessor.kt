@@ -12,10 +12,12 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import org.utbot.go.gocodeanalyzer.GoSourceCodeAnalysisException
 import org.utbot.go.logic.GoUtTestsGenerationConfig
 import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.language.go.ui.GenerateGoTestsDialogWindow
 import org.utbot.intellij.plugin.language.go.ui.utils.resolveGoExecutablePath
+import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 
 object GoUtTestsDialogProcessor {
 
@@ -88,9 +90,17 @@ object GoUtTestsDialogProcessor {
                     model.allFunctionExecutionTimeoutMillis
                 )
 
-                IntellijGoUtTestsGenerationController(model, indicator).generateTests(
-                    selectedFunctionsNamesBySourceFiles, testsGenerationConfig
-                ) { indicator.isCanceled }
+                try {
+                    IntellijGoUtTestsGenerationController(model, indicator).generateTests(
+                        selectedFunctionsNamesBySourceFiles, testsGenerationConfig
+                    ) { indicator.isCanceled }
+                } catch (e: GoSourceCodeAnalysisException) {
+                    showErrorDialogLater(
+                        model.project,
+                        e.message ?: "Please try running \"go mod tidy\" in the project's root directory or fix any errors in the code.",
+                        title = "Unit tests generation is cancelled"
+                    )
+                }
             }
         })
     }

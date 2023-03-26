@@ -116,3 +116,5 @@ internal data class AnalysisResult(
 )
 
 internal data class AnalysisResults(val results: List<AnalysisResult>, val intSize: Int, val maxTraceLength: Int)
+
+class GoSourceCodeAnalysisException(s: String) : Exception(s)

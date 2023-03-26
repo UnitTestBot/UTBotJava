@@ -1,5 +1,6 @@
 package org.utbot.go.gocodeanalyzer
 
+import com.beust.klaxon.KlaxonException
 import org.utbot.common.FileUtil.extractDirectoryFromArchive
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.go.api.GoPrimitiveTypeId
@@ -114,6 +115,13 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notFoundFunctionsNames
                 )
             }, intSize, maxTraceLength)
+        } catch (e: KlaxonException) {
+            throw GoSourceCodeAnalysisException(
+                buildString {
+                    appendLine("An error occurred while parsing the result of the source code analysis.")
+                    appendLine("Please try running \"go mod tidy\" in the project's root directory or fix any errors in the code.")
+                }
+            )
         } finally {
             // TODO correctly?
             analysisTargetsFile.delete()

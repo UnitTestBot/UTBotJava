@@ -115,12 +115,10 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notFoundFunctionsNames
                 )
             }, intSize, maxTraceLength)
-        } catch (e: KlaxonException) {
-            throw GoSourceCodeAnalysisException(
-                buildString {
-                    appendLine("An error occurred while parsing the result of the source code analysis.")
-                    appendLine("Please try running \"go mod tidy\" in the project's root directory or fix any errors in the code.")
-                }
+        } catch (exception: KlaxonException) {
+            throw GoParsingSourceCodeAnalysisResultException(
+                "An error occurred while parsing the result of the source code analysis.",
+                exception
             )
         } finally {
             // TODO correctly?

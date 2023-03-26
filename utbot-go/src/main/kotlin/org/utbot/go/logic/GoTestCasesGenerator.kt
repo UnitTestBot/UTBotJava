@@ -12,6 +12,7 @@ import org.utbot.go.imports.GoImportsResolver
 import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
 import org.utbot.go.worker.GoWorker
 import org.utbot.go.worker.GoWorkerCodeGenerationHelper
+import org.utbot.go.worker.GoWorkerFailedException
 import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
@@ -78,8 +79,7 @@ object GoTestCasesGenerator {
                     } catch (e: SocketTimeoutException) {
                         val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
                         if (processHasExited) {
-                            val processOutput = InputStreamReader(process.inputStream).readText()
-                            throw TimeoutException("Timeout exceeded: Worker not connected. Process output: $processOutput")
+                            throw GoWorkerFailedException("An error occurred while starting the worker.")
                         } else {
                             process.destroy()
                         }

@@ -40,6 +40,14 @@ internal val stubberClassId = BuiltinClassId(
     simpleName = "Stubber"
 )
 
+// We wrap an Object classId in BuiltinClassId
+// in order to deal with [CgExpression.canBeReceiverOf]
+// when we want to call ANY method on an object.
+internal val genericObjectClassId = BuiltinClassId(
+    canonicalName = "java.lang.Object",
+    simpleName = "Object"
+)
+
 internal val answerClassId = BuiltinClassId(
     canonicalName = "org.mockito.stubbing.Answer",
     simpleName = "Answer",
@@ -97,7 +105,7 @@ internal val doNothingMethodId = builtinStaticMethodId(
 internal val whenStubberMethodId = builtinMethodId(
     classId = stubberClassId,
     name = "when",
-    returnType = stubberClassId,
+    returnType = genericObjectClassId,
     arguments = arrayOf(objectClassId)
 )
 

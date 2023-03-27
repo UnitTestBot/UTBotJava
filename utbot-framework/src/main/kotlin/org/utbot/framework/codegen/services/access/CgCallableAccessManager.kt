@@ -9,8 +9,8 @@ import org.utbot.framework.codegen.domain.builtin.getMethodId
 import org.utbot.framework.codegen.domain.builtin.getTargetException
 import org.utbot.framework.codegen.domain.builtin.invoke
 import org.utbot.framework.codegen.domain.builtin.newInstance
+import org.utbot.framework.codegen.domain.builtin.genericObjectClassId
 import org.utbot.framework.codegen.domain.builtin.setAccessible
-import org.utbot.framework.codegen.domain.builtin.stubberClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
@@ -191,24 +191,24 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private infix fun CgExpression.canBeReceiverOf(executable: MethodId): Boolean =
         when {
-            // method of the current test class can be called on its 'this' instance
+            // this executable can be called on its 'this' instance
             currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
 
-            // method of the current test class can be called on an object of this class or any of its subtypes
+            // this executable can be called on an object of this class or any of its subtypes
             this.type isSubtypeOf executable.classId -> true
 
-            // method of the current test class can be called on builtin type
-            this.type in builtinCallersWithoutReflection -> true
+            // this executable can be called on builtin type
+            this.type is BuiltinClassId && this.type in builtinCallersWithoutReflection -> true
 
             else -> false
         }
 
-    // Fore some builtin types do not having [ClassId] we need to clarify
-    // that it is allowed to call their methods without reflection.
+    // For some builtin types we need to clarify
+    // that it is allowed to call an executable without reflection.
     //
     // This approach is used, for example, to render the constructions with stubs
     // like `doNothing().when(entityManagerMock).persist(any())`.
-    private val builtinCallersWithoutReflection = setOf<ClassId>(stubberClassId)
+    private val builtinCallersWithoutReflection = setOf(genericObjectClassId)
 
     /**
      * For Kotlin extension functions, real caller is one of the arguments in JVM method (and declaration class is omitted),

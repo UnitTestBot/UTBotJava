@@ -70,6 +70,22 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testByteWithIntOverflow() {
+        withTreatingOverflowAsError {
+            checkWithException(
+                OverflowExamples::byteWithIntOverflow,
+                eq(2),
+                { x, y, r ->
+                    runCatching {
+                        Math.addExact(x.toInt(), y)
+                    }.isFailure && r.isException<OverflowDetectionError>()
+                },
+                { x, y, r -> Math.addExact(x.toInt(), y).toByte() == r.getOrThrow() }
+            )
+        }
+    }
+
+    @Test
     fun testByteSubOverflow() {
         withTreatingOverflowAsError {
             checkWithException(

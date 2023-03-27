@@ -421,16 +421,20 @@ object GoCodeTemplates {
         		}, nil
         	case reflect.Struct:
         		fields := reflect.VisibleFields(valueOfRes.Type())
-        		resultValues := make([]__FieldValue__, len(fields))
-        		for i, field := range fields {
+        		resultValues := make([]__FieldValue__, 0, valueOfRes.NumField())
+        		for _, field := range fields {
+        			if len(field.Index) != 1 {
+        				continue
+        			}
+
         			res, err := __convertReflectValueToRawValue__(valueOfRes.FieldByName(field.Name))
         			__checkErrorAndExit__(err)
 
-        			resultValues[i] = __FieldValue__{
+        			resultValues = append(resultValues, __FieldValue__{
         				Name:       field.Name,
         				Value:      res,
         				IsExported: field.IsExported(),
-        			}
+        			})
         		}
         		return __StructValue__{
         			Type:  valueOfRes.Type().String(),

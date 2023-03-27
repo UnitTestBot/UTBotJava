@@ -1,5 +1,6 @@
 package org.utbot.go.gocodeanalyzer
 
+import com.beust.klaxon.KlaxonException
 import org.utbot.common.FileUtil.extractDirectoryFromArchive
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.go.api.GoPrimitiveTypeId
@@ -114,6 +115,11 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notFoundFunctionsNames
                 )
             }, intSize, maxTraceLength)
+        } catch (exception: KlaxonException) {
+            throw GoParsingSourceCodeAnalysisResultException(
+                "An error occurred while parsing the result of the source code analysis.",
+                exception
+            )
         } finally {
             // TODO correctly?
             analysisTargetsFile.delete()

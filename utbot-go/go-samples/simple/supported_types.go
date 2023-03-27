@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/pmezard/go-difflib/difflib"
 	dif "github.com/pmezard/go-difflib/difflib"
+	"go-samples/simple/nested"
 	"math"
 )
 
@@ -213,4 +214,8 @@ func SliceOfSliceOfStructs(slice [][]Structure) [][]Structure {
 
 func SliceOfArrayOfInt(slice [][5]int) [][5]int {
 	return slice
+}
+
+func ExportedStructWithEmbeddedUnexportedStruct(exportedStruct nested.ExportedStruct) nested.ExportedStruct {
+	return exportedStruct
 }

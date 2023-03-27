@@ -194,17 +194,21 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             // method of the current test class can be called on its 'this' instance
             currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
 
-            // method of a class can be called on an object of this class or any of its subtypes
+            // method of the current test class can be called on an object of this class or any of its subtypes
             this.type isSubtypeOf executable.classId -> true
 
-            // We allow callers with [stubberClassId] classId to call any executable.
-            // Example to see why: doNothing().when(entityManagerMock).persist(any()).
-            // Here [persist()] cannot be called on [doNothing().when(entityManagerMock)],
-            // because it requires [EntityManager] classId caller.
-            this.type == stubberClassId -> true
+            // method of the current test class can be called on builtin type
+            this.type in builtinCallersWithoutReflection -> true
 
             else -> false
         }
+
+    // Fore some builtin types do not having [ClassId] we need to clarify
+    // that it is allowed to call their methods without reflection.
+    //
+    // This approach is used, for example, to render the constructions with stubs
+    // like `doNothing().when(entityManagerMock).persist(any())`.
+    private val builtinCallersWithoutReflection = setOf<ClassId>(stubberClassId)
 
     /**
      * For Kotlin extension functions, real caller is one of the arguments in JVM method (and declaration class is omitted),

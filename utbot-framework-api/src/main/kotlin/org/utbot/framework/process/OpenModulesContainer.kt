@@ -15,6 +15,8 @@ object OpenModulesContainer {
             openPackage("java.base", "java.lang.invoke")
             openPackage("java.base", "jdk.internal.misc")
             openPackage("java.base", "sun.reflect.generics.repository")
+            openPackage("java.base", "java.io")
+            openPackage("java.base", "java.nio")
             openPackage("java.base", "java.lang")
             openPackage("java.base", "java.security")
             openPackage("java.base", "java.util")

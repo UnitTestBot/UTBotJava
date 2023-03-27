@@ -31,6 +31,7 @@ import com.intellij.openapi.ui.OptionAction
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.popup.IconButton
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
@@ -149,9 +150,11 @@ import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
+import java.awt.Component
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import javax.swing.DefaultListCellRenderer
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -188,7 +191,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
     private val modelSpringConfigs = (listOf(NO_SPRING_CONFIGURATION_OPTION) + model.getSortedSpringConfigurationClasses()).toTypedArray()
-    private val springConfig = ComboBox(modelSpringConfigs)
+    private val springConfig = createComboBox(modelSpringConfigs)
 
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
@@ -228,6 +231,28 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             it.renderer = CodeGenerationSettingItemRenderer()
         }
     }
+
+    private fun <T> createComboBox(values: Array<T>): ComboBox<T> {
+        val comboBoxWidth = 300
+        val maxComboBoxElementLength = 50
+        return object : ComboBox<T>(DefaultComboBoxModel(values), comboBoxWidth) {}.also {
+            it.renderer = object : DefaultListCellRenderer() {
+                override fun getListCellRendererComponent(
+                    list: JList<*>?,
+                    value: Any?,
+                    index: Int,
+                    isSelected: Boolean,
+                    cellHasFocus: Boolean
+                ): Component {
+                    val label =
+                        super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+                    text = StringUtil.trimMiddle(value.toString(), maxComboBoxElementLength)
+                    return label
+                }
+            }
+        }
+    }
+
 
     private fun createHelpLabel(commonTooltip: String? = null) = JBLabel(AllIcons.General.ContextHelp).apply {
         if (!commonTooltip.isNullOrEmpty()) toolTipText = commonTooltip

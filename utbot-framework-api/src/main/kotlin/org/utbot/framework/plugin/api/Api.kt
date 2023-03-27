@@ -1269,13 +1269,20 @@ class SpringApplicationContext(
     private val beanQualifiedNames: List<String> = emptyList(),
     private val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
-    
-    private val springInjectedClasses: List<ClassId> by lazy {
-        beanQualifiedNames
-            .map { fqn -> utContext.classLoader.loadClass(fqn) }
-            .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
-            .map { it.id }
-    }
+
+    private val springInjectedClasses: Set<ClassId>
+        get() {
+            if (springInjectedClassesStorage.isEmpty()) {
+                springInjectedClassesStorage = beanQualifiedNames
+                    .map { fqn -> utContext.classLoader.loadClass(fqn) }
+                    .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
+                    .mapTo(mutableSetOf()) { it.id }
+            }
+
+            return springInjectedClassesStorage
+        }
+
+    private var springInjectedClassesStorage = mutableSetOf<ClassId>()
 
     override val typeReplacementMode: TypeReplacementMode
         get() = if (shouldUseImplementors) KnownImplementor else NoImplementors
@@ -1303,8 +1310,7 @@ class SpringApplicationContext(
     override fun speculativelyCannotProduceNullPointerException(
         field: SootField,
         classUnderTest: ClassId,
-    ): Boolean =
-        field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
+    ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
 
 val RefType.isAbstractType

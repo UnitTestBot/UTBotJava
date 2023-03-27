@@ -2,7 +2,7 @@ package org.utbot.go.worker
 
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
-import org.utbot.go.api.util.getAllStructTypes
+import org.utbot.go.api.util.getAllVisibleStructTypes
 import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.simplecodegeneration.GoFileCodeBuilder
@@ -89,7 +89,7 @@ internal object GoWorkerCodeGenerationHelper {
         val workerTestFunctionCode = generateWorkerTestFunctionCode(functions, eachExecutionTimeoutMillis, port)
 
         val types = functions.flatMap { it.parameters }.map { it.type }
-        val structTypes = types.getAllStructTypes()
+        val structTypes = types.getAllVisibleStructTypes(destinationPackage)
         val aliases = imports.associate { it.goPackage to it.alias }
 
         fileCodeBuilder.addTopLevelElements(

@@ -111,6 +111,8 @@ class GoNamedTypeId(
         "${sourcePackage.packageName}.$name"
     }
 
+    fun exported(): Boolean = name.first().isUpperCase()
+
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
         val alias = aliases[sourcePackage]
         return if (sourcePackage.isBuiltin || sourcePackage == destinationPackage || alias == ".") {

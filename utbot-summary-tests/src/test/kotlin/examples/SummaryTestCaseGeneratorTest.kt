@@ -49,7 +49,8 @@ open class SummaryTestCaseGeneratorTest(
         summaryKeys: List<String>,
         methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf(),
-        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf()
+        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
         workaround(WorkaroundReason.HACK) {
             // @todo change to the constructor parameter
@@ -57,7 +58,11 @@ open class SummaryTestCaseGeneratorTest(
             checkNpeInNestedMethods = true
             checkNpeInNestedNotPrivateMethods = true
         }
-        val testSet = executionsModel(method.executableId, mockStrategy)
+        val testSet = executionsModel(
+            method.executableId,
+            mockStrategy,
+            additionalMockAlwaysClasses = additionalMockAlwaysClasses
+        )
         val testSetWithSummarization = listOf(testSet).summarizeAll(searchDirectory, sourceFile = null).single()
 
         testSetWithSummarization.executions.checkMatchersWithTextSummary(summaryKeys)

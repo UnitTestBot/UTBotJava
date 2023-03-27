@@ -97,13 +97,15 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.ApplicationType
+import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.DependencyInjectionFramework
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.SpringBeans
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -135,6 +137,7 @@ import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.allLibraries
 import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
+import org.utbot.intellij.plugin.ui.utils.findDependencyInjectionLibrary
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
@@ -155,6 +158,8 @@ private const val RECENTS_KEY = "org.utbot.recents"
 private const val SAME_PACKAGE_LABEL = "same as for sources"
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
+
+private const val NO_SPRING_CONFIGURATION_OPTION = "No configuration"
 
 private const val ACTION_GENERATE = "Generate Tests"
 private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
@@ -181,6 +186,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
+
+    private val modelSpringConfigs = (listOf(NO_SPRING_CONFIGURATION_OPTION) + model.getSortedSpringConfigurationClasses()).toTypedArray()
+    private val springConfig = ComboBox(modelSpringConfigs)
+
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
     private val timeoutSpinner =
@@ -208,7 +217,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun <T : CodeGenerationSettingItem> createComboBox(values: Array<T>) : ComboBox<T> {
         val comboBox = object:ComboBox<T>(DefaultComboBoxModel(values)) {
             var maxWidth = 0
-            //Don't shrink strategy
+            // Do not shrink strategy
             override fun getPreferredSize(): Dimension {
                 val size = super.getPreferredSize()
                 if (size.width > maxWidth) maxWidth = size.width
@@ -235,6 +244,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         MockFramework.allItems.forEach {
             it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
         }
+        DependencyInjectionFramework.allItems.forEach {
+            it.isInstalled = findDependencyInjectionLibrary(model.project, model.testModule, it) != null
+        }
+        model.projectType = if (SpringBeans.isInstalled) ProjectType.Spring else ProjectType.PureJvm
+
         StaticsMocking.allItems.forEach {
             it.isConfigured = staticsMockingConfigured()
         }
@@ -273,6 +287,19 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     testFrameworks,
                     null
                 )
+            }
+            if (model.projectType == ProjectType.Spring) {
+                row("Spring configuration:") {
+                    makePanelWithHelpTooltip(
+                        springConfig,
+                        ContextHelpLabel.create(
+                            "100% Symbolic execution mode.\n" +
+                                    "Classes defined in Spring configuration will be used instead " +
+                                    "of interfaces and abstract classes.\n" +
+                                    "Mocks will be used when necessary."
+                        )
+                    )
+                }
             }
             row("Mocking strategy:") {
                 makePanelWithHelpTooltip(
@@ -325,7 +352,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     override fun createTitlePane(): JComponent? {
         val sdkVersion = findSdkVersion(model.srcModule)
-        //TODO:SAT-1571 investigate Android Studio specific sdk issues
+        // TODO:SAT-1571 investigate Android Studio specific sdk issues
         if (sdkVersion.feature in minSupportedSdkVersion..maxSupportedSdkVersion || IntelliJApiHelper.isAndroidStudio()) return null
         isOKActionEnabled = false
         return SdkNotificationPanel(model, sdkVersion)
@@ -404,7 +431,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         membersTable.setMemberInfos(items)
         if (items.isEmpty()) isOKActionEnabled = false
 
-        // fix issue with MemberSelectionTable height, set it directly.
+        // Fix issue with MemberSelectionTable height, set it directly.
         // Use row height times methods (12 max) plus one more for header
         val height = membersTable.rowHeight * (items.size.coerceAtMost(12) + 1)
         membersTable.preferredScrollableViewportSize = size(-1, height)
@@ -517,9 +544,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
         model.testSourceRoot?.apply { model.updateSourceRootHistory(this.toNioPath().toString()) }
 
-        //TODO: obtain this values from UI controls https://github.com/UnitTestBot/UTBotJava/issues/1929
-        model.applicationType = ApplicationType.PURE_JVM
-        model.typeReplacementApproach = TypeReplacementApproach.DO_NOT_REPLACE
+        model.typeReplacementApproach =
+            when (springConfig.item) {
+                NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DoNotReplace
+                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item)
+            }
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -534,12 +563,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
         }
 
-        // firstly save settings
+        // Firstly, save settings
         loadStateFromModel(settings, model)
-        // then process force static mocking case
+        // Then, process force static mocking case
         model.generateWarningsForStaticMocking = model.staticsMocking is NoStaticMocking
         if (model.forceStaticMocking == ForceStaticMocking.FORCE) {
-            // we need mock framework extension to mock statics, no user provided => choose default
+            // We need mock framework extension to mock statics, no user provided => choose default
             if (model.staticsMocking is NoStaticMocking) {
                 model.staticsMocking = StaticsMocking.defaultItem
             }
@@ -667,6 +696,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         updateTestFrameworksList(settings.parametrizedTestSource)
         updateParametrizationEnabled()
 
+        updateSpringConfigurationEnabled()
+
         updateMockStrategyList()
 
         itemsToHelpTooltip.forEach { (box, tooltip) ->
@@ -685,8 +716,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * We need to notify the user about potential problems and to give
      * him a chance to install missing frameworks into his application.
      */
-    //region configure frameworks
-
     private fun configureTestFrameworkIfRequired() {
         val testFramework = testFrameworks.item
         if (!testFramework.isInstalled) {
@@ -888,7 +917,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         ProjectNewWindowDoNotAskOption(),
     )
 
-    //language features we use to generate parametrized tests
+    // Language features we use to generate parametrized tests
     // (i.e. @JvmStatic attribute or JUnit5 arguments) are supported since JVM target 1.8
     private val actualKotlinJvmTarget = "1.8"
 
@@ -958,6 +987,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             updateTestFrameworksList(parametrizedTestSource)
         }
 
+        springConfig.addActionListener { _ ->
+            val isSpringConfigSelected = springConfig.item != NO_SPRING_CONFIGURATION_OPTION
+            if (isSpringConfigSelected) {
+                // Here mock strategy gains more meaning in Spring Projects.
+                // We use OTHER_CLASSES strategy combined with type replacement being enabled.
+                mockStrategies.item = MockStrategyApi.OTHER_CLASSES
+                mockStrategies.isEnabled = false
+                updateMockStrategyListForConfigGuidedTypeReplacements()
+            } else {
+                mockStrategies.isEnabled = true
+                updateMockStrategyList()
+            }
+        }
+
         cbSpecifyTestPackage.addActionListener {
             val testPackageName = findTestPackageComboValue()
             val packageNameIsNeeded = testPackageField.isEnabled || testPackageName != SAME_PACKAGE_LABEL
@@ -969,10 +1012,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private lateinit var currentFrameworkItem: TestFramework
 
-    //We would like to remove JUnit4 from framework list in parametrized mode
+    // We would like to remove JUnit4 from framework list in parametrized mode
     private fun updateTestFrameworksList(parametrizedTestSource: ParametrizedTestSource) {
-        //We do not support parameterized tests for JUnit4
-        var enabledTestFrameworks = when (parametrizedTestSource) {
+        // We do not support parameterized tests for JUnit4
+        val enabledTestFrameworks = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.allItems
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.allItems.filterNot { it == Junit4 }
         }
@@ -996,8 +1039,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 || currentFrameworkItem == TestNg && findSdkVersion(model.srcModule).feature > minSupportedSdkVersion
         val mockStrategyIsSupported = mockStrategies.item == MockStrategyApi.NO_MOCKS
 
+        // We do not support PUT in Spring projects
+        val isSupportedProjectType = model.projectType == ProjectType.PureJvm
         parametrizedTestSources.isEnabled =
-            languageIsSupported && frameworkIsSupported && mockStrategyIsSupported
+            isSupportedProjectType && languageIsSupported && frameworkIsSupported && mockStrategyIsSupported
 
         if (!parametrizedTestSources.isEnabled) {
             parametrizedTestSources.isSelected = false
@@ -1015,6 +1060,27 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
                 }
             }
+        }
+    }
+
+    private fun updateMockStrategyListForConfigGuidedTypeReplacements() {
+        mockStrategies.renderer = object : ColoredListCellRenderer<MockStrategyApi>() {
+            override fun customizeCellRenderer(
+                list: JList<out MockStrategyApi>, value: MockStrategyApi,
+                index: Int, selected: Boolean, hasFocus: Boolean
+            ) {
+                this.append("Mock using Spring configuration", SimpleTextAttributes.REGULAR_ATTRIBUTES)
+            }
+        }
+    }
+
+    private fun updateSpringConfigurationEnabled() {
+        // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
+        springConfig.isEnabled = model.projectType == ProjectType.Spring
+                && modelSpringConfigs.size > 1
+
+        if (!springConfig.isEnabled) {
+            springConfig.item = NO_SPRING_CONFIGURATION_OPTION
         }
     }
 

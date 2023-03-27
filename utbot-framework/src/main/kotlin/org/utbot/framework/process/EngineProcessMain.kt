@@ -12,6 +12,7 @@ import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.reports.TestsGenerationReport
@@ -135,6 +136,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         val testSetsId: Long = params.testSetsId
         val codeGenerator = CodeGenerator(
             classUnderTest = classId,
+            projectType = ProjectType.valueOf(params.projectType),
             generateUtilClassFile = params.generateUtilClassFile,
             paramNames = kryoHelper.readObject(params.paramNames),
             testFramework = testFramework,

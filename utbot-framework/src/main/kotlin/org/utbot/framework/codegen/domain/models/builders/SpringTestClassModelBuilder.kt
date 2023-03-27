@@ -1,7 +1,10 @@
 package org.utbot.framework.codegen.domain.models.builders
 
+import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
+import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
+import org.utbot.framework.codegen.domain.withExecutionId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -10,63 +13,79 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.isMockModel
 
-class SpringTestClassModelBuilder: TestClassModelBuilder() {
+class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder() {
 
     override fun createTestClassModel(classUnderTest: ClassId, testSets: List<CgMethodTestSet>): SpringTestClassModel {
-        val baseModel = SimpleTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
-        val mockedClasses = collectMockedClassIds(classUnderTest, testSets)
+        val baseModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
+        val (injectedModels, mockedModels) = collectInjectedAndMockedModels(testSets)
 
         return SpringTestClassModel(
             baseModel.classUnderTest,
             baseModel.methodTestSets,
             baseModel.nestedClasses,
-            classUnderTest,
-            mockedClasses,
+            injectedModels,
+            mockedModels,
         )
     }
 
-    private fun collectMockedClassIds(
-        classUnderTest: ClassId,
-        testSets: List<CgMethodTestSet>,
-    ): Set<ClassId> {
-        val allModelsInExecution = mutableListOf<UtModel>()
+    private fun collectInjectedAndMockedModels(testSets: List<CgMethodTestSet>): Pair<ClassModels, ClassModels> {
+        val thisInstances = mutableSetOf<UtModel>()
+        val thisInstancesDependentModels = mutableSetOf<UtModel>()
 
         for (testSet in testSets) {
-            for (execution in testSet.executions) {
-                execution.stateBefore.thisInstance?.let { allModelsInExecution += it }
-                execution.stateAfter.thisInstance?.let { allModelsInExecution += it }
+            for ((index, execution) in testSet.executions.withIndex()) {
+                execution.stateBefore.thisInstance?.let { model ->
+                    thisInstances += model
+                    thisInstancesDependentModels += collectByThisInstanceModel(model, index)
+                }
 
-                allModelsInExecution += execution.stateBefore.parameters
-                allModelsInExecution += execution.stateAfter.parameters
-
-                (execution.result as? UtExecutionSuccess)?.model?.let { allModelsInExecution += it }
+                execution.stateAfter.thisInstance?.let { model ->
+                    thisInstances += model
+                    thisInstancesDependentModels += collectByThisInstanceModel(model, index)
+                }
             }
         }
 
-        val allConstructedModels = mutableSetOf<UtModel>()
-        allModelsInExecution.forEach { model -> collectRecursively(model, allConstructedModels) }
+        val dependentMockModels =
+            thisInstancesDependentModels.filterTo(mutableSetOf()) { it.isMockModel() && it !in thisInstances }
 
-        return allConstructedModels
-            .filter { it.isMockComposite() || it.isMockAssemble() }
-            .map { it.classId }
-            .filter {  it != classUnderTest }
-            .toSet()
+        return thisInstances.groupByClassId() to dependentMockModels.groupByClassId()
+    }
 
+    private fun collectByThisInstanceModel(model: UtModel, executionIndex: Int): Set<UtModel> {
+        context.modelIds[model] = model.withExecutionId(executionIndex)
+
+        val dependentModels = mutableSetOf<UtModel>()
+        collectRecursively(model, dependentModels)
+
+        dependentModels.forEach { model ->
+            context.modelIds[model] = model.withExecutionId(executionIndex)
+        }
+
+        return dependentModels
+    }
+
+    private fun Set<UtModel>.groupByClassId(): ClassModels {
+        val classModels = mutableMapOf<ClassId, Set<UtModel>>()
+
+        for (modelGroup in this.groupBy { it.classId }) {
+            classModels[modelGroup.key] = modelGroup.value.toSet()
+        }
+
+        return classModels
     }
 
     private fun collectRecursively(currentModel: UtModel, allModels: MutableSet<UtModel>) {
-        if (currentModel in allModels) {
+        if (!allModels.add(currentModel)) {
             return
         }
-
-        allModels += currentModel
 
         when (currentModel) {
             is UtNullModel,
@@ -104,9 +123,4 @@ class SpringTestClassModelBuilder: TestClassModelBuilder() {
             //Python, JavaScript, Go models are not required in Spring
         }
     }
-
-    private fun UtModel.isMockComposite(): Boolean = this is UtCompositeModel && this.isMock
-
-    //TODO: Having an assemble model often means that we do not use its origin, so is this composite mock redundant?
-    private fun UtModel.isMockAssemble(): Boolean = this is UtAssembleModel && this.origin?.isMock == true
 }

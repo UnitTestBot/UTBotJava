@@ -10,13 +10,12 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.search.ProjectScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import org.jetbrains.kotlin.idea.core.getPackage
-import org.jetbrains.kotlin.idea.search.allScope
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.jetbrains.kotlin.idea.util.sourceRoot
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
@@ -40,6 +39,7 @@ open class BaseTestsModel(
     var testPackageName: String? = null
     open var sourceRootHistory : MutableList<String> = mutableListOf()
     open lateinit var codegenLanguage: CodegenLanguage
+    open lateinit var projectType: ProjectType
 
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
         requireNotNull(newTestSourceRoot)
@@ -82,7 +82,7 @@ open class BaseTestsModel(
      *      - firstly, from test source roots (in the order provided by [getSortedTestRoots])
      *      - after that, from source roots
      */
-    fun getSortedSpringConfigurationClasses(): List<PsiClass> {
+    fun getSortedSpringConfigurationClasses(): List<String> {
         val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
 
         // Not using `srcModule.testModules(project)` here because it returns
@@ -108,7 +108,7 @@ open class BaseTestsModel(
                 .searchPsiClasses(annotation, searchScope)
                 .findAll()
                 .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-        }
+        }.mapNotNull { it.qualifiedName }
     }
 
     fun updateSourceRootHistory(path: String) {

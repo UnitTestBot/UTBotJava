@@ -43,17 +43,14 @@ import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
-import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.isFinal
-import org.utbot.framework.plugin.api.util.isPrivate
-import org.utbot.framework.plugin.api.util.isProtected
-import org.utbot.framework.plugin.api.util.isPublic
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isKotlinFile
@@ -85,7 +82,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
             annotation.accept(this)
         }
 
-        renderClassVisibility(element.id)
+        renderVisibility(element.visibility)
         renderClassModality(element)
         if (!element.isStatic && element.isNested) {
             print("inner ")
@@ -569,12 +566,13 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     override fun escapeNamePossibleKeywordImpl(s: String): String =
         if (isLanguageKeyword(s, context.cgLanguageAssistant)) "`$s`" else s
 
-    override fun renderClassVisibility(classId: ClassId) {
-        when {
-            // Kotlin classes are public by default
-            classId.isPublic -> Unit
-            classId.isProtected -> print("protected ")
-            classId.isPrivate -> print("private ")
+    override fun renderVisibility(modifier: VisibilityModifier) {
+        when (modifier) {
+            VisibilityModifier.PUBLIC -> Unit
+            VisibilityModifier.PRIVATE -> print("private ")
+            VisibilityModifier.PROTECTED -> print("protected ")
+            VisibilityModifier.INTERNAL -> print("internal ")
+            VisibilityModifier.PACKAGE_PRIVATE -> error("Kotlin: unexpected visibility modifier -- $modifier")
         }
     }
 

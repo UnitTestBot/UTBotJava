@@ -25,7 +25,8 @@ import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
 import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.ApplicationType
+import org.utbot.framework.codegen.domain.ProjectType.*
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ApplicationContext
@@ -176,12 +177,11 @@ object UtTestsDialogProcessor {
                         val mockFrameworkInstalled = model.mockFramework.isInstalled
                         val staticMockingConfigured = model.staticsMocking.isConfigured
 
-                        val applicationContext = when (model.applicationType) {
-                            ApplicationType.PURE_JVM -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
-                            ApplicationType.SPRING_APPLICATION -> {
+                        val applicationContext = when (model.projectType) {
+                            Spring -> {
                                 val shouldUseImplementors = when (model.typeReplacementApproach) {
-                                    TypeReplacementApproach.DO_NOT_REPLACE -> false
-                                    TypeReplacementApproach.REPLACE_IF_POSSIBLE -> true
+                                    TypeReplacementApproach.DoNotReplace -> false
+                                    is TypeReplacementApproach.ReplaceIfPossible -> true
                                 }
 
                                 SpringApplicationContext(
@@ -192,6 +192,7 @@ object UtTestsDialogProcessor {
                                     shouldUseImplementors = shouldUseImplementors,
                                 )
                             }
+                            else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
                         }
 
                         val process = EngineProcess.createBlocking(project, classNameToPath)

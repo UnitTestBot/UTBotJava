@@ -8,6 +8,7 @@ import org.utbot.engine.Mocker
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
@@ -57,6 +58,11 @@ class SarifMavenConfigurationProviderTest : AbstractMojoTestCase() {
     @Test
     fun `testPrivateMethods should be provided from the configuration`() {
         Assertions.assertEquals(true, configurationProvider.testPrivateMethods)
+    }
+
+    @Test
+    fun `projectType should be provided from the configuration`() {
+        Assertions.assertEquals(ProjectType.PureJvm, configurationProvider.projectType)
     }
 
     @Test

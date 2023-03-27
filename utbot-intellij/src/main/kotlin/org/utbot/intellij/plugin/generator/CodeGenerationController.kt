@@ -8,7 +8,6 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
@@ -686,6 +685,7 @@ object CodeGenerationController {
                 proc.render(
                     testSetsId,
                     classUnderTest,
+                    model.projectType,
                     paramNames.toMutableMap(),
                     generateUtilClassFile = true,
                     model.testFramework,

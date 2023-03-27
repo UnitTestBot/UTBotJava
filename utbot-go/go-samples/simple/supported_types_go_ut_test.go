@@ -3,6 +3,7 @@ package simple
 import (
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/stretchr/testify/assert"
+	"go-samples/simple/nested"
 	"testing"
 )
 
@@ -107,27 +108,27 @@ func TestUintPtrByUtGoFuzzer(t *testing.T) {
 }
 
 func TestFloat32ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float32(0.73096776)
+	actualVal := Float32(0.24053639)
 
-	assert.Equal(t, float32(0.73096776), actualVal)
+	assert.Equal(t, float32(0.24053639), actualVal)
 }
 
 func TestFloat64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float64(0.8314409887870612)
+	actualVal := Float64(0.6063452159973596)
 
-	assert.Equal(t, 0.8314409887870612, actualVal)
+	assert.Equal(t, 0.6063452159973596, actualVal)
 }
 
 func TestComplex64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex64(complex(0.6063452, 0.6063452))
+	actualVal := Complex64(complex(0.30905056, 0.30905056))
 
-	assert.Equal(t, complex(float32(0.6063452), float32(0.6063452)), actualVal)
+	assert.Equal(t, complex(float32(0.30905056), float32(0.30905056)), actualVal)
 }
 
 func TestComplex128ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex128(complex(0.6374174253501083, 0.6374174253501083))
+	actualVal := Complex128(complex(0.5504370051176339, 0.5504370051176339))
 
-	assert.Equal(t, complex(0.6374174253501083, 0.6374174253501083), actualVal)
+	assert.Equal(t, complex(0.5504370051176339, 0.5504370051176339), actualVal)
 }
 
 func TestByteByUtGoFuzzer(t *testing.T) {
@@ -227,15 +228,15 @@ func TestReturnErrorOrNilWithNonNilErrorByUtGoFuzzer2(t *testing.T) {
 }
 
 func TestExternalStructByUtGoFuzzer(t *testing.T) {
-	actualVal := ExternalStruct(difflib.Match{A: 1, B: 9223372036854775807, Size: 1}, Structure{})
+	actualVal := ExternalStruct(difflib.Match{A: 1, B: 1, Size: 1}, Structure{})
 
 	assert.Equal(t, Structure{}, actualVal)
 }
 
 func TestExternalStructWithAliasByUtGoFuzzer(t *testing.T) {
-	actualVal := ExternalStructWithAlias(difflib.Match{A: 1, B: 9223372036854775807, Size: 1})
+	actualVal := ExternalStructWithAlias(difflib.Match{A: 1, B: 1, Size: 1})
 
-	assert.Equal(t, difflib.Match{A: 1, B: 9223372036854775807, Size: 1}, actualVal)
+	assert.Equal(t, difflib.Match{A: 1, B: 1, Size: 1}, actualVal)
 }
 
 func TestSliceOfIntByUtGoFuzzer(t *testing.T) {
@@ -286,6 +287,12 @@ func TestSliceOfArrayOfIntByUtGoFuzzer(t *testing.T) {
 	assert.Equal(t, [][5]int{{0, 0, 0, 0, 0}}, actualVal)
 }
 
+func TestExportedStructWithEmbeddedUnexportedStructByUtGoFuzzer(t *testing.T) {
+	actualVal := ExportedStructWithEmbeddedUnexportedStruct(nested.ExportedStruct{})
+
+	assert.Equal(t, nested.ExportedStruct{}, actualVal)
+}
+
 func TestNamedTypeByUtGoFuzzer(t *testing.T) {
 	actualVal := NamedType(Type(0))
 
@@ -323,7 +330,7 @@ func TestNamedSliceByUtGoFuzzer(t *testing.T) {
 }
 
 func TestStructWithFieldsOfNamedTypesByUtGoFuzzer(t *testing.T) {
-	actualVal := StructWithFieldsOfNamedTypes(S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS{-1, 0, 0, -1}})
+	actualVal := StructWithFieldsOfNamedTypes(S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS{9223372036854775807, 1, 0, -9223372036854775808, 9223372036854775807}})
 
-	assert.Equal(t, S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS{-1, 0, 0, -1}}, actualVal)
+	assert.Equal(t, S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS{9223372036854775807, 1, 0, -9223372036854775808, 9223372036854775807}}, actualVal)
 }

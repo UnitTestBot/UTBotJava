@@ -1,6 +1,6 @@
 package org.utbot.go.imports
 
-import org.utbot.go.api.util.getAllNamedTypes
+import org.utbot.go.api.util.getAllVisibleNamedTypes
 import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
@@ -12,7 +12,7 @@ object GoImportsResolver {
         sourcePackage: GoPackage,
         busyImports: Set<GoImport> = emptySet()
     ): Set<GoImport> {
-        val namedTypes = types.getAllNamedTypes()
+        val namedTypes = types.getAllVisibleNamedTypes(sourcePackage)
         val result = busyImports.toMutableSet()
         val busyAliases = busyImports.map { it.alias ?: it.goPackage.packageName }.toMutableSet()
         namedTypes.map { it.sourcePackage }.distinct().filter { it != sourcePackage }.forEach { goPackage ->

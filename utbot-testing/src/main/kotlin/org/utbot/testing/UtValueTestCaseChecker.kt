@@ -15,6 +15,7 @@ import org.utbot.framework.coverage.Coverage
 import org.utbot.framework.coverage.counters
 import org.utbot.framework.coverage.methodCoverage
 import org.utbot.framework.coverage.toAtLeast
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -90,10 +91,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet(),
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> check(
@@ -102,10 +105,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> check(
@@ -114,10 +119,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> check(
@@ -126,10 +133,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> check(
@@ -138,10 +147,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // check paramsBefore and Result<R>, suitable to check exceptions
@@ -151,11 +162,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkWithException(
@@ -164,11 +177,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkWithException(
@@ -177,11 +192,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkWithException(
@@ -190,11 +207,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkWithException(
@@ -203,11 +222,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // check this, paramsBefore and result value
@@ -217,11 +238,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified R> checkWithThis(
@@ -230,11 +253,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkWithThis(
@@ -243,11 +268,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkWithThis(
@@ -256,11 +283,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkWithThis(
@@ -269,11 +298,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkWithThisAndException(
@@ -282,11 +313,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified R> checkWithThisAndException(
@@ -295,11 +328,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkWithThisAndException(
@@ -308,11 +343,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkWithThisAndException(
@@ -321,11 +358,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkWithThisAndException(
@@ -334,11 +373,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks paramsBefore, mocks and result value
@@ -348,11 +389,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkMocksInStaticMethod(
@@ -361,11 +404,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMocksInStaticMethod(
@@ -374,11 +419,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMocksInStaticMethod(
@@ -387,11 +434,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMocksInStaticMethod(
@@ -400,11 +449,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks paramsBefore, mocks and result value
@@ -414,11 +465,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkMocks(
@@ -427,11 +480,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMocks(
@@ -440,11 +495,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMocks(
@@ -453,11 +510,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMocks(
@@ -466,11 +525,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // check paramsBefore, mocks and instrumentation and result value
@@ -480,11 +541,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkMocksAndInstrumentation(
@@ -493,11 +556,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMocksAndInstrumentation(
@@ -506,11 +571,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMocksAndInstrumentation(
@@ -519,11 +586,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMocksAndInstrumentation(
@@ -532,11 +601,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // check this, paramsBefore, mocks, instrumentation and return value
@@ -546,11 +617,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified R> checkMocksInstrumentationAndThis(
@@ -559,11 +632,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkMocksInstrumentationAndThis(
@@ -572,11 +647,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkMocksInstrumentationAndThis(
@@ -585,11 +662,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkMocksInstrumentationAndThis(
@@ -598,11 +677,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks paramsBefore and return value for static methods
@@ -612,10 +693,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkStaticMethod(
@@ -624,10 +707,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticMethod(
@@ -636,10 +721,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticMethod(
@@ -648,10 +735,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticMethod(
@@ -660,10 +749,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks paramsBefore and Result<R>, suitable for exceptions check
@@ -673,11 +764,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkStaticMethodWithException(
@@ -686,11 +779,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticMethodWithException(
@@ -699,11 +794,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticMethodWithException(
@@ -712,11 +809,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticMethodWithException(
@@ -725,11 +824,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // check arguments, statics and return value
@@ -739,11 +840,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkStatics(
@@ -752,11 +855,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStatics(
@@ -765,11 +870,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStatics(
@@ -778,11 +885,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStatics(
@@ -791,11 +900,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // check arguments, statics and Result<R> for exceptions check
@@ -805,11 +916,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkStaticsAndException(
@@ -818,11 +931,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticsAndException(
@@ -831,11 +946,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticsAndException(
@@ -844,11 +961,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsAndException(
@@ -857,11 +976,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified R> checkStaticsAfter(
@@ -870,11 +991,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkStaticsAfter(
@@ -883,11 +1006,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticsAfter(
@@ -896,11 +1021,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticsAfter(
@@ -909,11 +1036,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsAfter(
@@ -922,11 +1051,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkThisAndStaticsAfter(
@@ -935,11 +1066,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified R> checkThisAndStaticsAfter(
@@ -948,11 +1081,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkThisAndStaticsAfter(
@@ -961,11 +1096,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkThisAndStaticsAfter(
@@ -974,11 +1111,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkThisAndStaticsAfter(
@@ -987,11 +1126,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks paramsBefore, staticsBefore and return value for static methods
@@ -1001,11 +1142,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkStaticsInStaticMethod(
@@ -1014,11 +1157,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticsInStaticMethod(
@@ -1027,11 +1172,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticsInStaticMethod(
@@ -1040,11 +1187,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsInStaticMethod(
@@ -1053,11 +1202,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified T5, reified R> checkStaticsInStaticMethod(
@@ -1066,11 +1217,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, T5, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // check this, arguments and result value
@@ -1080,11 +1233,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified R> checkStaticsWithThis(
@@ -1093,11 +1248,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkStaticsWithThis(
@@ -1106,11 +1263,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkStaticsWithThis(
@@ -1119,11 +1278,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsWithThis(
@@ -1132,11 +1293,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkParamsMutationsAndResult(
@@ -1145,11 +1308,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkParamsMutationsAndResult(
@@ -1158,11 +1323,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkParamsMutationsAndResult(
@@ -1171,11 +1338,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkParamsMutationsAndResult(
@@ -1184,11 +1353,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks mutations in the parameters
@@ -1198,11 +1369,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2> checkParamsMutations(
@@ -1211,11 +1384,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T1, T2) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3> checkParamsMutations(
@@ -1224,11 +1399,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T1, T2, T3) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4> checkParamsMutations(
@@ -1237,11 +1414,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, T1, T2, T3, T4) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks mutations in the parameters and statics for static method
@@ -1251,11 +1430,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T> checkStaticMethodMutation(
@@ -1264,11 +1445,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2> checkStaticMethodMutation(
@@ -1277,11 +1460,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3> checkStaticMethodMutation(
@@ -1290,11 +1475,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4> checkStaticMethodMutation(
@@ -1303,11 +1490,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified R> checkStaticMethodMutationAndResult(
@@ -1316,11 +1505,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkStaticMethodMutationAndResult(
@@ -1329,11 +1520,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticMethodMutationAndResult(
@@ -1342,11 +1535,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticMethodMutationAndResult(
@@ -1355,11 +1550,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticMethodMutationAndResult(
@@ -1368,11 +1565,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
 
@@ -1383,11 +1582,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2> checkMutations(
@@ -1396,11 +1597,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3> checkMutations(
@@ -1409,11 +1612,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4> checkMutations(
@@ -1422,11 +1627,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks mutations in the parameters and statics
@@ -1436,11 +1643,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkMutationsAndResult(
@@ -1449,11 +1658,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMutationsAndResult(
@@ -1462,11 +1673,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMutationsAndResult(
@@ -1475,11 +1688,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMutationsAndResult(
@@ -1488,11 +1703,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     // checks mutations in this, parameters and statics
@@ -1502,11 +1719,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified R> checkAllMutationsWithThis(
@@ -1515,11 +1734,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, StaticsType, T, T1, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkAllMutationsWithThis(
@@ -1528,11 +1749,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, StaticsType, T, T1, T2, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkAllMutationsWithThis(
@@ -1541,11 +1764,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, StaticsType, T, T1, T2, T3, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkAllMutationsWithThis(
@@ -1554,11 +1779,13 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, StaticsType, T, T1, T2, T3, T4, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     //region checks substituting statics with symbolic variable or not
@@ -1568,10 +1795,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T, reified R> checkWithoutStaticsSubstitution(
@@ -1580,10 +1809,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkWithoutStaticsSubstitution(
@@ -1592,10 +1823,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkWithoutStaticsSubstitution(
@@ -1604,10 +1837,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkWithoutStaticsSubstitution(
@@ -1616,10 +1851,12 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
-        additionalDependencies = additionalDependencies
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
     //endregion
@@ -1630,7 +1867,11 @@ abstract class UtValueTestCaseChecker(
      * or just generate one top-level test class
      * @see [ClassWithStaticAndInnerClassesTest]
      */
-    fun checkAllCombinations(method: KFunction<*>, generateWithNested: Boolean = false) {
+    fun checkAllCombinations(
+        method: KFunction<*>,
+        generateWithNested: Boolean = false,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) {
         val failed = mutableListOf<TestFrameworkConfiguration>()
         val succeeded = mutableListOf<TestFrameworkConfiguration>()
 
@@ -1638,7 +1879,7 @@ abstract class UtValueTestCaseChecker(
             .filterNot { it.isDisabled }
             .forEach { config ->
                 runCatching {
-                    internalCheckForCodeGeneration(method, config, generateWithNested)
+                    internalCheckForCodeGeneration(method, config, generateWithNested, additionalMockAlwaysClasses)
                 }.onFailure {
                     failed += config
                 }.onSuccess {
@@ -1661,7 +1902,8 @@ abstract class UtValueTestCaseChecker(
     private fun internalCheckForCodeGeneration(
         method: KFunction<*>,
         testFrameworkConfiguration: TestFrameworkConfiguration,
-        generateWithNested: Boolean
+        generateWithNested: Boolean,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
         withSettingsFromTestFrameworkConfiguration(testFrameworkConfiguration) {
             with(testFrameworkConfiguration) {
@@ -1677,7 +1919,7 @@ abstract class UtValueTestCaseChecker(
                         MethodWithMockStrategy(executableId, mockStrategy, resetNonFinalFieldsAfterClinit)
 
                     val (testSet, coverage) = analyzedMethods.getOrPut(methodWithStrategy) {
-                        walk(executableId, mockStrategy)
+                        walk(executableId, mockStrategy, additionalMockAlwaysClasses = additionalMockAlwaysClasses)
                     }
 
                     // if force mocking took place in parametrized test generation,
@@ -1715,7 +1957,8 @@ abstract class UtValueTestCaseChecker(
         coverageMatcher: CoverageMatcher,
         vararg classes: KClass<*>,
         noinline arguments: (UtValueExecution<*>) -> List<Any?> = ::withResult,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
         if (UtSettings.checkAllCombinationsForEveryTestInSamples) {
             checkAllCombinations(method)
@@ -1728,9 +1971,16 @@ abstract class UtValueTestCaseChecker(
                 computeAdditionalDependenciesClasspathAndBuildDir(executableId.classId.jClass, additionalDependencies)
 
             val (testSet, coverage) = if (coverageMatcher is DoNotCalculate) {
-                MethodResult(executions(executableId, mockStrategy, additionalDependenciesClassPath), Coverage())
+                val testSet = executions(
+                    executableId,
+                    mockStrategy,
+                    additionalDependenciesClassPath,
+                    additionalMockAlwaysClasses
+                )
+
+                MethodResult(testSet, Coverage())
             } else {
-                walk(executableId, mockStrategy, additionalDependenciesClassPath)
+                walk(executableId, mockStrategy, additionalDependenciesClassPath, additionalMockAlwaysClasses)
             }
             listOf(testSet).summarizeAll(searchDirectory, sourceFile = null)
             val valueTestCase = testSet.toValueTestCase()
@@ -1807,9 +2057,10 @@ abstract class UtValueTestCaseChecker(
     fun walk(
         method: ExecutableId,
         mockStrategy: MockStrategyApi,
-        additionalDependenciesClassPath: String = ""
+        additionalDependenciesClassPath: String = "",
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ): MethodResult {
-        val testSet = executions(method, mockStrategy, additionalDependenciesClassPath)
+        val testSet = executions(method, mockStrategy, additionalDependenciesClassPath, additionalMockAlwaysClasses)
         val methodCoverage = methodCoverage(
             method,
             testSet.toValueTestCase().executions,
@@ -1821,7 +2072,8 @@ abstract class UtValueTestCaseChecker(
     fun executions(
         method: ExecutableId,
         mockStrategy: MockStrategyApi,
-        additionalDependenciesClassPath: String
+        additionalDependenciesClassPath: String,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ): UtMethodTestSet {
         val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
 
@@ -1833,13 +2085,14 @@ abstract class UtValueTestCaseChecker(
                     System.getProperty("java.class.path")
                 )
             }
-        return testCaseGenerator.generate(method, mockStrategy)
+        return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
     }
 
     fun executionsModel(
         method: ExecutableId,
         mockStrategy: MockStrategyApi,
-        additionalDependencies: Array<Class<*>> = emptyArray()
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ): UtMethodTestSet {
         val additionalDependenciesClassPath =
             computeAdditionalDependenciesClasspathAndBuildDir(method.classId.jClass, additionalDependencies)
@@ -1853,7 +2106,7 @@ abstract class UtValueTestCaseChecker(
                         System.getProperty("java.class.path")
                     )
                 }
-            return testCaseGenerator.generate(method, mockStrategy)
+            return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
         }
     }
 

@@ -138,6 +138,12 @@ class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(
         objectMocker.createMock(model, baseName)
     }
 
+    fun createMockForVariable(model: UtCompositeModel, variable: CgVariable) =
+        withMockFramework {
+            require(model.isMock) { "Mock model $model is expected in MockObjectConstructor" }
+            objectMocker.mockForVariable(model, variable)
+        }
+
     fun mockNewInstance(mock: UtNewInstanceInstrumentation) {
         staticMocker?.mockNewInstance(mock)
     }
@@ -177,6 +183,12 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
         val modelClass = getClassOf(model.classId)
         val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
 
+        mockForVariable(model, mockObject)
+
+        return mockObject
+    }
+
+    fun mockForVariable(model: UtCompositeModel, mockObject: CgVariable) {
         for ((executable, values) in model.mocks) {
             // void method
             if (executable.returnType == voidClassId) {
@@ -201,8 +213,6 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                 else -> error("ConstructorId was not expected to appear in simple mocker but got $executable")
             }
         }
-
-        return mockObject
     }
 
     override fun mock(clazz: CgExpression): CgMethodCall =
@@ -372,7 +382,17 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             mockAnswerStatements[index] = statements
         }
 
-        val answerValues = mockAnswerStatements.values
+        val answerValues = mockAnswerStatements.values.let {
+            val uniqueMockingStatements = it.distinct()
+
+            // If we have only one unique mocking statement, we do not need switch-case with all statements - we can
+            // use only this unique statement.
+            if (uniqueMockingStatements.size == 1) {
+                uniqueMockingStatements
+            } else {
+                it
+            }
+        }
         // If we have no more than one branch or all branches are empty,
         // it means we do not need this switch and mock counter itself at all.
         val atMostOneBranchOrAllEmpty = answerValues.size <= 1 || answerValues.all { statements -> statements.isEmpty() }

@@ -9,6 +9,7 @@ import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
+import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
 import org.utbot.framework.codegen.domain.models.CgArrayInitializer
@@ -39,7 +40,9 @@ class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
     
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        return if (model is UtAssembleModel) valueByModelId.getOrPut(model.id) {
+        val modelId: ModelId = context.getIdByModel(model)
+
+        return if (model is UtAssembleModel) valueByModelId.getOrPut(modelId) {
             // TODO SEVERE: May lead to unexpected behavior in case of changes to the original method
             super.getOrCreateVariable(model, name)
         } else valueByModel.getOrPut(model) {
@@ -128,7 +131,9 @@ class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
         }
 
         val array = newVar(arrayModel.classId, baseName) { initializer }
-        valueByModelId[arrayModel.id] = array
+        val arrayModelId = context.getIdByModel(arrayModel)
+
+        valueByModelId[arrayModelId] = array
 
         if (canInitWithValues) {
             return array

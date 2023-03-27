@@ -15,6 +15,7 @@ import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.intellij.plugin.settings.Settings
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
@@ -171,6 +172,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         model.testFramework = testFrameworks.item
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
         model.testSourceRootPath = testSourceFolderField.text
+        model.projectType = ProjectType.Python
 
         val settings = model.project.service<Settings>()
         with(settings) {

@@ -147,6 +147,8 @@ private object RawValuesCodes {
     const val COMPLEX_PARTS_DELIMITER = "@"
 }
 
+class GoWorkerFailedException(s: String) : Exception(s)
+
 fun convertRawExecutionResultToExecutionResult(
     rawExecutionResult: RawExecutionResult,
     functionResultTypes: List<GoTypeId>,

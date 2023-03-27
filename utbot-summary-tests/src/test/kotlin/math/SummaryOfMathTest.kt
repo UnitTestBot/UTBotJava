@@ -18,7 +18,7 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
     Stats::class,
 ) {
     @Test
-    @Disabled
+    @Disabled("Test fails, https://github.com/UnitTestBot/UTBotJava/issues/826")
     fun testOfInts() {
         val summary1 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(int[])},\n" +
                 "    there it triggers recursion of addAll once, \n" +
@@ -86,6 +86,7 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
     }
 
     @Test
+    @Disabled("Test is flaky, https://github.com/UnitTestBot/UTBotJava/issues/826")
     fun testOfDoubles() {
         val summary1 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it triggers recursion of addAll once, \n" +

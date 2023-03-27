@@ -126,6 +126,7 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.KnownImplementor
 import org.utbot.framework.plugin.api.TypeReplacementMode.NoImplementors
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.isAbstractType
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
@@ -633,8 +634,8 @@ class Traverser(
     ): Pair<SymbolicStateUpdate, SymbolicValue?> {
         val jClass = type.id.jClass
 
-        // symbolic value for enum class itself
-        val enumClassValue = findOrCreateStaticObject(type)
+        // symbolic value for enum class itself, we don't want to have mocks for this value
+        val enumClassValue = findOrCreateStaticObject(type, mockInfoGenerator = null)
 
         // values for enum constants
         val enumConstantConcreteValues = jClass.enumConstants.filterIsInstance<Enum<*>>()
@@ -707,8 +708,10 @@ class Traverser(
         val initializedFieldUpdate =
             MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
+        val mockInfoGenerator = UtMockInfoGenerator { addr -> UtStaticObjectMockInfo(declaringClass.id, addr) }
+
         val objectUpdate = objectUpdate(
-            instance = findOrCreateStaticObject(declaringClass.type),
+            instance = findOrCreateStaticObject(declaringClass.type, mockInfoGenerator),
             field = field,
             value = valueToExpression(symbolicValue, field.type)
         )
@@ -1375,6 +1378,7 @@ class Traverser(
         mockInfoGenerator: UtMockInfoGenerator? = null
     ): ObjectValue {
         touchAddress(addr)
+        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
 
         // Some types (e.g., interfaces) need to be mocked or replaced with the concrete implementor.
         // Typically, this implementor is selected by SMT solver later.
@@ -1396,8 +1400,6 @@ class Traverser(
 
             return ObjectValue(typeStorage, addr)
         }
-
-        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
 
         if (mockInfoGenerator != null) {
             val mockInfo = mockInfoGenerator.generate(addr)
@@ -1499,21 +1501,16 @@ class Traverser(
                         "but there is no mock info generator provided to construct a mock value."
             }
 
-            return createMockedObject(addr, type, mockInfoGenerator)
+            return createMockedObject(addr, type, mockInfoGenerator, nullEqualityConstraint)
         }
 
-        val concreteImplementation = when (applicationContext.typeReplacementMode) {
-            AnyImplementor -> {
-                val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
+        val concreteImplementation: Concrete? = when (applicationContext.typeReplacementMode) {
+            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
 
-                queuedSymbolicStateUpdates += typeHardConstraint
-                queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
-
-                // If we have this$0 with UtArrayList type, we have to create such instance.
-                // We should create an object with typeStorage of all possible real types and concrete implementation
-                // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
-                wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
-            }
+            // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
+            // we should just still use concrete implementation that represents itself
+            //
+            // Otherwise:
             // In case of `KnownImplementor` mode we should have already tried to replace type using `replaceTypeIfNeeded`.
             // However, this replacement attempt might be unsuccessful even if some possible concrete types are present.
             // For example, we may have two concrete implementors present in Spring bean definitions, so we do not know
@@ -1523,25 +1520,45 @@ class Traverser(
             // Mocking can be impossible here as there are no guaranties that `mockInfoGenerator` is instantiated.
             KnownImplementor,
             NoImplementors -> {
-                mockInfoGenerator?.let {
-                    return createMockedObject(addr, type, it)
-                }
+                if (!type.isAbstractType) {
+                    findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
+                } else {
+                    mockInfoGenerator?.let {
+                        return createMockedObject(addr, type, it, nullEqualityConstraint)
+                    }
 
-                queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
-                null
+                    queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
+                    null
+                }
             }
         }
 
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
 
+    private fun findConcreteImplementation(
+        addr: UtAddrExpression,
+        type: RefType,
+        typeHardConstraint: HardConstraint,
+        nullEqualityConstraint: UtBoolExpression,
+    ): Concrete? {
+        val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
+
+        queuedSymbolicStateUpdates += typeHardConstraint
+        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+
+        // If we have this$0 with UtArrayList type, we have to create such instance.
+        // We should create an object with typeStorage of all possible real types and concrete implementation
+        // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
+        return wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
+    }
+
     private fun createMockedObject(
         addr: UtAddrExpression,
         type: RefType,
         mockInfoGenerator: UtMockInfoGenerator,
+        nullEqualityConstraint: UtBoolExpression,
     ): ObjectValue {
-        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
-
         val mockInfo = mockInfoGenerator.generate(addr)
         val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
 
@@ -1998,7 +2015,19 @@ class Traverser(
         queuedSymbolicStateUpdates += Ge(length, 0).asHardConstraint()
         workaround(HACK) {
             if (size.expr is UtBvLiteral) {
-                softMaxArraySize = min(HARD_MAX_ARRAY_SIZE, max(size.expr.value.toInt(), softMaxArraySize))
+                val sizeValue = size.expr.value.toInt()
+                softMaxArraySize = min(hardMaxArraySize, max(sizeValue, softMaxArraySize))
+
+                if (sizeValue > hardMaxArraySize) {
+                    logger.warn(
+                        "The engine encountered an array initialization with $sizeValue size." +
+                                " It leads to elimination of paths containing current instruction."
+                    )
+                    logger.warn("Current instruction: ${environment.state.stmt}")
+                    logger.warn("Please, consider increasing `UtSettings.maxArraySize` value, " +
+                            "currently it is ${UtSettings.maxArraySize}."
+                    )
+                }
             }
         }
         queuedSymbolicStateUpdates += Le(length, softMaxArraySize).asHardConstraint() // TODO: fix big array length
@@ -2160,7 +2189,7 @@ class Traverser(
      */
     private fun findOrCreateStaticObject(
         classType: RefType,
-        mockInfoGenerator: UtMockInfoGenerator? = null
+        mockInfoGenerator: UtMockInfoGenerator?
     ): ObjectValue {
         val fromMemory = locateStaticObject(classType)
 
@@ -3751,21 +3780,40 @@ class Traverser(
     private fun TraversalContext.intOverflowCheck(op: BinopExpr, leftRaw: PrimitiveValue, rightRaw: PrimitiveValue) {
         // cast to the bigger type
         val sort = simpleMaxSort(leftRaw, rightRaw) as UtPrimitiveSort
-        val left = leftRaw.expr.toPrimitiveValue(sort.type)
-        val right = rightRaw.expr.toPrimitiveValue(sort.type)
+        val left = UtCastExpression(leftRaw, sort.type)
+        val right = UtCastExpression(rightRaw, sort.type)
+
+        val leftPrimValue = left.toPrimitiveValue(left.type)
+        val rightPrimValue = right.toPrimitiveValue(right.type)
 
         val overflow = when (op) {
-            is JAddExpr -> {
-                mkNot(UtAddNoOverflowExpression(left.expr, right.expr))
-            }
-            is JSubExpr -> {
-                mkNot(UtSubNoOverflowExpression(left.expr, right.expr))
-            }
+            is JAddExpr -> mkNot(UtAddNoOverflowExpression(left, right))
+            is JSubExpr -> mkNot(UtSubNoOverflowExpression(left, right))
             is JMulExpr -> when (sort.type) {
-                is ByteType -> lowerIntMulOverflowCheck(left, right, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt())
-                is ShortType -> lowerIntMulOverflowCheck(left, right, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                is IntType -> higherIntMulOverflowCheck(left, right, Int.SIZE_BITS, Int.MIN_VALUE.toLong()) { it: UtExpression -> it.toIntValue() }
-                is LongType -> higherIntMulOverflowCheck(left, right, Long.SIZE_BITS, Long.MIN_VALUE) { it: UtExpression -> it.toLongValue() }
+                is ByteType -> lowerIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Byte.MIN_VALUE.toInt(),
+                    Byte.MAX_VALUE.toInt()
+                )
+                is ShortType -> lowerIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Short.MIN_VALUE.toInt(),
+                    Short.MAX_VALUE.toInt()
+                )
+                is IntType -> higherIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Int.SIZE_BITS,
+                    Int.MIN_VALUE.toLong()
+                ) { it: UtExpression -> it.toIntValue() }
+                is LongType -> higherIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Long.SIZE_BITS,
+                    Long.MIN_VALUE
+                ) { it: UtExpression -> it.toLongValue() }
                 else -> null
             }
             else -> null

@@ -29,7 +29,7 @@ class SarifReport(
          */
         fun mergeReports(reports: List<String>): String =
             reports.fold(Sarif.empty()) { sarif: Sarif, report: String ->
-                sarif.copy(runs = sarif.runs + Sarif.fromJson(report).runs)
+                sarif + Sarif.fromJson(report)
             }.toJson()
 
         /**

@@ -68,9 +68,9 @@ func TestGetCoordinateSumOfPointsByUtGoFuzzer(t *testing.T) {
 }
 
 func TestGetAreaOfCircleByUtGoFuzzer(t *testing.T) {
-	actualVal := GetAreaOfCircle(Circle{Center: Point{}, Radius: 0.5504370051176339})
+	actualVal := GetAreaOfCircle(Circle{Center: Point{}, Radius: 2.0})
 
-	assert.Equal(t, 0.9518425589456255, actualVal)
+	assert.Equal(t, 12.566370614359172, actualVal)
 }
 
 func TestIsIdentityByUtGoFuzzer1(t *testing.T) {

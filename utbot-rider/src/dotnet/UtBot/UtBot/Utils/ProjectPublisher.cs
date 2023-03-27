@@ -30,7 +30,7 @@ public class ProjectPublisher
             var name = $"Publish::{project.Name}";
             Directory.CreateDirectory(outputDir.FullPath);
             var projectName = project.ProjectFileLocation.Name;
-            var rid = RuntimeInformation.RuntimeIdentifier;
+            var architecture = GetArchitecture();
             var tfm = config.TargetFrameworkId.TryGetShortIdentifier();
             var command = config.TargetFrameworkId.IsNetFramework ? "build" : "publish";
 
@@ -43,7 +43,7 @@ public class ProjectPublisher
             {
                 FileName = "dotnet",
                 Arguments =
-                    $"{command} \"{projectName}\" --sc -c {config.Name} -r {rid} -o {outputDir.FullPath} -f {tfm}",
+                    $"{command} \"{projectName}\" --sc -c {config.Name} -a {architecture} -o {outputDir.FullPath} -f {tfm}",
                 WorkingDirectory = project.ProjectFileLocation.Directory.FullPath,
                 RedirectStandardError = true,
                 RedirectStandardOutput = true
@@ -79,5 +79,20 @@ public class ProjectPublisher
         {
             publishLifetimeDef.Terminate();
         }
+    }
+
+    private string GetArchitecture()
+    {
+        var arch = RuntimeInformation.OSArchitecture;
+        return arch switch
+        {
+            Architecture.X86 => "x86",
+            Architecture.X64 => "x64",
+            Architecture.Arm => "arm",
+            Architecture.Arm64 => "arm64",
+            Architecture.Wasm or Architecture.S390x =>
+                throw new InvalidOperationException($"Unsupported architecture: {arch}"),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 }

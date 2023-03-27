@@ -9,6 +9,7 @@ import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
@@ -44,7 +45,11 @@ class TestSpecificTestCaseGenerator(
 
     private val logger = KotlinLogging.logger {}
 
-    fun generate(method: ExecutableId, mockStrategy: MockStrategyApi): UtMethodTestSet {
+    fun generate(
+        method: ExecutableId,
+        mockStrategy: MockStrategyApi,
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ): UtMethodTestSet {
         if (isCanceled()) {
             return UtMethodTestSet(method)
         }
@@ -54,7 +59,7 @@ class TestSpecificTestCaseGenerator(
         val executions = mutableListOf<UtExecution>()
         val errors = mutableMapOf<String, Int>()
 
-        val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id }
+        val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id } + additionalMockAlwaysClasses
         val defaultTimeEstimator = ExecutionTimeEstimator(UtSettings.utBotGenerationTimeoutInMillis, 1)
 
         val forceMockListener = ForceMockListener.create(this, conflictTriggers)

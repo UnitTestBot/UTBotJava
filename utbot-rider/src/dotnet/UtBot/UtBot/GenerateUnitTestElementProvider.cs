@@ -6,7 +6,6 @@ using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.Resolve;
 using JetBrains.ReSharper.Psi.Tree;
-using JetBrains.Util;
 
 namespace UtBot;
 
@@ -18,7 +17,7 @@ internal class TimeoutGeneratorOption : IGeneratorOption
     public IReadOnlyList<string> GetPossibleValues() => new string[] { };
 
     public bool IsValidValue(string value) =>
-        value.IsNullOrEmpty() || (int.TryParse(value, out var intValue) && intValue > 0);
+        int.TryParse(value, out var intValue) && intValue > 0;
 
     public string ID => Id;
 

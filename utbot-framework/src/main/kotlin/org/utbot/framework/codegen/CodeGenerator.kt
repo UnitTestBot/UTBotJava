@@ -4,6 +4,8 @@ import mu.KotlinLogging
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -28,6 +30,7 @@ import java.time.format.DateTimeFormatter
 
 open class CodeGenerator(
     val classUnderTest: ClassId,
+    val projectType: ProjectType,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     generateUtilClassFile: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
@@ -48,6 +51,7 @@ open class CodeGenerator(
 
     open var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
+        projectType = projectType,
         generateUtilClassFile = generateUtilClassFile,
         paramNames = paramNames,
         testFramework = testFramework,
@@ -76,10 +80,9 @@ open class CodeGenerator(
         val cgTestSets = testSets.map { CgMethodTestSet(it) }.toList()
         return withCustomContext(testClassCustomName) {
             context.withTestClassFileScope {
-                if (context.isSpringClass) {
-                    generateForSpringClass(cgTestSets)
-                } else {
-                    generateForSimpleClass(cgTestSets)
+                when (context.projectType) {
+                    Spring -> generateForSpringClass(cgTestSets)
+                    else -> generateForSimpleClass(cgTestSets)
                 }
             }
         }
@@ -87,7 +90,7 @@ open class CodeGenerator(
 
     private fun generateForSimpleClass(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
         val astConstructor = CgSimpleTestClassConstructor(context)
-        val testClassModel = SimpleTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
+        val testClassModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
         val testClassFile = astConstructor.construct(testClassModel)
@@ -104,7 +107,7 @@ open class CodeGenerator(
 
     private fun generateForSpringClass(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
         val astConstructor = CgSpringTestClassConstructor(context)
-        val testClassModel = SpringTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
+        val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
         val testClassFile = astConstructor.construct(testClassModel)

@@ -2,7 +2,7 @@ package org.utbot.go.worker
 
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
-import org.utbot.go.api.util.getAllNamedTypes
+import org.utbot.go.api.util.getAllVisibleNamedTypes
 import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.simplecodegeneration.GoFileCodeBuilder
@@ -90,7 +90,7 @@ internal object GoWorkerCodeGenerationHelper {
 
         val types = functions.flatMap { it.parameters }.map { it.type }
         val aliases = imports.associate { it.goPackage to it.alias }
-        val namedTypes = types.getAllNamedTypes()
+        val namedTypes = types.getAllVisibleNamedTypes(destinationPackage)
 
         fileCodeBuilder.addTopLevelElements(
             GoCodeTemplates.getTopLevelHelperStructsAndFunctionsForWorker(

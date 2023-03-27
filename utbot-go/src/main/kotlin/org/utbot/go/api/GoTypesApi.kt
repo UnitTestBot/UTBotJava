@@ -105,10 +105,10 @@ class GoNamedTypeId(
 ) : GoTypeId(name, implementsError = implementsError) {
     val packageName: String = sourcePackage.packageName
     val packagePath: String = sourcePackage.packagePath
-    override val canonicalName: String = if (sourcePackage.packageName != "") {
-        "${sourcePackage.packageName}.$name"
-    } else {
+    override val canonicalName: String = if (sourcePackage.isBuiltin) {
         name
+    } else {
+        "${sourcePackage.packageName}.$name"
     }
 
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {

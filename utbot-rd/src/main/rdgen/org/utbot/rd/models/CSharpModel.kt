@@ -13,6 +13,11 @@ object VSharpModel: Ext(CSharpRoot) {
         field("parameters", immutableList(PredefinedType.string))
     }
 
+    val mapEntry = structdef {
+        field("key", PredefinedType.string)
+        field("value", PredefinedType.string)
+    }
+
     val generateArguments = structdef {
         field("assemblyPath", PredefinedType.string)
         field("projectCsprojPath", PredefinedType.string)
@@ -20,6 +25,7 @@ object VSharpModel: Ext(CSharpRoot) {
         field("methods", immutableList(methodDescriptor))
         field("generationTimeoutInSeconds", PredefinedType.int)
         field("targetFramework", PredefinedType.string.nullable)
+        field("assembliesFullNameToTheirPath", immutableList(mapEntry))
     }
 
     val generateResults = structdef {

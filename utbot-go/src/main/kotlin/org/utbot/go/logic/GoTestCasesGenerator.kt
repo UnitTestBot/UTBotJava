@@ -12,6 +12,7 @@ import org.utbot.go.imports.GoImportsResolver
 import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
 import org.utbot.go.worker.GoWorker
 import org.utbot.go.worker.GoWorkerCodeGenerationHelper
+import org.utbot.go.worker.GoWorkerFailedException
 import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
@@ -63,7 +64,7 @@ object GoTestCasesGenerator {
                 // starting worker process
                 val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
                 val command = listOf(
-                    goExecutableAbsolutePath, "test", "-run", testFunctionName
+                    goExecutableAbsolutePath, "test", "-run", testFunctionName, "-timeout", "0"
                 )
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
                 val processStartTime = System.currentTimeMillis()
@@ -78,8 +79,7 @@ object GoTestCasesGenerator {
                     } catch (e: SocketTimeoutException) {
                         val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
                         if (processHasExited) {
-                            val processOutput = InputStreamReader(process.inputStream).readText()
-                            throw TimeoutException("Timeout exceeded: Worker not connected. Process output: $processOutput")
+                            throw GoWorkerFailedException("An error occurred while starting the worker.")
                         } else {
                             process.destroy()
                         }
@@ -112,16 +112,22 @@ object GoTestCasesGenerator {
                     val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
                     if (!processHasExited) {
                         process.destroy()
-                        throw TimeoutException("Timeout exceeded: Worker didn't finish")
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        throw TimeoutException(
+                            buildString {
+                                appendLine("Timeout exceeded: Worker didn't finish. Process output: ")
+                                appendLine(processOutput)
+                            }
+                        )
                     }
                     val exitCode = process.exitValue()
                     if (exitCode != 0) {
                         val processOutput = InputStreamReader(process.inputStream).readText()
                         throw RuntimeException(
-                            StringBuilder()
-                                .append("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
-                                .appendLine()
-                                .append(processOutput).toString()
+                            buildString {
+                                appendLine("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
+                                appendLine(processOutput)
+                            }
                         )
                     }
                 } catch (e: TimeoutException) {
@@ -132,16 +138,22 @@ object GoTestCasesGenerator {
                     val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
                     if (!processHasExited) {
                         process.destroy()
-                        logger.error { "Timeout exceeded: Worker didn't finish" }
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        logger.error {
+                            buildString {
+                                appendLine("Timeout exceeded: Worker didn't finish. Process output: ")
+                                appendLine(processOutput)
+                            }
+                        }
                     }
                     val exitCode = process.exitValue()
                     if (exitCode != 0) {
                         val processOutput = InputStreamReader(process.inputStream).readText()
                         logger.error {
-                            StringBuilder()
-                                .append("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
-                                .appendLine()
-                                .append(processOutput).toString()
+                            buildString {
+                                appendLine("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
+                                appendLine(processOutput)
+                            }
                         }
                     }
 

@@ -1,6 +1,7 @@
 package org.utbot.go.api
 
 import org.utbot.go.framework.api.go.GoFieldId
+import org.utbot.go.framework.api.go.GoNamedTypeId
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 
@@ -31,7 +32,7 @@ class GoStructTypeId(
     implementsError: Boolean,
     override val sourcePackage: GoPackage,
     val fields: List<GoFieldId>,
-) : GoTypeId(name, implementsError = implementsError) {
+) : GoNamedTypeId(name, implementsError = implementsError) {
     val packageName: String = sourcePackage.packageName
     val packagePath: String = sourcePackage.packagePath
     override val canonicalName: String = "${sourcePackage.packageName}.$name"
@@ -102,7 +103,7 @@ class GoInterfaceTypeId(
     name: String,
     implementsError: Boolean,
     override val sourcePackage: GoPackage,
-) : GoTypeId(name, implementsError = implementsError) {
+) : GoNamedTypeId(name, implementsError = implementsError) {
     val packageName: String = sourcePackage.packageName
     val packagePath: String = sourcePackage.packagePath
     override val canonicalName: String = if (packageName != "") {

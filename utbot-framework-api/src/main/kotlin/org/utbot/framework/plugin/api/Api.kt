@@ -1270,10 +1270,11 @@ class SpringApplicationContext(
     private val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
+    // Classes representing concrete types that are actually used in Spring application
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (springInjectedClassesStorage.isEmpty()) {
-                springInjectedClassesStorage = beanQualifiedNames
+                springInjectedClassesStorage += beanQualifiedNames
                     .map { fqn -> utContext.classLoader.loadClass(fqn) }
                     .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
                     .mapTo(mutableSetOf()) { it.id }
@@ -1282,7 +1283,9 @@ class SpringApplicationContext(
             return springInjectedClassesStorage
         }
 
-    private var springInjectedClassesStorage = mutableSetOf<ClassId>()
+    // This is a service field to model the lazy behavior of [springInjectedClasses].
+    // Do not call it outside the getter.
+    private val springInjectedClassesStorage = mutableSetOf<ClassId>()
 
     override val typeReplacementMode: TypeReplacementMode
         get() = if (shouldUseImplementors) KnownImplementor else NoImplementors

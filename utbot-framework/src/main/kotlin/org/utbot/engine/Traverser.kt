@@ -2341,7 +2341,6 @@ class Traverser(
         return createArray(addr, type, useConcreteType = false)
     }
 
-
     /**
      * Creates an array with given [addr] and [type].
      *

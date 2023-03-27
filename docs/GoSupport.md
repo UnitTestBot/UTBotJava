@@ -10,19 +10,19 @@ so feel free to [contribute](https://github.com/UnitTestBot/UTBotJava/blob/main/
 ## Features and details
 
 UnitTestBot Go now implements the _basic fuzzing technique_.
-It generates input values with respect to parameter types,
+It generates input values considering the parameter types,
 inserts these values into the user functions, and executes the resulting test cases.
 
 ### Supported types for function parameters
 
-At the moment, UnitTestBot Go is able to generate values for _primitive types_, _arrays_, _slices_ and _structs_.
+Now UnitTestBot Go can generate values for _primitive types_, _arrays_, _slices_ and _structs_.
 
 For _floating point types_, UnitTestBot Go supports working with _infinity_ and _NaN_.
 
 ### Supported types for the returned results
 
 For the returned function results,
-UnitTestBot Go supports the `error` type in addition to all the types supported for the function parameters.
+UnitTestBot Go supports the `error` type as well as all the types supported for the function parameters.
 
 It also captures `panic` cases correctly.
 
@@ -58,44 +58,45 @@ use the `go mod tidy` command. For editing and formatting `go.mod` files, use th
 In the future, we plan to make UnitTestBot Go working with arbitrary code as input and generate the simplest
 Go projects automatically.
 
-## Installation and usage
+## IntelliJ IDEA plugin
 
-### IntelliJ IDEA plugin
+### Requirements
 
-#### Requirements
-
-* IntelliJ IDEA (Ultimate Edition) — versions from 2022.2 to 2022.2.4
+* IntelliJ IDEA Ultimate — for compatibility, see [UnitTestBot on JetBrains Marketplace](https://plugins.jetbrains.com/plugin/19445-unittestbot/versions).
 * Go SDK 1.18 or later
 * Compatible [Go plugin](https://plugins.jetbrains.com/plugin/9568-go) for IntelliJ IDEA
 * Properly configured `go.mod` file for the code under test
 * `github.com/stretchr/testify/assert` Go module installed (IntelliJ IDEA automatically offers to install it as soon as the tests are generated)
 
-#### Installation
+### Installation
 
-To install the UnitTestBot Go plugin in IntelliJ IDEA, refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJava/wiki/Install-or-update-plugin). 
+Please refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJava/wiki/Install-or-update-plugin). 
 
-#### Usage
+### Usage
 
-1. In your IntelliJ IDEA, go to **File** > **Settings** > **Tools** > **UnitTestBot** and enable **Experimental languages support**.
+1. In your IntelliJ IDEA, go to **File** > **Settings** > **Tools**, choose **UnitTestBot** and enable **Experimental languages support**.
+
+   **(!) NOTE:** be sure to enable this option for **_each_** project.
+
 2. Open a `.go` file and press **Alt+Shift+U**.
 3. In the **Generate Tests with UnitTestBot** window, you can configure the settings.
 
-### CLI
+## Command-line interface (CLI)
 
-#### Requirements
+### Requirements
 
 * Java SDK 11 or later
 * Go SDK 1.18 or later
 * Properly configured `go.mod` file for the code under test
-* GCC as well as `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0` Go modules installed
+* GCC and `github.com/stretchr/testify/assert` installed
 
-#### Installation
+### Installation
 
 To install the UnitTestBot Go CLI application, go to GitHub, scroll through the release notes and click **Assets**.
 Download the zip-archive named like **utbot-cli-VERSION**.
 Extract the JAR file from the archive.
 
-#### Usage
+### Usage
 
 Run the extracted JAR file using a command line: `generateGo` and `runGo` actions are supported for now.
 To find info about the options for these actions,
@@ -138,4 +139,4 @@ java -jar utbot-cli-2022.8-beta.jar runGo --help
 ## Contributing to UnitTestBot Go
 
 To take part in project development or learn more about UnitTestBot Go, check
-out the [Developer guide](docs/DEVELOPER_GUIDE.md) and our [future plans](docs/FUTURE_PLANS.md).
+out the [Developer guide](../utbot-go/docs/DEVELOPER_GUIDE.md) and our [plans](../utbot-go/docs/FUTURE_PLANS.md).

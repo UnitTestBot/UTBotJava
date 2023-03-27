@@ -10,7 +10,7 @@ class GoUtModelToCodeConverter(
     private val aliases: Map<GoPackage, String?>
 ) {
 
-    fun toGoCode(model: GoUtModel): String = when (model) {
+    fun toGoCode(model: GoUtModel, withTypeConversion: Boolean = true): String = when (model) {
         is GoUtNilModel -> "nil"
 
         is GoUtPrimitiveModel -> when (model.explicitCastMode) {
@@ -22,7 +22,11 @@ class GoUtModelToCodeConverter(
 
         is GoUtSliceModel -> sliceModelToGoCode(model)
 
-        is GoUtNamedModel -> namedModelToGoCode(model)
+        is GoUtNamedModel -> if (!withTypeConversion && model.value is GoUtPrimitiveModel) {
+            toGoCodeWithoutTypeName(model.value)
+        } else {
+            namedModelToGoCode(model)
+        }
 
         else -> error("Converting a ${model.javaClass} to Go code isn't supported")
     }

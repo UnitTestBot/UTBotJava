@@ -235,7 +235,7 @@ object GoTestCasesCodeGenerator {
         functionName: String, parameters: List<GoUtModel>, goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         val fuzzedParametersToString = parameters.joinToString(prefix = "(", postfix = ")") {
-            goUtModelToCodeConverter.toGoCode(it)
+            goUtModelToCodeConverter.toGoCode(it, false)
         }
         return "$functionName$fuzzedParametersToString"
     }

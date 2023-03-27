@@ -716,7 +716,7 @@ object GoCodeTemplates {
         	case strings.HasPrefix(typeNameStr, "[]"):
         		elementType, ok := rawValue["elementType"]
         		if !ok {
-        			return nil, fmt.Errorf("sliceValue must contain field 'elementType")
+        			return nil, fmt.Errorf("sliceValue must contain field 'elementType'")
         		}
         		elementTypeStr, ok := elementType.(string)
         		if !ok {

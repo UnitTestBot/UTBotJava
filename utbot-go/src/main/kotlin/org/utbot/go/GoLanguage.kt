@@ -15,6 +15,7 @@ fun goDefaultValueProviders() = listOf(
     GoStructValueProvider,
     GoConstantValueProvider,
     GoNamedValueProvider,
+    GoNilValueProvider
 )
 
 class GoInstruction(

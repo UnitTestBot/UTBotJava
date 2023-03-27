@@ -148,14 +148,14 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
         goStringTypeId -> GoUtPrimitiveModel("", this)
         goUintPtrTypeId -> GoUtPrimitiveModel(0, this)
 
-        else -> error("Go primitive ${this.javaClass} is not supported")
+        else -> error("Generating Go default value model for ${this.javaClass} is not supported")
     }
 
     is GoStructTypeId -> GoUtStructModel(listOf(), this)
     is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
-    is GoSliceTypeId -> GoUtSliceModel(hashMapOf(), this, 0)
+    is GoSliceTypeId -> GoUtNilModel(this)
     is GoNamedTypeId -> GoUtNamedModel(this.underlyingTypeId.goDefaultValueModel(), this)
-    else -> GoUtNilModel(this)
+    else -> error("Generating Go default value model for ${this.javaClass} is not supported")
 }
 
 fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> = when (this) {
@@ -173,6 +173,7 @@ fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
     else -> emptySet()
 }
 
-fun List<GoTypeId>.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> = this.fold(emptySet()) { acc, type ->
-    acc + type.getAllVisibleNamedTypes(goPackage)
-}
+fun List<GoTypeId>.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
+    this.fold(emptySet()) { acc, type ->
+        acc + type.getAllVisibleNamedTypes(goPackage)
+    }

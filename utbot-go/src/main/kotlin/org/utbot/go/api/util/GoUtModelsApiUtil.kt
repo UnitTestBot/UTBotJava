@@ -34,7 +34,6 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             model.getElements().map { it.convertToRawValue(destinationPackage, aliases) }
         )
 
-
         is GoUtSliceModel -> SliceValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
             model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
@@ -54,6 +53,6 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
         )
 
         is GoUtPrimitiveModel -> PrimitiveValue(model.typeId.name, model.value.toString())
-
+        is GoUtNilModel -> NilValue(model.typeId.getRelativeName(destinationPackage, aliases))
         else -> error("Converting ${model.javaClass} to RawValue is not supported")
     }

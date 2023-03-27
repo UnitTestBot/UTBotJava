@@ -11,8 +11,8 @@ import kotlin.reflect.KClass
 
 data class PrimitiveValue(
     override val type: String,
-    override val value: String,
-) : RawValue(type, value) {
+    val value: String,
+) : RawValue(type) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
         if (type is GoNamedTypeId) {
             return checkIsEqualTypes(type.underlyingTypeId)
@@ -30,15 +30,15 @@ data class PrimitiveValue(
 
 data class NamedValue(
     override val type: String,
-    override val value: RawValue,
-) : RawValue(type, value) {
+    val value: RawValue,
+) : RawValue(type) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean = error("Not supported")
 }
 
 data class StructValue(
     override val type: String,
-    override val value: List<FieldValue>
-) : RawValue(type, value) {
+    val value: List<FieldValue>
+) : RawValue(type) {
     data class FieldValue(
         val name: String,
         val value: RawValue,
@@ -74,8 +74,8 @@ data class ArrayValue(
     override val type: String,
     val elementType: String,
     val length: Int,
-    override val value: List<RawValue>
-) : RawValue(type, value) {
+    val value: List<RawValue>
+) : RawValue(type) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
         if (type is GoNamedTypeId) {
             return checkIsEqualTypes(type.underlyingTypeId)
@@ -94,8 +94,8 @@ data class SliceValue(
     override val type: String,
     val elementType: String,
     val length: Int,
-    override val value: List<RawValue>
-) : RawValue(type, value) {
+    val value: List<RawValue>
+) : RawValue(type) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
         if (type is GoNamedTypeId) {
             return checkIsEqualTypes(type.underlyingTypeId)
@@ -110,8 +110,14 @@ data class SliceValue(
     }
 }
 
+data class NilValue(
+    override val type: String
+) : RawValue(type) {
+    override fun checkIsEqualTypes(type: GoTypeId): Boolean = error("Not supported")
+}
+
 @TypeFor(field = "type", adapter = RawResultValueAdapter::class)
-abstract class RawValue(open val type: String, open val value: Any) {
+abstract class RawValue(open val type: String) {
     abstract fun checkIsEqualTypes(type: GoTypeId): Boolean
 }
 

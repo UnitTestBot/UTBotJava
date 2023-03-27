@@ -113,7 +113,7 @@ class JsTestGenerator(
         )
         context.packageJson = PackageJsonService(
             sourceFilePath,
-            projectPath,
+            File(projectPath),
         ).findClosestConfig()
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
         val testSets = mutableListOf<CgMethodTestSet>()

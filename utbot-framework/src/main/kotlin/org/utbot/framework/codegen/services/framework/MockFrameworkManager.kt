@@ -13,11 +13,13 @@ import org.utbot.framework.codegen.domain.builtin.anyLong
 import org.utbot.framework.codegen.domain.builtin.anyOfClass
 import org.utbot.framework.codegen.domain.builtin.anyShort
 import org.utbot.framework.codegen.domain.builtin.argumentMatchersClassId
+import org.utbot.framework.codegen.domain.builtin.doNothingMethodId
 import org.utbot.framework.codegen.domain.builtin.mockMethodId
 import org.utbot.framework.codegen.domain.builtin.mockedConstructionContextClassId
 import org.utbot.framework.codegen.domain.builtin.mockitoClassId
 import org.utbot.framework.codegen.domain.builtin.thenReturnMethodId
 import org.utbot.framework.codegen.domain.builtin.whenMethodId
+import org.utbot.framework.codegen.domain.builtin.whenStubberMethodId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
@@ -190,28 +192,39 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
 
     fun mockForVariable(model: UtCompositeModel, mockObject: CgVariable) {
         for ((executable, values) in model.mocks) {
-            // void method
+            val matchers = mockitoArgumentMatchersFor(executable)
+
             if (executable.returnType == voidClassId) {
-                // void methods on mocks do nothing by default
-                continue
-            }
-
-            when (executable) {
-                is MethodId -> {
-                    if (executable.parameters.any { !it.isAccessibleFrom(testClassPackageName) }) {
-                        error("Cannot mock method $executable with not accessible parameters" )
+                when (executable) {
+                    // All constructors are considered like void methods, but it is proposed to be changed to test constructors better.
+                    is ConstructorId -> continue
+                    // Sometimes void methods are called explicitly, e.g. annotated with @Mock fields in Spring test classes.
+                    // We would like to mark that this field is used and must not be removed from test class.
+                    // Without `doNothing` call Intellij Idea suggests removing this field as unused.
+                    is MethodId -> {
+                        +mockitoClassId[doNothingMethodId]()[whenStubberMethodId](mockObject)[executable](*matchers)
                     }
-
-                    val matchers = mockitoArgumentMatchersFor(executable)
-                    if (!executable.isAccessibleFrom(testClassPackageName)) {
-                        error("Cannot mock method $executable as it is not accessible from package $testClassPackageName")
-                    }
-
-                    val results = values.map { variableConstructor.getOrCreateVariable(it) }.toTypedArray()
-                    `when`(mockObject[executable](*matchers)).thenReturn(executable.returnType, *results)
+                    else -> error("Only MethodId and ConstructorId was expected to appear in simple mocker but got $executable")
                 }
-                else -> error("ConstructorId was not expected to appear in simple mocker but got $executable")
+            } else {
+                when (executable) {
+                    is MethodId -> {
+                        if (executable.parameters.any { !it.isAccessibleFrom(testClassPackageName) }) {
+                            error("Cannot mock method $executable with not accessible parameters" )
+                        }
+
+                        if (!executable.isAccessibleFrom(testClassPackageName)) {
+                            error("Cannot mock method $executable as it is not accessible from package $testClassPackageName")
+                        }
+
+                        val results = values.map { variableConstructor.getOrCreateVariable(it) }.toTypedArray()
+                        `when`(mockObject[executable](*matchers)).thenReturn(executable.returnType, *results)
+                    }
+                    else -> error("Only MethodId was expected to appear in simple mocker but got $executable")
+                }
             }
+
+
         }
     }
 

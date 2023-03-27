@@ -6,13 +6,12 @@ Now UnitTestBot provides fuzzing-based support for Python.
 
 ## Requirements
 
-1. IntelliJ IDEA 2022.2 or later
+1. IntelliJ IDEA — for compatibility, see [UnitTestBot on JetBrains Marketplace](https://plugins.jetbrains.com/plugin/19445-unittestbot/versions).
 2. Python 3.8 or later
 3. [Python plugin](https://plugins.jetbrains.com/plugin/631-python) for IntelliJ IDEA
 
-If you already have a Python project, you usually have no need to install or configure anything else, but if you have trouble with launching UnitTestBot Python, please refer to [advanced requirements section](../utbot-python/docs/CLI.md#requirements).
-
-_Note:_ the `com.intellij.modules.python` package should be specified in `/utbot-intellij/resources/plugin.xml` as a dependency for using Python PSI tree.
+If you already have a Python project, you usually have no need to install or configure anything else, but if you 
+have trouble with launching UnitTestBot for Python code, please refer to [advanced requirements section](../utbot-python/docs/CLI.md#requirements).
 
 ## How to install and use
 
@@ -23,7 +22,7 @@ To try UnitTestBot Python in your IntelliJ IDEA:
 
     **(!) NOTE:** be sure to enable this option for **_each_** project.
 
-4. To generate tests, place the caret at the required function and press **Alt+Shift+U** (**Alt+U, Alt+T** in Ubuntu).
+4. To generate tests, place the caret at the required function and press **Alt+Shift+U**. To find the appropriate shortcut for the OS you are using, check the context menu.
 
 To use UnitTestBot Python via command-line interface, please refer to the [CLI guide](../utbot-python/docs/CLI.md).
 

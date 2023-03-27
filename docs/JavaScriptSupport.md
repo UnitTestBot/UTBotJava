@@ -8,7 +8,7 @@ Now UnitTestBot provides fuzzing-based support for JavaScript.
 
 ### Requirements
 
-1. IntelliJ IDEA Ultimate 2022.2 or later
+1. IntelliJ IDEA Ultimate — for compatibility, see [UnitTestBot on JetBrains Marketplace](https://plugins.jetbrains.com/plugin/19445-unittestbot/versions).
 2. UnitTestBot plugin: please refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJava/wiki/Install-or-update-plugin).
 3. [Node.js 10.0.0 or later](https://nodejs.org/en/download/) (we recommend that you add Node.js to environment variables)
  
@@ -37,6 +37,8 @@ JAR file can be built in [GitHub Actions](https://github.com/UnitTestBot/UTBotJa
 * [Java 11 or later](https://www.oracle.com/java/technologies/downloads/)
 * _nyc_ 15.1.0 or later: `> npm install -g nyc`
 * Mocha 10.0.0 or later: `> npm install -g mocha`
+
+_Note:_ for each new project, _npm_ needs internet connection to install the required packages.
 
 ### Generate tests: `generate_js`
 

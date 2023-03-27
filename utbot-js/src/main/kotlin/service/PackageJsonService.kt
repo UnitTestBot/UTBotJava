@@ -15,20 +15,20 @@ data class PackageJson(
 
 class PackageJsonService(
     private val filePathToInference: String,
-    private val projectPath: String
+    private val projectDir: File
 ) {
 
     fun findClosestConfig(): PackageJson {
-        var currDir = File(filePathToInference.substringBeforeLast("/"))
+        var currDir = File(filePathToInference)
         do {
+            currDir = currDir.parentFile
             val matchingFiles: Array<File> = currDir.listFiles(
                 FilenameFilter { _, name ->
                     return@FilenameFilter name == "package.json"
                 }
             ) ?: throw IllegalStateException("Error occurred while scanning file system")
             if (matchingFiles.isNotEmpty()) return parseConfig(matchingFiles.first())
-            currDir = currDir.parentFile
-        } while (currDir.path != projectPath)
+        } while (currDir != projectDir)
         return PackageJson.defaultConfig
     }
 

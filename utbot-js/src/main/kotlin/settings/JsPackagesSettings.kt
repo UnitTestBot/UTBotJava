@@ -1,5 +1,6 @@
 package settings
 
+import java.io.File
 import org.utbot.common.PathUtil.replaceSeparator
 import service.PackageJsonService
 import settings.JsPackagesSettings.mochaData
@@ -51,7 +52,7 @@ class PackageDataService(
     private val projectPath: String,
     private val pathToNpm: String,
 ) {
-    private val packageJson = PackageJsonService(filePathToInference, projectPath).findClosestConfig()
+    private val packageJson = PackageJsonService(filePathToInference, File(projectPath)).findClosestConfig()
 
     companion object {
         var nycPath: String = ""

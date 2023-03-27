@@ -31,6 +31,7 @@ import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.constructorId
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId

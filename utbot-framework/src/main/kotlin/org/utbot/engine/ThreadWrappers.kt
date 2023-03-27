@@ -23,6 +23,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.defaultValueModel
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId

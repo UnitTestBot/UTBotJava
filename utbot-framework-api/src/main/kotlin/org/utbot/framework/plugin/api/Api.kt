@@ -56,10 +56,14 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
+import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.TypeReplacementMode.*
+import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
+import soot.SootField
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -1196,6 +1200,7 @@ enum class TypeReplacementMode {
  * @param mockFrameworkInstalled shows if we have installed framework dependencies
  * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
+@Suppress("KDocUnresolvedReference")
 open class ApplicationContext(
     val mockFrameworkInstalled: Boolean = true,
     staticsMockingIsConfigured: Boolean = true,
@@ -1229,6 +1234,26 @@ open class ApplicationContext(
      * if it is guided with some additional information.
      */
     open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
+
+    /**
+     * Sets the restrictions on speculative not null
+     * constraints in current application context.
+     *
+     * @see docs/SpeculativeFieldNonNullability.md for more information.
+     */
+    open fun avoidSpeculativeNotNullChecks(field: SootField): Boolean =
+        UtSettings.maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()
+
+    /**
+     * Checks whether accessing [field] (with a method invocation or field access) speculatively
+     * cannot produce [NullPointerException] (according to its finality or accessibility).
+     *
+     * @see docs/SpeculativeFieldNonNullability.md for more information.
+     */
+    open fun speculativelyCannotProduceNullPointerException(
+        field: SootField,
+        classUnderTest: ClassId,
+    ): Boolean = field.isFinal || !field.isPublic
 }
 
 /**
@@ -1265,6 +1290,21 @@ class SpringApplicationContext(
         } else {
             null
         }
+
+    override fun avoidSpeculativeNotNullChecks(field: SootField): Boolean = false
+
+    /**
+     * In Spring applications we can mark as speculatively not null
+     * fields if they are mocked and injecting into class under test so on.
+     *
+     * Fields are not mocked if their actual type is obtained from [springInjectedClasses].
+     *
+     */
+    override fun speculativelyCannotProduceNullPointerException(
+        field: SootField,
+        classUnderTest: ClassId,
+    ): Boolean =
+        field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
 
 val RefType.isAbstractType

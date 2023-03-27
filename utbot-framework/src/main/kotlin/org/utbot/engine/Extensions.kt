@@ -285,9 +285,6 @@ val JimpleLocal.variable: LocalVariable
 val Type.defaultSymValue: UtExpression
     get() = toSort().defaultValue
 
-val SootField.fieldId: FieldId
-    get() = FieldId(declaringClass.id, name)
-
 val SootField.isEnumConstant: Boolean
     get() = name in declaringClass.id.enumConstants.orEmpty().map { enum -> enum.name }
 

@@ -1,6 +1,5 @@
-package org.utbot.engine.util.trusted
+package org.utbot.framework
 
-import org.utbot.framework.TrustedLibraries
 import soot.SootClass
 
 /**

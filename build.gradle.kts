@@ -74,7 +74,7 @@ allprojects {
                 "--add-opens", "java.base/sun.security.util=ALL-UNNAMED",
                 "--add-opens", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
                 "--add-opens", "java.base/sun.net.util=ALL-UNNAMED",
-                "--add-opens", "java.base/sun.net.fs=ALL-UNNAMED",
+                "--add-opens", "java.base/sun.nio.fs=ALL-UNNAMED",
                 "--add-opens", "java.base/java.security=ALL-UNNAMED",
                 "--add-opens", "java.base/java.lang.ref=ALL-UNNAMED",
                 "--add-opens", "java.base/java.math=ALL-UNNAMED",

@@ -30,7 +30,7 @@ object OpenModulesContainer {
             openPackage("java.base", "java.lang.reflect")
             openPackage("java.base", "sun.security.provider")
             openPackage("java.base", "sun.net.util")
-            openPackage("java.base", "sun.net.fs")
+            openPackage("java.base", "sun.nio.fs")
             openPackage("java.base", "jdk.internal.event")
             openPackage("java.base", "jdk.internal.jimage")
             openPackage("java.base", "jdk.internal.jimage.decompressor")

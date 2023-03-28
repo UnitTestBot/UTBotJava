@@ -30,7 +30,6 @@ import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.CgParameterKind
-import org.utbot.framework.codegen.domain.withExecutionId
 import org.utbot.framework.codegen.services.access.Block
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
@@ -571,7 +570,7 @@ data class CgContext(
         }
     }
 
-    override fun getIdByModel(model: UtModel): ModelId = modelIds.getOrPut(model) { model.withExecutionId() }
+    override fun getIdByModel(model: UtModel): ModelId = modelIds.getOrPut(model) { ModelId.create(model) }
 
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"

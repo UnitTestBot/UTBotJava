@@ -517,6 +517,20 @@ class UtBotSymbolicEngine(
             return
         }
 
+        if (checkStaticMethodsMock(symbolicUtExecution)) {
+            logger.debug {
+                buildString {
+                    append("processResult<${methodUnderTest}>: library static methods mock found ")
+                    append("(we do not support it in concrete execution yet), ")
+                    append("emit purely symbolic result $symbolicUtExecution")
+                }
+            }
+
+            emit(symbolicUtExecution)
+            return
+        }
+
+
         //It's possible that symbolic and concrete stateAfter/results are diverged.
         //So we trust concrete results more.
         try {
@@ -648,3 +662,6 @@ private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
     // so we can't cast them to each other.
     return result.exceptionOrNull()?.javaClass?.name == UtMockAssumptionViolatedException::class.java.name
 }
+
+private fun checkStaticMethodsMock(execution: UtSymbolicExecution) =
+    execution.instrumentation.any { it is UtStaticMethodInstrumentation}

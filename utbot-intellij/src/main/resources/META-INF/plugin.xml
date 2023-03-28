@@ -56,7 +56,7 @@
             <li>generating <a href="https://github.com/microsoft/sarif-tutorials/blob/main/README.md">SARIF</a> reports</li>
             <li>innovative symbolic execution engine combined with a smart fuzzing platform</li>
         </ul>
-        UnitTestBot supports the latest JDKs, JUnit 4, JUnit 5, TestNG, Mockito and is suitable for all popular operational systems.
+        UnitTestBot supports JDK 1.8&ndash;17, JUnit 4, JUnit 5, TestNG, Mockito and is suitable for all popular operational systems.
         <br/>
         Try <a href="https://www.utbot.org/demo/?language=Java&source=public%20class%20Recursion%20%7B%0A%0A%20%20public%20int%20fib(int%20n)%20%7B%0A%20%20%20%20if%20(n%20%3C%200)%20throw%20new%20IllegalArgumentException()%3B%0A%20%20%20%20if%20(n%20%3D%3D%200)%20return%200%3B%0A%20%20%20%20if%20(n%20%3D%3D%201)%20return%201%3B%0A%20%20%20%20%0A%20%20%20%20return%20fib(n%20-%201)%20%2B%20fib(n%20-%202)%3B%0A%20%20%7D%0A%7D%0A">UnitTestBot online demo</a> to see how it generates tests for your code in real time.
         <br/>
@@ -69,19 +69,14 @@
     </description>
     <change-notes>
         <![CDATA[
-        Check out UnitTestBot new features and major improvements in the latest release:
+        Check out the latest UnitTestBot release with major improvements and bug fixes:
         <ul>
-            <li>Generating tests for Python and JavaScript</li>
-            <li>New fuzzing platform providing support for multiple languages</li>
-            <li>Improved test generation for Kotlin code</li>
-            <li>Multiprocess architecture based on the <a href="https://github.com/JetBrains/rd">Reactive Distributed communication framework</a> with advanced logging and debugging options</li>
-            <li>Symbolic execution engine with higher priority and fewer false UNSAT verdicts</li>
-            <li>UI/UX improvements for test sources root, <code>setting.properties</code> file, cancellation, timeout settings, notifications</li>
-            <li>Summaries with fine-grained settings</li>
-            <li>SARIF reports enabled by default, displaying sandbox-related and timeout test failures, properly addressing source files</li>
-            <li>Improved monitoring visualized with Grafana</li>
-            <li>Test generation bug fixes</li>
-            <li>Detailed documentation on UnitTestBot components including UnitTestBot architecture overview</li>
+            <li>Compatibility with IntelliJ IDEA 2022.3</li>
+            <li>Using Java 17 for plugin compilation</li>
+            <li>Improved fuzzing behavior</li>
+            <li>Saving test generation timeout as a project-specific setting</li>
+            <li>Inspections for the nested classes displayed in the Problems tool window</li>
+            <li>No more empty tests when selecting multiple classes for generation</li>
         </ul>
     ]]>
     </change-notes>

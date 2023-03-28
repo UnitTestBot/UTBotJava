@@ -105,7 +105,6 @@ import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.SECURITY_FIELD_SIGNATURE
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
-import org.utbot.engine.util.trusted.isFromTrustedLibrary
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
@@ -113,9 +112,9 @@ import org.utbot.engine.util.statics.concrete.makeEnumNonStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
 import org.utbot.framework.UtSettings
-import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -128,6 +127,7 @@ import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.isAbstractType
 import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
@@ -2322,29 +2322,19 @@ class Traverser(
     }
 
     /**
-     * Marks the [createdField] as speculatively not null if the [field] is considering as
-     * not producing [NullPointerException].
+     * Marks the [createdField] as speculatively not null if the [field] is considering
+     * as not producing [NullPointerException].
      *
-     * @see [SootField.speculativelyCannotProduceNullPointerException], [markAsSpeculativelyNotNull], [isFromTrustedLibrary].
+     * See more detailed documentation in [ApplicationContext] mentioned methods.
      */
     private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
-        if (maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()) {
+        if (applicationContext.avoidSpeculativeNotNullChecks(field) ||
+                !applicationContext.speculativelyCannotProduceNullPointerException(field, methodUnderTest.classId)) {
             return
         }
 
-        if (field.speculativelyCannotProduceNullPointerException()) {
-            markAsSpeculativelyNotNull(createdField.addr)
-        }
+        markAsSpeculativelyNotNull(createdField.addr)
     }
-
-    /**
-     * Checks whether accessing [this] field (with a method invocation or field access) speculatively can produce
-     * [NullPointerException] (according to its finality or accessibility).
-     *
-     * @see docs/SpeculativeFieldNonNullability.md for more information.
-     */
-    @Suppress("KDocUnresolvedReference")
-    private fun SootField.speculativelyCannotProduceNullPointerException(): Boolean = isFinal || !isPublic
 
     private fun createArray(pName: String, type: ArrayType): ArrayValue {
         val addr = UtAddrExpression(mkBVConst(pName, UtIntSort))

@@ -1275,7 +1275,7 @@ class SpringApplicationContext(
     // Classes representing concrete types that are actually used in Spring application
     private val springInjectedClasses: Set<ClassId>
         get() {
-            if (!areInjectedClassesInitialized && springInjectedClassesStorage.isEmpty()) {
+            if (!areInjectedClassesInitialized) {
                 springInjectedClassesStorage += beanQualifiedNames
                     .map { fqn -> utContext.classLoader.loadClass(fqn) }
                     .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }

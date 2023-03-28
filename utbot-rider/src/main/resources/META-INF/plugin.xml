@@ -22,4 +22,10 @@
         ]]>
     </description>
 
+    <project-components>
+        <component>
+            <implementation-class>org.utbot.rider.UtBotConsoleViewComponent</implementation-class>
+        </component>
+    </project-components>
+
 </idea-plugin>

@@ -4,17 +4,20 @@ using System.IO;
 using System.Runtime.InteropServices;
 using JetBrains.Application.Threading.Tasks;
 using JetBrains.Application.UI.Controls;
+using JetBrains.Collections.Viewable;
 using JetBrains.Lifetimes;
 using JetBrains.ProjectModel;
 using JetBrains.ProjectModel.Properties;
+using JetBrains.Rider.Model;
 using JetBrains.Threading;
 using JetBrains.Util;
+using UtBot.Rd.Generated;
 
 namespace UtBot.Utils;
 
 public static class ProjectPublisher
 {
-    public static bool PublishSync(ILogger logger, IBackgroundProgressIndicator indicator, IProject project, IProjectConfiguration config, VirtualFileSystemPath outputDir)
+    public static bool PublishSync(ILogger logger, IBackgroundProgressIndicator indicator, IProject project, IProjectConfiguration config, VirtualFileSystemPath outputDir, UtBotRiderModel model)
     {
         var publishLifetimeDef = indicator.Lifetime.CreateNested();
         indicator.Cancel.Advise(Lifetime.Eternal, canceled => {if (canceled) publishLifetimeDef.Terminate();});
@@ -38,19 +41,39 @@ public static class ProjectPublisher
                 Arguments =
                     $"{command} \"{projectName}\" --sc -c {config.Name} -a {architecture} -o {outputDir.FullPath} -f {tfm}",
                 WorkingDirectory = project.ProjectFileLocation.Directory.FullPath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             };
 
-            var process = new Process();
+            using var process = new Process();
             process.StartInfo = processInfo;
+            process.OutputDataReceived += (_, args) =>
+            {
+                model.LogPublishOutput.Fire(args.Data ?? "\n");
+            };
+            process.ErrorDataReceived += (_, args) =>
+            {
+                model.LogPublishError.Fire(args.Data ?? "\n");
+            };
             process.Exited += (_, a) =>
             {
                 publishLifetimeDef.Terminate();
             };
-            process.Start();
-            SpinWaitEx.SpinUntil(publishLifetimeDef.Lifetime, () => process.HasExited);
-            if (process.ExitCode != 0)
+            model.StartPublish.Fire(new StartPublishArgs(processInfo.FileName, processInfo.Arguments, processInfo.WorkingDirectory));
+            if (process.Start())
             {
-                logger.Warn($"Publish process exited with code {process.ExitCode}: {process.StandardOutput.ReadToEnd()}");
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                SpinWaitEx.SpinUntil(publishLifetimeDef.Lifetime, () => process.HasExited);
+                if (process.ExitCode != 0)
+                {
+                    logger.Warn($"Publish process exited with code {process.ExitCode}: {process.StandardOutput.ReadToEnd()}");
+                }
+                model.StopPublish.Fire(process.ExitCode);
+            }
+            else
+            {
+                model.StopPublish.Fire(-1);
             }
             return process.HasExited && process.ExitCode == 0;
         }

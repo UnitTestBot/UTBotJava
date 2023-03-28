@@ -23,6 +23,7 @@ using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.Util;
 using JetBrains.Rider.Model;
 using JetBrains.Util;
+using JetBrains.Util.Threading;
 using UtBot.Rd;
 using UtBot.Rd.Generated;
 using UtBot.Utils;
@@ -39,11 +40,12 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
     private readonly Lifetime _lifetime;
     private readonly ILogger _logger;
     private readonly IShellLocks _shellLocks;
-
+    private readonly UtBotRiderModel _riderModel;
     private readonly Notifications _notifications;
 
     public UnitTestBuilder(
         Lifetime lifetime,
+        ISolution solution,
         IShellLocks shellLocks,
         IBackgroundProgressIndicatorManager backgroundProgressIndicatorManager,
         ILogger logger,
@@ -54,6 +56,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         _backgroundProgressIndicatorManager = backgroundProgressIndicatorManager;
         _logger = logger;
         _notifications = notifications;
+        _riderModel = solution.GetProtocolSolution().GetUtBotRiderModel();
     }
 
     protected override void Process(CSharpGeneratorContext context, IProgressIndicator progress)
@@ -196,7 +199,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         var outputDir = project.GetOutputDirectory(config.TargetFrameworkId).Combine(PublishDirName);
         progressIndicator.Header.SetValue($"Publishing dependencies to {PublishDirName}...");
 
-        if (!ProjectPublisher.PublishSync(_logger, progressIndicator, project, config, outputDir)) {
+        if (!ProjectPublisher.PublishSync(_logger, progressIndicator, project, config, outputDir, _riderModel)) {
             var title = $"Cannot publish project {project.Name}";
             var openExceptionMessageCommand = new UserNotificationCommand(
                 "Show error info",
@@ -239,13 +242,17 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
             var workingDir = project.ProjectFileLocation.Directory.FullPath;
             var port = NetworkUtil.GetFreePort();
             var runnerPath = vsharpRunner.FullPath;
-            var proc = new ProcessWithRdServer(name, workingDir, port, runnerPath, project.Locks, _lifetime, _logger);
+            var proc = new ProcessWithRdServer(name, workingDir, port, runnerPath, project.Locks, _riderModel, _lifetime, _logger);
             var projectCsprojPath = project.ProjectFileLocation.FullPath;
-            var allAssemblies = solution.GetAllAssemblies()
-                .Where(it => it.Location.AssemblyPhysicalPath is not null)
-                .Select(it => new MapEntry(it.FullAssemblyName, it.Location.AssemblyPhysicalPath!.FullPath))
-                .DistinctBy(it => it.Key)
-                .ToList();
+            List<MapEntry> allAssemblies;
+            using (_shellLocks.UsingReadLock())
+            {
+                allAssemblies = solution.GetAllAssemblies()
+                    .Where(it => it.Location.AssemblyPhysicalPath is not null)
+                    .Select(it => new MapEntry(it.FullAssemblyName, it.Location.AssemblyPhysicalPath!.FullPath))
+                    .DistinctBy(it => it.Key)
+                    .ToList();
+            }
             var args = new GenerateArguments(assemblyPath, projectCsprojPath, solutionFilePath, descriptors,
                 timeout, testProjectFramework.FrameworkMoniker.Name, allAssemblies);
             var vSharpTimeout = TimeSpan.FromSeconds(timeout);
@@ -254,6 +261,8 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
             methodProgressTimer.Start();
             var result = proc.VSharpModel?.Generate.Sync(args, rpcTimeout);
             methodProgressTimer.Stop();
+            proc.Proc.WaitForExit();
+            _riderModel.StopVSharp.Fire(proc.Proc.ExitCode);
             _logger.Info("Result acquired");
             if (result is { GeneratedProjectPath: not null })
             {

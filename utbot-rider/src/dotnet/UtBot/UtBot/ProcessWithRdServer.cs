@@ -9,6 +9,7 @@ using JetBrains.Collections.Viewable;
 using JetBrains.Lifetimes;
 using JetBrains.Rd;
 using JetBrains.Rd.Impl;
+using JetBrains.Rider.Model;
 using JetBrains.Threading;
 using JetBrains.Util;
 using JetBrains.Util.Logging;
@@ -25,9 +26,9 @@ public class ProcessWithRdServer
     [CanBeNull] public VSharpModel VSharpModel { get; private set; }
 
     private readonly LifetimeDefinition _ldef;
-    [CanBeNull] private Process _process;
+    public readonly Process Proc = new();
 
-    public ProcessWithRdServer(string name, string workingDir, int port, string exePath, IShellLocks shellLocks, Lifetime? parent = null, [CanBeNull] ILogger logger = null)
+    public ProcessWithRdServer(string name, string workingDir, int port, string exePath, IShellLocks shellLocks, UtBotRiderModel riderModel, Lifetime? parent = null, [CanBeNull] ILogger logger = null)
     {
         logger ??= Logger.GetLogger<ProcessWithRdServer>();
         using var blockingCollection = new BlockingCollection<String>(2);
@@ -47,7 +48,7 @@ public class ProcessWithRdServer
                 {
                     WorkingDirectory = workingDir
                 };
-
+                riderModel.StartVSharp.Fire();
                 Protocol = new Protocol(name, serializers, identities, scheduler, wire, Lifetime);
                 scheduler.Queue(() =>
                 {
@@ -59,22 +60,25 @@ public class ProcessWithRdServer
                             blockingCollection.TryAdd(s);
                         }
                     });
-                    VSharpModel.Log.Advise(Lifetime, s => logger.Info($"V#: {s}"));
+                    VSharpModel.Log.Advise(Lifetime, s =>
+                    {
+                        logger.Info($"V#: {s}");
+                        riderModel.LogVSharp.Fire(s);
+                    });
                 });
-                _process = new Process();
-                _process.StartInfo = startInfo;
-                Lifetime.OnTermination(() => _process.Kill(entireProcessTree: true));
-                if (_process.Start())
-                    _process.Exited += (_, _) => _ldef.Terminate();
+                Proc.StartInfo = startInfo;
+                Lifetime.OnTermination(() => Proc.Kill(entireProcessTree: true));
+                if (Proc.Start())
+                    Proc.Exited += (_, _) => _ldef.Terminate();
                 else
                     _ldef.Terminate();
             });
 
-            if (_process?.HasExited == true) return;
+            if (Proc?.HasExited == true) return;
 
             SpinWaitEx.SpinUntil(pingLdef.Lifetime, () =>
             {
-                if (_process?.HasExited == true)
+                if (Proc?.HasExited == true)
                 {
                     VSharpModel = null;
                     _ldef.Terminate();

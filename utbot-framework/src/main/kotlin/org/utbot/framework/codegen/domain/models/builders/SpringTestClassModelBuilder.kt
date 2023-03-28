@@ -1,10 +1,10 @@
 package org.utbot.framework.codegen.domain.models.builders
 
+import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
-import org.utbot.framework.codegen.domain.withExecutionId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -39,17 +39,15 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
         val thisInstances = mutableSetOf<UtModel>()
         val thisInstancesDependentModels = mutableSetOf<UtModel>()
 
-        for (testSet in testSets) {
-            for ((index, execution) in testSet.executions.withIndex()) {
-                execution.stateBefore.thisInstance?.let { model ->
-                    thisInstances += model
-                    thisInstancesDependentModels += collectByThisInstanceModel(model, index)
-                }
+        for ((testSetIndex, testSet) in testSets.withIndex()) {
+            for ((executionIndex, execution) in testSet.executions.withIndex()) {
 
-                execution.stateAfter.thisInstance?.let { model ->
-                    thisInstances += model
-                    thisInstancesDependentModels += collectByThisInstanceModel(model, index)
-                }
+                setOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
+                    .filterNotNull()
+                    .forEach { model ->
+                        thisInstances += model
+                        thisInstancesDependentModels += collectByThisInstanceModel(model, executionIndex, testSetIndex)
+                    }
             }
         }
 
@@ -59,14 +57,14 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
         return thisInstances.groupByClassId() to dependentMockModels.groupByClassId()
     }
 
-    private fun collectByThisInstanceModel(model: UtModel, executionIndex: Int): Set<UtModel> {
-        context.modelIds[model] = model.withExecutionId(executionIndex)
+    private fun collectByThisInstanceModel(model: UtModel, executionIndex: Int, testSetIndex: Int): Set<UtModel> {
+        context.modelIds[model] = ModelId.create(model, executionIndex, testSetIndex)
 
         val dependentModels = mutableSetOf<UtModel>()
         collectRecursively(model, dependentModels)
 
         dependentModels.forEach { model ->
-            context.modelIds[model] = model.withExecutionId(executionIndex)
+            context.modelIds[model] = ModelId.create(model, executionIndex, testSetIndex)
         }
 
         return dependentModels

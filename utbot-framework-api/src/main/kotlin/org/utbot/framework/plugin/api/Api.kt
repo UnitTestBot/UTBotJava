@@ -1270,10 +1270,12 @@ class SpringApplicationContext(
     private val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
+    private var areInjectedClassesInitialized : Boolean = false
+
     // Classes representing concrete types that are actually used in Spring application
     private val springInjectedClasses: Set<ClassId>
         get() {
-            if (springInjectedClassesStorage.isEmpty()) {
+            if (!areInjectedClassesInitialized && springInjectedClassesStorage.isEmpty()) {
                 springInjectedClassesStorage += beanQualifiedNames
                     .map { fqn -> utContext.classLoader.loadClass(fqn) }
                     .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
@@ -1281,8 +1283,7 @@ class SpringApplicationContext(
 
                 // This is done to be sure that this storage is not empty after the first class loading iteration.
                 // So, even if all loaded classes were filtered out, we will not try to load them again.
-                // Having `Object` in a list of injected classes is harmless from the point of abstract types replacements.
-                springInjectedClassesStorage += objectClassId
+                areInjectedClassesInitialized = true
             }
 
             return springInjectedClassesStorage
@@ -1290,10 +1291,13 @@ class SpringApplicationContext(
 
     // This is a service field to model the lazy behavior of [springInjectedClasses].
     // Do not call it outside the getter.
+    //
+    // Actually, we should just call [springInjectedClasses] with `by lazy`, but  we had problems
+    // with a strange `kotlin.UNINITIALIZED_VALUE` in `speculativelyCannotProduceNullPointerException` method call.
     private val springInjectedClassesStorage = mutableSetOf<ClassId>()
 
-    override val typeReplacementMode: TypeReplacementMode
-        get() = if (shouldUseImplementors) KnownImplementor else NoImplementors
+    override val typeReplacementMode: TypeReplacementMode =
+        if (shouldUseImplementors) KnownImplementor else NoImplementors
 
     /**
      * Replaces an interface type with its implementor type

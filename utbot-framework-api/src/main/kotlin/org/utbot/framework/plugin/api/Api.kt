@@ -61,6 +61,7 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.*
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootField
@@ -1200,7 +1201,6 @@ enum class TypeReplacementMode {
  * @param mockFrameworkInstalled shows if we have installed framework dependencies
  * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
-@Suppress("KDocUnresolvedReference")
 open class ApplicationContext(
     val mockFrameworkInstalled: Boolean = true,
     staticsMockingIsConfigured: Boolean = true,
@@ -1278,6 +1278,11 @@ class SpringApplicationContext(
                     .map { fqn -> utContext.classLoader.loadClass(fqn) }
                     .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
                     .mapTo(mutableSetOf()) { it.id }
+
+                // This is done to be sure that this storage is not empty after the first class loading iteration.
+                // So, even if all loaded classes were filtered out, we will not try to load them again.
+                // Having `Object` in a list of injected classes is harmless from the point of abstract types replacements.
+                springInjectedClassesStorage += objectClassId
             }
 
             return springInjectedClassesStorage

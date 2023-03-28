@@ -28,4 +28,16 @@
         </component>
     </project-components>
 
+    <change-notes>
+        <![CDATA[
+        Check out UnitTestBot .NET new features and major improvements in the latest release:
+        <ul>
+            <li>Test generation timeout option to control test generation duration</li>
+            <li>Balloon notifications informing about the test generation process state</li>
+            <li>Console for publish and test generation processes</li>
+            <li>.NET 7 projects support</li>
+            <li>Bugfixes</li>
+        </ul>
+    ]]>
+    </change-notes>
 </idea-plugin>

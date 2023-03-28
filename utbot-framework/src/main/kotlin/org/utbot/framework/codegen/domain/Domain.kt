@@ -780,13 +780,16 @@ object SpringBoot : DependencyInjectionFramework(
 /**
  * Extended id of [UtModel], unique for whole test set.
  *
- * Allows to distinguish models from different executions,
- * even if they have the same value of `UtModel.id`.
+ * Allows distinguishing models from different executions and test sets,
+ * even if they have the same value of `UtModel.id` that is allowed.
  */
-data class ModelId(
+data class ModelId private constructor(
     private val id: Int?,
     private val executionId: Int,
-)
-
-fun UtModel.withExecutionId(executionId: Int = -1) = ModelId(this.idOrNull(), executionId)
+    private val testSetId: Int,
+) {
+    companion object {
+        fun create(model: UtModel, executionId: Int = -1, testSetId: Int = -1) = ModelId(model.idOrNull(), executionId, testSetId)
+    }
+}
 

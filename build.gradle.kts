@@ -70,6 +70,7 @@ allprojects {
                 "--add-opens", "java.base/java.io=ALL-UNNAMED",
                 "--add-opens", "java.base/java.nio=ALL-UNNAMED",
                 "--add-opens", "java.base/java.nio.file=ALL-UNNAMED",
+                "--add-opens", "java.base/java.net=ALL-UNNAMED",
                 "--add-opens", "java.base/sun.security.util=ALL-UNNAMED",
                 "--add-opens", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
                 "--add-opens", "java.base/sun.net.util=ALL-UNNAMED",

@@ -11,6 +11,7 @@ import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.jField
 import soot.SootClass
 import soot.SootField

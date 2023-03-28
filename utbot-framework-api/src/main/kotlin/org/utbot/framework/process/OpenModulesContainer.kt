@@ -18,6 +18,7 @@ object OpenModulesContainer {
             openPackage("java.base", "java.io")
             openPackage("java.base", "java.nio")
             openPackage("java.base", "java.nio.file")
+            openPackage("java.base", "java.net")
             openPackage("java.base", "java.lang")
             openPackage("java.base", "java.security")
             openPackage("java.base", "java.util")

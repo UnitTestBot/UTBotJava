@@ -104,6 +104,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isStatic
 
 // hack

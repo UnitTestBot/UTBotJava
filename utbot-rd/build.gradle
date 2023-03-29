@@ -127,8 +127,8 @@ if (includeRiderInBuild.toBoolean()) {
     // !!!! IMPORTANT !!!!
     // after generation you should MANUALLY correct kotlin generated code as it is incorrectly references some rider model
     // mandatory steps:
-    // 1. change package to correct
-    // 2. import Solution model
+    // 1. In UtBotRiderModel.Generated.kt change package to `package org.utbot.rider.generated`
+    // 2. then import all unreferenced classes
     // otherwise you will have broken plugin initialization and ClassNotFoundException
     task generateRiderModels(type: RdGenTask) {
         dependsOn(riderTask)

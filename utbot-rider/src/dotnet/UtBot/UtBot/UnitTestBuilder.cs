@@ -201,10 +201,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
 
         if (!ProjectPublisher.PublishSync(_logger, progressIndicator, project, config, outputDir, _riderModel)) {
             var title = $"Cannot publish project {project.Name}";
-            var openExceptionMessageCommand = new UserNotificationCommand(
-                "Show error info",
-                () => MessageBox.ShowError(title));
-            _notifications.ShowError(title, command: openExceptionMessageCommand);
+            _notifications.ShowError(title);
             return;
         }
 

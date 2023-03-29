@@ -11,7 +11,7 @@ import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 
-internal class JavaIOFileInputStreamCheckTest : UtValueTestCaseChecker(
+class JavaIOFileInputStreamCheckTest : UtValueTestCaseChecker(
     testClass = JavaIOFileInputStreamCheck::class,
     testCodeGeneration = true,
     pipelines = listOf(

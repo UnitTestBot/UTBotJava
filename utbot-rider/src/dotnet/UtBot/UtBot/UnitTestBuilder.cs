@@ -203,7 +203,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
             var title = $"Cannot publish project {project.Name}";
             var openExceptionMessageCommand = new UserNotificationCommand(
                 "Show error info",
-                () => MessageBox.ShowError(title, title));
+                () => MessageBox.ShowError(title));
             _notifications.ShowError(title, command: openExceptionMessageCommand);
             return;
         }
@@ -249,7 +249,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
             {
                 allAssemblies = solution.GetAllAssemblies()
                     .Where(it => it.Location.AssemblyPhysicalPath is not null)
-                    .Select(it => new MapEntry(it.FullAssemblyName, it.Location.AssemblyPhysicalPath!.FullPath))
+                    .Select(it => new MapEntry(it.FullAssemblyName, it.Location.AssemblyPhysicalPath.FullPath))
                     .DistinctBy(it => it.Key)
                     .ToList();
             }

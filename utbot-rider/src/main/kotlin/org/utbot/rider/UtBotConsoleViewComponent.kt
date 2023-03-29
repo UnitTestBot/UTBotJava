@@ -106,7 +106,7 @@ class UtBotConsoleViewComponent(project: Project) : ProtocolSubscribedProjectCom
         var previousVSharp: RunContentDescriptor? = null
         model.startVSharp.advise(project.lifetime) {
             val (currentVSharp, consoleView, consoleLifetime) = update(
-                "Started VSharp engine",
+                "Started VSharp Engine",
                 "Running VSharp Engine",
                 previousVSharp
             )

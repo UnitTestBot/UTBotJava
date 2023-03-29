@@ -2,32 +2,28 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using JetBrains.Application.Threading.Tasks;
+using JetBrains.Application.UI.Controls;
 using JetBrains.Collections.Viewable;
 using JetBrains.Lifetimes;
 using JetBrains.ProjectModel;
 using JetBrains.ProjectModel.Properties;
+using JetBrains.Rider.Model;
 using JetBrains.Threading;
 using JetBrains.Util;
+using UtBot.Rd.Generated;
 
 namespace UtBot.Utils;
 
-[SolutionComponent]
-public class ProjectPublisher
+public static class ProjectPublisher
 {
-    private readonly LifetimeDefinition _lifetimeDef;
-
-    public ProjectPublisher(Lifetime lifetime)
+    public static bool PublishSync(ILogger logger, IBackgroundProgressIndicator indicator, IProject project, IProjectConfiguration config, VirtualFileSystemPath outputDir, UtBotRiderModel model)
     {
-        _lifetimeDef = lifetime.CreateNested();
-    }
-
-    public void PublishSync(IProject project, IProjectConfiguration config, VirtualFileSystemPath outputDir)
-    {
-        var publishLifetimeDef = _lifetimeDef.Lifetime.CreateNested();
+        var publishLifetimeDef = indicator.Lifetime.CreateNested();
+        indicator.Cancel.Advise(Lifetime.Eternal, canceled => {if (canceled) publishLifetimeDef.Terminate();});
 
         try
         {
-            var name = $"Publish::{project.Name}";
             Directory.CreateDirectory(outputDir.FullPath);
             var projectName = project.ProjectFileLocation.Name;
             var architecture = GetArchitecture();
@@ -45,35 +41,46 @@ public class ProjectPublisher
                 Arguments =
                     $"{command} \"{projectName}\" --sc -c {config.Name} -a {architecture} -o {outputDir.FullPath} -f {tfm}",
                 WorkingDirectory = project.ProjectFileLocation.Directory.FullPath,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
             };
 
-            var process = new Process();
+            using var process = new Process();
             process.StartInfo = processInfo;
+            process.OutputDataReceived += (_, args) =>
+            {
+                model.LogPublishOutput.Fire(args.Data ?? "\n");
+            };
+            process.ErrorDataReceived += (_, args) =>
+            {
+                model.LogPublishError.Fire(args.Data ?? "\n");
+            };
             process.Exited += (_, a) =>
             {
-                if (process.ExitCode != 0)
-                {
-                    throw new Exception(
-                        $"Publish process exited with code {process.ExitCode}: {process.StandardOutput.ReadToEnd()}");
-                }
-
                 publishLifetimeDef.Terminate();
             };
-
-            void Schedule(SingleThreadScheduler scheduler)
+            model.StartPublish.Fire(new StartPublishArgs(processInfo.FileName, processInfo.Arguments, processInfo.WorkingDirectory));
+            if (process.Start())
             {
-                process.Start();
-                process.WaitForExit();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                SpinWaitEx.SpinUntil(publishLifetimeDef.Lifetime, () => process.HasExited);
+                if (process.ExitCode != 0)
+                {
+                    logger.Warn($"Publish process exited with code {process.ExitCode}: {process.StandardOutput.ReadToEnd()}");
+                }
+                model.StopPublish.Fire(process.ExitCode);
             }
-
-            SingleThreadScheduler.RunOnSeparateThread(publishLifetimeDef.Lifetime, name, Schedule);
-            SpinWaitEx.SpinUntil(publishLifetimeDef.Lifetime, () => process.HasExited);
+            else
+            {
+                model.StopPublish.Fire(-1);
+            }
+            return process.HasExited && process.ExitCode == 0;
         }
         catch (Exception e)
         {
-            throw;
+            logger.Warn(e, comment: "Could not publish project for VSharp, exception occured");
+            return false;
         }
         finally
         {
@@ -81,7 +88,7 @@ public class ProjectPublisher
         }
     }
 
-    private string GetArchitecture()
+    private static string GetArchitecture()
     {
         var arch = RuntimeInformation.OSArchitecture;
         return arch switch

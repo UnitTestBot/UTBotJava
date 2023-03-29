@@ -43,10 +43,7 @@ class LoggerModel private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): LoggerModel  {
             LoggerRoot.register(protocol.serializers)
             
-            return LoggerModel().apply {
-                identify(protocol.identity, RdId.Null.mix("LoggerModel"))
-                bind(lifetime, protocol, "LoggerModel")
-            }
+            return LoggerModel()
         }
         
         

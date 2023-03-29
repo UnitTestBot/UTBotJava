@@ -11,6 +11,8 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.id
+import soot.SootField
 import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
@@ -450,6 +452,9 @@ val ClassId.allDeclaredFieldIds: Sequence<FieldId>
         generateSequence(this.jClass) { it.superclass }
             .flatMap { it.declaredFields.asSequence() }
             .map { it.fieldId }
+
+val SootField.fieldId: FieldId
+    get() = FieldId(declaringClass.id, name)
 
 // FieldId utils
 val FieldId.safeJField: Field?

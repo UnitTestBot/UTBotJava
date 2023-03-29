@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.methodId
 import soot.SootClass

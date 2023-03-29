@@ -44,10 +44,7 @@ class SynchronizationModel private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): SynchronizationModel  {
             SynchronizationRoot.register(protocol.serializers)
             
-            return SynchronizationModel().apply {
-                identify(protocol.identity, RdId.Null.mix("SynchronizationModel"))
-                bind(lifetime, protocol, "SynchronizationModel")
-            }
+            return SynchronizationModel()
         }
         
         

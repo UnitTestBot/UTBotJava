@@ -54,10 +54,7 @@ class InstrumentedProcessModel private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): InstrumentedProcessModel  {
             InstrumentedProcessRoot.register(protocol.serializers)
             
-            return InstrumentedProcessModel().apply {
-                identify(protocol.identity, RdId.Null.mix("InstrumentedProcessModel"))
-                bind(lifetime, protocol, "InstrumentedProcessModel")
-            }
+            return InstrumentedProcessModel()
         }
         
         

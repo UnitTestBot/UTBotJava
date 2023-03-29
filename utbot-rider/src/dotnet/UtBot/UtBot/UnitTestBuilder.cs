@@ -23,6 +23,7 @@ using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.Util;
 using JetBrains.Rider.Model;
 using JetBrains.Util;
+using JetBrains.Util.Threading;
 using UtBot.Rd;
 using UtBot.Rd.Generated;
 using UtBot.Utils;
@@ -39,28 +40,23 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
     private readonly Lifetime _lifetime;
     private readonly ILogger _logger;
     private readonly IShellLocks _shellLocks;
-
+    private readonly UtBotRiderModel _riderModel;
     private readonly Notifications _notifications;
-    private readonly DotNetVersionUtils _dotNetVersionUtils;
-
-    private readonly ProjectPublisher _publisher;
 
     public UnitTestBuilder(
-        ProjectPublisher publisher,
         Lifetime lifetime,
+        ISolution solution,
         IShellLocks shellLocks,
         IBackgroundProgressIndicatorManager backgroundProgressIndicatorManager,
         ILogger logger,
-        Notifications notifications,
-        DotNetVersionUtils dotNetVersionUtils)
+        Notifications notifications)
     {
         _lifetime = lifetime;
         _shellLocks = shellLocks;
         _backgroundProgressIndicatorManager = backgroundProgressIndicatorManager;
         _logger = logger;
         _notifications = notifications;
-        _dotNetVersionUtils = dotNetVersionUtils;
-        _publisher = publisher;
+        _riderModel = solution.GetProtocolSolution().GetUtBotRiderModel();
     }
 
     protected override void Process(CSharpGeneratorContext context, IProgressIndicator progress)
@@ -77,7 +73,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
 
         if (context.PsiModule.ContainingProjectModule is not IProject project) return;
 
-        if (!_dotNetVersionUtils.CanRunVSharp)
+        if (!DotNetVersionUtils.CanRunVSharp(project.GetSolution()))
         {
             _notifications.ShowError($"At least .NET {DotNetVersionUtils.MinCompatibleSdkMajor} SDK is required for UnitTestBot.NET");
             return;
@@ -86,7 +82,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         var typeElement = context.ClassDeclaration.DeclaredElement;
         if (typeElement == null) return;
         if (typeElement is not IClass && typeElement is not IStruct) return;
-        var testProjectTfm = _dotNetVersionUtils.GetTestProjectFramework(project);
+        var testProjectTfm = DotNetVersionUtils.GetTestProjectFramework(project);
 
         var jsonOptions = new JsonSerializerOptions
         {
@@ -98,7 +94,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
                      .OfType<GeneratorDeclaredElement<IMethod>>())
         {
             var methodName = inputElement.DeclaredElement.ShortName;
-            var hasNoOverLoads = typeElement.GetMembers().Count(m => m.ShortName == methodName) == 1;
+            var hasNoOverLoads = typeElement.GetAllClassMembers().Count(m => m.Member.ShortName == methodName) == 1;
 
             var parameterDescriptors = new List<string>();
 
@@ -202,17 +198,10 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         var config = project.ProjectProperties.ActiveConfigurations.Configurations.First();
         var outputDir = project.GetOutputDirectory(config.TargetFrameworkId).Combine(PublishDirName);
         progressIndicator.Header.SetValue($"Publishing dependencies to {PublishDirName}...");
-        try
-        {
-            _publisher.PublishSync(project, config, outputDir);
-        }
-        catch (Exception e)
-        {
-            var title = $"Cannot build project {project.Name}";
-            var openExceptionMessageCommand = new UserNotificationCommand(
-                "Show error info",
-                () => MessageBox.ShowError(e.Message, title));
-            _notifications.ShowError(title, command: openExceptionMessageCommand);
+
+        if (!ProjectPublisher.PublishSync(_logger, progressIndicator, project, config, outputDir, _riderModel)) {
+            var title = $"Cannot publish project {project.Name}";
+            _notifications.ShowError(title);
             return;
         }
 
@@ -250,16 +239,27 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
             var workingDir = project.ProjectFileLocation.Directory.FullPath;
             var port = NetworkUtil.GetFreePort();
             var runnerPath = vsharpRunner.FullPath;
-            var proc = new ProcessWithRdServer(name, workingDir, port, runnerPath, project.Locks, _lifetime, _logger);
+            var proc = new ProcessWithRdServer(name, workingDir, port, runnerPath, project.Locks, _riderModel, _lifetime, _logger);
             var projectCsprojPath = project.ProjectFileLocation.FullPath;
+            List<MapEntry> allAssemblies;
+            using (_shellLocks.UsingReadLock())
+            {
+                allAssemblies = solution.GetAllAssemblies()
+                    .Where(it => it.Location.AssemblyPhysicalPath is not null)
+                    .Select(it => new MapEntry(it.FullAssemblyName, it.Location.AssemblyPhysicalPath.FullPath))
+                    .DistinctBy(it => it.Key)
+                    .ToList();
+            }
             var args = new GenerateArguments(assemblyPath, projectCsprojPath, solutionFilePath, descriptors,
-                timeout, testProjectFramework.FrameworkMoniker.Name);
+                timeout, testProjectFramework.FrameworkMoniker.Name, allAssemblies);
             var vSharpTimeout = TimeSpan.FromSeconds(timeout);
             var rpcTimeout = new RpcTimeouts(vSharpTimeout + TimeSpan.FromSeconds(1), vSharpTimeout + TimeSpan.FromSeconds(30));
             ChangeMethodName();
             methodProgressTimer.Start();
             var result = proc.VSharpModel?.Generate.Sync(args, rpcTimeout);
             methodProgressTimer.Stop();
+            proc.Proc.WaitForExit();
+            _riderModel.StopVSharp.Fire(proc.Proc.ExitCode);
             _logger.Info("Result acquired");
             if (result is { GeneratedProjectPath: not null })
             {

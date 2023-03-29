@@ -1,9 +1,15 @@
 plugins {
-    id 'com.jetbrains.rdgen' version "2022.2.1"
+    id 'com.jetbrains.rdgen' version "2022.3.3"
 }
 
 import com.jetbrains.rd.generator.gradle.RdGenExtension
 import com.jetbrains.rd.generator.gradle.RdGenTask
+
+if (includeRiderInBuild.toBoolean()) {
+    def utbotRider = project.rootProject.childProjects["utbot-rider"]
+    evaluationDependsOn(utbotRider.path)
+    tasks.getByName("classes").dependsOn(utbotRider.tasks.getByName("addRiderModelsToUtbotModels"))
+}
 
 compileKotlin {
     kotlinOptions {
@@ -26,6 +32,8 @@ configurations {
     lifetimedProcessMockCompileClasspath.extendsFrom configurations.compileClasspath
     processWithRdServerMockCompileClasspath.extendsFrom configurations.compileClasspath
     rdgenModelsCompileClasspath.extendsFrom configurations.compileClasspath
+    if (includeRiderInBuild.toBoolean())
+        riderRdgenModelsCompileClasspath.extendsFrom configurations.rdgenModelsCompileClasspath
 }
 
 sourceSets {
@@ -44,7 +52,16 @@ sourceSets {
             srcDirs = ["src/main/rdgen"]
         }
     }
+    if (includeRiderInBuild.toBoolean()) {
+        riderRdgenModels {
+            kotlin {
+                srcDirs = ["src/main/riderRdgenModels"]
+            }
+        }
+    }
 }
+
+def riderModelJar = new File(project.buildDir, "libs/rider-model.jar")
 
 dependencies {
     implementation project(':utbot-core')
@@ -56,6 +73,10 @@ dependencies {
     processWithRdServerMockImplementation project(':utbot-rd')
 
     rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: rdVersion
+
+    if (includeRiderInBuild.toBoolean()) {
+        riderRdgenModelsCompileClasspath files(riderModelJar)
+    }
 }
 
 task lifetimedProcessMockJar(type: Jar) {
@@ -97,6 +118,50 @@ test {
     dependsOn processWithRdServerMockJar
     systemProperty("RD_MOCK_PROCESS", lifetimedProcessMockJar.archiveFile.get().getAsFile().canonicalPath)
     systemProperty("PROCESS_WITH_RD_SERVER_MOCK", processWithRdServerMockJar.archiveFile.get().getAsFile().canonicalPath)
+}
+
+if (includeRiderInBuild.toBoolean()) {
+    def currentProjectDir = project.projectDir
+    def riderProject = project.rootProject.childProjects["utbot-rider"]
+    def riderTask = riderProject.tasks.getByName("addRiderModelsToUtbotModels")
+    // !!!! IMPORTANT !!!!
+    // after generation you should MANUALLY correct kotlin generated code as it is incorrectly references some rider model
+    // mandatory steps:
+    // 1. In UtBotRiderModel.Generated.kt change package to `package org.utbot.rider.generated`
+    // 2. then import all unreferenced classes
+    // otherwise you will have broken plugin initialization and ClassNotFoundException
+    task generateRiderModels(type: RdGenTask) {
+        dependsOn(riderTask)
+
+        def riderProjectDir = riderProject.projectDir
+        def generatedOutputDir = new File(riderProjectDir, "src/main/kotlin/org/utbot/rider/generated")
+        def hashDir = generatedOutputDir
+        def sourcesDir = new File(currentProjectDir, "src/main/riderRdgenModels/org/utbot/rider/rd/models")
+        def rdParams = extensions.getByName("params") as RdGenExtension
+
+        group = "rdgen"
+        rdParams.verbose = true
+        rdParams.sources(sourcesDir)
+        rdParams.hashFolder = hashDir.canonicalPath
+        rdParams.packages = "org.utbot.rider.rd.models"
+        rdParams.classpath(riderModelJar)
+
+        rdParams.generator {
+            language = "kotlin"
+            transform = "symmetric"
+            root = "com.jetbrains.rider.model.nova.ide.IdeRoot"
+            directory = generatedOutputDir.canonicalPath
+            namespace = "org.utbot.rider.generated"
+        }
+
+        rdParams.generator {
+            language = "csharp"
+            transform = "symmetric"
+            root = "com.jetbrains.rider.model.nova.ide.IdeRoot"
+            namespace = "UtBot"
+            directory = new File(riderProjectDir, "src/dotnet/UtBot/UtBot/Generated")
+        }
+    }
 }
 
 task generateInstrumentedProcessModels(type: RdGenTask) {

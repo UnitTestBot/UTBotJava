@@ -48,7 +48,7 @@ data class SuccessExecution(
     val stateBefore: String,
     val stateAfter: String,
     val argsIds: List<String>,
-    val kwargsIds: List<String>,
+    val kwargsIds: Map<String, String>,
     val resultId: String,
 ): PythonExecutionResult()
 

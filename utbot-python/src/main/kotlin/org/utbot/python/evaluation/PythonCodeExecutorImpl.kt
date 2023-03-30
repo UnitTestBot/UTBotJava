@@ -130,7 +130,7 @@ class PythonCodeExecutorImpl(
                     calculateCoverage(executionResult.statements, executionResult.missedStatements),
                     stateBefore,
                     stateAfter,
-                    executionResult.argsIds + executionResult.kwargsIds,
+                    executionResult.argsIds + executionResult.kwargsIds.values,
                     executionResult.resultId,
                 )
             }

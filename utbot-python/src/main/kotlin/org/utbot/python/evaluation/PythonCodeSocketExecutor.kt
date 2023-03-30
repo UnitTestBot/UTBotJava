@@ -66,6 +66,7 @@ class PythonCodeSocketExecutor(
             additionalModulesToImport.toList(),
             syspathDirectories.toList(),
             arguments,
+            emptyMap(),  // here can be only-kwargs arguments
             memory,
             method.moduleFilename,
         )
@@ -109,7 +110,7 @@ class PythonCodeSocketExecutor(
                     calculateCoverage(executionResult.statements, executionResult.missedStatements),
                     stateBefore,
                     stateAfter,
-                    executionResult.argsIds + executionResult.kwargsIds,
+                    executionResult.argsIds + executionResult.kwargsIds.values,
                     executionResult.resultId,
                 )
             }

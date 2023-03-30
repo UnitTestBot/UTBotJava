@@ -9,27 +9,44 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderEnumerator
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.intellij.task.ProjectTask
 import com.intellij.task.ProjectTaskManager
+import com.intellij.task.impl.ModuleBuildTaskImpl
+import com.intellij.task.impl.ModuleFilesBuildTaskImpl
+import com.intellij.task.impl.ProjectTaskList
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.nullize
 import com.intellij.util.io.exists
+import java.io.File
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Arrays
+import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
+import kotlin.io.path.pathString
 import mu.KotlinLogging
+import org.jetbrains.concurrency.Promise
+import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
 import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.util.LockFile
@@ -52,13 +69,6 @@ import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.rd.terminateOnException
-import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.concurrent.TimeUnit
-import kotlin.io.path.pathString
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
@@ -127,11 +137,26 @@ object UtTestsDialogProcessor {
         return GenerateTestsDialogWindow(model)
     }
 
+    private fun compile(project: Project, files: Array<VirtualFile>): Promise<ProjectTaskManager.Result> {
+        val wholeModules = MavenProjectsManager.getInstance(project)?.hasProjects()?:false
+        val buildTasks = ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
+            Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
+                ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
+            }).entries
+        ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
+            if (wholeModules) {
+                // Maven-specific case, we have to compile the whole module
+                ModuleBuildTaskImpl(key!!, false)
+            } else {
+                // Compile only chosen classes and their dependencies before generation.
+                ModuleFilesBuildTaskImpl(key, false, value)
+            }
+        }
+        return ProjectTaskManager.getInstance(project).run(ProjectTaskList(buildTasks))
+    }
+
     private fun createTests(project: Project, model: GenerateTestsModel) {
-        val promise = ProjectTaskManager.getInstance(project).compile(
-            // Compile only chosen classes and their dependencies before generation.
-            *model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
-        )
+        val promise = compile(project, model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray())
         promise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess

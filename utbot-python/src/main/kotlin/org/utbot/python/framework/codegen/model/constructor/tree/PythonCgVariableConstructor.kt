@@ -34,30 +34,30 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
         }
     }
 
-    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String): Pair<CgValue, List<CgStatement>> {
+    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null): Pair<CgValue, List<CgStatement>> {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 Pair(CgLiteral(objectNode.type.dropBuiltins(), objectNode.repr), emptyList())
             }
 
             is PythonTree.ListNode -> {
-                val items = objectNode.items.values.map { pythonBuildObject(it, baseName) }
+                val items = objectNode.items.values.map { pythonBuildObject(it) }
                 Pair(CgPythonList(items.map {it.first}), items.flatMap { it.second })
             }
 
             is PythonTree.TupleNode -> {
-                val items = objectNode.items.values.map { pythonBuildObject(it, baseName) }
+                val items = objectNode.items.values.map { pythonBuildObject(it) }
                 Pair(CgPythonTuple(items.map {it.first}), items.flatMap { it.second })
             }
 
             is PythonTree.SetNode -> {
-                val items = objectNode.items.map { pythonBuildObject(it, baseName) }
+                val items = objectNode.items.map { pythonBuildObject(it) }
                 Pair(CgPythonSet(items.map {it.first}.toSet()), items.flatMap { it.second })
             }
 
             is PythonTree.DictNode -> {
-                val keys = objectNode.items.keys.map { pythonBuildObject(it, baseName) }
-                val values = objectNode.items.values.map { pythonBuildObject(it, baseName) }
+                val keys = objectNode.items.keys.map { pythonBuildObject(it) }
+                val values = objectNode.items.values.map { pythonBuildObject(it) }
                 Pair(
                     CgPythonDict(
                         keys.zip(values).associate { (key, value) ->

@@ -103,13 +103,17 @@ class PythonCodeSocketExecutor(
         )
         return when (executionResult) {
             is SuccessExecution -> {
+                val stateInit = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateInit) ?: return parsingException
                 val stateBefore = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateBefore) ?: return parsingException
                 val stateAfter = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateAfter) ?: return parsingException
+                val diffIds = executionResult.diffIds.map {it.toLong()}
                 PythonEvaluationSuccess(
                     executionResult.isException,
                     calculateCoverage(executionResult.statements, executionResult.missedStatements),
+                    stateInit,
                     stateBefore,
                     stateAfter,
+                    diffIds,
                     executionResult.argsIds + executionResult.kwargsIds.values,
                     executionResult.resultId,
                 )

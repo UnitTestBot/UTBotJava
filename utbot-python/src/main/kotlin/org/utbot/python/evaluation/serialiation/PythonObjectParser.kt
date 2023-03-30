@@ -189,10 +189,11 @@ fun MemoryObject.toPythonTree(
     visited: MutableMap<String, PythonTree.PythonTreeNode> = mutableMapOf()
 ): PythonTree.PythonTreeNode {
     val obj = visited.getOrPut(this.id) {
+        val id = this.id.toLong()
         val obj = when (this) {
             is ReprMemoryObject -> {
                 PythonTree.PrimitiveNode(
-                    this.id.toLong(),
+                    id,
                     PythonClassId(this.typeinfo.module, this.typeinfo.kind),
                     value
                 )
@@ -200,7 +201,7 @@ fun MemoryObject.toPythonTree(
 
             is DictMemoryObject -> {
                 PythonTree.DictNode(
-                    this.id.toLong(),
+                    id,
                     items.entries.associate {
                         memoryDump.getById(it.key).toPythonTree(memoryDump, visited) to
                                 memoryDump.getById(it.value).toPythonTree(memoryDump, visited)
@@ -234,7 +235,7 @@ fun MemoryObject.toPythonTree(
                 val listitemsObjs = memoryDump.getById(listitems) as ListMemoryObject
                 val dictitemsObjs = memoryDump.getById(dictitems) as DictMemoryObject
                 val prevObj = PythonTree.ReduceNode(
-                    this.id.toLong(),
+                    id,
                     PythonClassId(this.typeinfo.module, this.typeinfo.kind),
                     PythonClassId(this.constructor.module, this.constructor.kind),
                     arguments.items.map { memoryDump.getById(it).toPythonTree(memoryDump, visited) },

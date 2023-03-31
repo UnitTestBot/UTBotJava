@@ -1,41 +1,32 @@
 package org.utbot.spring.analyzers
 
-import org.utbot.spring.utils.FakeFileManager
-import org.utbot.spring.configurators.PropertiesConfigurator
-import org.utbot.spring.configurators.XmlFilesConfigurator
-import org.utbot.spring.config.TestApplicationConfiguration
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.context.ApplicationContextException
-import org.utbot.spring.utils.ConfigurationManager
-import java.net.URL
-import java.net.URLClassLoader
-
+import org.utbot.spring.configurators.ApplicationConfigurator
+import org.utbot.spring.data.ApplicationData
+import org.utbot.spring.utils.ExtensionUtils
+import org.utbot.spring.utils.FakeFileManager
+import java.io.File
 
 class SpringApplicationAnalyzer(
-    private val applicationUrl: URL,
-    private val configurationClassFqn: String,
-    private val propertyFilesPaths: List<String>,
-    private val xmlConfigurationPaths: List<String>,
+    private val applicationData: ApplicationData
 ) {
 
     fun analyze() {
-        val fakeFileManager = FakeFileManager(propertyFilesPaths + xmlConfigurationPaths)
+        val fakeFileManager =
+            FakeFileManager(applicationData.propertyFilesPaths + applicationData.xmlConfigurationPaths)
         fakeFileManager.createTempFiles()
 
-        val classLoader: ClassLoader = URLClassLoader(arrayOf(applicationUrl))
-        val userConfigurationClass = classLoader.loadClass(configurationClassFqn)
-
-        val configurationManager = ConfigurationManager(classLoader, userConfigurationClass)
-        val propertiesConfigurator = PropertiesConfigurator(propertyFilesPaths, configurationManager)
-        val xmlFilesConfigurator = XmlFilesConfigurator(xmlConfigurationPaths, configurationManager)
-
-        propertiesConfigurator.configure()
-        xmlFilesConfigurator.configure()
-
         val app = SpringApplicationBuilder(SpringApplicationAnalyzer::class.java)
-        app.sources(TestApplicationConfiguration::class.java, userConfigurationClass)
-        for (prop in propertiesConfigurator.readProperties()) {
-            app.properties(prop)
+
+        val applicationConfigurator = ApplicationConfigurator(app, applicationData)
+        when (File(applicationData.configurationFile).extension) {
+            ExtensionUtils.XML -> {
+                applicationConfigurator.configureXmlBasedApplication()
+            }
+            else -> {
+                applicationConfigurator.configureJavaBasedApplication()
+            }
         }
 
         try {

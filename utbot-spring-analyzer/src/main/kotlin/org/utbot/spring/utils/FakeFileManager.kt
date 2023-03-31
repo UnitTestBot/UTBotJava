@@ -1,6 +1,5 @@
 package org.utbot.spring.utils
 
-import org.utbot.spring.utils.PathsUtils
 import java.io.File
 import java.io.IOException
 

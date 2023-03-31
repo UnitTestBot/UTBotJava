@@ -6,11 +6,9 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.core.PriorityOrdered
 
-import java.io.File
-import java.io.FileWriter
-import java.util.Arrays
-
-class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered {
+object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered {
+    var beanQualifiedNames: List<String> = emptyList()
+        private set
 
     /**
      * Sets the priority of post processor to highest to avoid side effects from others.
@@ -21,8 +19,7 @@ class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered 
         println("Started post-processing bean factory in UtBot")
 
         val beanClassNames = findBeanClassNames(beanFactory)
-        //TODO: will be replaced with more appropriate IPC approach.
-        writeToFile(beanClassNames)
+        beanQualifiedNames = beanClassNames.distinct()
 
         // After desired post-processing is completed we destroy bean definitions
         // to avoid further possible actions with beans that may be unsafe.
@@ -57,30 +54,6 @@ class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered 
         for (beanDefinitionName in beanFactory.beanDefinitionNames) {
             val beanRegistry = beanFactory as BeanDefinitionRegistry
             beanRegistry.removeBeanDefinition(beanDefinitionName)
-        }
-    }
-
-    private fun writeToFile(beanClassNames: ArrayList<String>) {
-        try {
-            val springBeansFile = File("SpringBeans.txt")
-            val fileWriter = FileWriter(springBeansFile)
-
-            val distinctClassNames = beanClassNames.stream()
-                .distinct()
-                .toArray()
-            Arrays.sort(distinctClassNames)
-
-            for (beanClassName in distinctClassNames) {
-                fileWriter.append(beanClassName.toString())
-                fileWriter.append("\n")
-            }
-
-            fileWriter.flush()
-            fileWriter.close()
-
-            println("Storing bean information completed successfully")
-        } catch (e: Throwable) {
-            println("Storing bean information failed with exception $e")
         }
     }
 }

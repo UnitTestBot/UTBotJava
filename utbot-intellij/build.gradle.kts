@@ -133,6 +133,11 @@ repositories {
     maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
 }
 
+val fetchSpringAnalyzerJar: Configuration by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
 dependencies {
     implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
     implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)
@@ -144,6 +149,7 @@ dependencies {
 
     implementation(project(":utbot-framework")) { exclude(group = "org.slf4j", module = "slf4j-api") }
     implementation(project(":utbot-fuzzers"))
+    implementation(project(":utbot-spring-analyzer-model"))
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")
     testApi(project(":utbot-framework"))
@@ -168,6 +174,8 @@ dependencies {
 
     implementation(project(":utbot-android-studio"))
 
+    fetchSpringAnalyzerJar(project(":utbot-spring-analyzer", "springAnalyzerJar"))
+
     testImplementation("com.intellij.remoterobot:remote-robot:$remoteRobotVersion")
     testImplementation("com.intellij.remoterobot:remote-fixtures:$remoteRobotVersion")
 
@@ -183,4 +191,10 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junit4PlatformVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:$junit5Version")
+}
+
+tasks.processResources {
+    from(fetchSpringAnalyzerJar) {
+        into("lib")
+    }
 }

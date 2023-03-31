@@ -8,13 +8,14 @@ import org.utbot.spring.configurators.ApplicationConfigurationType.XmlConfigurat
 import org.utbot.spring.configurators.ApplicationConfigurator
 import org.utbot.spring.data.ApplicationData
 import org.utbot.spring.utils.FakeFileManager
+import org.utbot.spring.postProcessors.UtBotBeanFactoryPostProcessor
 import java.io.File
 
 class SpringApplicationAnalyzer(
     private val applicationData: ApplicationData
 ) {
 
-    fun analyze() {
+    fun analyze(): List<String> {
         val fakeFileManager =
             FakeFileManager(applicationData.propertyFilesPaths + applicationData.xmlConfigurationPaths)
         fakeFileManager.createTempFiles()
@@ -38,6 +39,7 @@ class SpringApplicationAnalyzer(
         } finally {
             fakeFileManager.deleteTempFiles()
         }
+        return UtBotBeanFactoryPostProcessor.beanQualifiedNames
     }
 
     private fun findConfigurationType(applicationData: ApplicationData): ApplicationConfigurationType {

@@ -214,6 +214,31 @@ task generateEngineProcessModels(type: RdGenTask) {
     }
 }
 
+task generateSpringAnalyzerModels(type: RdGenTask) {
+    def currentProjectDir = project.projectDir
+    def springAnalyzerModelProjectDir = project.rootProject.childProjects["utbot-spring-analyzer-model"].projectDir
+    def generatedOutputDir = new File(springAnalyzerModelProjectDir, "src/main/kotlin/org/utbot/spring/processs/generated")
+    def hashDir = generatedOutputDir
+    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+    def rdParams = extensions.getByName("params") as RdGenExtension
+
+    group = "rdgen"
+    rdParams.verbose = true
+    rdParams.sources(sourcesDir)
+    rdParams.hashFolder = hashDir.canonicalPath
+    // where to search roots
+    rdParams.packages = "org.utbot.rd.models"
+
+    rdParams.generator {
+        language = "kotlin"
+        transform = "symmetric"
+        root = "org.utbot.rd.models.SpringAnalyzerRoot"
+
+        directory = generatedOutputDir.canonicalPath
+        namespace = "org.utbot.spring.process.generated"
+    }
+}
+
 task generateCommonModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir
     def ideaPluginProjectDir = project.rootProject.childProjects["utbot-rd"].projectDir

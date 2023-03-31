@@ -10,7 +10,7 @@
         <!--        delete_this_comment_key identifies lines which will be deleted prior creating temp log4j2.xml  -->
         <!--        You can set bufferIO=true and immediateFlush=false for better performance,                  -->
         <!--        but possibly lose some logs on process death - log4j2 service might die unflushed           -->
-        <!--delete_this_comment_key
+        <!--engine_process_appender_comment_key
         <RollingFile append="true" name="EngineProcessAppender" bufferedIO="false" immediateFlush="true" fileName="${env:UTBOT_LOG_DIR}utbot-engine-current.log" filePattern="${env:UTBOT_LOG_DIR}utbot-engine-%i.log" bufferSize="1048576">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %-25c{1} | %msg%n"/>
             <Policies>
@@ -18,7 +18,16 @@
             </Policies>
             <DefaultRolloverStrategy max="10"/>
         </RollingFile>
-        delete_this_comment_key-->
+        engine_process_appender_comment_key-->
+        <!--spring_analyzer_process_appender_comment_key
+        <RollingFile append="true" name="SpringAnalyzerProcessAppender" bufferedIO="false" immediateFlush="true" fileName="${env:UTBOT_LOG_DIR}utbot-spring-analyzer-current.log" filePattern="${env:UTBOT_LOG_DIR}utbot-spring-analyzer-%i.log" bufferSize="1048576">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %-25c{1} | %msg%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="20 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+        spring_analyzer_process_appender_comment_key-->
     </Appenders>
     <Loggers>
         <Logger name="org.utbot.intellij" level="info" additivity="false">

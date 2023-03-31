@@ -296,6 +296,36 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
 
 // endregion
 
+// region spring analyzer process debug
+    /**
+     * Path to custom log4j2 configuration file for SpringAnalyzerProcess.
+     * By default utbot-intellij/src/main/resources/log4j2.xml is used.
+     * Also default value is used if provided value is not a file.
+     */
+    var springAnalyzerProcessLogConfigFile by getStringProperty("")
+
+    /**
+     * The property is useful only for the IntelliJ IDEs.
+     * If the property is set in true the spring analyzer process opens a debug port.
+     * @see runInstrumentedProcessWithDebug
+     * @see org.utbot.intellij.plugin.process.EngineProcess
+     */
+    var runSpringAnalyzerProcessWithDebug by getBooleanProperty(false)
+
+    /**
+     * The spring analyzer process JDWP agent's port
+     * A debugger attaches to the port in order to debug the process.
+     */
+    var springAnalyzerProcessDebugPort by getIntProperty(5007)
+
+    /**
+     * Value of the suspend mode for the JDWP agent of the spring analyzer process.
+     * If the value is true, the spring analyzer process will suspend until a debugger attaches to it.
+     */
+    var suspendSpringAnalyzerProcessExecutionInDebugMode by getBooleanProperty(true)
+
+// endregion
+
 // region instrumented process debug
     /**
      * The instrumented process JDWP agent's port of the instrumented process.

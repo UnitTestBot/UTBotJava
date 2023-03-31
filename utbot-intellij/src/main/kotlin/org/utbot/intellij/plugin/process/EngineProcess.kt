@@ -10,20 +10,27 @@ import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.jetbrains.rd.util.ConcurrentHashMap
-import com.jetbrains.rd.util.lifetime.LifetimeDefinition
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.utbot.common.*
+import org.utbot.common.AbstractSettings
+import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.*
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.services.JdkInfo
-import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
-import org.utbot.framework.process.OpenModulesContainer
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.process.generated.MethodDescription
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.util.KryoHelper
@@ -32,30 +39,20 @@ import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.util.assertReadAccessNotAllowed
 import org.utbot.intellij.plugin.util.methodDescription
-import org.utbot.rd.*
+import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.SettingForResult
 import org.utbot.rd.generated.SettingsModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.generated.synchronizationModel
-import org.utbot.rd.loggers.overrideDefaultRdLoggerFactoryWithKLogger
+import org.utbot.rd.onSchedulerBlocking
+import org.utbot.rd.startBlocking
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
-import java.nio.charset.Charset
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import kotlin.io.path.pathString
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
-
-private val engineProcessLogConfigurationsDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations")
-private val logger = KotlinLogging.logger {}
-private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs")
-
-private const val configurationFileDeleteKey = "delete_this_comment_key"
-private const val deleteOpenComment = "<!--$configurationFileDeleteKey"
-private const val deleteCloseComment = "$configurationFileDeleteKey-->"
 
 data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
@@ -63,46 +60,26 @@ class EngineProcessInstantDeathException :
     InstantProcessDeathException(UtSettings.engineProcessDebugPort, UtSettings.runEngineProcessWithDebug)
 
 class EngineProcess private constructor(val project: Project, private val classNameToPath: Map<String, String?>, rdProcess: ProcessWithRdServer) :
-    ProcessWithRdServer by rdProcess {
-    companion object {
-        private val log4j2ConfigFile: File
+    AbstractProcess(rdProcess) {
 
-        init {
-            engineProcessLogDirectory.mkdirs()
-            engineProcessLogConfigurationsDirectory.mkdirs()
-            overrideDefaultRdLoggerFactoryWithKLogger(logger)
+    data class Params(
+        val project: Project,
+        val classNameToPath: Map<String, String?>
+    )
 
-            val customFile = File(UtSettings.engineProcessLogConfigFile)
-
-            if (customFile.exists()) {
-                log4j2ConfigFile = customFile
-            } else {
-                log4j2ConfigFile = Files.createTempFile(engineProcessLogConfigurationsDirectory.toPath(), null, ".xml").toFile()
-                this.javaClass.classLoader.getResourceAsStream("log4j2.xml")?.use { logConfig ->
-                    val resultConfig = logConfig.readBytes().toString(Charset.defaultCharset())
-                        .replace(Regex("$deleteOpenComment|$deleteCloseComment"), "")
-                        .replace("ref=\"IdeaAppender\"", "ref=\"EngineProcessAppender\"")
-                        .replace("\${env:UTBOT_LOG_DIR}", engineProcessLogDirectory.canonicalPath.trimEnd(File.separatorChar) + File.separatorChar)
-                    Files.copy(
-                        resultConfig.byteInputStream(),
-                        log4j2ConfigFile.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
-                    )
-                }
-            }
-        }
-
-        private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
-
-        private fun suspendValue(): String = if (UtSettings.suspendEngineProcessExecutionInDebugMode) "y" else "n"
-
-        private val debugArgument: String?
-            get() = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
-                .takeIf { UtSettings.runEngineProcessWithDebug }
-
-        private val javaExecutablePathString: Path
-            get() = JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}")
-
+    companion object : AbstractProcess.Companion<Params, EngineProcess>(
+        displayName = "Engine",
+        logConfigFileGetter = { UtSettings.engineProcessLogConfigFile },
+        debugPortGetter = { UtSettings.engineProcessDebugPort },
+        runWithDebugGetter = { UtSettings.runEngineProcessWithDebug },
+        suspendExecutionInDebugModeGetter = { UtSettings.suspendEngineProcessExecutionInDebugMode },
+        logConfigurationsDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations"),
+        logDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs"),
+        logConfigurationFileDeleteKey = "engine_process_appender_comment_key",
+        logAppender = "EngineProcessAppender",
+        currentLogFilename = "utbot-engine-current.log",
+        logger = KotlinLogging.logger {}
+    ) {
         private val pluginClasspath: String
             get() = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
                 separator = File.pathSeparator,
@@ -112,46 +89,19 @@ class EngineProcess private constructor(val project: Project, private val classN
 
         private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"
 
-        private fun obtainEngineProcessCommandLine(port: Int) = buildList {
-            add(javaExecutablePathString.pathString)
-            add("-ea")
-            val javaVersionSpecificArgs = OpenModulesContainer.javaVersionSpecificArguments
-            if (javaVersionSpecificArgs.isNotEmpty()) {
-                addAll(javaVersionSpecificArgs)
-            }
-            debugArgument?.let { add(it) }
-            add(log4j2ConfigSwitch)
-            add("-cp")
-            add(pluginClasspath)
-            add(startFileName)
-            add(rdPortArgument(port))
-        }
+        override fun obtainProcessSpecificCommandLineArgs() = listOf(
+            "-ea",
+            "-cp",
+            pluginClasspath,
+            startFileName
+        )
 
-        fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
+        override fun getWorkingDirectory() = WorkingDirService.provide().toFile()
 
-        suspend operator fun invoke(project: Project, classNameToPath: Map<String, String?>): EngineProcess =
-            LifetimeDefinition().terminateOnException { lifetime ->
-                val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
-                    val cmd = obtainEngineProcessCommandLine(port)
-                    val directory = WorkingDirService.provide().toFile()
-                    val builder = ProcessBuilder(cmd).directory(directory)
-                    val process = builder.start()
+        override fun createFromRDProcess(params: Params, rdProcess: ProcessWithRdServer) =
+            EngineProcess(params.project, params.classNameToPath, rdProcess)
 
-                    logger.info { "Engine process started with PID = ${process.getPid}" }
-                    logger.info { "Engine process log directory - ${engineProcessLogDirectory.canonicalPath}" }
-                    logger.info { "Engine process log file - ${engineProcessLogDirectory.resolve("utbot-engine-current.log")}" }
-                    logger.info { "Log4j2 configuration file path - ${log4j2ConfigFile.canonicalPath}" }
-
-                    if (!process.isAlive) {
-                        throw EngineProcessInstantDeathException()
-                    }
-
-                    process
-                }
-                rdProcess.awaitProcessReady()
-
-                return EngineProcess(project, classNameToPath, rdProcess)
-            }
+        override fun createInstantDeathException() = EngineProcessInstantDeathException()
     }
 
     private val engineModel: EngineProcessModel = onSchedulerBlocking { protocol.engineProcessModel }
@@ -394,9 +344,6 @@ class EngineProcess private constructor(val project: Project, private val classN
     }
 
     init {
-        lifetime.onTermination {
-            protocol.synchronizationModel.stopProcess.fire(Unit)
-        }
         settingsModel.settingFor.set { params ->
             SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->
                 val members: Collection<KProperty1<AbstractSettings, *>> =

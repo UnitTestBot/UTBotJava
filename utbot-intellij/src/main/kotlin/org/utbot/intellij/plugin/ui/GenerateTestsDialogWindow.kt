@@ -190,7 +190,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
-    private val modelSpringConfigs = (listOf(NO_SPRING_CONFIGURATION_OPTION) + model.getSortedSpringConfigurationClasses()).toTypedArray()
+    private val modelSpringConfigs = (
+            listOf(NO_SPRING_CONFIGURATION_OPTION) +
+                    model.getSortedSpringConfigurationClasses() +
+                    model.getSpringXMLConfigurationFiles()
+            ).toTypedArray()
     private val springConfig = createComboBox(modelSpringConfigs)
 
     private val mockStrategies = createComboBox(MockStrategyApi.values())

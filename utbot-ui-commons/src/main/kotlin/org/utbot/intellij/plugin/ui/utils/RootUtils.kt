@@ -51,7 +51,7 @@ fun SourceFolder.isForGeneratedSources(): Boolean {
     val resourceProperties = jpsElement.getProperties(resourceRootTypes + testResourceRootTypes)
 
     val markedGeneratedSources =
-        properties?.isForGeneratedSources == true && resourceProperties?.isForGeneratedSources == true
+        properties?.isForGeneratedSources == true || resourceProperties?.isForGeneratedSources == true
     val androidStudioGeneratedSources =
         IntelliJApiHelper.isAndroidStudio() && this.file?.path?.contains("build/generated") == true
 

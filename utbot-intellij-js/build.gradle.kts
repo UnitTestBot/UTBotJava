@@ -39,6 +39,7 @@ dependencies {
 
     //Family
     implementation(project(":utbot-js"))
+    implementation(project(":utbot-node"))
 }
 
 intellij {

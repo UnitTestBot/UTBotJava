@@ -1,10 +1,11 @@
 package service
 
+import api.NodeCoverageMode
 import com.google.javascript.rhino.Node
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtModel
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
 import parser.JsParserUtils.getClassName
@@ -17,24 +18,25 @@ class CoverageServiceProvider(private val context: ServiceContext) {
 
     private val importFileUnderTest = "instr/${context.filePathToInference.substringAfterLast("/")}"
 
-    private val imports = "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
-            "const fs = require(\"fs\")\n\n"
+    private val imports =
+        "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
+                "const fs = require(\"fs\")\n\n"
 
     fun get(
-        mode: CoverageMode,
+        mode: NodeCoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
         classNode: Node?
     ): Pair<List<Set<Int>>, List<String>> {
         return when (mode) {
-            CoverageMode.FAST -> runFastCoverageAnalysis(
+            NodeCoverageMode.FAST -> runFastCoverageAnalysis(
                 context,
                 fuzzedValues,
                 execId,
                 classNode
             )
 
-            CoverageMode.BASIC -> runBasicCoverageAnalysis(
+            NodeCoverageMode.BASIC -> runBasicCoverageAnalysis(
                 context,
                 fuzzedValues,
                 execId,
@@ -50,7 +52,12 @@ class CoverageServiceProvider(private val context: ServiceContext) {
         classNode: Node?,
     ): Pair<List<Set<Int>>, List<String>> {
         val tempScriptTexts = fuzzedValues.indices.map {
-            "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${PathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
+            "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${
+                PathResolver.getRelativePath(
+                    "${context.projectPath}/${context.utbotDir}",
+                    context.filePathToInference
+                )
+            }\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
                 containingClass = classNode?.getClassName(),
@@ -85,7 +92,8 @@ class CoverageServiceProvider(private val context: ServiceContext) {
                 mode = CoverageMode.FAST
             )
         }
-        val baseCoverageScriptText = makeScriptForBaseCoverage(covFunName,"${context.projectPath}/${context.utbotDir}/${tempFileName}Base.json")
+        val baseCoverageScriptText =
+            makeScriptForBaseCoverage(covFunName, "${context.projectPath}/${context.utbotDir}/${tempFileName}Base.json")
         val coverageService = FastCoverageService(
             context = context,
             scriptTexts = splitTempScriptsIfNeeded(tempScriptTexts),
@@ -104,6 +112,7 @@ class CoverageServiceProvider(private val context: ServiceContext) {
                     imports + tempScripts.joinToString("\n\n")
                 )
             }
+
             else -> {
                 return tempScripts
                     .withIndex()
@@ -145,10 +154,10 @@ try {
     res$index = "Error:" + e.message
 }
 ${
-"json$index.result = res$index\n" +
-if (mode == CoverageMode.FAST ) "json$index.index = $index\n" +
-"json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
-}            
+            "json$index.result = res$index\n" +
+                    if (mode == CoverageMode.FAST) "json$index.index = $index\n" +
+                            "json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
+        }            
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             """
     }

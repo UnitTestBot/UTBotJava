@@ -1,12 +1,12 @@
 package org.utbot.intellij.plugin.language.js
 
+import api.NodeCoverageMode
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.intellij.plugin.models.BaseTestsModel
-import service.CoverageMode
 import settings.JsTestGenerationSettings.defaultTimeout
 
 class JsTestsModel(
@@ -27,5 +27,5 @@ class JsTestsModel(
     var pathToNode: String = "node"
     var pathToNYC: String = "nyc"
     var pathToNPM: String = "npm"
-    var coverageMode: CoverageMode = CoverageMode.FAST
+    var coverageMode: NodeCoverageMode = NodeCoverageMode.FAST
 }

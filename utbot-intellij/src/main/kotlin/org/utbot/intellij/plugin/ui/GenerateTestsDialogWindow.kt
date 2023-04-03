@@ -1025,6 +1025,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
             } else {
+                mockStrategies.item = MockStrategyApi.defaultItem
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
             }

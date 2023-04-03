@@ -120,7 +120,8 @@ open class BaseTestsModel(
     }
 
     fun getSpringXMLConfigurationFiles(): List<String> {
-        val resourcesPaths = srcModule.getResourcesPaths()
+        val resourcesPaths =
+            listOf(testModule, srcModule).flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
         val xmlFilePaths = resourcesPaths.flatMapTo(mutableListOf()) { path ->
             Files.list(path)
                 .asSequence()

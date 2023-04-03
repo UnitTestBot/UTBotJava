@@ -22,6 +22,7 @@ import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.openapi.roots.ModuleSourceOrderEntry
 import com.intellij.openapi.roots.ui.configuration.ClasspathEditor
+import com.intellij.openapi.roots.ui.configuration.ComboBoxWithSeparators
 import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
@@ -194,12 +195,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
-    private val modelSpringConfigs = (
-            listOf(NO_SPRING_CONFIGURATION_OPTION) +
-                    model.getSortedSpringConfigurationClasses() +
-                    model.getSpringXMLConfigurationFiles()
-            ).toTypedArray()
-    private val springConfig = createComboBox(modelSpringConfigs)
+    private val modelSpringConfigs = listOf(
+        null to listOf(NO_SPRING_CONFIGURATION_OPTION),
+        "Java-based configurations" to model.getSortedSpringConfigurationClasses(),
+        "XML-based configurations" to model.getSpringXMLConfigurationFiles()
+    )
+    private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(modelSpringConfigs)
 
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
@@ -240,27 +241,27 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
-    private fun <T> createComboBox(values: Array<T>): ComboBox<T> {
-        val comboBoxWidth = 300
-        val maxComboBoxElementLength = 50
-        return object : ComboBox<T>(DefaultComboBoxModel(values), comboBoxWidth) {}.also {
-            it.renderer = object : DefaultListCellRenderer() {
-                override fun getListCellRendererComponent(
-                    list: JList<*>?,
-                    value: Any?,
-                    index: Int,
-                    isSelected: Boolean,
-                    cellHasFocus: Boolean
-                ): Component {
-                    val label =
-                        super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
-                    text = StringUtil.trimMiddle(value.toString(), maxComboBoxElementLength)
-                    return label
+    private fun <T> createComboBoxWithSeparatorsForSpringConfigs(
+        separatorToValues: List<Pair<T?, List<T>>>,
+        width: Int = 300
+    ): ComboBoxWithSeparators<T> {
+        val comboBox = object : ComboBoxWithSeparators<T>() {}.apply {
+            fun wrapInEntryModel(value: T) = object : ComboBoxWithSeparators<T>.EntryModel<T>(value) {
+                override fun getPresentableText(): String = value.toString()
+            }
+
+            setMinimumAndPreferredWidth(width)
+            separatorToValues.forEach { (separator, values) ->
+                if (values.isEmpty()) return@forEach
+                separator?.let { addItem(Separator(it.toString())) }
+                values.forEach { value ->
+                    addItem(wrapInEntryModel(value))
                 }
             }
         }
-    }
 
+        return comboBox
+    }
 
     private fun createHelpLabel(commonTooltip: String? = null) = JBLabel(AllIcons.General.ContextHelp).apply {
         if (!commonTooltip.isNullOrEmpty()) toolTipText = commonTooltip
@@ -341,7 +342,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                             "Otherwise, mock nothing. Mockito will be installed, if you don't have one.")
                 )
             }.enableIf(ComboBoxPredicate(springConfig) {
-                model.projectType != ProjectType.Spring || springConfig.item == NO_SPRING_CONFIGURATION_OPTION
+                model.projectType != ProjectType.Spring || springConfig.item.getItem() == NO_SPRING_CONFIGURATION_OPTION
             })
             row { component(staticsMocking)}
             row {
@@ -580,9 +581,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.testSourceRoot?.apply { model.updateSourceRootHistory(this.toNioPath().toString()) }
 
         model.typeReplacementApproach =
-            when (springConfig.item) {
+            when (springConfig.item.getItem()) {
                 NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DoNotReplace
-                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item)
+                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item.getItem().toString())
             }
 
         val settings = model.project.service<Settings>()
@@ -1023,7 +1024,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         springConfig.addActionListener { _ ->
-            val isSpringConfigSelected = springConfig.item != NO_SPRING_CONFIGURATION_OPTION
+            val isSpringConfigSelected = springConfig.item.getItem() != NO_SPRING_CONFIGURATION_OPTION
             if (isSpringConfigSelected) {
                 // Here mock strategy gains more meaning in Spring Projects.
                 // We use OTHER_CLASSES strategy combined with type replacement being enabled.
@@ -1114,10 +1115,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
         springConfig.isEnabled = model.projectType == ProjectType.Spring
                 && modelSpringConfigs.size > 1
-
-        if (!springConfig.isEnabled) {
-            springConfig.item = NO_SPRING_CONFIGURATION_OPTION
-        }
     }
 
     private fun staticsMockingConfigured(): Boolean {

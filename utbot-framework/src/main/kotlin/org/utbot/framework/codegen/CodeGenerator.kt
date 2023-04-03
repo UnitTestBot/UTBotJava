@@ -141,13 +141,13 @@ open class CodeGenerator(
     fun <R> withCustomContext(testClassCustomName: String? = null, block: () -> R): R {
         val prevContext = context
         return try {
-            context = prevContext.copy(
-                    shouldOptimizeImports = true,
-                    testClassCustomName = testClassCustomName
-            )
+            context.shouldOptimizeImports = true
+            context.testClassCustomName = testClassCustomName
+
             block()
         } finally {
-            context = prevContext
+            context.shouldOptimizeImports = prevContext.shouldOptimizeImports
+            context.testClassCustomName = prevContext.testClassCustomName
         }
     }
 }

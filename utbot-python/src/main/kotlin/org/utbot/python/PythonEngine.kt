@@ -99,9 +99,11 @@ class PythonEngine(
         val beforeThisObject = beforeThisObjectTree?.let { PythonTreeModel(it.tree) }
         val beforeModelList = beforeModelListTree.map { PythonTreeModel(it.tree) }
 
-        val utFuzzedExecution = UtFuzzedExecution(
+        val utFuzzedExecution = PythonUtExecution(
+            stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             stateAfter = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            diffIds = emptyList(),
             result = executionResult,
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
             displayName = testMethodName.displayName,

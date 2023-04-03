@@ -445,7 +445,7 @@ interface CgContextOwner {
 /**
  * Context with current code generation info
  */
-data class CgContext(
+class CgContext(
     override val classUnderTest: ClassId,
     override val projectType: ProjectType,
     val generateUtilClassFile: Boolean = false,
@@ -593,7 +593,6 @@ data class CgContext(
         modelIds.clear()
         mockFrameworkUsed = false
     }
-
 
     override var valueByModel: IdentityHashMap<UtModel, CgValue> = IdentityHashMap()
 

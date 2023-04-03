@@ -24,7 +24,7 @@ class UtRdKLogger(private val realLogger: KLogger, val category: String) : Logge
     }
 
     private fun format(level: LogLevel, message: Any?, throwable: Throwable?): String {
-        val throwableToPrint = if (level < LogLevel.Error) throwable else throwable ?: Exception() //to print stacktrace
+        val throwableToPrint = if (level < LogLevel.Error) throwable else throwable ?: Exception("No exception was actually thrown, this exception is used purely to log trace")
         val rdCategory = if (category.isNotEmpty()) "RdCategory: ${category.substringAfterLast('.').padEnd(25)} | " else ""
         return "$rdCategory${message?.toString() ?: ""} ${throwableToPrint?.getThrowableText()?.let { "| $it" } ?: ""}"
     }

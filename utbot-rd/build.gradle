@@ -69,6 +69,7 @@ dependencies {
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
+    implementation group: 'commons-logging', name: 'commons-logging', version: commonsLoggingVersion
 
     processWithRdServerMockImplementation project(':utbot-rd')
 
@@ -217,7 +218,7 @@ task generateEngineProcessModels(type: RdGenTask) {
 task generateSpringAnalyzerModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir
     def springAnalyzerModelProjectDir = project.rootProject.childProjects["utbot-spring-analyzer-model"].projectDir
-    def generatedOutputDir = new File(springAnalyzerModelProjectDir, "src/main/kotlin/org/utbot/spring/processs/generated")
+    def generatedOutputDir = new File(springAnalyzerModelProjectDir, "src/main/kotlin/org/utbot/spring/process/generated")
     def hashDir = generatedOutputDir
     def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
     def rdParams = extensions.getByName("params") as RdGenExtension

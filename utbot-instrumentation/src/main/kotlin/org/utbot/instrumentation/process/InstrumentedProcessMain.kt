@@ -103,7 +103,7 @@ object InstrumentedProcessMain
  */
 fun main(args: Array<String>) = runBlocking {
     // We don't want user code to litter the standard output, so we redirect it.
-    closeStandardStreams()
+    silentlyCloseStandardStreams()
 
     if (!args.contains(DISABLE_SANDBOX_OPTION)) {
         permissions {

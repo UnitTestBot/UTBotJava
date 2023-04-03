@@ -298,13 +298,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
 
 // region spring analyzer process debug
     /**
-     * Path to custom log4j2 configuration file for SpringAnalyzerProcess.
-     * By default utbot-intellij/src/main/resources/log4j2.xml is used.
-     * Also default value is used if provided value is not a file.
-     */
-    var springAnalyzerProcessLogConfigFile by getStringProperty("")
-
-    /**
      * The property is useful only for the IntelliJ IDEs.
      * If the property is set in true the spring analyzer process opens a debug port.
      * @see runInstrumentedProcessWithDebug

@@ -27,8 +27,6 @@ dependencies {
     implementation(project(":utbot-core"))
     implementation("com.jetbrains.rd:rd-framework:$rdVersion")
     implementation("com.jetbrains.rd:rd-core:$rdVersion")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4j2Version")
-    implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 }
 
 application {
@@ -59,11 +57,4 @@ val springAnalyzerJar: Configuration by configurations.creating {
 
 artifacts {
     add(springAnalyzerJar.name, tasks.shadowJar)
-}
-
-configurations {
-    all {
-        // avoids conflicts with `implementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4j2Version")`
-        exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
-    }
 }

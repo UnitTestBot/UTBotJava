@@ -34,6 +34,7 @@ import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
+import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
 import org.utbot.summary.summarizeAll
@@ -78,6 +79,20 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
             File(it).toURI().toURL()
         }.toTypedArray())))
+    }
+    watchdog.measureTimeForActiveCall(getSpringBeanQualifiedNames, "Getting Spring bean definitions") { params ->
+        val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking()
+        val beans = springAnalyzerProcess.terminateOnException { _ ->
+            springAnalyzerProcess.getBeanQualifiedNames(
+                params.classpath.toList(),
+                params.config,
+                // TODO remove once spring-analyzer learns to find resources on its own, temporarily leaving it here for testing with hardcoded absolute paths
+                propertyFilesPaths = emptyList(),
+                xmlConfigurationPaths = emptyList()
+            ).toTypedArray()
+        }
+        springAnalyzerProcess.terminate()
+        beans
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()

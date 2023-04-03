@@ -149,7 +149,6 @@ dependencies {
 
     implementation(project(":utbot-framework")) { exclude(group = "org.slf4j", module = "slf4j-api") }
     implementation(project(":utbot-fuzzers"))
-    implementation(project(":utbot-spring-analyzer-model"))
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")
     testApi(project(":utbot-framework"))

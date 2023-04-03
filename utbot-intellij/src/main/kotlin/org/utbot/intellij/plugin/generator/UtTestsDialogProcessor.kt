@@ -55,12 +55,12 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
+import org.utbot.framework.process.generated.GetSpringBeanQualifiedNamesParams
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
-import org.utbot.intellij.plugin.process.SpringAnalyzerProcess
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
@@ -213,44 +213,33 @@ object UtTestsDialogProcessor {
                         val mockFrameworkInstalled = model.mockFramework.isInstalled
                         val staticMockingConfigured = model.staticsMocking.isConfigured
 
-                        val applicationContext = when (model.projectType) {
-                            Spring -> {
-                                val beanQualifiedNames =
-                                    if (!model.useSpringAnalyzer) emptyList()
-                                    else when (val approach = model.typeReplacementApproach) {
-                                        TypeReplacementApproach.DoNotReplace -> emptyList()
-                                        is TypeReplacementApproach.ReplaceIfPossible -> {
-                                            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(Unit)
-
-                                            springAnalyzerProcess.terminateOnException { _ ->
-                                                val beans = springAnalyzerProcess.getBeanQualifiedNames(
-                                                    classpathList,
-                                                    approach.configFqn,
-                                                    emptyList(),
-                                                    emptyList()
-                                                )
-                                                invokeLater {
-                                                    springAnalyzerProcess.terminate()
-                                                }
-                                                beans
-                                            }
-                                        }
-                                }
-
-                                SpringApplicationContext(
-                                    mockFrameworkInstalled,
-                                    staticMockingConfigured,
-                                    beanQualifiedNames,
-                                    shouldUseImplementors = beanQualifiedNames.isNotEmpty(),
-                                )
-                            }
-                            else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
-                        }
-
-                        val process = EngineProcess.createBlocking(EngineProcess.Params(project, classNameToPath))
+                        val process = EngineProcess.createBlocking(project, classNameToPath)
 
                         process.terminateOnException { _ ->
                             process.setupUtContext(buildDirs + classpathList)
+                            val applicationContext = when (model.projectType) {
+                                Spring -> {
+                                    val beanQualifiedNames =
+                                        if (!model.useSpringAnalyzer) emptyList()
+                                        else when (val approach = model.typeReplacementApproach) {
+                                            TypeReplacementApproach.DoNotReplace -> emptyList()
+                                            is TypeReplacementApproach.ReplaceIfPossible -> process.getSpringBeanQualifiedNames(
+                                                GetSpringBeanQualifiedNamesParams(
+                                                    (buildDirs + classpathList).toTypedArray(),
+                                                    approach.configFqn
+                                                )
+                                            ).also { logger.info { "Detected Spring Beans: $it" } }
+                                        }
+
+                                    SpringApplicationContext(
+                                        mockFrameworkInstalled,
+                                        staticMockingConfigured,
+                                        beanQualifiedNames,
+                                        shouldUseImplementors = beanQualifiedNames.isNotEmpty(),
+                                    )
+                                }
+                                else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
+                            }
                             process.createTestGenerator(
                                 buildDirs,
                                 classpath,

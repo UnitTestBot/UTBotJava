@@ -98,7 +98,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("223")
-        untilBuild.set("223.*")
+        untilBuild.set("231.*")
         version.set(semVer)
     }
 

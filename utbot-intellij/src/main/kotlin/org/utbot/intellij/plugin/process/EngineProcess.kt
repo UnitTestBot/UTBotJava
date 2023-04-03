@@ -19,11 +19,10 @@ import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.services.JdkInfo
-import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
-import org.utbot.framework.process.OpenModulesContainer
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.MethodDescription
+import org.utbot.framework.process.obtainCommonProcessCommandLineArgs
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.util.KryoHelper
@@ -94,15 +93,6 @@ class EngineProcess private constructor(val project: Project, private val classN
 
         private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
 
-        private fun suspendValue(): String = if (UtSettings.suspendEngineProcessExecutionInDebugMode) "y" else "n"
-
-        private val debugArgument: String?
-            get() = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
-                .takeIf { UtSettings.runEngineProcessWithDebug }
-
-        private val javaExecutablePathString: Path
-            get() = JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}")
-
         private val pluginClasspath: String
             get() = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
                 separator = File.pathSeparator,
@@ -112,27 +102,25 @@ class EngineProcess private constructor(val project: Project, private val classN
 
         private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"
 
-        private fun obtainEngineProcessCommandLine(port: Int) = buildList {
-            add(javaExecutablePathString.pathString)
-            add("-ea")
-            val javaVersionSpecificArgs = OpenModulesContainer.javaVersionSpecificArguments
-            if (javaVersionSpecificArgs.isNotEmpty()) {
-                addAll(javaVersionSpecificArgs)
-            }
-            debugArgument?.let { add(it) }
-            add(log4j2ConfigSwitch)
-            add("-cp")
-            add(pluginClasspath)
-            add(startFileName)
-            add(rdPortArgument(port))
-        }
+        private fun obtainProcessSpecificCommandLineArgs(port: Int) = listOf(
+            "-ea",
+            log4j2ConfigSwitch,
+            "-cp",
+            pluginClasspath,
+            startFileName,
+            rdPortArgument(port)
+        )
 
         fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
 
         suspend operator fun invoke(project: Project, classNameToPath: Map<String, String?>): EngineProcess =
             LifetimeDefinition().terminateOnException { lifetime ->
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
-                    val cmd = obtainEngineProcessCommandLine(port)
+                    val cmd = obtainCommonProcessCommandLineArgs(
+                        debugPort = UtSettings.engineProcessDebugPort,
+                        runWithDebug = UtSettings.runEngineProcessWithDebug,
+                        suspendExecutionInDebugMode = UtSettings.suspendEngineProcessExecutionInDebugMode,
+                    ) + obtainProcessSpecificCommandLineArgs(port)
                     val directory = WorkingDirService.provide().toFile()
                     val builder = ProcessBuilder(cmd).directory(directory)
                     val process = builder.start()
@@ -167,9 +155,11 @@ class EngineProcess private constructor(val project: Project, private val classN
         engineModel.setupUtContext.startBlocking(SetupContextParams(classpathForUrlsClassloader))
     }
 
-    fun getSpringBeanQualifiedNames(params: GetSpringBeanQualifiedNamesParams): List<String> {
+    fun getSpringBeanQualifiedNames(classpathList: List<String>, config: String): List<String> {
         assertReadAccessNotAllowed()
-        return engineModel.getSpringBeanQualifiedNames.startBlocking(params).toList()
+        return engineModel.getSpringBeanQualifiedNames.startBlocking(
+            GetSpringBeanQualifiedNamesParams(classpathList.toTypedArray(), config)
+        ).toList()
     }
 
     private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String =

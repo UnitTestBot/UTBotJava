@@ -29,7 +29,6 @@ fun overrideDefaultRdLoggerFactoryWithKLogger(logger: KLogger) {
     }
 }
 
-// TODO use in instrumented process
 fun setupRdLogger(rdProcess: ProcessWithRdServer, loggerModel: LoggerModel, rdLogger: UtRdKLogger) {
     // currently we do not specify log level for different categories
     // though it is possible with some additional map on categories -> consider performance

@@ -17,6 +17,7 @@ import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory
 import org.utbot.spring.analyzers.SpringApplicationAnalyzer
+import org.utbot.spring.data.ApplicationData
 import org.utbot.spring.process.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.process.generated.SpringAnalyzerResult
 import org.utbot.spring.process.generated.springAnalyzerProcessModel
@@ -52,10 +53,12 @@ private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtoco
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->
         SpringAnalyzerResult(
             SpringApplicationAnalyzer(
-                params.classpath.toList().map { File(it).toURI().toURL() },
-                params.configuration,
-                params.propertyFilesPaths.toList(),
-                params.xmlConfigurationPaths.toList()
+                ApplicationData(
+                    params.classpath.toList().map { File(it).toURI().toURL() }.toTypedArray(),
+                    params.configuration,
+                    params.propertyFilesPaths.toList(),
+                    params.xmlConfigurationPaths.toList()
+                )
             ).analyze().toTypedArray()
         )
     }

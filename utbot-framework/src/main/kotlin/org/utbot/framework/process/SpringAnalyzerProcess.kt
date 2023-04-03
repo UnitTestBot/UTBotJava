@@ -15,6 +15,7 @@ import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLogger
 import org.utbot.rd.loggers.setupRdLogger
 import org.utbot.rd.onSchedulerBlocking
+import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
@@ -35,7 +36,7 @@ class SpringAnalyzerProcess private constructor(
 ) : ProcessWithRdServer by rdProcess {
 
     companion object {
-        private fun obtainProcessSpecificCommandLineArgs(): List<String> {
+        private fun obtainProcessSpecificCommandLineArgs(port: Int): List<String> {
             val jarFile =
                 Files.createDirectories(utBotTempDirectory.toFile().resolve("spring-analyzer").toPath())
                     .toFile().resolve(SPRING_ANALYZER_JAR_FILENAME)
@@ -46,7 +47,8 @@ class SpringAnalyzerProcess private constructor(
             return listOf(
                 "-Dorg.apache.commons.logging.LogFactory=org.utbot.rd.loggers.RDApacheCommonsLogFactory",
                 "-jar",
-                jarFile.path
+                jarFile.path,
+                rdPortArgument(port)
             )
         }
 
@@ -54,13 +56,11 @@ class SpringAnalyzerProcess private constructor(
 
         suspend operator fun invoke(): SpringAnalyzerProcess = LifetimeDefinition().terminateOnException { lifetime ->
             val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
-                val cmd = withCommonProcessCommandLineArgs(
-                    obtainProcessSpecificCommandLineArgs(),
+                val cmd = obtainCommonProcessCommandLineArgs(
                     debugPort = UtSettings.springAnalyzerProcessDebugPort,
                     runWithDebug = UtSettings.runSpringAnalyzerProcessWithDebug,
                     suspendExecutionInDebugMode = UtSettings.suspendSpringAnalyzerProcessExecutionInDebugMode,
-                    rdPort = port
-                )
+                ) + obtainProcessSpecificCommandLineArgs(port)
                 val process = ProcessBuilder(cmd)
                     .directory(Files.createTempDirectory(utBotTempDirectory, "spring-analyzer").toFile())
                     .start()

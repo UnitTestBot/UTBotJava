@@ -1,3 +1,7 @@
+configurations {
+    fetchSpringAnalyzerJar
+}
+
 dependencies {
 
     api project(':utbot-fuzzers')
@@ -36,4 +40,12 @@ dependencies {
 
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
+
+    fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
+}
+
+processResources {
+    from(configurations.fetchSpringAnalyzerJar) {
+        into "lib"
+    }
 }

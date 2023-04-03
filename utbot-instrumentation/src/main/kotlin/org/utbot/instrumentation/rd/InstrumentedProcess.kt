@@ -17,6 +17,7 @@ import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLogger
 import org.utbot.rd.loggers.UtRdRemoteLogger
+import org.utbot.rd.loggers.setupRdLogger
 import org.utbot.rd.onSchedulerBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
@@ -63,21 +64,7 @@ class InstrumentedProcess private constructor(
             logger.trace("rd process started")
 
             val proc = InstrumentedProcess(classLoader, rdProcess)
-
-            // currently we do not specify log level for different categories in instrumented process
-            // though it is possible with some additional map on categories -> consider performance
-            proc.loggerModel.getCategoryMinimalLogLevel.set { _ ->
-                // this logLevel is obtained from KotlinLogger
-                rdLogger.logLevel.ordinal
-            }
-
-            proc.loggerModel.log.advise(proc.lifetime) {
-                val logLevel = UtRdRemoteLogger.logLevelValues[it.logLevelOrdinal]
-                // assume throwable already in message
-                rdLogger.log(logLevel, it.message, null)
-            }
-
-            rdProcess.protocol.synchronizationModel.initRemoteLogging.fire(Unit)
+            setupRdLogger(rdProcess, proc.loggerModel, rdLogger)
 
             proc.lifetime.onTermination {
                 logger.trace { "process is terminating" }

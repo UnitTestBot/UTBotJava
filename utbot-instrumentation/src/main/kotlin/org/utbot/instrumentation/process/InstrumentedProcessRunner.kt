@@ -4,10 +4,9 @@ import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.common.utBotTempDirectory
-import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.services.WorkingDirService
-import org.utbot.framework.process.OpenModulesContainer
+import org.utbot.framework.process.obtainCommonProcessCommandLineArgs
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.rd.rdPortArgument
 import java.io.File
@@ -16,14 +15,11 @@ private val logger = KotlinLogging.logger {}
 
 class InstrumentedProcessRunner {
     private val cmds: List<String> by lazy {
-        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { UtSettings.runInstrumentedProcessWithDebug })
-        val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
-        val pathToJava = JdkInfoService.provide().path
-
-        listOf(pathToJava.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()) +
-            debugCmd +
-            javaVersionSpecificArguments +
-            listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
+        obtainCommonProcessCommandLineArgs(
+            debugPort = UtSettings.instrumentedProcessDebugPort,
+            runWithDebug = UtSettings.runInstrumentedProcessWithDebug,
+            suspendExecutionInDebugMode = UtSettings.suspendInstrumentedProcessExecutionInDebugMode
+        ) + listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
     }
 
     fun start(rdPort: Int): Process {
@@ -53,12 +49,8 @@ class InstrumentedProcessRunner {
     }
 
     companion object {
-        private fun suspendValue(): String = if (UtSettings.suspendInstrumentedProcessExecutionInDebugMode) "y" else "n"
-
         private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
         private const val INSTRUMENTATION_LIB = "lib"
-
-        private val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue()},quiet=y,address=${UtSettings.instrumentedProcessDebugPort}"
 
         private val NULL_FILE_PATH: String = if (System.getProperty("os.name").startsWith("Windows")) {
             "NUL"

@@ -55,7 +55,6 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
-import org.utbot.framework.process.generated.GetSpringBeanQualifiedNamesParams
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
@@ -162,7 +161,7 @@ object UtTestsDialogProcessor {
         val springConfigClass = when (val approach = model.typeReplacementApproach) {
             TypeReplacementApproach.DoNotReplace -> null
             is TypeReplacementApproach.ReplaceIfPossible ->
-                approach.configFqn.takeUnless { it.endsWith(".xml") }?.let {
+                approach.config.takeUnless { it.endsWith(".xml") }?.let {
                     JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.projectScope(project)) ?:
                         error("Can't find configuration class $it")
                 }
@@ -223,11 +222,10 @@ object UtTestsDialogProcessor {
                                         if (!model.useSpringAnalyzer) emptyList()
                                         else when (val approach = model.typeReplacementApproach) {
                                             TypeReplacementApproach.DoNotReplace -> emptyList()
-                                            is TypeReplacementApproach.ReplaceIfPossible -> process.getSpringBeanQualifiedNames(
-                                                GetSpringBeanQualifiedNamesParams(
-                                                    (buildDirs + classpathList).toTypedArray(),
-                                                    approach.configFqn
-                                                )
+                                            is TypeReplacementApproach.ReplaceIfPossible ->
+                                                process.getSpringBeanQualifiedNames(
+                                                    buildDirs + classpathList,
+                                                    approach.config
                                             ).also { logger.info { "Detected Spring Beans: $it" } }
                                         }
 

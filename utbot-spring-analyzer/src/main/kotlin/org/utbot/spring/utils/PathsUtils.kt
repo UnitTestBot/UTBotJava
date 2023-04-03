@@ -1,6 +1,5 @@
 package org.utbot.spring.utils
 
-import java.io.File
 import kotlin.io.path.Path
 
 object PathsUtils {

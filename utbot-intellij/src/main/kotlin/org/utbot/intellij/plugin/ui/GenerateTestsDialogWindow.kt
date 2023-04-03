@@ -61,8 +61,11 @@ import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.layout.Cell
 import com.intellij.ui.layout.CellBuilder
+import com.intellij.ui.layout.ComboBoxPredicate
 import com.intellij.ui.layout.Row
+import com.intellij.ui.layout.enableIf
 import com.intellij.ui.layout.panel
+import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.io.exists
 import com.intellij.util.lang.JavaVersion
@@ -117,6 +120,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.framework.plugin.api.isSummarizationCompatible
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
@@ -336,7 +340,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. " +
                             "Otherwise, mock nothing. Mockito will be installed, if you don't have one.")
                 )
-            }
+            }.enableIf(ComboBoxPredicate(springConfig) {
+                model.projectType != ProjectType.Spring || springConfig.item == NO_SPRING_CONFIGURATION_OPTION
+            })
             row { component(staticsMocking)}
             row {
                 cell {

@@ -10,15 +10,15 @@ import org.utbot.framework.codegen.domain.models.CgNamedAnnotationArgument
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
-import org.utbot.framework.codegen.util.resolve
-import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.framework.codegen.model.tree.CgPythonAssertEquals
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
+import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
 import org.utbot.python.framework.codegen.model.tree.CgPythonTuple
 
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
@@ -48,6 +48,17 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     override fun addTestDescription(description: String) = Unit
 
     override fun disableTestMethod(reason: String) {
+        require(testFramework is Pytest) { "According to settings, JUnit4 was expected, but got: $testFramework" }
+
+        collectedMethodAnnotations += CgMultipleArgsAnnotation(
+            testFramework.skipDecoratorClassId,
+            mutableListOf(
+                CgNamedAnnotationArgument(
+                    name = "reason",
+                    value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")
+                )
+            )
+        )
     }
 
     override val dataProviderMethodsHolder: TestClassContext get() = TODO()
@@ -112,20 +123,15 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
 
         collectedMethodAnnotations += CgMultipleArgsAnnotation(
-            skipAnnotationClassId,
+            testFramework.skipDecoratorClassId,
             mutableListOf(
                 CgNamedAnnotationArgument(
-                    name = "value",
-                    value = reason.resolve()
+                    name = "reason",
+                    value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")
                 )
             )
         )
     }
-
-    private val skipAnnotationClassId = BuiltinClassId(
-        canonicalName = "unittest.skip",
-        simpleName = "skip"
-    )
 
     fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
         +assertions[assertTrue](

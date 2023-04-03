@@ -41,6 +41,8 @@ object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
     override val nestedClassesShouldBeStatic: Boolean = false
     override val argListClassId: ClassId = pythonAnyClassId
 
+    val skipDecoratorClassId = PythonClassId("pytest.skip")
+
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
@@ -88,6 +90,8 @@ object Unittest : TestFramework(displayName = "Unittest", id = "Unittest") {
     override val methodSourceAnnotationFqn: String = ""
     override val nestedClassesShouldBeStatic: Boolean = false
     override val argListClassId: ClassId = pythonAnyClassId
+
+    val skipDecoratorClassId = PythonClassId("unittest.skip")
 
     override fun getRunTestsCommand(
         executionInvoke: String,

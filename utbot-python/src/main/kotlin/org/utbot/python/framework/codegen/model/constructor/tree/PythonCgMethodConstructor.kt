@@ -1,14 +1,18 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgGetLength
 import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgReferenceExpression
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.domain.models.convertDocToCg
 import org.utbot.framework.codegen.tree.CgMethodConstructor
+import org.utbot.framework.codegen.tree.buildTestMethod
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.pythonIntClassId
@@ -48,7 +52,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
-            testMethod(testMethodName, execution.displayName) {
+            pythonTestMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
 
@@ -152,6 +156,40 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             val modifiedThisObject = variableConstructor.getOrCreateVariable(it.second, name)
             assertEquality(modifiedThisObject, it.first)
         }
+    }
+
+    private fun pythonTestMethod(
+        methodName: String,
+        displayName: String?,
+        params: List<CgParameterDeclaration> = emptyList(),
+        body: () -> Unit,
+    ): CgTestMethod {
+        displayName?.let {
+            testFrameworkManager.addTestDescription(displayName)
+        }
+
+        val result = currentExecution!!.result
+        if (result is UtTimeoutException) {
+            testFrameworkManager.disableTestMethod(
+                "Disabled due to the fact that the execution is longer then ${hangingTestsTimeout.timeoutMs} ms"
+            )
+        }
+
+        val testMethod = buildTestMethod {
+            name = methodName
+            parameters = params
+            statements = block(body)
+            // Exceptions and annotations assignment must run after the statements block is build,
+            // because we collect info about exceptions and required annotations while building the statements
+            exceptions += collectedExceptions
+            annotations += collectedMethodAnnotations
+            methodType = this@PythonCgMethodConstructor.methodType
+
+            val docComment = currentExecution?.summary?.map { convertDocToCg(it) }?.toMutableList() ?: mutableListOf()
+            documentation = CgDocumentationComment(docComment)
+        }
+        testMethods += testMethod
+        return testMethod
     }
 
     private fun pythonDeepEquals(expected: CgValue, actual: CgVariable) {

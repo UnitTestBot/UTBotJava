@@ -80,6 +80,35 @@ class PythonEngine(
         return Pair(stateThisObject, modelList)
     }
 
+    private fun handleTimeoutResult(
+        arguments: List<PythonFuzzedValue>,
+        methodUnderTestDescription: PythonMethodDescription,
+    ): FuzzingExecutionFeedback {
+        val summary = arguments
+            .zip(methodUnderTest.arguments)
+            .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+        val executionResult = UtTimeoutException(TimeoutException("Execution is too long"))
+        val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)
+
+        val hasThisObject = methodUnderTest.hasThisArgument
+        val (beforeThisObjectTree, beforeModelListTree) = if (hasThisObject) {
+            arguments.first() to arguments.drop(1)
+        } else {
+            null to arguments
+        }
+        val beforeThisObject = beforeThisObjectTree?.let { PythonTreeModel(it.tree) }
+        val beforeModelList = beforeModelListTree.map { PythonTreeModel(it.tree) }
+
+        val utFuzzedExecution = UtFuzzedExecution(
+            stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            stateAfter = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            result = executionResult,
+            testMethodName = testMethodName.testName?.camelToSnakeCase(),
+            displayName = testMethodName.displayName,
+            summary = summary.map { DocRegularStmt(it) }
+        )
+        return ValidExecution(utFuzzedExecution)
+    }
     private fun handleSuccessResult(
         arguments: List<PythonFuzzedValue>,
         types: List<Type>,
@@ -156,8 +185,7 @@ class PythonEngine(
                     serverSocket,
                     pythonPath,
                     until,
-                    { constructEvaluationInput(it) },
-                )
+                ) { constructEvaluationInput(it) }
             } catch (_: TimeoutException) {
                 return@flow
             }
@@ -198,8 +226,8 @@ class PythonEngine(
                         }
 
                         is PythonEvaluationTimeout -> {
-                            val utError = UtError(evaluationResult.message, Throwable())
-                            PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
+                            val utTimeoutException = handleTimeoutResult(arguments, description)
+                            PythonExecutionResult(utTimeoutException, PythonFeedback(control = Control.PASS))
                         }
 
                         is PythonEvaluationSuccess -> {

@@ -170,12 +170,14 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
                 )
             }
 
-            name.contains('|') -> JsMultipleClassId(name)
+            name.contains('|') -> {
+                JsMultipleClassId(name.split("|").map { makeClassId(it) })
+            }
             else -> JsClassId(name)
         }
 
         return try {
-            val classNode = JsParserUtils.searchForClassDecl(
+            val classNode = importsMap[name] ?: JsParserUtils.searchForClassDecl(
                 className = name,
                 parsedFile = parsedFile,
                 strict = true,

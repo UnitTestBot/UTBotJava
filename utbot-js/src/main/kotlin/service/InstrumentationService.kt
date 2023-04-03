@@ -4,7 +4,7 @@ import com.google.javascript.jscomp.CodePrinter
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
 import org.apache.commons.io.FileUtils
-import parser.JsFunctionAstVisitor
+import parser.visitors.JsFunctionAstVisitor
 import parser.JsParserUtils.getAnyValue
 import parser.JsParserUtils.getRequireImportText
 import parser.JsParserUtils.isRequireImport

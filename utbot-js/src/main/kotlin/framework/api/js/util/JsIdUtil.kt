@@ -44,7 +44,7 @@ fun JsClassId.defaultJsValueModel(): UtModel = when (this) {
 }
 
 val JsClassId.isJsBasic: Boolean
-    get() = this in jsBasic || this is JsMultipleClassId
+    get() = this in jsBasic
 
 val JsClassId.isExportable: Boolean
     get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsStdStructure)

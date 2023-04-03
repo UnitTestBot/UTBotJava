@@ -36,7 +36,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import parser.JsAstScrapper
-import parser.JsFuzzerAstVisitor
+import parser.visitors.JsFuzzerAstVisitor
 import parser.JsParserUtils
 import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getAbstractFunctionParams
@@ -44,7 +44,7 @@ import parser.JsParserUtils.getClassMethods
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
-import parser.JsToplevelFunctionAstVisitor
+import parser.visitors.JsToplevelFunctionAstVisitor
 import providers.exports.IExportsProvider
 import service.InstrumentationService
 import service.PackageJson
@@ -110,6 +110,7 @@ class JsTestGenerator(
             filePathToInference = astScrapper.filesToInfer,
             parsedFile = parsedFile,
             settings = settings,
+            importsMap = astScrapper.importsMap
         )
         context.packageJson = PackageJsonService(
             sourceFilePath,

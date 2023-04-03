@@ -6,6 +6,7 @@ import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import fuzzer.JsFuzzedContext
 import parser.JsParserUtils.getMethodName
+import parser.visitors.JsClassAstVisitor
 
 // TODO: make methods more safe by checking the Node method is called on.
 // Used for .children() calls.
@@ -206,4 +207,23 @@ object JsParserUtils {
      */
     fun Node.getImportSpecAliases(): String = this.firstChild!!.next!!.string
 
+    /**
+     * Checks if node is any kind of variable declaration.
+     */
+    fun Node.isAnyVariableDecl(): Boolean =
+        this.isVar || this.isConst || this.isLet
+
+    /**
+     * Called upon any variable declaration node.
+     *
+     * Returns variable name as [String].
+     */
+    fun Node.getVariableName(): String = this.firstChild!!.string
+
+    /**
+     * Called upon any variable declaration node.
+     *
+     * Returns variable initializer as [Node]
+     */
+    fun Node.getVariableValue(): Node = this.firstChild!!.firstChild!!
 }

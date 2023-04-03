@@ -1,4 +1,4 @@
-package parser
+package parser.visitors
 
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node

@@ -5,6 +5,7 @@ import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import java.io.File
+import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
 import parser.JsParserUtils.getAbstractFunctionName
@@ -14,7 +15,12 @@ import parser.JsParserUtils.getImportSpecName
 import parser.JsParserUtils.getModuleImportSpecsAsList
 import parser.JsParserUtils.getModuleImportText
 import parser.JsParserUtils.getRequireImportText
+import parser.JsParserUtils.isAnyVariableDecl
 import parser.JsParserUtils.isRequireImport
+import parser.visitors.IAstVisitor
+import parser.visitors.JsClassAstVisitor
+import parser.visitors.JsFunctionAstVisitor
+import parser.visitors.JsVariableAstVisitor
 import kotlin.io.path.pathString
 
 private val logger = KotlinLogging.logger {}
@@ -25,7 +31,7 @@ class JsAstScrapper(
 ) {
 
     // Used not to parse the same file multiple times.
-    private val _parsedFilesCache = mutableMapOf<String, Node>()
+    private val _parsedFilesCache = mutableMapOf<Path, Node>(Paths.get(basePath) to parsedFile)
     private val _filesToInfer: MutableList<String> = mutableListOf(basePath)
     val filesToInfer: List<String>
         get() = _filesToInfer.toList()
@@ -35,15 +41,46 @@ class JsAstScrapper(
 
     init {
         _importsMap.apply {
-            val visitor = Visitor()
-            visitor.accept(parsedFile)
-            val res = visitor.importNodes.fold(emptyMap<String, Node>()) { acc, node ->
-                val currAcc = acc.toList().toTypedArray()
-                val more = node.importedNodes().toList().toTypedArray()
-                mapOf(*currAcc, *more)
+            val processedFiles = mutableSetOf<Path>()
+            fun Node.collectImportsRec(): List<Pair<String, Node>> {
+                processedFiles.add(Paths.get(this.sourceFileName!!))
+                val vis = Visitor()
+                vis.accept(this)
+                val kek = vis.importNodes.flatMap { node ->
+                    val temp = node.importedNodes()
+                    temp.toList() + temp.flatMap { entry ->
+                        val path = Paths.get(entry.value.sourceFileName!!)
+                        if (!processedFiles.contains(path)) {
+                            path.toFile().parseIfNecessary().collectImportsRec()
+                        } else emptyList()
+                    }
+                }
+                return kek
             }
-            this.putAll(res)
+            this.putAll(parsedFile.collectImportsRec().toMap())
             this.toMap()
+//            val res = visitor.importNodes.fold(emptyMap<String, Node>()) { acc, node ->
+//                val currAcc = acc.toList().toTypedArray()
+//
+//                    return kek
+//
+//
+//                    val temp = this.importedNodes()
+//                    return temp.toList() + temp.flatMap { entry ->
+//                        val path = entry.value.sourceFileName!!
+//                        val pFile = File(path).parseIfNecessary()
+//                        // Not to search for imports in already analyzed files
+//                        _parsedFilesCache[Paths.get(path)]?.let {
+//                            emptyList()
+//                        } ?: File(path).parseIfNecessary().collectImportsRec()
+//                    }
+//                }
+//
+//                val more = node.collectImportsRec().toTypedArray()
+//                mapOf(*currAcc, *more)
+//            }
+//            this.putAll(res)
+//            this.toMap()
         }
     }
 
@@ -53,7 +90,9 @@ class JsAstScrapper(
         functionVisitor.accept(file)
         return try {
             functionVisitor.targetFunctionNode
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun findClass(key: String, file: Node): Node? {
@@ -62,7 +101,9 @@ class JsAstScrapper(
         classVisitor.accept(file)
         return try {
             classVisitor.targetClassNode
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun findMethod(classKey: String, methodKey: String, file: Node): Node? {
@@ -70,8 +111,19 @@ class JsAstScrapper(
         return classNode?.getClassMethods()?.find { it.getAbstractFunctionName() == methodKey }
     }
 
+    fun findVariable(key: String, file: Node): Node? {
+        if (_importsMap[key]?.isAnyVariableDecl() == true) return _importsMap[key]
+        val variableVisitor = JsVariableAstVisitor(key)
+        variableVisitor.accept(file)
+        return try {
+            variableVisitor.targetVariableNode
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun File.parseIfNecessary(): Node =
-        _parsedFilesCache.getOrPut(this.path) {
+        _parsedFilesCache.getOrPut(this.toPath()) {
             _filesToInfer += this.path.replace("\\", "/")
             Compiler().parse(SourceFile.fromCode(this.path, readText()))
         }
@@ -84,6 +136,7 @@ class JsAstScrapper(
                     // Workaround for std imports.
                 } ?: this.firstChild!!.next!!)
             )
+
             this.isImport -> this.processModuleImport()
             else -> emptyMap()
         }
@@ -101,6 +154,7 @@ class JsAstScrapper(
                         aliases to pFile.findEntityInFile(realName)
                     }
                 }
+
                 NodeUtil.findPreorder(this, { it.isImportStar }, { true }) != null -> {
                     val aliases = this.getImportSpecAliases()
                     mapOf(aliases to pFile)
@@ -125,25 +179,25 @@ class JsAstScrapper(
     }
 
     private fun Node.findEntityInFile(key: String?): Node {
-       return key?.let { k ->
+        return key?.let { k ->
             findClass(k, this)
                 ?: findFunction(k, this)
+                ?: findVariable(k, this)
                 ?: throw ClassNotFoundException("Could not locate entity $k in ${this.sourceFileName}")
         } ?: this
     }
 
-    private class Visitor: IAstVisitor {
+    private class Visitor : IAstVisitor {
 
         private val _importNodes = mutableListOf<Node>()
 
         val importNodes: List<Node>
             get() = _importNodes.toList()
 
-        // TODO: commented for release since features are incomplete
         override fun accept(rootNode: Node) {
-//            NodeUtil.visitPreOrder(rootNode) { node ->
-//                if (node.isImport || node.isRequireImport()) _importNodes += node
-//            }
+            NodeUtil.visitPreOrder(rootNode) { node ->
+                if (node.isImport || node.isRequireImport()) _importNodes += node
+            }
         }
     }
 }

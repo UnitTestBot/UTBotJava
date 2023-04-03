@@ -93,7 +93,7 @@ class JsConstructorId(
         get() = 0
 }
 
-class JsMultipleClassId(jsJoinedName: String) : JsClassId(jsJoinedName)
+class JsMultipleClassId(val classIds: List<JsClassId>) : JsClassId(classIds.joinToString(separator = "|") { it.name })
 
 open class JsUtModel(
     override val classId: JsClassId

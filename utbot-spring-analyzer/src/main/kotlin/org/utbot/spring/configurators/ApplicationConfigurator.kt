@@ -7,7 +7,7 @@ import org.utbot.spring.utils.ConfigurationManager
 import java.net.URLClassLoader
 
 open class ApplicationConfigurator(
-    private val app: SpringApplicationBuilder,
+    private val applicationBuilder: SpringApplicationBuilder,
     private val applicationData: ApplicationData
 ) {
     private val classLoader: ClassLoader = URLClassLoader(applicationData.applicationUrlArray)
@@ -37,8 +37,8 @@ open class ApplicationConfigurator(
         xmlFilesConfigurator.configure()
 
         for (prop in propertiesConfigurator.readProperties()) {
-            app.properties(prop)
+            applicationBuilder.properties(prop)
         }
-        app.sources(TestApplicationConfiguration::class.java, configurationClass)
+        applicationBuilder.sources(TestApplicationConfiguration::class.java, configurationClass)
     }
 }

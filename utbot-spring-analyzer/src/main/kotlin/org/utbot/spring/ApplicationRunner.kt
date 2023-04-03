@@ -4,6 +4,7 @@ import org.utbot.spring.analyzers.SpringApplicationAnalyzer
 import org.utbot.spring.data.ApplicationData
 import org.utbot.spring.utils.PathsUtils
 import java.io.File
+import java.net.URL
 
 /**
  * To run this app, arguments must be passed in the following way:
@@ -30,8 +31,7 @@ fun main(args: Array<String>) {
 
     val applicationData =
         ApplicationData(
-            applicationUrlArray = args[0].split(';').filter { it != PathsUtils.EMPTY_PATH }
-                .map { File(it).toURI().toURL() }.toTypedArray(),
+            applicationUrlArray = parseApplicationUrls(args[0]),
             configurationFile = args[1],
             propertyFilesPaths = args[2].split(";").filter { it != PathsUtils.EMPTY_PATH },
             xmlConfigurationPaths = args[3].split(";").filter { it != PathsUtils.EMPTY_PATH },
@@ -39,3 +39,10 @@ fun main(args: Array<String>) {
 
     SpringApplicationAnalyzer(applicationData).analyze()
 }
+
+fun parseApplicationUrls(urlString: String): Array<URL> =
+    urlString
+        .split(';')
+        .filter { it != PathsUtils.EMPTY_PATH }
+        .map { File(it).toURI().toURL() }
+        .toTypedArray()

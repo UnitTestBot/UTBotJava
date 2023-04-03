@@ -1,5 +1,6 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
@@ -8,6 +9,7 @@ import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgReferenceExpression
 import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.convertDocToCg
@@ -15,6 +17,7 @@ import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.codegen.tree.buildTestMethod
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.util.pythonExceptionClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
@@ -135,6 +138,29 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
         }
 
+    override fun generateResultAssertions() {
+        if (currentExecutable is MethodId) {
+            val currentExecution = currentExecution!!
+            val executionResult = currentExecution.result
+            if (executionResult is UtExecutionFailure && methodType == CgTestMethodType.PASSED_EXCEPTION) {
+                val exceptionId = executionResult.rootCauseException.message?.let {PythonClassId(it)} ?: pythonExceptionClassId
+                val executionBlock = {
+                    with(currentExecutable) {
+                        when (this) {
+                            is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
+                            else -> {}
+                        }
+                    }
+                }
+                testFrameworkManager.expectException(exceptionId) {
+                    executionBlock()
+                }
+                return
+            }
+        }
+        super.generateResultAssertions()
+    }
+
     private fun generateFieldStateAssertions(
         stateAssertions: MutableMap<Int, Pair<CgVariable, UtModel>>,
         assertThisObject: MutableList<Pair<CgVariable, UtModel>>,
@@ -156,6 +182,11 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             val modifiedThisObject = variableConstructor.getOrCreateVariable(it.second, name)
             assertEquality(modifiedThisObject, it.first)
         }
+    }
+
+    override fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+        if (exception is TimeoutException || exception is InstrumentedProcessDeathException) return false
+        return runtimeExceptionTestsBehaviour == RuntimeExceptionTestsBehaviour.PASS
     }
 
     private fun pythonTestMethod(

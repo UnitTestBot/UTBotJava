@@ -11,20 +11,30 @@ import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
+import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.python.framework.codegen.model.tree.CgPythonAssertEquals
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
 import org.utbot.python.framework.codegen.model.tree.CgPythonTuple
+import org.utbot.python.framework.codegen.model.tree.CgPythonWith
 
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
-        block()
+        context.importIfNeeded(PythonClassId("pytest.raises"))
+        val withExpression = CgPythonFunctionCall(
+            pythonNoneClassId,
+            "pytest.raises",
+            listOf(CgLiteral(exception, exception.name))
+        )
+        +CgPythonWith(withExpression, null, context.block(block))
     }
 
     override val isExpectedExceptionExecutionBreaking: Boolean = true
@@ -98,7 +108,12 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
-        block()
+        val withExpression = CgPythonFunctionCall(
+            pythonNoneClassId,
+            "self.assertRaises",
+            listOf(CgLiteral(exception, exception.name))
+        )
+        +CgPythonWith(withExpression, null, context.block(block))
     }
 
     override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {

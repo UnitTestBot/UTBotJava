@@ -558,6 +558,17 @@ internal class CgPythonRenderer(
         element.value.accept(this)
     }
 
+    override fun visit(element: CgPythonWith) {
+        print("with ")
+        element.expression.accept(this)
+        if (element.target != null) {
+            print(" as ")
+            element.target.accept(this)
+        }
+        println(":")
+        withIndent { element.statements.forEach { it.accept(this) } }
+    }
+
     override fun visit(element: CgPythonDict) {
         print("{")
         element.elements.map { (key, value) ->

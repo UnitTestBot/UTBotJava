@@ -64,10 +64,7 @@ class JsCodeGenerator(
     private fun <R> withCustomContext(testClassCustomName: String? = null, block: () -> R): R {
         val prevContext = context
         return try {
-            context = prevContext.copy(
-                shouldOptimizeImports = true,
-                testClassCustomName = testClassCustomName
-            )
+            context = prevContext.customCopy(shouldOptimizeImports = true, testClassCustomName = testClassCustomName)
             block()
         } finally {
             context = prevContext

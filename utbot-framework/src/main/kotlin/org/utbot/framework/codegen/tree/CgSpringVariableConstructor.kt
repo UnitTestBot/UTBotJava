@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.tree
 
-import com.jetbrains.rd.util.firstOrNull
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
@@ -12,8 +11,6 @@ import org.utbot.framework.plugin.api.isMockModel
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
     val injectedMocksModelsVariables: MutableMap<Set<UtModel>, CgValue> = mutableMapOf()
     val mockedModelsVariables: MutableMap<Set<UtModel>, CgValue> = mutableMapOf()
-
-    private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val alreadyCreatedInjectMocks = findCgValueByModel(model, injectedMocksModelsVariables)

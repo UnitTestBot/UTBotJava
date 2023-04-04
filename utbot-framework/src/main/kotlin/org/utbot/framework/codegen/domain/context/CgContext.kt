@@ -445,7 +445,7 @@ interface CgContextOwner {
 /**
  * Context with current code generation info
  */
-data class CgContext(
+class CgContext(
     override val classUnderTest: ClassId,
     override val projectType: ProjectType,
     val generateUtilClassFile: Boolean = false,
@@ -594,7 +594,6 @@ data class CgContext(
         mockFrameworkUsed = false
     }
 
-
     override var valueByModel: IdentityHashMap<UtModel, CgValue> = IdentityHashMap()
 
     override var valueByModelId: MutableMap<ModelId, CgValue> = mutableMapOf()
@@ -605,4 +604,47 @@ data class CgContext(
 
     override val utilMethodsUsed: Boolean
         get() = requiredUtilMethods.isNotEmpty()
+
+    fun customCopy(shouldOptimizeImports: Boolean, testClassCustomName: String?) = CgContext(
+        shouldOptimizeImports = shouldOptimizeImports,
+        testClassCustomName = testClassCustomName,
+
+        classUnderTest = this.classUnderTest,
+        projectType = this.projectType,
+        generateUtilClassFile = this.generateUtilClassFile,
+        currentExecutable = this.currentExecutable,
+        collectedExceptions =this.collectedExceptions,
+        collectedMethodAnnotations = this.collectedMethodAnnotations,
+        collectedImports = this.collectedImports,
+        importedStaticMethods = this.importedStaticMethods,
+        importedClasses = this.importedClasses,
+        requiredUtilMethods = this.requiredUtilMethods,
+        testMethods = this.testMethods,
+        existingMethodNames = this.existingMethodNames,
+        prevStaticFieldValues = this.prevStaticFieldValues,
+        paramNames = this.paramNames,
+        currentExecution = this.currentExecution,
+        testFramework = this.testFramework,
+        mockFramework = this.mockFramework,
+        staticsMocking = this.staticsMocking,
+        forceStaticMocking = this.forceStaticMocking,
+        generateWarningsForStaticMocking = this.generateWarningsForStaticMocking,
+        codegenLanguage = this.codegenLanguage,
+        cgLanguageAssistant = this.cgLanguageAssistant,
+        parametrizedTestSource = this.parametrizedTestSource,
+        mockFrameworkUsed = this.mockFrameworkUsed,
+        currentBlock = this.currentBlock,
+        existingVariableNames = this.existingVariableNames,
+        declaredClassRefs = this.declaredClassRefs,
+        declaredExecutableRefs = this.declaredExecutableRefs,
+        declaredFieldRefs = this.declaredFieldRefs,
+        thisInstance = this.thisInstance,
+        methodArguments = this.methodArguments,
+        codeGenerationErrors = this.codeGenerationErrors,
+        testClassPackageName = this.testClassPackageName,
+        runtimeExceptionTestsBehaviour = this.runtimeExceptionTestsBehaviour,
+        hangingTestsTimeout = this.hangingTestsTimeout,
+        enableTestsTimeout = this.enableTestsTimeout,
+        containsReflectiveCall = this.containsReflectiveCall,
+    )
 }

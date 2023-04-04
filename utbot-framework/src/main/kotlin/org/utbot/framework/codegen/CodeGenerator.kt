@@ -146,8 +146,7 @@ open class CodeGenerator(
 
             block()
         } finally {
-            context.shouldOptimizeImports = prevContext.shouldOptimizeImports
-            context.testClassCustomName = prevContext.testClassCustomName
+            context = prevContext
         }
     }
 }

@@ -713,7 +713,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         cbSpecifyTestPackage.isEnabled = model.srcClasses.all { cl -> cl.packageName.isNotEmpty() }
 
         val settings = model.project.service<Settings>()
-        mockStrategies.item = settings.mockStrategy
+
+        mockStrategies.item = when (model.projectType) {
+            ProjectType.Spring -> MockStrategyApi.springDefaultItem
+            else ->    settings.mockStrategy
+        }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
 
@@ -1026,13 +1030,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         springConfig.addActionListener { _ ->
             val isSpringConfigSelected = springConfig.item.getItem() != NO_SPRING_CONFIGURATION_OPTION
             if (isSpringConfigSelected) {
-                // Here mock strategy gains more meaning in Spring Projects.
-                // We use OTHER_CLASSES strategy combined with type replacement being enabled.
-                mockStrategies.item = MockStrategyApi.OTHER_CLASSES
+                mockStrategies.item = MockStrategyApi.springDefaultItem
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
             } else {
-                mockStrategies.item = MockStrategyApi.defaultItem
+                mockStrategies.item = when (model.projectType) {
+                    ProjectType.Spring -> MockStrategyApi.springDefaultItem
+                    else -> MockStrategyApi.defaultItem
+                }
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
             }

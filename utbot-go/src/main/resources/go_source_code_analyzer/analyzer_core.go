@@ -27,19 +27,41 @@ func implementsError(typ types.Type) bool {
 //goland:noinspection GoPreferNilSlice
 func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	var result AnalyzedType
-	switch underlyingType := typ.Underlying().(type) {
+
+	switch t := typ.(type) {
+	case *types.Named:
+		name := t.Obj().Name()
+
+		pkg := t.Obj().Pkg()
+		packageName, packagePath := "", ""
+		if pkg != nil {
+			packageName = pkg.Name()
+			packagePath = pkg.Path()
+		}
+
+		isError := implementsError(t)
+
+		underlyingType, err := toAnalyzedType(t.Underlying())
+		checkError(err)
+
+		result = AnalyzedNamedType{
+			Name: name,
+			SourcePackage: GoPackage{
+				PackageName: packageName,
+				PackagePath: packagePath,
+			},
+			ImplementsError: isError,
+			UnderlyingType:  underlyingType,
+		}
 	case *types.Basic:
-		name := underlyingType.Name()
+		name := t.Name()
 		result = AnalyzedPrimitiveType{Name: name}
 	case *types.Struct:
-		namedType := typ.(*types.Named)
-		name := namedType.Obj().Name()
-		pkg := namedType.Obj().Pkg()
-		isError := implementsError(namedType)
+		name := "struct{}"
 
 		fields := []AnalyzedField{}
-		for i := 0; i < underlyingType.NumFields(); i++ {
-			field := underlyingType.Field(i)
+		for i := 0; i < t.NumFields(); i++ {
+			field := t.Field(i)
 
 			fieldType, err := toAnalyzedType(field.Type())
 			checkError(err)
@@ -48,11 +70,8 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 		}
 
 		result = AnalyzedStructType{
-			Name:            name,
-			PackageName:     pkg.Name(),
-			PackagePath:     pkg.Path(),
-			ImplementsError: isError,
-			Fields:          fields,
+			Name:   name,
+			Fields: fields,
 		}
 	case *types.Array:
 		arrayType := typ.(*types.Array)
@@ -84,24 +103,13 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 			ElementType: sliceElemType,
 		}
 	case *types.Interface:
-		namedType := typ.(*types.Named)
-		name := namedType.Obj().Name()
-		pkg := namedType.Obj().Pkg()
-		packageName, packagePath := "", ""
-		if pkg != nil {
-			packageName = pkg.Name()
-			packagePath = pkg.Path()
-		}
-
-		isError := implementsError(namedType)
+		name := "interface{}"
+		isError := implementsError(t)
 		if !isError {
 			return nil, errors.New("currently only error interface is supported")
 		}
 		result = AnalyzedInterfaceType{
-			Name:            fmt.Sprintf("interface %s", name),
-			ImplementsError: isError,
-			PackageName:     packageName,
-			PackagePath:     packagePath,
+			Name: name,
 		}
 	}
 	return result, nil

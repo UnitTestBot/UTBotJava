@@ -159,11 +159,13 @@ object GoTestCasesCodeGenerator {
         assertionTParameter: String,
         goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
-        if (expectedModel is GoUtNilModel) {
+        if (expectedModel is GoUtNilModel || (expectedModel is GoUtNamedModel && expectedModel.value is GoUtNilModel)) {
             return "Nil($assertionTParameter$actualResultCode)"
         }
-        if (doesReturnTypeImplementError && expectedModel.typeId == goStringTypeId) {
-            return "ErrorContains($assertionTParameter$actualResultCode, $expectedModel)"
+        if (doesReturnTypeImplementError && (expectedModel is GoUtNamedModel && expectedModel.value.typeId == goStringTypeId)) {
+            return "ErrorContains($assertionTParameter$actualResultCode, ${
+                goUtModelToCodeConverter.toGoCode(expectedModel.value)
+            })"
         }
         if (expectedModel is GoUtFloatNaNModel) {
             val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.typeId, actualResultCode)
@@ -233,7 +235,7 @@ object GoTestCasesCodeGenerator {
         functionName: String, parameters: List<GoUtModel>, goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         val fuzzedParametersToString = parameters.joinToString(prefix = "(", postfix = ")") {
-            goUtModelToCodeConverter.toGoCode(it)
+            goUtModelToCodeConverter.toGoCode(it, false)
         }
         return "$functionName$fuzzedParametersToString"
     }
@@ -248,8 +250,7 @@ object GoTestCasesCodeGenerator {
         fuzzedFunction: GoUtFuzzedFunction,
         goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String = generateVariablesDeclarationTo(
-        variablesNames,
-        generateFuzzedFunctionCall(
+        variablesNames, generateFuzzedFunctionCall(
             fuzzedFunction.function.name, fuzzedFunction.parametersValues, goUtModelToCodeConverter
         )
     )
@@ -264,9 +265,8 @@ object GoTestCasesCodeGenerator {
         }
     }
 
-    fun generateCastedValueIfPossible(
-        model: GoUtPrimitiveModel,
-        goUtModelToCodeConverter: GoUtModelToCodeConverter
+    private fun generateCastedValueIfPossible(
+        model: GoUtPrimitiveModel, goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         return if (model.explicitCastMode == ExplicitCastMode.NEVER) {
             goUtModelToCodeConverter.primitiveModelToValueGoCode(model)

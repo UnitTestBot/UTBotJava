@@ -219,3 +219,46 @@ func SliceOfArrayOfInt(slice [][5]int) [][5]int {
 func ExportedStructWithEmbeddedUnexportedStruct(exportedStruct nested.ExportedStruct) nested.ExportedStruct {
 	return exportedStruct
 }
+
+type Type byte
+
+func NamedType(n Type) Type {
+	return n
+}
+
+func ArrayOfNamedType(array [5]Type) [5]Type {
+	return array
+}
+
+type T [5][5]Type
+
+func ArrayOfArrayOfNamedType(array [5][5]Type) T {
+	return array
+}
+
+func SliceOfNamedType(slice []Type) []Type {
+	return slice
+}
+
+type NA [5]uintptr
+
+func NamedArray(array NA) NA {
+	return array
+}
+
+type NS []int
+
+func NamedSlice(slice NS) NS {
+	return slice
+}
+
+type S struct {
+	t Type
+	T
+	n NA
+	NS
+}
+
+func StructWithFieldsOfNamedTypes(s S) S {
+	return s
+}

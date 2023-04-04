@@ -2,15 +2,28 @@ package main
 
 import "go/token"
 
+type GoPackage struct {
+	PackageName string `json:"packageName"`
+	PackagePath string `json:"packagePath"`
+}
+
 type AnalyzedType interface {
 	GetName() string
 }
 
+type AnalyzedNamedType struct {
+	Name            string       `json:"name"`
+	SourcePackage   GoPackage    `json:"sourcePackage"`
+	ImplementsError bool         `json:"implementsError"`
+	UnderlyingType  AnalyzedType `json:"underlyingType"`
+}
+
+func (t AnalyzedNamedType) GetName() string {
+	return t.Name
+}
+
 type AnalyzedInterfaceType struct {
-	Name            string `json:"name"`
-	ImplementsError bool   `json:"implementsError"`
-	PackageName     string `json:"packageName"`
-	PackagePath     string `json:"packagePath"`
+	Name string `json:"name"`
 }
 
 func (t AnalyzedInterfaceType) GetName() string {
@@ -32,11 +45,8 @@ type AnalyzedField struct {
 }
 
 type AnalyzedStructType struct {
-	Name            string          `json:"name"`
-	PackageName     string          `json:"packageName"`
-	PackagePath     string          `json:"packagePath"`
-	ImplementsError bool            `json:"implementsError"`
-	Fields          []AnalyzedField `json:"fields"`
+	Name   string          `json:"name"`
+	Fields []AnalyzedField `json:"fields"`
 }
 
 func (t AnalyzedStructType) GetName() string {

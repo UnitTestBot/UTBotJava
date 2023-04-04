@@ -90,7 +90,7 @@ open class BaseTestsModel(
      *      - firstly, from test source roots (in the order provided by [getSortedTestRoots])
      *      - after that, from source roots
      */
-    fun getSortedSpringConfigurationClasses(): List<String> {
+    fun getSortedSpringConfigurationClasses(): Set<String> {
         val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
 
         // Not using `srcModule.testModules(project)` here because it returns
@@ -116,12 +116,12 @@ open class BaseTestsModel(
                 .searchPsiClasses(annotation, searchScope)
                 .findAll()
                 .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-        }.mapNotNull { it.qualifiedName }
+        }.mapNotNullTo(mutableSetOf()) { it.qualifiedName }
     }
 
-    fun getSpringXMLConfigurationFiles(): List<String> {
+    fun getSpringXMLConfigurationFiles(): Set<String> {
         val resourcesPaths =
-            listOf(testModule, srcModule).flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
+            setOf(testModule, srcModule).flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
         val xmlFilePaths = resourcesPaths.flatMapTo(mutableListOf()) { path ->
             Files.list(path)
                 .asSequence()
@@ -129,7 +129,7 @@ open class BaseTestsModel(
         }
 
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-        return xmlFilePaths.mapNotNull { path ->
+        return xmlFilePaths.mapNotNullTo(mutableSetOf()) { path ->
             val doc = builder.parse(path.toFile())
 
             val isBeanTagName = doc.documentElement.tagName == "beans"

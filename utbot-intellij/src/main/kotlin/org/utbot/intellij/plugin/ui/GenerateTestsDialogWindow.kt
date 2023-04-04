@@ -195,7 +195,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
-    private val modelSpringConfigs = listOf(
+    private val modelSpringConfigs = setOf(
         null to listOf(NO_SPRING_CONFIGURATION_OPTION),
         "Java-based configurations" to model.getSortedSpringConfigurationClasses(),
         "XML-based configurations" to model.getSpringXMLConfigurationFiles()
@@ -242,7 +242,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun <T> createComboBoxWithSeparatorsForSpringConfigs(
-        separatorToValues: List<Pair<T?, List<T>>>,
+        separatorToValues: Collection<Pair<T?, Collection<T>>>,
         width: Int = 300
     ): ComboBoxWithSeparators<T> {
         val comboBox = object : ComboBoxWithSeparators<T>() {}.apply {

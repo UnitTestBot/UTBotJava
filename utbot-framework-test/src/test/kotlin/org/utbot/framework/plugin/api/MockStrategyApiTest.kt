@@ -32,6 +32,16 @@ internal class MockStrategyApiTest {
     }
 
     @Test
+    fun ensureDefaultStrategyIsOtherClassesInSpringApplication() {
+        assertEquals(
+            MockStrategyApi.OTHER_CLASSES,
+            MockStrategyApi.springDefaultItem,
+            "Expecting that ${MockStrategyApi.OTHER_CLASSES} is the default policy for Mocks in Spring application" +
+                    "but ${MockStrategyApi.springDefaultItem} found"
+        )
+    }
+
+    @Test
     fun testLabelToEnum() {
         assertEquals(
             MockStrategyApi.values().size,

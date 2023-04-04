@@ -18,6 +18,7 @@ import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.GotItMessage
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.JBFont
+import com.intellij.util.ui.UIUtil
 import java.awt.Point
 import javax.swing.event.HyperlinkEvent
 import mu.KotlinLogging
@@ -201,7 +202,7 @@ object GotItTooltipActivity : StartupActivity {
                 .getKeyboardShortcut("org.utbot.intellij.plugin.ui.actions.GenerateTestsAction")?:return@invokeLater
             val shortcutText = KeymapUtil.getShortcutText(shortcut)
             val message = GotItMessage.createMessage("UnitTestBot is ready!",
-                "<div style=\"font-size:${JBFont.label().biggerOn(2.toFloat()).size}pt;\">" +
+                "<div style=\"font-size:${JBFont.label().biggerOn(2.toFloat()).size}pt;color:#${UIUtil.colorToHex(UIUtil.getLabelForeground())};\">" +
                         "You can get test coverage for methods, Java classes,<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
             message.setCallback { PropertiesComponent.getInstance().setValue(KEY, true) }
             WindowManager.getInstance().getFrame(project)?.rootPane?.let {

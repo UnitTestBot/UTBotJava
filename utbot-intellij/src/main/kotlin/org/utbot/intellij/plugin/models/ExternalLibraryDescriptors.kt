@@ -20,7 +20,7 @@ fun jUnit5ParametrizedTestsLibraryDescriptor(versionInProject: String?) =
     ExternalLibraryDescriptor("org.junit.jupiter", "junit-jupiter-params", "5.8.1", null, versionInProject ?: "5.8.1")
 
 fun mockitoCoreLibraryDescriptor(versionInProject: String?) =
-    ExternalLibraryDescriptor("org.mockito", "mockito-core", "3.5.0", "4.2.0", versionInProject ?: "4.2.0")
+    ExternalLibraryDescriptor("org.mockito", "mockito-core", "3.5.0", null, versionInProject ?: "4.2.0")
 
 /**
  * TestNg requires JDK 11 since version 7.6.0

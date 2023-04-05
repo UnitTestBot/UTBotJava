@@ -30,7 +30,7 @@ data class PrimitiveValue(
 
 data class NamedValue(
     override val type: String,
-    val value: RawValue,
+    val value: RawValue?,
 ) : RawValue(type) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean = error("Not supported")
 }
@@ -41,7 +41,7 @@ data class StructValue(
 ) : RawValue(type) {
     data class FieldValue(
         val name: String,
-        val value: RawValue,
+        val value: RawValue?,
         val isExported: Boolean
     )
 
@@ -59,7 +59,7 @@ data class StructValue(
             if (fieldValue.name != fieldId.name) {
                 return false
             }
-            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringType)) {
+            if (fieldValue.value != null && !fieldValue.value.checkIsEqualTypes(fieldId.declaringType)) {
                 return false
             }
             if (fieldValue.isExported != fieldId.isExported) {
@@ -74,7 +74,7 @@ data class ArrayValue(
     override val type: String,
     val elementType: String,
     val length: Int,
-    val value: List<RawValue>
+    val value: List<RawValue?>
 ) : RawValue(type) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
         if (type is GoNamedTypeId) {
@@ -86,7 +86,7 @@ data class ArrayValue(
         if (length != type.length || elementType != type.elementTypeId!!.canonicalName) {
             return false
         }
-        return value.all { it.checkIsEqualTypes(type.elementTypeId) }
+        return value.all { it?.checkIsEqualTypes(type.elementTypeId) ?: true }
     }
 }
 
@@ -94,7 +94,7 @@ data class SliceValue(
     override val type: String,
     val elementType: String,
     val length: Int,
-    val value: List<RawValue>
+    val value: List<RawValue?>
 ) : RawValue(type) {
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
         if (type is GoNamedTypeId) {
@@ -106,7 +106,7 @@ data class SliceValue(
         if (elementType != type.elementTypeId!!.canonicalName) {
             return false
         }
-        return value.all { it.checkIsEqualTypes(type.elementTypeId) }
+        return value.all { it?.checkIsEqualTypes(type.elementTypeId) ?: true }
     }
 }
 
@@ -202,23 +202,23 @@ fun convertRawExecutionResultToExecutionResult(
 
 private fun createGoUtModelFromRawValue(
     rawValue: RawValue?, typeId: GoTypeId, intSize: Int
-): GoUtModel = when (typeId) {
-    is GoNamedTypeId -> GoUtNamedModel(createGoUtModelFromRawValue(rawValue, typeId.underlyingTypeId, intSize), typeId)
+): GoUtModel = when {
+    typeId is GoNamedTypeId -> GoUtNamedModel(
+        value = createGoUtModelFromRawValue(rawValue, typeId.underlyingTypeId, intSize),
+        typeId = typeId
+    )
 
+    rawValue == null -> GoUtNilModel(typeId)
     // Only for error interface
-    is GoInterfaceTypeId -> if (rawValue == null) {
-        GoUtNilModel(typeId)
-    } else {
-        GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
-    }
+    typeId is GoInterfaceTypeId -> GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
 
-    is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, intSize)
+    typeId is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, intSize)
 
-    is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
+    typeId is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
 
-    is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
+    typeId is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
 
-    is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
+    typeId is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
 
     else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
 }

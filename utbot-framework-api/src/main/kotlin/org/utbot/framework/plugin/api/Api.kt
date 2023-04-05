@@ -1365,6 +1365,11 @@ enum class MockStrategyApi(
     companion object : CodeGenerationSettingBox {
         override val defaultItem = OTHER_PACKAGES
         override val allItems: List<MockStrategyApi> = values().toList()
+
+        // Mock strategy gains more meaning in Spring Projects.
+        // We use OTHER_CLASSES strategy as default one in `No configuration` mode
+        // and as unique acceptable in other modes (combined with type replacement).
+        val springDefaultItem = OTHER_CLASSES
     }
 }
 

@@ -32,7 +32,6 @@ import com.intellij.openapi.ui.OptionAction
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.popup.IconButton
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
@@ -155,11 +154,9 @@ import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
-import java.awt.Component
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
-import javax.swing.DefaultListCellRenderer
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -461,7 +458,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             srcClasses.flatMap { it.extractFirstLevelMembers(false) }
         } else {
             srcClasses.map { MemberInfo(it) }
-        }.toSortedSet { o1, o2 -> o1.displayName.compareTo(o2.displayName, true) }
+        }.toMutableList().sortedWith { o1, o2 -> o1.displayName.compareTo(o2.displayName, true) }
 
         checkMembers(items)
         membersTable.setMemberInfos(items)

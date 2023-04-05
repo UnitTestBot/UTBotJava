@@ -104,7 +104,7 @@ class JsTestGenerator(
      * Returns String representation of generated tests.
      */
     fun run(): String {
-        parsedFile = runParser(fileText)
+        parsedFile = runParser(fileText, sourceFilePath)
         val packageJson = PackageJsonService(
             sourceFilePath,
             File(projectPath),
@@ -274,7 +274,7 @@ class JsTestGenerator(
         )
         val collectedValues = mutableListOf<List<UtModel>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
-        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:")
+        val funcLocation = funcNode.firstChild!!.location.substringAfter("${funcNode.sourceFileName}:")
             .split(":").map { it.toInt() }
         logger.info { "Function under test location according to parser is [${funcLocation[0]}, ${funcLocation[1]}]" }
         val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])

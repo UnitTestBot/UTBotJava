@@ -142,7 +142,7 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
             timeout = settings.timeout,
         )
         val instrumentedFileText = File(instrumentedFilePath).readText()
-        parsedInstrFile = runParser(instrumentedFileText)
+        parsedInstrFile = runParser(instrumentedFileText, instrumentedFilePath)
         val covFunRegex = Regex("function (cov_.*)\\(\\).*")
         val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
             ?: throw IllegalStateException("")
@@ -155,7 +155,7 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
 
     private fun File.writeTextAndUpdate(newText: String) {
         this.writeText(newText)
-        parsedInstrFile = runParser(File(instrumentedFilePath).readText())
+        parsedInstrFile = runParser(File(instrumentedFilePath).readText(), instrumentedFilePath)
     }
 
     private fun fixImportsInInstrumentedFile(): String {

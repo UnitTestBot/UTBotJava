@@ -13,8 +13,8 @@ import parser.visitors.JsClassAstVisitor
 @Suppress("DEPRECATION")
 object JsParserUtils {
 
-    fun runParser(fileText: String): Node =
-        Compiler().parse(SourceFile.fromCode("jsFile", fileText))
+    fun runParser(fileText: String, filePath: String): Node =
+        Compiler().parse(SourceFile.fromCode(filePath, fileText))
 
     // TODO SEVERE: function only works in the same file scope. Add search in exports.
     fun searchForClassDecl(className: String?, parsedFile: Node, strict: Boolean = false): Node? {

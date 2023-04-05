@@ -6,6 +6,7 @@ import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgGetLength
 import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMultilineComment
 import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgReferenceExpression
 import org.utbot.framework.codegen.domain.models.CgTestMethod
@@ -28,20 +29,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
     override fun assertEquality(expected: CgValue, actual: CgVariable) {
         pythonDeepEquals(expected, actual)
-    }
-
-    private fun generatePythonTestComments(execution: UtExecution) {
-        when (execution.result) {
-            is UtExplicitlyThrownException ->
-                (execution.result as UtExplicitlyThrownException).exception.message?.let {
-                    emptyLineIfNeeded()
-                    comment("raises $it")
-                }
-
-            else -> {
-                // nothing
-            }
-        }
     }
 
     override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
@@ -122,8 +109,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     generateResultAssertions()
 
                     generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
-
-                    generatePythonTestComments(execution)
                 }
 
                 if (statics.isNotEmpty()) {
@@ -142,7 +127,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         if (currentExecutable is MethodId) {
             val currentExecution = currentExecution!!
             val executionResult = currentExecution.result
-            if (executionResult is UtExecutionFailure && methodType == CgTestMethodType.PASSED_EXCEPTION) {
+            if (executionResult is UtExecutionFailure) {
                 val exceptionId = executionResult.rootCauseException.message?.let {PythonClassId(it)} ?: pythonExceptionClassId
                 val executionBlock = {
                     with(currentExecutable) {
@@ -152,10 +137,25 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                         }
                     }
                 }
-                testFrameworkManager.expectException(exceptionId) {
-                    executionBlock()
+                when (methodType) {
+                    CgTestMethodType.PASSED_EXCEPTION -> {
+                        testFrameworkManager.expectException(exceptionId) {
+                            executionBlock()
+                        }
+                        return
+                    }
+                    CgTestMethodType.FAILING -> {
+                        val executable = currentExecutable!! as PythonMethodId
+                        val executableName = "${executable.moduleName}.${executable.name}"
+                        val warningLine =
+                            "This test fails because function [$executableName] produces [${exceptionId.prettyName}]"
+                        +CgMultilineComment(warningLine)
+                        emptyLineIfNeeded()
+                        executionBlock()
+                        return
+                    }
+                    else -> {}
                 }
-                return
             }
         }
         super.generateResultAssertions()

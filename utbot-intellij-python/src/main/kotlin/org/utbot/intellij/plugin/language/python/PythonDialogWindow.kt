@@ -177,6 +177,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         val settings = model.project.service<Settings>()
         with(settings) {
             model.timeoutForRun = hangingTestsTimeout.timeoutMs
+            model.runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour
         }
 
         super.doOKAction()

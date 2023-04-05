@@ -28,11 +28,12 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonWith
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
+        require(exception is PythonClassId) { "Exceptions must be PythonClassId" }
         context.importIfNeeded(PythonClassId("pytest.raises"))
         val withExpression = CgPythonFunctionCall(
             pythonNoneClassId,
             "pytest.raises",
-            listOf(CgLiteral(exception, exception.name))
+            listOf(CgLiteral(exception, exception.prettyName))
         )
         +CgPythonWith(withExpression, null, context.block(block))
     }
@@ -108,10 +109,11 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
+        require(exception is PythonClassId) { "Exceptions must be PythonClassId" }
         val withExpression = CgPythonFunctionCall(
             pythonNoneClassId,
             "self.assertRaises",
-            listOf(CgLiteral(exception, exception.name))
+            listOf(CgLiteral(exception, exception.prettyName))
         )
         +CgPythonWith(withExpression, null, context.block(block))
     }

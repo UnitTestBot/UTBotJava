@@ -46,7 +46,7 @@ class PythonEngine(
                 // can be improved
                 description.name
             }
-            is UtExplicitlyThrownException -> "${description.name}_with_exception"
+            is UtExecutionFailure -> "${description.name}_with_exception"
             else -> description.name
         }
         val testName = "test_$testSuffix"
@@ -138,7 +138,7 @@ class PythonEngine(
 
         val executionResult =
             if (evaluationResult.isException) {
-                UtExplicitlyThrownException(Throwable(resultModel.type.toString()), false)
+                UtImplicitlyThrownException(Throwable(resultModel.type.toString()), false)
             }
             else {
                 UtExecutionSuccess(PythonTreeModel(resultModel))

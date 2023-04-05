@@ -18,6 +18,7 @@ import kotlin.jvm.JvmStatic
  * #### Generated from [LoggerModel.kt:8]
  */
 class LoggerModel private constructor(
+    private val _initRemoteLogging: RdSignal<Unit>,
     private val _log: RdSignal<LogArguments>,
     private val _getCategoryMinimalLogLevel: RdCall<String, Int>
 ) : RdExtBase() {
@@ -47,13 +48,14 @@ class LoggerModel private constructor(
         }
         
         
-        const val serializationHash = -6259198217478203203L
+        const val serializationHash = 1686273842005935878L
         
     }
     override val serializersOwner: ISerializersOwner get() = LoggerModel
     override val serializationHash: Long get() = LoggerModel.serializationHash
     
     //fields
+    val initRemoteLogging: IAsyncSignal<Unit> get() = _initRemoteLogging
     val log: IAsyncSignal<LogArguments> get() = _log
     
     /**
@@ -64,11 +66,13 @@ class LoggerModel private constructor(
     //methods
     //initializer
     init {
+        _initRemoteLogging.async = true
         _log.async = true
         _getCategoryMinimalLogLevel.async = true
     }
     
     init {
+        bindableChildren.add("initRemoteLogging" to _initRemoteLogging)
         bindableChildren.add("log" to _log)
         bindableChildren.add("getCategoryMinimalLogLevel" to _getCategoryMinimalLogLevel)
     }
@@ -76,6 +80,7 @@ class LoggerModel private constructor(
     //secondary constructor
     private constructor(
     ) : this(
+        RdSignal<Unit>(FrameworkMarshallers.Void),
         RdSignal<LogArguments>(LogArguments),
         RdCall<String, Int>(FrameworkMarshallers.String, FrameworkMarshallers.Int)
     )
@@ -86,6 +91,7 @@ class LoggerModel private constructor(
     override fun print(printer: PrettyPrinter)  {
         printer.println("LoggerModel (")
         printer.indent {
+            print("initRemoteLogging = "); _initRemoteLogging.print(printer); println()
             print("log = "); _log.print(printer); println()
             print("getCategoryMinimalLogLevel = "); _getCategoryMinimalLogLevel.print(printer); println()
         }
@@ -94,6 +100,7 @@ class LoggerModel private constructor(
     //deepClone
     override fun deepClone(): LoggerModel   {
         return LoggerModel(
+            _initRemoteLogging.deepClonePolymorphic(),
             _log.deepClonePolymorphic(),
             _getCategoryMinimalLogLevel.deepClonePolymorphic()
         )

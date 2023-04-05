@@ -14,10 +14,8 @@ import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.LoggerModel
 import org.utbot.rd.generated.loggerModel
-import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLogger
-import org.utbot.rd.loggers.UtRdRemoteLogger
-import org.utbot.rd.loggers.setupRdLogger
+import org.utbot.rd.loggers.setup
 import org.utbot.rd.onSchedulerBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
@@ -64,7 +62,7 @@ class InstrumentedProcess private constructor(
             logger.trace("rd process started")
 
             val proc = InstrumentedProcess(classLoader, rdProcess)
-            setupRdLogger(rdProcess, proc.loggerModel, rdLogger)
+            proc.loggerModel.setup(rdLogger, proc.lifetime)
 
             proc.lifetime.onTermination {
                 logger.trace { "process is terminating" }

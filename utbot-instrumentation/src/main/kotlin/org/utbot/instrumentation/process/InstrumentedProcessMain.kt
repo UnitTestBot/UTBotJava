@@ -21,8 +21,8 @@ import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.generated.settingsModel
-import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory
+import org.utbot.rd.StandardStreamUtil
 import java.io.File
 import java.net.URLClassLoader
 import java.security.AllPermission
@@ -83,7 +83,7 @@ object InstrumentedProcessMain
  */
 fun main(args: Array<String>) = runBlocking {
     // We don't want user code to litter the standard output, so we redirect it.
-    silentlyCloseStandardStreams()
+    StandardStreamUtil.silentlyCloseStandardStreams()
 
     if (!args.contains(DISABLE_SANDBOX_OPTION)) {
         permissions {
@@ -97,7 +97,7 @@ fun main(args: Array<String>) = runBlocking {
 
     try {
         ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(port) {
-            synchronizationModel.initRemoteLogging.adviseOnce(lifetime) {
+            loggerModel.initRemoteLogging.adviseOnce(lifetime) {
                 Logger.set(Lifetime.Eternal, UtRdRemoteLoggerFactory(loggerModel))
                 this.protocol.scheduler.queue { warmupMockito() }
             }

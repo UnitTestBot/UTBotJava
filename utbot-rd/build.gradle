@@ -69,7 +69,6 @@ dependencies {
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'commons-logging', name: 'commons-logging', version: commonsLoggingVersion
 
     processWithRdServerMockImplementation project(':utbot-rd')
 

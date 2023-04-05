@@ -6,7 +6,7 @@ import org.utbot.common.scanForResourcesContaining
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.services.WorkingDirService
-import org.utbot.framework.process.obtainCommonProcessCommandLineArgs
+import org.utbot.framework.process.CommonProcessArgs
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.rd.rdPortArgument
 import java.io.File
@@ -15,7 +15,7 @@ private val logger = KotlinLogging.logger {}
 
 class InstrumentedProcessRunner {
     private val cmds: List<String> by lazy {
-        obtainCommonProcessCommandLineArgs(
+        CommonProcessArgs.obtainCommonProcessCommandLineArgs(
             debugPort = UtSettings.instrumentedProcessDebugPort,
             runWithDebug = UtSettings.runInstrumentedProcessWithDebug,
             suspendExecutionInDebugMode = UtSettings.suspendInstrumentedProcessExecutionInDebugMode

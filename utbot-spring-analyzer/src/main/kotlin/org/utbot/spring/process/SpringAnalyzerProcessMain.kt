@@ -7,7 +7,7 @@ import com.jetbrains.rd.util.info
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.reactive.adviseOnce
 import org.utbot.common.AbstractSettings
-import org.utbot.common.silentlyCloseStandardStreams
+import org.utbot.rd.StandardStreamUtil
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.RdSettingsContainerFactory
@@ -32,13 +32,13 @@ object SpringAnalyzerProcessMain
 
 suspend fun main(args: Array<String>) {
     // We don't want user code to litter the standard output, so we redirect it.
-    silentlyCloseStandardStreams()
+    StandardStreamUtil.silentlyCloseStandardStreams()
 
     val port = findRdPort(args)
 
 
     ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
-        synchronizationModel.initRemoteLogging.adviseOnce(lifetime) {
+        loggerModel.initRemoteLogging.adviseOnce(lifetime) {
             Logger.set(Lifetime.Eternal, UtRdRemoteLoggerFactory(loggerModel))
             logger.info { "-----------------------------------------------------------------------" }
             logger.info { "------------------NEW SPRING ANALYZER PROCESS STARTED------------------" }

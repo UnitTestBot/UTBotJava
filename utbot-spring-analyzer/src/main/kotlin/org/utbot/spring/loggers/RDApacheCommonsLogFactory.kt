@@ -1,11 +1,11 @@
-package org.utbot.rd.loggers
+package org.utbot.spring.loggers
 
 import com.jetbrains.rd.util.LogLevel
 import com.jetbrains.rd.util.getLogger
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.impl.LogFactoryImpl
 
-@Suppress("unused") // used via -Dorg.apache.commons.logging.LogFactory=org.utbot.rd.loggers.RDApacheCommonsLogFactory
+@Suppress("unused") // used via -Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory
 class RDApacheCommonsLogFactory : LogFactoryImpl() {
     override fun getInstance(name: String): Log {
         val logger = getLogger(category = name)

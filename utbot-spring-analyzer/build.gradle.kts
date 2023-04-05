@@ -2,8 +2,7 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
 import com.github.jengelman.gradle.plugins.shadow.transformers.PropertiesFileTransformer
 
 val rdVersion: String by rootProject
-val log4j2Version: String by rootProject
-val kotlinLoggingVersion: String? by rootProject
+val commonsLoggingVersion: String by rootProject
 
 plugins {
     id("org.springframework.boot") version "2.7.8"
@@ -27,6 +26,7 @@ dependencies {
     implementation(project(":utbot-core"))
     implementation("com.jetbrains.rd:rd-framework:$rdVersion")
     implementation("com.jetbrains.rd:rd-core:$rdVersion")
+    implementation("commons-logging:commons-logging:$commonsLoggingVersion")
 }
 
 application {

@@ -61,6 +61,7 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     override fun disableTestMethod(reason: String) {
         require(testFramework is Pytest) { "According to settings, JUnit4 was expected, but got: $testFramework" }
 
+        context.importIfNeeded(testFramework.skipDecoratorClassId)
         collectedMethodAnnotations += CgMultipleArgsAnnotation(
             testFramework.skipDecoratorClassId,
             mutableListOf(

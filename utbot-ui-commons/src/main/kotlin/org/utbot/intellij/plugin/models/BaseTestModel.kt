@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.jetbrains.kotlin.idea.util.sourceRoot
-import org.jetbrains.kotlin.utils.addToStdlib.flatMapToNullable
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -25,10 +24,8 @@ import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import java.nio.file.Files
-import java.nio.file.Path
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.streams.asSequence
-import kotlin.streams.toList
 
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
 const val HISTORY_LIMIT = 10
@@ -123,7 +120,7 @@ open class BaseTestsModel(
         val resourcesPaths =
             setOf(testModule, srcModule).flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
         val xmlFilePaths = resourcesPaths.flatMapTo(mutableListOf()) { path ->
-            Files.list(path)
+            Files.walk(path)
                 .asSequence()
                 .filter { it.fileExtension == ".xml" }
         }
@@ -132,10 +129,10 @@ open class BaseTestsModel(
         return xmlFilePaths.mapNotNullTo(mutableSetOf()) { path ->
             val doc = builder.parse(path.toFile())
 
-            val isBeanTagName = doc.documentElement.tagName == "beans"
+            val hasBeanTagName = doc.documentElement.tagName == "beans"
             val hasAttribute = doc.documentElement.getAttribute("xmlns") == "http://www.springframework.org/schema/beans"
             when {
-                isBeanTagName && hasAttribute -> path.toString()
+                hasBeanTagName && hasAttribute -> path.toString()
                 else -> null
             }
         }

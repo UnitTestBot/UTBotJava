@@ -70,6 +70,7 @@ fun comparePythonTree(
             is PythonTree.ReduceNode -> {
                 if (right !is PythonTree.ReduceNode) false
                 else {
+                    val type = left.type == right.type
                     val state = left.state.size == right.state.size && left.state.keys.all {
                         comparePythonTree(
                             left.state[it]!!,
@@ -84,7 +85,7 @@ fun comparePythonTree(
                     val dictitems = left.dictitems.keys == right.dictitems.keys && left.dictitems.keys
                         .all { comparePythonTree(left.dictitems[it]!!, right.dictitems[it]!!, visitedLeft, visitedRight, equals) }
 
-                    state && listitems && dictitems
+                    type && state && listitems && dictitems
                 }
             }
 

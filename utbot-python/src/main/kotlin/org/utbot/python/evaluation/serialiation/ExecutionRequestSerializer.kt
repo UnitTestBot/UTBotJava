@@ -21,6 +21,7 @@ data class ExecutionRequest(
     val imports: List<String>,
     val syspaths: List<String>,
     val argumentsIds: List<String>,
+    val kwargumentsIds: Map<String, String>,
     val serializedMemory: String,
     val filepath: String,
 )

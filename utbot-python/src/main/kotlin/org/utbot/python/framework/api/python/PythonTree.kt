@@ -219,6 +219,13 @@ object PythonTree {
             args: List<PythonTreeNode>,
         ) : this(PythonIdGenerator.createId(), type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
 
+        constructor(
+            id: Long,
+            type: PythonClassId,
+            constructor: PythonClassId,
+            args: List<PythonTreeNode>,
+        ) : this(id, type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
+
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys + PythonTreeNode(constructor)
 

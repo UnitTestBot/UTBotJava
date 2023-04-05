@@ -1,7 +1,6 @@
 package org.utbot.go.worker
 
 import org.utbot.go.api.GoNamedTypeId
-import org.utbot.go.api.GoStructTypeId
 import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.simplecodegeneration.GoUtModelToCodeConverter
@@ -273,35 +272,10 @@ object GoCodeTemplates {
         	value, err := v.Value.__toReflectValue__()
         	__checkErrorAndExit__(err)
 
-        	val, err := __typeConversionToNamedType__(v.Type, value.Interface())
+        	typ, err := __convertStringToReflectType__(v.Type)
         	__checkErrorAndExit__(err)
 
-        	return reflect.ValueOf(val), nil
-        }
-    """.trimIndent()
-
-    private fun typeConversionToNamedType(
-        namedTypes: Set<GoNamedTypeId>,
-        destinationPackage: GoPackage,
-        aliases: Map<GoPackage, String?>
-    ) = """
-        func __typeConversionToNamedType__(typ string, value any) (any, error) {
-        	switch typ {
-        	${
-        namedTypes.joinToString(separator = "\n") {
-            val relativeName = it.getRelativeName(destinationPackage, aliases)
-            "case \"${relativeName}\": return ${relativeName}(value.(${
-                if (it.underlyingTypeId is GoStructTypeId) {
-                    relativeName
-                } else {
-                    it.underlyingTypeId.getRelativeName(destinationPackage, aliases)
-                }
-            })), nil"
-        }
-    }
-        	default:
-        		return nil, fmt.Errorf("unknown named type: %s", typ)
-        	}
+        	return value.Convert(typ), nil
         }
     """.trimIndent()
 
@@ -867,7 +841,6 @@ object GoCodeTemplates {
         nilValueToReflectValueMethod,
         namedValueStruct,
         namedValueToReflectValueMethod,
-        typeConversionToNamedType(namedTypes, destinationPackage, aliases),
         convertStringToReflectType(namedTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,

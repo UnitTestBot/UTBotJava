@@ -71,4 +71,3 @@ if (goIde.split(",").contains(ideType)) {
 }
 
 include("utbot-spring-analyzer")
-include("utbot-spring-analyzer-model")

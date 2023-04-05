@@ -18,9 +18,9 @@ import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
-import org.utbot.spring.process.generated.SpringAnalyzerParams
-import org.utbot.spring.process.generated.SpringAnalyzerProcessModel
-import org.utbot.spring.process.generated.springAnalyzerProcessModel
+import org.utbot.rd.generated.SpringAnalyzerParams
+import org.utbot.rd.generated.SpringAnalyzerProcessModel
+import org.utbot.rd.generated.springAnalyzerProcessModel
 import java.nio.file.Files
 
 class SpringAnalyzerProcessInstantDeathException :

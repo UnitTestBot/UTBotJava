@@ -21,7 +21,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
 
-    implementation(project(":utbot-spring-analyzer-model"))
     implementation(project(":utbot-rd"))
     implementation(project(":utbot-core"))
     implementation("com.jetbrains.rd:rd-framework:$rdVersion")

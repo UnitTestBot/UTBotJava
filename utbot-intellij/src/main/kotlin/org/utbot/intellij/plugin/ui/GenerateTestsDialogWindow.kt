@@ -525,7 +525,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         with(settings) {
             model.runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour
             model.hangingTestsTimeout = hangingTestsTimeout
-            model.useTaintAnalysis = useTaintAnalysis
             model.runInspectionAfterTestGeneration = runInspectionAfterTestGeneration
             model.forceStaticMocking = forceStaticMocking
             model.chosenClassesToMockAlways = chosenClassesToMockAlways()
@@ -533,7 +532,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             model.commentStyle = javaDocCommentStyle
             model.summariesGenerationType = state.summariesGenerationType
             UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
-            UtSettings.useTaintAnalysis = model.useTaintAnalysis
         }
 
         // firstly save settings

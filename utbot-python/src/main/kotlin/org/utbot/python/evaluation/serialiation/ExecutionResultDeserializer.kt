@@ -45,10 +45,12 @@ data class SuccessExecution(
     val isException: Boolean,
     val statements: List<Int>,
     val missedStatements: List<Int>,
+    val stateInit: String,
     val stateBefore: String,
     val stateAfter: String,
+    val diffIds: List<String>,
     val argsIds: List<String>,
-    val kwargsIds: List<String>,
+    val kwargsIds: Map<String, String>,
     val resultId: String,
 ): PythonExecutionResult()
 

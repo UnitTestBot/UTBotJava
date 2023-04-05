@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
-import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
@@ -14,6 +13,7 @@ import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
+import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
@@ -117,12 +117,15 @@ class PythonEngine(
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)
 
+        val (thisObject, initModelList) = transformModelList(hasThisObject, evaluationResult.stateInit, evaluationResult.modelListIds)
         val (beforeThisObject, beforeModelList) = transformModelList(hasThisObject, evaluationResult.stateBefore, evaluationResult.modelListIds)
         val (afterThisObject, afterModelList) = transformModelList(hasThisObject, evaluationResult.stateAfter, evaluationResult.modelListIds)
 
-        val utFuzzedExecution = UtFuzzedExecution(
+        val utFuzzedExecution = PythonUtExecution(
+            stateInit = EnvironmentModels(thisObject, initModelList, emptyMap()),
             stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             stateAfter = EnvironmentModels(afterThisObject, afterModelList, emptyMap()),
+            diffIds = evaluationResult.diffIds,
             result = executionResult,
             coverage = evaluationResult.coverage,
             testMethodName = testMethodName.testName?.camelToSnakeCase(),

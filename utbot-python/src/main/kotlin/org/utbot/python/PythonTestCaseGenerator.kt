@@ -6,6 +6,7 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
@@ -123,7 +124,7 @@ class PythonTestCaseGenerator(
         typeStorage: PythonTypeStorage,
         coveredLines: MutableSet<Int>,
         errors: MutableList<UtError>,
-        executions: MutableList<UtExecution>,
+        executions: MutableList<PythonUtExecution>,
         initMissingLines: Set<Int>?,
         until: Long,
         additionalVars: String = ""
@@ -218,7 +219,7 @@ class PythonTestCaseGenerator(
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
 
-        val executions = mutableListOf<UtExecution>()
+        val executions = mutableListOf<PythonUtExecution>()
         val errors = mutableListOf<UtError>()
         val coveredLines = mutableSetOf<Int>()
 

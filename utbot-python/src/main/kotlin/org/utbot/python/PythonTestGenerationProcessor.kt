@@ -190,7 +190,10 @@ object PythonTestGenerationProcessor {
                         testFrameworkModule,
                         sysImport
                     )
-                ).filterNotNull().toSet()
+                )
+                .filterNotNull()
+//                .filterNot { it.importName == pythonBuiltinsModuleName }
+                .toSet()
 
             val context = UtContext(this::class.java.classLoader)
             withUtContext(context) {

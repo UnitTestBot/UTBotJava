@@ -1,7 +1,12 @@
 package org.utbot.python.framework.api.python
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.DocStatement
+import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.moduleOfType
@@ -84,3 +89,15 @@ class PythonTreeModel(
         return tree.hashCode()
     }
 }
+
+class PythonUtExecution(
+    val stateInit: EnvironmentModels,
+    stateBefore: EnvironmentModels,
+    stateAfter: EnvironmentModels,
+    val diffIds: List<Long>,
+    result: UtExecutionResult,
+    coverage: Coverage? = null,
+    summary: List<DocStatement>? = null,
+    testMethodName: String? = null,
+    displayName: String? = null
+) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName)

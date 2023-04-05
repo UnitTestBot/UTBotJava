@@ -4,10 +4,12 @@ import com.google.javascript.jscomp.Compiler
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
+import framework.codegen.ModuleType
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
+import org.json.JSONObject
 import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getClassMethods
 import parser.JsParserUtils.getImportSpecAliases
@@ -21,6 +23,9 @@ import parser.visitors.IAstVisitor
 import parser.visitors.JsClassAstVisitor
 import parser.visitors.JsFunctionAstVisitor
 import parser.visitors.JsVariableAstVisitor
+import settings.JsDynamicSettings
+import utils.JsCmdExec
+import utils.PathResolver
 import kotlin.io.path.pathString
 
 private val logger = KotlinLogging.logger {}
@@ -28,6 +33,9 @@ private val logger = KotlinLogging.logger {}
 class JsAstScrapper(
     private val parsedFile: Node,
     private val basePath: String,
+    private val tempUtbotPath: Path,
+    private val moduleType: ModuleType,
+    private val settings: JsDynamicSettings
 ) {
 
     // Used not to parse the same file multiple times.
@@ -46,7 +54,7 @@ class JsAstScrapper(
                 processedFiles.add(Paths.get(this.sourceFileName!!))
                 val vis = Visitor()
                 vis.accept(this)
-                val kek = vis.importNodes.flatMap { node ->
+                return vis.importNodes.flatMap { node ->
                     val temp = node.importedNodes()
                     temp.toList() + temp.flatMap { entry ->
                         val path = Paths.get(entry.value.sourceFileName!!)
@@ -55,32 +63,9 @@ class JsAstScrapper(
                         } else emptyList()
                     }
                 }
-                return kek
             }
             this.putAll(parsedFile.collectImportsRec().toMap())
             this.toMap()
-//            val res = visitor.importNodes.fold(emptyMap<String, Node>()) { acc, node ->
-//                val currAcc = acc.toList().toTypedArray()
-//
-//                    return kek
-//
-//
-//                    val temp = this.importedNodes()
-//                    return temp.toList() + temp.flatMap { entry ->
-//                        val path = entry.value.sourceFileName!!
-//                        val pFile = File(path).parseIfNecessary()
-//                        // Not to search for imports in already analyzed files
-//                        _parsedFilesCache[Paths.get(path)]?.let {
-//                            emptyList()
-//                        } ?: File(path).parseIfNecessary().collectImportsRec()
-//                    }
-//                }
-//
-//                val more = node.collectImportsRec().toTypedArray()
-//                mapOf(*currAcc, *more)
-//            }
-//            this.putAll(res)
-//            this.toMap()
         }
     }
 
@@ -130,15 +115,66 @@ class JsAstScrapper(
 
     private fun Node.importedNodes(): Map<String, Node> {
         return when {
-            this.isRequireImport() -> mapOf(
-                this.parent!!.string to (makePathFromImport(this.getRequireImportText())?.let {
-                    File(it).parseIfNecessary().findEntityInFile(null)
-                    // Workaround for std imports.
-                } ?: this.firstChild!!.next!!)
-            )
-
+            this.isRequireImport() -> this.processRequireImport()
             this.isImport -> this.processModuleImport()
             else -> emptyMap()
+        }
+    }
+
+    @Suppress("unchecked_cast")
+    private fun getExportedKeys(importPath: String): List<String> {
+//        val importPath = PathResolver.getRelativePath(pathToTempFile.pathString, basePath)
+        val pathToTempFile = Paths.get(tempUtbotPath.pathString + "/exp_temp.js")
+        val text = buildString {
+            when (moduleType) {
+                ModuleType.COMMONJS -> {
+                    appendLine("const temp = require(\"$importPath\")")
+                    appendLine("const fs = require(\"fs\")")
+                }
+
+                else -> {
+                    appendLine("import * as temp from \"$importPath\"")
+                    appendLine("import * as fs from \"fs\"")
+                }
+            }
+            appendLine("fs.writeFileSync(\"exp_temp.json\", JSON.stringify({files: Object.keys(temp)}))")
+        }
+        pathToTempFile.toFile().writeText(text)
+        JsCmdExec.runCommand(
+            cmd = arrayOf("\"${settings.pathToNode}\"", pathToTempFile.pathString),
+            dir = pathToTempFile.parent.pathString,
+            shouldWait = true,
+            timeout = settings.timeout,
+        )
+        val pathToJson = pathToTempFile.pathString.replace(".js", ".json")
+        return JSONObject(File(pathToJson).readText()).getJSONArray("files").toList() as List<String>
+    }
+
+    private fun Node.processRequireImport(): Map<String, Node> {
+        try {
+            val pathToFile = makePathFromImport(this.getRequireImportText()) ?: return emptyMap()
+            val pFile = File(pathToFile).parseIfNecessary()
+            val objPattern = NodeUtil.findPreorder(this.parent, { it.isObjectPattern }, { true })
+            return when {
+                objPattern != null -> {
+                    buildList {
+                        var currNode: Node? = objPattern.firstChild!!
+                        while (currNode != null) {
+                            add(currNode.string)
+                            currNode = currNode.next
+                        }
+                    }.associateWith { key -> pFile.findEntityInFile(key) }
+                }
+                else -> {
+                    val importPath = PathResolver.getRelativePath(tempUtbotPath.pathString, pathToFile)
+                    getExportedKeys(importPath).associateWith { key ->
+                        pFile.findEntityInFile(key)
+                    }
+                }
+            }
+        } catch (e: ClassNotFoundException) {
+            logger.error { e.toString() }
+            return emptyMap()
         }
     }
 
@@ -156,8 +192,12 @@ class JsAstScrapper(
                 }
 
                 NodeUtil.findPreorder(this, { it.isImportStar }, { true }) != null -> {
+                    // Do we need to know alias for "*" import?
                     val aliases = this.getImportSpecAliases()
-                    mapOf(aliases to pFile)
+                    val importPath = PathResolver.getRelativePath(tempUtbotPath.pathString, pathToFile)
+                    getExportedKeys(importPath).associateWith { key ->
+                        pFile.findEntityInFile(key)
+                    }
                 }
                 // For example: import foo from "bar"
                 else -> {
@@ -165,7 +205,7 @@ class JsAstScrapper(
                     mapOf(realName to pFile.findEntityInFile(realName))
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: ClassNotFoundException) {
             logger.error { e.toString() }
             return emptyMap()
         }

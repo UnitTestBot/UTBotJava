@@ -10,7 +10,8 @@ class ServiceContext(
     override val parsedFile: Node,
     override val settings: JsDynamicSettings,
     override var packageJson: PackageJson = PackageJson.defaultConfig,
-    override val importsMap: Map<String, Node>
+    override val importsMap: Map<String, Node>,
+    override val necessaryImports: MutableMap<String, Node> = mutableMapOf()
 ) : ContextOwner
 
 interface ContextOwner {
@@ -21,4 +22,5 @@ interface ContextOwner {
     val settings: JsDynamicSettings
     var packageJson: PackageJson
     val importsMap: Map<String, Node>
+    val necessaryImports: MutableMap<String, Node>
 }

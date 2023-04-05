@@ -1,7 +1,5 @@
 package framework.codegen.model.constructor.visitor
 
-import framework.api.js.JsClassId
-import framework.api.js.util.isExportable
 import framework.codegen.JsImport
 import framework.codegen.ModuleType
 import org.apache.commons.text.StringEscapeUtils
@@ -50,7 +48,6 @@ import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
-import org.utbot.framework.codegen.services.language.isLanguageKeyword
 import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -257,10 +254,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun visit(element: CgConstructorCall) {
-        val importPrefix = "$fileUnderTestAliases.".takeIf {
-            (element.executableId.classId as JsClassId).isExportable
-        } ?: ""
-        print("new $importPrefix${element.executableId.classId.name}")
+        print("new ${element.executableId.classId.name}")
         print("(")
         element.arguments.renderSeparated()
         print(")")
@@ -268,8 +262,16 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
 
     private fun renderImport(import: JsImport) = with(import) {
         when (type) {
-            ModuleType.COMMONJS -> println("const $aliases = require(\"$path\")")
-            ModuleType.MODULE -> println("import $name as $aliases from \"$path\"")
+            ModuleType.COMMONJS -> {
+                if (name == "*") {
+                    println("const $aliases = require (\"$path\")")
+                } else println("const {$aliases} = require(\"$path\")")
+            }
+            ModuleType.MODULE -> {
+                if (name == "*") {
+                    println("import $name as $aliases from \"$path\"")
+                } else println("import {$name as $aliases} from \"$path\"")
+            }
         }
     }
 

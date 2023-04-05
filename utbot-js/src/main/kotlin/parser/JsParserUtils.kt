@@ -218,7 +218,11 @@ object JsParserUtils {
      *
      * Returns variable name as [String].
      */
-    fun Node.getVariableName(): String = this.firstChild!!.string
+    fun Node.getVariableName(): String? = try {
+        this.firstChild!!.string
+    } catch (_: Exception) {
+        null
+    }
 
     /**
      * Called upon any variable declaration node.

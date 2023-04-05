@@ -3,6 +3,7 @@ package providers.imports
 import service.ContextOwner
 import service.ServiceContext
 import settings.JsTestGenerationSettings.fileUnderTestAliases
+import utils.PathResolver
 
 class RequireImportsProvider(context: ServiceContext) : IImportsProvider, ContextOwner by context {
 
@@ -17,6 +18,11 @@ class RequireImportsProvider(context: ServiceContext) : IImportsProvider, Contex
     override val tempFileImports: String = buildString {
         val importFileUnderTest = "instr/${filePathToInference.first().substringAfterLast("/")}"
         appendLine("const $fileUnderTestAliases = require(\"./$importFileUnderTest\")")
+        val currDir = "${projectPath}/${utbotDir}"
+        for ((key, value) in necessaryImports) {
+            val importPath = PathResolver.getRelativePath(currDir, value.sourceFileName!!)
+            appendLine("const {$key} = require(\"$importPath\")")
+        }
         appendLine("const fs = require(\"fs\")\n")
     }
 

@@ -16,9 +16,11 @@ object MultipleValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescrip
 
     override fun generate(description: JsMethodDescription, type: JsClassId): Sequence<Seed<JsClassId, UtModel>> =
         sequence {
-            (type as JsMultipleClassId).classIds.zip(defaultValueProviders()).forEach { (classId, provider) ->
-                if (provider.accept(classId)) {
-                    provider.generate(description, classId)
+            for (classId in (type as JsMultipleClassId).classIds) {
+                for (provider in defaultValueProviders()) {
+                    if (provider.accept(classId)) {
+                        yieldAll(provider.generate(description, classId))
+                    }
                 }
             }
         }

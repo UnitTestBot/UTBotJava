@@ -16,7 +16,9 @@ fun JsClassId.constructClass(
     classNode: Node? = null,
     functions: List<Node> = emptyList()
 ): JsClassId {
-    val className = classNode?.getClassName()
+    val className = classNode?.getClassName()?.also {
+        ternService.context.necessaryImports[it] = classNode
+    }
     val methods = constructMethods(classNode, ternService, className, functions)
 
     val constructor = classNode?.let {

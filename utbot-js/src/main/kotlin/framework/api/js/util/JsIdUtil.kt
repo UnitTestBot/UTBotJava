@@ -47,10 +47,10 @@ val JsClassId.isJsBasic: Boolean
     get() = this in jsBasic
 
 val JsClassId.isExportable: Boolean
-    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsStdStructure)
+    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsStdStructure || this is JsMultipleClassId)
 
 val JsClassId.isClass: Boolean
-    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsStdStructure)
+    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsStdStructure || this is JsMultipleClassId)
 
 val JsClassId.isUndefined: Boolean
     get() = this == jsUndefinedClassId

@@ -10,8 +10,6 @@ import org.utbot.taint.model.TaintMark
 import org.utbot.taint.model.TaintMarks
 import org.utbot.taint.model.TaintMarksSet
 
-typealias TaintVector = PrimitiveValue
-
 /**
  * Manages taint vectors.
  */
@@ -36,45 +34,86 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
     }
 
     /**
-     * Adds taint [marks] to the taint vector at address [addr].
+     * Sets taint [marks] to the taint vector at address [addr] if [condition] is true.
      */
-    fun addMarks(addr: UtAddrExpression, marks: TaintMarks): SymbolicStateUpdate =
-        if (marks.isEmpty()) {
-            SymbolicStateUpdate()
-        } else {
-            updateAddr(addr, constructTaintVector(marks))
-        }
-
-    /**
-     * Removes taint [marks] from the taint vector at address [addr] in [memory].
-     */
-    fun clearMarks(memory: Memory, addr: UtAddrExpression, marks: TaintMarks): SymbolicStateUpdate {
+    fun setMarks(
+        memory: Memory,
+        addr: UtAddrExpression,
+        marks: TaintMarks,
+        condition: UtBoolExpression
+    ): SymbolicStateUpdate {
         if (marks.isEmpty()) {
             return SymbolicStateUpdate()
         }
 
-        val taintVector = constructTaintVector(marks)
-        val negatedTaintVector = UtBvNotExpression(taintVector).toLongValue()
-        val actualTaintVector = memory.taintVector(addr).toLongValue()
-        val updateTaintVector = And(negatedTaintVector, actualTaintVector).toLongValue()
+        val newTaintVector = constructTaintVector(marks)
+        val oldTaintVector = memory.taintVector(addr)
 
-        return updateAddr(addr, updateTaintVector)
+        val taintUpdateExpr = UtIteExpression(
+            condition,
+            thenExpr = newTaintVector,
+            elseExpr = oldTaintVector
+        )
+
+        return updateAddr(addr, taintUpdateExpr)
     }
 
     /**
-     * Passes taint [marks] contained in the taint vector at [fromAddr] from [fromAddr] to [toAddr] in [memory].
+     * Removes taint [marks] from the taint vector at address [addr] in [memory] if [condition] is true.
      */
-    fun passMarks(memory: Memory, fromAddr: UtAddrExpression, toAddr: UtAddrExpression, marks: TaintMarks): SymbolicStateUpdate {
+    fun clearMarks(
+        memory: Memory,
+        addr: UtAddrExpression,
+        marks: TaintMarks,
+        condition: UtBoolExpression
+    ): SymbolicStateUpdate {
         if (marks.isEmpty()) {
             return SymbolicStateUpdate()
         }
 
-        val taintVector = constructTaintVector(marks)
-        val sourceTaintVector = memory.taintVector(fromAddr).toLongValue()
-        val intersection = And(taintVector, sourceTaintVector).toLongValue()
-        val actualVector = memory.taintVector(toAddr).toLongValue()
+        val taintMarks = constructTaintVector(marks).toLongValue()
+        val taintMarksNegated = UtBvNotExpression(taintMarks).toLongValue()
+        val oldTaintVectorExpr = memory.taintVector(addr)
+        val newTaintVectorExpr = And(taintMarksNegated, oldTaintVectorExpr.toLongValue())
 
-        return updateAddr(toAddr, Or(actualVector, intersection).toLongValue())
+        val taintUpdateExpr = UtIteExpression(
+            condition,
+            thenExpr = newTaintVectorExpr,
+            elseExpr = oldTaintVectorExpr
+        )
+
+        return updateAddr(addr, taintUpdateExpr)
+    }
+
+    /**
+     * Passes taint [marks] contained in the taint vector at [fromAddr]
+     * from [fromAddr] to [toAddr] in [memory] if [condition] is true.
+     */
+    fun passMarks(
+        memory: Memory,
+        fromAddr: UtAddrExpression,
+        toAddr: UtAddrExpression,
+        marks: TaintMarks,
+        condition: UtBoolExpression
+    ): SymbolicStateUpdate {
+        if (marks.isEmpty()) {
+            return SymbolicStateUpdate()
+        }
+
+        val taintMarks = constructTaintVector(marks).toLongValue()
+        val oldTaintVectorFrom = memory.taintVector(fromAddr).toLongValue()
+        val intersection = And(taintMarks, oldTaintVectorFrom).toLongValue()
+
+        val oldTaintVectorExprTo = memory.taintVector(toAddr)
+        val newTaintVectorExprTo = Or(intersection, oldTaintVectorExprTo.toLongValue())
+
+        val taintUpdateExpr = UtIteExpression(
+            condition,
+            thenExpr = newTaintVectorExprTo,
+            elseExpr = oldTaintVectorExprTo
+        )
+
+        return updateAddr(toAddr, taintUpdateExpr)
     }
 
     // internal
@@ -82,18 +121,20 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
     /**
      * Returns taint vector that represents [marks].
      */
-    private fun constructTaintVector(marks: TaintMarks): TaintVector {
+    private fun constructTaintVector(marks: TaintMarks): UtBvExpression {
         val taintedLongValue = when (marks) {
             TaintMarksAll -> -1L // 0b11..1111
             is TaintMarksSet -> marks.marks.fold(initial = 0L) { acc, mark ->
                 acc or markRegistry.idByMark(mark)
             }
         }
-        return UtBvLiteral(taintedLongValue, UtLongSort).toLongValue()
+        return mkLong(taintedLongValue)
     }
 
-    private fun updateAddr(addr: UtAddrExpression, updateTaintVector: TaintVector): SymbolicStateUpdate =
-        SymbolicStateUpdate(memoryUpdates = MemoryUpdate(
-            taintArrayUpdate = persistentListOf(addr to updateTaintVector.expr))
+    private fun updateAddr(addr: UtAddrExpression, updateTaintVectorExpr: UtExpression): SymbolicStateUpdate =
+        SymbolicStateUpdate(
+            memoryUpdates = MemoryUpdate(
+                taintArrayUpdate = persistentListOf(addr to updateTaintVectorExpr)
+            )
         )
 }

@@ -4095,15 +4095,12 @@ class Traverser(
             val allAddresses = source.addTo.entities.mapNotNull { entity ->
                 methodData.choose(entity)?.addrOrNull
             }
+            val condition = source.condition.toBoolExpr(this@Traverser, methodData)
+
             allAddresses.map { addr ->
-                taintContext.markManager.addMarks(addr, source.marks)
+                taintContext.markManager.setMarks(memory, addr, source.marks, condition)
             }
         }
-
-        val hardConstraint = sourceConfigurations.fold(HardConstraint()) { acc, source ->
-             acc + source.condition.toBoolExpr(this@Traverser, methodData).asHardConstraint()
-        }
-        queuedSymbolicStateUpdates += hardConstraint
 
         return symbolicStateUpdates.fold(SymbolicStateUpdate()) { acc, update -> acc + update }
     }
@@ -4114,15 +4111,12 @@ class Traverser(
             val allAddresses = cleaner.removeFrom.entities.mapNotNull { entity ->
                 methodData.choose(entity)?.addrOrNull
             }
+            val condition = cleaner.condition.toBoolExpr(this@Traverser, methodData)
+
             allAddresses.map { addr ->
-                taintContext.markManager.clearMarks(memory, addr, cleaner.marks)
+                taintContext.markManager.clearMarks(memory, addr, cleaner.marks, condition)
             }
         }
-
-        val hardConstraint = cleanerConfigurations.fold(HardConstraint()) { acc, cleaner ->
-            acc + cleaner.condition.toBoolExpr(this@Traverser, methodData).asHardConstraint()
-        }
-        queuedSymbolicStateUpdates += hardConstraint
 
         return symbolicStateUpdates.fold(SymbolicStateUpdate()) { acc, update -> acc + update }
     }
@@ -4136,18 +4130,14 @@ class Traverser(
             val addToAddresses = pass.addTo.entities.mapNotNull { entity ->
                 methodData.choose(entity)?.addrOrNull
             }
+            val condition = pass.condition.toBoolExpr(this@Traverser, methodData)
 
             getFromAddresses.flatMap { fromAddr ->
                 addToAddresses.map { toAddr ->
-                    taintContext.markManager.passMarks(memory, fromAddr, toAddr, pass.marks)
+                    taintContext.markManager.passMarks(memory, fromAddr, toAddr, pass.marks, condition)
                 }
             }
         }
-
-        val hardConstraint = passConfigurations.fold(HardConstraint()) { acc, pass ->
-            acc + pass.condition.toBoolExpr(this@Traverser, methodData).asHardConstraint()
-        }
-        queuedSymbolicStateUpdates += hardConstraint
 
         return symbolicStateUpdates.fold(SymbolicStateUpdate()) { acc, update -> acc + update }
     }
@@ -4157,7 +4147,7 @@ class Traverser(
         val sinkConfigurations = taintContext.configuration.getSinksBy(methodData.methodId)
 
         for (sink in sinkConfigurations) {
-            val sinkCondition = sink.condition.toBoolExpr(this@Traverser, methodData)
+            val condition = sink.condition.toBoolExpr(this@Traverser, methodData)
 
             for (entity in sink.check.entities) {
                 val symbolicEntity = methodData.choose(entity)
@@ -4172,7 +4162,7 @@ class Traverser(
 
                         implicitlyThrowException(
                             TaintAnalysisError(methodFqn, taintedVarType, "tainted"),
-                            setOf(mkAnd(containsAnyMark, sinkCondition))
+                            setOf(mkAnd(containsAnyMark, condition))
                         )
                     }
                     is TaintMarksSet -> {
@@ -4181,7 +4171,7 @@ class Traverser(
 
                             implicitlyThrowException(
                                 TaintAnalysisError(methodFqn, taintedVarType, mark.name),
-                                setOf(mkAnd(containsMark, sinkCondition))
+                                setOf(mkAnd(containsMark, condition))
                             )
                         }
                     }

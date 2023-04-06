@@ -108,7 +108,7 @@ internal class TunedKryo : Kryo() {
         this.setOptimizedGenerics(false)
 
         // TODO: JIRA:1492
-        addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializerWrapper())
+//        addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializerWrapper())
 
         val factory = object : SerializerFactory.FieldSerializerFactory() {}
         factory.config.ignoreSyntheticFields = true

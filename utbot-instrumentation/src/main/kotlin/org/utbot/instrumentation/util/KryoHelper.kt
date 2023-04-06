@@ -107,8 +107,9 @@ internal class TunedKryo : Kryo() {
 
         this.setOptimizedGenerics(false)
 
+        // Kryo cannot (at least, the current used version) deserialize stacktraces that are required for SARIF reports.
         // TODO: JIRA:1492
-//        addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializerWrapper())
+        addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializerWrapper())
 
         val factory = object : SerializerFactory.FieldSerializerFactory() {}
         factory.config.ignoreSyntheticFields = true

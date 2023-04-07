@@ -1,14 +1,17 @@
 package org.utbot.intellij.plugin.util
 
 /**
- * Getting from spring Configuration Classes and Spring XML Configuration Files shortened paths
+ * This class is a converter between full Spring configuration names and shortened versions.
  *
- * How is this done:
- * - Parent directories are appended to the file name until the path becomes unique
+ * Shortened versions are represented on UI.
+ * Full names are used in further analysis in utbot-spring-analyzer.
  *
- *  Example:
- *  - [["config.web.WebConfig", "config.web2.WebConfig", "config.web.AnotherConfig"]] ->
- *  [["web.WebConfig", "web2.WebConfig", "AnotherConfig"]]
+ * The idea of this implementation is to append parent directories to the file name until all names become unique.
+ *
+ * Example:
+ * - [["config.web.WebConfig", "config.web2.WebConfig", "config.web.AnotherConfig"]]
+ * ->
+ * [["web.WebConfig", "web2.WebConfig", "AnotherConfig"]]
  */
 class SpringConfigurationsHelper(val separator: String) {
 

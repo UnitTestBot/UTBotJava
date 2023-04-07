@@ -1,4 +1,4 @@
-package org.utbot.framework.process
+package org.utbot.spring.process
 
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils
 import org.utbot.common.getPid
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
+import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.LoggerModel
@@ -17,9 +18,9 @@ import org.utbot.rd.onSchedulerBlocking
 import org.utbot.rd.startBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
-import org.utbot.rd.generated.SpringAnalyzerParams
-import org.utbot.rd.generated.SpringAnalyzerProcessModel
-import org.utbot.rd.generated.springAnalyzerProcessModel
+import org.utbot.spring.generated.SpringAnalyzerParams
+import org.utbot.spring.generated.SpringAnalyzerProcessModel
+import org.utbot.spring.generated.springAnalyzerProcessModel
 import java.nio.file.Files
 
 class SpringAnalyzerProcessInstantDeathException :

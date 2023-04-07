@@ -37,6 +37,7 @@ import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
+import org.utbot.spring.process.SpringAnalyzerProcess
 import org.utbot.summary.summarizeAll
 import java.io.File
 import java.net.URLClassLoader

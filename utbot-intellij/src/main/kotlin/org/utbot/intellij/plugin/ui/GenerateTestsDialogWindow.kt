@@ -22,7 +22,6 @@ import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ModuleRootModificationUtil
 import com.intellij.openapi.roots.ModuleSourceOrderEntry
 import com.intellij.openapi.roots.ui.configuration.ClasspathEditor
-import com.intellij.openapi.roots.ui.configuration.ComboBoxWithSeparators
 import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
@@ -31,7 +30,9 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.OptionAction
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.popup.IconButton
+import com.intellij.openapi.ui.popup.ListSeparator
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
@@ -46,7 +47,7 @@ import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
 import com.intellij.refactoring.util.RefactoringUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.GroupHeaderSeparator
 import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.IdeBorderFactory.createBorder
 import com.intellij.ui.InplaceButton
@@ -56,18 +57,14 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.Panel
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.components.panels.NonOpaquePanel
-import com.intellij.ui.layout.Cell
-import com.intellij.ui.layout.CellBuilder
+import com.intellij.ui.components.panels.OpaquePanel
+import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.layout.ComboBoxPredicate
-import com.intellij.ui.layout.Row
-import com.intellij.ui.layout.enableIf
-import com.intellij.ui.layout.panel
-import com.intellij.ui.layout.selectedValueMatches
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.IncorrectOperationException
-import com.intellij.util.io.exists
 import com.intellij.util.lang.JavaVersion
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.JBUI.Borders.empty
@@ -79,6 +76,7 @@ import com.intellij.util.ui.components.BorderLayoutPanel
 import mu.KotlinLogging
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Component
 import java.awt.Dimension
 import java.awt.event.ActionEvent
 import java.nio.file.Files
@@ -94,7 +92,6 @@ import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JList
-import javax.swing.JPanel
 import javax.swing.JSpinner
 import javax.swing.text.DefaultFormatter
 import org.jetbrains.concurrency.Promise
@@ -120,7 +117,6 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.framework.plugin.api.isSummarizationCompatible
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
@@ -157,6 +153,7 @@ import org.utbot.intellij.plugin.util.findSdkVersion
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.io.path.exists
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -238,26 +235,85 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
-    private fun <T> createComboBoxWithSeparatorsForSpringConfigs(
-        separatorToValues: Collection<Pair<T?, Collection<T>>>,
+    private fun createComboBoxWithSeparatorsForSpringConfigs(
+        separatorToValues: Collection<Pair<String?, Collection<String>>>,
         width: Int = 300
-    ): ComboBoxWithSeparators<T> {
-        val comboBox = object : ComboBoxWithSeparators<T>() {}.apply {
-            fun wrapInEntryModel(value: T) = object : ComboBoxWithSeparators<T>.EntryModel<T>(value) {
-                override fun getPresentableText(): String = value.toString()
+    ): ComboBox<Any> {
+        val comboBox = object : ComboBox<Any>() {
+            override fun setSelectedItem(anObject: Any?) {
+                if (anObject !is ListSeparator) {
+                    super.setSelectedItem(anObject)
+                }
             }
+        }.apply {
+            isSwingPopup = false
+            renderer = MyListCellRenderer()
 
             setMinimumAndPreferredWidth(width)
             separatorToValues.forEach { (separator, values) ->
                 if (values.isEmpty()) return@forEach
-                separator?.let { addItem(Separator(it.toString())) }
-                values.forEach { value ->
-                    addItem(wrapInEntryModel(value))
+                separator?.let {
+                    addItem(ListSeparator(it))
                 }
+                values.forEach(::addItem)
             }
         }
 
         return comboBox
+    }
+
+    private class MyListCellRenderer: ColoredListCellRenderer<Any?>() {
+        private val separatorRenderer = SeparatorRenderer()
+        override fun getListCellRendererComponent(
+            list: JList<out Any?>?,
+            value: Any?,
+            index: Int,
+            selected: Boolean,
+            hasFocus: Boolean
+        ): Component {
+            return when (value) {
+                is ListSeparator -> {
+                    separatorRenderer.init(value.text, index < 0)
+                }
+                else -> {
+                    super.getListCellRendererComponent(list, value, index, selected, hasFocus)
+                }
+            }
+        }
+
+        override fun customizeCellRenderer(
+            list: JList<out Any?>,
+            value: Any?,
+            index: Int,
+            selected: Boolean,
+            hasFocus: Boolean
+        ) {
+            append(java.lang.String.valueOf(value))
+        }
+    }
+
+    class SeparatorRenderer : OpaquePanel() {
+        private val separator = GroupHeaderSeparator(JBUI.insets(3, 8, 1, 0))
+        private var emptyPreferredHeight = false
+
+        init {
+            layout = BorderLayout()
+            add(separator)
+        }
+
+        fun init(@NlsContexts.Separator caption: String, emptyPreferredHeight: Boolean) : SeparatorRenderer {
+            separator.caption = caption
+            this.emptyPreferredHeight = emptyPreferredHeight
+            return this
+        }
+
+        override fun getPreferredSize(): Dimension {
+            return super.getPreferredSize().apply {
+                if (emptyPreferredHeight) {
+                    height = 0
+                }
+            }
+        }
     }
 
     private fun createHelpLabel(commonTooltip: String? = null) = JBLabel(AllIcons.General.ContextHelp).apply {
@@ -311,54 +367,47 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     override fun createCenterPanel(): JComponent {
         panel = panel {
             row("Test sources root:") {
-                component(testSourceFolderField)
+                cell(testSourceFolderField).align(Align.FILL)
             }
             row("Testing framework:") {
-                makePanelWithHelpTooltip(
-                    testFrameworks,
-                    null
-                )
+                cell(testFrameworks)
             }
             if (model.projectType == ProjectType.Spring) {
                 row("Spring configuration:") {
-                    makePanelWithHelpTooltip(
-                        springConfig,
-                        ContextHelpLabel.create(
-                            "100% Symbolic execution mode.\n" +
-                                    "Classes defined in Spring configuration will be used instead " +
-                                    "of interfaces and abstract classes.\n" +
-                                    "Mocks will be used when necessary."
-                        )
+                    cell(springConfig)
+                    contextHelp(
+                        "100% Symbolic execution mode.\n" +
+                                "Classes defined in Spring configuration will be used instead " +
+                                "of interfaces and abstract classes.\n" +
+                                "Mocks will be used when necessary."
                     )
                 }
             }
             row("Mocking strategy:") {
-                makePanelWithHelpTooltip(
-                    mockStrategies,
-                    ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. " +
-                            "Otherwise, mock nothing. Mockito will be installed, if you don't have one.")
+                cell(mockStrategies)
+                contextHelp(
+                    "Mock everything around the target class or the whole package except the system classes. " +
+                            "Otherwise, mock nothing. Mockito will be installed, if you don't have one."
                 )
-            }.enableIf(ComboBoxPredicate(springConfig) {
-                model.projectType != ProjectType.Spring || springConfig.item.getItem() == NO_SPRING_CONFIGURATION_OPTION
+            }.enabledIf(ComboBoxPredicate(springConfig) {
+                model.projectType != ProjectType.Spring || springConfig.item == NO_SPRING_CONFIGURATION_OPTION
             })
-            row { component(staticsMocking)}
+            row { cell(staticsMocking)}
             row {
-                cell {
-                    component(parametrizedTestSources)
-                    component(ContextHelpLabel.create("Parametrization is not supported in some configurations, e.g. if mocks are used."))
-                }
+                cell(parametrizedTestSources)
+                contextHelp("Parametrization is not supported in some configurations, e.g. if mocks are used.")
             }
             row("Test generation timeout:") {
-                cell {
-                    component(timeoutSpinner)
-                    label("seconds per class")
-                    component(ContextHelpLabel.create("Set the timeout for all test generation processes per class to complete."))
-                }
+                cell(BorderLayoutPanel().apply {
+                    addToLeft(timeoutSpinner)
+                    addToRight(JBLabel("seconds per class"))
+                })
+                contextHelp("Set the timeout for all test generation processes per class to complete.")
             }
 
             row("Generate tests for:") {}
             row {
-                scrollPane(membersTable)
+                cell(JBScrollPane(membersTable)).align(Align.FILL)
             }
         }
 
@@ -367,21 +416,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         updateMembersTable()
         return panel
     }
-
-    private inline fun Cell.panelWithHelpTooltip(tooltipText: String?, crossinline init: Cell.() -> Unit): Cell {
-        init()
-        tooltipText?.let { component(ContextHelpLabel.create(it)) }
-        return this
-    }
-
-    private fun Row.makePanelWithHelpTooltip(
-        mainComponent: JComponent,
-        label: JBLabel?
-    ): CellBuilder<JPanel> =
-        component(Panel().apply {
-            add(mainComponent, BorderLayout.LINE_START)
-            label?.let { add(it, BorderLayout.LINE_END) }
-        })
 
     override fun createTitlePane(): JComponent? {
         val sdkVersion = findSdkVersion(model.srcModule)
@@ -578,9 +612,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.testSourceRoot?.apply { model.updateSourceRootHistory(this.toNioPath().toString()) }
 
         model.typeReplacementApproach =
-            when (springConfig.item.getItem()) {
+            when (springConfig.item) {
                 NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DoNotReplace
-                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item.getItem().toString())
+                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item.toString())
             }
 
         val settings = model.project.service<Settings>()
@@ -1025,7 +1059,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         springConfig.addActionListener { _ ->
-            val isSpringConfigSelected = springConfig.item.getItem() != NO_SPRING_CONFIGURATION_OPTION
+            val isSpringConfigSelected = springConfig.item != NO_SPRING_CONFIGURATION_OPTION
             if (isSpringConfigSelected) {
                 mockStrategies.item = MockStrategyApi.springDefaultItem
                 mockStrategies.isEnabled = false

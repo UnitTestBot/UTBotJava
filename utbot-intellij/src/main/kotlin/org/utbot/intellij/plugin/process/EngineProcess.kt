@@ -48,26 +48,36 @@ import kotlin.io.path.pathString
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 
-private val engineProcessLogConfigurationsDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations")
-private val logger = KotlinLogging.logger {}
-private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs")
+private val engineProcessLogConfigurationsDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations").also { it.mkdirs() }
+private val logger = KotlinLogging.logger {}.also { overrideDefaultRdLoggerFactoryWithKLogger(it) }
+private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs").also { it.mkdirs() }
 
 private const val configurationFileDeleteKey = "delete_this_comment_key"
 private const val deleteOpenComment = "<!--$configurationFileDeleteKey"
 private const val deleteCloseComment = "$configurationFileDeleteKey-->"
 
-private val log4j2ConfigFile: File = run {
-    engineProcessLogDirectory.mkdirs()
-    engineProcessLogConfigurationsDirectory.mkdirs()
-    overrideDefaultRdLoggerFactoryWithKLogger(logger)
-
+private fun createEngineProcessLog4j2Config(): File {
     val customFile = File(UtSettings.engineProcessLogConfigFile)
 
-    if (customFile.exists())
-        customFile
-    else
-        Files.createTempFile(engineProcessLogConfigurationsDirectory.toPath(), null, ".xml").toFile()
+    val log4j2ConfigFile =
+        if (customFile.exists()) customFile
+        else Files.createTempFile(engineProcessLogConfigurationsDirectory.toPath(), null, ".xml").toFile()
+
+    EngineProcess::class.java.classLoader.getResourceAsStream("log4j2.xml")?.use { logConfig ->
+        val resultConfig = logConfig.readBytes().toString(Charset.defaultCharset())
+            .replace(Regex("$deleteOpenComment|$deleteCloseComment"), "")
+            .replace("ref=\"IdeaAppender\"", "ref=\"EngineProcessAppender\"")
+            .replace("\${env:UTBOT_LOG_DIR}", engineProcessLogDirectory.canonicalPath.trimEnd(File.separatorChar) + File.separatorChar)
+        Files.copy(
+            resultConfig.byteInputStream(),
+            log4j2ConfigFile.toPath(),
+            StandardCopyOption.REPLACE_EXISTING
+        )
+    }
+    return log4j2ConfigFile
 }
+
+private val log4j2ConfigFile: File = createEngineProcessLog4j2Config()
 
 private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
 
@@ -93,20 +103,6 @@ class EngineProcess private constructor(val project: Project, private val classN
         suspendExecutionInDebugMode = UtSettings.suspendEngineProcessExecutionInDebugMode,
         processSpecificCommandLineArgs = listOf("-ea", log4j2ConfigSwitch, "-cp", pluginClasspath, startFileName)
     ) {
-        init {
-            this.javaClass.classLoader.getResourceAsStream("log4j2.xml")?.use { logConfig ->
-                val resultConfig = logConfig.readBytes().toString(Charset.defaultCharset())
-                    .replace(Regex("$deleteOpenComment|$deleteCloseComment"), "")
-                    .replace("ref=\"IdeaAppender\"", "ref=\"EngineProcessAppender\"")
-                    .replace("\${env:UTBOT_LOG_DIR}", engineProcessLogDirectory.canonicalPath.trimEnd(File.separatorChar) + File.separatorChar)
-                Files.copy(
-                    resultConfig.byteInputStream(),
-                    log4j2ConfigFile.toPath(),
-                    StandardCopyOption.REPLACE_EXISTING
-                )
-            }
-        }
-
         fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
 
         suspend operator fun invoke(project: Project, classNameToPath: Map<String, String?>): EngineProcess =

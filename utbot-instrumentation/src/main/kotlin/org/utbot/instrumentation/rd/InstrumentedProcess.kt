@@ -38,30 +38,36 @@ private val rdLogger = UtRdKLogger(logger, "")
 private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
 private const val INSTRUMENTATION_LIB = "lib"
 
-private val jarFile: File =
-    logger.debug().measureTime({ "Finding $UTBOT_INSTRUMENTATION jar" } ) {
-        run {
-            logger.debug("Trying to find jar in the resources.")
-            val tempDir = utBotTempDirectory.toFile()
-            val unzippedJarName = "$UTBOT_INSTRUMENTATION-${currentProcessPid}.jar"
-            val instrumentationJarFile = File(tempDir, unzippedJarName)
+private fun tryFindInstrumentationJarInResources(): File? {
+    logger.debug("Trying to find jar in the resources.")
+    val tempDir = utBotTempDirectory.toFile()
+    val unzippedJarName = "$UTBOT_INSTRUMENTATION-${currentProcessPid}.jar"
+    val instrumentationJarFile = File(tempDir, unzippedJarName)
 
-            InstrumentedProcess::class.java.classLoader
-                .firstOrNullResourceIS(INSTRUMENTATION_LIB) { resourcePath ->
-                    resourcePath.contains(UTBOT_INSTRUMENTATION) && resourcePath.endsWith(".jar")
-                }
-                ?.use { input ->
-                    instrumentationJarFile.writeBytes(input.readBytes())
-                }
-                ?: return@run null
-            instrumentationJarFile
-        } ?: run {
-            logger.debug("Failed to find jar in the resources. Trying to find it in the classpath.")
-            InstrumentedProcess::class.java.classLoader
-                .scanForResourcesContaining(DynamicClassTransformer::class.java.nameOfPackage)
-                .firstOrNull {
-                    it.absolutePath.contains(UTBOT_INSTRUMENTATION) && it.extension == "jar"
-                }
+    InstrumentedProcess::class.java.classLoader
+        .firstOrNullResourceIS(INSTRUMENTATION_LIB) { resourcePath ->
+            resourcePath.contains(UTBOT_INSTRUMENTATION) && resourcePath.endsWith(".jar")
+        }
+        ?.use { input ->
+            instrumentationJarFile.writeBytes(input.readBytes())
+        } ?: return null
+    return instrumentationJarFile
+}
+
+private fun tryFindInstrumentationJarOnClasspath(): File? {
+    logger.debug("Trying to find it in the classpath.")
+    return InstrumentedProcess::class.java.classLoader
+        .scanForResourcesContaining(DynamicClassTransformer::class.java.nameOfPackage)
+        .firstOrNull {
+            it.absolutePath.contains(UTBOT_INSTRUMENTATION) && it.extension == "jar"
+        }
+}
+
+private val instrumentationJarFile: File =
+    logger.debug().measureTime({ "Finding $UTBOT_INSTRUMENTATION jar" } ) {
+        tryFindInstrumentationJarInResources() ?: run {
+            logger.debug("Failed to find jar in the resources.")
+            tryFindInstrumentationJarOnClasspath()
         } ?: error("""
                     Can't find file: $UTBOT_INSTRUMENTATION-<version>.jar.
                     Make sure you added $UTBOT_INSTRUMENTATION-<version>.jar to the resources folder from gradle.
@@ -91,10 +97,10 @@ class InstrumentedProcess private constructor(
         runWithDebug = UtSettings.runInstrumentedProcessWithDebug,
         suspendExecutionInDebugMode = UtSettings.suspendInstrumentedProcessExecutionInDebugMode,
         processSpecificCommandLineArgs = buildList {
-            add("-javaagent:${jarFile.path}")
+            add("-javaagent:${instrumentationJarFile.path}")
             add("-ea")
             add("-jar")
-            add(jarFile.path)
+            add(instrumentationJarFile.path)
             if (!UtSettings.useSandbox)
                 add(DISABLE_SANDBOX_OPTION)
         }

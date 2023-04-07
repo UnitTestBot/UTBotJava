@@ -7,11 +7,9 @@ import com.jetbrains.rd.util.info
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.reactive.adviseOnce
 import org.utbot.common.AbstractSettings
-import org.utbot.rd.StandardStreamUtil
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.RdSettingsContainerFactory
-import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory

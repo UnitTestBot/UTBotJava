@@ -18,11 +18,9 @@ import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
-import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory
-import org.utbot.rd.StandardStreamUtil
 import java.io.File
 import java.net.URLClassLoader
 import java.security.AllPermission

@@ -21,6 +21,8 @@ import org.utbot.common.*
 import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.withLevel
 import java.io.File
+import java.io.OutputStream
+import java.io.PrintStream
 import kotlin.time.Duration
 
 const val rdProcessDirName = "rdProcessSync"
@@ -146,8 +148,25 @@ class IdleWatchdog(private val ldef: LifetimeDefinition, val timeout: Duration) 
 class ClientProtocolBuilder {
     private var timeout = Duration.INFINITE
 
+    private fun silentlyCloseStandardStreams() {
+        // we should change out/err streams as not to spend time on user output
+        // and also because rd default logging system writes some initial values to stdout, polluting it as well
+        val tmpStream = PrintStream(object : OutputStream() {
+            override fun write(b: Int) {}
+        })
+        val prevOut = System.out
+        val prevError = System.err
+        System.setOut(tmpStream)
+        System.setErr(tmpStream)
+        // stdin/stderr should be closed as not to leave hanging descriptors
+        // and we cannot log any exceptions here as rd remote logging is still not configured
+        // so we pass any exceptions
+        silent { prevOut.close() }
+        silent { prevError.close() }
+    }
+
     suspend fun start(args: Array<String>, parent: Lifetime? = null, block: Protocol.(IdleWatchdog) -> Unit) {
-        StandardStreamUtil.silentlyCloseStandardStreams()
+        silentlyCloseStandardStreams()
 
         val port = findRdPort(args)
 

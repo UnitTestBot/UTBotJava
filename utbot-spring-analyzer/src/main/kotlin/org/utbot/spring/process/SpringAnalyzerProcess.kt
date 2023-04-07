@@ -35,7 +35,7 @@ private const val UNKNOWN_MODIFICATION_TIME = 0L
 private val logger = KotlinLogging.logger {}
 private val rdLogger = UtRdKLogger(logger, "")
 
-private val jarFile = Files.createDirectories(utBotTempDirectory.toFile().resolve("spring-analyzer").toPath())
+private val springAnalyzerJarFile = Files.createDirectories(utBotTempDirectory.toFile().resolve("spring-analyzer").toPath())
     .toFile().resolve(SPRING_ANALYZER_JAR_FILENAME).also { jarFile ->
         val resource = SpringAnalyzerProcess::class.java.classLoader.getResource(SPRING_ANALYZER_JAR_PATH)
             ?: error("Unable to find \"$SPRING_ANALYZER_JAR_PATH\" in resources, make sure it's on the classpath")
@@ -65,7 +65,7 @@ class SpringAnalyzerProcess private constructor(
         processSpecificCommandLineArgs = listOf(
             "-Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory",
             "-jar",
-            jarFile.path
+            springAnalyzerJarFile.path
         )
     ) {
         fun createBlocking() = runBlocking { SpringAnalyzerProcess() }

@@ -1276,10 +1276,19 @@ class SpringApplicationContext(
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                springInjectedClassesStorage += beanQualifiedNames
-                    .map { fqn -> utContext.classLoader.loadClass(fqn) }
-                    .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
-                    .mapTo(mutableSetOf()) { it.id }
+                for (beanFqn in beanQualifiedNames) {
+                    try {
+                        val beanClass = utContext.classLoader.loadClass(beanFqn)
+                        if (!beanClass.isAbstract && !beanClass.isInterface &&
+                            !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
+                            springInjectedClassesStorage += beanClass.id
+                        }
+                    } catch (e: ClassNotFoundException) {
+                        // For some Spring beans (e.g. with anonymous classes)
+                        // it is possible to have problems with classes loading.
+                        continue
+                    }
+                }
 
                 // This is done to be sure that this storage is not empty after the first class loading iteration.
                 // So, even if all loaded classes were filtered out, we will not try to load them again.

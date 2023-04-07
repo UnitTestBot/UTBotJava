@@ -303,7 +303,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * @see runInstrumentedProcessWithDebug
      * @see org.utbot.framework.process.SpringAnalyzerProcess
      */
-    var runSpringAnalyzerProcessWithDebug by getBooleanProperty(true)
+    var runSpringAnalyzerProcessWithDebug by getBooleanProperty(false)
 
     /**
      * The spring analyzer process JDWP agent's port.

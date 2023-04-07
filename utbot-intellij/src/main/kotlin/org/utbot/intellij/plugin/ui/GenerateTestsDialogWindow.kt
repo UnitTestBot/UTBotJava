@@ -65,7 +65,6 @@ import com.intellij.ui.layout.ComboBoxPredicate
 import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.enableIf
 import com.intellij.ui.layout.panel
-import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.io.exists
 import com.intellij.util.lang.JavaVersion
@@ -120,7 +119,6 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.framework.plugin.api.isSummarizationCompatible
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
@@ -155,7 +153,6 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.SpringConfigurationsHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
-import java.awt.Component
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -171,8 +168,6 @@ private const val NO_SPRING_CONFIGURATION_OPTION = "No configuration"
 
 private const val ACTION_GENERATE = "Generate Tests"
 private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
-
-private const val JAVA_CONFIG_SEPARATOR = "."
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
     companion object {
@@ -197,25 +192,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
-    private val shortenedSortedSpringConfigurationClasses =
-        SpringConfigurationsHelper.shortenSpringConfigNames(
-            model.getSortedSpringConfigurationClasses(),
-            JAVA_CONFIG_SEPARATOR
-        )
-
-    private val shortenedSpringXMLConfigurationFiles =
-        SpringConfigurationsHelper.shortenSpringConfigNames(
-            model.getSpringXMLConfigurationFiles(),
-            File.separator
-        )
-
-    private val shortenedSpringConfigNames = setOf(
-        null to listOf(NO_SPRING_CONFIGURATION_OPTION),
-        "Java-based configurations" to shortenedSortedSpringConfigurationClasses,
-        "XML-based configurations" to shortenedSpringXMLConfigurationFiles
-    )
-
-    private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenedSpringConfigNames)
+    private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
 
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
@@ -240,6 +217,24 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         staticsMocking to null,
         parametrizedTestSources to null
     )
+
+
+    private val javaConfigurationHelper = SpringConfigurationsHelper(".")
+    private val xmlConfigurationHelper = SpringConfigurationsHelper(File.separator)
+
+    private fun shortenConfigurationNames(): Set<Pair<String?, Collection<String>>> {
+        val shortenedSortedSpringConfigurationClasses =
+            javaConfigurationHelper.shortenSpringConfigNames(model.getSortedSpringConfigurationClasses())
+
+        val shortenedSpringXMLConfigurationFiles =
+            xmlConfigurationHelper.shortenSpringConfigNames(model.getSpringXMLConfigurationFiles())
+
+        return setOf(
+            null to listOf(NO_SPRING_CONFIGURATION_OPTION),
+            "Java-based configurations" to shortenedSortedSpringConfigurationClasses,
+            "XML-based configurations" to shortenedSpringXMLConfigurationFiles
+        )
+    }
 
     private fun <T : CodeGenerationSettingItem> createComboBox(values: Array<T>) : ComboBox<T> {
         val comboBox = object:ComboBox<T>(DefaultComboBoxModel(values)) {
@@ -598,7 +593,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.typeReplacementApproach =
             when (springConfig.item.getItem()) {
                 NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DoNotReplace
-                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item.getItem().toString())
+                else -> {
+                    val shortConfigName = springConfig.item.getItem().toString()
+                    //TODO: avoid this check on xml here, merge two helpers into one
+                    val fullConfigName = if (shortConfigName.endsWith(".xml")) {
+                        xmlConfigurationHelper.restoreFullName(shortConfigName)
+                    } else {
+                        javaConfigurationHelper.restoreFullName(shortConfigName)
+                    }
+
+                    TypeReplacementApproach.ReplaceIfPossible(fullConfigName)
+                }
             }
 
         val settings = model.project.service<Settings>()
@@ -1133,8 +1138,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun updateSpringConfigurationEnabled() {
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
-        springConfig.isEnabled = model.projectType == ProjectType.Spring
-                && shortenedSpringConfigNames.size > 1
+        springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
     }
 
     private fun staticsMockingConfigured(): Boolean {

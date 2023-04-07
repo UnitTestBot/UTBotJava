@@ -10,82 +10,74 @@ package org.utbot.intellij.plugin.util
  *  - [["config.web.WebConfig", "config.web2.WebConfig", "config.web.AnotherConfig"]] ->
  *  [["web.WebConfig", "web2.WebConfig", "AnotherConfig"]]
  */
-object SpringConfigurationsHelper {
+class SpringConfigurationsHelper(val separator: String) {
 
-    private var separator = ""
+    private val nameToInfo = mutableMapOf<String, NameInfo>()
 
-    data class PathData(private var shortenedPath: String) {
+    inner class NameInfo(val fullName: String) {
+        val shortenedName: String
+            get() = innerShortName
 
-        private val pathConstructor: MutableList<String> = shortenedPath.split(separator).toMutableList()
+        private val pathFragments: MutableList<String> = fullName.split(separator).toMutableList()
+        private var innerShortName = pathFragments.removeLast()
 
-        init {
-            try {
-                shortenedPath = pathConstructor.last()
-                pathConstructor.removeLast()
-            } catch (e: Exception) {
-                println("Path [$shortenedPath] can't be extended")
+        fun enlargeShortName(): Boolean {
+            if (pathFragments.isEmpty()) {
+                return false
             }
-        }
 
-        fun getShortenedPath() = shortenedPath
-
-        fun addPathParentDir(): Boolean {
-            return try {
-                shortenedPath = pathConstructor.last() + separator + shortenedPath
-                pathConstructor.removeLast()
-                true
-            } catch (e: Exception) {
-                println("Path [$shortenedPath] can't be extended")
-                false
-            }
+            val lastElement = pathFragments.removeLast()
+            innerShortName = "${lastElement}$separator$innerShortName"
+            return true
         }
     }
 
-    private fun preparePathsData(
-        paths: Set<String>,
-        pathsData: MutableList<PathData>,
-        pathsDataMap: MutableMap<String, PathData>
-    ) {
-        for (path in paths) {
-            pathsDataMap[path] = PathData(path)
-        }
-        pathsData.addAll(pathsDataMap.values)
-    }
+    fun restoreFullName(shortenedName: String): String =
+        nameToInfo
+            .values
+            .singleOrNull { it.shortenedName == shortenedName }
+            ?.fullName
+            ?: error("Full name of configuration file cannot be restored by shortened name $shortenedName")
 
-    private fun getMinimizedPaths(pathDataMap: MutableMap<String, PathData>): Set<String> {
-        val shortenedPaths = mutableSetOf<String>()
-        for (elem in pathDataMap.values) {
-            shortenedPaths.add(elem.getShortenedPath())
-        }
-        return shortenedPaths.toSet()
-    }
+    fun shortenSpringConfigNames(fullNames: Set<String>): Set<String> {
+        fullNames.forEach { nameToInfo[it] = NameInfo(it) }
+        var nameInfoCollection = nameToInfo.values
 
-    fun shortenSpringConfigNames(paths: Set<String>, separator: String): Set<String> {
-        SpringConfigurationsHelper.separator = separator
+        while (nameInfoCollection.size != nameInfoCollection.distinct().size) {
+            nameInfoCollection = nameInfoCollection.sortedBy { it.shortenedName }.toMutableList()
 
-        val pathsDataMap = mutableMapOf<String, PathData>()
-        var pathsData = mutableListOf<PathData>()
+            for (index in nameInfoCollection.indices) {
+                val curShortenedPath = nameInfoCollection[index].shortenedName
 
-        preparePathsData(paths, pathsData, pathsDataMap)
-
-        while (pathsData.size != pathsData.distinct().size) {
-            pathsData = pathsData.sortedBy { it.getShortenedPath() }.toMutableList()
-            for (ind in pathsData.indices) {
-                val curShortenedPath = pathsData[ind].getShortenedPath()
-
-                var maxIndWithSamePath = ind
-                while (maxIndWithSamePath < pathsData.size) {
-                    if (pathsData[maxIndWithSamePath].getShortenedPath() == curShortenedPath) maxIndWithSamePath++
-                    else break
+                // here we search a block of shortened paths that are equivalent
+                // and must be enlarged with new fragment so on.
+                var maxIndexWithSamePath = index
+                while (maxIndexWithSamePath < nameInfoCollection.size) {
+                    if (nameInfoCollection[maxIndexWithSamePath].shortenedName == curShortenedPath) {
+                        maxIndexWithSamePath++
+                    }
+                    else {
+                        break
+                    }
                 }
 
-                if (ind == maxIndWithSamePath - 1) continue
-                for (i in ind until maxIndWithSamePath) {
-                    if (!pathsData[i].addPathParentDir()) return paths
+                //if the size of this block is one, we should not enlarge it
+                if (index == maxIndexWithSamePath - 1) {
+                    continue
                 }
-                break
+
+                // otherwise, enlarge the block of shortened names with one new fragment
+                for (i in index until maxIndexWithSamePath) {
+                    if (!nameInfoCollection[i].enlargeShortName()) {
+                        return collectShortenedNames()
+                    }
+                }
             }
         }
-        return getMinimizedPaths(pathsDataMap)
+
+        return collectShortenedNames()
     }
+
+    private fun collectShortenedNames() = nameToInfo.values.mapTo(mutableSetOf()) { it.shortenedName }
+
 }

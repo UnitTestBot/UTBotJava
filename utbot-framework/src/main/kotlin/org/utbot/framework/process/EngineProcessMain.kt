@@ -88,7 +88,8 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 params.config,
                 // TODO remove once spring-analyzer learns to find resources on its own, temporarily leaving it here for testing with hardcoded absolute paths
                 propertyFilesPaths = emptyList(),
-                xmlConfigurationPaths = emptyList()
+                xmlConfigurationPaths = emptyList(),
+                params.useSpringAnalyzer
             ).toTypedArray()
         }
         springAnalyzerProcess.terminate()

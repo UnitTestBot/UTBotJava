@@ -47,7 +47,7 @@ class SpringAnalyzerProcessModel private constructor(
         }
         
         
-        const val serializationHash = 1562060411431746104L
+        const val serializationHash = 528909252282504878L
         
     }
     override val serializersOwner: ISerializersOwner get() = SpringAnalyzerProcessModel
@@ -100,7 +100,8 @@ data class SpringAnalyzerParams (
     val classpath: Array<String>,
     val configuration: String,
     val propertyFilesPaths: Array<String>,
-    val xmlConfigurationPaths: Array<String>
+    val xmlConfigurationPaths: Array<String>,
+    val useSpringAnalyzer: Boolean
 ) : IPrintable {
     //companion
     
@@ -113,7 +114,8 @@ data class SpringAnalyzerParams (
             val configuration = buffer.readString()
             val propertyFilesPaths = buffer.readArray {buffer.readString()}
             val xmlConfigurationPaths = buffer.readArray {buffer.readString()}
-            return SpringAnalyzerParams(classpath, configuration, propertyFilesPaths, xmlConfigurationPaths)
+            val useSpringAnalyzer = buffer.readBool()
+            return SpringAnalyzerParams(classpath, configuration, propertyFilesPaths, xmlConfigurationPaths, useSpringAnalyzer)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerParams)  {
@@ -121,6 +123,7 @@ data class SpringAnalyzerParams (
             buffer.writeString(value.configuration)
             buffer.writeArray(value.propertyFilesPaths) { buffer.writeString(it) }
             buffer.writeArray(value.xmlConfigurationPaths) { buffer.writeString(it) }
+            buffer.writeBool(value.useSpringAnalyzer)
         }
         
         
@@ -140,6 +143,7 @@ data class SpringAnalyzerParams (
         if (configuration != other.configuration) return false
         if (!(propertyFilesPaths contentDeepEquals other.propertyFilesPaths)) return false
         if (!(xmlConfigurationPaths contentDeepEquals other.xmlConfigurationPaths)) return false
+        if (useSpringAnalyzer != other.useSpringAnalyzer) return false
         
         return true
     }
@@ -150,6 +154,7 @@ data class SpringAnalyzerParams (
         __r = __r*31 + configuration.hashCode()
         __r = __r*31 + propertyFilesPaths.contentDeepHashCode()
         __r = __r*31 + xmlConfigurationPaths.contentDeepHashCode()
+        __r = __r*31 + useSpringAnalyzer.hashCode()
         return __r
     }
     //pretty print
@@ -160,6 +165,7 @@ data class SpringAnalyzerParams (
             print("configuration = "); configuration.print(printer); println()
             print("propertyFilesPaths = "); propertyFilesPaths.print(printer); println()
             print("xmlConfigurationPaths = "); xmlConfigurationPaths.print(printer); println()
+            print("useSpringAnalyzer = "); useSpringAnalyzer.print(printer); println()
         }
         printer.print(")")
     }
@@ -169,7 +175,7 @@ data class SpringAnalyzerParams (
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:16]
+ * #### Generated from [SpringAnalyzerModel.kt:17]
  */
 data class SpringAnalyzerResult (
     val beanTypes: Array<String>

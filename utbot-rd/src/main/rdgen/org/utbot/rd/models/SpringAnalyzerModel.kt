@@ -11,6 +11,7 @@ object SpringAnalyzerProcessModel : Ext(SpringAnalyzerRoot) {
         field("configuration", PredefinedType.string)
         field("propertyFilesPaths", array(PredefinedType.string))
         field("xmlConfigurationPaths", array(PredefinedType.string))
+        field("useSpringAnalyzer", PredefinedType.bool)
     }
 
     val springAnalyzerResult = structdef {

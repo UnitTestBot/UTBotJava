@@ -303,7 +303,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * @see runInstrumentedProcessWithDebug
      * @see org.utbot.framework.process.SpringAnalyzerProcess
      */
-    var runSpringAnalyzerProcessWithDebug by getBooleanProperty(false)
+    var runSpringAnalyzerProcessWithDebug by getBooleanProperty(true)
 
     /**
      * The spring analyzer process JDWP agent's port.
@@ -335,7 +335,8 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * If true, runs the instrumented process with the ability to attach a debugger.
      *
-     * To debug the instrumented process, set the breakpoint in the instrumentedProcessRunner.start() line
+     * To debug the instrumented process, set the breakpoint in the
+     * [org.utbot.instrumentation.rd.InstrumentedProcess.Companion.invoke]
      * and in the instrumented process's main function and run the main process.
      * Then run the remote JVM debug configuration in IDEA.
      * If you see the message in console about successful connection, then
@@ -343,7 +344,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Now you can put the breakpoints in the instrumented process and debug
      * both processes simultaneously.
      *
-     * @see [org.utbot.instrumentation.process.InstrumentedProcessRunner.cmds]
+     * @see [org.utbot.instrumentation.rd.InstrumentedProcess.Companion.invoke]
      */
     var runInstrumentedProcessWithDebug by getBooleanProperty(false)
 // endregion

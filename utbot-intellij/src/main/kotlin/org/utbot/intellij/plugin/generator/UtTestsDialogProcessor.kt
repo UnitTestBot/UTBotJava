@@ -219,14 +219,14 @@ object UtTestsDialogProcessor {
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanQualifiedNames =
-                                        if (!model.useSpringAnalyzer) emptyList()
-                                        else when (val approach = model.typeReplacementApproach) {
+                                        when (val approach = model.typeReplacementApproach) {
                                             TypeReplacementApproach.DoNotReplace -> emptyList()
                                             is TypeReplacementApproach.ReplaceIfPossible ->
                                                 process.getSpringBeanQualifiedNames(
                                                     buildDirs + classpathList,
-                                                    approach.config
-                                            ).also { logger.info { "Detected Spring Beans: $it" } }
+                                                    approach.config,
+                                                    model.useSpringAnalyzer
+                                                ).also { logger.info { "Detected Spring Beans: $it" } }
                                         }
 
                                     SpringApplicationContext(

@@ -72,7 +72,7 @@ class EngineProcessModel private constructor(
         
         private val __StringArraySerializer = FrameworkMarshallers.String.array()
         
-        const val serializationHash = -5097607716462442558L
+        const val serializationHash = 1955031277042475752L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -179,7 +179,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:103]
+ * #### Generated from [EngineProcessModel.kt:104]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -242,7 +242,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:107]
+ * #### Generated from [EngineProcessModel.kt:108]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -299,7 +299,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:96]
+ * #### Generated from [EngineProcessModel.kt:97]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -362,7 +362,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:100]
+ * #### Generated from [EngineProcessModel.kt:101]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -587,7 +587,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:115]
+ * #### Generated from [EngineProcessModel.kt:116]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -680,7 +680,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:124]
+ * #### Generated from [EngineProcessModel.kt:125]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -753,7 +753,8 @@ data class GenerateTestReportResult (
  */
 data class GetSpringBeanQualifiedNamesParams (
     val classpath: Array<String>,
-    val config: String
+    val config: String,
+    val useSpringAnalyzer: Boolean
 ) : IPrintable {
     //companion
     
@@ -764,12 +765,14 @@ data class GetSpringBeanQualifiedNamesParams (
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanQualifiedNamesParams  {
             val classpath = buffer.readArray {buffer.readString()}
             val config = buffer.readString()
-            return GetSpringBeanQualifiedNamesParams(classpath, config)
+            val useSpringAnalyzer = buffer.readBool()
+            return GetSpringBeanQualifiedNamesParams(classpath, config, useSpringAnalyzer)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanQualifiedNamesParams)  {
             buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.config)
+            buffer.writeBool(value.useSpringAnalyzer)
         }
         
         
@@ -787,6 +790,7 @@ data class GetSpringBeanQualifiedNamesParams (
         
         if (!(classpath contentDeepEquals other.classpath)) return false
         if (config != other.config) return false
+        if (useSpringAnalyzer != other.useSpringAnalyzer) return false
         
         return true
     }
@@ -795,6 +799,7 @@ data class GetSpringBeanQualifiedNamesParams (
         var __r = 0
         __r = __r*31 + classpath.contentDeepHashCode()
         __r = __r*31 + config.hashCode()
+        __r = __r*31 + useSpringAnalyzer.hashCode()
         return __r
     }
     //pretty print
@@ -803,6 +808,7 @@ data class GetSpringBeanQualifiedNamesParams (
         printer.indent {
             print("classpath = "); classpath.print(printer); println()
             print("config = "); config.print(printer); println()
+            print("useSpringAnalyzer = "); useSpringAnalyzer.print(printer); println()
         }
         printer.print(")")
     }
@@ -875,7 +881,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:91]
+ * #### Generated from [EngineProcessModel.kt:92]
  */
 data class MethodDescription (
     val name: String,
@@ -1292,7 +1298,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:110]
+ * #### Generated from [EngineProcessModel.kt:111]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

@@ -65,8 +65,8 @@ class MockClassVisitor(
         exceptions: Array<out String>?
     ): MethodVisitor {
         val isNotSynthetic = access.and(Opcodes.ACC_SYNTHETIC) == 0
-        // we do not want to mock <init> or <clinit> or synthetic methods
-        return if (name != "<clinit>" && name != "<init>" && isNotSynthetic) {
+        // we do not want to mock <clinit> or synthetic methods
+        return if (name != "<clinit>" && isNotSynthetic) {
             visitStaticMethod(access, name, descriptor, signature, exceptions)
         } else {
             cv.visitMethod(access, name, descriptor, signature, exceptions)

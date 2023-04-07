@@ -1,9 +1,11 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
 import com.github.jengelman.gradle.plugins.shadow.transformers.PropertiesFileTransformer
 
+val springBootVersion: String by rootProject
 val rdVersion: String by rootProject
 val commonsLoggingVersion: String by rootProject
 val kotlinLoggingVersion: String by rootProject
+val commonsIOVersion: String by rootProject
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
@@ -18,7 +20,7 @@ java {
 
 dependencies {
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
-    implementation("org.springframework.boot:spring-boot:2.7.8")
+    implementation("org.springframework.boot:spring-boot:$springBootVersion")
 
     implementation(project(":utbot-rd"))
     implementation(project(":utbot-core"))
@@ -27,7 +29,7 @@ dependencies {
     implementation("com.jetbrains.rd:rd-core:$rdVersion")
     implementation("commons-logging:commons-logging:$commonsLoggingVersion")
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
-    implementation("commons-io:commons-io:2.11.0")
+    implementation("commons-io:commons-io:$commonsIOVersion")
 }
 
 application {

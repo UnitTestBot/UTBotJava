@@ -283,7 +283,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var runEngineProcessWithDebug by getBooleanProperty(false)
 
     /**
-     * The engine process JDWP agent's port of the instrumented process.
+     * The engine process JDWP agent's port of the engine process.
      * A debugger attaches to the port in order to debug the process.
      */
     var engineProcessDebugPort by getIntProperty(5005)
@@ -301,12 +301,12 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * The property is useful only for the IntelliJ IDEs.
      * If the property is set in true the spring analyzer process opens a debug port.
      * @see runInstrumentedProcessWithDebug
-     * @see org.utbot.intellij.plugin.process.EngineProcess
+     * @see org.utbot.framework.process.SpringAnalyzerProcess
      */
     var runSpringAnalyzerProcessWithDebug by getBooleanProperty(false)
 
     /**
-     * The spring analyzer process JDWP agent's port
+     * The spring analyzer process JDWP agent's port.
      * A debugger attaches to the port in order to debug the process.
      */
     var springAnalyzerProcessDebugPort by getIntProperty(5007)

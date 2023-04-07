@@ -53,16 +53,11 @@ object EngineProcessMain
 
 // use log4j2.configurationFile property to set log4j configuration
 suspend fun main(args: Array<String>) = runBlocking {
-    Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
-
     logger.info("-----------------------------------------------------------------------")
     logger.info("-------------------NEW ENGINE PROCESS STARTED--------------------------")
     logger.info("-----------------------------------------------------------------------")
-    // 0 - auto port for server, should not be used here
-    val port = findRdPort(args)
 
-
-    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
+    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(args) {
         AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol.settingsModel))
         val kryoHelper = KryoHelper(lifetime)
         engineProcessModel.setup(kryoHelper, it, protocol)

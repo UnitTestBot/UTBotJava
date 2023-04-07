@@ -82,9 +82,6 @@ object InstrumentedProcessMain
  * It should be compiled into separate jar file (instrumented_process.jar) and be run with an agent (agent.jar) option.
  */
 fun main(args: Array<String>) = runBlocking {
-    // We don't want user code to litter the standard output, so we redirect it.
-    StandardStreamUtil.silentlyCloseStandardStreams()
-
     if (!args.contains(DISABLE_SANDBOX_OPTION)) {
         permissions {
             // Enable all permissions for instrumentation.
@@ -93,10 +90,8 @@ fun main(args: Array<String>) = runBlocking {
         }
     }
 
-    val port = findRdPort(args)
-
     try {
-        ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(port) {
+        ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(args) {
             loggerModel.initRemoteLogging.adviseOnce(lifetime) {
                 Logger.set(Lifetime.Eternal, UtRdRemoteLoggerFactory(loggerModel))
                 this.protocol.scheduler.queue { warmupMockito() }

@@ -29,14 +29,8 @@ private val logger = getLogger<SpringAnalyzerProcessMain>()
 @Suppress("unused")
 object SpringAnalyzerProcessMain
 
-suspend fun main(args: Array<String>) {
-    // We don't want user code to litter the standard output, so we redirect it.
-    StandardStreamUtil.silentlyCloseStandardStreams()
-
-    val port = findRdPort(args)
-
-
-    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
+suspend fun main(args: Array<String>) =
+    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(args) {
         loggerModel.initRemoteLogging.adviseOnce(lifetime) {
             Logger.set(Lifetime.Eternal, UtRdRemoteLoggerFactory(loggerModel))
             logger.info { "-----------------------------------------------------------------------" }
@@ -46,7 +40,6 @@ suspend fun main(args: Array<String>) {
         AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol.settingsModel))
         springAnalyzerProcessModel.setup(it, protocol)
     }
-}
 
 private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtocol: IProtocol) {
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->

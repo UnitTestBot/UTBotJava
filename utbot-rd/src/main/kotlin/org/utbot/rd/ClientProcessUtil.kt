@@ -146,7 +146,11 @@ class IdleWatchdog(private val ldef: LifetimeDefinition, val timeout: Duration) 
 class ClientProtocolBuilder {
     private var timeout = Duration.INFINITE
 
-    suspend fun start(port: Int, parent: Lifetime? = null, block: Protocol.(IdleWatchdog) -> Unit) {
+    suspend fun start(args: Array<String>, parent: Lifetime? = null, block: Protocol.(IdleWatchdog) -> Unit) {
+        StandardStreamUtil.silentlyCloseStandardStreams()
+
+        val port = findRdPort(args)
+
         UtRdCoroutineScope.initialize()
         val pid = currentProcessPid.toInt()
         val ldef = parent?.createNested() ?: LifetimeDefinition()

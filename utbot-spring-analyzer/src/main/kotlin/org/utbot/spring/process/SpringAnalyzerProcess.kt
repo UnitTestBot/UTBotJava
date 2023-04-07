@@ -61,13 +61,14 @@ class SpringAnalyzerProcess private constructor(
     companion object : AbstractRDProcessCompanion(
         debugPort = UtSettings.springAnalyzerProcessDebugPort,
         runWithDebug = UtSettings.runSpringAnalyzerProcessWithDebug,
-        suspendExecutionInDebugMode = UtSettings.suspendSpringAnalyzerProcessExecutionInDebugMode,
-        processSpecificCommandLineArgs = listOf(
+        suspendExecutionInDebugMode = UtSettings.suspendSpringAnalyzerProcessExecutionInDebugMode
+    ) {
+        override fun obtainProcessSpecificCommandLineArgs(): List<String> = listOf(
             "-Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory",
             "-jar",
             springAnalyzerJarFile.path
         )
-    ) {
+
         fun createBlocking() = runBlocking { SpringAnalyzerProcess() }
 
         suspend operator fun invoke(): SpringAnalyzerProcess = LifetimeDefinition().terminateOnException { lifetime ->

@@ -4,7 +4,6 @@ package org.utbot.intellij.plugin.ui
 
 import com.intellij.codeInsight.hint.HintUtil
 import com.intellij.icons.AllIcons
-import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
@@ -143,7 +142,6 @@ import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
@@ -651,7 +649,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             println(e.message)
         }
 
-        configureJvmTargetIfRequired()
         configureTestFrameworkIfRequired()
         configureMockFrameworkIfRequired()
         configureStaticMockingIfRequired()
@@ -940,57 +937,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     //endregion
-
-    /**
-     * Configures JVM Target if required.
-     *
-     * We need to notify the user about potential problems and to give
-     * him a chance to change JVM targets in his application.
-     *
-     * Note that now we need it for Kotlin plugin only.
-     */
-    private fun configureJvmTargetIfRequired() {
-        if (codegenLanguages.item == CodegenLanguage.KOTLIN
-            && parametrizedTestSources.isSelected
-            && createKotlinJvmTargetNotificationDialog() == Messages.YES
-        ) {
-            configureKotlinJvmTarget()
-        }
-    }
-
-    /**
-     * Checks if JVM target for Kotlin plugin if configured appropriately
-     * and allows user to configure it via ProjectStructure tab if not.
-     *
-     * For Kotlin plugin until version 1.5 default JVM target is 1.6.
-     * Sometimes (i.e. in parametrized tests) we use some annotations
-     * and statements that are supported since JVM version 1.8 only.
-     */
-    private fun configureKotlinJvmTarget() {
-        val activeKotlinJvmTarget = model.srcModule.kotlinTargetPlatform().description
-        if (activeKotlinJvmTarget == actualKotlinJvmTarget) {
-            return
-        }
-
-        ShowSettingsUtil.getInstance().editConfigurable(
-            model.project,
-            ProjectStructureConfigurable.getInstance(Objects.requireNonNull(model.project))
-        )
-    }
-
-    private fun createKotlinJvmTargetNotificationDialog() = Messages.showYesNoDialog(
-        """Your current JVM target is 1.6. Some Kotlin features may not be supported. 
-            |Would you like to update current target to $actualKotlinJvmTarget?""".trimMargin(),
-        title,
-        "Yes",
-        "No",
-        Messages.getQuestionIcon(),
-        ProjectNewWindowDoNotAskOption(),
-    )
-
-    // Language features we use to generate parametrized tests
-    // (i.e. @JvmStatic attribute or JUnit5 arguments) are supported since JVM target 1.8
-    private val actualKotlinJvmTarget = "1.8"
 
     private fun setListeners() {
         itemsToHelpTooltip.forEach { (box, tooltip) -> if (box is ComboBox<*> && tooltip != null) {

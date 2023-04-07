@@ -3,29 +3,31 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.PropertiesFileTra
 
 val rdVersion: String by rootProject
 val commonsLoggingVersion: String by rootProject
+val kotlinLoggingVersion: String by rootProject
 
 plugins {
-    id("org.springframework.boot") version "2.7.8"
-    id("io.spring.dependency-management") version "1.1.0"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("java")
     application
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter")
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
+    implementation("org.springframework.boot:spring-boot:2.7.8")
 
     implementation(project(":utbot-rd"))
     implementation(project(":utbot-core"))
+    implementation(project(":utbot-framework-api"))
     implementation("com.jetbrains.rd:rd-framework:$rdVersion")
     implementation("com.jetbrains.rd:rd-core:$rdVersion")
     implementation("commons-logging:commons-logging:$commonsLoggingVersion")
+    implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
+    implementation("commons-io:commons-io:2.11.0")
 }
 
 application {

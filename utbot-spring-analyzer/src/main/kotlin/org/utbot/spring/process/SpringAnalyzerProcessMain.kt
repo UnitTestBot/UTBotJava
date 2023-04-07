@@ -17,9 +17,9 @@ import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory
 import org.utbot.spring.analyzers.SpringApplicationAnalyzer
 import org.utbot.spring.data.ApplicationData
-import org.utbot.rd.generated.SpringAnalyzerProcessModel
-import org.utbot.rd.generated.SpringAnalyzerResult
-import org.utbot.rd.generated.springAnalyzerProcessModel
+import org.utbot.spring.generated.SpringAnalyzerProcessModel
+import org.utbot.spring.generated.SpringAnalyzerResult
+import org.utbot.spring.generated.springAnalyzerProcessModel
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 

@@ -19,11 +19,6 @@ plugins {
     `maven-publish`
 }
 
-configure<JavaPluginExtension> {
-    sourceCompatibility = VERSION_11
-    targetCompatibility = VERSION_17
-}
-
 allprojects {
 
     apply {

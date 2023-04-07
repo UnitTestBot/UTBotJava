@@ -73,7 +73,7 @@ data class RawPanicMessage(
 
 data class RawExecutionResult(
     val timeoutExceeded: Boolean,
-    val rawResultValues: List<RawValue?>,
+    val rawResultValues: List<RawValue>,
     val panicMessage: RawPanicMessage?,
     val trace: List<Int>
 )
@@ -109,7 +109,7 @@ fun convertRawExecutionResultToExecutionResult(
     }
     var executedWithNonNilErrorString = false
     val resultValues = rawExecutionResult.rawResultValues.zip(functionResultTypes).map { (rawResultValue, resultType) ->
-        if (resultType.implementsError && rawResultValue != null) {
+        if (resultType.implementsError) {
             executedWithNonNilErrorString = true
         }
         createGoUtModelFromRawValue(rawResultValue, resultType, intSize)
@@ -122,7 +122,7 @@ fun convertRawExecutionResultToExecutionResult(
 }
 
 private fun createGoUtModelFromRawValue(
-    rawValue: RawValue?, typeId: GoTypeId, intSize: Int
+    rawValue: RawValue, typeId: GoTypeId, intSize: Int
 ): GoUtModel = if (rawValue is NilValue) {
     GoUtNilModel(typeId)
 } else {

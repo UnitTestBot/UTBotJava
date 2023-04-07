@@ -579,7 +579,7 @@ object GoCodeTemplates {
         		elem := v.Type().Elem()
         		elementType := elem.String()
         		typeName := fmt.Sprintf("[]%s", elementType)
-        		sliceElementValues := make([]__RawValue__, v.Len())
+        		sliceElementValues := make([]__RawValue__, 0, v.Len())
         		for i := 0; i < v.Len(); i++ {
         			sliceElementValue, err := __convertReflectValueToRawValue__(v.Index(i))
         			if err != nil {

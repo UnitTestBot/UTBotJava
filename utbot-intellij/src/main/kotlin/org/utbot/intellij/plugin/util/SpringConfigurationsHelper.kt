@@ -46,10 +46,12 @@ class SpringConfigurationsHelper(val separator: String) {
         fullNames.forEach { nameToInfo[it] = NameInfo(it) }
         var nameInfoCollection = nameToInfo.values
 
-        while (nameInfoCollection.size != nameInfoCollection.distinct().size) {
+        // this cycle continues until all shortenedNames become unique
+        while (nameInfoCollection.size != nameInfoCollection.distinctBy { it.shortenedName }.size) {
             nameInfoCollection = nameInfoCollection.sortedBy { it.shortenedName }.toMutableList()
 
-            for (index in nameInfoCollection.indices) {
+            var index = 0
+            while(index < nameInfoCollection.size){
                 val curShortenedPath = nameInfoCollection[index].shortenedName
 
                 // here we search a block of shortened paths that are equivalent
@@ -64,8 +66,9 @@ class SpringConfigurationsHelper(val separator: String) {
                     }
                 }
 
-                //if the size of this block is one, we should not enlarge it
+                // if the size of this block is one, we should not enlarge it
                 if (index == maxIndexWithSamePath - 1) {
+                    index++
                     continue
                 }
 
@@ -75,6 +78,9 @@ class SpringConfigurationsHelper(val separator: String) {
                         return collectShortenedNames()
                     }
                 }
+
+                // after enlarging the block, we proceed to search for the next block
+                index = maxIndexWithSamePath
             }
         }
 

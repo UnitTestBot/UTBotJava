@@ -192,6 +192,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
+    private val javaConfigurationHelper = SpringConfigurationsHelper(".")
+    private val xmlConfigurationHelper = SpringConfigurationsHelper(File.separator)
+
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
 
     private val mockStrategies = createComboBox(MockStrategyApi.values())
@@ -217,10 +220,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         staticsMocking to null,
         parametrizedTestSources to null
     )
-
-
-    private val javaConfigurationHelper = SpringConfigurationsHelper(".")
-    private val xmlConfigurationHelper = SpringConfigurationsHelper(File.separator)
 
     private fun shortenConfigurationNames(): Set<Pair<String?, Collection<String>>> {
         val shortenedSortedSpringConfigurationClasses =

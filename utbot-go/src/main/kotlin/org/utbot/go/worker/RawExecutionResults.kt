@@ -44,6 +44,18 @@ data class SliceValue(
     val value: List<RawValue>
 ) : RawValue(type)
 
+data class MapValue(
+    override val type: String,
+    val keyType: String,
+    val elementType: String,
+    val value: List<KeyValue>
+) : RawValue(type) {
+    data class KeyValue(
+        val key: RawValue,
+        val value: RawValue
+    )
+}
+
 data class NilValue(override val type: String) : RawValue(type)
 
 data class InterfaceValue(override val type: String) : RawValue(type)
@@ -58,7 +70,7 @@ class RawResultValueAdapter : TypeAdapter<RawValue> {
             typeName == "nil" -> NilValue::class
             typeName == "interface{}" -> InterfaceValue::class
             typeName == "struct{}" -> StructValue::class
-            typeName.startsWith("map[") -> error("Map result type not supported")
+            typeName.startsWith("map[") -> MapValue::class
             typeName.startsWith("[]") -> SliceValue::class
             typeName.startsWith("[") -> ArrayValue::class
             goPrimitives.map { it.name }.contains(typeName) -> PrimitiveValue::class
@@ -137,6 +149,8 @@ private fun createGoUtModelFromRawValue(
 
         is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
 
+        is GoMapTypeId -> createGoUtMapModelFromRawValue(rawValue as MapValue, typeId, intSize)
+
         is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
 
         else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
@@ -204,6 +218,17 @@ private fun createGoUtSliceModelFromRawValue(
         createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, intSize)
     }.toMutableMap()
     return GoUtSliceModel(value, resultTypeId, resultValue.length)
+}
+
+private fun createGoUtMapModelFromRawValue(
+    resultValue: MapValue, resultTypeId: GoMapTypeId, intSize: Int
+): GoUtMapModel {
+    val value = resultValue.value.associate {
+        val key = createGoUtModelFromRawValue(it.key, resultTypeId.keyTypeId, intSize)
+        val value = createGoUtModelFromRawValue(it.value, resultTypeId.elementTypeId!!, intSize)
+        key to value
+    }.toMutableMap()
+    return GoUtMapModel(value, resultTypeId)
 }
 
 private fun createGoUtNamedModelFromRawValue(

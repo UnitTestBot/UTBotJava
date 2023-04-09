@@ -154,21 +154,24 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     is GoStructTypeId -> GoUtStructModel(listOf(), this)
     is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
     is GoSliceTypeId -> GoUtNilModel(this)
+    is GoMapTypeId -> GoUtNilModel(this)
     is GoNamedTypeId -> GoUtNamedModel(this.underlyingTypeId.goDefaultValueModel(), this)
     else -> error("Generating Go default value model for ${this.javaClass} is not supported")
 }
 
 fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> = when (this) {
-    is GoStructTypeId -> fields.fold(emptySet()) { acc: Set<GoNamedTypeId>, field ->
-        acc + (field.declaringType).getAllVisibleNamedTypes(goPackage)
-    }
-
-    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllVisibleNamedTypes(goPackage)
     is GoNamedTypeId -> if (this.sourcePackage == goPackage || this.exported()) {
         setOf(this) + underlyingTypeId.getAllVisibleNamedTypes(goPackage)
     } else {
         emptySet()
     }
+
+    is GoStructTypeId -> fields.fold(emptySet()) { acc: Set<GoNamedTypeId>, field ->
+        acc + (field.declaringType).getAllVisibleNamedTypes(goPackage)
+    }
+
+    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllVisibleNamedTypes(goPackage)
+    is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage) + elementTypeId!!.getAllVisibleNamedTypes(goPackage)
 
     else -> emptySet()
 }
@@ -176,4 +179,11 @@ fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
 fun List<GoTypeId>.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
     this.fold(emptySet()) { acc, type ->
         acc + type.getAllVisibleNamedTypes(goPackage)
+    }
+
+fun GoNamedTypeId.getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
+    if (!this.sourcePackage.isBuiltin && this.sourcePackage != destinationPackage) {
+        setOf(this.sourcePackage)
+    } else {
+        emptySet()
     }

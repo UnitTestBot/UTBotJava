@@ -10,6 +10,7 @@ object GoCodeTemplates {
     private val errorMessages = """
         var (
         	ErrParsingValue                  = "failed to parse %s value: %s"
+        	ErrInvalidTypeName               = "invalid type name: %s"
         	ErrStringToReflectTypeFailure    = "failed to convert '%s' to reflect.Type: %s"
         	ErrRawValueToReflectValueFailure = "failed to convert RawValue to reflect.Value: %s"
         	ErrReflectValueToRawValueFailure = "failed to convert reflect.Value to RawValue: %s"
@@ -306,6 +307,53 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+    private val keyValueStruct = """
+        type __KeyValue__ struct {
+        	Key   __RawValue__ `json:"key"`
+        	Value __RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val mapValueStruct = """
+        type __MapValue__ struct {
+        	Type        string         `json:"type"`
+        	KeyType     string         `json:"keyType"`
+        	ElementType string         `json:"elementType"`
+        	Value       []__KeyValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val mapValueToReflectValueMethod = """
+        func (v __MapValue__) __toReflectValue__() (reflect.Value, error) {
+        	keyType, err := __convertStringToReflectType__(v.KeyType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.KeyType, err)
+        	}
+
+        	elementType, err := __convertStringToReflectType__(v.ElementType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.ElementType, err)
+        	}
+
+        	mapType := reflect.MapOf(keyType, elementType)
+        	m := reflect.MakeMap(mapType)
+        	for _, keyValue := range v.Value {
+        		keyReflectValue, err := keyValue.Key.__toReflectValue__()
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
+
+        		valueReflectValue, err := keyValue.Value.__toReflectValue__()
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
+
+        		m.SetMapIndex(keyReflectValue, valueReflectValue)
+        	}
+        	return m, nil
+        }
+    """.trimIndent()
+
     private val nilValueStruct = """
         type __NilValue__ struct {
         	Type string `json:"type"`
@@ -353,95 +401,112 @@ object GoCodeTemplates {
     ): String {
         val converter = GoUtModelToCodeConverter(destinationPackage, aliases)
         return """
-        func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
-        	var result reflect.Type
+            func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
+            	var result reflect.Type
 
-        	switch {
-        	case strings.HasPrefix(typeName, "map["):
-        		return nil, fmt.Errorf("map type not supported")
-        	case strings.HasPrefix(typeName, "[]"):
-        		index := strings.IndexRune(typeName, ']')
-        		if index == -1 {
-        			return nil, fmt.Errorf("not correct type name '%s'", typeName)
-        		}
+            	switch {
+            	case strings.HasPrefix(typeName, "map["):
+            		index := strings.IndexRune(typeName, ']')
+            		if index == -1 {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
 
-        		res, err := __convertStringToReflectType__(typeName[index+1:])
-        		if err != nil {
-        			return nil, fmt.Errorf("not correct type name '%s'", typeName)
-        		}
+            		keyTypeStr := typeName[4:index]
+            		keyType, err := __convertStringToReflectType__(keyTypeStr)
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, keyTypeStr, err)
+            		}
 
-        		result = reflect.SliceOf(res)
-        	case strings.HasPrefix(typeName, "["):
-        		index := strings.IndexRune(typeName, ']')
-        		if index == -1 {
-        			return nil, fmt.Errorf("not correct type name '%s'", typeName)
-        		}
+            		elementTypeStr := typeName[index+1:]
+            		elementType, err := __convertStringToReflectType__(elementTypeStr)
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, elementTypeStr, err)
+            		}
 
-        		lengthStr := typeName[1:index]
-        		length, err := strconv.Atoi(lengthStr)
-        		if err != nil {
-        			return nil, err
-        		}
+            		result = reflect.MapOf(keyType, elementType)
+            	case strings.HasPrefix(typeName, "[]"):
+            		index := strings.IndexRune(typeName, ']')
+            		if index == -1 {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
 
-        		res, err := __convertStringToReflectType__(typeName[index+1:])
-        		if err != nil {
-        			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, typeName[index+1:], err)
-        		}
+            		res, err := __convertStringToReflectType__(typeName[index+1:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
 
-        		result = reflect.ArrayOf(length, res)
-        	default:
-        		switch typeName {
-        		case "bool":
-        			result = reflect.TypeOf(true)
-        		case "int":
-        			result = reflect.TypeOf(0)
-        		case "int8":
-        			result = reflect.TypeOf(int8(0))
-        		case "int16":
-        			result = reflect.TypeOf(int16(0))
-        		case "int32":
-        			result = reflect.TypeOf(int32(0))
-        		case "rune":
-        			result = reflect.TypeOf(rune(0))
-        		case "int64":
-        			result = reflect.TypeOf(int64(0))
-        		case "byte":
-        			result = reflect.TypeOf(byte(0))
-        		case "uint":
-        			result = reflect.TypeOf(uint(0))
-        		case "uint8":
-        			result = reflect.TypeOf(uint8(0))
-        		case "uint16":
-        			result = reflect.TypeOf(uint16(0))
-        		case "uint32":
-        			result = reflect.TypeOf(uint32(0))
-        		case "uint64":
-        			result = reflect.TypeOf(uint64(0))
-        		case "float32":
-        			result = reflect.TypeOf(float32(0))
-        		case "float64":
-        			result = reflect.TypeOf(float64(0))
-        		case "complex64":
-        			result = reflect.TypeOf(complex(float32(0), float32(0)))
-        		case "complex128":
-        			result = reflect.TypeOf(complex(float64(0), float64(0)))
-        		case "string":
-        			result = reflect.TypeOf("")
-        		case "uintptr":
-        			result = reflect.TypeOf(uintptr(0))
+            		result = reflect.SliceOf(res)
+            	case strings.HasPrefix(typeName, "["):
+            		index := strings.IndexRune(typeName, ']')
+            		if index == -1 {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
+
+            		lengthStr := typeName[1:index]
+            		length, err := strconv.Atoi(lengthStr)
+            		if err != nil {
+            			return nil, err
+            		}
+
+            		res, err := __convertStringToReflectType__(typeName[index+1:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, typeName[index+1:], err)
+            		}
+
+            		result = reflect.ArrayOf(length, res)
+            	default:
+            		switch typeName {
+            		case "bool":
+            			result = reflect.TypeOf(true)
+            		case "int":
+            			result = reflect.TypeOf(0)
+            		case "int8":
+            			result = reflect.TypeOf(int8(0))
+            		case "int16":
+            			result = reflect.TypeOf(int16(0))
+            		case "int32":
+            			result = reflect.TypeOf(int32(0))
+            		case "rune":
+            			result = reflect.TypeOf(rune(0))
+            		case "int64":
+            			result = reflect.TypeOf(int64(0))
+            		case "byte":
+            			result = reflect.TypeOf(byte(0))
+            		case "uint":
+            			result = reflect.TypeOf(uint(0))
+            		case "uint8":
+            			result = reflect.TypeOf(uint8(0))
+            		case "uint16":
+            			result = reflect.TypeOf(uint16(0))
+            		case "uint32":
+            			result = reflect.TypeOf(uint32(0))
+            		case "uint64":
+            			result = reflect.TypeOf(uint64(0))
+            		case "float32":
+            			result = reflect.TypeOf(float32(0))
+            		case "float64":
+            			result = reflect.TypeOf(float64(0))
+            		case "complex64":
+            			result = reflect.TypeOf(complex(float32(0), float32(0)))
+            		case "complex128":
+            			result = reflect.TypeOf(complex(float64(0), float64(0)))
+            		case "string":
+            			result = reflect.TypeOf("")
+            		case "uintptr":
+            			result = reflect.TypeOf(uintptr(0))
                 ${
             namedTypes.joinToString(separator = "\n") {
                 val relativeName = it.getRelativeName(destinationPackage, aliases)
                 "case \"${relativeName}\": result = reflect.TypeOf(${converter.toGoCode(it.goDefaultValueModel())})"
             }
         }
-        		default:
-        			return nil, fmt.Errorf("type '%s' is not supported", typeName)
-        		}
-        	}
-        	return result, nil
-        }
-    """.trimIndent()
+            		default:
+            			return nil, fmt.Errorf("unsupported type: %s", typeName)
+            		}
+            	}
+            	return result, nil
+            }
+        """.trimIndent()
     }
 
     private val panicMessageStruct = """
@@ -595,12 +660,44 @@ object GoCodeTemplates {
         			Length:      length,
         			Value:       sliceElementValues,
         		}, nil
+        	case reflect.Map:
+        		if v.IsNil() {
+        			return __NilValue__{Type: "nil"}, nil
+        		}
+        		key := v.Type().Key()
+        		keyType := key.String()
+        		elem := v.Type().Elem()
+        		elementType := elem.String()
+        		typeName := fmt.Sprintf("map[%s]%s", keyType, elementType)
+        		mapValues := make([]__KeyValue__, 0, v.Len())
+        		for iter := v.MapRange(); iter.Next(); {
+        			key, err := __convertReflectValueToRawValue__(iter.Key())
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
+
+        			value, err := __convertReflectValueToRawValue__(iter.Value())
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
+
+        			mapValues = append(mapValues, __KeyValue__{
+        				Key:   key,
+        				Value: value,
+        			})
+        		}
+        		return __MapValue__{
+        			Type:        typeName,
+        			KeyType:     keyType,
+        			ElementType: elementType,
+        			Value:       mapValues,
+        		}, nil
         	case reflect.Interface:
         		if v.Interface() == nil {
         			return __NilValue__{Type: "nil"}, nil
         		}
         		if e, ok := v.Interface().(error); ok {
-        			value, err := __convertReflectValueToRawValue__(reflect.ValueOf(e.Error()))
+        			value, err := __convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValue__(reflect.ValueOf(e.Error()))
         			if err != nil {
         				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
         			}
@@ -727,7 +824,7 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val parseJsonToFunctionNameAndRawValuesFunction = """
+    private val parseTestInputFunction = """
         func __parseTestInput__(decoder *json.Decoder) (funcName string, rawValues []__RawValue__, err error) {
         	var testInput __TestInput__
         	err = decoder.Decode(&testInput)
@@ -752,7 +849,7 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val convertParsedJsonToRawValueFunction = """
+    private val parseRawValueFunction = """
         func __parseRawValue__(rawValue map[string]interface{}, name string) (__RawValue__, error) {
         	typeName, ok := rawValue["type"]
         	if !ok {
@@ -794,7 +891,45 @@ object GoCodeTemplates {
         			Value: values,
         		}, nil
         	case strings.HasPrefix(typeNameStr, "map["):
-        		return nil, fmt.Errorf("map type is not supported")
+        		keyType, ok := rawValue["keyType"]
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue must contain field 'keyType'")
+        		}
+        		keyTypeStr, ok := keyType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue field 'keyType' must be string")
+        		}
+
+        		elementType, ok := rawValue["elementType"]
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue must contain field 'elementType'")
+        		}
+        		elementTypeStr, ok := elementType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue field 'elementType' must be string")
+        		}
+
+        		value, ok := v.([]interface{})
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue field 'value' must be array")
+        		}
+
+        		values := make([]__KeyValue__, 0, len(value))
+        		for _, v := range value {
+        			nextValue, err := __parseKeyValue__(v.(map[string]interface{}))
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse KeyValue %s of map: %s", v, err)
+        			}
+
+        			values = append(values, nextValue)
+        		}
+
+        		return __MapValue__{
+        			Type:        typeNameStr,
+        			KeyType:     keyTypeStr,
+        			ElementType: elementTypeStr,
+        			Value:       values,
+        		}, nil
         	case strings.HasPrefix(typeNameStr, "[]"):
         		elementType, ok := rawValue["elementType"]
         		if !ok {
@@ -900,7 +1035,7 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val convertParsedJsonToFieldValueFunction = """
+    private val parseFieldValueFunction = """
         func __parseFieldValue__(p map[string]interface{}) (__FieldValue__, error) {
         	name, ok := p["name"]
         	if !ok {
@@ -936,6 +1071,31 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+    private val parseKeyValueFunction = """
+        func __parseKeyValue__(p map[string]interface{}) (__KeyValue__, error) {
+        	if _, ok := p["key"]; !ok {
+        		return __KeyValue__{}, fmt.Errorf("KeyValue must contain field 'key'")
+        	}
+        	key, err := __parseRawValue__(p["key"].(map[string]interface{}), "")
+        	if err != nil {
+        		return __KeyValue__{}, err
+        	}
+
+        	if _, ok := p["value"]; !ok {
+        		return __KeyValue__{}, fmt.Errorf("KeyValue must contain field 'value'")
+        	}
+        	value, err := __parseRawValue__(p["value"].(map[string]interface{}), "")
+        	if err != nil {
+        		return __KeyValue__{}, err
+        	}
+
+        	return __KeyValue__{
+        		Key:   key,
+        		Value: value,
+        	}, nil
+        }
+    """.trimIndent()
+
     fun getTopLevelHelperStructsAndFunctionsForWorker(
         namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
@@ -950,6 +1110,9 @@ object GoCodeTemplates {
         fieldValueStruct,
         structValueStruct,
         structValueToReflectValueMethod,
+        keyValueStruct,
+        mapValueStruct,
+        mapValueToReflectValueMethod,
         arrayValueStruct,
         arrayValueToReflectValueMethod,
         sliceValueStruct,
@@ -968,8 +1131,9 @@ object GoCodeTemplates {
         executeFunctionFunction(maxTraceLength),
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
-        parseJsonToFunctionNameAndRawValuesFunction,
-        convertParsedJsonToRawValueFunction,
-        convertParsedJsonToFieldValueFunction
+        parseTestInputFunction,
+        parseRawValueFunction,
+        parseFieldValueFunction,
+        parseKeyValueFunction
     )
 }

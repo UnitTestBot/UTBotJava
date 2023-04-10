@@ -24,7 +24,6 @@ import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
 
@@ -44,6 +43,8 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
             if (mockedFields.isNotEmpty()) {
                 fields += constructClassFields(testClassModel.injectedMockModels, injectMocksClassId)
                 fields += mockedFields
+
+                clearUnwantedModelInstantiations()
 
                 val (closeableField, closeableMethods) = constructMockitoCloseables()
                 fields += closeableField
@@ -115,6 +116,18 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         }
 
         return constructedDeclarations
+    }
+
+    private fun clearUnwantedModelInstantiations() {
+        val whiteListOfModels =
+            listOf(
+                variableConstructor.mockedModelsVariables,
+                variableConstructor.injectedMocksModelsVariables
+            )
+                .flatMap { keySet -> keySet.keys.map { keyModels -> context.getIdByModel(keyModels.first()) } }
+        valueByModelId
+            .filter { it.key !in whiteListOfModels }
+            .forEach { valueByModelId.remove(it.key) }
     }
 
     private fun constructMockitoCloseables(): Pair<CgFieldDeclaration, CgMethodsCluster> {

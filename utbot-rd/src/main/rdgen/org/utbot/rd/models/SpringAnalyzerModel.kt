@@ -9,9 +9,7 @@ object SpringAnalyzerProcessModel : Ext(SpringAnalyzerRoot) {
     val springAnalyzerParams = structdef {
         field("classpath", array(PredefinedType.string))
         field("configuration", PredefinedType.string)
-        field("propertyFilesPaths", array(PredefinedType.string))
-        field("xmlConfigurationPaths", array(PredefinedType.string))
-        field("useSpringAnalyzer", PredefinedType.bool)
+        field("fileStorage", PredefinedType.string.nullable)
     }
 
     val springAnalyzerResult = structdef {

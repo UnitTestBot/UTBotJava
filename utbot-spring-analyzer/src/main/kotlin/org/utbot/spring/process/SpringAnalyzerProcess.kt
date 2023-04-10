@@ -21,6 +21,7 @@ import org.utbot.rd.terminateOnException
 import org.utbot.spring.generated.SpringAnalyzerParams
 import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.springAnalyzerProcessModel
+import java.io.File
 import java.nio.file.Files
 
 class SpringAnalyzerProcessInstantDeathException :
@@ -63,17 +64,21 @@ class SpringAnalyzerProcess private constructor(
         runWithDebug = UtSettings.runSpringAnalyzerProcessWithDebug,
         suspendExecutionInDebugMode = UtSettings.suspendSpringAnalyzerProcessExecutionInDebugMode
     ) {
+        private var classpathArgs = listOf<String>()
+
         override fun obtainProcessSpecificCommandLineArgs(): List<String> = listOf(
             "-Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory",
-            "-jar",
-            springAnalyzerJarFile.path
-        )
+//            "-jar",
+//            springAnalyzerJarFile.path
+        ) + classpathArgs
 
-        fun createBlocking() = runBlocking { SpringAnalyzerProcess() }
+        fun createBlocking(classpath: List<String>) = runBlocking { SpringAnalyzerProcess(classpath) }
 
-        suspend operator fun invoke(): SpringAnalyzerProcess = LifetimeDefinition().terminateOnException { lifetime ->
+        suspend operator fun invoke(classpath: List<String>): SpringAnalyzerProcess = LifetimeDefinition().terminateOnException { lifetime ->
             val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
+                classpathArgs = listOf("-cp", "\"${(listOf(springAnalyzerJarFile.path) + classpath).joinToString(File.pathSeparator)}\"", "org.utbot.spring.process.SpringAnalyzerProcessMainKt")
                 val cmd = obtainProcessCommandLine(port)
+                logger.info { "Spring cmd: ${cmd.joinToString(" ")}" }
                 val process = ProcessBuilder(cmd)
                     .directory(Files.createTempDirectory(utBotTempDirectory, "spring-analyzer").toFile())
                     .start()
@@ -97,16 +102,12 @@ class SpringAnalyzerProcess private constructor(
     fun getBeanQualifiedNames(
         classpath: List<String>,
         configuration: String,
-        propertyFilesPaths: List<String>,
-        xmlConfigurationPaths: List<String>,
-        useSpringAnalyzer: Boolean
+        fileStorage: String?,
     ): List<String> {
         val params = SpringAnalyzerParams(
             classpath.toTypedArray(),
             configuration,
-            propertyFilesPaths.toTypedArray(),
-            xmlConfigurationPaths.toTypedArray(),
-            useSpringAnalyzer
+            fileStorage
         )
         val result = springAnalyzerModel.analyze.startBlocking(params)
         return result.beanTypes.toList()

@@ -8,16 +8,8 @@ import java.util.Arrays
 import kotlin.reflect.KClass
 
 class ConfigurationManager(private val classLoader: ClassLoader, private val userConfigurationClass: Class<*>) {
-
-    fun clearPropertySourceAnnotation() = patchAnnotation(PropertySource::class, null)
-
-    fun clearImportResourceAnnotation() = patchAnnotation(ImportResource::class, null)
-
-    fun patchPropertySourceAnnotation(userPropertiesFileName: Path) =
-        patchAnnotation(PropertySource::class, String.format("file:%s", "fake_$userPropertiesFileName"))
-
     fun patchImportResourceAnnotation(userXmlFilePath: Path) =
-        patchAnnotation(ImportResource::class, String.format("file:%s", "fake_$userXmlFilePath"))
+        patchAnnotation(ImportResource::class, String.format("classpath:%s", "$userXmlFilePath"))
 
     private fun patchAnnotation(annotationClass: KClass<*>, newValue: String?) {
         val proxyClass = classLoader.loadClass("java.lang.reflect.Proxy")
@@ -32,6 +24,8 @@ class ConfigurationManager(private val classLoader: ClassLoader, private val use
 
         if (propertySourceAnnotation.isPresent) {
             val annotationInvocationHandler = hField[propertySourceAnnotation.get()] as InvocationHandler
+            // TODO detect "file:..." resources recursively (or using bfs) and copy them,
+            //  do not patch annotations same in fillFakeApplicationXml
 
             val annotationInvocationHandlerClass =
                 classLoader.loadClass("sun.reflect.annotation.AnnotationInvocationHandler")

@@ -41,16 +41,18 @@ suspend fun main(args: Array<String>) =
 
 private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtocol: IProtocol) {
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->
+//        Thread.currentThread().contextClassLoader = URLClassLoader(
+//            params.classpath.toList().map { File(it).toURI().toURL() }.toTypedArray(),
+//            Thread.currentThread().contextClassLoader
+//        )
         SpringAnalyzerResult(
-            if (!params.useSpringAnalyzer) emptyArray()
-            else SpringApplicationAnalyzer(
-                ApplicationData(
-                    params.classpath.toList().map { File(it).toURI().toURL() }.toTypedArray(),
-                    params.configuration,
-                    params.propertyFilesPaths.toList(),
-                    params.xmlConfigurationPaths.toList()
-                )
-            ).analyze().toTypedArray()
+                SpringApplicationAnalyzer(
+                    ApplicationData(
+                        params.classpath.toList().map { File(it).toURI().toURL() }.toTypedArray(),
+                        params.configuration,
+                        params.fileStorage,
+                    )
+                ).analyze().toTypedArray()
         )
     }
 }

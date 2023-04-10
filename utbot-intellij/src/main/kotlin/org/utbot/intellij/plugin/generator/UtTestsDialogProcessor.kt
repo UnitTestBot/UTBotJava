@@ -8,6 +8,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
@@ -28,6 +29,7 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.nullize
 import com.intellij.util.io.exists
+import com.jetbrains.python.sdk.basePath
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -225,8 +227,10 @@ object UtTestsDialogProcessor {
                                                 process.getSpringBeanQualifiedNames(
                                                     buildDirs + classpathList,
                                                     approach.config,
-                                                    model.useSpringAnalyzer
-                                                ).also { logger.info { "Detected Spring Beans: $it" } }
+                                                    // TODO use common parent path for srcModule and used Spring
+                                                    //   config module if they are different modules
+                                                    model.srcModule.basePath
+                                                )
                                         }
 
                                     SpringApplicationContext(

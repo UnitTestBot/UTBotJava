@@ -7,11 +7,14 @@ fun moduleOfType(typeName: String): String? {
 }
 
 fun String.toSnakeCase(): String {
+    val badSymbols = listOf('[', ']')
     val splitSymbols = "_"
     return this.mapIndexed { index: Int, c: Char ->
         if (c.isLowerCase() || c.isDigit() || splitSymbols.contains(c)) c
         else if (c.isUpperCase()) {
             (if (index > 0) "_" else "") + c.lowercase()
+        } else if (badSymbols.contains(c)) {
+            '_'
         } else c
     }.joinToString("")
 }

@@ -57,7 +57,6 @@ class PythonWorkerManager(
         }
         logger.debug { "Worker connected successfully" }
 
-//        workerSocket.soTimeout = timeoutForRun  // TODO: maybe +eps for serialization/deserialization?
         val pythonWorker = PythonWorker(workerSocket)
         codeExecutor = pythonCodeExecutorConstructor(pythonWorker)
     }

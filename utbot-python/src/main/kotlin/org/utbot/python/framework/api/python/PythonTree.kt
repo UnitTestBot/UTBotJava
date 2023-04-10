@@ -212,6 +212,8 @@ object PythonTree {
         var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
+        var setstate: TupleNode? = null,
+        var comment: String? = null,
     ) : PythonTreeNode(id, type) {
         constructor(
             type: PythonClassId,

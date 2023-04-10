@@ -91,45 +91,65 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 val obj = newVar(objectNode.type, baseName) {
                     constructorCall
                 }
+                objectNode.comment?.let {
+                    if (it.isNotEmpty()) {
+                        comment("${obj.name} = $it")
+                    }
+                }
 
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjectsModels[id] = objectNode
 
-                val state = objectNode.state.map { (key, value) ->
-                    key to getOrCreateVariable(PythonTreeModel(value, value.type))
-                }.toMap()
-                val listitems = objectNode.listitems.map {
-                    getOrCreateVariable(PythonTreeModel(it, it.type))
-                }
-                val dictitems = objectNode.dictitems.map { (key, value) ->
-                    val keyObj = getOrCreateVariable(PythonTreeModel(key, key.type))
-                    val valueObj = getOrCreateVariable(PythonTreeModel(value, value.type))
-                    keyObj to valueObj
-                }
-
-                state.forEach { (key, value) ->
-                    obj[FieldId(objectNode.type, key)] `=` value
-                }
-                listitems.forEach {
+                objectNode.setstate?.let {
+                    val state = getOrCreateVariable(PythonTreeModel(it, it.type))
                     val methodCall = CgMethodCall(
                         obj,
                         PythonMethodId(
                             obj.type as PythonClassId,
-                            "append",
+                            "__setstate__",
                             NormalizedPythonAnnotation(pythonNoneClassId.name),
                             listOf(RawPythonAnnotation(it.type.name))
                         ),
-                        listOf(it)
+                        listOf(state)
                     )
                     +methodCall
-                }
-                dictitems.forEach { (key, value) ->
-                    val index = CgPythonIndex(
-                        value.type as PythonClassId,
-                        obj,
-                        key
-                    )
-                    index `=` value
+                } ?: {
+                    val state = objectNode.state.map { (key, value) ->
+                        key to getOrCreateVariable(PythonTreeModel(value, value.type))
+                    }.toMap()
+                    val listitems = objectNode.listitems.map {
+                        getOrCreateVariable(PythonTreeModel(it, it.type))
+                    }
+                    val dictitems = objectNode.dictitems.map { (key, value) ->
+                        val keyObj = getOrCreateVariable(PythonTreeModel(key, key.type))
+                        val valueObj = getOrCreateVariable(PythonTreeModel(value, value.type))
+                        keyObj to valueObj
+                    }
+
+                    state.forEach { (key, value) ->
+                        obj[FieldId(objectNode.type, key)] `=` value
+                    }
+                    listitems.forEach {
+                        val methodCall = CgMethodCall(
+                            obj,
+                            PythonMethodId(
+                                obj.type as PythonClassId,
+                                "append",
+                                NormalizedPythonAnnotation(pythonNoneClassId.name),
+                                listOf(RawPythonAnnotation(it.type.name))
+                            ),
+                            listOf(it)
+                        )
+                        +methodCall
+                    }
+                    dictitems.forEach { (key, value) ->
+                        val index = CgPythonIndex(
+                            value.type as PythonClassId,
+                            obj,
+                            key
+                        )
+                        index `=` value
+                    }
                 }
 
                 return Pair(obj, context.currentBlock.toList())

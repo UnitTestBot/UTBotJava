@@ -22,6 +22,8 @@ class GoUtModelToCodeConverter(
 
         is GoUtSliceModel -> sliceModelToGoCode(model)
 
+        is GoUtMapModel -> mapModelToGoCode(model)
+
         is GoUtNamedModel -> if (!withTypeConversion && model.value is GoUtPrimitiveModel) {
             toGoCodeWithoutTypeName(model.value)
         } else {
@@ -45,6 +47,8 @@ class GoUtModelToCodeConverter(
 
         is GoUtSliceModel -> sliceModelToGoCodeWithoutTypeName(model)
 
+        is GoUtMapModel -> mapModelToGoCodeWithoutTypeName(model)
+
         is GoUtNamedModel -> toGoCodeWithoutTypeName(model.value)
 
         else -> error("Converting a ${model.javaClass} to Go code isn't supported")
@@ -67,11 +71,8 @@ class GoUtModelToCodeConverter(
         }
 
     private fun arrayModelToGoCode(model: GoUtArrayModel): String {
-        val elementType = model.typeId.elementTypeId!!
-        val elementTypeName = elementType.getRelativeName(destinationPackage, aliases)
-        return model.getElements().joinToString(prefix = "[${model.length}]$elementTypeName{", postfix = "}") {
-            toGoCodeWithoutTypeName(it)
-        }
+        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
+        return typeName + arrayModelToGoCodeWithoutTypeName(model)
     }
 
     private fun arrayModelToGoCodeWithoutTypeName(model: GoUtArrayModel): String =
@@ -80,16 +81,23 @@ class GoUtModelToCodeConverter(
         }
 
     private fun sliceModelToGoCode(model: GoUtSliceModel): String {
-        val elementType = model.typeId.elementTypeId!!
-        val elementTypeName = elementType.getRelativeName(destinationPackage, aliases)
-        return model.getElements().joinToString(prefix = "[]$elementTypeName{", postfix = "}") {
-            toGoCodeWithoutTypeName(it)
-        }
+        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
+        return typeName + sliceModelToGoCodeWithoutTypeName(model)
     }
 
     private fun sliceModelToGoCodeWithoutTypeName(model: GoUtSliceModel): String =
         model.getElements().joinToString(prefix = "{", postfix = "}") {
             toGoCodeWithoutTypeName(it)
+        }
+
+    private fun mapModelToGoCode(model: GoUtMapModel): String {
+        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
+        return typeName + mapModelToGoCodeWithoutTypeName(model)
+    }
+
+    private fun mapModelToGoCodeWithoutTypeName(model: GoUtMapModel): String =
+        model.value.entries.joinToString(prefix = "{", postfix = "}") {
+            "${toGoCode(it.key)}: ${toGoCodeWithoutTypeName(it.value)}"
         }
 
     private fun namedModelToGoCode(model: GoUtNamedModel): String {

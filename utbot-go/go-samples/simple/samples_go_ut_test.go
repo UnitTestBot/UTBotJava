@@ -92,23 +92,23 @@ func TestIsIdentityByUtGoFuzzer3(t *testing.T) {
 }
 
 func TestBinaryWithNonNilErrorByUtGoFuzzer1(t *testing.T) {
-	actualVal, actualErr := Binary([]int{1}, 2, 0, -1)
+	actualVal, actualErr := Binary(nil, 2, 0, -1)
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(-1, actualVal)
 	assertMultiple.ErrorContains(actualErr, "target not found in array")
 }
 
-func TestBinaryByUtGoFuzzer2(t *testing.T) {
-	actualVal, actualErr := Binary([]int{9223372036854775807, -1, -1, -1, -1}, 9223372036854775807, 0, 1)
+func TestBinaryWithNonNilErrorByUtGoFuzzer2(t *testing.T) {
+	actualVal, actualErr := Binary([]int{1, 1, 0}, 2, 1, 1)
 
 	assertMultiple := assert.New(t)
-	assertMultiple.Equal(0, actualVal)
-	assertMultiple.Nil(actualErr)
+	assertMultiple.Equal(-1, actualVal)
+	assertMultiple.ErrorContains(actualErr, "target not found in array")
 }
 
 func TestBinaryWithNonNilErrorByUtGoFuzzer3(t *testing.T) {
-	actualVal, actualErr := Binary([]int{1, 17592186044417, 257, 1125899906842625}, -9223372036854775808, 1, 2)
+	actualVal, actualErr := Binary([]int{1, 1, 0}, -9214364837600034814, 1, 1)
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(-1, actualVal)
@@ -116,15 +116,15 @@ func TestBinaryWithNonNilErrorByUtGoFuzzer3(t *testing.T) {
 }
 
 func TestBinaryWithNonNilErrorByUtGoFuzzer4(t *testing.T) {
-	actualVal, actualErr := Binary([]int{-1, -1, -1, -1, 9223372036854775807}, 9223372036854775807, 0, 1)
+	actualVal, actualErr := Binary([]int{9223372036854775807, 9223372036854775807, 1, 9223372036854775807, -9223372036854775808}, 9223372036854775807, -1, 1)
 
 	assertMultiple := assert.New(t)
-	assertMultiple.Equal(-1, actualVal)
-	assertMultiple.ErrorContains(actualErr, "target not found in array")
+	assertMultiple.Equal(0, actualVal)
+	assertMultiple.Nil(actualErr)
 }
 
 func TestBinaryPanicsByUtGoFuzzer(t *testing.T) {
-	assert.PanicsWithError(t, "runtime error: index out of range [-4611686018427387905]", func() { Binary([]int{1}, 2, -9223372036854775808, -1) })
+	assert.PanicsWithError(t, "runtime error: index out of range [-4611686018427387905]", func() { Binary(nil, 2, -9223372036854775808, -1) })
 }
 
 func TestStringSearchByUtGoFuzzer1(t *testing.T) {

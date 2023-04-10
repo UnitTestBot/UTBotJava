@@ -54,6 +54,18 @@ data class AnalyzedSliceType(
     )
 }
 
+data class AnalyzedMapType(
+    override val name: String,
+    val keyType: AnalyzedType,
+    val elementType: AnalyzedType,
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId = GoMapTypeId(
+        name = name,
+        keyTypeId = keyType.toGoTypeId(),
+        elementTypeId = elementType.toGoTypeId(),
+    )
+}
+
 data class AnalyzedInterfaceType(
     override val name: String,
 ) : AnalyzedType(name) {
@@ -85,7 +97,7 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
         return when {
             typeName == "interface{}" -> AnalyzedInterfaceType::class
             typeName == "struct{}" -> AnalyzedStructType::class
-            typeName.startsWith("map[") -> error("Map type not yet supported")
+            typeName.startsWith("map[") -> AnalyzedMapType::class
             typeName.startsWith("[]") -> AnalyzedSliceType::class
             typeName.startsWith("[") -> AnalyzedArrayType::class
             goPrimitives.map { it.name }.contains(typeName) -> AnalyzedPrimitiveType::class

@@ -6,7 +6,7 @@ import java.nio.file.Paths
 /**
  * Singleton to enable abstract access to the working directory.
  *
- * Used in [org.utbot.instrumentation.process.InstrumentedProcessRunner].
+ * Used in [org.utbot.instrumentation.rd.InstrumentedProcess].
  * The purpose is to use the same working directory in [org.utbot.instrumentation.ConcreteExecutor]
  * and in the test runs.
  */

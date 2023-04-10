@@ -19,11 +19,6 @@ plugins {
     `maven-publish`
 }
 
-configure<JavaPluginExtension> {
-    sourceCompatibility = VERSION_11
-    targetCompatibility = VERSION_17
-}
-
 allprojects {
 
     apply {
@@ -189,7 +184,7 @@ configure(
         project(":utbot-core"),
         project(":utbot-framework"),
         project(":utbot-framework-api"),
-        project(":utbot-fuzzers"),
+        project(":utbot-java-fuzzing"),
         project(":utbot-instrumentation"),
         project(":utbot-rd"),
         project(":utbot-summary")

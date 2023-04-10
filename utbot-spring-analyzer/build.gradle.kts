@@ -1,30 +1,43 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
 import com.github.jengelman.gradle.plugins.shadow.transformers.PropertiesFileTransformer
 
+val springBootVersion: String by rootProject
+val rdVersion: String by rootProject
+val commonsLoggingVersion: String by rootProject
+val kotlinLoggingVersion: String by rootProject
+val commonsIOVersion: String by rootProject
+
 plugins {
-    id("org.springframework.boot") version "2.7.8"
-    id("io.spring.dependency-management") version "1.1.0"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("java")
     application
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter")
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
+    implementation("org.springframework.boot:spring-boot:$springBootVersion")
+
+    implementation(project(":utbot-rd"))
+    implementation(project(":utbot-core"))
+    implementation(project(":utbot-framework-api"))
+    implementation("com.jetbrains.rd:rd-framework:$rdVersion")
+    implementation("com.jetbrains.rd:rd-core:$rdVersion")
+    implementation("commons-logging:commons-logging:$commonsLoggingVersion")
+    implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
+    implementation("commons-io:commons-io:$commonsIOVersion")
 }
 
 application {
-    mainClass.set("org.utbot.spring.ApplicationRunnerKt")
+    mainClass.set("org.utbot.spring.process.SpringAnalyzerProcessMainKt")
 }
 
 // see more details about this task -- https://github.com/spring-projects/spring-boot/issues/1828
-tasks.withType(ShadowJar::class.java) {
+tasks.shadowJar {
     isZip64 = true
     // Required for Spring
     mergeServiceFiles()
@@ -35,4 +48,16 @@ tasks.withType(ShadowJar::class.java) {
         paths = listOf("META-INF/spring.factories")
         mergeStrategy = "append"
     })
+
+    transform(Log4j2PluginsCacheFileTransformer::class.java)
+    archiveFileName.set("utbot-spring-analyzer-shadow.jar")
+}
+
+val springAnalyzerJar: Configuration by configurations.creating {
+    isCanBeResolved = false
+    isCanBeConsumed = true
+}
+
+artifacts {
+    add(springAnalyzerJar.name, tasks.shadowJar)
 }

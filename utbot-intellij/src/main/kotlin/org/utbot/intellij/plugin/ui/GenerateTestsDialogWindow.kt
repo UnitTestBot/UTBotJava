@@ -146,8 +146,10 @@ import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
+import org.utbot.intellij.plugin.util.SpringConfigurationsHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -187,12 +189,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
-    private val modelSpringConfigs = setOf(
-        null to listOf(NO_SPRING_CONFIGURATION_OPTION),
-        "Java-based configurations" to model.getSortedSpringConfigurationClasses(),
-        "XML-based configurations" to model.getSpringXMLConfigurationFiles()
-    )
-    private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(modelSpringConfigs)
+    private val javaConfigurationHelper = SpringConfigurationsHelper(".")
+    private val xmlConfigurationHelper = SpringConfigurationsHelper(File.separator)
+
+    private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
 
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
@@ -217,6 +217,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         staticsMocking to null,
         parametrizedTestSources to null
     )
+
+    private fun shortenConfigurationNames(): Set<Pair<String?, Collection<String>>> {
+        val shortenedSortedSpringConfigurationClasses =
+            javaConfigurationHelper.shortenSpringConfigNames(model.getSortedSpringConfigurationClasses())
+
+        val shortenedSpringXMLConfigurationFiles =
+            xmlConfigurationHelper.shortenSpringConfigNames(model.getSpringXMLConfigurationFiles())
+
+        return setOf(
+            null to listOf(NO_SPRING_CONFIGURATION_OPTION),
+            "Java-based configurations" to shortenedSortedSpringConfigurationClasses,
+            "XML-based configurations" to shortenedSpringXMLConfigurationFiles
+        )
+    }
 
     private fun <T : CodeGenerationSettingItem> createComboBox(values: Array<T>) : ComboBox<T> {
         val comboBox = object:ComboBox<T>(DefaultComboBoxModel(values)) {
@@ -612,7 +626,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.typeReplacementApproach =
             when (springConfig.item) {
                 NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DoNotReplace
-                else -> TypeReplacementApproach.ReplaceIfPossible(springConfig.item.toString())
+                else -> {
+                    val shortConfigName = springConfig.item.getItem().toString()
+                    //TODO: avoid this check on xml here, merge two helpers into one
+                    val fullConfigName = if (shortConfigName.endsWith(".xml")) {
+                        xmlConfigurationHelper.restoreFullName(shortConfigName)
+                    } else {
+                        javaConfigurationHelper.restoreFullName(shortConfigName)
+                    }
+
+                    TypeReplacementApproach.ReplaceIfPossible(fullConfigName)
+                }
             }
 
         val settings = model.project.service<Settings>()
@@ -1095,8 +1119,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun updateSpringConfigurationEnabled() {
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
-        springConfig.isEnabled = model.projectType == ProjectType.Spring
-                && modelSpringConfigs.size > 1
+        springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
     }
 
     private fun staticsMockingConfigured(): Boolean {

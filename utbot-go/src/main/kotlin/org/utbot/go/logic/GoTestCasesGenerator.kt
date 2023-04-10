@@ -5,14 +5,10 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.go.GoEngine
-import org.utbot.go.api.GoUtFile
-import org.utbot.go.api.GoUtFunction
-import org.utbot.go.api.GoUtFuzzedFunctionTestCase
+import org.utbot.go.api.*
 import org.utbot.go.imports.GoImportsResolver
 import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
-import org.utbot.go.worker.GoWorker
-import org.utbot.go.worker.GoWorkerCodeGenerationHelper
-import org.utbot.go.worker.GoWorkerFailedException
+import org.utbot.go.worker.*
 import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
@@ -37,7 +33,7 @@ object GoTestCasesGenerator {
         timeoutExceededOrIsCanceled: (index: Int) -> Boolean = { false },
     ): List<GoUtFuzzedFunctionTestCase> = runBlocking {
         ServerSocket(0).use { serverSocket ->
-            val allTestCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
+            val allRawExecutionResults = mutableListOf<Pair<GoUtFuzzedFunction, RawExecutionResult>>()
             var fileToExecute: File? = null
             var fileWithModifiedFunctions: File? = null
             try {
@@ -89,24 +85,19 @@ object GoTestCasesGenerator {
                     logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
                     functions.forEachIndexed { index, function ->
                         if (timeoutExceededOrIsCanceled(index)) return@forEachIndexed
-                        val testCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
-                        val engine = GoEngine(
-                            worker,
-                            function,
-                            aliases,
-                            intSize,
-                            eachExecutionTimeoutMillis
-                        ) { timeoutExceededOrIsCanceled(index) }
+                        val rawExecutionResults = mutableListOf<Pair<GoUtFuzzedFunction, RawExecutionResult>>()
+                        val engine = GoEngine(worker, function, aliases, intSize) { timeoutExceededOrIsCanceled(index) }
                         logger.info { "Fuzzing for function [${function.name}] - started" }
                         val totalFuzzingTime = measureTimeMillis {
                             engine.fuzzing().catch {
                                 logger.error { "Error in flow: ${it.message}" }
                             }.collect { (fuzzedFunction, executionResult) ->
-                                testCases.add(GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult))
+                                rawExecutionResults.add(fuzzedFunction to executionResult)
                             }
                         }
-                        logger.info { "Fuzzing for function [${function.name}] - completed in $totalFuzzingTime ms. Generated ${testCases.size} test cases" }
-                        allTestCases += testCases
+                        logger.debug { "Number of function executions - ${engine.numberOfFunctionExecutions}" }
+                        logger.info { "Fuzzing for function [${function.name}] - completed in $totalFuzzingTime ms. Generated ${rawExecutionResults.size} test cases" }
+                        allRawExecutionResults += rawExecutionResults
                     }
                     workerSocket.close()
                     val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
@@ -162,7 +153,15 @@ object GoTestCasesGenerator {
                 fileToExecute?.delete()
                 fileWithModifiedFunctions?.delete()
             }
-            return@runBlocking allTestCases
+            return@runBlocking allRawExecutionResults.map { (fuzzedFunction, rawExecutionResult) ->
+                val executionResult: GoUtExecutionResult = convertRawExecutionResultToExecutionResult(
+                    rawExecutionResult,
+                    fuzzedFunction.function.resultTypes,
+                    intSize,
+                    eachExecutionTimeoutMillis
+                )
+                GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult)
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ tasks {
 }
 
 dependencies {
-    api(project(":utbot-fuzzers"))
+    api(project(":utbot-java-fuzzing"))
     api(project(":utbot-framework"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")

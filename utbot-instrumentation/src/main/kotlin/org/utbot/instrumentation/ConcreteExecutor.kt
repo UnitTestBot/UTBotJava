@@ -27,7 +27,6 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.process.InstrumentedProcessRunner
 import org.utbot.instrumentation.process.generated.ComputeStaticFieldParams
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.rd.InstrumentedProcess
@@ -112,7 +111,6 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     internal val pathsToUserClasses: String
 ) : Closeable, Executor<TIResult> {
     private val ldef: LifetimeDefinition = LifetimeDefinition()
-    private val instrumentedProcessRunner: InstrumentedProcessRunner = InstrumentedProcessRunner()
 
     companion object {
 
@@ -161,7 +159,6 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         if (proc == null || !proc.lifetime.isAlive) {
             proc = InstrumentedProcess(
                 ldef,
-                instrumentedProcessRunner,
                 instrumentation,
                 pathsToUserClasses,
                 classLoader

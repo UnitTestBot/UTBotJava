@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Debug Spring Analyzer Process" type="CompoundRunConfigurationType">
+    <toRun name="Run IDEA" type="GradleRunConfiguration" />
+    <toRun name="Listen for Spring Analyzer Process" type="Remote" />
+    <method v="2" />
+  </configuration>
+</component>

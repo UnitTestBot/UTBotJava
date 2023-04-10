@@ -9,7 +9,7 @@ dependencies {
     implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
         exclude(group="com.google.guava", module="guava")
     }
-    implementation(project(":utbot-fuzzers"))
+    implementation(project(":utbot-java-fuzzing"))
     implementation(project(":utbot-instrumentation"))
     implementation(group = "com.github.haifengl", name = "smile-kotlin", version = "2.6.0")
     implementation(group = "com.github.haifengl", name = "smile-core", version = "2.6.0")

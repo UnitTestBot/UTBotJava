@@ -95,16 +95,17 @@ class InstrumentedProcess private constructor(
     companion object : AbstractRDProcessCompanion(
         debugPort = UtSettings.instrumentedProcessDebugPort,
         runWithDebug = UtSettings.runInstrumentedProcessWithDebug,
-        suspendExecutionInDebugMode = UtSettings.suspendInstrumentedProcessExecutionInDebugMode
-    ) {
-        override fun obtainProcessSpecificCommandLineArgs(): List<String> = buildList {
-            add("-javaagent:${instrumentationJarFile.path}")
-            add("-ea")
-            add("-jar")
-            add(instrumentationJarFile.path)
-            if (!UtSettings.useSandbox)
-                add(DISABLE_SANDBOX_OPTION)
-        }
+        suspendExecutionInDebugMode = UtSettings.suspendInstrumentedProcessExecutionInDebugMode,
+        processSpecificCommandLineArgs = {
+            buildList {
+                add("-javaagent:${instrumentationJarFile.path}")
+                add("-ea")
+                add("-jar")
+                add(instrumentationJarFile.path)
+                if (!UtSettings.useSandbox)
+                    add(DISABLE_SANDBOX_OPTION)
+            }
+        }) {
 
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
             parent: Lifetime,

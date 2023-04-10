@@ -627,7 +627,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             when (springConfig.item) {
                 NO_SPRING_CONFIGURATION_OPTION -> TypeReplacementApproach.DoNotReplace
                 else -> {
-                    val shortConfigName = springConfig.item.getItem().toString()
+                    val shortConfigName = springConfig.item.toString()
                     //TODO: avoid this check on xml here, merge two helpers into one
                     val fullConfigName = if (shortConfigName.endsWith(".xml")) {
                         xmlConfigurationHelper.restoreFullName(shortConfigName)

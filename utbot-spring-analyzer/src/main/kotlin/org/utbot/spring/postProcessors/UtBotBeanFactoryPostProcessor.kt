@@ -28,27 +28,13 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
         println("Finished post-processing bean factory in UtBot")
     }
 
-    private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): ArrayList<String> {
-        val beanClassNames = ArrayList<String>()
-        for (beanDefinitionName in beanFactory.beanDefinitionNames) {
-            val beanDefinition = beanFactory.getBeanDefinition(beanDefinitionName)
-
-            if (beanDefinition is AnnotatedBeanDefinition) {
-                val factoryMethodMetadata = beanDefinition.factoryMethodMetadata
-                if (factoryMethodMetadata != null) {
-                    beanClassNames.add(factoryMethodMetadata.returnTypeName)
-                }
-            } else {
-                var className = beanDefinition.beanClassName
-                if (className == null) {
-                    className = beanFactory.getBean(beanDefinitionName).javaClass.name
-                }
-                className?.let { beanClassNames.add(it) }
-            }
+    private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): List<String> =
+        beanFactory.beanDefinitionNames.map {
+            beanFactory.getBeanDefinition(it).beanClassName
+                // TODO: avoid getting bean and use methodName + declaringClass from previous implementation
+                //  and use it to find return type from PsiMethod return expressions in utbot main process.
+                ?: beanFactory.getBean(it)::class.java.name
         }
-
-        return beanClassNames
-    }
 
     private fun destroyBeanDefinitions(beanFactory: ConfigurableListableBeanFactory) {
         for (beanDefinitionName in beanFactory.beanDefinitionNames) {

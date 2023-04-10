@@ -139,15 +139,24 @@ object UtTestsDialogProcessor {
         return GenerateTestsDialogWindow(model)
     }
 
-    private fun compile(project: Project, files: Array<VirtualFile>): Promise<ProjectTaskManager.Result> {
-        val wholeModules = MavenProjectsManager.getInstance(project)?.hasProjects()?:false
+    private fun compile(
+        project: Project,
+        files: Array<VirtualFile>,
+        springConfigClass: PsiClass?,
+    ): Promise<ProjectTaskManager.Result> {
+        // For Maven project narrow compile scope may not work, see https://github.com/UnitTestBot/UTBotJava/issues/2021.
+        // For Spring project classes may contain `@ComponentScan` annotations, so we need to compile the whole module.
+        val isMavenProject = MavenProjectsManager.getInstance(project)?.hasProjects() ?: false
+        val isSpringProject = springConfigClass != null
+        val wholeModules = isMavenProject || isSpringProject
+
         val buildTasks = ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
             Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
                 ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
             }).entries
         ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
             if (wholeModules) {
-                // Maven-specific case, we have to compile the whole module
+                // This is a specific case, we have to compile the whole module
                 ModuleBuildTaskImpl(key!!, false)
             } else {
                 // Compile only chosen classes and their dependencies before generation.
@@ -166,7 +175,10 @@ object UtTestsDialogProcessor {
                         error("Can't find configuration class $it")
                 }
         }
-        val promise = compile(project, (model.srcClasses + listOfNotNull(springConfigClass)).map { it.containingFile.virtualFile }.toTypedArray())
+
+        val filesToCompile = model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
+
+        val promise = compile(project, filesToCompile, springConfigClass)
         promise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess

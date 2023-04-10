@@ -1,7 +1,7 @@
 @file:JvmName("FuzzingApi")
 package org.utbot.fuzzing
 
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.utils.MissedSeed
@@ -47,24 +47,31 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
     suspend fun handle(description: DESCRIPTION, values: List<RESULT>): FEEDBACK
 
     /**
-     * This method is called before every fuzzing attempt.
-     *
-     * Usually, is used to update configuration or manipulate some data in the statistics
-     * (for example, clear some [Statistic.missedTypes] types).
-     *
-     * @param description contains user-defined information about current run. Can be used as a state of the run.
-     * @param statistic statistic about fuzzing generation like elapsed time or number of the runs.
-     * @param configuration current used configuration; it can be changes for tuning fuzzing.
+     * Starts fuzzing with new description but with copy of [Statistic].
      */
-    suspend fun update(description: DESCRIPTION, statistic: Statistic<TYPE, RESULT>, configuration: Configuration) {}
+    suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
+        fuzz(description, StatisticImpl(statistics))
+    }
+
+    /**
+     * Checks whether the fuzzer should stop.
+     */
+    suspend fun isCancelled(description: DESCRIPTION, stats: Statistic<TYPE, RESULT>): Boolean {
+        return description.parameters.isEmpty()
+    }
+
+    suspend fun beforeIteration(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) { }
+    suspend fun afterIteration(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) { }
 }
 
 /**
  * Some description of current fuzzing run. Usually, it contains the name of the target method and its parameter list.
  */
 open class Description<TYPE>(
-    val parameters: List<TYPE>
-)
+    parameters: List<TYPE>
+) {
+    val parameters: List<TYPE> = parameters.toList()
+}
 
 /**
  * Input value that fuzzing knows how to build and use them.
@@ -115,7 +122,7 @@ sealed interface Seed<TYPE, RESULT> {
  * Routine is a task that is used to build a value.
  *
  * There are several types of a routine, which all are generally only functions.
- * These function accepts some data and generates target value.
+ * These functions accept some data and generate target value.
  */
 sealed class Routine<T, R>(val types: List<T>) : Iterable<T> by types {
 
@@ -212,13 +219,6 @@ enum class Control {
     CONTINUE,
 
     /**
-     * Reset type cache and continue.
-     *
-     * Current seed and result will be analysed and cached.
-     */
-    RESET_TYPE_CACHE_AND_CONTINUE,
-
-    /**
      * Do not process this feedback and just start next value generation.
      */
     PASS,
@@ -253,81 +253,71 @@ class NoSeedValueException internal constructor(
     val type: Any?
 ) : Exception("No seed candidates generated for type: $type")
 
-/**
- * Starts fuzzing for this [Fuzzing] object.
- *
- * This is an entry point for every fuzzing.
- */
 suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-    class StatImpl(
-        override var totalRuns: Long = 0,
-        val startTime: Long = System.nanoTime(),
-        override var missedTypes: MissedSeed<T, R> = MissedSeed(),
-    ) : Statistic<T, R> {
-        override val elapsedTime: Long
-            get() = System.nanoTime() - startTime
-    }
-    val userStatistic = StatImpl()
+    fuzz(description, StatisticImpl(random = random, configuration = configuration))
+}
+
+/**
+ * Starts fuzzing for this [Fuzzing] object.
+ *
+ * This is an entry point for every fuzzing.
+ */
+private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
+    description: D,
+    statistic: StatisticImpl<T, R, F>,
+) {
+    val random = statistic.random
+    val configuration = statistic.configuration
     val fuzzing = this
     val typeCache = hashMapOf<T, List<Seed<T, R>>>()
-    fun fuzzOne(): Node<T, R> = fuzz(
-        parameters = description.parameters,
+    fun fuzzOne(parameters: List<T>): Node<T, R> = fuzz(
+        parameters = parameters,
         fuzzing = fuzzing,
         description = description,
         random = random,
         configuration = configuration,
         builder = PassRoutine("Main Routine"),
-        state = State(1, typeCache, userStatistic.missedTypes),
+        state = State(1, typeCache, statistic.missedTypes),
     )
-    val dynamicallyGenerated = mutableListOf<Node<T, R>>()
-    val seeds = Statistics<T, R, F>()
-    run breaking@ {
-        sequence {
-            while (description.parameters.isNotEmpty()) {
-                if (dynamicallyGenerated.isNotEmpty()) {
-                    yield(dynamicallyGenerated.removeFirst())
-                } else {
-                    val fuzzOne = fuzzOne()
-                    // fuzz one value, seems to be bad, when have only a few and simple values
-                    yield(fuzzOne)
 
-                    val randomSeed = seeds.getRandomSeed(random, configuration)
-                    if (randomSeed != null) {
-                        dynamicallyGenerated += mutate(
-                            randomSeed,
-                            fuzzing,
-                            random,
-                            configuration,
-                            State(1, typeCache, userStatistic.missedTypes)
-                        )
-                    }
-                }
+    while (!fuzzing.isCancelled(description, statistic)) {
+        beforeIteration(description, statistic)
+        val seed = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+            statistic.getRandomSeed(random, configuration)
+        } else {
+            val actualParameters = description.parameters
+            // fuzz one value, seems to be bad, when have only a few and simple values
+            fuzzOne(actualParameters)
+        }
+        val values = mutate(
+            seed,
+            fuzzing,
+            random,
+            configuration,
+            State(1, typeCache, statistic.missedTypes)
+        )
+        afterIteration(description, statistic)
+
+        yield()
+        statistic.apply {
+            totalRuns++
+        }
+        check(values.parameters.size == values.result.size) { "Cannot create value for ${values.parameters}" }
+        val valuesCache = mutableMapOf<Result<T, R>, R>()
+        val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
+        val feedback = fuzzing.handle(description, result)
+        when (feedback.control) {
+            Control.CONTINUE -> {
+                statistic.put(random, configuration, feedback, values)
             }
-        }.forEach execution@ { values ->
-            yield()
-            fuzzing.update(description, userStatistic.apply {
-                totalRuns++
-            }, configuration)
-            check(values.parameters.size == values.result.size) { "Cannot create value for ${values.parameters}" }
-            val valuesCache = mutableMapOf<Result<T, R>, R>()
-            val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
-            val feedback = fuzzing.handle(description, result)
-            when (feedback.control) {
-                Control.CONTINUE -> {
-                    seeds.put(random, configuration, feedback, values)
-                }
-                Control.RESET_TYPE_CACHE_AND_CONTINUE -> {
-                    dynamicallyGenerated.clear()
-                    typeCache.clear()
-                    seeds.put(random, configuration, feedback, values)
-                }
-                Control.STOP -> { return@breaking }
-                Control.PASS -> {}
+            Control.STOP -> {
+                break
             }
+            Control.PASS -> {}
         }
     }
 }
@@ -678,8 +668,24 @@ private class Node<TYPE, RESULT>(
     val builder: Routine<TYPE, RESULT>,
 )
 
+private class StatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
+    override var totalRuns: Long = 0,
+    override val startTime: Long = System.nanoTime(),
+    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
+    override val random: Random,
+    override val configuration: Configuration,
+) : Statistic<TYPE, RESULT> {
 
-private class Statistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> {
+    constructor(source: Statistic<TYPE, RESULT>) : this(
+        totalRuns = source.totalRuns,
+        startTime = source.startTime,
+        missedTypes = source.missedTypes,
+        random = source.random,
+        configuration = source.configuration.copy(),
+    )
+
+    override val elapsedTime: Long
+        get() = System.nanoTime() - startTime
     private val seeds = linkedMapOf<FEEDBACK, Node<TYPE, RESULT>>()
     private val count = linkedMapOf<FEEDBACK, Long>()
 
@@ -692,8 +698,8 @@ private class Statistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> {
         count[feedback] = count.getOrDefault(feedback, 0L) + 1L
     }
 
-    fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>? {
-        if (seeds.isEmpty()) return null
+    fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
+        if (seeds.isEmpty()) error("Call `isNotEmpty` before getting the seed")
         val entries = seeds.entries.toList()
         val frequencies = DoubleArray(seeds.size).also { f ->
             entries.forEachIndexed { index, (key, _) ->
@@ -703,6 +709,7 @@ private class Statistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> {
         val index = random.chooseOne(frequencies)
         return entries[index].value
     }
-}
 
+    fun isNotEmpty() = seeds.isNotEmpty()
+}
 ///endregion

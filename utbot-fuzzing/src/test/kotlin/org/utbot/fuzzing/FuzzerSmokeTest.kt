@@ -1,6 +1,7 @@
 package org.utbot.fuzzing
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.flow
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -93,28 +94,6 @@ class FuzzerSmokeTest {
             }
             Assertions.assertEquals(0, count)
             Assertions.assertEquals(1, generations)
-        }
-    }
-
-    @Test
-    fun `fuzzing runs value generation every type when cache is being reset`() {
-        runBlocking {
-            var count = 10
-            var generations = 0
-            runFuzzing(
-                { _, _ ->
-                    generations++
-                    sequenceOf(Seed.Simple(Unit))
-                },
-                Description(listOf(Unit))
-            ) { _, _ ->
-                BaseFeedback(Unit, if (--count == 0) Control.STOP else Control.RESET_TYPE_CACHE_AND_CONTINUE)
-            }
-            Assertions.assertEquals(0, count)
-            // fuzzing swaps generated and modified values,
-            // therefore it can call generation only once,
-            // but at the moment it should be called 5 times
-            Assertions.assertEquals(5, generations)
         }
     }
 
@@ -252,5 +231,31 @@ class FuzzerSmokeTest {
         Assertions.assertEquals(firstRun, secondRun)
         Assertions.assertEquals(firstRun, thirdRun)
         Assertions.assertEquals(secondRun, thirdRun)
+    }
+
+    @Test
+    fun `check flow invariant is not violated`() {
+        val timeConsumer: (Long) -> Unit = {}
+        runBlocking {
+            val deferred = async {
+                val start = System.currentTimeMillis()
+                flow {
+                    runFuzzing(
+                        { _, _ -> sequenceOf(Seed.Simple(Unit)) },
+                        Description(listOf(Unit))
+                    ) { _, _ ->
+                        if (System.currentTimeMillis() - start > 10_000) {
+                            error("Fuzzer didn't stopped in 10_000 ms")
+                        }
+                        emit(System.currentTimeMillis())
+                        BaseFeedback(Unit, Control.CONTINUE)
+                    }
+                }.collect {
+                    timeConsumer(it)
+                }
+            }
+            delay(1000)
+            deferred.cancel()
+        }
     }
 }

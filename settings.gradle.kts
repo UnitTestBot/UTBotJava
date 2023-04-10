@@ -70,5 +70,5 @@ if (includeRiderInBuild.toBoolean()) {
 //    include("utbot-intellij-go")
 //}
 
-//include("utbot-spring-analyzer")
+include("utbot-spring-analyzer")
 include("utbot-uber-jar")

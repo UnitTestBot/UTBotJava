@@ -10,17 +10,17 @@ import org.utbot.engine.state.ExecutionState
  *
  * TODO: extend this class with other properties, such as [Environment], which is [Traverser] mutable property now.
  */
-class TraversalContext {
+open class TraversalContext {
     // TODO: move properties from [UtBotSymbolicEngine] here
 
 
     // TODO: Q: maybe it's better to pass stateConsumer as an argument to constructor?
-    private val states = mutableListOf<ExecutionState>()
+    protected val states = mutableListOf<ExecutionState>()
 
     /**
      * Offers new [ExecutionState] which can be obtained later with [nextStates].
      */
-    fun offerState(state: ExecutionState) {
+    open fun offerState(state: ExecutionState) {
         states.add(state)
     }
 

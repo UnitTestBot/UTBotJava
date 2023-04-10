@@ -300,9 +300,7 @@ class Traverser(
     // A counter for objects created as native method call result.
     private var unboundedConstCounter = 0
 
-    fun traverse(state: ExecutionState): Collection<ExecutionState> {
-        val context = TraversalContext()
-
+    fun traverse(state: ExecutionState, context: TraversalContext = TraversalContext()): Collection<ExecutionState> {
         val currentStmt = state.stmt
         environment = Environment(globalGraph.method(state.stmt), state)
 

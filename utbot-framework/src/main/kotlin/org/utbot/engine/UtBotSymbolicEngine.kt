@@ -15,9 +15,11 @@ import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
 import org.utbot.engine.selectors.strategies.GraphViz
+import org.utbot.engine.state.Edge
 import org.utbot.engine.state.ExecutionStackElement
 import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.state.StateLabel
+import org.utbot.engine.state.update
 import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.types.TypeRegistry
@@ -108,10 +110,10 @@ class UtBotSymbolicEngine(
     dependencyPaths: String,
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
-    applicationContext: ApplicationContext,
+    val applicationContext: ApplicationContext,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
-    private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
+    val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
     }.graph()
 
@@ -122,7 +124,7 @@ class UtBotSymbolicEngine(
     }
 
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
-    private val globalGraph = InterProceduralUnitGraph(graph)
+    val globalGraph = InterProceduralUnitGraph(graph)
     private val typeRegistry: TypeRegistry = TypeRegistry()
     private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
 
@@ -199,6 +201,38 @@ class UtBotSymbolicEngine(
         runBlocking {
             traverse().collect()
         }
+    }
+
+    fun buildExecutionState(path: List<Stmt>) : ExecutionState {
+        val state = ExecutionState(
+            path.first(),
+            SymbolicState(UtSolver(typeRegistry, trackableResources, solverTimeoutInMillis)),
+            executionStack = persistentListOf(ExecutionStackElement(null, method = graph.body.method)),
+        )
+        val p = path.drop(1).toMutableList()
+        class TC : TraversalContext() {
+            override fun offerState(state: ExecutionState) {
+                if (p.firstOrNull() == state.stmt) {
+                    p.removeFirst()
+                    super.offerState(state)
+                }
+            }
+        }
+
+        val tr = Traverser(
+            methodUnderTest,
+            typeRegistry,
+            hierarchy,
+            typeResolver,
+            globalGraph,
+            mocker,
+            applicationContext,
+        )
+        val last = generateSequence(state) {
+            tr.traverse(it, TC()).also { require(it.size <= 1) }.firstOrNull()
+        }.last()
+        require(p.isEmpty()) { "Incomplete path" }
+        return last
     }
 
     private fun traverseImpl(): Flow<UtResult> = flow {

@@ -214,7 +214,7 @@ class JsTestGenerator(
         fuzzedValues: List<UtModel>
     ): UtExecutionResult {
         if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
-            TimeoutException("  Timeout in generating test for ${
+            TimeoutException("Timeout in generating test for ${
                 execId.parameters
                     .zip(fuzzedValues)
                     .joinToString(

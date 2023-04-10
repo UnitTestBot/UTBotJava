@@ -1,7 +1,5 @@
 package utils
 
-import org.json.JSONException
-import org.json.JSONObject
 import framework.api.js.JsClassId
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsDoubleClassId
@@ -9,6 +7,8 @@ import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
+import org.json.JSONException
+import org.json.JSONObject
 import utils.data.ResultData
 
 fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, JsClassId> {
@@ -17,8 +17,11 @@ fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, J
         return when {
             this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
             this == "null" || this == "undefined" -> null to jsUndefinedClassId
+            Regex("\\[.*]").matches(this) && returnType.name == "object" ->
+                makeArray(this) to JsClassId("array", elementClassId = jsUndefinedClassId)
             this@toJsAny.isError -> this to jsErrorClassId
-            returnType == jsStringClassId -> this.replace("\"", "") to jsStringClassId
+            returnType == jsStringClassId || this@toJsAny.type == jsStringClassId.name ->
+                this.replace("\"", "") to jsStringClassId
             else -> {
                 if (contains('.')) {
                     (toDoubleOrNull() ?: toBigDecimal()) to jsDoubleClassId
@@ -27,7 +30,9 @@ fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, J
                     ?: toBigIntegerOrNull() ?: toDoubleOrNull()
                     if (value != null) value to jsNumberClassId else {
                         val obj = makeObject(this)
-                        if (obj != null) obj to returnType else throw IllegalStateException()
+                        if (obj != null) obj to returnType else {
+                            throw IllegalStateException("Could not make js value from $this value with type ${this@toJsAny.type}")
+                        }
                     }
                 }
             }
@@ -55,4 +60,9 @@ private fun makeObject(objString: String): Map<String, Any>? {
     } catch (e: JSONException) {
         null
     }
+}
+
+private fun makeArray(arrString: String): List<Any?> {
+    val strValues = arrString.replace(Regex("[\\[\\]]"), "").split(",")
+    return strValues.map { ResultData(it, index = 0).toJsAny(jsUndefinedClassId).first }
 }

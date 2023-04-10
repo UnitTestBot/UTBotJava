@@ -262,3 +262,29 @@ type S struct {
 func StructWithFieldsOfNamedTypes(s S) S {
 	return s
 }
+
+func Map(table map[string]int) map[string]int {
+	return table
+}
+
+func MapOfStructures(table map[Structure]Structure) map[Structure]Structure {
+	return table
+}
+
+func MapOfSliceOfInt(table map[string][]int) map[string][]int {
+	return table
+}
+
+func MapOfNamedType(table map[int]Type) map[int]Type {
+	return table
+}
+
+func MapOfNamedSlice(table map[uint]NS) map[uint]NS {
+	return table
+}
+
+type NM map[string]NA
+
+func NamedMap(n NM) NM {
+	return n
+}

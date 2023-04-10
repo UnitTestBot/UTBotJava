@@ -41,6 +41,17 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             model.getElements().map { it.convertToRawValue(destinationPackage, aliases) }
         )
 
+        is GoUtMapModel -> MapValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            model.typeId.keyTypeId.getRelativeName(destinationPackage, aliases),
+            model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
+            model.value.entries.map {
+                val key = it.key.convertToRawValue(destinationPackage, aliases)
+                val value = it.value.convertToRawValue(destinationPackage, aliases)
+                MapValue.KeyValue(key, value)
+            }
+        )
+
         is GoUtStructModel -> StructValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
             model.value.map {

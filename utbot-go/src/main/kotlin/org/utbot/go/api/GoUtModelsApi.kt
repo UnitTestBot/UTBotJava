@@ -2,10 +2,7 @@
 
 package org.utbot.go.api
 
-import org.utbot.go.api.util.goDefaultValueModel
-import org.utbot.go.api.util.goFloat64TypeId
-import org.utbot.go.api.util.goStringTypeId
-import org.utbot.go.api.util.neverRequiresExplicitCast
+import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtFieldModel
@@ -69,15 +66,7 @@ class GoUtArrayModel(
 
     override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
         val elementNamedTypeId = typeId.elementTypeId as? GoNamedTypeId
-        val imports =
-            if (elementNamedTypeId != null &&
-                !elementNamedTypeId.sourcePackage.isBuiltin &&
-                elementNamedTypeId.sourcePackage != destinationPackage
-            ) {
-                setOf(elementNamedTypeId.sourcePackage)
-            } else {
-                emptySet()
-            }
+        val imports = elementNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet()
         return value.values.fold(imports) { acc, model ->
             acc + model.getRequiredPackages(destinationPackage)
         }
@@ -104,15 +93,7 @@ class GoUtSliceModel(
 
     override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
         val elementNamedTypeId = typeId.elementTypeId as? GoNamedTypeId
-        val imports =
-            if (elementNamedTypeId != null &&
-                !elementNamedTypeId.sourcePackage.isBuiltin &&
-                elementNamedTypeId.sourcePackage != destinationPackage
-            ) {
-                setOf(elementNamedTypeId.sourcePackage)
-            } else {
-                emptySet()
-            }
+        val imports = elementNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet()
         return value.values.fold(imports) { acc, model ->
             acc + model.getRequiredPackages(destinationPackage)
         }
@@ -127,6 +108,27 @@ class GoUtSliceModel(
     override fun toString(): String = getElements().joinToString(prefix = "$typeId{", postfix = "}") {
         it.toString()
     }
+}
+
+class GoUtMapModel(
+    val value: MutableMap<GoUtModel, GoUtModel>,
+    typeId: GoMapTypeId,
+) : GoUtModel(typeId) {
+    override val typeId: GoMapTypeId
+        get() = super.typeId as GoMapTypeId
+
+    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
+        val keyNamedTypeId = typeId.keyTypeId as? GoNamedTypeId
+        var imports = keyNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet()
+        val elementNamedTypeId = typeId.elementTypeId as? GoNamedTypeId
+        imports = imports + (elementNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet())
+        return value.values.fold(imports) { acc, model ->
+            acc + model.getRequiredPackages(destinationPackage)
+        }
+    }
+
+    override fun isComparable(): Boolean =
+        value.keys.all { it.isComparable() } && value.values.all { it.isComparable() }
 }
 
 class GoUtFloatNaNModel(
@@ -186,14 +188,8 @@ class GoUtNamedModel(
     override val typeId: GoNamedTypeId
         get() = super.typeId as GoNamedTypeId
 
-    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
-        val import = if (!typeId.sourcePackage.isBuiltin && typeId.sourcePackage != destinationPackage) {
-            setOf(typeId.sourcePackage)
-        } else {
-            emptySet()
-        }
-        return import + value.getRequiredPackages(destinationPackage)
-    }
+    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
+        typeId.getRequiredPackages(destinationPackage) + value.getRequiredPackages(destinationPackage)
 
     override fun isComparable(): Boolean = value.isComparable()
 }

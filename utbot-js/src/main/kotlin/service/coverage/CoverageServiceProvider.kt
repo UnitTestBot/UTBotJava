@@ -45,6 +45,22 @@ function check_value(value, json) {
         json.is_nan = true
     }
 }
+
+function getType(value) {
+    if (value instanceof Set) {
+        return "Set"
+    } else if (value instanceof Map) {
+        return "Map"
+    } else if (value instanceof Array) {
+        return "Array"
+    }
+    return typeof value
+}
+
+function getRes(value, type) {
+    if (type === "Set" || type === "Map") return Array.from(value)
+    return value
+}
     """
 
     private val baseCoverage: Map<Int, Int>
@@ -159,8 +175,8 @@ try {
     res$index = e.message
     json$index.is_error = true
 }
-json$index.result = res$index
-json$index.type = typeof res$index
+json$index.type = getType(res$index)
+json$index.result = getRes(res$index, json$index.type)
 json$index.index = $index
 json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s   
     

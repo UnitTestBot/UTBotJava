@@ -27,7 +27,6 @@ import com.intellij.task.impl.ProjectTaskList
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.nullize
-import com.intellij.util.io.exists
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -36,6 +35,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Arrays
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
+import kotlin.io.path.exists
 import kotlin.io.path.pathString
 import mu.KotlinLogging
 import org.jetbrains.concurrency.Promise

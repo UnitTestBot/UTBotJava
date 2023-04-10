@@ -100,11 +100,9 @@ class EngineProcess private constructor(val project: Project, private val classN
     companion object : AbstractRDProcessCompanion(
         debugPort = UtSettings.engineProcessDebugPort,
         runWithDebug = UtSettings.runEngineProcessWithDebug,
-        suspendExecutionInDebugMode = UtSettings.suspendEngineProcessExecutionInDebugMode
+        suspendExecutionInDebugMode = UtSettings.suspendEngineProcessExecutionInDebugMode,
+        processSpecificCommandLineArgs = { listOf("-ea", log4j2ConfigSwitch, "-cp", pluginClasspath, startFileName) }
     ) {
-        override fun obtainProcessSpecificCommandLineArgs(): List<String> =
-            listOf("-ea", log4j2ConfigSwitch, "-cp", pluginClasspath, startFileName)
-
         fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
 
         suspend operator fun invoke(project: Project, classNameToPath: Map<String, String?>): EngineProcess =

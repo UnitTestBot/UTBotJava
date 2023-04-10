@@ -101,7 +101,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         debugPort = UtSettings.engineProcessDebugPort,
         runWithDebug = UtSettings.runEngineProcessWithDebug,
         suspendExecutionInDebugMode = UtSettings.suspendEngineProcessExecutionInDebugMode,
-        processSpecificCommandLineArgs = listOf("-ea", log4j2ConfigSwitch, "-cp", pluginClasspath, startFileName)
+        processSpecificCommandLineArgs = { listOf("-ea", log4j2ConfigSwitch, "-cp", pluginClasspath, startFileName) }
     ) {
         fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
 

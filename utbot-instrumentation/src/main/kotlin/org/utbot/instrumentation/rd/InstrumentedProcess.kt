@@ -96,15 +96,17 @@ class InstrumentedProcess private constructor(
         debugPort = UtSettings.instrumentedProcessDebugPort,
         runWithDebug = UtSettings.runInstrumentedProcessWithDebug,
         suspendExecutionInDebugMode = UtSettings.suspendInstrumentedProcessExecutionInDebugMode,
-        processSpecificCommandLineArgs = buildList {
-            add("-javaagent:${instrumentationJarFile.path}")
-            add("-ea")
-            add("-jar")
-            add(instrumentationJarFile.path)
-            if (!UtSettings.useSandbox)
-                add(DISABLE_SANDBOX_OPTION)
-        }
-    ) {
+        processSpecificCommandLineArgs = {
+            buildList {
+                add("-javaagent:${instrumentationJarFile.path}")
+                add("-ea")
+                add("-jar")
+                add(instrumentationJarFile.path)
+                if (!UtSettings.useSandbox)
+                    add(DISABLE_SANDBOX_OPTION)
+            }
+        }) {
+
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
             parent: Lifetime,
             instrumentation: TInstrumentation,

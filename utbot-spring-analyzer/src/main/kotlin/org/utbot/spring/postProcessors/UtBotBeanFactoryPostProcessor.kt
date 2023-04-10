@@ -1,5 +1,6 @@
 package org.utbot.spring.postProcessors
 
+import org.springframework.beans.factory.BeanCreationException
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
@@ -28,13 +29,19 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
         println("Finished post-processing bean factory in UtBot")
     }
 
-    private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): List<String> =
-        beanFactory.beanDefinitionNames.map {
-            beanFactory.getBeanDefinition(it).beanClassName
-                // TODO: avoid getting bean and use methodName + declaringClass from previous implementation
-                //  and use it to find return type from PsiMethod return expressions in utbot main process.
-                ?: beanFactory.getBean(it)::class.java.name
-        }
+    private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): List<String> {
+        return beanFactory.beanDefinitionNames.mapNotNull {
+            try {
+                beanFactory.getBeanDefinition(it).beanClassName
+                    //TODO: avoid getting bean here, change the interface to find method and return type
+                    // and obtain required information from PsiClass in UtBot after that.
+                    ?: beanFactory.getBean(it).javaClass.name
+            } catch (e: BeanCreationException) {
+                //logger.warn { "Failed to get bean: $it" }
+                null
+            }
+        }.filterNot { it.startsWith("org.utbot.spring") }
+    }
 
     private fun destroyBeanDefinitions(beanFactory: ConfigurableListableBeanFactory) {
         for (beanDefinitionName in beanFactory.beanDefinitionNames) {

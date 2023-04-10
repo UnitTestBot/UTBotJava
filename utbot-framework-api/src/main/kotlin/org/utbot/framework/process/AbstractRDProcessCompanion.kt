@@ -9,16 +9,15 @@ import kotlin.io.path.pathString
 abstract class AbstractRDProcessCompanion(
     private val debugPort: Int,
     private val runWithDebug: Boolean,
-    private val suspendExecutionInDebugMode: Boolean
+    private val suspendExecutionInDebugMode: Boolean,
+    private val processSpecificCommandLineArgs: () -> List<String>
 ) {
     private val javaExecutablePathString get() =
         JdkInfoService.provide().path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}")
 
-    protected abstract fun obtainProcessSpecificCommandLineArgs(): List<String>
-
     protected fun obtainProcessCommandLine(port: Int): List<String> = buildList {
         addAll(obtainCommonProcessCommandLineArgs())
-        addAll(obtainProcessSpecificCommandLineArgs())
+        addAll(processSpecificCommandLineArgs())
         add(rdPortArgument(port))
     }
 

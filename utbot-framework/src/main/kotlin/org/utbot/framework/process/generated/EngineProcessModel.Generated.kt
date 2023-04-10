@@ -73,7 +73,7 @@ class EngineProcessModel private constructor(
         
         private val __StringArraySerializer = FrameworkMarshallers.String.array()
         
-        const val serializationHash = 1955031277042475752L
+        const val serializationHash = -8371458556124482010L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -755,7 +755,7 @@ data class GenerateTestReportResult (
 data class GetSpringBeanQualifiedNamesParams (
     val classpath: Array<String>,
     val config: String,
-    val useSpringAnalyzer: Boolean
+    val fileStorage: String?
 ) : IPrintable {
     //companion
     
@@ -766,14 +766,14 @@ data class GetSpringBeanQualifiedNamesParams (
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanQualifiedNamesParams  {
             val classpath = buffer.readArray {buffer.readString()}
             val config = buffer.readString()
-            val useSpringAnalyzer = buffer.readBool()
-            return GetSpringBeanQualifiedNamesParams(classpath, config, useSpringAnalyzer)
+            val fileStorage = buffer.readNullable { buffer.readString() }
+            return GetSpringBeanQualifiedNamesParams(classpath, config, fileStorage)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanQualifiedNamesParams)  {
             buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.config)
-            buffer.writeBool(value.useSpringAnalyzer)
+            buffer.writeNullable(value.fileStorage) { buffer.writeString(it) }
         }
         
         
@@ -791,7 +791,7 @@ data class GetSpringBeanQualifiedNamesParams (
         
         if (!(classpath contentDeepEquals other.classpath)) return false
         if (config != other.config) return false
-        if (useSpringAnalyzer != other.useSpringAnalyzer) return false
+        if (fileStorage != other.fileStorage) return false
         
         return true
     }
@@ -800,7 +800,7 @@ data class GetSpringBeanQualifiedNamesParams (
         var __r = 0
         __r = __r*31 + classpath.contentDeepHashCode()
         __r = __r*31 + config.hashCode()
-        __r = __r*31 + useSpringAnalyzer.hashCode()
+        __r = __r*31 + if (fileStorage != null) fileStorage.hashCode() else 0
         return __r
     }
     //pretty print
@@ -809,7 +809,7 @@ data class GetSpringBeanQualifiedNamesParams (
         printer.indent {
             print("classpath = "); classpath.print(printer); println()
             print("config = "); config.print(printer); println()
-            print("useSpringAnalyzer = "); useSpringAnalyzer.print(printer); println()
+            print("fileStorage = "); fileStorage.print(printer); println()
         }
         printer.print(")")
     }

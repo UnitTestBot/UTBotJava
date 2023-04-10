@@ -301,7 +301,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * The property is useful only for the IntelliJ IDEs.
      * If the property is set in true the spring analyzer process opens a debug port.
      * @see runInstrumentedProcessWithDebug
-     * @see org.utbot.framework.process.SpringAnalyzerProcess
+     * @see org.utbot.spring.process.SpringAnalyzerProcess
      */
     var runSpringAnalyzerProcessWithDebug by getBooleanProperty(false)
 

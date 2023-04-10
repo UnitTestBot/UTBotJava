@@ -8,6 +8,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
@@ -27,6 +28,8 @@ import com.intellij.task.impl.ProjectTaskList
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.nullize
+import com.intellij.util.io.exists
+import com.jetbrains.python.sdk.basePath
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -46,7 +49,7 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.codegen.domain.TypeReplacementApproach
+import org.utbot.framework.codegen.domain.TypeReplacementApproach.*
 import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
@@ -168,8 +171,8 @@ object UtTestsDialogProcessor {
 
     private fun createTests(project: Project, model: GenerateTestsModel) {
         val springConfigClass = when (val approach = model.typeReplacementApproach) {
-            TypeReplacementApproach.DoNotReplace -> null
-            is TypeReplacementApproach.ReplaceIfPossible ->
+            DoNotReplace -> null
+            is ReplaceIfPossible ->
                 approach.config.takeUnless { it.endsWith(".xml") }?.let {
                     JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.projectScope(project)) ?:
                         error("Can't find configuration class $it")
@@ -227,25 +230,31 @@ object UtTestsDialogProcessor {
                         val process = EngineProcess.createBlocking(project, classNameToPath)
 
                         process.terminateOnException { _ ->
-                            process.setupUtContext(buildDirs + classpathList)
+                            val classpathForClassLoader = buildDirs + classpathList
+                            process.setupUtContext(classpathForClassLoader)
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanQualifiedNames =
                                         when (val approach = model.typeReplacementApproach) {
-                                            TypeReplacementApproach.DoNotReplace -> emptyList()
-                                            is TypeReplacementApproach.ReplaceIfPossible ->
+                                            DoNotReplace -> emptyList()
+                                            is ReplaceIfPossible -> {
+                                                // TODO: use common parent path for srcModule and used Spring
+                                                //  config module if they are different modules
+                                                val projectFileStorage = model.srcModule.basePath
                                                 process.getSpringBeanQualifiedNames(
-                                                    buildDirs + classpathList,
+                                                    classpathForClassLoader,
                                                     approach.config,
-                                                    model.useSpringAnalyzer
-                                                ).also { logger.info { "Detected Spring Beans: $it" } }
+                                                    projectFileStorage,
+                                                )
+                                            }
                                         }
+                                    val shouldUseImplementors = model.typeReplacementApproach is ReplaceIfPossible
 
                                     SpringApplicationContext(
                                         mockFrameworkInstalled,
                                         staticMockingConfigured,
                                         beanQualifiedNames,
-                                        shouldUseImplementors = beanQualifiedNames.isNotEmpty(),
+                                        shouldUseImplementors,
                                     )
                                 }
                                 else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)

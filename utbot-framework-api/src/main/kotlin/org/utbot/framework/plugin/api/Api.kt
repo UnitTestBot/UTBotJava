@@ -61,7 +61,6 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.*
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootField
@@ -1276,7 +1275,7 @@ class SpringApplicationContext(
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                springInjectedClassesStorage += beanQualifiedNames
+                _springInjectedClasses += beanQualifiedNames
                     .map { fqn -> utContext.classLoader.loadClass(fqn) }
                     .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
                     .mapTo(mutableSetOf()) { it.id }
@@ -1286,7 +1285,7 @@ class SpringApplicationContext(
                 areInjectedClassesInitialized = true
             }
 
-            return springInjectedClassesStorage
+            return _springInjectedClasses
         }
 
     // This is a service field to model the lazy behavior of [springInjectedClasses].
@@ -1294,7 +1293,7 @@ class SpringApplicationContext(
     //
     // Actually, we should just call [springInjectedClasses] with `by lazy`, but  we had problems
     // with a strange `kotlin.UNINITIALIZED_VALUE` in `speculativelyCannotProduceNullPointerException` method call.
-    private val springInjectedClassesStorage = mutableSetOf<ClassId>()
+    private val _springInjectedClasses = mutableSetOf<ClassId>()
 
     override val typeReplacementMode: TypeReplacementMode =
         if (shouldUseImplementors) KnownImplementor else NoImplementors

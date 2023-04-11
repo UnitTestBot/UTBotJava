@@ -74,6 +74,8 @@ class SpringAnalyzerProcess private constructor(
         suspend operator fun invoke(classpathItems: List<String>): SpringAnalyzerProcess = LifetimeDefinition().terminateOnException { lifetime ->
             val extendedClasspath = listOf(springAnalyzerJarFile.path) + classpathItems
             val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
+                // TODO put right version of the Spring Boot jar on the
+                //  classpath if user uses Spring without Spring Boot
                 classpathArgs = listOf(
                     "-cp",
                     "\"${extendedClasspath.joinToString(File.pathSeparator)}\"",

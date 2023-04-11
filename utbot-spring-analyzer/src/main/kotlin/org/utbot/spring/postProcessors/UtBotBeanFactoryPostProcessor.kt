@@ -24,9 +24,8 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
     override fun postProcessBeanFactory(beanFactory: ConfigurableListableBeanFactory) {
         logger.info { "Started post-processing bean factory in UtBot" }
 
-        val beanClassNames = findBeanClassNames(beanFactory)
-        beanQualifiedNames = beanClassNames.distinct()
-        println("Bean Qualified Names: " + beanQualifiedNames)
+        beanQualifiedNames = findBeanClassNames(beanFactory)
+        logger.info { "Detected Beans: $beanQualifiedNames" }
 
         // After desired post-processing is completed we destroy bean definitions
         // to avoid further possible actions with beans that may be unsafe.
@@ -44,6 +43,7 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
                 null
             }
         }.filterNot { it.startsWith("org.utbot.spring") || it.contains("\$\$") }
+         .distinct()
     }
 
     private fun destroyBeanDefinitions(beanFactory: ConfigurableListableBeanFactory) {

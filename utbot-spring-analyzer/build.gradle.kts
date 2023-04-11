@@ -18,19 +18,31 @@ java {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-dependencies {
-    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
-    implementation("org.springframework.boot:spring-boot:$springBootVersion")
+val shadowConfiguration by configurations.creating {}
 
-    implementation(project(":utbot-rd"))
-    implementation(project(":utbot-core"))
-    implementation(project(":utbot-framework-api"))
-    implementation("com.jetbrains.rd:rd-framework:$rdVersion")
-    implementation("com.jetbrains.rd:rd-core:$rdVersion")
-    implementation("commons-logging:commons-logging:$commonsLoggingVersion")
+dependencies {
+    fun shadowAndImplementation(dependencyNotation: Any) {
+        shadowConfiguration(dependencyNotation)
+        implementation(dependencyNotation)
+    }
+
+    // TODO: use regular `implementation` configuration for `spring-boot`
+    //  and maybe for `commons-io`, they will be taken from user's classpath
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
+    shadowAndImplementation("org.springframework.boot:spring-boot:$springBootVersion")
+
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
-    implementation("commons-io:commons-io:$commonsIOVersion")
+
+    shadowAndImplementation(project(":utbot-rd"))
+    shadowAndImplementation(project(":utbot-core"))
+    shadowAndImplementation(project(":utbot-framework-api"))
+    shadowAndImplementation("com.jetbrains.rd:rd-framework:$rdVersion")
+    shadowAndImplementation("com.jetbrains.rd:rd-core:$rdVersion")
+    shadowAndImplementation("commons-logging:commons-logging:$commonsLoggingVersion")
+    shadowAndImplementation("commons-io:commons-io:$commonsIOVersion")
 }
+
+shadowConfiguration.exclude(group = "org.slf4j", module = "slf4j-api")
 
 application {
     mainClass.set("org.utbot.spring.process.SpringAnalyzerProcessMainKt")
@@ -38,6 +50,8 @@ application {
 
 // see more details about this task -- https://github.com/spring-projects/spring-boot/issues/1828
 tasks.shadowJar {
+    this@shadowJar.configurations = listOf(shadowConfiguration)
+
     isZip64 = true
     // Required for Spring
     mergeServiceFiles()

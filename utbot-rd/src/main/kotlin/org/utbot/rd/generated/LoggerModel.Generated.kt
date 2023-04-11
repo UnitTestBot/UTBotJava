@@ -9,6 +9,7 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
+import kotlin.time.Duration
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
@@ -20,7 +21,7 @@ import kotlin.jvm.JvmStatic
 class LoggerModel private constructor(
     private val _initRemoteLogging: RdSignal<Unit>,
     private val _log: RdSignal<LogArguments>,
-    private val _getCategoryMinimalLogLevel: RdCall<String, Int>
+    private val _getCategoryMinimalLogLevel: RdOptionalProperty<Int>
 ) : RdExtBase() {
     //companion
     
@@ -48,7 +49,7 @@ class LoggerModel private constructor(
         }
         
         
-        const val serializationHash = 1686273842005935878L
+        const val serializationHash = -4262122198555578601L
         
     }
     override val serializersOwner: ISerializersOwner get() = LoggerModel
@@ -59,12 +60,15 @@ class LoggerModel private constructor(
     val log: IAsyncSignal<LogArguments> get() = _log
     
     /**
-     * Parameter - log category.
-    Result - integer value for com.jetbrains.rd.util.LogLevel.
+     * Property value - integer for com.jetbrains.rd.util.LogLevel.
      */
-    val getCategoryMinimalLogLevel: RdCall<String, Int> get() = _getCategoryMinimalLogLevel
+    val getCategoryMinimalLogLevel: IOptProperty<Int> get() = _getCategoryMinimalLogLevel
     //methods
     //initializer
+    init {
+        _getCategoryMinimalLogLevel.optimizeNested = true
+    }
+    
     init {
         _initRemoteLogging.async = true
         _log.async = true
@@ -82,7 +86,7 @@ class LoggerModel private constructor(
     ) : this(
         RdSignal<Unit>(FrameworkMarshallers.Void),
         RdSignal<LogArguments>(LogArguments),
-        RdCall<String, Int>(FrameworkMarshallers.String, FrameworkMarshallers.Int)
+        RdOptionalProperty<Int>(FrameworkMarshallers.Int)
     )
     
     //equals trait

@@ -4,6 +4,7 @@ import com.jetbrains.rd.util.LogLevel
 import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.collections.CountingSet
 import com.jetbrains.rd.util.getThrowableText
+import com.jetbrains.rd.util.reactive.valueOrThrow
 import com.jetbrains.rd.util.threadLocalWithInitial
 import org.utbot.rd.generated.LogArguments
 import org.utbot.rd.generated.LoggerModel
@@ -13,7 +14,7 @@ class UtRdRemoteLogger(
     private val loggerModel: LoggerModel,
     private val category: String
 ) : Logger {
-    private val logLevel: LogLevel = logLevelValues[loggerModel.getCategoryMinimalLogLevel.startBlocking(category)]
+    private val logLevel: LogLevel by lazy { logLevelValues[loggerModel.getCategoryMinimalLogLevel.valueOrThrow] }
 
     companion object {
         val logLevelValues = LogLevel.values()

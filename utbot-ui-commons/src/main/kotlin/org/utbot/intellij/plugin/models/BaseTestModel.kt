@@ -127,14 +127,21 @@ open class BaseTestsModel(
 
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
         return xmlFilePaths.mapNotNullTo(mutableSetOf()) { path ->
-            val doc = builder.parse(path.toFile())
+            try {
+                val doc = builder.parse(path.toFile())
 
-            val hasBeanTagName = doc.documentElement.tagName == "beans"
-            val hasAttribute = doc.documentElement.getAttribute("xmlns") == "http://www.springframework.org/schema/beans"
-            when {
-                hasBeanTagName && hasAttribute -> path.toString()
-                else -> null
+                val hasBeanTagName = doc.documentElement.tagName == "beans"
+                val hasAttribute = doc.documentElement.getAttribute("xmlns") == "http://www.springframework.org/schema/beans"
+                when {
+                    hasBeanTagName && hasAttribute -> path.toString()
+                    else -> null
+                }
+            } catch (e: Exception) {
+                // Sometimes xml parsing may fail, for example, when it references external DTD schemas.
+                // See https://stackoverflow.com/questions/343383/unable-to-parse-xml-file-using-documentbuilder.
+                null
             }
+
         }
     }
 

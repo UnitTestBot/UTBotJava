@@ -19,6 +19,7 @@ import kotlin.jvm.JvmStatic
  */
 class EngineProcessModel private constructor(
     private val _setupUtContext: RdCall<SetupContextParams, Unit>,
+    private val _getSpringBeanQualifiedNames: RdCall<GetSpringBeanQualifiedNamesParams, Array<String>>,
     private val _createTestGenerator: RdCall<TestGeneratorParams, Unit>,
     private val _isCancelled: RdCall<Unit, Boolean>,
     private val _generate: RdCall<GenerateParams, GenerateResult>,
@@ -41,6 +42,7 @@ class EngineProcessModel private constructor(
             serializers.register(RenderParams)
             serializers.register(RenderResult)
             serializers.register(SetupContextParams)
+            serializers.register(GetSpringBeanQualifiedNamesParams)
             serializers.register(MethodDescription)
             serializers.register(FindMethodsInClassMatchingSelectedArguments)
             serializers.register(FindMethodsInClassMatchingSelectedResult)
@@ -68,8 +70,9 @@ class EngineProcessModel private constructor(
             return EngineProcessModel()
         }
         
+        private val __StringArraySerializer = FrameworkMarshallers.String.array()
         
-        const val serializationHash = -2087034443345538396L
+        const val serializationHash = 1955031277042475752L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -77,6 +80,7 @@ class EngineProcessModel private constructor(
     
     //fields
     val setupUtContext: RdCall<SetupContextParams, Unit> get() = _setupUtContext
+    val getSpringBeanQualifiedNames: RdCall<GetSpringBeanQualifiedNamesParams, Array<String>> get() = _getSpringBeanQualifiedNames
     val createTestGenerator: RdCall<TestGeneratorParams, Unit> get() = _createTestGenerator
     val isCancelled: RdCall<Unit, Boolean> get() = _isCancelled
     val generate: RdCall<GenerateParams, GenerateResult> get() = _generate
@@ -90,6 +94,7 @@ class EngineProcessModel private constructor(
     //initializer
     init {
         _setupUtContext.async = true
+        _getSpringBeanQualifiedNames.async = true
         _createTestGenerator.async = true
         _isCancelled.async = true
         _generate.async = true
@@ -103,6 +108,7 @@ class EngineProcessModel private constructor(
     
     init {
         bindableChildren.add("setupUtContext" to _setupUtContext)
+        bindableChildren.add("getSpringBeanQualifiedNames" to _getSpringBeanQualifiedNames)
         bindableChildren.add("createTestGenerator" to _createTestGenerator)
         bindableChildren.add("isCancelled" to _isCancelled)
         bindableChildren.add("generate" to _generate)
@@ -118,6 +124,7 @@ class EngineProcessModel private constructor(
     private constructor(
     ) : this(
         RdCall<SetupContextParams, Unit>(SetupContextParams, FrameworkMarshallers.Void),
+        RdCall<GetSpringBeanQualifiedNamesParams, Array<String>>(GetSpringBeanQualifiedNamesParams, __StringArraySerializer),
         RdCall<TestGeneratorParams, Unit>(TestGeneratorParams, FrameworkMarshallers.Void),
         RdCall<Unit, Boolean>(FrameworkMarshallers.Void, FrameworkMarshallers.Bool),
         RdCall<GenerateParams, GenerateResult>(GenerateParams, GenerateResult),
@@ -136,6 +143,7 @@ class EngineProcessModel private constructor(
         printer.println("EngineProcessModel (")
         printer.indent {
             print("setupUtContext = "); _setupUtContext.print(printer); println()
+            print("getSpringBeanQualifiedNames = "); _getSpringBeanQualifiedNames.print(printer); println()
             print("createTestGenerator = "); _createTestGenerator.print(printer); println()
             print("isCancelled = "); _isCancelled.print(printer); println()
             print("generate = "); _generate.print(printer); println()
@@ -152,6 +160,7 @@ class EngineProcessModel private constructor(
     override fun deepClone(): EngineProcessModel   {
         return EngineProcessModel(
             _setupUtContext.deepClonePolymorphic(),
+            _getSpringBeanQualifiedNames.deepClonePolymorphic(),
             _createTestGenerator.deepClonePolymorphic(),
             _isCancelled.deepClonePolymorphic(),
             _generate.deepClonePolymorphic(),
@@ -170,7 +179,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:99]
+ * #### Generated from [EngineProcessModel.kt:104]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -233,7 +242,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:103]
+ * #### Generated from [EngineProcessModel.kt:108]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -290,7 +299,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:92]
+ * #### Generated from [EngineProcessModel.kt:97]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -353,7 +362,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:96]
+ * #### Generated from [EngineProcessModel.kt:101]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -578,7 +587,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:111]
+ * #### Generated from [EngineProcessModel.kt:116]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -671,7 +680,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:120]
+ * #### Generated from [EngineProcessModel.kt:125]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -731,6 +740,75 @@ data class GenerateTestReportResult (
             print("notifyMessage = "); notifyMessage.print(printer); println()
             print("statistics = "); statistics.print(printer); println()
             print("hasWarnings = "); hasWarnings.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:87]
+ */
+data class GetSpringBeanQualifiedNamesParams (
+    val classpath: Array<String>,
+    val config: String,
+    val useSpringAnalyzer: Boolean
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<GetSpringBeanQualifiedNamesParams> {
+        override val _type: KClass<GetSpringBeanQualifiedNamesParams> = GetSpringBeanQualifiedNamesParams::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanQualifiedNamesParams  {
+            val classpath = buffer.readArray {buffer.readString()}
+            val config = buffer.readString()
+            val useSpringAnalyzer = buffer.readBool()
+            return GetSpringBeanQualifiedNamesParams(classpath, config, useSpringAnalyzer)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanQualifiedNamesParams)  {
+            buffer.writeArray(value.classpath) { buffer.writeString(it) }
+            buffer.writeString(value.config)
+            buffer.writeBool(value.useSpringAnalyzer)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as GetSpringBeanQualifiedNamesParams
+        
+        if (!(classpath contentDeepEquals other.classpath)) return false
+        if (config != other.config) return false
+        if (useSpringAnalyzer != other.useSpringAnalyzer) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + classpath.contentDeepHashCode()
+        __r = __r*31 + config.hashCode()
+        __r = __r*31 + useSpringAnalyzer.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("GetSpringBeanQualifiedNamesParams (")
+        printer.indent {
+            print("classpath = "); classpath.print(printer); println()
+            print("config = "); config.print(printer); println()
+            print("useSpringAnalyzer = "); useSpringAnalyzer.print(printer); println()
         }
         printer.print(")")
     }
@@ -803,7 +881,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:87]
+ * #### Generated from [EngineProcessModel.kt:92]
  */
 data class MethodDescription (
     val name: String,
@@ -1220,7 +1298,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:106]
+ * #### Generated from [EngineProcessModel.kt:111]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

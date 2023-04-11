@@ -5,7 +5,13 @@ import kotlin.math.pow
 /**
  * Configures fuzzing behaviour. Usually, it is not required to tune anything.
  */
-class Configuration(
+data class Configuration(
+
+    /**
+     * Choose between already generated values and new generation of values.
+     */
+    var probSeedRetrievingInsteadGenerating: Int = 70,
+
     /**
      * Fuzzer creates a tree of object for generating values. At some point this recursion should be stopped.
      *

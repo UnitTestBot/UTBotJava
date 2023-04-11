@@ -14,7 +14,7 @@ dependencies {
     api project(':utbot-framework-api')
     testImplementation project(':utbot-testing')
 
-    api project(':utbot-fuzzers')
+    api project(':utbot-java-fuzzing')
     api project(':utbot-instrumentation')
     api project(':utbot-summary')
 

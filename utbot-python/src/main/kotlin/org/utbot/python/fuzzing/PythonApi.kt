@@ -4,13 +4,7 @@ import mu.KotlinLogging
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.fuzzer.FuzzedContext
-import org.utbot.fuzzing.Configuration
-import org.utbot.fuzzing.Control
-import org.utbot.fuzzing.Description
-import org.utbot.fuzzing.Feedback
-import org.utbot.fuzzing.Fuzzing
-import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.Statistic
+import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonUtExecution
@@ -84,7 +78,7 @@ class PythonFuzzing(
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
 ) : Fuzzing<Type, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
-    private fun generateDefault(description: PythonMethodDescription, type: Type)= sequence<Seed<Type, PythonFuzzedValue>> {
+    private fun generateDefault(description: PythonMethodDescription, type: Type)= sequence {
         pythonDefaultValueProviders(pythonTypeStorage).asSequence().forEach { provider ->
             if (provider.accept(type)) {
                 logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
@@ -107,13 +101,5 @@ class PythonFuzzing(
 
     override suspend fun handle(description: PythonMethodDescription, values: List<PythonFuzzedValue>): PythonFeedback {
         return execute(description, values)
-    }
-
-    override suspend fun update(
-        description: PythonMethodDescription,
-        statistic: Statistic<Type, PythonFuzzedValue>,
-        configuration: Configuration
-    ) {
-        super.update(description, statistic, configuration)
     }
 }

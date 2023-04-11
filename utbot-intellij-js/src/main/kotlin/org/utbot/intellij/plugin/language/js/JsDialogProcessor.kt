@@ -201,7 +201,7 @@ object JsDialogProcessor {
                             testDir.add(temp)
                             testDir.findFile(testFileName)!!
                         }
-                        val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
+                        val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile) as Editor
                         unblockDocument(project, testFileEditor.document)
                         testFileEditor.document.setText(generatedCode)
                         unblockDocument(project, testFileEditor.document)

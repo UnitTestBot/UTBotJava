@@ -82,6 +82,27 @@ class GoSliceTypeId(
     override fun hashCode(): Int = elementTypeId.hashCode()
 }
 
+class GoMapTypeId(
+    name: String, val keyTypeId: GoTypeId, elementTypeId: GoTypeId,
+) : GoTypeId(name, elementTypeId = elementTypeId) {
+    override val canonicalName: String = "map[${keyTypeId.canonicalName}]${elementTypeId.canonicalName}"
+
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
+        val keyType = keyTypeId.getRelativeName(destinationPackage, aliases)
+        val elementType = elementTypeId!!.getRelativeName(destinationPackage, aliases)
+        return "map[$keyType]$elementType"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoMapTypeId) return false
+
+        return keyTypeId == other.keyTypeId && elementTypeId == other.elementTypeId
+    }
+
+    override fun hashCode(): Int = 31 * keyTypeId.hashCode() + elementTypeId.hashCode()
+}
+
 class GoInterfaceTypeId(name: String) : GoTypeId(name) {
     override val canonicalName: String = name
 

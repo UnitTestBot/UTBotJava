@@ -3,7 +3,6 @@ package org.utbot.framework.codegen.domain
 import org.utbot.framework.DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
 import org.utbot.framework.codegen.domain.builtin.mockitoClassId
 import org.utbot.framework.codegen.domain.builtin.ongoingStubbingClassId
-import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.tree.argumentsClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -751,7 +750,7 @@ sealed class TypeReplacementApproach {
      *
      * Currently used in Spring applications only.
      */
-    class ReplaceIfPossible(val configFqn: String) : TypeReplacementApproach()
+    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
 }
 
 abstract class DependencyInjectionFramework(

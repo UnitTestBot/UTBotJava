@@ -95,7 +95,7 @@ class UnitTestBotInspectionTool : GlobalSimpleInspectionTool() {
                 sarifResultMessage,
                 ProblemHighlightType.ERROR,
                 /* onTheFly = */ true,
-                viewGeneratedTestFix,
+                viewGeneratedTestFix as LocalQuickFix,
                 analyzeStackTraceFix
             )
             problemDescriptionsProcessor.addProblemElement(

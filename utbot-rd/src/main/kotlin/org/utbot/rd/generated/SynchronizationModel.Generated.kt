@@ -19,7 +19,6 @@ import kotlin.jvm.JvmStatic
  */
 class SynchronizationModel private constructor(
     private val _suspendTimeoutTimer: RdCall<Boolean, Unit>,
-    private val _initRemoteLogging: RdSignal<Unit>,
     private val _synchronizationSignal: RdSignal<String>,
     private val _stopProcess: RdSignal<Unit>
 ) : RdExtBase() {
@@ -48,7 +47,7 @@ class SynchronizationModel private constructor(
         }
         
         
-        const val serializationHash = 5881306106692642003L
+        const val serializationHash = -8851121542976813112L
         
     }
     override val serializersOwner: ISerializersOwner get() = SynchronizationModel
@@ -56,7 +55,6 @@ class SynchronizationModel private constructor(
     
     //fields
     val suspendTimeoutTimer: RdCall<Boolean, Unit> get() = _suspendTimeoutTimer
-    val initRemoteLogging: IAsyncSignal<Unit> get() = _initRemoteLogging
     val synchronizationSignal: IAsyncSignal<String> get() = _synchronizationSignal
     
     /**
@@ -67,14 +65,12 @@ class SynchronizationModel private constructor(
     //initializer
     init {
         _suspendTimeoutTimer.async = true
-        _initRemoteLogging.async = true
         _synchronizationSignal.async = true
         _stopProcess.async = true
     }
     
     init {
         bindableChildren.add("suspendTimeoutTimer" to _suspendTimeoutTimer)
-        bindableChildren.add("initRemoteLogging" to _initRemoteLogging)
         bindableChildren.add("synchronizationSignal" to _synchronizationSignal)
         bindableChildren.add("stopProcess" to _stopProcess)
     }
@@ -83,7 +79,6 @@ class SynchronizationModel private constructor(
     private constructor(
     ) : this(
         RdCall<Boolean, Unit>(FrameworkMarshallers.Bool, FrameworkMarshallers.Void),
-        RdSignal<Unit>(FrameworkMarshallers.Void),
         RdSignal<String>(FrameworkMarshallers.String),
         RdSignal<Unit>(FrameworkMarshallers.Void)
     )
@@ -95,7 +90,6 @@ class SynchronizationModel private constructor(
         printer.println("SynchronizationModel (")
         printer.indent {
             print("suspendTimeoutTimer = "); _suspendTimeoutTimer.print(printer); println()
-            print("initRemoteLogging = "); _initRemoteLogging.print(printer); println()
             print("synchronizationSignal = "); _synchronizationSignal.print(printer); println()
             print("stopProcess = "); _stopProcess.print(printer); println()
         }
@@ -105,7 +99,6 @@ class SynchronizationModel private constructor(
     override fun deepClone(): SynchronizationModel   {
         return SynchronizationModel(
             _suspendTimeoutTimer.deepClonePolymorphic(),
-            _initRemoteLogging.deepClonePolymorphic(),
             _synchronizationSignal.deepClonePolymorphic(),
             _stopProcess.deepClonePolymorphic()
         )

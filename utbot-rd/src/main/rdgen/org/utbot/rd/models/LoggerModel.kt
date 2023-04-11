@@ -13,6 +13,7 @@ object LoggerModel : Ext(LoggerRoot) {
     }
 
     init {
+        signal("initRemoteLogging", PredefinedType.void).async
         signal("log", logArguments).async
         call(
             "getCategoryMinimalLogLevel",

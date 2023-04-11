@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.NoSeedValueException
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.*
@@ -283,7 +284,7 @@ class PythonEngine(
                         emit(result.fuzzingExecutionFeedback)
                         return@PythonFuzzing result.fuzzingPlatformFeedback
                     }.fuzz(pmd)
-                } catch (_: Exception) { // e.g. NoSeedValueException
+                } catch (_: NoSeedValueException) { // e.g. NoSeedValueException
                     logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
                 }
             }

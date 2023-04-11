@@ -59,7 +59,7 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     override fun addTestDescription(description: String) = Unit
 
     override fun disableTestMethod(reason: String) {
-        require(testFramework is Pytest) { "According to settings, JUnit4 was expected, but got: $testFramework" }
+        require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
 
         context.importIfNeeded(testFramework.skipDecoratorClassId)
         collectedMethodAnnotations += CgMultipleArgsAnnotation(

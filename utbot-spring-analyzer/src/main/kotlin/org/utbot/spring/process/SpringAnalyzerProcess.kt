@@ -82,7 +82,6 @@ class SpringAnalyzerProcess private constructor(
                     "org.utbot.spring.process.SpringAnalyzerProcessMainKt"
                 )
                 val cmd = obtainProcessCommandLine(port)
-                logger.info { "Spring cmd: ${cmd.joinToString(" ")}" }
                 val process = ProcessBuilder(cmd)
                     .directory(Files.createTempDirectory(utBotTempDirectory, "spring-analyzer").toFile())
                     .start()

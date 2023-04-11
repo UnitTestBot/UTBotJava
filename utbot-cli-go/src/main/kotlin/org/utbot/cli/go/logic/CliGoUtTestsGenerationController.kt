@@ -9,6 +9,7 @@ import org.utbot.go.api.GoUtFuzzedFunctionTestCase
 import org.utbot.go.gocodeanalyzer.GoSourceCodeAnalyzer
 import org.utbot.go.logic.AbstractGoUtTestsGenerationController
 import java.io.File
+import java.nio.file.Path
 import java.time.LocalDateTime
 
 private val logger = KotlinLogging.logger {}
@@ -20,7 +21,7 @@ class CliGoUtTestsGenerationController(
 
     private lateinit var currentStageStarted: LocalDateTime
 
-    override fun onSourceCodeAnalysisStart(targetFunctionsNamesBySourceFiles: Map<String, List<String>>): Boolean {
+    override fun onSourceCodeAnalysisStart(targetFunctionsNamesBySourceFiles: Map<Path, List<String>>): Boolean {
         currentStageStarted = now()
         logger.debug { "Source code analysis - started" }
 

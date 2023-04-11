@@ -8,12 +8,14 @@ import org.utbot.go.GoEngine
 import org.utbot.go.api.*
 import org.utbot.go.imports.GoImportsResolver
 import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
+import org.utbot.go.util.modifyEnvironment
 import org.utbot.go.worker.*
 import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
 import java.net.SocketException
 import java.net.SocketTimeoutException
+import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
 
@@ -26,7 +28,8 @@ object GoTestCasesGenerator {
         functions: List<GoUtFunction>,
         intSize: Int,
         maxTraceLength: Int,
-        goExecutableAbsolutePath: String,
+        goExecutableAbsolutePath: Path,
+        gopathAbsolutePath: Path,
         eachExecutionTimeoutMillis: Long,
         connectionTimeoutMillis: Long = 10000,
         endOfWorkerExecutionTimeout: Long = 5000,
@@ -60,11 +63,12 @@ object GoTestCasesGenerator {
                 // starting worker process
                 val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
                 val command = listOf(
-                    goExecutableAbsolutePath, "test", "-run", testFunctionName, "-timeout", "0"
+                    goExecutableAbsolutePath.toString(), "test", "-run", testFunctionName, "-timeout", "0"
                 )
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
                 val processStartTime = System.currentTimeMillis()
-                val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir)
+                val environment = modifyEnvironment(goExecutableAbsolutePath, gopathAbsolutePath)
+                val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir, environment)
 
                 try {
                     // connecting to worker

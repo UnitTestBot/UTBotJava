@@ -2,6 +2,16 @@ package org.utbot.go.util
 
 import java.io.File
 import java.io.InputStreamReader
+import java.nio.file.Path
+
+fun modifyEnvironment(goExecutableAbsolutePath: Path, gopathAbsolutePath: Path): MutableMap<String, String> {
+    val environment = System.getenv().toMutableMap().apply {
+        this["Path"] = goExecutableAbsolutePath.parent.toString() + File.pathSeparator + (this["Path"] ?: "")
+        this["GOROOT"] = goExecutableAbsolutePath.parent.parent.toString()
+        this["GOPATH"] = gopathAbsolutePath.toString()
+    }
+    return environment
+}
 
 fun executeCommandByNewProcessOrFail(
     command: List<String>,

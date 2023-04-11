@@ -11,10 +11,11 @@ import org.utbot.go.api.util.goSupportedConstantTypes
 import org.utbot.go.api.util.rawValueOfGoPrimitiveTypeToValue
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.util.executeCommandByNewProcessOrFail
+import org.utbot.go.util.modifyEnvironment
 import org.utbot.go.util.parseFromJsonOrFail
 import org.utbot.go.util.writeJsonToFileOrFail
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.Path
 
 object GoSourceCodeAnalyzer {
 
@@ -36,12 +37,13 @@ object GoSourceCodeAnalyzer {
      * Returns GoSourceFileAnalysisResult-s grouped by their source files.
      */
     fun analyzeGoSourceFilesForFunctions(
-        targetFunctionsNamesBySourceFiles: Map<String, List<String>>,
-        goExecutableAbsolutePath: String
+        targetFunctionsNamesBySourceFiles: Map<Path, List<String>>,
+        goExecutableAbsolutePath: Path,
+        gopathAbsolutePath: Path
     ): GoSourceCodeAnalyzerResult {
         val analysisTargets = AnalysisTargets(
-            targetFunctionsNamesBySourceFiles.map { (absoluteFilePath, targetFunctionsNames) ->
-                AnalysisTarget(absoluteFilePath, targetFunctionsNames)
+            targetFunctionsNamesBySourceFiles.map { (filePath, targetFunctionsNames) ->
+                AnalysisTarget(filePath.toAbsolutePath().toString(), targetFunctionsNames)
             }
         )
         val analysisTargetsFileName = createAnalysisTargetsFileName()
@@ -52,7 +54,7 @@ object GoSourceCodeAnalyzer {
         val analysisResultsFile = goCodeAnalyzerSourceDir.resolve(analysisResultsFileName)
 
         val goCodeAnalyzerRunCommand = listOf(
-            goExecutableAbsolutePath,
+            goExecutableAbsolutePath.toString(),
             "run"
         ) + getGoCodeAnalyzerSourceFilesNames() + listOf(
             "-targets",
@@ -63,9 +65,7 @@ object GoSourceCodeAnalyzer {
 
         try {
             writeJsonToFileOrFail(analysisTargets, analysisTargetsFile)
-            val environment = System.getenv().toMutableMap().apply {
-                this["Path"] = (this["Path"] ?: "") + File.pathSeparator + Paths.get(goExecutableAbsolutePath).parent
-            }
+            val environment = modifyEnvironment(goExecutableAbsolutePath, gopathAbsolutePath)
             executeCommandByNewProcessOrFail(
                 goCodeAnalyzerRunCommand,
                 goCodeAnalyzerSourceDir,

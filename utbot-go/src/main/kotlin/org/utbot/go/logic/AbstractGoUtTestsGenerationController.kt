@@ -5,18 +5,20 @@ import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFuzzedFunctionTestCase
 import org.utbot.go.gocodeanalyzer.GoSourceCodeAnalyzer
 import org.utbot.go.simplecodegeneration.GoTestCasesCodeGenerator
+import java.nio.file.Path
 
 abstract class AbstractGoUtTestsGenerationController {
 
     fun generateTests(
-        selectedFunctionsNamesBySourceFiles: Map<String, List<String>>,
+        selectedFunctionsNamesBySourceFiles: Map<Path, List<String>>,
         testsGenerationConfig: GoUtTestsGenerationConfig,
         isCanceled: () -> Boolean = { false }
     ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
         val (analysisResults, intSize, maxTraceLength) = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionsNamesBySourceFiles,
-            testsGenerationConfig.goExecutableAbsolutePath
+            testsGenerationConfig.goExecutableAbsolutePath,
+            testsGenerationConfig.gopathAbsolutePath
         )
         if (!onSourceCodeAnalysisFinished(analysisResults)) return
 
@@ -34,6 +36,7 @@ abstract class AbstractGoUtTestsGenerationController {
                 intSize,
                 maxTraceLength,
                 testsGenerationConfig.goExecutableAbsolutePath,
+                testsGenerationConfig.gopathAbsolutePath,
                 testsGenerationConfig.eachFunctionExecutionTimeoutMillis
             ) { index -> isCanceled() || System.currentTimeMillis() - (startTimeMillis + (index + 1) * functionTimeoutStepMillis) > 0 }
                 .also {
@@ -50,7 +53,7 @@ abstract class AbstractGoUtTestsGenerationController {
     }
 
     protected abstract fun onSourceCodeAnalysisStart(
-        targetFunctionsNamesBySourceFiles: Map<String, List<String>>
+        targetFunctionsNamesBySourceFiles: Map<Path, List<String>>
     ): Boolean
 
     protected abstract fun onSourceCodeAnalysisFinished(

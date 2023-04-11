@@ -111,7 +111,7 @@ class RunGoTestsCommand : CliktCommand(name = "runGo", help = "Runs tests for th
 
             try {
                 val runGoTestCommand = mutableListOf(
-                    goExecutablePath.toAbsolutePath(),
+                    goExecutablePath.toAbsolutePath().toString(),
                     "test",
                     "./"
                 )

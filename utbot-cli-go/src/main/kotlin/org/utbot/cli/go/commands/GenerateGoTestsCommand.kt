@@ -36,10 +36,18 @@ class GenerateGoTestsCommand :
         .multiple(required = true)
 
     private val goExecutablePath: String by option(
-        "-go", "--go-path",
+        "-go",
         help = "Specifies path to Go executable. For example, it could be [/usr/local/go/bin/go] for some systems"
     )
         .required() // TODO: attempt to find it if not specified
+
+    private val gopath: String by option(
+        "-gopath",
+        help = buildString {
+            appendLine("Specifies path the location of your workspace.")
+            appendLine("It defaults to a directory named go inside your home directory, so \$HOME/go on Unix, \$home/go on Plan 9, and %USERPROFILE%\\go (usually C:\\Users\\YourName\\go) on Windows.")
+        }
+    ).required() // TODO: attempt to find it if not specified
 
     private val eachFunctionExecutionTimeoutMillis: Long by option(
         "-et", "--each-execution-timeout",
@@ -80,6 +88,7 @@ class GenerateGoTestsCommand :
     override fun run() {
         val sourceFileAbsolutePath = sourceFile.toAbsolutePath()
         val goExecutableAbsolutePath = goExecutablePath.toAbsolutePath()
+        val gopathAbsolutePath = gopath.toAbsolutePath()
 
         val testsGenerationStarted = now()
         logger.info { "Test file generation for [$sourceFile] - started" }
@@ -91,6 +100,7 @@ class GenerateGoTestsCommand :
                 mapOf(sourceFileAbsolutePath to selectedFunctionsNames),
                 GoUtTestsGenerationConfig(
                     goExecutableAbsolutePath,
+                    gopathAbsolutePath,
                     eachFunctionExecutionTimeoutMillis,
                     allFunctionExecutionTimeoutMillis
                 )

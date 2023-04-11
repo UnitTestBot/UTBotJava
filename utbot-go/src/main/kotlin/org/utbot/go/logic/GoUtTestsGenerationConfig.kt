@@ -1,7 +1,10 @@
 package org.utbot.go.logic
 
+import java.nio.file.Path
+
 class GoUtTestsGenerationConfig(
-    val goExecutableAbsolutePath: String,
+    val goExecutableAbsolutePath: Path,
+    val gopathAbsolutePath: Path,
     val eachFunctionExecutionTimeoutMillis: Long,
     val allFunctionExecutionTimeoutMillis: Long
 ) {

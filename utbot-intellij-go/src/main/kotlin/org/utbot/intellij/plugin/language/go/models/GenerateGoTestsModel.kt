@@ -3,6 +3,7 @@ package org.utbot.intellij.plugin.language.go.models
 import com.goide.psi.GoFunctionOrMethodDeclaration
 import com.intellij.openapi.project.Project
 import org.utbot.go.logic.GoUtTestsGenerationConfig
+import java.nio.file.Path
 
 /**
  * Contains information about Go tests generation task required for intellij plugin logic.
@@ -15,7 +16,8 @@ import org.utbot.go.logic.GoUtTestsGenerationConfig
  */
 data class GenerateGoTestsModel(
     val project: Project,
-    val goExecutableAbsolutePath: String,
+    val goExecutableAbsolutePath: Path,
+    val gopathAbsolutePath: Path,
     val targetFunctions: Set<GoFunctionOrMethodDeclaration>,
     val focusedTargetFunctions: Set<GoFunctionOrMethodDeclaration>,
 ) {

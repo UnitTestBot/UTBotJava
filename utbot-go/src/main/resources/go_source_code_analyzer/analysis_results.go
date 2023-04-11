@@ -77,6 +77,16 @@ type AnalyzedFunctionParameter struct {
 	Type AnalyzedType `json:"type"`
 }
 
+type AnalyzedMapType struct {
+	Name        string       `json:"name"`
+	KeyType     AnalyzedType `json:"keyType"`
+	ElementType AnalyzedType `json:"elementType"`
+}
+
+func (t AnalyzedMapType) GetName() string {
+	return t.Name
+}
+
 type AnalyzedFunction struct {
 	Name                                string                      `json:"name"`
 	ModifiedName                        string                      `json:"modifiedName"`

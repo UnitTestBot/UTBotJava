@@ -3,6 +3,7 @@
     <toRun name="Run IDEA" type="GradleRunConfiguration" />
     <toRun name="Listen for Engine Process" type="Remote" />
     <toRun name="Listen for Instrumented Process" type="Remote" />
+    <toRun name="Listen for Spring Analyzer Process" type="Remote" />
     <method v="2" />
   </configuration>
 </component>

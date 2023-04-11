@@ -4,6 +4,7 @@ import org.utbot.fuzzing.*
 import org.utbot.fuzzing.seeds.BitVectorValue
 import org.utbot.fuzzing.seeds.Signed
 import org.utbot.fuzzing.seeds.StringValue
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
 
 private enum class CustomType {
@@ -32,6 +33,7 @@ private class JsonBuilder(
 @Suppress("RemoveExplicitTypeArguments")
 suspend fun main() {
     var count = 0
+    val set = mutableMapOf<String, AtomicLong>()
     BaseFuzzing<CustomType, JsonBuilder, Description<CustomType>, Feedback<CustomType, JsonBuilder>>(
         TypeProvider(CustomType.INT) { _, _ ->
             for (b in Signed.values()) {
@@ -79,8 +81,13 @@ suspend fun main() {
             }
         },
     ) { _, values ->
-        println(values)
-        if (++count < 1000) emptyFeedback() else error("")
+        val result = values.toString()
+        println(result)
+        set.computeIfAbsent(result) { AtomicLong() }.incrementAndGet()
+        if (++count < 10000) emptyFeedback() else {
+            println("Duplication ratio:" + set.size / count.toDouble())
+            error("Forced from the example")
+        }
     }.fuzz(
         Description(listOf(CustomType.LST, CustomType.OBJ)),
         Random(0),

@@ -18,15 +18,10 @@ import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
-import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.generated.settingsModel
-import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory
 import java.io.File
-import java.io.IOException
-import java.io.OutputStream
-import java.io.PrintStream
 import java.net.URLClassLoader
 import java.security.AllPermission
 import kotlin.time.Duration
@@ -62,23 +57,6 @@ const val DISABLE_SANDBOX_OPTION = "--disable-sandbox"
 private val logger = getLogger<InstrumentedProcessMain>()
 private val messageFromMainTimeout: Duration = 120.seconds
 
-private fun closeStandardStreams() {
-    // we should change out/err streams as not to spend time on user output
-    // and also because rd default logging system writes some initial values to stdout, polluting it as well
-    val tmpStream = PrintStream(object : OutputStream() {
-        override fun write(b: Int) {}
-    })
-    val prevOut = System.out
-    val prevError = System.err
-    System.setOut(tmpStream)
-    System.setErr(tmpStream)
-    // stdin/stderr should be closed as not to leave hanging descriptors
-    // and we cannot log any exceptions here as rd remote logging is still not configured
-    // so we pass any exceptions
-    silent { prevOut.close() }
-    silent { prevError.close() }
-}
-
 interface DummyForMockitoWarmup {
     fun method1()
 }
@@ -102,9 +80,6 @@ object InstrumentedProcessMain
  * It should be compiled into separate jar file (instrumented_process.jar) and be run with an agent (agent.jar) option.
  */
 fun main(args: Array<String>) = runBlocking {
-    // We don't want user code to litter the standard output, so we redirect it.
-    closeStandardStreams()
-
     if (!args.contains(DISABLE_SANDBOX_OPTION)) {
         permissions {
             // Enable all permissions for instrumentation.
@@ -113,11 +88,9 @@ fun main(args: Array<String>) = runBlocking {
         }
     }
 
-    val port = findRdPort(args)
-
     try {
-        ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(port) {
-            synchronizationModel.initRemoteLogging.adviseOnce(lifetime) {
+        ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(args) {
+            loggerModel.initRemoteLogging.adviseOnce(lifetime) {
                 Logger.set(Lifetime.Eternal, UtRdRemoteLoggerFactory(loggerModel))
                 this.protocol.scheduler.queue { warmupMockito() }
             }

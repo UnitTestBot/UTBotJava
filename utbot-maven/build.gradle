@@ -147,7 +147,7 @@ generatePluginDescriptor.dependsOn([
     project(':utbot-instrumentation'),
     project(':utbot-framework'),
     project(':utbot-framework-api'),
-    project(':utbot-fuzzers'),
+    project(':utbot-java-fuzzing'),
     project(':utbot-fuzzing'),
     project(':utbot-rd'),
     project(':utbot-summary')

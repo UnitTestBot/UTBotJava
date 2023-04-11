@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.ui
 
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationDisplayType
 import com.intellij.notification.NotificationGroup
@@ -13,13 +12,8 @@ import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
-import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.wm.WindowManager
-import com.intellij.ui.GotItMessage
-import com.intellij.ui.awt.RelativePoint
-import com.intellij.util.ui.JBFont
-import com.intellij.util.ui.UIUtil
-import java.awt.Point
+import com.intellij.ui.GotItTooltip
 import javax.swing.event.HyperlinkEvent
 import mu.KotlinLogging
 
@@ -196,17 +190,17 @@ object TestReportUrlOpeningListener: NotificationListener.Adapter() {
 object GotItTooltipActivity : StartupActivity {
     private const val KEY = "UTBot.GotItMessageWasShown"
     override fun runActivity(project: Project) {
-        if (PropertiesComponent.getInstance().isTrueValue(KEY)) return
         ApplicationManager.getApplication().invokeLater {
             val shortcut = ActionManager.getInstance()
                 .getKeyboardShortcut("org.utbot.intellij.plugin.ui.actions.GenerateTestsAction")?:return@invokeLater
             val shortcutText = KeymapUtil.getShortcutText(shortcut)
-            val message = GotItMessage.createMessage("UnitTestBot is ready!",
-                "<div style=\"font-size:${JBFont.label().biggerOn(2.toFloat()).size}pt;color:#${UIUtil.colorToHex(UIUtil.getLabelForeground())};\">" +
-                        "You can get test coverage for methods, Java classes,<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
-            message.setCallback { PropertiesComponent.getInstance().setValue(KEY, true) }
-            WindowManager.getInstance().getFrame(project)?.rootPane?.let {
-                message.show(RelativePoint(it, Point(it.width, it.height)), Balloon.Position.above)
+            val message = GotItTooltip(KEY,
+                "<div>You can get test coverage for methods,<br> Java classes, and even for whole source roots<br> with <b>$shortcutText</b></div>")
+                .withHeader("UnitTestBot is ready!")
+            if (message.canShow()) {
+                WindowManager.getInstance().getFrame(project)?.rootPane?.let {
+                    message.show(it, GotItTooltip.BOTTOM_LEFT)
+                }
             }
         }
     }

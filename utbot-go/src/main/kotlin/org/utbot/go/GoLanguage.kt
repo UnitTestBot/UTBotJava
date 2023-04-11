@@ -12,6 +12,7 @@ fun goDefaultValueProviders() = listOf(
     GoPrimitivesValueProvider,
     GoArrayValueProvider,
     GoSliceValueProvider,
+    GoMapValueProvider,
     GoStructValueProvider,
     GoConstantValueProvider,
     GoNamedValueProvider,

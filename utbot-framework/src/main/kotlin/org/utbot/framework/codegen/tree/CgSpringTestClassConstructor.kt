@@ -44,7 +44,7 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
                 fields += constructClassFields(testClassModel.injectedMockModels, injectMocksClassId)
                 fields += mockedFields
 
-                clearUnwantedModelInstantiations()
+                clearUnwantedVariableModels()
 
                 val (closeableField, closeableMethods) = constructMockitoCloseables()
                 fields += closeableField
@@ -118,13 +118,23 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         return constructedDeclarations
     }
 
-    private fun clearUnwantedModelInstantiations() {
+    /**
+     * Clears the results of variable instantiations that occured
+     * when we create class variables with specific annotations.
+     * Actually, only mentioned variables should be stored in `valueByModelId`.
+     *
+     * This is a kind of HACK.
+     * It is better to distinguish creating variable by model with all
+     * related side effects and just creating a variable definition,
+     * but it will take very long time to do it now.
+     */
+    private fun clearUnwantedVariableModels() {
         val whiteListOfModels =
             listOf(
                 variableConstructor.mockedModelsVariables,
                 variableConstructor.injectedMocksModelsVariables
-            )
-                .flatMap { keySet -> keySet.keys.map { keyModels -> context.getIdByModel(keyModels.first()) } }
+            ).flatMap { modelSet -> modelSet.keys.map { models -> context.getIdByModel(models.first()) } }
+
         valueByModelId
             .filter { it.key !in whiteListOfModels }
             .forEach { valueByModelId.remove(it.key) }

@@ -26,10 +26,8 @@ dependencies {
         implementation(dependencyNotation)
     }
 
-    // TODO: use regular `implementation` configuration for `spring-boot`
-    //  and maybe for `commons-io`, they will be taken from user's classpath
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
-    shadowAndImplementation("org.springframework.boot:spring-boot:$springBootVersion")
+    implementation("org.springframework.boot:spring-boot:$springBootVersion")
 
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 

@@ -2,18 +2,11 @@ package org.utbot.spring.configurators
 
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
-import org.springframework.beans.factory.support.BeanDefinitionRegistry
-import org.springframework.beans.factory.support.SimpleBeanDefinitionRegistry
-import org.springframework.boot.SpringApplication
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.springframework.context.annotation.ClassPathBeanDefinitionScanner
-import org.springframework.context.annotation.ComponentScanBeanDefinitionParser
-import org.springframework.core.io.DefaultResourceLoader
 import org.utbot.spring.config.TestApplicationConfiguration
-import org.utbot.spring.data.ApplicationData
+import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.utils.ConfigurationManager
 import java.io.File
-import java.net.URLClassLoader
 import kotlin.io.path.Path
 
 private val logger = getLogger<ApplicationConfigurator>()
@@ -22,11 +15,13 @@ open class ApplicationConfigurator(
     private val applicationBuilder: SpringApplicationBuilder,
     private val applicationData: ApplicationData
 ) {
-//    private val classLoader: ClassLoader = URLClassLoader(applicationData.classpath)
+    //private val classLoader: ClassLoader = URLClassLoader(applicationData.classpath)
     private val classLoader: ClassLoader = this::class.java.classLoader
 
     fun configureApplication() {
+        // TODO: this may help to use file named `application.xml` as a config in Spring Boot.
         //applicationBuilder.resourceLoader(DefaultResourceLoader().also { it.classLoader = classLoader })
+
         when (findConfigurationType(applicationData)) {
             ApplicationConfigurationType.XmlConfiguration -> {
                 logger.info { "Using xml Spring configuration" }

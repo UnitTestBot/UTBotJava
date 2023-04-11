@@ -66,17 +66,19 @@ class SpringAnalyzerProcess private constructor(
     ) {
         private var classpathArgs = listOf<String>()
 
-        override fun obtainProcessSpecificCommandLineArgs(): List<String> = listOf(
-            "-Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory",
-//            "-jar",
-//            springAnalyzerJarFile.path
-        ) + classpathArgs
+        override fun obtainProcessSpecificCommandLineArgs(): List<String> =
+            listOf("-Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory") + classpathArgs
 
         fun createBlocking(classpath: List<String>) = runBlocking { SpringAnalyzerProcess(classpath) }
 
-        suspend operator fun invoke(classpath: List<String>): SpringAnalyzerProcess = LifetimeDefinition().terminateOnException { lifetime ->
+        suspend operator fun invoke(classpathItems: List<String>): SpringAnalyzerProcess = LifetimeDefinition().terminateOnException { lifetime ->
+            val extendedClasspath = listOf(springAnalyzerJarFile.path) + classpathItems
             val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
-                classpathArgs = listOf("-cp", "\"${(listOf(springAnalyzerJarFile.path) + classpath).joinToString(File.pathSeparator)}\"", "org.utbot.spring.process.SpringAnalyzerProcessMainKt")
+                classpathArgs = listOf(
+                    "-cp",
+                    "\"${extendedClasspath.joinToString(File.pathSeparator)}\"",
+                    "org.utbot.spring.process.SpringAnalyzerProcessMainKt"
+                )
                 val cmd = obtainProcessCommandLine(port)
                 logger.info { "Spring cmd: ${cmd.joinToString(" ")}" }
                 val process = ProcessBuilder(cmd)
@@ -104,11 +106,7 @@ class SpringAnalyzerProcess private constructor(
         configuration: String,
         fileStorage: String?,
     ): List<String> {
-        val params = SpringAnalyzerParams(
-            classpath.toTypedArray(),
-            configuration,
-            fileStorage
-        )
+        val params = SpringAnalyzerParams(classpath.toTypedArray(), configuration, fileStorage)
         val result = springAnalyzerModel.analyze.startBlocking(params)
         return result.beanTypes.toList()
     }

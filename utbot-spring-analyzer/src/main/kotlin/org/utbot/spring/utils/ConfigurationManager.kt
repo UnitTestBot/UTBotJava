@@ -24,8 +24,8 @@ class ConfigurationManager(private val classLoader: ClassLoader, private val use
 
         if (propertySourceAnnotation.isPresent) {
             val annotationInvocationHandler = hField[propertySourceAnnotation.get()] as InvocationHandler
-            // TODO detect "file:..." resources recursively (or using bfs) and copy them,
-            //  do not patch annotations same in fillFakeApplicationXml
+            // TODO: https://github.com/UnitTestBot/UTBotJava/issues/2120
+            //  detect "file:..." resources recursively (or using bfs) and copy them without patching annotations
 
             val annotationInvocationHandlerClass =
                 classLoader.loadClass("sun.reflect.annotation.AnnotationInvocationHandler")

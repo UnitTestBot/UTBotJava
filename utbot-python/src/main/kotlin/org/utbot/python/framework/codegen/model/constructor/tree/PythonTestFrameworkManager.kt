@@ -10,21 +10,32 @@ import org.utbot.framework.codegen.domain.models.CgNamedAnnotationArgument
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
-import org.utbot.framework.codegen.util.resolve
-import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
+import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.python.framework.codegen.model.tree.CgPythonAssertEquals
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
+import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
 import org.utbot.python.framework.codegen.model.tree.CgPythonTuple
+import org.utbot.python.framework.codegen.model.tree.CgPythonWith
 
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
-        block()
+        require(exception is PythonClassId) { "Exceptions must be PythonClassId" }
+        context.importIfNeeded(PythonClassId("pytest.raises"))
+        val withExpression = CgPythonFunctionCall(
+            pythonNoneClassId,
+            "pytest.raises",
+            listOf(CgLiteral(exception, exception.prettyName))
+        )
+        +CgPythonWith(withExpression, null, context.block(block))
     }
 
     override val isExpectedExceptionExecutionBreaking: Boolean = true
@@ -48,6 +59,18 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     override fun addTestDescription(description: String) = Unit
 
     override fun disableTestMethod(reason: String) {
+        require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
+
+        context.importIfNeeded(testFramework.skipDecoratorClassId)
+        collectedMethodAnnotations += CgMultipleArgsAnnotation(
+            testFramework.skipDecoratorClassId,
+            mutableListOf(
+                CgNamedAnnotationArgument(
+                    name = "reason",
+                    value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")
+                )
+            )
+        )
     }
 
     override val dataProviderMethodsHolder: TestClassContext get() = TODO()
@@ -87,7 +110,13 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
-        block()
+        require(exception is PythonClassId) { "Exceptions must be PythonClassId" }
+        val withExpression = CgPythonFunctionCall(
+            pythonNoneClassId,
+            "self.assertRaises",
+            listOf(CgLiteral(exception, exception.prettyName))
+        )
+        +CgPythonWith(withExpression, null, context.block(block))
     }
 
     override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {
@@ -112,20 +141,15 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
 
         collectedMethodAnnotations += CgMultipleArgsAnnotation(
-            skipAnnotationClassId,
+            testFramework.skipDecoratorClassId,
             mutableListOf(
                 CgNamedAnnotationArgument(
-                    name = "value",
-                    value = reason.resolve()
+                    name = "reason",
+                    value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")
                 )
             )
         )
     }
-
-    private val skipAnnotationClassId = BuiltinClassId(
-        canonicalName = "unittest.skip",
-        simpleName = "skip"
-    )
 
     fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
         +assertions[assertTrue](

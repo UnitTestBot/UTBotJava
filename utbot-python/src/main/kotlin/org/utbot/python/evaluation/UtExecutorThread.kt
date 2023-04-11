@@ -1,8 +1,14 @@
 package org.utbot.python.evaluation
 
+import java.net.SocketException
+
 class UtExecutorThread : Thread() {
     override fun run() {
-        response = pythonWorker?.receiveMessage()
+        response = try {
+            pythonWorker?.receiveMessage()
+        } catch (ex: SocketException) {
+            null
+        }
     }
 
     enum class Status {

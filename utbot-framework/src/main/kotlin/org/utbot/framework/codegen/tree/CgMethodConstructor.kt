@@ -418,7 +418,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return { +actual[streamConsumingMethodId]() }
     }
 
-    protected fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+    protected open fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is InstrumentedProcessDeathException) return false

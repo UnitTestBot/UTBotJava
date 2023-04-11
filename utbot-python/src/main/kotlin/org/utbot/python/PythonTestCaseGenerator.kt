@@ -31,6 +31,7 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
+private const val MAX_EMPTY_COVERAGE_TESTS = 5
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -262,12 +263,15 @@ class PythonTestCaseGenerator(
         }
 
         logger.info("Collect all test executions for ${method.name}")
-        val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
+        val (emptyCoverageExecutions, coverageExecutions) = executions.partition { it.coverage == null }
+        val (successfulExecutions, failedExecutions) = coverageExecutions.partition { it.result is UtExecutionSuccess }
 
         return PythonTestSet(
             method,
             if (withMinimization)
-                minimizeExecutions(successfulExecutions) + minimizeExecutions(failedExecutions)
+                minimizeExecutions(successfulExecutions) +
+                        minimizeExecutions(failedExecutions) +
+                        emptyCoverageExecutions.take(MAX_EMPTY_COVERAGE_TESTS)
             else
                 executions,
             errors,

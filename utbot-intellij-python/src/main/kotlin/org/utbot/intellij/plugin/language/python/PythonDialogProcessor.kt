@@ -205,6 +205,7 @@ object PythonDialogProcessor {
                             val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
                             WarningTestsReportNotifier.notify(message.toString())
                         },
+                        runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
                         startedCleaningAction = { indicator.text = "Cleaning up..." }
                     )
                 } finally {

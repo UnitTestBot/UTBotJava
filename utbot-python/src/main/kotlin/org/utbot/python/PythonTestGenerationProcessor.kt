@@ -3,6 +3,7 @@ package org.utbot.python
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.parsers.python.PythonParser
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.PythonSystemImport
 import org.utbot.python.framework.codegen.model.PythonUserImport
@@ -50,6 +51,7 @@ object PythonTestGenerationProcessor {
         pythonRunRoot: Path,
         doNotCheckRequirements: Boolean = false,
         withMinimization: Boolean = true,
+        runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.FAIL,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
         installingRequirementsAction: () -> Unit = {},
@@ -202,6 +204,7 @@ object PythonTestGenerationProcessor {
                     paramNames = paramNames,
                     testFramework = testFramework,
                     testClassPackageName = "",
+                    runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
                 )
                 val testCode = codegen.pythonGenerateAsStringWithTestReport(
                     notEmptyTests.map { testSet ->

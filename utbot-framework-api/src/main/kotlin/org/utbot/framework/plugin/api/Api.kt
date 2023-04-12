@@ -56,6 +56,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
 import org.utbot.framework.plugin.api.util.utContext
+import soot.SootMethod
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -66,6 +67,12 @@ data class UtMethodTestSet(
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
+)
+
+data class SymbolicStep(
+    val method: SootMethod,
+    val lineNumber: Int,
+    val depth: Int,
 )
 
 data class Step(
@@ -141,7 +148,8 @@ class UtSymbolicExecution(
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
-    displayName: String? = null
+    displayName: String? = null,
+    val symbolicSteps: List<SymbolicStep> = listOf(),
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.

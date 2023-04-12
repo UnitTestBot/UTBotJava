@@ -489,13 +489,30 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(methodUnderTest)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
+        var symbolicSteps = state.fullPath().filter { step ->
+            step.stmt.javaSourceStartLineNumber != -1
+        }.map { step ->
+            val method = globalGraph.method(step.stmt)
+            SymbolicStep(method, step.stmt.javaSourceStartLineNumber, step.depth)
+        }.filter { step ->
+            step.method.declaringClass.packageName == methodUnderTest.classId.packageName
+        }
+
+        if (symbolicResult is SymbolicFailure && symbolicSteps.last().depth != 0) {
+            symbolicSteps = symbolicSteps
+                .zipWithNext()
+                .dropLastWhile { (cur, next) -> cur.depth != next.depth }
+                .map { (cur, _) -> cur }
+        }
+
         val symbolicUtExecution = UtSymbolicExecution(
             stateBefore = stateBefore,
             stateAfter = stateAfter,
             result = symbolicExecutionResult,
             instrumentation = instrumentation,
             path = entryMethodPath(state),
-            fullPath = state.fullPath()
+            fullPath = state.fullPath(),
+            symbolicSteps = symbolicSteps,
         )
 
         globalGraph.traversed(state)

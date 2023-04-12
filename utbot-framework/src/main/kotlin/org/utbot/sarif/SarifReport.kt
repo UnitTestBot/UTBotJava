@@ -242,8 +242,8 @@ class SarifReport(
             .mapNotNull { findStackTraceElementLocation(it) }
             .toMutableList()
 
-        if (stackTraceResolved.isEmpty()) {
-            stackTraceResolved += stackTraceFromCoverage(utExecution) // fallback logic
+        if (stackTraceResolved.isEmpty() && utExecution is UtSymbolicExecution) {
+            stackTraceResolved += stackTraceFromSymbolicSteps(utExecution) // fallback logic
         }
 
         // prepending stack trace by `method` call in generated tests
@@ -313,20 +313,25 @@ class SarifReport(
     /**
      * Constructs the stack trace from the list of covered instructions.
      */
-    private fun stackTraceFromCoverage(utExecution: UtExecution): List<SarifFlowLocationWrapper> {
-        val coveredInstructions = utExecution.coverage?.coveredInstructions
-            ?: return listOf()
-
-        val executionTrace = coveredInstructions.groupBy { instruction ->
-            instruction.className to instruction.methodSignature // group by method
-        }.map { (_, instructionsForOneMethod) ->
-            instructionsForOneMethod.last() // we need only last to construct the stack trace
+    private fun stackTraceFromSymbolicSteps(utExecution: UtSymbolicExecution): List<SarifFlowLocationWrapper> {
+        val depth2LastStep = mutableListOf<SymbolicStep>()
+        for (step in utExecution.symbolicSteps) {
+            if (step.depth >= depth2LastStep.size) {
+                depth2LastStep.add(step)
+            } else {
+                depth2LastStep[step.depth] = step
+                while (step.depth != depth2LastStep.size - 1) {
+                    depth2LastStep.removeLast()
+                }
+            }
         }
 
-        val sarifExecutionTrace = executionTrace.map { instruction ->
-            val classFqn = instruction.className.replace('/', '.')
-            val methodName = instruction.methodSignature.substringBefore('(')
-            val lineNumber = instruction.lineNumber
+        val executionTrace = depth2LastStep.toList()
+
+        val sarifExecutionTrace = executionTrace.map { step ->
+            val classFqn = step.method.declaringClass.name
+            val methodName = step.method.name
+            val lineNumber = step.lineNumber
 
             val sourceFilePath = sourceFinding.getSourceRelativePath(classFqn)
             val sourceFileName = sourceFilePath.substringAfterLast('/')
@@ -443,13 +448,22 @@ class SarifReport(
         utExecution: UtExecution,
         defaultClassFqn: String
     ): Pair<Int, String> {
+        val lastSymbolicStep = (utExecution as? UtSymbolicExecution)?.symbolicSteps?.lastOrNull()
+        if (lastSymbolicStep != null) {
+            return Pair(
+                lastSymbolicStep.lineNumber,
+                lastSymbolicStep.method.declaringClass.name
+            )
+        }
+
         val coveredInstructions = utExecution.coverage?.coveredInstructions
         val lastCoveredInstruction = coveredInstructions?.lastOrNull()
-        if (lastCoveredInstruction != null)
+        if (lastCoveredInstruction != null) {
             return Pair(
                 lastCoveredInstruction.lineNumber, // .lineNumber is one-based
                 lastCoveredInstruction.className.replace('/', '.')
             )
+        }
 
         // if for some reason we can't extract the last line from the coverage
         val lastPathElementLineNumber = try {

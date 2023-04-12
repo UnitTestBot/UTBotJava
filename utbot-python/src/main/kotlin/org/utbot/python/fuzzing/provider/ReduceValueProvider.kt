@@ -72,7 +72,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
                 modifications.addAll(fields.map { field ->
                     Routine.Call(listOf(field.type)) { instance, arguments ->
                         val obj = instance.tree as PythonTree.ReduceNode
-                        obj.state[field.meta.name.toPythonRepr()] = arguments.first().tree
+                        obj.state[field.meta.name] = arguments.first().tree
                     }
                 })
                 yieldAll(callConstructors(type, it, modifications.asSequence()))

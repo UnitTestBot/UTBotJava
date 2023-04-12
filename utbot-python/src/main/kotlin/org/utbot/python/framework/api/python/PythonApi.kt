@@ -34,6 +34,10 @@ class PythonClassId(
     override val simpleName: String = typeName
     override val canonicalName = name
     override val packageName = moduleName
+    val prettyName: String = if (rootModuleName == pythonBuiltinsModuleName)
+        name.split(".", limit=2).last()
+    else
+        name
 }
 
 open class RawPythonAnnotation(

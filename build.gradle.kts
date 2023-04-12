@@ -58,6 +58,7 @@ allprojects {
             maxHeapSize = "3072m"
             jvmArgs = listOf(
                 "-XX:MaxHeapSize=3072m",
+                "--add-opens", "java.base/java.util.concurrent.atomic=ALL-UNNAMED",
                 "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED",
                 "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
                 "--add-opens", "java.base/java.util.concurrent.locks=ALL-UNNAMED",

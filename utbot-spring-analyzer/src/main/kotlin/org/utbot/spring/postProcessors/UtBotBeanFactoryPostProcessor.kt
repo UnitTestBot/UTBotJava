@@ -42,7 +42,7 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
                 logger.warn { "Failed to get bean: $it" }
                 null
             }
-        }.filterNot { it.startsWith("org.utbot.spring") || it.contains("\$\$") }
+        }.filterNot { it.startsWith("org.utbot.spring") }
          .distinct()
     }
 

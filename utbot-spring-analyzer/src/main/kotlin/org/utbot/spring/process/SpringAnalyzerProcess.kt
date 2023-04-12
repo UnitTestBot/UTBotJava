@@ -131,7 +131,7 @@ class SpringAnalyzerProcess private constructor(
          * to manage to create our internal SpringBootApplication for bean definitions analysis.
          */
         private fun findRequiredSpringAnalyzerJarPath(classpathItems: List<String>): String {
-            val testClassLoader = URLClassLoader(classpathItems.map { File(it).toURI().toURL() }.toTypedArray())
+            val testClassLoader = URLClassLoader(classpathItems.map { File(it).toURI().toURL() }.toTypedArray(), null)
             try {
                 testClassLoader.loadClass("org.springframework.boot.builder.SpringApplicationBuilder")
             } catch (e: ClassNotFoundException) {

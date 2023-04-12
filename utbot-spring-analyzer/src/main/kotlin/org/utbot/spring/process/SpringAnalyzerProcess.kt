@@ -42,6 +42,8 @@ private const val UNKNOWN_MODIFICATION_TIME = 0L
 private val logger = KotlinLogging.logger {}
 private val rdLogger = UtRdKLogger(logger, "")
 
+private var classpathArgs = listOf<String>()
+
 private val springAnalyzerDirectory =
     Files.createDirectories(utBotTempDirectory.toFile().resolve("spring-analyzer").toPath()).toFile()
 
@@ -86,13 +88,11 @@ class SpringAnalyzerProcess private constructor(
     companion object : AbstractRDProcessCompanion(
         debugPort = UtSettings.springAnalyzerProcessDebugPort,
         runWithDebug = UtSettings.runSpringAnalyzerProcessWithDebug,
-        suspendExecutionInDebugMode = UtSettings.suspendSpringAnalyzerProcessExecutionInDebugMode
-    ) {
-        private var classpathArgs = listOf<String>()
-
-        override fun obtainProcessSpecificCommandLineArgs(): List<String> =
+        suspendExecutionInDebugMode = UtSettings.suspendSpringAnalyzerProcessExecutionInDebugMode,
+        processSpecificCommandLineArgs = {
             listOf("-Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory") + classpathArgs
-
+        }
+    ) {
         fun createBlocking(classpath: List<String>) = runBlocking { SpringAnalyzerProcess(classpath) }
 
         suspend operator fun invoke(classpathItems: List<String>): SpringAnalyzerProcess =

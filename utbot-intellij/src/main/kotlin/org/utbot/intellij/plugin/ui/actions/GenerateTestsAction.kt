@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.ui.actions
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
@@ -19,6 +20,8 @@ class GenerateTestsAction : AnAction() {
             languageAssistant.update(e)
         }
     }
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     private fun accessByProjectSettings(e: AnActionEvent): Boolean {
         val experimentalLanguageSetting = e.project?.service<Settings>()?.experimentalLanguagesSupport

@@ -56,9 +56,6 @@ class GenerateTestsModel(
 
     lateinit var typeReplacementApproach: TypeReplacementApproach
 
-    // TODO remove once issue with spring-analyzer expecting .properties and .xml file paths is resolved
-    var useSpringAnalyzer = false
-
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 
     var runGeneratedTestsWithCoverage : Boolean = false

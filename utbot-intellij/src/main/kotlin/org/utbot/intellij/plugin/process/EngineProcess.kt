@@ -143,10 +143,10 @@ class EngineProcess private constructor(val project: Project, private val classN
         engineModel.setupUtContext.startBlocking(SetupContextParams(classpathForUrlsClassloader))
     }
 
-    fun getSpringBeanQualifiedNames(classpathList: List<String>, config: String, useSpringAnalyzer: Boolean): List<String> {
+    fun getSpringBeanQualifiedNames(classpathList: List<String>, config: String, fileStorage: String?): List<String> {
         assertReadAccessNotAllowed()
         return engineModel.getSpringBeanQualifiedNames.startBlocking(
-            GetSpringBeanQualifiedNamesParams(classpathList.toTypedArray(), config, useSpringAnalyzer)
+            GetSpringBeanQualifiedNamesParams(classpathList.toTypedArray(), config, fileStorage)
         ).toList()
     }
 

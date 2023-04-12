@@ -153,7 +153,7 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.io.path.exists
+import kotlin.io.path.notExists
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -893,10 +893,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val mockitoExtensionsPath = "$testResourcesPath/$MOCKITO_EXTENSIONS_FOLDER".toPath()
         val mockitoMockMakerPath = "$mockitoExtensionsPath/$MOCKITO_MOCKMAKER_FILE_NAME".toPath()
 
-        if (!testResourcesPath.exists()) Files.createDirectory(testResourcesPath)
-        if (!mockitoExtensionsPath.exists()) Files.createDirectory(mockitoExtensionsPath)
+        if (testResourcesPath.notExists()) Files.createDirectories(testResourcesPath)
+        if (mockitoExtensionsPath.notExists()) Files.createDirectories(mockitoExtensionsPath)
 
-        if (!mockitoMockMakerPath.exists()) {
+        if (mockitoMockMakerPath.notExists()) {
             Files.createFile(mockitoMockMakerPath)
             Files.write(mockitoMockMakerPath, listOf(MOCKITO_EXTENSIONS_FILE_CONTENT))
         }

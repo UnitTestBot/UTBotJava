@@ -277,17 +277,17 @@ object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
         simpleName = "Test"
     )
 
-    override val beforeMethod = "@${mainPackage}.BeforeMethod"
-    override val beforeMethodFqn = "${mainPackage}.BeforeMethod"
+    override val beforeMethod = "@$mainPackage.BeforeMethod"
+    override val beforeMethodFqn = "$mainPackage.BeforeMethod"
     override val beforeMethodId = BuiltinClassId(
-        canonicalName = "${mainPackage}.BeforeMethod",
+        canonicalName = "$mainPackage.annotations.BeforeMethod",
         simpleName = "BeforeMethod"
     )
 
-    override val afterMethod = "@${mainPackage}.AfterMethod"
-    override val afterMethodFqn = "${mainPackage}.AfterMethod"
+    override val afterMethod = "@$mainPackage.AfterMethod"
+    override val afterMethodFqn = "$mainPackage.AfterMethod"
     override val afterMethodId = BuiltinClassId(
-        canonicalName = "${mainPackage}.AfterMethod",
+        canonicalName = "$mainPackage.annotations.AfterMethod",
         simpleName = "AfterMethod"
     )
 

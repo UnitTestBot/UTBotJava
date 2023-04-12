@@ -9,7 +9,7 @@ plugins {
 
 intellij {
     type.set("RD")
-    version.set("2022.3.3")
+    version.set("2023.1")
 }
 
 tasks {
@@ -40,7 +40,7 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("223")
+        sinceBuild.set("231")
         version.set(semVer)
     }
 

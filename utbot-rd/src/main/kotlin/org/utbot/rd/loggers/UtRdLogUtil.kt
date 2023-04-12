@@ -29,10 +29,8 @@ fun overrideDefaultRdLoggerFactoryWithKLogger(logger: KLogger) {
 fun LoggerModel.setup(rdLogger: UtRdKLogger, processLifetime: Lifetime) {
     // currently we do not specify log level for different categories
     // though it is possible with some additional map on categories -> consider performance
-    getCategoryMinimalLogLevel.set { _ ->
-        // this logLevel is obtained from KotlinLogger
-        rdLogger.logLevel.ordinal
-    }
+    // this logLevel is obtained from KotlinLogger
+    getCategoryMinimalLogLevel.set(rdLogger.logLevel.ordinal)
 
     log.advise(processLifetime) {
         val logLevel = UtRdRemoteLogger.logLevelValues[it.logLevelOrdinal]

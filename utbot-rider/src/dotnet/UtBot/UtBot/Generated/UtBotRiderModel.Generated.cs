@@ -36,7 +36,7 @@ namespace JetBrains.Rider.Model
   
   
   /// <summary>
-  /// <p>Generated from: RiderExtend.kt:8</p>
+  /// <p>Generated from: UtBotRiderModel.kt:8</p>
   /// </summary>
   public class UtBotRiderModel : RdExtBase
   {
@@ -165,7 +165,7 @@ namespace JetBrains.Rider.Model
   
   
   /// <summary>
-  /// <p>Generated from: RiderExtend.kt:9</p>
+  /// <p>Generated from: UtBotRiderModel.kt:9</p>
   /// </summary>
   public sealed class StartPublishArgs : IPrintable, IEquatable<StartPublishArgs>
   {

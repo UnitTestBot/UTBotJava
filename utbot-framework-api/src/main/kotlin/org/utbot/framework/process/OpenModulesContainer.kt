@@ -10,6 +10,7 @@ object OpenModulesContainer {
 
     init {
         modulesContainer = buildList {
+            openPackage("java.base", "java.util.concurrent.atomic")
             openPackage("java.base", "sun.security.util")
             openPackage("java.base", "sun.reflect.annotation")
             openPackage("java.base", "java.text")

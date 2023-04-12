@@ -195,7 +195,8 @@ class UtSymbolicExecution(
             coverage,
             summary,
             testMethodName,
-            displayName
+            displayName,
+            symbolicSteps,
         )
     }
 }

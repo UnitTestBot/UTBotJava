@@ -246,6 +246,10 @@ class SarifReport(
             stackTraceResolved += stackTraceFromSymbolicSteps(utExecution) // fallback logic
         }
 
+        if (stackTraceResolved.isEmpty()) { // still empty
+            stackTraceResolved += stackTraceFromCoverage(utExecution) // fallback logic (2)
+        }
+
         // prepending stack trace by `method` call in generated tests
         val methodCallLocation: SarifPhysicalLocation? =
             findMethodCallInTestBody(utExecution.testMethodName, method.name, utExecution)
@@ -311,7 +315,7 @@ class SarifReport(
     }
 
     /**
-     * Constructs the stack trace from the list of covered instructions.
+     * Constructs the stack trace from the symbolic path.
      */
     private fun stackTraceFromSymbolicSteps(utExecution: UtSymbolicExecution): List<SarifFlowLocationWrapper> {
         val depth2LastStep = mutableListOf<SymbolicStep>()
@@ -326,26 +330,58 @@ class SarifReport(
             }
         }
 
-        val executionTrace = depth2LastStep.toList()
+        val sarifExecutionTrace = depth2LastStep.map { step ->
+            resolveStackTraceElementByNames(
+                classFqn = step.method.declaringClass.name,
+                methodName = step.method.name,
+                lineNumber = step.lineNumber,
+            )
+        }
 
-        val sarifExecutionTrace = executionTrace.map { step ->
-            val classFqn = step.method.declaringClass.name
-            val methodName = step.method.name
-            val lineNumber = step.lineNumber
+        return sarifExecutionTrace.reversed() // to stack trace
+    }
 
-            val sourceFilePath = sourceFinding.getSourceRelativePath(classFqn)
-            val sourceFileName = sourceFilePath.substringAfterLast('/')
+    /**
+     * Constructs the stack trace from the list of covered instructions.
+     */
+    private fun stackTraceFromCoverage(utExecution: UtExecution): List<SarifFlowLocationWrapper> {
+        val coveredInstructions = utExecution.coverage?.coveredInstructions
+            ?: return listOf()
 
-            SarifFlowLocationWrapper(SarifFlowLocation(
+        val executionTrace = coveredInstructions.groupBy { instruction ->
+            instruction.className to instruction.methodSignature // group by method
+        }.map { (_, instructionsForOneMethod) ->
+            instructionsForOneMethod.last() // we need only last to construct the stack trace
+        }
+
+        val sarifExecutionTrace = executionTrace.map { instruction ->
+            resolveStackTraceElementByNames(
+                classFqn = instruction.className.replace('/', '.'),
+                methodName = instruction.methodSignature.substringBefore('('),
+                lineNumber = instruction.lineNumber
+            )
+        }
+
+        return sarifExecutionTrace.reversed() // to stack trace
+    }
+
+    private fun resolveStackTraceElementByNames(
+        classFqn: String,
+        methodName: String,
+        lineNumber: Int
+    ): SarifFlowLocationWrapper {
+        val sourceFilePath = sourceFinding.getSourceRelativePath(classFqn)
+        val sourceFileName = sourceFilePath.substringAfterLast('/')
+
+        return SarifFlowLocationWrapper(
+            SarifFlowLocation(
                 message = Message("$classFqn.$methodName($sourceFileName:$lineNumber)"),
                 physicalLocation = SarifPhysicalLocation(
                     SarifArtifact(uri = sourceFilePath),
                     SarifRegion(startLine = lineNumber) // lineNumber is one-based
                 )
-            ))
-        }
-
-        return sarifExecutionTrace.reversed() // to stack trace
+            )
+        )
     }
 
     private fun findStackTraceElementLocation(stackTraceElement: StackTraceElement): SarifFlowLocationWrapper? {

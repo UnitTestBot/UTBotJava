@@ -16,28 +16,18 @@ object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
     override val assertionsClass: ClassId = pythonNoneClassId
     override val arraysAssertionsClass: ClassId = assertionsClass
     override val kotlinFailureAssertionsClass: ClassId = assertionsClass
-    override val testAnnotation: String
-        get() = TODO("Not yet implemented")
+
     override val testAnnotationId: ClassId = BuiltinClassId(
         canonicalName = "pytest",
         simpleName = "Tests"
     )
-    override val testAnnotationFqn: String = ""
 
-    override val beforeMethod: String = ""
     override val beforeMethodId: ClassId = pythonAnyClassId
-    override val beforeMethodFqn: String = ""
 
-    override val afterMethod: String = ""
     override val afterMethodId: ClassId = pythonAnyClassId
-    override val afterMethodFqn: String = ""
 
-    override val parameterizedTestAnnotation: String = ""
     override val parameterizedTestAnnotationId: ClassId = pythonAnyClassId
-    override val parameterizedTestAnnotationFqn: String = ""
-    override val methodSourceAnnotation: String = ""
     override val methodSourceAnnotationId: ClassId = pythonAnyClassId
-    override val methodSourceAnnotationFqn: String = ""
     override val nestedClassesShouldBeStatic: Boolean = false
     override val argListClassId: ClassId = pythonAnyClassId
 
@@ -67,27 +57,17 @@ object Unittest : TestFramework(displayName = "Unittest", id = "Unittest") {
     override val assertionsClass: ClassId = PythonClassId("self")
     override val arraysAssertionsClass: ClassId = assertionsClass
     override val kotlinFailureAssertionsClass: ClassId = assertionsClass
-    override val testAnnotation: String = ""
     override val testAnnotationId: ClassId = BuiltinClassId(
         canonicalName = "Unittest",
         simpleName = "Tests"
     )
-    override val testAnnotationFqn: String = "unittest"
 
-    override val beforeMethod: String = ""
     override val beforeMethodId: ClassId = pythonAnyClassId
-    override val beforeMethodFqn: String = ""
 
-    override val afterMethod: String = ""
     override val afterMethodId: ClassId = pythonAnyClassId
-    override val afterMethodFqn: String = ""
 
-    override val parameterizedTestAnnotation: String = ""
     override val parameterizedTestAnnotationId: ClassId = pythonAnyClassId
-    override val parameterizedTestAnnotationFqn: String = ""
-    override val methodSourceAnnotation: String = ""
     override val methodSourceAnnotationId: ClassId = pythonAnyClassId
-    override val methodSourceAnnotationFqn: String = ""
     override val nestedClassesShouldBeStatic: Boolean = false
     override val argListClassId: ClassId = pythonAnyClassId
 

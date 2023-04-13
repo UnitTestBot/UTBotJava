@@ -1,9 +1,10 @@
 import typing
 
 import numpy as np
+import numpy.typing as ntp
 
 
-def transpose(arr: np.array):
+def transpose(arr: ntp.NDArray[np.float64]):
     if arr.shape[0] == 1:
         return 100
     else:

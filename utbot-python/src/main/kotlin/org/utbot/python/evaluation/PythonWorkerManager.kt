@@ -43,7 +43,7 @@ class PythonWorkerManager(
             coverageReceiver.address().first,
             coverageReceiver.address().second,
             "--logfile", logfile.absolutePath,
-            "--loglevel", "INFO",  // "DEBUG", "INFO", "WARNING", "ERROR"
+            "--loglevel", "DEBUG",  // "DEBUG", "INFO", "WARNING", "ERROR"
         ))
         timeout = max(until - processStartTime, 0)
         workerSocket = try {

@@ -8,6 +8,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
@@ -27,7 +28,6 @@ import com.intellij.task.impl.ProjectTaskList
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.nullize
-import com.jetbrains.python.sdk.basePath
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -236,13 +236,17 @@ object UtTestsDialogProcessor {
                                         when (val approach = model.typeReplacementApproach) {
                                             DoNotReplace -> emptyList()
                                             is ReplaceIfPossible -> {
-                                                // TODO: use common parent path for srcModule and used Spring
-                                                //  config module if they are different modules
-                                                val projectFileStorage = model.srcModule.basePath
+                                                val contentRoots = listOfNotNull(
+                                                    model.srcModule,
+                                                    springConfigClass?.module
+                                                ).distinct().flatMap { module ->
+                                                    ModuleRootManager.getInstance(module).contentRoots.toList()
+                                                }
                                                 process.getSpringBeanQualifiedNames(
                                                     classpathForClassLoader,
                                                     approach.config,
-                                                    projectFileStorage,
+                                                    // TODO: consider passing it as an array
+                                                    contentRoots.joinToString(File.pathSeparator),
                                                 )
                                             }
                                         }

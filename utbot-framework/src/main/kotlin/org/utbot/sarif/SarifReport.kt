@@ -5,6 +5,7 @@ import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
+import org.utbot.instrumentation.process.InstrumentedProcessMain
 import java.nio.file.Path
 import kotlin.io.path.nameWithoutExtension
 
@@ -234,7 +235,7 @@ class SarifReport(
         utExecution: UtExecution,
         executionFailure: UtExecutionFailure
     ): List<SarifCodeFlow> {
-        val stackTraceResolved = filterStackTrace(method, utExecution, executionFailure)
+        val stackTraceResolved = filterStackTrace(method, executionFailure)
             .mapNotNull { findStackTraceElementLocation(it) }
             .toMutableList()
 
@@ -270,7 +271,6 @@ class SarifReport(
 
     private fun filterStackTrace(
         method: ExecutableId,
-        utExecution: UtExecution,
         executionFailure: UtExecutionFailure
     ): List<StackTraceElement> {
         /* Example of a typical stack trace:
@@ -300,7 +300,9 @@ class SarifReport(
         }
 
         val stackTraceFiltered = stackTrace.filter {
-            !it.className.startsWith("org.utbot.") // filter all internal calls
+            // filter all internal calls related to the instrumentation process
+            val forbiddenPackage = InstrumentedProcessMain::class.java.`package`.name
+            !it.className.startsWith(forbiddenPackage)
         }
 
         return stackTraceFiltered

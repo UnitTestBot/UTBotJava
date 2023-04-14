@@ -252,7 +252,7 @@ object UtTestsDialogProcessor {
                                                 )
                                             }
                                         }
-                                    val shouldUseImplementors = model.typeReplacementApproach is ReplaceIfPossible
+                                    val shouldUseImplementors = beanQualifiedNames.isNotEmpty()
 
                                     SpringApplicationContext(
                                         mockFrameworkInstalled,

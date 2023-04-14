@@ -77,16 +77,21 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         }.toTypedArray())))
     }
     watchdog.measureTimeForActiveCall(getSpringBeanQualifiedNames, "Getting Spring bean definitions") { params ->
-        val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
-        val beans = springAnalyzerProcess.terminateOnException { _ ->
-            springAnalyzerProcess.getBeanQualifiedNames(
-                params.classpath.toList(),
-                params.config,
-                params.fileStorage,
-            ).toTypedArray()
+        try {
+            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
+            val beans = springAnalyzerProcess.terminateOnException { _ ->
+                springAnalyzerProcess.getBeanQualifiedNames(
+                    params.classpath.toList(),
+                    params.config,
+                    params.fileStorage,
+                ).toTypedArray()
+            }
+            springAnalyzerProcess.terminate()
+            beans
+        } catch (e: Exception) {
+            logger.error(e) { "Spring Analyzer crushed, resorting to using empty bean list" }
+            emptyArray()
         }
-        springAnalyzerProcess.terminate()
-        beans
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()

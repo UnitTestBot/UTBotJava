@@ -8,7 +8,8 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.layout.panel
+import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.utbot.go.logic.GoUtTestsGenerationConfig
@@ -51,11 +52,11 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
             row("Test source root: near to source files") {}
             row("Generate test methods for:") {}
             row {
-                scrollPane(targetFunctionsTable)
+                scrollCell(targetFunctionsTable).align(Align.FILL)
             }
             row("Timeout for all functions:") {
-                component(allFunctionExecutionTimeoutSecondsSpinner)
-                component(JBLabel("seconds"))
+                cell(allFunctionExecutionTimeoutSecondsSpinner)
+                cell(JBLabel("seconds"))
             }
         }
         updateFunctionsOrMethodsTable()

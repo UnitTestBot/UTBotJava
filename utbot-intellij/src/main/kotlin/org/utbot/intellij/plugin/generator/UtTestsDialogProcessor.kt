@@ -236,11 +236,13 @@ object UtTestsDialogProcessor {
                                         when (val approach = model.typeReplacementApproach) {
                                             DoNotReplace -> emptyList()
                                             is ReplaceIfPossible -> {
-                                                val contentRoots = listOfNotNull(
-                                                    model.srcModule,
-                                                    springConfigClass?.module
-                                                ).distinct().flatMap { module ->
-                                                    ModuleRootManager.getInstance(module).contentRoots.toList()
+                                                val contentRoots = runReadAction {
+                                                    listOfNotNull(
+                                                        model.srcModule,
+                                                        springConfigClass?.module
+                                                    ).distinct().flatMap { module ->
+                                                        ModuleRootManager.getInstance(module).contentRoots.toList()
+                                                    }
                                                 }
                                                 process.getSpringBeanQualifiedNames(
                                                     classpathForClassLoader,

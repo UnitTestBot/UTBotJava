@@ -13,6 +13,7 @@ import org.utbot.go.worker.*
 import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
+import java.net.Socket
 import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.nio.file.Path
@@ -68,29 +69,48 @@ object GoTestCasesGenerator {
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
                 val processStartTime = System.currentTimeMillis()
                 val environment = modifyEnvironment(goExecutableAbsolutePath, gopathAbsolutePath)
-                val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir, environment)
+                fun startWorkerProcess(): Process =
+                    executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir, environment)
+
+                var process = startWorkerProcess()
 
                 try {
                     // connecting to worker
-                    logger.debug { "Trying to connect to worker" }
-                    val workerSocket = try {
-                        serverSocket.soTimeout = connectionTimeoutMillis.toInt()
-                        serverSocket.accept()
-                    } catch (e: SocketTimeoutException) {
-                        val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
-                        if (processHasExited) {
-                            throw GoWorkerFailedException("An error occurred while starting the worker.")
-                        } else {
-                            process.destroy()
+                    fun connectingToWorker(): Socket {
+                        logger.debug { "Trying to connect to worker" }
+                        val workerSocket = try {
+                            serverSocket.soTimeout = connectionTimeoutMillis.toInt()
+                            serverSocket.accept()
+                        } catch (e: SocketTimeoutException) {
+                            val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
+                            if (processHasExited) {
+                                throw GoWorkerFailedException("An error occurred while starting the worker.")
+                            } else {
+                                process.destroy()
+                            }
+                            throw TimeoutException("Timeout exceeded: Worker not connected")
                         }
-                        throw TimeoutException("Timeout exceeded: Worker not connected")
+                        logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
+                        return workerSocket
                     }
-                    val worker = GoWorker(workerSocket, sourceFile.sourcePackage)
-                    logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
+
+                    var workerSocket = connectingToWorker()
+                    val worker = GoWorker(workerSocket, sourceFile.sourcePackage, 2 * eachExecutionTimeoutMillis)
                     functions.forEachIndexed { index, function ->
                         if (timeoutExceededOrIsCanceled(index)) return@forEachIndexed
                         val rawExecutionResults = mutableListOf<Pair<GoUtFuzzedFunction, RawExecutionResult>>()
-                        val engine = GoEngine(worker, function, aliases, intSize) { timeoutExceededOrIsCanceled(index) }
+                        val engine =
+                            GoEngine(worker, function, aliases, intSize, { timeoutExceededOrIsCanceled(index) }) {
+                                process.destroy()
+                                process = startWorkerProcess()
+                                workerSocket.close()
+                                workerSocket = connectingToWorker()
+                                GoWorker(
+                                    socket = workerSocket,
+                                    goPackage = sourceFile.sourcePackage,
+                                    readTimeoutMillis = 2 * eachExecutionTimeoutMillis
+                                )
+                            }
                         logger.info { "Fuzzing for function [${function.name}] - started" }
                         val totalFuzzingTime = measureTimeMillis {
                             engine.fuzzing().catch {

@@ -13,8 +13,9 @@ import java.io.OutputStreamWriter
 import java.net.Socket
 
 class GoWorker(
-    socket: Socket,
-    private val goPackage: GoPackage
+    private val socket: Socket,
+    private val goPackage: GoPackage,
+    private val readTimeoutMillis: Long
 ) {
     private val reader: BufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
     private val writer: BufferedWriter = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
@@ -37,6 +38,7 @@ class GoWorker(
     }
 
     fun receiveRawExecutionResult(): RawExecutionResult {
+        socket.soTimeout = readTimeoutMillis.toInt()
         val length = reader.readLine().toInt()
         val buffer = CharArray(length)
         reader.read(buffer)

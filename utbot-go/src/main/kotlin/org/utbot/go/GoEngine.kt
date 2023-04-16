@@ -11,15 +11,18 @@ import org.utbot.go.api.GoUtFuzzedFunction
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.worker.GoWorker
 import org.utbot.go.worker.RawExecutionResult
+import java.net.SocketException
+import java.net.SocketTimeoutException
 
 val logger = KotlinLogging.logger {}
 
 class GoEngine(
-    private val worker: GoWorker,
+    private var worker: GoWorker,
     private val functionUnderTest: GoUtFunction,
     private val aliases: Map<GoPackage, String?>,
     private val intSize: Int,
     private val timeoutExceededOrIsCanceled: () -> Boolean,
+    private val restartWorker: () -> GoWorker
 ) {
     var numberOfFunctionExecutions: Int = 0
 
@@ -34,28 +37,37 @@ class GoEngine(
         } else {
             val notCoveredLines = (1..functionUnderTest.numberOfAllStatements).toMutableSet()
             runGoFuzzing(functionUnderTest, intSize) { description, values ->
-                if (timeoutExceededOrIsCanceled() || notCoveredLines.isEmpty()) {
-                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                }
-                val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
-                worker.sendFuzzedParametersValues(functionUnderTest, values, aliases)
-                val rawExecutionResult = worker.receiveRawExecutionResult()
-                numberOfFunctionExecutions++
-                if (rawExecutionResult.trace.isEmpty()) {
-                    logger.error { "Coverage is empty for [${functionUnderTest.name}] with $values}" }
-                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-                }
-                val trieNode = description.tracer.add(rawExecutionResult.trace.map { GoInstruction(it) })
-                if (trieNode.count > 1) {
-                    if (++attempts >= attemptsLimit) {
+                try {
+                    if (timeoutExceededOrIsCanceled() || notCoveredLines.isEmpty()) {
                         return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                     }
-                    return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                    val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
+                    worker.sendFuzzedParametersValues(functionUnderTest, values, aliases)
+                    val rawExecutionResult = worker.receiveRawExecutionResult()
+                    println(rawExecutionResult)
+                    numberOfFunctionExecutions++
+                    if (rawExecutionResult.trace.isEmpty()) {
+                        logger.error { "Coverage is empty for [${functionUnderTest.name}] with $values}" }
+                        return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+                    }
+                    val trieNode = description.tracer.add(rawExecutionResult.trace.map { GoInstruction(it) })
+                    if (trieNode.count > 1) {
+                        if (++attempts >= attemptsLimit) {
+                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                        }
+                        return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                    }
+                    if (notCoveredLines.removeAll(rawExecutionResult.trace.toSet())) {
+                        emit(fuzzedFunction to rawExecutionResult)
+                    }
+                    BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                } catch (e: SocketTimeoutException) {
+                    worker = restartWorker()
+                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+                } catch (e: SocketException) {
+                    worker = restartWorker()
+                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                 }
-                if (notCoveredLines.removeAll(rawExecutionResult.trace.toSet())) {
-                    emit(fuzzedFunction to rawExecutionResult)
-                }
-                BaseFeedback(result = trieNode, control = Control.CONTINUE)
             }
         }
     }

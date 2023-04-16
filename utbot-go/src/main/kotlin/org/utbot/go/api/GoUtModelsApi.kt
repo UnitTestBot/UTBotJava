@@ -31,6 +31,15 @@ open class GoUtPrimitiveModel(
     override fun isComparable(): Boolean = true
 
     override fun toString(): String = if (typeId == goStringTypeId) "\"${value}\"" else "$value"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtPrimitiveModel) return false
+
+        return typeId == other.typeId && value == other.value
+    }
+
+    override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
 class GoUtStructModel(
@@ -53,6 +62,15 @@ class GoUtStructModel(
     override fun toString(): String = value.joinToString(prefix = "$typeId{", postfix = "}") {
         "${it.fieldId.name}: ${it.model}"
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtStructModel) return false
+
+        return typeId == other.typeId && value == other.value
+    }
+
+    override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
 class GoUtArrayModel(
@@ -81,6 +99,20 @@ class GoUtArrayModel(
     override fun toString(): String = getElements().joinToString(prefix = "$typeId{", postfix = "}") {
         it.toString()
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtArrayModel) return false
+
+        return typeId == other.typeId && value == other.value && length == other.length
+    }
+
+    override fun hashCode(): Int {
+        var result = value.hashCode()
+        result = 31 * result + length
+        result = 31 * result + typeId.hashCode()
+        return result
+    }
 }
 
 class GoUtSliceModel(
@@ -108,6 +140,20 @@ class GoUtSliceModel(
     override fun toString(): String = getElements().joinToString(prefix = "$typeId{", postfix = "}") {
         it.toString()
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtSliceModel) return false
+
+        return typeId == other.typeId && value == other.value && length == other.length
+    }
+
+    override fun hashCode(): Int {
+        var result = value.hashCode()
+        result = 31 * result + length
+        result = 31 * result + typeId.hashCode()
+        return result
+    }
 }
 
 class GoUtMapModel(
@@ -129,6 +175,15 @@ class GoUtMapModel(
 
     override fun isComparable(): Boolean =
         value.keys.all { it.isComparable() } && value.values.all { it.isComparable() }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtMapModel) return false
+
+        return typeId == other.typeId && value == other.value
+    }
+
+    override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
 class GoUtFloatNaNModel(
@@ -144,6 +199,10 @@ class GoUtFloatNaNModel(
     requiredPackages = setOf(GoPackage("math", "math")),
 ) {
     override fun isComparable(): Boolean = false
+
+    override fun equals(other: Any?): Boolean = this === other || other is GoUtFloatNaNModel
+
+    override fun hashCode(): Int = typeId.hashCode()
 }
 
 class GoUtFloatInfModel(
@@ -157,7 +216,16 @@ class GoUtFloatInfModel(
         ExplicitCastMode.NEVER
     },
     requiredPackages = setOf(GoPackage("math", "math")),
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtFloatInfModel) return false
+
+        return sign == other.sign
+    }
+
+    override fun hashCode(): Int = sign.hashCode()
+}
 
 class GoUtComplexModel(
     var realValue: GoUtPrimitiveModel,
@@ -172,13 +240,32 @@ class GoUtComplexModel(
         realValue.getRequiredPackages(destinationPackage) + imagValue.getRequiredPackages(destinationPackage)
 
     override fun isComparable(): Boolean = realValue.isComparable() && imagValue.isComparable()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtComplexModel) return false
+
+        return realValue == other.realValue && imagValue == other.imagValue
+    }
+
+    override fun hashCode(): Int = 31 * realValue.hashCode() + imagValue.hashCode()
 }
 
 class GoUtNilModel(
     typeId: GoTypeId
 ) : GoUtModel(typeId) {
     override fun isComparable(): Boolean = true
+
     override fun toString() = "nil"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtNilModel) return false
+
+        return typeId == other.typeId
+    }
+
+    override fun hashCode(): Int = typeId.hashCode()
 }
 
 class GoUtNamedModel(
@@ -192,4 +279,13 @@ class GoUtNamedModel(
         typeId.getRequiredPackages(destinationPackage) + value.getRequiredPackages(destinationPackage)
 
     override fun isComparable(): Boolean = value.isComparable()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtNamedModel) return false
+
+        return typeId == other.typeId && value == other.value
+    }
+
+    override fun hashCode(): Int =  31 * value.hashCode() + typeId.hashCode()
 }

@@ -41,9 +41,7 @@ class GoStructTypeId(
         return fields == other.fields
     }
 
-    override fun hashCode(): Int {
-        return fields.hashCode()
-    }
+    override fun hashCode(): Int = fields.hashCode()
 }
 
 class GoArrayTypeId(

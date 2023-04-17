@@ -1222,7 +1222,8 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
     return when (value) {
         null -> asMethodResult {
             if (sootType is RefType) {
-                createObject(nullObjectAddr, sootType, useConcreteType = true)
+                // We don't want to mock values we took from a concrete environment
+                createObject(nullObjectAddr, sootType, useConcreteType = true, mockInfoGenerator = null)
             } else {
                 createArray(nullObjectAddr, sootType as ArrayType, useConcreteType = true)
             }
@@ -1265,7 +1266,8 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
                             ?.let { type -> type to true }
                             ?: (elementType to false)
 
-                    createObject(addr, type, useConcreteType)
+                    // We don't want to mock values we took from a concrete environment
+                    createObject(addr, type, useConcreteType, mockInfoGenerator = null)
                 } else {
                     require(elementType is ArrayType)
                     // We cannot use concrete types since we do not receive
@@ -1299,7 +1301,8 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
                         ?.let { type -> type to true }
                         ?: (sootType as RefType to false)
 
-                    createObject(addr, type, useConcreteType)
+                    // We don't want to mock values we took from a concrete environment
+                    createObject(addr, type, useConcreteType, mockInfoGenerator = null)
                 }
             }
         }

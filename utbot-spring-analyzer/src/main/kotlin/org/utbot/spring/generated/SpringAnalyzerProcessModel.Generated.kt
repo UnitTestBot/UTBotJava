@@ -48,7 +48,7 @@ class SpringAnalyzerProcessModel private constructor(
         }
         
         
-        const val serializationHash = 476832059519556525L
+        const val serializationHash = 8811436928900193209L
         
     }
     override val serializersOwner: ISerializersOwner get() = SpringAnalyzerProcessModel
@@ -98,9 +98,8 @@ val IProtocol.springAnalyzerProcessModel get() = getOrCreateExtension(SpringAnal
  * #### Generated from [SpringAnalyzerModel.kt:9]
  */
 data class SpringAnalyzerParams (
-    val classpath: Array<String>,
     val configuration: String,
-    val fileStorage: String?
+    val fileStorage: Array<String>
 ) : IPrintable {
     //companion
     
@@ -109,16 +108,14 @@ data class SpringAnalyzerParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerParams  {
-            val classpath = buffer.readArray {buffer.readString()}
             val configuration = buffer.readString()
-            val fileStorage = buffer.readNullable { buffer.readString() }
-            return SpringAnalyzerParams(classpath, configuration, fileStorage)
+            val fileStorage = buffer.readArray {buffer.readString()}
+            return SpringAnalyzerParams(configuration, fileStorage)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerParams)  {
-            buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.configuration)
-            buffer.writeNullable(value.fileStorage) { buffer.writeString(it) }
+            buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
         }
         
         
@@ -134,25 +131,22 @@ data class SpringAnalyzerParams (
         
         other as SpringAnalyzerParams
         
-        if (!(classpath contentDeepEquals other.classpath)) return false
         if (configuration != other.configuration) return false
-        if (fileStorage != other.fileStorage) return false
+        if (!(fileStorage contentDeepEquals other.fileStorage)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + classpath.contentDeepHashCode()
         __r = __r*31 + configuration.hashCode()
-        __r = __r*31 + if (fileStorage != null) fileStorage.hashCode() else 0
+        __r = __r*31 + fileStorage.contentDeepHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("SpringAnalyzerParams (")
         printer.indent {
-            print("classpath = "); classpath.print(printer); println()
             print("configuration = "); configuration.print(printer); println()
             print("fileStorage = "); fileStorage.print(printer); println()
         }
@@ -164,7 +158,7 @@ data class SpringAnalyzerParams (
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:15]
+ * #### Generated from [SpringAnalyzerModel.kt:14]
  */
 data class SpringAnalyzerResult (
     val beanTypes: Array<String>

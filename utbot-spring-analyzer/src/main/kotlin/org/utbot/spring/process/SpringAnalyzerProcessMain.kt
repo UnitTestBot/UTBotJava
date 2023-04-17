@@ -42,7 +42,6 @@ suspend fun main(args: Array<String>) =
 private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtocol: IProtocol) {
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->
         val applicationData = ApplicationData(
-            params.classpath.toList().map { File(it).toURI().toURL() }.toTypedArray(),
             params.configuration,
             params.fileStorage,
         )

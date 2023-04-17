@@ -73,7 +73,7 @@ class EngineProcessModel private constructor(
         
         private val __StringArraySerializer = FrameworkMarshallers.String.array()
         
-        const val serializationHash = -8371458556124482010L
+        const val serializationHash = 8368769409656260672L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -180,7 +180,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:104]
+ * #### Generated from [EngineProcessModel.kt:103]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -243,7 +243,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:108]
+ * #### Generated from [EngineProcessModel.kt:107]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -300,7 +300,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:97]
+ * #### Generated from [EngineProcessModel.kt:96]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -363,7 +363,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:101]
+ * #### Generated from [EngineProcessModel.kt:100]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -588,7 +588,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:116]
+ * #### Generated from [EngineProcessModel.kt:115]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -681,7 +681,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:125]
+ * #### Generated from [EngineProcessModel.kt:124]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -753,9 +753,8 @@ data class GenerateTestReportResult (
  * #### Generated from [EngineProcessModel.kt:87]
  */
 data class GetSpringBeanQualifiedNamesParams (
-    val classpath: Array<String>,
     val config: String,
-    val fileStorage: String?
+    val fileStorage: Array<String>
 ) : IPrintable {
     //companion
     
@@ -764,16 +763,14 @@ data class GetSpringBeanQualifiedNamesParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanQualifiedNamesParams  {
-            val classpath = buffer.readArray {buffer.readString()}
             val config = buffer.readString()
-            val fileStorage = buffer.readNullable { buffer.readString() }
-            return GetSpringBeanQualifiedNamesParams(classpath, config, fileStorage)
+            val fileStorage = buffer.readArray {buffer.readString()}
+            return GetSpringBeanQualifiedNamesParams(config, fileStorage)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanQualifiedNamesParams)  {
-            buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.config)
-            buffer.writeNullable(value.fileStorage) { buffer.writeString(it) }
+            buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
         }
         
         
@@ -789,25 +786,22 @@ data class GetSpringBeanQualifiedNamesParams (
         
         other as GetSpringBeanQualifiedNamesParams
         
-        if (!(classpath contentDeepEquals other.classpath)) return false
         if (config != other.config) return false
-        if (fileStorage != other.fileStorage) return false
+        if (!(fileStorage contentDeepEquals other.fileStorage)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + classpath.contentDeepHashCode()
         __r = __r*31 + config.hashCode()
-        __r = __r*31 + if (fileStorage != null) fileStorage.hashCode() else 0
+        __r = __r*31 + fileStorage.contentDeepHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("GetSpringBeanQualifiedNamesParams (")
         printer.indent {
-            print("classpath = "); classpath.print(printer); println()
             print("config = "); config.print(printer); println()
             print("fileStorage = "); fileStorage.print(printer); println()
         }
@@ -882,7 +876,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:92]
+ * #### Generated from [EngineProcessModel.kt:91]
  */
 data class MethodDescription (
     val name: String,
@@ -1299,7 +1293,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:111]
+ * #### Generated from [EngineProcessModel.kt:110]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

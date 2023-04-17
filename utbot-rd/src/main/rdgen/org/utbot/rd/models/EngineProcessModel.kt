@@ -85,9 +85,8 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
     }
     val getSpringBeanQualifiedNamesParams = structdef {
-        field("classpath", array(PredefinedType.string))
         field("config", PredefinedType.string)
-        field("fileStorage", PredefinedType.string.nullable)
+        field("fileStorage", array(PredefinedType.string))
     }
     val methodDescription = structdef {
         field("name", PredefinedType.string)

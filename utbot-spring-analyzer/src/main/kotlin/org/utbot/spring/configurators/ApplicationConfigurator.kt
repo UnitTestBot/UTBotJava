@@ -15,7 +15,6 @@ open class ApplicationConfigurator(
     private val applicationBuilder: SpringApplicationBuilder,
     private val applicationData: ApplicationData
 ) {
-    //private val classLoader: ClassLoader = URLClassLoader(applicationData.classpath)
     private val classLoader: ClassLoader = this::class.java.classLoader
 
     fun configureApplication() {

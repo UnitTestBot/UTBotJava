@@ -93,17 +93,15 @@ class SpringAnalyzerProcess private constructor(
             listOf("-Dorg.apache.commons.logging.LogFactory=org.utbot.spring.loggers.RDApacheCommonsLogFactory") + classpathArgs
         }
     ) {
-        fun createBlocking(classpath: List<String>) = runBlocking { SpringAnalyzerProcess(classpath) }
+        fun createBlocking() = runBlocking { SpringAnalyzerProcess() }
 
-        suspend operator fun invoke(classpathItems: List<String>): SpringAnalyzerProcess =
+        suspend operator fun invoke(): SpringAnalyzerProcess =
             LifetimeDefinition().terminateOnException { lifetime ->
-                val requiredSpringAnalyzerJarPath = findRequiredSpringAnalyzerJarPath(classpathItems)
-                val extendedClasspath = listOf(requiredSpringAnalyzerJarPath) + classpathItems
-
+                val requiredSpringAnalyzerJarPath = findRequiredSpringAnalyzerJarPath()
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
                     classpathArgs = listOf(
                         "-cp",
-                        "\"${extendedClasspath.joinToString(File.pathSeparator)}\"",
+                        "\"$requiredSpringAnalyzerJarPath\"",
                         "org.utbot.spring.process.SpringAnalyzerProcessMainKt"
                     )
                     val cmd = obtainProcessCommandLine(port)
@@ -130,10 +128,10 @@ class SpringAnalyzerProcess private constructor(
          * If it is a "pure Spring" project, we have to add dependencies on `spring-boot`
          * to manage to create our internal SpringBootApplication for bean definitions analysis.
          */
-        private fun findRequiredSpringAnalyzerJarPath(classpathItems: List<String>): String {
-            val testClassLoader = URLClassLoader(classpathItems.map { File(it).toURI().toURL() }.toTypedArray(), null)
+        private fun findRequiredSpringAnalyzerJarPath(): String {
+            val classLoader: ClassLoader = this::class.java.classLoader
             try {
-                testClassLoader.loadClass("org.springframework.boot.builder.SpringApplicationBuilder")
+                classLoader.loadClass("org.springframework.boot.builder.SpringApplicationBuilder")
             } catch (e: ClassNotFoundException) {
                 return springAnalyzerWithSpringBootJarFile.path
             }
@@ -147,11 +145,10 @@ class SpringAnalyzerProcess private constructor(
     private val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
 
     fun getBeanQualifiedNames(
-        classpath: List<String>,
         configuration: String,
-        fileStorage: String?,
+        fileStorage: Array<String>,
     ): List<String> {
-        val params = SpringAnalyzerParams(classpath.toTypedArray(), configuration, fileStorage)
+        val params = SpringAnalyzerParams(configuration, fileStorage)
         val result = springAnalyzerModel.analyze.startBlocking(params)
         return result.beanTypes.toList()
     }

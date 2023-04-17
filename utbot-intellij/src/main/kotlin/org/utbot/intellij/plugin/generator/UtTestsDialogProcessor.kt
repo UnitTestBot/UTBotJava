@@ -42,6 +42,7 @@ import mu.KotlinLogging
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.kotlin.idea.base.util.module
+import org.jetbrains.kotlin.ir.interpreter.toIrConst
 import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
 import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
@@ -235,20 +236,20 @@ object UtTestsDialogProcessor {
                                     val beanQualifiedNames =
                                         when (val approach = model.typeReplacementApproach) {
                                             DoNotReplace -> emptyList()
-                                            is ReplaceIfPossible -> {
+                                            is ReplaceIfPossible -> {   
                                                 val contentRoots = runReadAction {
-                                                    listOfNotNull(
-                                                        model.srcModule,
-                                                        springConfigClass?.module
-                                                    ).distinct().flatMap { module ->
-                                                        ModuleRootManager.getInstance(module).contentRoots.toList()
-                                                    }
+                                                    listOfNotNull(model.srcModule, springConfigClass?.module)
+                                                        .distinct()
+                                                        .flatMap { module ->
+                                                            ModuleRootManager
+                                                                .getInstance(module)
+                                                                .contentRoots
+                                                                .map { toString() }
+                                                        }
                                                 }
                                                 process.getSpringBeanQualifiedNames(
-                                                    classpathForClassLoader,
                                                     approach.config,
-                                                    // TODO: consider passing it as an array
-                                                    contentRoots.joinToString(File.pathSeparator),
+                                                    contentRoots.toTypedArray(),
                                                 )
                                             }
                                         }

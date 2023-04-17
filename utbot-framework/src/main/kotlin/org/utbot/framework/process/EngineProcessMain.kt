@@ -78,10 +78,9 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     }
     watchdog.measureTimeForActiveCall(getSpringBeanQualifiedNames, "Getting Spring bean definitions") { params ->
         try {
-            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
+            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking()
             val beans = springAnalyzerProcess.terminateOnException { _ ->
                 springAnalyzerProcess.getBeanQualifiedNames(
-                    params.classpath.toList(),
                     params.config,
                     params.fileStorage,
                 ).toTypedArray()

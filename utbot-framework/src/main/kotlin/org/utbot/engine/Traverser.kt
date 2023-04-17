@@ -1017,10 +1017,8 @@ class Traverser(
         }
         is StaticFieldRef -> {
             val declaringClassType = fieldRef.field.declaringClass.type
-            val fieldTypeId = fieldRef.field.type.classId
             val generator = UtMockInfoGenerator { mockAddr ->
-                val fieldId = FieldId(declaringClassType.id, fieldRef.field.name)
-                UtFieldMockInfo(fieldTypeId, mockAddr, fieldId, ownerAddr = null)
+                UtStaticObjectMockInfo(declaringClassType.id, mockAddr)
             }
             findOrCreateStaticObject(declaringClassType, generator)
         }

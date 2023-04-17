@@ -7,7 +7,6 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.JsUndefinedModel
 import framework.api.js.util.defaultJsValueModel
 import framework.api.js.util.jsErrorClassId
-import framework.api.js.util.jsUndefinedClassId
 import fuzzer.JsIdProvider
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -22,6 +21,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
     @Suppress("NAME_SHADOWING")
     override fun construct(value: Any?, classId: ClassId): UtModel {
         val classId = classId as JsClassId
+        if (classId == jsErrorClassId) return UtModel(jsErrorClassId)
         return when (value) {
             null -> JsNullModel(classId)
             is Byte,
@@ -50,12 +50,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
                 constructObject(classId, value)
             }
 
-            else -> {
-                when (classId) {
-                    jsErrorClassId ->  UtModel(jsErrorClassId)
-                    else -> JsUndefinedModel(classId)
-                }
-            }
+            else -> JsUndefinedModel(classId)
         }
     }
 

@@ -1293,7 +1293,7 @@ class SpringApplicationContext(
                         // it is possible to have problems with classes loading.
                         when (e) {
                             is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
-                                logger.warn { "Failed to load bean class for $beanFqn" }
+                                logger.warn { "Failed to load bean class for $beanFqn (${e.message})" }
 
                             else -> throw e
                         }

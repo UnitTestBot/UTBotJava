@@ -56,14 +56,22 @@ data class MapValue(
     )
 }
 
+data class ChanValue(
+    override val type: String,
+    val elementType: String,
+    val direction: String,
+    val length: Int,
+    val value: List<RawValue>
+) : RawValue(type)
+
 data class NilValue(override val type: String) : RawValue(type)
 
 data class InterfaceValue(override val type: String) : RawValue(type)
 
-@TypeFor(field = "type", adapter = RawResultValueAdapter::class)
+@TypeFor(field = "type", adapter = RawValueAdapter::class)
 abstract class RawValue(open val type: String)
 
-class RawResultValueAdapter : TypeAdapter<RawValue> {
+class RawValueAdapter : TypeAdapter<RawValue> {
     override fun classFor(type: Any): KClass<out RawValue> {
         val typeName = type as String
         return when {
@@ -73,6 +81,7 @@ class RawResultValueAdapter : TypeAdapter<RawValue> {
             typeName.startsWith("map[") -> MapValue::class
             typeName.startsWith("[]") -> SliceValue::class
             typeName.startsWith("[") -> ArrayValue::class
+            typeName.startsWith("<-chan") || typeName.startsWith("chan") -> ChanValue::class
             goPrimitives.map { it.name }.contains(typeName) -> PrimitiveValue::class
             else -> NamedValue::class
         }
@@ -205,18 +214,18 @@ private fun createGoUtStructModelFromRawValue(
 private fun createGoUtArrayModelFromRawValue(
     resultValue: ArrayValue, resultTypeId: GoArrayTypeId, intSize: Int
 ): GoUtArrayModel {
-    val value = (0 until resultTypeId.length).associateWith { index ->
-        createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, intSize)
-    }.toMutableMap()
+    val value = resultValue.value.map {
+        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!, intSize)
+    }.toTypedArray<GoUtModel?>()
     return GoUtArrayModel(value, resultTypeId)
 }
 
 private fun createGoUtSliceModelFromRawValue(
     resultValue: SliceValue, resultTypeId: GoSliceTypeId, intSize: Int
 ): GoUtSliceModel {
-    val value = (0 until resultValue.length).associateWith { index ->
-        createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, intSize)
-    }.toMutableMap()
+    val value = resultValue.value.map {
+        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!, intSize)
+    }.toTypedArray<GoUtModel?>()
     return GoUtSliceModel(value, resultTypeId, resultValue.length)
 }
 

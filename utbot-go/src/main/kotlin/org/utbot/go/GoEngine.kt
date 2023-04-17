@@ -44,7 +44,6 @@ class GoEngine(
                     val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
                     worker.sendFuzzedParametersValues(functionUnderTest, values, aliases)
                     val rawExecutionResult = worker.receiveRawExecutionResult()
-                    println(rawExecutionResult)
                     numberOfFunctionExecutions++
                     if (rawExecutionResult.trace.isEmpty()) {
                         logger.error { "Coverage is empty for [${functionUnderTest.name}] with $values}" }

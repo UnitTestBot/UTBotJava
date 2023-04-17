@@ -66,6 +66,18 @@ data class AnalyzedMapType(
     )
 }
 
+data class AnalyzedChanType(
+    override val name: String,
+    val elementType: AnalyzedType,
+    val direction: GoChanTypeId.Direction,
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId = GoChanTypeId(
+        name = name,
+        elementTypeId = elementType.toGoTypeId(),
+        direction = direction
+    )
+}
+
 data class AnalyzedInterfaceType(
     override val name: String,
 ) : AnalyzedType(name) {
@@ -100,6 +112,7 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
             typeName.startsWith("map[") -> AnalyzedMapType::class
             typeName.startsWith("[]") -> AnalyzedSliceType::class
             typeName.startsWith("[") -> AnalyzedArrayType::class
+            typeName.startsWith("<-chan") || typeName.startsWith("chan") -> AnalyzedChanType::class
             goPrimitives.map { it.name }.contains(typeName) -> AnalyzedPrimitiveType::class
             else -> AnalyzedNamedType::class
         }

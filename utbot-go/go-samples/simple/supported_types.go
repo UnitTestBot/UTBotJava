@@ -288,3 +288,21 @@ type NM map[string]NA
 func NamedMap(n NM) NM {
 	return n
 }
+
+func Channel(c chan Structure) {
+	if c != nil {
+
+	}
+}
+
+func SendOnlyChannel(c chan<- int) {
+	if c != nil {
+
+	}
+}
+
+func RecvOnlyChannel(c <-chan NM) {
+	if c != nil {
+
+	}
+}

@@ -101,6 +101,36 @@ class GoMapTypeId(
     override fun hashCode(): Int = 31 * keyTypeId.hashCode() + elementTypeId.hashCode()
 }
 
+class GoChanTypeId(
+    name: String, elementTypeId: GoTypeId, val direction: Direction,
+) : GoTypeId(name, elementTypeId = elementTypeId) {
+    enum class Direction {
+        SENDONLY, RECVONLY, SENDRECV
+    }
+
+    private val typeWithDirection = when (direction) {
+        Direction.RECVONLY -> "<-chan"
+        Direction.SENDONLY -> "chan<-"
+        Direction.SENDRECV -> "chan"
+    }
+
+    override val canonicalName: String = "$typeWithDirection ${elementTypeId.canonicalName}"
+
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
+        val elementType = elementTypeId!!.getRelativeName(destinationPackage, aliases)
+        return "$typeWithDirection $elementType"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoChanTypeId) return false
+
+        return elementTypeId == other.elementTypeId && direction == other.direction
+    }
+
+    override fun hashCode(): Int = 31 * elementTypeId.hashCode() + direction.hashCode()
+}
+
 class GoInterfaceTypeId(name: String) : GoTypeId(name) {
     override val canonicalName: String = name
 
@@ -117,10 +147,7 @@ class GoInterfaceTypeId(name: String) : GoTypeId(name) {
 }
 
 class GoNamedTypeId(
-    name: String,
-    override val sourcePackage: GoPackage,
-    implementsError: Boolean,
-    val underlyingTypeId: GoTypeId
+    name: String, override val sourcePackage: GoPackage, implementsError: Boolean, val underlyingTypeId: GoTypeId
 ) : GoTypeId(name, implementsError = implementsError) {
     val packageName: String = sourcePackage.packageName
     val packagePath: String = sourcePackage.packagePath

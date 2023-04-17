@@ -63,6 +63,14 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             }
         )
 
+        is GoUtChanModel -> ChanValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
+            model.typeId.direction.name,
+            model.value.size,
+            model.getElements().map { it.convertToRawValue(destinationPackage, aliases) }
+        )
+
         is GoUtPrimitiveModel -> PrimitiveValue(model.typeId.name, model.value.toString())
         is GoUtNilModel -> NilValue(model.typeId.getRelativeName(destinationPackage, aliases))
         else -> error("Converting ${model.javaClass} to RawValue is not supported")

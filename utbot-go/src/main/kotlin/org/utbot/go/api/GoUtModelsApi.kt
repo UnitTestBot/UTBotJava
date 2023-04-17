@@ -74,7 +74,7 @@ class GoUtStructModel(
 }
 
 class GoUtArrayModel(
-    val value: MutableMap<Int, GoUtModel>,
+    val value: Array<GoUtModel?>,
     typeId: GoArrayTypeId,
 ) : GoUtModel(typeId) {
     val length: Int = typeId.length
@@ -85,15 +85,15 @@ class GoUtArrayModel(
     override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
         val elementNamedTypeId = typeId.elementTypeId as? GoNamedTypeId
         val imports = elementNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet()
-        return value.values.fold(imports) { acc, model ->
+        return value.filterNotNull().fold(imports) { acc, model ->
             acc + model.getRequiredPackages(destinationPackage)
         }
     }
 
-    override fun isComparable(): Boolean = value.values.all { it.isComparable() }
+    override fun isComparable(): Boolean = value.filterNotNull().all { it.isComparable() }
 
-    fun getElements(): List<GoUtModel> = (0 until length).map {
-        value[it] ?: typeId.elementTypeId!!.goDefaultValueModel()
+    fun getElements(): List<GoUtModel> = value.map {
+        it ?: typeId.elementTypeId!!.goDefaultValueModel()
     }
 
     override fun toString(): String = getElements().joinToString(prefix = "$typeId{", postfix = "}") {
@@ -104,7 +104,7 @@ class GoUtArrayModel(
         if (this === other) return true
         if (other !is GoUtArrayModel) return false
 
-        return typeId == other.typeId && value == other.value && length == other.length
+        return typeId == other.typeId && value.contentEquals(other.value) && length == other.length
     }
 
     override fun hashCode(): Int {
@@ -116,7 +116,7 @@ class GoUtArrayModel(
 }
 
 class GoUtSliceModel(
-    val value: MutableMap<Int, GoUtModel>,
+    val value: Array<GoUtModel?>,
     typeId: GoSliceTypeId,
     val length: Int,
 ) : GoUtModel(typeId) {
@@ -126,15 +126,15 @@ class GoUtSliceModel(
     override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
         val elementNamedTypeId = typeId.elementTypeId as? GoNamedTypeId
         val imports = elementNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet()
-        return value.values.fold(imports) { acc, model ->
+        return value.filterNotNull().fold(imports) { acc, model ->
             acc + model.getRequiredPackages(destinationPackage)
         }
     }
 
-    override fun isComparable(): Boolean = value.values.all { it.isComparable() }
+    override fun isComparable(): Boolean = value.all { it?.isComparable() ?: true }
 
-    fun getElements(): List<GoUtModel> = (0 until length).map {
-        value[it] ?: typeId.elementTypeId!!.goDefaultValueModel()
+    fun getElements(): List<GoUtModel> = value.map {
+        it ?: typeId.elementTypeId!!.goDefaultValueModel()
     }
 
     override fun toString(): String = getElements().joinToString(prefix = "$typeId{", postfix = "}") {
@@ -181,6 +181,37 @@ class GoUtMapModel(
         if (other !is GoUtMapModel) return false
 
         return typeId == other.typeId && value == other.value
+    }
+
+    override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
+}
+
+class GoUtChanModel(
+    val value: Array<GoUtModel?>,
+    typeId: GoChanTypeId
+) : GoUtModel(typeId) {
+    override val typeId: GoChanTypeId
+        get() = super.typeId as GoChanTypeId
+
+    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
+        val elementNamedTypeId = typeId.elementTypeId as? GoNamedTypeId
+        val imports = elementNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet()
+        return value.filterNotNull().fold(imports) { acc, model ->
+            acc + model.getRequiredPackages(destinationPackage)
+        }
+    }
+
+    override fun isComparable(): Boolean = value.all { it?.isComparable() ?: true }
+
+    fun getElements(): List<GoUtModel> = value.map {
+        it ?: typeId.elementTypeId!!.goDefaultValueModel()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtChanModel) return false
+
+        return typeId == other.typeId && value.contentEquals(other.value)
     }
 
     override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
@@ -287,5 +318,5 @@ class GoUtNamedModel(
         return typeId == other.typeId && value == other.value
     }
 
-    override fun hashCode(): Int =  31 * value.hashCode() + typeId.hashCode()
+    override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }

@@ -12,147 +12,147 @@ func TestWithoutParametersAndReturnValuesByUtGoFuzzer(t *testing.T) {
 }
 
 func TestIntByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int(0)
+	actualVal := Int(1024)
 
-	assert.Equal(t, 0, actualVal)
+	assert.Equal(t, 1024, actualVal)
 }
 
 func TestIntByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int(-9223372036854775808)
+	actualVal := Int(-9223372036854774784)
 
-	assert.Equal(t, -9223372036854775808, actualVal)
+	assert.Equal(t, 9223372036854774784, actualVal)
 }
 
 func TestInt8ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int8(0)
+	actualVal := Int8(2)
 
-	assert.Equal(t, int8(0), actualVal)
+	assert.Equal(t, int8(2), actualVal)
 }
 
 func TestInt8ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int8(-128)
+	actualVal := Int8(-126)
 
-	assert.Equal(t, int8(-128), actualVal)
+	assert.Equal(t, int8(126), actualVal)
 }
 
 func TestInt16ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int16(0)
+	actualVal := Int16(4)
 
-	assert.Equal(t, int16(0), actualVal)
+	assert.Equal(t, int16(4), actualVal)
 }
 
 func TestInt16ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int16(-32768)
+	actualVal := Int16(-32764)
 
-	assert.Equal(t, int16(-32768), actualVal)
+	assert.Equal(t, int16(32764), actualVal)
 }
 
 func TestInt32ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int32(0)
+	actualVal := Int32(32)
 
-	assert.Equal(t, int32(0), actualVal)
+	assert.Equal(t, int32(32), actualVal)
 }
 
 func TestInt32ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int32(-2147483648)
+	actualVal := Int32(-2147483616)
 
-	assert.Equal(t, int32(-2147483648), actualVal)
+	assert.Equal(t, int32(2147483616), actualVal)
 }
 
 func TestInt64ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int64(0)
+	actualVal := Int64(1024)
 
-	assert.Equal(t, int64(0), actualVal)
+	assert.Equal(t, int64(1024), actualVal)
 }
 
 func TestInt64ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int64(-9223372036854775808)
+	actualVal := Int64(-9223372036854774784)
 
-	assert.Equal(t, int64(-9223372036854775808), actualVal)
+	assert.Equal(t, int64(9223372036854774784), actualVal)
 }
 
 func TestUintByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint(0)
+	actualVal := Uint(1024)
 
-	assert.Equal(t, uint(0), actualVal)
+	assert.Equal(t, uint(1024), actualVal)
 }
 
 func TestUint8ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint8(0)
+	actualVal := Uint8(2)
 
-	assert.Equal(t, uint8(0), actualVal)
+	assert.Equal(t, uint8(2), actualVal)
 }
 
 func TestUint16ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint16(0)
+	actualVal := Uint16(4)
 
-	assert.Equal(t, uint16(0), actualVal)
+	assert.Equal(t, uint16(4), actualVal)
 }
 
 func TestUint32ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint32(0)
+	actualVal := Uint32(32)
 
-	assert.Equal(t, uint32(0), actualVal)
+	assert.Equal(t, uint32(32), actualVal)
 }
 
 func TestUint64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint64(0)
+	actualVal := Uint64(1024)
 
-	assert.Equal(t, uint64(0), actualVal)
+	assert.Equal(t, uint64(1024), actualVal)
 }
 
 func TestUintPtrByUtGoFuzzer(t *testing.T) {
-	actualVal := UintPtr(0)
+	actualVal := UintPtr(1024)
 
-	assert.Equal(t, uintptr(0), actualVal)
+	assert.Equal(t, uintptr(1024), actualVal)
 }
 
 func TestFloat32ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float32(0.59754527)
+	actualVal := Float32(-0.24053639)
 
-	assert.Equal(t, float32(0.59754527), actualVal)
+	assert.Equal(t, float32(-0.24053639), actualVal)
 }
 
 func TestFloat64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float64(0.7815346320453048)
+	actualVal := Float64(-0.6063452159973596)
 
-	assert.Equal(t, 0.7815346320453048, actualVal)
+	assert.Equal(t, -0.6063452159973596, actualVal)
 }
 
 func TestComplex64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex64(complex(0.25277615, 0.25277615))
+	actualVal := Complex64(complex(0.30905056, 0.0012072287))
 
-	assert.Equal(t, complex(float32(0.25277615), float32(0.25277615)), actualVal)
+	assert.Equal(t, complex(float32(0.30905056), float32(0.0012072287)), actualVal)
 }
 
 func TestComplex128ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex128(complex(0.3851891847407185, 0.3851891847407185))
+	actualVal := Complex128(complex(0.5504370051176339, 0.03440231281985212))
 
-	assert.Equal(t, complex(0.3851891847407185, 0.3851891847407185), actualVal)
+	assert.Equal(t, complex(0.5504370051176339, 0.03440231281985212), actualVal)
 }
 
 func TestByteByUtGoFuzzer(t *testing.T) {
-	actualVal := Byte(0)
+	actualVal := Byte(2)
 
-	assert.Equal(t, uint8(0), actualVal)
+	assert.Equal(t, uint8(2), actualVal)
 }
 
 func TestRuneByUtGoFuzzer(t *testing.T) {
-	actualVal := Rune(2147483647)
+	actualVal := Rune(2147483615)
 
-	assert.Equal(t, int32(2147483647), actualVal)
+	assert.Equal(t, int32(2147483615), actualVal)
 }
 
 func TestStringByUtGoFuzzer(t *testing.T) {
-	actualVal := String("hello")
+	actualVal := String("3hllo")
 
-	assert.Equal(t, "hello", actualVal)
+	assert.Equal(t, "3hllo", actualVal)
 }
 
 func TestBoolByUtGoFuzzer(t *testing.T) {
-	actualVal := Bool(true)
+	actualVal := Bool(false)
 
-	assert.Equal(t, true, actualVal)
+	assert.Equal(t, false, actualVal)
 }
 
 func TestStructByUtGoFuzzer(t *testing.T) {
@@ -216,15 +216,15 @@ func TestArrayOfSliceOfUintByUtGoFuzzer(t *testing.T) {
 }
 
 func TestReturnErrorOrNilWithNonNilErrorByUtGoFuzzer1(t *testing.T) {
-	actualErr := returnErrorOrNil(0)
+	actualErr := returnErrorOrNil(1024)
 
-	assert.Nil(t, actualErr)
+	assert.ErrorContains(t, actualErr, "error")
 }
 
 func TestReturnErrorOrNilWithNonNilErrorByUtGoFuzzer2(t *testing.T) {
-	actualErr := returnErrorOrNil(8)
+	actualErr := returnErrorOrNil(-9223372036854774784)
 
-	assert.ErrorContains(t, actualErr, "error")
+	assert.Nil(t, actualErr)
 }
 
 func TestExternalStructByUtGoFuzzer(t *testing.T) {
@@ -294,9 +294,9 @@ func TestExportedStructWithEmbeddedUnexportedStructByUtGoFuzzer(t *testing.T) {
 }
 
 func TestNamedTypeByUtGoFuzzer(t *testing.T) {
-	actualVal := NamedType(0)
+	actualVal := NamedType(4)
 
-	assert.Equal(t, Type(0), actualVal)
+	assert.Equal(t, Type(4), actualVal)
 }
 
 func TestArrayOfNamedTypeByUtGoFuzzer(t *testing.T) {
@@ -369,4 +369,28 @@ func TestNamedMapByUtGoFuzzer(t *testing.T) {
 	actualVal := NamedMap(NM(nil))
 
 	assert.Nil(t, actualVal)
+}
+
+func TestChannelByUtGoFuzzer1(t *testing.T) {
+	assert.NotPanics(t, func() { Channel(make(chan Structure, 1)) })
+}
+
+func TestChannelByUtGoFuzzer2(t *testing.T) {
+	assert.NotPanics(t, func() { Channel(nil) })
+}
+
+func TestSendOnlyChannelByUtGoFuzzer1(t *testing.T) {
+	assert.NotPanics(t, func() { SendOnlyChannel(nil) })
+}
+
+func TestSendOnlyChannelByUtGoFuzzer2(t *testing.T) {
+	assert.NotPanics(t, func() { SendOnlyChannel(make(chan<- int, 3)) })
+}
+
+func TestRecvOnlyChannelByUtGoFuzzer1(t *testing.T) {
+	assert.NotPanics(t, func() { RecvOnlyChannel(nil) })
+}
+
+func TestRecvOnlyChannelByUtGoFuzzer2(t *testing.T) {
+	assert.NotPanics(t, func() { RecvOnlyChannel(make(<-chan NM, 3)) })
 }

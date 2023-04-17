@@ -87,6 +87,16 @@ func (t AnalyzedMapType) GetName() string {
 	return t.Name
 }
 
+type AnalyzedChanType struct {
+	Name        string       `json:"name"`
+	ElementType AnalyzedType `json:"elementType"`
+	Direction   string       `json:"direction"`
+}
+
+func (t AnalyzedChanType) GetName() string {
+	return t.Name
+}
+
 type AnalyzedFunction struct {
 	Name                                string                      `json:"name"`
 	ModifiedName                        string                      `json:"modifiedName"`

@@ -19,15 +19,12 @@ object GoArrayValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> 
                     Seed.Collection(
                         construct = Routine.Collection {
                             GoUtArrayModel(
-                                value = hashMapOf(),
+                                value = arrayOfNulls(arrayType.length),
                                 typeId = arrayType,
                             )
                         },
                         modify = Routine.ForEach(listOf(arrayType.elementTypeId!!)) { self, i, values ->
                             val model = self as GoUtArrayModel
-                            if (i >= model.length) {
-                                return@ForEach
-                            }
                             model.value[i] = values.first()
                         }
                     )

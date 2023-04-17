@@ -24,6 +24,18 @@ func implementsError(typ types.Type) bool {
 	return types.Implements(typ, errorInterface)
 }
 
+func ChanDirToString(dir types.ChanDir) (string, error) {
+	switch dir {
+	case types.SendOnly:
+		return "SENDONLY", nil
+	case types.RecvOnly:
+		return "RECVONLY", nil
+	case types.SendRecv:
+		return "SENDRECV", nil
+	}
+	return "", fmt.Errorf("unsupported channel direction: %d", dir)
+}
+
 //goland:noinspection GoPreferNilSlice
 func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	switch t := typ.(type) {
@@ -110,6 +122,27 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 			KeyType:     keyType,
 			ElementType: elemType,
 		}, nil
+	case *types.Chan:
+		elemType, err := toAnalyzedType(t.Elem())
+		checkError(err)
+
+		chanName := "chan"
+		switch t.Dir() {
+		case types.SendOnly:
+			chanName = chanName + "<-"
+		case types.RecvOnly:
+			chanName = "<-" + chanName
+		}
+		chanName += " " + elemType.GetName()
+
+		chanDir, err := ChanDirToString(t.Dir())
+		checkError(err)
+
+		return AnalyzedChanType{
+			Name:        chanName,
+			ElementType: elemType,
+			Direction:   chanDir,
+		}, nil
 	case *types.Interface:
 		name := "interface{}"
 		isError := implementsError(t)
@@ -145,6 +178,9 @@ func checkTypeIsSupported(typ types.Type, isResultType bool) bool {
 	}
 	if mapType, ok := underlyingType.(*types.Map); ok {
 		return checkTypeIsSupported(mapType.Key(), isResultType) && checkTypeIsSupported(mapType.Elem(), isResultType)
+	}
+	if chanType, ok := underlyingType.(*types.Chan); ok && !isResultType {
+		return checkTypeIsSupported(chanType.Elem(), isResultType)
 	}
 	if interfaceType, ok := underlyingType.(*types.Interface); ok && isResultType {
 		return implementsError(interfaceType)

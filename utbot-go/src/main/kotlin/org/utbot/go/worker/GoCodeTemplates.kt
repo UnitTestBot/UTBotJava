@@ -354,6 +354,41 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+    private val chanValueStruct = """
+        type __ChanValue__ struct {
+        	Type        string         `json:"type"`
+        	ElementType string         `json:"elementType"`
+        	Direction   string         `json:"direction"`
+        	Length      int            `json:"length"`
+        	Value       []__RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val chanValueToReflectValueMethod = """
+        func (v __ChanValue__) __toReflectValue__() (reflect.Value, error) {
+        	elementType, err := __convertStringToReflectType__(v.ElementType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.ElementType, err)
+        	}
+
+        	dir := reflect.BothDir
+
+        	chanType := reflect.ChanOf(dir, elementType)
+        	channel := reflect.MakeChan(chanType, v.Length)
+
+        	for i := range v.Value {
+        		reflectValue, err := v.Value[i].__toReflectValue__()
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
+
+        		channel.Send(reflectValue)
+        	}
+
+        	return channel, nil
+        }
+    """.trimIndent()
+
     private val nilValueStruct = """
         type __NilValue__ struct {
         	Type string `json:"type"`
@@ -454,6 +489,23 @@ object GoCodeTemplates {
             		}
 
             		result = reflect.ArrayOf(length, res)
+            	case strings.HasPrefix(typeName, "<-chan") || strings.HasPrefix(typeName, "chan"):
+            		dir := reflect.BothDir
+            		index := 5
+            		if strings.HasPrefix(typeName, "<-chan") {
+            			dir = reflect.RecvDir
+            			index = 7
+            		} else if strings.HasPrefix(typeName, "chan<-") {
+            			dir = reflect.SendDir
+            			index = 7
+            		}
+
+            		elemType, err := __convertStringToReflectType__(typeName[index:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, typeName[index:], err)
+            		}
+
+            		result = reflect.ChanOf(dir, elemType)
             	default:
             		switch typeName {
             		case "bool":
@@ -691,6 +743,38 @@ object GoCodeTemplates {
         			KeyType:     keyType,
         			ElementType: elementType,
         			Value:       mapValues,
+        		}, nil
+        	case reflect.Chan:
+        		typeName := v.Type().String()
+        		elementType := v.Type().Elem().String()
+        		dir := "SENDRECV"
+        		if v.Type().ChanDir() == reflect.SendDir {
+        			dir = "SENDONLY"
+        		} else {
+        			dir = "RECVONLY"
+        		}
+        		length := v.Len()
+
+        		chanElementValues := make([]__RawValue__, 0, v.Len())
+        		for {
+        			v, ok := v.Recv()
+        			if !ok {
+        				break
+        			}
+        			rawValue, err := __convertReflectValueToRawValue__(v)
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
+
+        			chanElementValues = append(chanElementValues, rawValue)
+        		}
+
+        		return __ChanValue__{
+        			Type:        typeName,
+        			ElementType: elementType,
+        			Direction:   dir,
+        			Length:      length,
+        			Value:       chanElementValues,
         		}, nil
         	case reflect.Interface:
         		if v.Interface() == nil {
@@ -972,7 +1056,7 @@ object GoCodeTemplates {
         	case strings.HasPrefix(typeNameStr, "["):
         		elementType, ok := rawValue["elementType"]
         		if !ok {
-        			return nil, fmt.Errorf("ArrayValue must contain field 'elementType")
+        			return nil, fmt.Errorf("ArrayValue must contain field 'elementType'")
         		}
         		elementTypeStr, ok := elementType.(string)
         		if !ok {
@@ -1005,6 +1089,55 @@ object GoCodeTemplates {
         		return __ArrayValue__{
         			Type:        typeNameStr,
         			ElementType: elementTypeStr,
+        			Length:      int(length),
+        			Value:       values,
+        		}, nil
+        	case strings.HasPrefix(typeNameStr, "<-chan") || strings.HasPrefix(typeNameStr, "chan"):
+        		elementType, ok := rawValue["elementType"]
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue must contain field 'elementType'")
+        		}
+        		elementTypeStr, ok := elementType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue field 'elementType' must be string")
+        		}
+
+        		dir, ok := rawValue["direction"]
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue must contain field 'direction'")
+        		}
+        		direction, ok := dir.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue field 'direction' must be string")
+        		}
+
+        		if _, ok := rawValue["length"]; !ok {
+        			return nil, fmt.Errorf("ChanValue must contain field 'length'")
+        		}
+        		length, ok := rawValue["length"].(float64)
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue field 'length' must be float64")
+        		}
+
+        		value, ok := v.([]interface{})
+        		if !ok || len(value) != int(length) {
+        			return nil, fmt.Errorf("ChanValue field 'value' must be array of length %d", int(length))
+        		}
+
+        		values := make([]__RawValue__, 0, len(value))
+        		for i, v := range value {
+        			nextValue, err := __parseRawValue__(v.(map[string]interface{}), "")
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse %d chan element: %s", i, err)
+        			}
+
+        			values = append(values, nextValue)
+        		}
+
+        		return __ChanValue__{
+        			Type:        typeNameStr,
+        			ElementType: elementTypeStr,
+        			Direction:   direction,
         			Length:      int(length),
         			Value:       values,
         		}, nil
@@ -1117,6 +1250,8 @@ object GoCodeTemplates {
         arrayValueToReflectValueMethod,
         sliceValueStruct,
         sliceValueToReflectValueMethod,
+        chanValueStruct,
+        chanValueToReflectValueMethod,
         nilValueStruct,
         nilValueToReflectValueMethod,
         namedValueStruct,

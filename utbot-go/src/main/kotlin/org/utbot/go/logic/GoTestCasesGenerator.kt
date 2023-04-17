@@ -102,6 +102,13 @@ object GoTestCasesGenerator {
                         val engine =
                             GoEngine(worker, function, aliases, intSize, { timeoutExceededOrIsCanceled(index) }) {
                                 process.destroy()
+                                val processOutput = InputStreamReader(process.inputStream).readText()
+                                logger.debug {
+                                    buildString {
+                                        appendLine("Worker is not responding. Process output:")
+                                        appendLine(processOutput)
+                                    }
+                                }
                                 process = startWorkerProcess()
                                 workerSocket.close()
                                 workerSocket = connectingToWorker()

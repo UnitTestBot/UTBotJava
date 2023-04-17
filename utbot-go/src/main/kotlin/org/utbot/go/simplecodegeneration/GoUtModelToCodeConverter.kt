@@ -24,6 +24,8 @@ class GoUtModelToCodeConverter(
 
         is GoUtMapModel -> mapModelToGoCode(model)
 
+        is GoUtChanModel -> chanModelToGoCode(model)
+
         is GoUtNamedModel -> if (!withTypeConversion && model.value is GoUtPrimitiveModel) {
             toGoCodeWithoutTypeName(model.value)
         } else {
@@ -99,6 +101,11 @@ class GoUtModelToCodeConverter(
         model.value.entries.joinToString(prefix = "{", postfix = "}") {
             "${toGoCode(it.key)}: ${toGoCodeWithoutTypeName(it.value)}"
         }
+
+    private fun chanModelToGoCode(model: GoUtChanModel): String {
+        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
+        return "make($typeName, ${model.value.size})"
+    }
 
     private fun namedModelToGoCode(model: GoUtNamedModel): String {
         val typeName = model.typeId.getRelativeName(destinationPackage, aliases)

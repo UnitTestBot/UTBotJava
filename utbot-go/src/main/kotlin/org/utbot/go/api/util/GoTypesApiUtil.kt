@@ -72,9 +72,6 @@ val goSupportedConstantTypes = setOf(
     goUintPtrTypeId,
 )
 
-val GoTypeId.isPrimitiveGoType: Boolean
-    get() = this in goPrimitives
-
 private val goTypesNeverRequireExplicitCast = setOf(
     goBoolTypeId,
     goComplex128TypeId,
@@ -152,9 +149,10 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     }
 
     is GoStructTypeId -> GoUtStructModel(listOf(), this)
-    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
+    is GoArrayTypeId -> GoUtArrayModel(arrayOfNulls(this.length), this)
     is GoSliceTypeId -> GoUtNilModel(this)
     is GoMapTypeId -> GoUtNilModel(this)
+    is GoChanTypeId -> GoUtNilModel(this)
     is GoNamedTypeId -> GoUtNamedModel(this.underlyingTypeId.goDefaultValueModel(), this)
     else -> error("Generating Go default value model for ${this.javaClass} is not supported")
 }
@@ -170,7 +168,7 @@ fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
         acc + (field.declaringType).getAllVisibleNamedTypes(goPackage)
     }
 
-    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllVisibleNamedTypes(goPackage)
+    is GoArrayTypeId, is GoSliceTypeId, is GoChanTypeId -> elementTypeId!!.getAllVisibleNamedTypes(goPackage)
     is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage) + elementTypeId!!.getAllVisibleNamedTypes(goPackage)
 
     else -> emptySet()

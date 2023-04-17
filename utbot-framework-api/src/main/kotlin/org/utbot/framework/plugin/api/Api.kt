@@ -8,6 +8,7 @@
 
 package org.utbot.framework.plugin.api
 
+import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
@@ -1270,6 +1271,10 @@ class SpringApplicationContext(
     private val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
     private var areInjectedClassesInitialized : Boolean = false
 
     // Classes representing concrete types that are actually used in Spring application
@@ -1283,10 +1288,15 @@ class SpringApplicationContext(
                             !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
                             springInjectedClassesStorage += beanClass.id
                         }
-                    } catch (e: ClassNotFoundException) {
+                    } catch (e: Throwable) {
                         // For some Spring beans (e.g. with anonymous classes)
                         // it is possible to have problems with classes loading.
-                        continue
+                        when (e) {
+                            is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
+                                logger.warn { "Failed to load bean class for $beanFqn (${e.message})" }
+
+                            else -> throw e
+                        }
                     }
                 }
 

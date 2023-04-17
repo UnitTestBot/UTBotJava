@@ -1422,10 +1422,10 @@ class Traverser(
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
                 val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
-                val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+                val isMockConstraint = typeRegistry.isMockConstraint(mockedObject.addr)
 
                 queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
-                queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+                queuedSymbolicStateUpdates += isMockConstraint.asHardConstraint()
 
                 return mockedObject
             }
@@ -1505,7 +1505,7 @@ class Traverser(
         }
 
         val concreteImplementation: Concrete? = when (applicationContext.typeReplacementMode) {
-            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
+            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint)
 
             // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
             // we should just still use concrete implementation that represents itself
@@ -1521,7 +1521,7 @@ class Traverser(
             KnownImplementor,
             NoImplementors -> {
                 if (!type.isAbstractType) {
-                    findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
+                    findConcreteImplementation(addr, type, typeHardConstraint)
                 } else {
                     mockInfoGenerator?.let {
                         return createMockedObject(addr, type, it, nullEqualityConstraint)
@@ -1540,12 +1540,11 @@ class Traverser(
         addr: UtAddrExpression,
         type: RefType,
         typeHardConstraint: HardConstraint,
-        nullEqualityConstraint: UtBoolExpression,
     ): Concrete? {
         val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
 
         queuedSymbolicStateUpdates += typeHardConstraint
-        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+        queuedSymbolicStateUpdates += isMockConstraint.asHardConstraint()
 
         // If we have this$0 with UtArrayList type, we have to create such instance.
         // We should create an object with typeStorage of all possible real types and concrete implementation
@@ -1583,10 +1582,10 @@ class Traverser(
 
         // add typeConstraint for mocked object. It's a declared type of the object.
         val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
-        val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+        val isMockConstraint = typeRegistry.isMockConstraint(mockedObject.addr)
 
         queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
-        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+        queuedSymbolicStateUpdates += isMockConstraint.asHardConstraint()
 
         return mockedObject
     }

@@ -25,6 +25,9 @@ object GoArrayValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> 
                         },
                         modify = Routine.ForEach(listOf(arrayType.elementTypeId!!)) { self, i, values ->
                             val model = self as GoUtArrayModel
+                            if (i >= model.length) {
+                                return@ForEach
+                            }
                             model.value[i] = values.first()
                         }
                     )

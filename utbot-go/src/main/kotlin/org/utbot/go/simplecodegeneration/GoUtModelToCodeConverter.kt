@@ -10,12 +10,12 @@ class GoUtModelToCodeConverter(
     private val aliases: Map<GoPackage, String?>
 ) {
 
-    fun toGoCode(model: GoUtModel, withTypeConversion: Boolean = true): String = when (model) {
-        is GoUtNilModel -> "nil"
+    fun toGoCode(model: GoUtModel, needAnExplicitCast: Boolean = true): String = when (model) {
+        is GoUtNilModel -> nilModelToGoCode(model)
 
         is GoUtPrimitiveModel -> when (model.explicitCastMode) {
-            ExplicitCastMode.REQUIRED -> primitiveModelToCastedValueGoCode(model)
-            ExplicitCastMode.DEPENDS, ExplicitCastMode.NEVER -> primitiveModelToValueGoCode(model)
+            ExplicitCastMode.REQUIRED, ExplicitCastMode.DEPENDS -> primitiveModelToCastedValueGoCode(model)
+            ExplicitCastMode.NEVER -> primitiveModelToValueGoCode(model)
         }
 
         is GoUtArrayModel -> arrayModelToGoCode(model)
@@ -26,11 +26,7 @@ class GoUtModelToCodeConverter(
 
         is GoUtChanModel -> chanModelToGoCode(model)
 
-        is GoUtNamedModel -> if (!withTypeConversion && model.value is GoUtPrimitiveModel) {
-            toGoCodeWithoutTypeName(model.value)
-        } else {
-            namedModelToGoCode(model)
-        }
+        is GoUtNamedModel -> namedModelToGoCode(model)
 
         else -> error("Converting a ${model.javaClass} to Go code isn't supported")
     }
@@ -56,13 +52,20 @@ class GoUtModelToCodeConverter(
         else -> error("Converting a ${model.javaClass} to Go code isn't supported")
     }
 
-    fun primitiveModelToValueGoCode(model: GoUtPrimitiveModel): String = when (model) {
+    private fun nilModelToGoCode(model: GoUtNilModel): String {
+        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
+        return "($typeName)(nil)"
+    }
+
+    private fun primitiveModelToValueGoCode(model: GoUtPrimitiveModel): String = when (model) {
         is GoUtComplexModel -> complexModeToValueGoCode(model)
         else -> if (model.typeId == goStringTypeId) "\"${model.value}\"" else "${model.value}"
     }
 
-    fun primitiveModelToCastedValueGoCode(model: GoUtPrimitiveModel): String =
-        "${model.typeId}(${primitiveModelToValueGoCode(model)})"
+    private fun primitiveModelToCastedValueGoCode(model: GoUtPrimitiveModel): String {
+        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
+        return "$typeName(${primitiveModelToValueGoCode(model)})"
+    }
 
     private fun complexModeToValueGoCode(model: GoUtComplexModel) =
         "complex(${toGoCode(model.realValue)}, ${toGoCode(model.imagValue)})"

@@ -8,389 +8,648 @@ import (
 )
 
 func TestWithoutParametersAndReturnValuesByUtGoFuzzer(t *testing.T) {
-	assert.NotPanics(t, func() { WithoutParametersAndReturnValues() })
+	assert.NotPanics(t, func() {
+		WithoutParametersAndReturnValues()
+	})
 }
 
 func TestIntByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int(1024)
+	n := 1024
 
-	assert.Equal(t, 1024, actualVal)
+	actualVal := Int(n)
+
+	expectedVal := 1024
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestIntByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int(-9223372036854774784)
+	n := -9223372036854774784
 
-	assert.Equal(t, 9223372036854774784, actualVal)
+	actualVal := Int(n)
+
+	expectedVal := 9223372036854774784
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt8ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int8(2)
+	n := int8(2)
 
-	assert.Equal(t, int8(2), actualVal)
+	actualVal := Int8(n)
+
+	expectedVal := int8(2)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt8ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int8(-126)
+	n := int8(-126)
 
-	assert.Equal(t, int8(126), actualVal)
+	actualVal := Int8(n)
+
+	expectedVal := int8(126)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt16ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int16(4)
+	n := int16(4)
 
-	assert.Equal(t, int16(4), actualVal)
+	actualVal := Int16(n)
+
+	expectedVal := int16(4)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt16ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int16(-32764)
+	n := int16(-32764)
 
-	assert.Equal(t, int16(32764), actualVal)
+	actualVal := Int16(n)
+
+	expectedVal := int16(32764)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt32ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int32(32)
+	n := int32(32)
 
-	assert.Equal(t, int32(32), actualVal)
+	actualVal := Int32(n)
+
+	expectedVal := int32(32)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt32ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int32(-2147483616)
+	n := int32(-2147483616)
 
-	assert.Equal(t, int32(2147483616), actualVal)
+	actualVal := Int32(n)
+
+	expectedVal := int32(2147483616)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt64ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int64(1024)
+	n := int64(1024)
 
-	assert.Equal(t, int64(1024), actualVal)
+	actualVal := Int64(n)
+
+	expectedVal := int64(1024)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestInt64ByUtGoFuzzer2(t *testing.T) {
-	actualVal := Int64(-9223372036854774784)
+	n := int64(-9223372036854774784)
 
-	assert.Equal(t, int64(9223372036854774784), actualVal)
+	actualVal := Int64(n)
+
+	expectedVal := int64(9223372036854774784)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestUintByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint(1024)
+	n := uint(1024)
 
-	assert.Equal(t, uint(1024), actualVal)
+	actualVal := Uint(n)
+
+	expectedVal := uint(1024)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestUint8ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint8(2)
+	n := uint8(2)
 
-	assert.Equal(t, uint8(2), actualVal)
+	actualVal := Uint8(n)
+
+	expectedVal := uint8(2)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestUint16ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint16(4)
+	n := uint16(4)
 
-	assert.Equal(t, uint16(4), actualVal)
+	actualVal := Uint16(n)
+
+	expectedVal := uint16(4)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestUint32ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint32(32)
+	n := uint32(32)
 
-	assert.Equal(t, uint32(32), actualVal)
+	actualVal := Uint32(n)
+
+	expectedVal := uint32(32)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestUint64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Uint64(1024)
+	n := uint64(1024)
 
-	assert.Equal(t, uint64(1024), actualVal)
+	actualVal := Uint64(n)
+
+	expectedVal := uint64(1024)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestUintPtrByUtGoFuzzer(t *testing.T) {
-	actualVal := UintPtr(1024)
+	n := uintptr(1024)
 
-	assert.Equal(t, uintptr(1024), actualVal)
+	actualVal := UintPtr(n)
+
+	expectedVal := uintptr(1024)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestFloat32ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float32(-0.24053639)
+	n := float32(-0.24053639)
 
-	assert.Equal(t, float32(-0.24053639), actualVal)
+	actualVal := Float32(n)
+
+	expectedVal := float32(-0.24053639)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestFloat64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float64(-0.6063452159973596)
+	n := -0.6063452159973596
 
-	assert.Equal(t, -0.6063452159973596, actualVal)
+	actualVal := Float64(n)
+
+	expectedVal := -0.6063452159973596
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestComplex64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex64(complex(0.30905056, 0.0012072287))
+	n := complex(float32(0.30905056), float32(0.0012072287))
 
-	assert.Equal(t, complex(float32(0.30905056), float32(0.0012072287)), actualVal)
+	actualVal := Complex64(n)
+
+	expectedVal := complex(float32(0.30905056), float32(0.0012072287))
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestComplex128ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex128(complex(0.5504370051176339, 0.03440231281985212))
+	n := complex(0.5504370051176339, 0.03440231281985212)
 
-	assert.Equal(t, complex(0.5504370051176339, 0.03440231281985212), actualVal)
+	actualVal := Complex128(n)
+
+	expectedVal := complex(0.5504370051176339, 0.03440231281985212)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestByteByUtGoFuzzer(t *testing.T) {
-	actualVal := Byte(2)
+	n := byte(2)
 
-	assert.Equal(t, uint8(2), actualVal)
+	actualVal := Byte(n)
+
+	expectedVal := byte(2)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestRuneByUtGoFuzzer(t *testing.T) {
-	actualVal := Rune(2147483615)
+	n := rune(2147483615)
 
-	assert.Equal(t, int32(2147483615), actualVal)
+	actualVal := Rune(n)
+
+	expectedVal := rune(2147483615)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestStringByUtGoFuzzer(t *testing.T) {
-	actualVal := String("3hllo")
+	n := "3hllo"
 
-	assert.Equal(t, "3hllo", actualVal)
+	actualVal := String(n)
+
+	expectedVal := "3hllo"
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestBoolByUtGoFuzzer(t *testing.T) {
-	actualVal := Bool(false)
+	n := false
 
-	assert.Equal(t, false, actualVal)
+	actualVal := Bool(n)
+
+	assert.False(t, actualVal)
 }
 
 func TestStructByUtGoFuzzer(t *testing.T) {
-	actualVal := Struct(Structure{})
+	s := Structure{}
 
-	assert.Equal(t, Structure{}, actualVal)
+	actualVal := Struct(s)
+
+	expectedVal := Structure{}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestStructWithNanByUtGoFuzzer(t *testing.T) {
-	actualVal := StructWithNan(Structure{})
+	s := Structure{}
 
-	assert.NotEqual(t, Structure{}, actualVal)
+	actualVal := StructWithNan(s)
+
+	expectedVal := Structure{}
+
+	assert.NotEqual(t, expectedVal, actualVal)
 }
 
 func TestArrayOfIntByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfInt([10]int{-1, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	array := [10]int{-1, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
-	assert.Equal(t, [10]int{-1, 0, 0, 0, 0, 0, 0, 0, 0, 0}, actualVal)
+	actualVal := ArrayOfInt(array)
+
+	expectedVal := [10]int{-1, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfUintPtrByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfUintPtr([10]uintptr{0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	array := [10]uintptr{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
-	assert.Equal(t, [10]uintptr{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, actualVal)
+	actualVal := ArrayOfUintPtr(array)
+
+	expectedVal := [10]uintptr{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfStringByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfString([10]string{"hello", "", "", "", "", "", "", "", "", ""})
+	array := [10]string{"hello", "", "", "", "", "", "", "", "", ""}
 
-	assert.Equal(t, [10]string{"hello", "", "", "", "", "", "", "", "", ""}, actualVal)
+	actualVal := ArrayOfString(array)
+
+	expectedVal := [10]string{"hello", "", "", "", "", "", "", "", "", ""}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfStructsByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfStructs([10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}})
+	array := [10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}}
 
-	assert.Equal(t, [10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}}, actualVal)
+	actualVal := ArrayOfStructs(array)
+
+	expectedVal := [10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfStructsWithNanByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfStructsWithNan([10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}})
+	array := [10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}}
 
-	assert.NotEqual(t, [10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}}, actualVal)
+	actualVal := ArrayOfStructsWithNan(array)
+
+	expectedVal := [10]Structure{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}}
+
+	assert.NotEqual(t, expectedVal, actualVal)
 }
 
 func TestArrayOfArrayOfUintByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfArrayOfUint([5][5]uint{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}})
+	array := [5][5]uint{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}
 
-	assert.Equal(t, [5][5]uint{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, actualVal)
+	actualVal := ArrayOfArrayOfUint(array)
+
+	expectedVal := [5][5]uint{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfArrayOfStructsByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfArrayOfStructs([5][5]Structure{{{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}})
+	array := [5][5]Structure{{{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}}
 
-	assert.Equal(t, [5][5]Structure{{{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}}, actualVal)
+	actualVal := ArrayOfArrayOfStructs(array)
+
+	expectedVal := [5][5]Structure{{{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}, {{}, {}, {}, {}, {}}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfSliceOfUintByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfSliceOfUint([5][]uint{nil, nil, nil, nil, nil})
+	array := [5][]uint{nil, nil, nil, nil, nil}
 
-	assert.Equal(t, [5][]uint{nil, nil, nil, nil, nil}, actualVal)
+	actualVal := ArrayOfSliceOfUint(array)
+
+	expectedVal := [5][]uint{nil, nil, nil, nil, nil}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestReturnErrorOrNilWithNonNilErrorByUtGoFuzzer1(t *testing.T) {
-	actualErr := returnErrorOrNil(1024)
+	n := 1024
 
-	assert.ErrorContains(t, actualErr, "error")
+	actualErr := returnErrorOrNil(n)
+
+	expectedErrorMessage := "error"
+
+	assert.ErrorContains(t, actualErr, expectedErrorMessage)
 }
 
 func TestReturnErrorOrNilWithNonNilErrorByUtGoFuzzer2(t *testing.T) {
-	actualErr := returnErrorOrNil(-9223372036854774784)
+	n := -9223372036854774784
+
+	actualErr := returnErrorOrNil(n)
 
 	assert.Nil(t, actualErr)
 }
 
 func TestExternalStructByUtGoFuzzer(t *testing.T) {
-	actualVal := ExternalStruct(difflib.Match{A: 1, B: 1, Size: 1}, Structure{})
+	match := difflib.Match{A: 1, B: 1, Size: 1}
+	structure := Structure{}
 
-	assert.Equal(t, Structure{}, actualVal)
+	actualVal := ExternalStruct(match, structure)
+
+	expectedVal := Structure{}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestExternalStructWithAliasByUtGoFuzzer(t *testing.T) {
-	actualVal := ExternalStructWithAlias(difflib.Match{A: 1, B: 1, Size: 1})
+	match := difflib.Match{A: 1, B: 1, Size: 1}
 
-	assert.Equal(t, difflib.Match{A: 1, B: 1, Size: 1}, actualVal)
+	actualVal := ExternalStructWithAlias(match)
+
+	expectedVal := difflib.Match{A: 1, B: 1, Size: 1}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestSliceOfIntByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfInt(nil)
+	slice := ([]int)(nil)
+
+	actualVal := SliceOfInt(slice)
 
 	assert.Nil(t, actualVal)
 }
 
 func TestSliceOfUintPtrByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfUintPtr(nil)
+	slice := ([]uintptr)(nil)
+
+	actualVal := SliceOfUintPtr(slice)
 
 	assert.Nil(t, actualVal)
 }
 
 func TestSliceOfStringByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfString(nil)
+	slice := ([]string)(nil)
+
+	actualVal := SliceOfString(slice)
 
 	assert.Nil(t, actualVal)
 }
 
 func TestSliceOfStructsByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfStructs([]Structure{{}})
+	slice := []Structure{{}}
 
-	assert.Equal(t, []Structure{{}}, actualVal)
+	actualVal := SliceOfStructs(slice)
+
+	expectedVal := []Structure{{}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestSliceOfStructsWithNanByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfStructsWithNan([]Structure{{}})
+	slice := []Structure{{}}
 
-	assert.NotEqual(t, []Structure{{}}, actualVal)
+	actualVal := SliceOfStructsWithNan(slice)
+
+	expectedVal := []Structure{{}}
+
+	assert.NotEqual(t, expectedVal, actualVal)
 }
 
 func TestSliceOfSliceOfByteByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfSliceOfByte([][]byte{nil})
+	slice := [][]byte{nil}
 
-	assert.Equal(t, [][]byte{nil}, actualVal)
+	actualVal := SliceOfSliceOfByte(slice)
+
+	expectedVal := [][]byte{nil}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestSliceOfSliceOfStructsByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfSliceOfStructs([][]Structure{nil})
+	slice := [][]Structure{nil}
 
-	assert.Equal(t, [][]Structure{nil}, actualVal)
+	actualVal := SliceOfSliceOfStructs(slice)
+
+	expectedVal := [][]Structure{nil}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestSliceOfArrayOfIntByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfArrayOfInt([][5]int{{0, 0, 0, 0, 0}})
+	slice := [][5]int{{0, 0, 0, 0, 0}}
 
-	assert.Equal(t, [][5]int{{0, 0, 0, 0, 0}}, actualVal)
+	actualVal := SliceOfArrayOfInt(slice)
+
+	expectedVal := [][5]int{{0, 0, 0, 0, 0}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestExportedStructWithEmbeddedUnexportedStructByUtGoFuzzer(t *testing.T) {
-	actualVal := ExportedStructWithEmbeddedUnexportedStruct(nested.ExportedStruct{})
+	exportedStruct := nested.ExportedStruct{}
 
-	assert.Equal(t, nested.ExportedStruct{}, actualVal)
+	actualVal := ExportedStructWithEmbeddedUnexportedStruct(exportedStruct)
+
+	expectedVal := nested.ExportedStruct{}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestNamedTypeByUtGoFuzzer(t *testing.T) {
-	actualVal := NamedType(4)
+	n := Type(4)
 
-	assert.Equal(t, Type(4), actualVal)
+	actualVal := NamedType(n)
+
+	expectedVal := Type(4)
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfNamedTypeByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfNamedType([5]Type{0, 0, 0, 0, 0})
+	array := [5]Type{0, 0, 0, 0, 0}
 
-	assert.Equal(t, [5]Type{0, 0, 0, 0, 0}, actualVal)
+	actualVal := ArrayOfNamedType(array)
+
+	expectedVal := [5]Type{0, 0, 0, 0, 0}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestArrayOfArrayOfNamedTypeByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfArrayOfNamedType([5][5]Type{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}})
+	array := [5][5]Type{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}
 
-	assert.Equal(t, T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, actualVal)
+	actualVal := ArrayOfArrayOfNamedType(array)
+
+	expectedVal := T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestSliceOfNamedTypeByUtGoFuzzer(t *testing.T) {
-	actualVal := SliceOfNamedType([]Type{0})
+	slice := []Type{0}
 
-	assert.Equal(t, []Type{0}, actualVal)
+	actualVal := SliceOfNamedType(slice)
+
+	expectedVal := []Type{0}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestNamedArrayByUtGoFuzzer(t *testing.T) {
-	actualVal := NamedArray(NA{1, 0, 18446744073709551615, 18446744073709551615, 18446744073709551615})
+	array := NA{1, 0, 18446744073709551615, 18446744073709551615, 18446744073709551615}
 
-	assert.Equal(t, NA{1, 0, 18446744073709551615, 18446744073709551615, 18446744073709551615}, actualVal)
+	actualVal := NamedArray(array)
+
+	expectedVal := NA{1, 0, 18446744073709551615, 18446744073709551615, 18446744073709551615}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestNamedSliceByUtGoFuzzer(t *testing.T) {
-	actualVal := NamedSlice(NS(nil))
+	slice := NS(nil)
+
+	actualVal := NamedSlice(slice)
 
 	assert.Nil(t, actualVal)
 }
 
 func TestStructWithFieldsOfNamedTypesByUtGoFuzzer(t *testing.T) {
-	actualVal := StructWithFieldsOfNamedTypes(S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS(nil)})
+	s := S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS(nil)}
 
-	assert.Equal(t, S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS(nil)}, actualVal)
+	actualVal := StructWithFieldsOfNamedTypes(s)
+
+	expectedVal := S{T: T{{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}, NS: NS(nil)}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestMapByUtGoFuzzer(t *testing.T) {
-	actualVal := Map(nil)
+	table := (map[string]int)(nil)
+
+	actualVal := Map(table)
 
 	assert.Nil(t, actualVal)
 }
 
 func TestMapOfStructuresByUtGoFuzzer(t *testing.T) {
-	actualVal := MapOfStructures(map[Structure]Structure{Structure{}: {}})
+	table := map[Structure]Structure{Structure{}: {}}
 
-	assert.Equal(t, map[Structure]Structure{Structure{}: {}}, actualVal)
+	actualVal := MapOfStructures(table)
+
+	expectedVal := map[Structure]Structure{Structure{}: {}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestMapOfSliceOfIntByUtGoFuzzer(t *testing.T) {
-	actualVal := MapOfSliceOfInt(map[string][]int{"hello": {}})
+	table := map[string][]int{"hello": {}}
 
-	assert.Equal(t, map[string][]int{"hello": {}}, actualVal)
+	actualVal := MapOfSliceOfInt(table)
+
+	expectedVal := map[string][]int{"hello": {}}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestMapOfNamedTypeByUtGoFuzzer(t *testing.T) {
-	actualVal := MapOfNamedType(map[int]Type{-1: 255})
+	table := map[int]Type{-1: 255}
 
-	assert.Equal(t, map[int]Type{-1: 255}, actualVal)
+	actualVal := MapOfNamedType(table)
+
+	expectedVal := map[int]Type{-1: 255}
+
+	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestMapOfNamedSliceByUtGoFuzzer(t *testing.T) {
-	actualVal := MapOfNamedSlice(nil)
+	table := (map[uint]NS)(nil)
+
+	actualVal := MapOfNamedSlice(table)
 
 	assert.Nil(t, actualVal)
 }
 
 func TestNamedMapByUtGoFuzzer(t *testing.T) {
-	actualVal := NamedMap(NM(nil))
+	n := NM(nil)
+
+	actualVal := NamedMap(n)
 
 	assert.Nil(t, actualVal)
 }
 
 func TestChannelByUtGoFuzzer1(t *testing.T) {
-	assert.NotPanics(t, func() { Channel(make(chan Structure, 1)) })
+	c := make(chan Structure, 1)
+	c <- Structure{}
+	close(c)
+
+	assert.NotPanics(t, func() {
+		Channel(c)
+	})
 }
 
 func TestChannelByUtGoFuzzer2(t *testing.T) {
-	assert.NotPanics(t, func() { Channel(nil) })
+	c := (chan Structure)(nil)
+
+	assert.NotPanics(t, func() {
+		Channel(c)
+	})
 }
 
 func TestSendOnlyChannelByUtGoFuzzer1(t *testing.T) {
-	assert.NotPanics(t, func() { SendOnlyChannel(nil) })
+	c := (chan<- int)(nil)
+
+	assert.NotPanics(t, func() {
+		SendOnlyChannel(c)
+	})
 }
 
 func TestSendOnlyChannelByUtGoFuzzer2(t *testing.T) {
-	assert.NotPanics(t, func() { SendOnlyChannel(make(chan<- int, 3)) })
+	c := make(chan int, 3)
+	c <- 9223372036854775807
+	c <- -1
+	c <- 0
+	close(c)
+
+	assert.NotPanics(t, func() {
+		SendOnlyChannel(c)
+	})
 }
 
 func TestRecvOnlyChannelByUtGoFuzzer1(t *testing.T) {
-	assert.NotPanics(t, func() { RecvOnlyChannel(nil) })
+	c := (<-chan NM)(nil)
+
+	assert.NotPanics(t, func() {
+		RecvOnlyChannel(c)
+	})
 }
 
 func TestRecvOnlyChannelByUtGoFuzzer2(t *testing.T) {
-	assert.NotPanics(t, func() { RecvOnlyChannel(make(<-chan NM, 3)) })
+	c := make(chan NM, 3)
+	c <- NM(nil)
+	c <- NM(nil)
+	c <- NM(nil)
+	close(c)
+
+	assert.NotPanics(t, func() {
+		RecvOnlyChannel(c)
+	})
 }

@@ -118,3 +118,11 @@ func StringSearch(str string) bool {
 	}
 	return false
 }
+
+func SumOfChanElements(c <-chan int) int {
+	sum := 0
+	for val := range c {
+		sum += val
+	}
+	return sum
+}

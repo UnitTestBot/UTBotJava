@@ -17,7 +17,7 @@ class JavaSerializerWrapper : JavaSerializer() {
             val graphContext = kryo.graphContext
             var objectStream = graphContext.get<Any>(this) as ObjectInputStream?
             if (objectStream == null) {
-                objectStream = WrappingObjectInputStream(input, kryo)
+                objectStream = IgnoringUidWrappingObjectInputStream(input, kryo)
                 graphContext.put(this, objectStream)
             }
             objectStream.readObject()
@@ -27,7 +27,7 @@ class JavaSerializerWrapper : JavaSerializer() {
     }
 }
 
-class WrappingObjectInputStream(iss : InputStream?, private val kryo: Kryo) : ObjectInputStream(iss) {
+class IgnoringUidWrappingObjectInputStream(iss : InputStream?, private val kryo: Kryo) : ObjectInputStream(iss) {
     override fun resolveClass(type: ObjectStreamClass): Class<*>? {
         return try {
             Class.forName(type.name, false, kryo.classLoader)
@@ -42,5 +42,29 @@ class WrappingObjectInputStream(iss : InputStream?, private val kryo: Kryo) : Ob
                 }
             }
         }
+    }
+
+    // This overriding allows to ignore serialVersionUID during deserialization.
+    // For more info, see https://stackoverflow.com/a/1816711
+    override fun readClassDescriptor(): ObjectStreamClass {
+        var resultClassDescriptor = super.readClassDescriptor() // initially streams descriptor
+
+        // the class in the local JVM that this descriptor represents.
+        val localClass: Class<*> = try {
+            Class.forName(resultClassDescriptor.name)
+        } catch (e: ClassNotFoundException) {
+            return resultClassDescriptor
+        }
+
+        val localClassDescriptor = ObjectStreamClass.lookup(localClass) ?: return resultClassDescriptor
+
+        // only if class implements serializable
+        val localSUID = localClassDescriptor.serialVersionUID
+        val streamSUID = resultClassDescriptor.serialVersionUID
+        if (streamSUID != localSUID) { // check for serialVersionUID mismatch.
+            resultClassDescriptor = localClassDescriptor // Use local class descriptor for deserialization
+        }
+
+        return resultClassDescriptor
     }
 }

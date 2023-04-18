@@ -12,12 +12,18 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import org.utbot.go.gocodeanalyzer.GoParsingSourceCodeAnalysisResultException
 import org.utbot.go.logic.GoUtTestsGenerationConfig
+import org.utbot.go.worker.GoWorkerFailedException
 import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.language.go.ui.GenerateGoTestsDialogWindow
 import org.utbot.intellij.plugin.language.go.ui.utils.resolveGoExecutablePath
+import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 
 object GoUtTestsDialogProcessor {
+
+    private const val helpMessage: String =
+        "Please try running \"go mod tidy\" in one of the project directories or fix any errors in the code."
 
     fun createDialogAndGenerateTests(
         project: Project,
@@ -75,6 +81,16 @@ object GoUtTestsDialogProcessor {
         )
     }
 
+    private fun buildErrorMessage(exception: Exception): String =
+        if (exception.message == null) {
+            helpMessage
+        } else {
+            buildString {
+                appendLine(exception.message)
+                appendLine(helpMessage)
+            }
+        }
+
     private fun createTests(model: GenerateGoTestsModel) {
         ProgressManager.getInstance().run(object : Task.Backgroundable(model.project, "Generate Go tests") {
             override fun run(indicator: ProgressIndicator) {
@@ -88,9 +104,24 @@ object GoUtTestsDialogProcessor {
                     model.allFunctionExecutionTimeoutMillis
                 )
 
-                IntellijGoUtTestsGenerationController(model, indicator).generateTests(
-                    selectedFunctionsNamesBySourceFiles, testsGenerationConfig
-                ) { indicator.isCanceled }
+                try {
+                    IntellijGoUtTestsGenerationController(model, indicator).generateTests(
+                        selectedFunctionsNamesBySourceFiles, testsGenerationConfig
+                    ) { indicator.isCanceled }
+                } catch (e: GoParsingSourceCodeAnalysisResultException) {
+                    val errorMessage = buildErrorMessage(e)
+                    showErrorDialogLater(
+                        model.project,
+                        errorMessage,
+                        title = "Unit tests generation is cancelled"
+                    )
+                } catch (e: GoWorkerFailedException) {
+                    showErrorDialogLater(
+                        model.project,
+                        helpMessage,
+                        title = "Unit tests generation is cancelled"
+                    )
+                }
             }
         })
     }

@@ -7,6 +7,7 @@ import org.utbot.framework.util.singleStaticMethod
 import org.utbot.framework.util.singleValue
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.testcheckers.eq
 import org.utbot.testing.CodeGeneration
 import org.utbot.testing.Compilation
@@ -46,6 +47,16 @@ internal class MockStaticMethodExampleTest : UtValueTestCaseChecker(
             },
             coverage = DoNotCalculate,
             mockStrategy = MockStrategyApi.OTHER_PACKAGES
+        )
+    }
+
+    @Test
+    fun testMockStaticMethodFromAlwaysMockClass() {
+        checkMocksAndInstrumentation(
+            MockStaticMethodExample::mockStaticMethodFromAlwaysMockClass,
+            eq(1),
+            coverage = DoNotCalculate,
+            additionalMockAlwaysClasses = setOf(System::class.id)
         )
     }
 }

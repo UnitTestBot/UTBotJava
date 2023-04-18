@@ -9,15 +9,17 @@ plugins {
 
 intellij {
     type.set("RD")
-    version.set("2023.1-SNAPSHOT")
-}
-
-dependencies {
-    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
-    implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)
+    version.set("2023.1")
 }
 
 tasks {
+    register<Copy>("addRiderModelsToUtbotModels") {
+        val rdLibDirectory =  File(project.tasks.setupDependencies.get().idea.get().classes, "lib/rd/rider-model.jar")
+        from(rdLibDirectory)
+        val utbotRd = project.rootProject.childProjects["utbot-rd"]!!
+        val targetDir = utbotRd.buildDir.resolve("libs")
+        into(targetDir)
+    }
     val dotNetSdkCmdPath = projectDir.resolve("dotnet-sdk.cmd").toString()
 
     compileKotlin {
@@ -29,7 +31,7 @@ tasks {
     }
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 

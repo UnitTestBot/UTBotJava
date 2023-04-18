@@ -16,19 +16,31 @@ is desirable, as it increases the coverage, but it has a downside. It is possibl
 most of generated branches would be `NPE` branches, while useful paths could be lost due to timeout.
 
 Beyond that, in many cases the `null` value of a field can't be generated using the public API
-of the class. This is particularly true for final fields, especially in system classes.
+of the class. 
+
+- First of all, this is particularly true for final fields, especially in system classes.
 it is also often true for non-public fields from standard library and third-party libraries (even setters often do not
 allow `null` values). Automatically generated tests assign `null` values to fields using reflection,
 but these tests may be uninformative as the corresponding `NPE` branches would never occur
 in the real code that limits itself to the public API.
 
+- After that, field may be declared with some annotation that shows that null value is actually impossible.
+For example, in Spring applications `@InjectMocks` and `@Mock` annotations on the fields of class under test
+mean that these fields always have value, so `NPE` branches for them would never occur in real code.
+
+
 ## The solution
 
 To discard irrelevant `NPE` branches, we can speculatively mark fields we as non-nullable even they
-do not have an explicit `@NotNull` annotation. In particular, we can use this approach to final and non-public
-fields of system classes, as they are usually correctly initialized and are not equal `null`.
+do not have an explicit `@NotNull` annotation. 
 
-At the same time, we can't always add the "not null" hard constraint for the field: it would break
+- In particular, we can use this approach to final and non-public
+fields of system classes, as they are usually correctly initialized and are not equal `null`
+- For Spring application, we use this approach for the fields of class 
+under test not obtained from Spring bean definitions
+
+At the same time, for non-Spring classes, 
+we can't always add the "not null" hard constraint for the field: it would break
 some special cases like `Optional<T>` class, which uses the `null` value of its final field
 as a marker of an empty value.
 

@@ -8,28 +8,48 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.OrderEnumerator
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.psi.JavaPsiFacade
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.intellij.task.ProjectTask
 import com.intellij.task.ProjectTaskManager
+import com.intellij.task.impl.ModuleBuildTaskImpl
+import com.intellij.task.impl.ModuleFilesBuildTaskImpl
+import com.intellij.task.impl.ProjectTaskList
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.nullize
-import com.intellij.util.io.exists
+import java.io.File
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Arrays
+import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
+import kotlin.io.path.exists
+import kotlin.io.path.pathString
 import mu.KotlinLogging
-import org.jetbrains.kotlin.idea.util.module
+import org.jetbrains.concurrency.Promise
+import org.jetbrains.idea.maven.project.MavenProjectsManager
+import org.jetbrains.kotlin.idea.base.util.module
 import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
 import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.TypeReplacementApproach
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.codegen.domain.TypeReplacementApproach.*
 import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.util.LockFile
@@ -52,13 +72,6 @@ import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.rd.terminateOnException
-import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.concurrent.TimeUnit
-import kotlin.io.path.pathString
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
@@ -127,11 +140,46 @@ object UtTestsDialogProcessor {
         return GenerateTestsDialogWindow(model)
     }
 
+    private fun compile(
+        project: Project,
+        files: Array<VirtualFile>,
+        springConfigClass: PsiClass?,
+    ): Promise<ProjectTaskManager.Result> {
+        // For Maven project narrow compile scope may not work, see https://github.com/UnitTestBot/UTBotJava/issues/2021.
+        // For Spring project classes may contain `@ComponentScan` annotations, so we need to compile the whole module.
+        val isMavenProject = MavenProjectsManager.getInstance(project)?.hasProjects() ?: false
+        val isSpringProject = springConfigClass != null
+        val wholeModules = isMavenProject || isSpringProject
+
+        val buildTasks = ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
+            Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
+                ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
+            }).entries
+        ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
+            if (wholeModules) {
+                // This is a specific case, we have to compile the whole module
+                ModuleBuildTaskImpl(key!!, false)
+            } else {
+                // Compile only chosen classes and their dependencies before generation.
+                ModuleFilesBuildTaskImpl(key, false, value)
+            }
+        }
+        return ProjectTaskManager.getInstance(project).run(ProjectTaskList(buildTasks))
+    }
+
     private fun createTests(project: Project, model: GenerateTestsModel) {
-        val promise = ProjectTaskManager.getInstance(project).compile(
-            // Compile only chosen classes and their dependencies before generation.
-            *model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
-        )
+        val springConfigClass = when (val approach = model.typeReplacementApproach) {
+            DoNotReplace -> null
+            is ReplaceIfPossible ->
+                approach.config.takeUnless { it.endsWith(".xml") }?.let {
+                    JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.projectScope(project)) ?:
+                        error("Can't find configuration class $it")
+                }
+        }
+
+        val filesToCompile = model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
+
+        val promise = compile(project, filesToCompile, springConfigClass)
         promise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess
@@ -158,7 +206,7 @@ object UtTestsDialogProcessor {
                         updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
 
                         val buildPaths = ReadAction
-                            .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
+                            .nonBlocking<BuildPaths?> { findPaths(model.srcClasses, springConfigClass) }
                             .executeSynchronously()
                             ?: return
 
@@ -177,28 +225,44 @@ object UtTestsDialogProcessor {
                         val mockFrameworkInstalled = model.mockFramework.isInstalled
                         val staticMockingConfigured = model.staticsMocking.isConfigured
 
-                        val applicationContext = when (model.projectType) {
-                            Spring -> {
-                                val shouldUseImplementors = when (model.typeReplacementApproach) {
-                                    TypeReplacementApproach.DO_NOT_REPLACE -> false
-                                    TypeReplacementApproach.REPLACE_IF_POSSIBLE -> true
-                                }
-
-                                SpringApplicationContext(
-                                    mockFrameworkInstalled,
-                                    staticMockingConfigured,
-                                    // TODO: obtain bean definitions and other info from `utbot-spring-analyzer`
-                                    beanQualifiedNames = emptyList(),
-                                    shouldUseImplementors = shouldUseImplementors,
-                                )
-                            }
-                            else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
-                        }
-
                         val process = EngineProcess.createBlocking(project, classNameToPath)
 
                         process.terminateOnException { _ ->
-                            process.setupUtContext(buildDirs + classpathList)
+                            val classpathForClassLoader = buildDirs + classpathList
+                            process.setupUtContext(classpathForClassLoader)
+                            val applicationContext = when (model.projectType) {
+                                Spring -> {
+                                    val beanQualifiedNames =
+                                        when (val approach = model.typeReplacementApproach) {
+                                            DoNotReplace -> emptyList()
+                                            is ReplaceIfPossible -> {
+                                                val contentRoots = runReadAction {
+                                                    listOfNotNull(
+                                                        model.srcModule,
+                                                        springConfigClass?.module
+                                                    ).distinct().flatMap { module ->
+                                                        ModuleRootManager.getInstance(module).contentRoots.toList()
+                                                    }
+                                                }
+                                                process.getSpringBeanQualifiedNames(
+                                                    classpathForClassLoader,
+                                                    approach.config,
+                                                    // TODO: consider passing it as an array
+                                                    contentRoots.joinToString(File.pathSeparator),
+                                                )
+                                            }
+                                        }
+                                    val shouldUseImplementors = beanQualifiedNames.isNotEmpty()
+
+                                    SpringApplicationContext(
+                                        mockFrameworkInstalled,
+                                        staticMockingConfigured,
+                                        beanQualifiedNames,
+                                        shouldUseImplementors,
+                                    )
+                                }
+                                else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
+                            }
                             process.createTestGenerator(
                                 buildDirs,
                                 classpath,
@@ -384,15 +448,22 @@ object UtTestsDialogProcessor {
         }
     }
 
-    private fun findPaths(srcClasses: Set<PsiClass>): BuildPaths? {
+    private fun findPaths(srcClasses: Set<PsiClass>, springConfigPsiClass: PsiClass?): BuildPaths? {
         val srcModule = findSrcModule(srcClasses)
+        val springConfigModule = springConfigPsiClass?.let { it.module ?: error("Module for spring configuration class not found") }
 
-        val buildDirs = CompilerPaths.getOutputPaths(arrayOf(srcModule))
+        val buildDirs = CompilerPaths.getOutputPaths(setOfNotNull(
+            srcModule, springConfigModule
+        ).toTypedArray())
             .toList()
             .filter { Paths.get(it).exists() }
             .nullize() ?: return null
 
         val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
+
+        springConfigModule?.takeIf { it != srcModule }?.let { module ->
+            pathsList.addAll(OrderEnumerator.orderEntries(module).recursively().pathsList.pathList)
+        }
 
         val (classpath, classpathList) = if (IntelliJApiHelper.isAndroidStudio()) {
             // Filter out manifests from classpath.
@@ -417,6 +488,6 @@ object UtTestsDialogProcessor {
         val classpath: String,
         val classpathList: List<String>,
         val pluginJarsPath: List<String>
-        // ^ TODO: Now we collect ALL dependent libs and pass them to the instrumented process. Most of them are redundant.
+        // ^ TODO: Now we collect ALL dependent libs and pass them to the instrumented and spring analyzer processes. Most of them are redundant.
     )
 }

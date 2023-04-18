@@ -4,6 +4,9 @@ public class OverflowExamples {
     public byte byteAddOverflow(byte x, byte y) {
         return (byte) (x + y);
     }
+    public byte byteWithIntOverflow(byte x, int y) {
+        return (byte) (x + y);
+    }
     public byte byteMulOverflow(byte x, byte y) {
         return (byte) (x * y);
     }

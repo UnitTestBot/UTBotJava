@@ -1,8 +1,11 @@
 package org.utbot.spring.utils
 
-import org.utbot.spring.utils.PathsUtils
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.info
 import java.io.File
 import java.io.IOException
+
+val logger = getLogger<FakeFileManager>()
 
 class FakeFileManager(private val fakeFilesList: List<String>) {
 
@@ -13,7 +16,7 @@ class FakeFileManager(private val fakeFilesList: List<String>) {
             try {
                 File(fakeXmlFileAbsolutePath).createNewFile()
             } catch (e: IOException) {
-                println("Fake xml file creation failed with exception $e")
+                logger.info { "Fake xml file creation failed with exception $e" }
             }
 
         }
@@ -26,7 +29,7 @@ class FakeFileManager(private val fakeFilesList: List<String>) {
             try {
                 File(fakeXmlFileAbsolutePath).delete()
             } catch (e: IOException) {
-                println("Fake xml file deletion failed with exception $e")
+                logger.info { "Fake xml file deletion failed with exception $e" }
             }
 
         }

@@ -9,6 +9,7 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
+import kotlin.time.Duration
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
@@ -44,10 +45,7 @@ class RdSourceFindingStrategy private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): RdSourceFindingStrategy  {
             EngineProcessRoot.register(protocol.serializers)
             
-            return RdSourceFindingStrategy().apply {
-                identify(protocol.identity, RdId.Null.mix("RdSourceFindingStrategy"))
-                bind(lifetime, protocol, "RdSourceFindingStrategy")
-            }
+            return RdSourceFindingStrategy()
         }
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()

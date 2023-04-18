@@ -25,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
-import org.jetbrains.kotlin.konan.file.File
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
@@ -206,6 +205,7 @@ object PythonDialogProcessor {
                             val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
                             WarningTestsReportNotifier.notify(message.toString())
                         },
+                        runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
                         startedCleaningAction = { indicator.text = "Cleaning up..." }
                     )
                 } finally {
@@ -335,7 +335,8 @@ fun getDirectoriesForSysPath(
     file.fromImports.forEach { importTarget ->
         importTarget.resolveImportSourceCandidates().forEach {
             val directory = it.parent
-            if (directory is PsiDirectory ) {
+            val isRelativeImport = importTarget.relativeLevel > 0  // If we have `from . import a` we don't need to add syspath
+            if (directory is PsiDirectory && !isRelativeImport) {
                 // If we have `from a.b.c import d` we need to add syspath to module `a` only
                 val additionalLevel = importTarget.importSourceQName?.componentCount?.dec() ?: 0
                 directory.topParent(additionalLevel)?.let { dir ->
@@ -347,7 +348,9 @@ fun getDirectoriesForSysPath(
 
     // Select modules only from this project but not from installation directory
     importedPaths.forEach {
-        if (it.isProjectSubmodule(ancestor) && !it.path.split(File.separator).contains("site-packages")) {
+        val path = it.toNioPath()
+        val hasSitePackages = (0 until(path.nameCount)).any { i -> path.subpath(i, i+1).toString() == "site-packages"}
+        if (it.isProjectSubmodule(ancestor) && !hasSitePackages) {
             sources.add(it)
         }
     }

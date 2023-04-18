@@ -5,6 +5,7 @@ import org.utbot.framework.codegen.services.CgNameGenerator
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.framework.MockFrameworkManager
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
+import java.util.*
 
 object CgComponents {
 
@@ -23,33 +24,42 @@ object CgComponents {
         methodConstructors.clear()
     }
 
-    private val nameGenerators: MutableMap<CgContext, CgNameGenerator> = mutableMapOf()
-    private val statementConstructors: MutableMap<CgContext, CgStatementConstructor> = mutableMapOf()
-    private val callableAccessManagers: MutableMap<CgContext, CgCallableAccessManager> = mutableMapOf()
-    private val testFrameworkManagers: MutableMap<CgContext, TestFrameworkManager> = mutableMapOf()
-    private val mockFrameworkManagers: MutableMap<CgContext, MockFrameworkManager> = mutableMapOf()
+    private val nameGenerators: IdentityHashMap<CgContext, CgNameGenerator> = IdentityHashMap()
 
-    private val variableConstructors: MutableMap<CgContext, CgVariableConstructor> = mutableMapOf()
-    private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()
+    private val callableAccessManagers: IdentityHashMap<CgContext, CgCallableAccessManager> = IdentityHashMap()
+    private val testFrameworkManagers: IdentityHashMap<CgContext, TestFrameworkManager> = IdentityHashMap()
+    private val mockFrameworkManagers: IdentityHashMap<CgContext, MockFrameworkManager> = IdentityHashMap()
 
-    fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) {
+    private val statementConstructors: IdentityHashMap<CgContext, CgStatementConstructor> = IdentityHashMap()
+    private val variableConstructors: IdentityHashMap<CgContext, CgVariableConstructor> = IdentityHashMap()
+    private val methodConstructors: IdentityHashMap<CgContext, CgMethodConstructor> = IdentityHashMap()
+
+    fun getNameGeneratorBy(context: CgContext): CgNameGenerator = nameGenerators.getOrPut(context) {
         context.cgLanguageAssistant.getNameGeneratorBy(context)
     }
-    fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) {
+
+    fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager = callableAccessManagers.getOrPut(context) {
         context.cgLanguageAssistant.getCallableAccessManagerBy(context)
     }
-    fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) {
+
+    fun getStatementConstructorBy(context: CgContext): CgStatementConstructor = statementConstructors.getOrPut(context) {
         context.cgLanguageAssistant.getStatementConstructorBy(context)
     }
 
-    fun getTestFrameworkManagerBy(context: CgContext) =
-        testFrameworkManagers.getOrDefault(context, context.cgLanguageAssistant.getLanguageTestFrameworkManager().managerByFramework(context))
+    fun getTestFrameworkManagerBy(context: CgContext): TestFrameworkManager =
+        testFrameworkManagers.getOrDefault(
+            context,
+            context.cgLanguageAssistant.getLanguageTestFrameworkManager().managerByFramework(context)
+        )
 
-    fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
-    fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) {
+    fun getMockFrameworkManagerBy(context: CgContext): MockFrameworkManager =
+        mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
+
+    fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = variableConstructors.getOrPut(context) {
         context.cgLanguageAssistant.getVariableConstructorBy(context)
     }
-    fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) {
+
+    fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = methodConstructors.getOrPut(context) {
         context.cgLanguageAssistant.getMethodConstructorBy(context)
     }
 }

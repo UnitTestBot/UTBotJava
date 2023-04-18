@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using JetBrains.Collections.Viewable;
 using JetBrains.Lifetimes;
 using JetBrains.Rd;
@@ -43,41 +45,47 @@ public static class VSharpMain
         public override Encoding Encoding => Encoding.Default;
     }
 
-    private static GenerateResults GenerateImpl(GenerateArguments arguments)
+    private static GenerateResults GenerateImpl(GenerateArguments arguments, IReadOnlyDictionary<string, string> assembliesFullNameToTheirPath)
     {
         var (assemblyPath, projectCsprojPath, solutionFilePath,
-            methodDescriptors, generationTimeout, targetFramework) = arguments;
+            methodDescriptors, generationTimeout, targetFramework, _) = arguments;
+
+        string AssemblyResolveFunc(string fullAssemblyName)
+        {
+            return !assembliesFullNameToTheirPath.TryGetValue(fullAssemblyName, out var found) ? null : found;
+        }
 
         var assemblyLoadContext = new AssemblyLoadContext(VSharpProcessName);
-        assemblyLoadContext.Resolving += (context, name) =>
+        assemblyLoadContext.Resolving += (context, assemblyName) =>
         {
-            var found = Directory.GetFiles(new FileInfo(assemblyPath).Directory?.FullName, $"{name.Name}.dll")
-                .FirstOrDefault();
-            if (found is null)
+            var found = AssemblyResolveFunc(assemblyName.FullName);
+            if (found == null)
             {
                 return null;
             }
-
             return context.LoadFromAssemblyPath(found);
         };
-        var assembly = assemblyLoadContext.LoadFromAssemblyPath(assemblyPath);
-        var methods = methodDescriptors.Select(d => d.ToMethodInfo(assembly)).ToList();
-        var declaringType = methods.Select(m => m.DeclaringType).Distinct().SingleOrDefault();
 
-        var stat = TestGenerator.Cover(methods, generationTimeout, verbosity:Verbosity.Info);
+        using (new DependencyResolver(AssemblyResolveFunc))
+        {
+            var assembly = assemblyLoadContext.LoadFromAssemblyPath(assemblyPath);
+            var methods = methodDescriptors.Select(d => d.ToMethodInfo(assembly)).ToList();
+            var declaringType = methods.Select(m => m.DeclaringType).Distinct().SingleOrDefault();
+            var stat = TestGenerator.Cover(methods, generationTimeout, verbosity: Verbosity.Info);
 
-        var testedProject = new FileInfo(projectCsprojPath);
-        var solution = new FileInfo(solutionFilePath);
+            var testedProject = new FileInfo(projectCsprojPath);
+            var solution = new FileInfo(solutionFilePath);
 
-        var (generatedProject, renderedFiles) =
-            Renderer.Render(stat.Results(), testedProject, declaringType, solution, targetFramework);
+            var (generatedProject, renderedFiles) =
+                Renderer.Render(stat.Results(), testedProject, declaringType, solution, targetFramework);
 
-        return new GenerateResults(
-            generatedProject.FullName,
-            renderedFiles,
-            null,
-            (int)stat.TestsCount,
-            (int)stat.ErrorsCount);
+            return new GenerateResults(
+                generatedProject.FullName,
+                renderedFiles,
+                null,
+                (int)stat.TestsCount,
+                (int)stat.ErrorsCount);
+        }
     }
 
     private static bool MatchesType(TypeDescriptor typeDescriptor, Type typ)
@@ -198,7 +206,8 @@ public static class VSharpMain
                 {
                     try
                     {
-                        return GenerateImpl(arguments);
+                        var assemblyToPath = arguments.AssembliesFullNameToTheirPath.ToDictionary(it => it.Key, it => it.Value);
+                        return GenerateImpl(arguments, assemblyToPath);
                     }
                     catch (Exception e)
                     {
@@ -206,6 +215,20 @@ public static class VSharpMain
                     }
                     finally
                     {
+                        var pathToCsProject = arguments.ProjectCsprojPath;
+                        var csProjFile = new FileInfo(pathToCsProject);
+                        if (csProjFile.Exists)
+                        {
+                            var csProjDir = csProjFile.Directory;
+                            var vSharpDirs = csProjDir!.GetDirectories();
+                            foreach(var dir in vSharpDirs)
+                            {
+                                if (Regex.IsMatch(dir.Name, @"^VSharp\.tests\..+$"))
+                                {
+                                    dir.Delete(recursive: true);
+                                }
+                            }
+                        }
                         scheduler.Queue(() => { blockingQueue.Add("End"); });
                     }
                 });
@@ -219,8 +242,6 @@ public static class VSharpMain
             });
         });
         blockingQueue.Take();
-        // todo check if queueing take as next action is enough
-        // Thread.Sleep(1000);
         ldef.Terminate();
     }
 }

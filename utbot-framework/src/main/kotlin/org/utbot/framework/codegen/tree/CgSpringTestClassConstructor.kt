@@ -2,11 +2,14 @@ package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.closeMethodId
+import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
+import org.utbot.framework.codegen.domain.builtin.mockClassId
 import org.utbot.framework.codegen.domain.builtin.openMocksMethodId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgAssignment
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgDeclaration
+import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgMethod
 import org.utbot.framework.codegen.domain.models.CgMethodCall
@@ -17,14 +20,17 @@ import org.utbot.framework.codegen.domain.models.CgSimpleRegion
 import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
 
 class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConstructor<SpringTestClassModel>(context) {
 
-    private val variableConstructor: CgVariableConstructor = CgComponents.getVariableConstructorBy(context)
+    private val variableConstructor: CgSpringVariableConstructor =
+        CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
     private val statementConstructor: CgStatementConstructor = CgComponents.getStatementConstructorBy(context)
 
     override fun constructTestClassBody(testClassModel: SpringTestClassModel): CgClassBody {
@@ -32,11 +38,18 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
 
             // TODO: support inner classes here
 
-            // TODO: create class variables with Mock/InjectMock annotations using testClassModel
+            val mockedFields = constructClassFields(testClassModel.mockedModels, mockClassId)
 
-            val (closeableField, closeableMethods) = constructMockitoCloseables()
-            fields += closeableField
-            methodRegions += closeableMethods
+            if (mockedFields.isNotEmpty()) {
+                fields += constructClassFields(testClassModel.injectedMockModels, injectMocksClassId)
+                fields += mockedFields
+
+                clearUnwantedVariableModels()
+
+                val (closeableField, closeableMethods) = constructMockitoCloseables()
+                fields += closeableField
+                methodRegions += closeableMethods
+            }
 
             for (testSet in testClassModel.methodTestSets) {
                 updateCurrentExecutable(testSet.executableId)
@@ -77,7 +90,57 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         return if (regions.any()) regions else null
     }
 
-    private fun constructMockitoCloseables(): Pair<CgDeclaration, CgMethodsCluster> {
+    private fun constructClassFields(
+        groupedModelsByClassId: ClassModels,
+        annotationClassId: ClassId
+    ): MutableList<CgFieldDeclaration> {
+        require(annotationClassId == injectMocksClassId || annotationClassId == mockClassId) {
+            error("Unexpected annotation classId -- $annotationClassId")
+        }
+
+        val annotation = statementConstructor.annotation(annotationClassId)
+
+        val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
+        for ((classId, listOfUtModels) in groupedModelsByClassId) {
+            val model = listOfUtModels.firstOrNull() ?: continue
+            val createdVariable = variableConstructor.getOrCreateVariable(model) as? CgVariable
+                ?: error("`UtCompositeModel` model was expected, but $model was found")
+
+            val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
+            constructedDeclarations += CgFieldDeclaration(ownerClassId = currentTestClass, declaration, annotation)
+
+            when (annotationClassId) {
+                injectMocksClassId -> variableConstructor.injectedMocksModelsVariables += listOfUtModels to createdVariable
+                mockClassId -> variableConstructor.mockedModelsVariables += listOfUtModels to createdVariable
+            }
+        }
+
+        return constructedDeclarations
+    }
+
+    /**
+     * Clears the results of variable instantiations that occured
+     * when we create class variables with specific annotations.
+     * Actually, only mentioned variables should be stored in `valueByModelId`.
+     *
+     * This is a kind of HACK.
+     * It is better to distinguish creating variable by model with all
+     * related side effects and just creating a variable definition,
+     * but it will take very long time to do it now.
+     */
+    private fun clearUnwantedVariableModels() {
+        val whiteListOfModels =
+            listOf(
+                variableConstructor.mockedModelsVariables,
+                variableConstructor.injectedMocksModelsVariables
+            ).flatMap { modelSet -> modelSet.keys.map { models -> context.getIdByModel(models.first()) } }
+
+        valueByModelId
+            .filter { it.key !in whiteListOfModels }
+            .forEach { valueByModelId.remove(it.key) }
+    }
+
+    private fun constructMockitoCloseables(): Pair<CgFieldDeclaration, CgMethodsCluster> {
         val mockitoCloseableVarName = "mockitoCloseable"
         val mockitoCloseableVarType = java.lang.AutoCloseable::class.id
 
@@ -89,7 +152,8 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
 
         val mockitoCloseableVariable =
             variableConstructor.getOrCreateVariable(mockitoCloseableModel, mockitoCloseableVarName)
-        val mockitoCloseableField = CgDeclaration(mockitoCloseableVarType, mockitoCloseableVarName, initializer = null)
+        val mockitoCloseableDeclaration = CgDeclaration(mockitoCloseableVarType, mockitoCloseableVarName, initializer = null)
+        val mockitoCloseableFieldDeclaration = CgFieldDeclaration(ownerClassId = currentTestClass, mockitoCloseableDeclaration)
 
         importIfNeeded(openMocksMethodId)
 
@@ -127,6 +191,6 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
             listOf(CgSimpleRegion(header = null, listOf(beforeMethod, afterMethod)))
         )
 
-        return mockitoCloseableField to methodCluster
+        return mockitoCloseableFieldDeclaration to methodCluster
     }
 }

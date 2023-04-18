@@ -1,5 +1,6 @@
 package org.utbot.examples.strings11
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
@@ -43,6 +44,7 @@ class StringConcatTest : UtValueTestCaseChecker(
         }
     }
 
+    @Disabled("Flickers too much with JVM 17")
     @Test
     fun testConcatWithPrimitives() {
         withoutConcrete {

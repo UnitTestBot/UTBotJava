@@ -41,6 +41,7 @@ import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isEnum
 import soot.ArrayType
 import soot.CharType

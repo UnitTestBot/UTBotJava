@@ -35,8 +35,10 @@ data class PythonEvaluationTimeout(
 data class PythonEvaluationSuccess(
     val isException: Boolean,
     val coverage: Coverage,
+    val stateInit: MemoryDump,
     val stateBefore: MemoryDump,
     val stateAfter: MemoryDump,
+    val diffIds: List<Long>,
     val modelListIds: List<String>,
     val resultId: String,
 ) : PythonEvaluationResult()

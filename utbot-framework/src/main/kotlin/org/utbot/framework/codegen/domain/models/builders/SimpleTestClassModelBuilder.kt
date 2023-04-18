@@ -1,12 +1,16 @@
 package org.utbot.framework.codegen.domain.models.builders
 
+import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.enclosingClass
 
-open class SimpleTestClassModelBuilder: TestClassModelBuilder() {
-    override fun createTestClassModel(classUnderTest: ClassId, testSets: List<CgMethodTestSet>): SimpleTestClassModel {
+open class SimpleTestClassModelBuilder(context: CgContext): TestClassModelBuilder() {
+    override fun createTestClassModel(
+        classUnderTest: ClassId,
+        testSets: List<CgMethodTestSet>,
+    ): SimpleTestClassModel {
         // For each class stores list of methods declared in this class (methods from nested classes are excluded)
         val class2methodTestSets = testSets.groupBy { it.executableId.classId }
 

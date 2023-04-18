@@ -41,6 +41,7 @@ import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgMethodsCluster
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
+import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgForEachLoop
 import org.utbot.framework.codegen.domain.models.CgForLoop
 import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
@@ -83,6 +84,7 @@ import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgUtilMethod
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.CgWhileLoop
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -574,6 +576,14 @@ abstract class CgAbstractRenderer(
         println(statementEnding)
     }
 
+    // Class field declaration
+
+    override fun visit(element: CgFieldDeclaration) {
+        element.annotation?.accept(this)
+        renderVisibility(element.visibility)
+        element.declaration.accept(this)
+    }
+
     // Variable assignment
 
     override fun visit(element: CgAssignment) {
@@ -891,7 +901,7 @@ abstract class CgAbstractRenderer(
         }
     }
 
-    protected abstract fun renderClassVisibility(classId: ClassId)
+    protected abstract fun renderVisibility(modifier: VisibilityModifier)
 
     protected abstract fun renderClassModality(aClass: CgClass)
 

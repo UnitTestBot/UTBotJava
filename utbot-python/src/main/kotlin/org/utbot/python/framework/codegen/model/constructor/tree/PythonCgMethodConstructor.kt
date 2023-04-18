@@ -1,17 +1,24 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgGetLength
 import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMultilineComment
+import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgReferenceExpression
 import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.domain.models.convertDocToCg
 import org.utbot.framework.codegen.tree.CgMethodConstructor
+import org.utbot.framework.codegen.tree.buildTestMethod
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
-import org.utbot.python.framework.api.python.util.comparePythonTree
+import org.utbot.python.framework.api.python.util.pythonExceptionClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
@@ -24,22 +31,10 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         pythonDeepEquals(expected, actual)
     }
 
-    private fun generatePythonTestComments(execution: UtExecution) {
-        when (execution.result) {
-            is UtExplicitlyThrownException ->
-                (execution.result as UtExplicitlyThrownException).exception.message?.let {
-                    emptyLineIfNeeded()
-                    comment("raises $it")
-                }
-
-            else -> {
-                // nothing
-            }
-        }
-    }
-
     override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
+            val constructorState = (execution as PythonUtExecution).stateInit
+            val diffIds = execution.diffIds
             (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             if (execution.testMethodName == null) {
@@ -47,7 +42,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
-            testMethod(testMethodName, execution.displayName) {
+            pythonTestMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
 
@@ -56,14 +51,15 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     substituteStaticFields(statics)
                     setupInstrumentation()
                     // build this instance
-                    thisInstance = execution.stateBefore.thisInstance?.let {
+                    thisInstance = constructorState.thisInstance?.let {
                         variableConstructor.getOrCreateVariable(it)
                     }
+
                     val beforeThisInstance = execution.stateBefore.thisInstance
                     val afterThisInstance = execution.stateAfter.thisInstance
                     val assertThisObject = emptyList<Pair<CgVariable, UtModel>>().toMutableList()
                     if (beforeThisInstance is PythonTreeModel && afterThisInstance is PythonTreeModel) {
-                        if (!comparePythonTree(beforeThisInstance.tree, afterThisInstance.tree)) {
+                        if (diffIds.contains(afterThisInstance.tree.id)) {
                             thisInstance = thisInstance?.let {
                                 val newValue =
                                     if (it is CgPythonTree) {
@@ -86,13 +82,14 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
                     // build arguments
                     val stateAssertions = emptyMap<Int, Pair<CgVariable, UtModel>>().toMutableMap()
-                    for ((index, param) in execution.stateBefore.parameters.withIndex()) {
+                    for ((index, param) in constructorState.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
                         var argument = variableConstructor.getOrCreateVariable(param, name)
 
+                        val beforeValue = execution.stateBefore.parameters[index]
                         val afterValue = execution.stateAfter.parameters[index]
-                        if (afterValue is PythonTreeModel && param is PythonTreeModel) {
-                            if (!comparePythonTree(afterValue.tree, param.tree)) {
+                        if (afterValue is PythonTreeModel && beforeValue is PythonTreeModel) {
+                            if (diffIds.contains(afterValue.tree.id)) {
                                 if (argument !is CgVariable) {
                                     argument = newVar(argument.type, name) {argument}
                                 }
@@ -112,8 +109,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     generateResultAssertions()
 
                     generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
-
-                    generatePythonTestComments(execution)
                 }
 
                 if (statics.isNotEmpty()) {
@@ -128,12 +123,50 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
         }
 
+    override fun generateResultAssertions() {
+        if (currentExecutable is MethodId) {
+            val currentExecution = currentExecution!!
+            val executionResult = currentExecution.result
+            if (executionResult is UtExecutionFailure) {
+                val exceptionId = executionResult.rootCauseException.message?.let {PythonClassId(it)} ?: pythonExceptionClassId
+                val executionBlock = {
+                    with(currentExecutable) {
+                        when (this) {
+                            is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
+                            else -> {}
+                        }
+                    }
+                }
+                when (methodType) {
+                    CgTestMethodType.PASSED_EXCEPTION -> {
+                        testFrameworkManager.expectException(exceptionId) {
+                            executionBlock()
+                        }
+                        return
+                    }
+                    CgTestMethodType.FAILING -> {
+                        val executable = currentExecutable!! as PythonMethodId
+                        val executableName = "${executable.moduleName}.${executable.name}"
+                        val warningLine =
+                            "This test fails because function [$executableName] produces [${exceptionId.prettyName}]"
+                        +CgMultilineComment(warningLine)
+                        emptyLineIfNeeded()
+                        executionBlock()
+                        return
+                    }
+                    else -> {}
+                }
+            }
+        }
+        super.generateResultAssertions()
+    }
+
     private fun generateFieldStateAssertions(
         stateAssertions: MutableMap<Int, Pair<CgVariable, UtModel>>,
         assertThisObject: MutableList<Pair<CgVariable, UtModel>>,
         executableId: ExecutableId,
     ) {
-        if (stateAssertions.size + assertThisObject.size > 0) {
+        if (stateAssertions.isNotEmpty()) {
             emptyLineIfNeeded()
         }
         stateAssertions.forEach { (index, it) ->
@@ -141,11 +174,53 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             val modifiedArgument = variableConstructor.getOrCreateVariable(it.second, name)
             assertEquality(modifiedArgument, it.first)
         }
+        if (assertThisObject.isNotEmpty()) {
+            emptyLineIfNeeded()
+        }
         assertThisObject.forEach {
             val name = it.first.name + "_modified"
             val modifiedThisObject = variableConstructor.getOrCreateVariable(it.second, name)
             assertEquality(modifiedThisObject, it.first)
         }
+    }
+
+    override fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+        if (exception is TimeoutException || exception is InstrumentedProcessDeathException) return false
+        return runtimeExceptionTestsBehaviour == RuntimeExceptionTestsBehaviour.PASS
+    }
+
+    private fun pythonTestMethod(
+        methodName: String,
+        displayName: String?,
+        params: List<CgParameterDeclaration> = emptyList(),
+        body: () -> Unit,
+    ): CgTestMethod {
+        displayName?.let {
+            testFrameworkManager.addTestDescription(displayName)
+        }
+
+        val result = currentExecution!!.result
+        if (result is UtTimeoutException) {
+            testFrameworkManager.disableTestMethod(
+                "Disabled due to the fact that the execution is longer then ${hangingTestsTimeout.timeoutMs} ms"
+            )
+        }
+
+        val testMethod = buildTestMethod {
+            name = methodName
+            parameters = params
+            statements = block(body)
+            // Exceptions and annotations assignment must run after the statements block is build,
+            // because we collect info about exceptions and required annotations while building the statements
+            exceptions += collectedExceptions
+            annotations += collectedMethodAnnotations
+            methodType = this@PythonCgMethodConstructor.methodType
+
+            val docComment = currentExecution?.summary?.map { convertDocToCg(it) }?.toMutableList() ?: mutableListOf()
+            documentation = CgDocumentationComment(docComment)
+        }
+        testMethods += testMethod
+        return testMethod
     }
 
     private fun pythonDeepEquals(expected: CgValue, actual: CgVariable) {

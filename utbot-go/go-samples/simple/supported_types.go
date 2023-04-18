@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/pmezard/go-difflib/difflib"
 	dif "github.com/pmezard/go-difflib/difflib"
+	"go-samples/simple/nested"
 	"math"
 )
 
@@ -213,4 +214,77 @@ func SliceOfSliceOfStructs(slice [][]Structure) [][]Structure {
 
 func SliceOfArrayOfInt(slice [][5]int) [][5]int {
 	return slice
+}
+
+func ExportedStructWithEmbeddedUnexportedStruct(exportedStruct nested.ExportedStruct) nested.ExportedStruct {
+	return exportedStruct
+}
+
+type Type byte
+
+func NamedType(n Type) Type {
+	return n
+}
+
+func ArrayOfNamedType(array [5]Type) [5]Type {
+	return array
+}
+
+type T [5][5]Type
+
+func ArrayOfArrayOfNamedType(array [5][5]Type) T {
+	return array
+}
+
+func SliceOfNamedType(slice []Type) []Type {
+	return slice
+}
+
+type NA [5]uintptr
+
+func NamedArray(array NA) NA {
+	return array
+}
+
+type NS []int
+
+func NamedSlice(slice NS) NS {
+	return slice
+}
+
+type S struct {
+	t Type
+	T
+	n NA
+	NS
+}
+
+func StructWithFieldsOfNamedTypes(s S) S {
+	return s
+}
+
+func Map(table map[string]int) map[string]int {
+	return table
+}
+
+func MapOfStructures(table map[Structure]Structure) map[Structure]Structure {
+	return table
+}
+
+func MapOfSliceOfInt(table map[string][]int) map[string][]int {
+	return table
+}
+
+func MapOfNamedType(table map[int]Type) map[int]Type {
+	return table
+}
+
+func MapOfNamedSlice(table map[uint]NS) map[uint]NS {
+	return table
+}
+
+type NM map[string]NA
+
+func NamedMap(n NM) NM {
+	return n
 }

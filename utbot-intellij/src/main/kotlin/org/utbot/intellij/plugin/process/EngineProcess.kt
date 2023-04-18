@@ -19,9 +19,8 @@ import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.services.JdkInfo
-import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
-import org.utbot.framework.process.OpenModulesContainer
+import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.MethodDescription
 import org.utbot.framework.util.Conflict
@@ -49,13 +48,47 @@ import kotlin.io.path.pathString
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 
-private val engineProcessLogConfigurationsDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations")
-private val logger = KotlinLogging.logger {}
-private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs")
+private val engineProcessLogConfigurationsDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations").also { it.mkdirs() }
+private val logger = KotlinLogging.logger {}.also { overrideDefaultRdLoggerFactoryWithKLogger(it) }
+private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs").also { it.mkdirs() }
 
 private const val configurationFileDeleteKey = "delete_this_comment_key"
 private const val deleteOpenComment = "<!--$configurationFileDeleteKey"
 private const val deleteCloseComment = "$configurationFileDeleteKey-->"
+
+private fun createEngineProcessLog4j2Config(): File {
+    val customFile = File(UtSettings.engineProcessLogConfigFile)
+
+    val log4j2ConfigFile =
+        if (customFile.exists()) customFile
+        else Files.createTempFile(engineProcessLogConfigurationsDirectory.toPath(), null, ".xml").toFile()
+
+    EngineProcess::class.java.classLoader.getResourceAsStream("log4j2.xml")?.use { logConfig ->
+        val resultConfig = logConfig.readBytes().toString(Charset.defaultCharset())
+            .replace(Regex("$deleteOpenComment|$deleteCloseComment"), "")
+            .replace("ref=\"IdeaAppender\"", "ref=\"EngineProcessAppender\"")
+            .replace("\${env:UTBOT_LOG_DIR}", engineProcessLogDirectory.canonicalPath.trimEnd(File.separatorChar) + File.separatorChar)
+        Files.copy(
+            resultConfig.byteInputStream(),
+            log4j2ConfigFile.toPath(),
+            StandardCopyOption.REPLACE_EXISTING
+        )
+    }
+    return log4j2ConfigFile
+}
+
+private val log4j2ConfigFile: File = createEngineProcessLog4j2Config()
+
+private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
+
+private val pluginClasspath: String
+    get() = (EngineProcess::class.java.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
+        separator = File.pathSeparator,
+        prefix = "\"",
+        postfix = "\""
+    )
+
+private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"
 
 data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
@@ -64,75 +97,18 @@ class EngineProcessInstantDeathException :
 
 class EngineProcess private constructor(val project: Project, private val classNameToPath: Map<String, String?>, rdProcess: ProcessWithRdServer) :
     ProcessWithRdServer by rdProcess {
-    companion object {
-        private val log4j2ConfigFile: File
-
-        init {
-            engineProcessLogDirectory.mkdirs()
-            engineProcessLogConfigurationsDirectory.mkdirs()
-            overrideDefaultRdLoggerFactoryWithKLogger(logger)
-
-            val customFile = File(UtSettings.engineProcessLogConfigFile)
-
-            if (customFile.exists()) {
-                log4j2ConfigFile = customFile
-            } else {
-                log4j2ConfigFile = Files.createTempFile(engineProcessLogConfigurationsDirectory.toPath(), null, ".xml").toFile()
-                this.javaClass.classLoader.getResourceAsStream("log4j2.xml")?.use { logConfig ->
-                    val resultConfig = logConfig.readBytes().toString(Charset.defaultCharset())
-                        .replace(Regex("$deleteOpenComment|$deleteCloseComment"), "")
-                        .replace("ref=\"IdeaAppender\"", "ref=\"EngineProcessAppender\"")
-                        .replace("\${env:UTBOT_LOG_DIR}", engineProcessLogDirectory.canonicalPath.trimEnd(File.separatorChar) + File.separatorChar)
-                    Files.copy(
-                        resultConfig.byteInputStream(),
-                        log4j2ConfigFile.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
-                    )
-                }
-            }
-        }
-
-        private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
-
-        private fun suspendValue(): String = if (UtSettings.suspendEngineProcessExecutionInDebugMode) "y" else "n"
-
-        private val debugArgument: String?
-            get() = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
-                .takeIf { UtSettings.runEngineProcessWithDebug }
-
-        private val javaExecutablePathString: Path
-            get() = JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}")
-
-        private val pluginClasspath: String
-            get() = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
-                separator = File.pathSeparator,
-                prefix = "\"",
-                postfix = "\""
-            )
-
-        private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"
-
-        private fun obtainEngineProcessCommandLine(port: Int) = buildList {
-            add(javaExecutablePathString.pathString)
-            add("-ea")
-            val javaVersionSpecificArgs = OpenModulesContainer.javaVersionSpecificArguments
-            if (javaVersionSpecificArgs.isNotEmpty()) {
-                addAll(javaVersionSpecificArgs)
-            }
-            debugArgument?.let { add(it) }
-            add(log4j2ConfigSwitch)
-            add("-cp")
-            add(pluginClasspath)
-            add(startFileName)
-            add(rdPortArgument(port))
-        }
-
+    companion object : AbstractRDProcessCompanion(
+        debugPort = UtSettings.engineProcessDebugPort,
+        runWithDebug = UtSettings.runEngineProcessWithDebug,
+        suspendExecutionInDebugMode = UtSettings.suspendEngineProcessExecutionInDebugMode,
+        processSpecificCommandLineArgs = { listOf("-ea", log4j2ConfigSwitch, "-cp", pluginClasspath, startFileName) }
+    ) {
         fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
 
         suspend operator fun invoke(project: Project, classNameToPath: Map<String, String?>): EngineProcess =
             LifetimeDefinition().terminateOnException { lifetime ->
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
-                    val cmd = obtainEngineProcessCommandLine(port)
+                    val cmd = obtainProcessCommandLine(port)
                     val directory = WorkingDirService.provide().toFile()
                     val builder = ProcessBuilder(cmd).directory(directory)
                     val process = builder.start()
@@ -165,6 +141,13 @@ class EngineProcess private constructor(val project: Project, private val classN
     fun setupUtContext(classpathForUrlsClassloader: List<String>) {
         assertReadAccessNotAllowed()
         engineModel.setupUtContext.startBlocking(SetupContextParams(classpathForUrlsClassloader))
+    }
+
+    fun getSpringBeanQualifiedNames(classpathList: List<String>, config: String, fileStorage: String?): List<String> {
+        assertReadAccessNotAllowed()
+        return engineModel.getSpringBeanQualifiedNames.startBlocking(
+            GetSpringBeanQualifiedNamesParams(classpathList.toTypedArray(), config, fileStorage)
+        ).toList()
     }
 
     private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String =

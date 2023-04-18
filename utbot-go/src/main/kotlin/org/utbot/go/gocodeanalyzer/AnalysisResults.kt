@@ -18,9 +18,6 @@ data class AnalyzedPrimitiveType(
 
 data class AnalyzedStructType(
     override val name: String,
-    val packageName: String,
-    val packagePath: String,
-    val implementsError: Boolean,
     val fields: List<AnalyzedField>
 ) : AnalyzedType(name) {
     data class AnalyzedField(
@@ -31,8 +28,6 @@ data class AnalyzedStructType(
 
     override fun toGoTypeId(): GoTypeId = GoStructTypeId(
         name = name,
-        sourcePackage = GoPackage(packageName, packagePath),
-        implementsError = implementsError,
         fields = fields.map { field -> GoFieldId(field.type.toGoTypeId(), field.name, field.isExported) }
     )
 }
@@ -59,20 +54,36 @@ data class AnalyzedSliceType(
     )
 }
 
+data class AnalyzedMapType(
+    override val name: String,
+    val keyType: AnalyzedType,
+    val elementType: AnalyzedType,
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId = GoMapTypeId(
+        name = name,
+        keyTypeId = keyType.toGoTypeId(),
+        elementTypeId = elementType.toGoTypeId(),
+    )
+}
+
 data class AnalyzedInterfaceType(
     override val name: String,
-    val implementsError: Boolean,
-    val packageName: String,
-    val packagePath: String
 ) : AnalyzedType(name) {
-    override fun toGoTypeId(): GoTypeId =
-        GoInterfaceTypeId(
-            name = simpleName,
-            implementsError = implementsError,
-            sourcePackage = GoPackage(packageName, packagePath)
-        )
+    override fun toGoTypeId(): GoTypeId = GoInterfaceTypeId(name = name)
+}
 
-    private val simpleName: String = name.replaceFirst("interface ", "")
+data class AnalyzedNamedType(
+    override val name: String,
+    val sourcePackage: GoPackage,
+    val implementsError: Boolean,
+    val underlyingType: AnalyzedType
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId = GoNamedTypeId(
+        name = name,
+        sourcePackage = sourcePackage,
+        implementsError = implementsError,
+        underlyingTypeId = underlyingType.toGoTypeId(),
+    )
 }
 
 @TypeFor(field = "name", adapter = AnalyzedTypeAdapter::class)
@@ -84,12 +95,13 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
     override fun classFor(type: Any): KClass<out AnalyzedType> {
         val typeName = type as String
         return when {
-            typeName.startsWith("interface ") -> AnalyzedInterfaceType::class
-            typeName.startsWith("map[") -> error("Map type not yet supported")
+            typeName == "interface{}" -> AnalyzedInterfaceType::class
+            typeName == "struct{}" -> AnalyzedStructType::class
+            typeName.startsWith("map[") -> AnalyzedMapType::class
             typeName.startsWith("[]") -> AnalyzedSliceType::class
             typeName.startsWith("[") -> AnalyzedArrayType::class
             goPrimitives.map { it.name }.contains(typeName) -> AnalyzedPrimitiveType::class
-            else -> AnalyzedStructType::class
+            else -> AnalyzedNamedType::class
         }
     }
 }
@@ -116,3 +128,5 @@ internal data class AnalysisResult(
 )
 
 internal data class AnalysisResults(val results: List<AnalysisResult>, val intSize: Int, val maxTraceLength: Int)
+
+class GoParsingSourceCodeAnalysisResultException(s: String, t: Throwable) : Exception(s, t)

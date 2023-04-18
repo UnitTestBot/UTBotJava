@@ -6,6 +6,7 @@ import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.tree.CgComponents
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -14,14 +15,17 @@ import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
+import org.utbot.python.framework.codegen.model.constructor.util.dropBuiltins
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(cgContext) {
+    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
+        val baseName = name ?: nameGenerator.nameFrom(model.classId)
         return valueByModel.getOrPut(model) {
             when (model) {
                 is PythonTreeModel -> {
-                    val (value, arguments) = pythonBuildObject(model.tree)
+                    val (value, arguments) = pythonBuildObject(model.tree, baseName)
                     CgPythonTree(model.classId, model.tree, value, arguments)
                 }
                 is PythonModel -> error("Unexpected PythonModel: ${model::class}")
@@ -30,10 +34,10 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
         }
     }
 
-    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): Pair<CgValue, List<CgStatement>> {
+    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null): Pair<CgValue, List<CgStatement>> {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
-                Pair(CgLiteral(objectNode.type, objectNode.repr), emptyList())
+                Pair(CgLiteral(objectNode.type.dropBuiltins(), objectNode.repr), emptyList())
             }
 
             is PythonTree.ListNode -> {
@@ -79,11 +83,11 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                     getOrCreateVariable(PythonTreeModel(it, it.type))
                 }
                 val constructor = ConstructorId(
-                    objectNode.constructor,
+                    objectNode.constructor.dropBuiltins(),
                     initArgs.map { it.type }
                 )
                 val constructorCall = CgConstructorCall(constructor, initArgs)
-                val obj = newVar(objectNode.type) {
+                val obj = newVar(objectNode.type, baseName) {
                     constructorCall
                 }
 

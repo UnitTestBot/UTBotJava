@@ -40,6 +40,7 @@ import org.utbot.framework.codegen.domain.models.CgMethod
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgMultilineComment
 import org.utbot.framework.codegen.domain.models.CgMultipleArgsAnnotation
+import org.utbot.framework.codegen.domain.models.CgNamedAnnotationArgument
 import org.utbot.framework.codegen.domain.models.CgNotNullAssertion
 import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgParameterizedTestDataProviderMethod
@@ -58,6 +59,7 @@ import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgRendererContext
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
@@ -117,11 +119,26 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgSingleArgAnnotation) {
-        print("")
+        print("@${element.classId.asString()}")
+        print("(")
+        element.argument.accept(this)
+        println(")")
     }
 
     override fun visit(element: CgMultipleArgsAnnotation) {
-        print("")
+        print("@${element.classId.asString()}")
+        if (element.arguments.isNotEmpty()) {
+            print("(")
+            element.arguments.renderSeparated()
+            print(")")
+        }
+        println()
+    }
+
+    override fun visit(element: CgNamedAnnotationArgument) {
+        print(element.name)
+        print("=")
+        element.value.accept(this)
     }
 
     override fun visit(element: CgSingleLineComment) {
@@ -420,7 +437,7 @@ internal class CgPythonRenderer(
     }
 
     override fun escapeNamePossibleKeywordImpl(s: String): String = s
-    override fun renderClassVisibility(classId: ClassId) {
+    override fun renderVisibility(modifier: VisibilityModifier) {
         throw UnsupportedOperationException()
     }
 
@@ -539,6 +556,17 @@ internal class CgPythonRenderer(
 
     override fun visit(element: CgPythonTree) {
         element.value.accept(this)
+    }
+
+    override fun visit(element: CgPythonWith) {
+        print("with ")
+        element.expression.accept(this)
+        if (element.target != null) {
+            print(" as ")
+            element.target.accept(this)
+        }
+        println(":")
+        withIndent { element.statements.forEach { it.accept(this) } }
     }
 
     override fun visit(element: CgPythonDict) {

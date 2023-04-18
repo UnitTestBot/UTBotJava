@@ -22,6 +22,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
@@ -197,7 +198,7 @@ interface CgContextOwner {
     var valueByModel: IdentityHashMap<UtModel, CgValue>
 
     // use it to compare stateBefore and result variables - in case of equality do not create new variable
-    var valueByModelId: MutableMap<Int?, CgValue>
+    var valueByModelId: MutableMap<ModelId, CgValue>
 
     // parameters of the method currently being generated
     val currentMethodParameters: MutableMap<CgParameterKind, CgVariable>
@@ -225,6 +226,12 @@ interface CgContextOwner {
      * Result models required to create generic execution in parametrized tests.
      */
     var successfulExecutionsModels: List<UtModel>
+
+    /**
+     * Gives a unique identifier to model in test set.
+     * Determines which execution current model belongs to.
+     */
+    var modelIds: MutableMap<UtModel, ModelId>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -311,7 +318,10 @@ interface CgContextOwner {
         model?.let {
             valueByModel[it] = variable
             (model as UtReferenceModel).let { refModel ->
-                refModel.id.let { id -> valueByModelId[id] = variable }
+                refModel.id.let {
+                    val modelId = getIdByModel(model)
+                    valueByModelId[modelId] = variable
+                }
             }
         }
     }
@@ -428,12 +438,14 @@ interface CgContextOwner {
 
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
+
+    fun getIdByModel(model: UtModel): ModelId
 }
 
 /**
  * Context with current code generation info
  */
-data class CgContext(
+class CgContext(
     override val classUnderTest: ClassId,
     override val projectType: ProjectType,
     val generateUtilClassFile: Boolean = false,
@@ -478,6 +490,8 @@ data class CgContext(
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
     override lateinit var successfulExecutionsModels: List<UtModel>
+
+    override var modelIds: MutableMap<UtModel, ModelId> = mutableMapOf()
 
     /**
      * This property cannot be accessed outside of test class file scope
@@ -556,6 +570,8 @@ data class CgContext(
         }
     }
 
+    override fun getIdByModel(model: UtModel): ModelId = modelIds.getOrPut(model) { ModelId.create(model) }
+
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
@@ -574,13 +590,13 @@ data class CgContext(
         requiredUtilMethods.clear()
         valueByModel.clear()
         valueByModelId.clear()
+        modelIds.clear()
         mockFrameworkUsed = false
     }
 
-
     override var valueByModel: IdentityHashMap<UtModel, CgValue> = IdentityHashMap()
 
-    override var valueByModelId: MutableMap<Int?, CgValue> = mutableMapOf()
+    override var valueByModelId: MutableMap<ModelId, CgValue> = mutableMapOf()
 
     override val currentMethodParameters: MutableMap<CgParameterKind, CgVariable> = mutableMapOf()
 
@@ -588,4 +604,47 @@ data class CgContext(
 
     override val utilMethodsUsed: Boolean
         get() = requiredUtilMethods.isNotEmpty()
+
+    fun customCopy(shouldOptimizeImports: Boolean, testClassCustomName: String?) = CgContext(
+        shouldOptimizeImports = shouldOptimizeImports,
+        testClassCustomName = testClassCustomName,
+
+        classUnderTest = this.classUnderTest,
+        projectType = this.projectType,
+        generateUtilClassFile = this.generateUtilClassFile,
+        currentExecutable = this.currentExecutable,
+        collectedExceptions =this.collectedExceptions,
+        collectedMethodAnnotations = this.collectedMethodAnnotations,
+        collectedImports = this.collectedImports,
+        importedStaticMethods = this.importedStaticMethods,
+        importedClasses = this.importedClasses,
+        requiredUtilMethods = this.requiredUtilMethods,
+        testMethods = this.testMethods,
+        existingMethodNames = this.existingMethodNames,
+        prevStaticFieldValues = this.prevStaticFieldValues,
+        paramNames = this.paramNames,
+        currentExecution = this.currentExecution,
+        testFramework = this.testFramework,
+        mockFramework = this.mockFramework,
+        staticsMocking = this.staticsMocking,
+        forceStaticMocking = this.forceStaticMocking,
+        generateWarningsForStaticMocking = this.generateWarningsForStaticMocking,
+        codegenLanguage = this.codegenLanguage,
+        cgLanguageAssistant = this.cgLanguageAssistant,
+        parametrizedTestSource = this.parametrizedTestSource,
+        mockFrameworkUsed = this.mockFrameworkUsed,
+        currentBlock = this.currentBlock,
+        existingVariableNames = this.existingVariableNames,
+        declaredClassRefs = this.declaredClassRefs,
+        declaredExecutableRefs = this.declaredExecutableRefs,
+        declaredFieldRefs = this.declaredFieldRefs,
+        thisInstance = this.thisInstance,
+        methodArguments = this.methodArguments,
+        codeGenerationErrors = this.codeGenerationErrors,
+        testClassPackageName = this.testClassPackageName,
+        runtimeExceptionTestsBehaviour = this.runtimeExceptionTestsBehaviour,
+        hangingTestsTimeout = this.hangingTestsTimeout,
+        enableTestsTimeout = this.enableTestsTimeout,
+        containsReflectiveCall = this.containsReflectiveCall,
+    )
 }

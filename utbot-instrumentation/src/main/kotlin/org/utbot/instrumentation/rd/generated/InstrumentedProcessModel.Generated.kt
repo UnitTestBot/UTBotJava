@@ -9,6 +9,7 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
+import kotlin.time.Duration
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
@@ -54,10 +55,7 @@ class InstrumentedProcessModel private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): InstrumentedProcessModel  {
             InstrumentedProcessRoot.register(protocol.serializers)
             
-            return InstrumentedProcessModel().apply {
-                identify(protocol.identity, RdId.Null.mix("InstrumentedProcessModel"))
-                bind(lifetime, protocol, "InstrumentedProcessModel")
-            }
+            return InstrumentedProcessModel()
         }
         
         

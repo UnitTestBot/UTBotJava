@@ -105,7 +105,6 @@ import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.SECURITY_FIELD_SIGNATURE
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
-import org.utbot.engine.util.trusted.isFromTrustedLibrary
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
@@ -113,9 +112,9 @@ import org.utbot.engine.util.statics.concrete.makeEnumNonStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
 import org.utbot.framework.UtSettings
-import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -128,6 +127,7 @@ import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.isAbstractType
 import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
@@ -634,8 +634,8 @@ class Traverser(
     ): Pair<SymbolicStateUpdate, SymbolicValue?> {
         val jClass = type.id.jClass
 
-        // symbolic value for enum class itself
-        val enumClassValue = findOrCreateStaticObject(type)
+        // symbolic value for enum class itself, we don't want to have mocks for this value
+        val enumClassValue = findOrCreateStaticObject(type, mockInfoGenerator = null)
 
         // values for enum constants
         val enumConstantConcreteValues = jClass.enumConstants.filterIsInstance<Enum<*>>()
@@ -708,8 +708,10 @@ class Traverser(
         val initializedFieldUpdate =
             MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
+        val mockInfoGenerator = UtMockInfoGenerator { addr -> UtStaticObjectMockInfo(declaringClass.id, addr) }
+
         val objectUpdate = objectUpdate(
-            instance = findOrCreateStaticObject(declaringClass.type),
+            instance = findOrCreateStaticObject(declaringClass.type, mockInfoGenerator),
             field = field,
             value = valueToExpression(symbolicValue, field.type)
         )
@@ -774,8 +776,16 @@ class Traverser(
 
     private fun TraversalContext.skipVerticesForThrowableCreation(current: JAssignStmt) {
         val rightType = current.rightOp.type as RefType
-        val exceptionType = Scene.v().getSootClass(rightType.className).type
-        val createdException = createObject(findNewAddr(), exceptionType, true)
+        val exceptionType = Scene.v().getRefType(rightType.className)
+        val mockInfoGenerator = UtMockInfoGenerator { mockAddr ->
+            UtNewInstanceMockInfo(exceptionType.id, mockAddr, environment.method.declaringClass.id)
+        }
+        val createdException = createObject(
+            findNewAddr(),
+            exceptionType,
+            useConcreteType = true,
+            mockInfoGenerator = mockInfoGenerator
+        )
         val currentExceptionJimpleLocal = current.leftOp as JimpleLocal
 
         queuedSymbolicStateUpdates += localMemoryUpdate(currentExceptionJimpleLocal.variable to createdException)
@@ -1015,10 +1025,8 @@ class Traverser(
         }
         is StaticFieldRef -> {
             val declaringClassType = fieldRef.field.declaringClass.type
-            val fieldTypeId = fieldRef.field.type.classId
             val generator = UtMockInfoGenerator { mockAddr ->
-                val fieldId = FieldId(declaringClassType.id, fieldRef.field.name)
-                UtFieldMockInfo(fieldTypeId, mockAddr, fieldId, ownerAddr = null)
+                UtStaticObjectMockInfo(declaringClassType.id, mockAddr)
             }
             findOrCreateStaticObject(declaringClassType, generator)
         }
@@ -1373,7 +1381,7 @@ class Traverser(
         addr: UtAddrExpression,
         type: RefType,
         useConcreteType: Boolean,
-        mockInfoGenerator: UtMockInfoGenerator? = null
+        mockInfoGenerator: UtMockInfoGenerator?
     ): ObjectValue {
         touchAddress(addr)
         val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
@@ -1420,10 +1428,10 @@ class Traverser(
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
                 val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
-                val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+                val isMockConstraint = typeRegistry.isMockConstraint(mockedObject.addr)
 
                 queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
-                queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+                queuedSymbolicStateUpdates += isMockConstraint.asHardConstraint()
 
                 return mockedObject
             }
@@ -1502,8 +1510,8 @@ class Traverser(
             return createMockedObject(addr, type, mockInfoGenerator, nullEqualityConstraint)
         }
 
-        val concreteImplementation = when (applicationContext.typeReplacementMode) {
-            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
+        val concreteImplementation: Concrete? = when (applicationContext.typeReplacementMode) {
+            AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint)
 
             // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
             // we should just still use concrete implementation that represents itself
@@ -1519,15 +1527,15 @@ class Traverser(
             KnownImplementor,
             NoImplementors -> {
                 if (!type.isAbstractType) {
-                    findConcreteImplementation(addr, type, typeHardConstraint, nullEqualityConstraint)
-                }
+                    findConcreteImplementation(addr, type, typeHardConstraint)
+                } else {
+                    mockInfoGenerator?.let {
+                        return createMockedObject(addr, type, it, nullEqualityConstraint)
+                    }
 
-                mockInfoGenerator?.let {
-                    return createMockedObject(addr, type, it, nullEqualityConstraint)
+                    queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
+                    null
                 }
-
-                queuedSymbolicStateUpdates += mkFalse().asHardConstraint()
-                null
             }
         }
 
@@ -1538,12 +1546,11 @@ class Traverser(
         addr: UtAddrExpression,
         type: RefType,
         typeHardConstraint: HardConstraint,
-        nullEqualityConstraint: UtBoolExpression,
     ): Concrete? {
         val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
 
         queuedSymbolicStateUpdates += typeHardConstraint
-        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+        queuedSymbolicStateUpdates += isMockConstraint.asHardConstraint()
 
         // If we have this$0 with UtArrayList type, we have to create such instance.
         // We should create an object with typeStorage of all possible real types and concrete implementation
@@ -1581,10 +1588,10 @@ class Traverser(
 
         // add typeConstraint for mocked object. It's a declared type of the object.
         val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
-        val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+        val isMockConstraint = typeRegistry.isMockConstraint(mockedObject.addr)
 
         queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
-        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
+        queuedSymbolicStateUpdates += isMockConstraint.asHardConstraint()
 
         return mockedObject
     }
@@ -1604,7 +1611,8 @@ class Traverser(
                     // instead of it we create an unbounded symbolic variable
                     workaround(HACK) {
                         offerState(environment.state.withLabel(StateLabel.CONCRETE))
-                        createObject(addr, refType, useConcreteType = true)
+                        // We don't need to mock a string constant creation
+                        createObject(addr, refType, useConcreteType = true, mockInfoGenerator = null)
                     }
                 } else {
                     val typeStorage = TypeStorage.constructTypeStorageWithSingleType(refType)
@@ -2187,7 +2195,7 @@ class Traverser(
      */
     private fun findOrCreateStaticObject(
         classType: RefType,
-        mockInfoGenerator: UtMockInfoGenerator? = null
+        mockInfoGenerator: UtMockInfoGenerator?
     ): ObjectValue {
         val fromMemory = locateStaticObject(classType)
 
@@ -2252,7 +2260,7 @@ class Traverser(
         addr: UtAddrExpression,
         fieldType: Type,
         chunkId: ChunkId,
-        mockInfoGenerator: UtMockInfoGenerator? = null
+        mockInfoGenerator: UtMockInfoGenerator?
     ): SymbolicValue {
         val descriptor = MemoryChunkDescriptor(chunkId, objectType, fieldType)
         val array = memory.findArray(descriptor)
@@ -2320,29 +2328,19 @@ class Traverser(
     }
 
     /**
-     * Marks the [createdField] as speculatively not null if the [field] is considering as
-     * not producing [NullPointerException].
+     * Marks the [createdField] as speculatively not null if the [field] is considering
+     * as not producing [NullPointerException].
      *
-     * @see [SootField.speculativelyCannotProduceNullPointerException], [markAsSpeculativelyNotNull], [isFromTrustedLibrary].
+     * See more detailed documentation in [ApplicationContext] mentioned methods.
      */
     private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
-        if (maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()) {
+        if (applicationContext.avoidSpeculativeNotNullChecks(field) ||
+                !applicationContext.speculativelyCannotProduceNullPointerException(field, methodUnderTest.classId)) {
             return
         }
 
-        if (field.speculativelyCannotProduceNullPointerException()) {
-            markAsSpeculativelyNotNull(createdField.addr)
-        }
+        markAsSpeculativelyNotNull(createdField.addr)
     }
-
-    /**
-     * Checks whether accessing [this] field (with a method invocation or field access) speculatively can produce
-     * [NullPointerException] (according to its finality or accessibility).
-     *
-     * @see docs/SpeculativeFieldNonNullability.md for more information.
-     */
-    @Suppress("KDocUnresolvedReference")
-    private fun SootField.speculativelyCannotProduceNullPointerException(): Boolean = isFinal || !isPublic
 
     private fun createArray(pName: String, type: ArrayType): ArrayValue {
         val addr = UtAddrExpression(mkBVConst(pName, UtIntSort))
@@ -2403,10 +2401,10 @@ class Traverser(
      * Since createConst called only for objects from outside at the beginning of the analysis,
      * we can set Le(addr, NULL_ADDR) for all RefValue objects.
      */
-    private fun Value.createConst(pName: String, mockInfoGenerator: UtMockInfoGenerator? = null): SymbolicValue =
+    private fun Value.createConst(pName: String, mockInfoGenerator: UtMockInfoGenerator?): SymbolicValue =
         createConst(type, pName, mockInfoGenerator)
 
-    fun createConst(type: Type, pName: String, mockInfoGenerator: UtMockInfoGenerator? = null): SymbolicValue =
+    fun createConst(type: Type, pName: String, mockInfoGenerator: UtMockInfoGenerator?): SymbolicValue =
         when (type) {
             is ByteType -> mkBVConst(pName, UtByteSort).toByteValue()
             is ShortType -> mkBVConst(pName, UtShortSort).toShortValue()
@@ -3468,9 +3466,9 @@ class Traverser(
 
     private fun unboundedVariable(name: String, method: SootMethod): MethodResult {
         val value = when (val returnType = method.returnType) {
-            is RefType -> createObject(findNewAddr(), returnType, useConcreteType = true)
+            is RefType -> createObject(findNewAddr(), returnType, useConcreteType = true, mockInfoGenerator = null)
             is ArrayType -> createArray(findNewAddr(), returnType, useConcreteType = true)
-            else -> createConst(returnType, "$name${unboundedConstCounter++}")
+            else -> createConst(returnType, "$name${unboundedConstCounter++}", mockInfoGenerator = null)
         }
 
         return MethodResult(value)
@@ -3778,21 +3776,40 @@ class Traverser(
     private fun TraversalContext.intOverflowCheck(op: BinopExpr, leftRaw: PrimitiveValue, rightRaw: PrimitiveValue) {
         // cast to the bigger type
         val sort = simpleMaxSort(leftRaw, rightRaw) as UtPrimitiveSort
-        val left = leftRaw.expr.toPrimitiveValue(sort.type)
-        val right = rightRaw.expr.toPrimitiveValue(sort.type)
+        val left = UtCastExpression(leftRaw, sort.type)
+        val right = UtCastExpression(rightRaw, sort.type)
+
+        val leftPrimValue = left.toPrimitiveValue(left.type)
+        val rightPrimValue = right.toPrimitiveValue(right.type)
 
         val overflow = when (op) {
-            is JAddExpr -> {
-                mkNot(UtAddNoOverflowExpression(left.expr, right.expr))
-            }
-            is JSubExpr -> {
-                mkNot(UtSubNoOverflowExpression(left.expr, right.expr))
-            }
+            is JAddExpr -> mkNot(UtAddNoOverflowExpression(left, right))
+            is JSubExpr -> mkNot(UtSubNoOverflowExpression(left, right))
             is JMulExpr -> when (sort.type) {
-                is ByteType -> lowerIntMulOverflowCheck(left, right, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt())
-                is ShortType -> lowerIntMulOverflowCheck(left, right, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                is IntType -> higherIntMulOverflowCheck(left, right, Int.SIZE_BITS, Int.MIN_VALUE.toLong()) { it: UtExpression -> it.toIntValue() }
-                is LongType -> higherIntMulOverflowCheck(left, right, Long.SIZE_BITS, Long.MIN_VALUE) { it: UtExpression -> it.toLongValue() }
+                is ByteType -> lowerIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Byte.MIN_VALUE.toInt(),
+                    Byte.MAX_VALUE.toInt()
+                )
+                is ShortType -> lowerIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Short.MIN_VALUE.toInt(),
+                    Short.MAX_VALUE.toInt()
+                )
+                is IntType -> higherIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Int.SIZE_BITS,
+                    Int.MIN_VALUE.toLong()
+                ) { it: UtExpression -> it.toIntValue() }
+                is LongType -> higherIntMulOverflowCheck(
+                    leftPrimValue,
+                    rightPrimValue,
+                    Long.SIZE_BITS,
+                    Long.MIN_VALUE
+                ) { it: UtExpression -> it.toLongValue() }
                 else -> null
             }
             else -> null

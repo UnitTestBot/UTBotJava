@@ -24,6 +24,7 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.util.PathUtil.getParentPath
 import java.nio.file.Path
 import mu.KotlinLogging
+import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
@@ -63,6 +64,18 @@ fun Module.kotlinTargetPlatform(): TargetPlatformVersion {
         ?.map { it.targetPlatformVersion }
         ?.singleOrNull() ?: error("Can't determine target platform for module $this")
 }
+
+/**
+ * Gets paths to project resources source roots.
+ *
+ * E.g. src/main/resources
+ */
+fun Module.getResourcesPaths(): List<Path> =
+    ModuleRootManager.getInstance(this)
+        .contentEntries
+        .flatMap { it.sourceFolders.toList() }
+        .filter { it.rootType is JavaResourceRootType && !it.isTestSource }
+        .mapNotNull { it.file?.toNioPath() }
 
 /**
  * Gets a path to test resources source root.
@@ -230,7 +243,8 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
         if (!rootModel.isDisposed && rootModel.isWritable) rootModel.dispose()
     }
 }
-fun SourceFolder.getModifiableContentEntry() : ContentEntry? {
+
+private fun SourceFolder.getModifiableContentEntry() : ContentEntry? {
     return ModuleRootManager.getInstance(contentEntry.rootModel.module).modifiableModel.contentEntries.find { entry -> entry.url == url }
 }
 

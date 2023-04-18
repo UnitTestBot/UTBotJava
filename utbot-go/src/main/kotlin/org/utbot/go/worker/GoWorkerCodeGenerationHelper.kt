@@ -2,7 +2,7 @@ package org.utbot.go.worker
 
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
-import org.utbot.go.api.util.getAllStructTypes
+import org.utbot.go.api.util.getAllVisibleNamedTypes
 import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.simplecodegeneration.GoFileCodeBuilder
@@ -14,11 +14,10 @@ internal object GoWorkerCodeGenerationHelper {
 
     val alwaysRequiredImports = setOf(
         GoPackage("io", "io"),
+        GoPackage("os", "os"),
         GoPackage("context", "context"),
         GoPackage("json", "encoding/json"),
-        GoPackage("errors", "errors"),
         GoPackage("fmt", "fmt"),
-        GoPackage("log", "log"),
         GoPackage("math", "math"),
         GoPackage("net", "net"),
         GoPackage("reflect", "reflect"),
@@ -89,12 +88,12 @@ internal object GoWorkerCodeGenerationHelper {
         val workerTestFunctionCode = generateWorkerTestFunctionCode(functions, eachExecutionTimeoutMillis, port)
 
         val types = functions.flatMap { it.parameters }.map { it.type }
-        val structTypes = types.getAllStructTypes()
         val aliases = imports.associate { it.goPackage to it.alias }
+        val namedTypes = types.getAllVisibleNamedTypes(destinationPackage)
 
         fileCodeBuilder.addTopLevelElements(
             GoCodeTemplates.getTopLevelHelperStructsAndFunctionsForWorker(
-                structTypes,
+                namedTypes,
                 destinationPackage,
                 aliases,
                 maxTraceLength,
@@ -122,24 +121,40 @@ internal object GoWorkerCodeGenerationHelper {
         return """
             func $workerTestFunctionName(t *testing.T) {
             	con, err := net.Dial("tcp", ":$port")
-            	__checkErrorAndExit__(err)
+            	if err != nil {
+            		_, _ = fmt.Fprintf(os.Stderr, "Connection to server failed: %s", err)
+            		os.Exit(1)
+            	}
 
             	defer func() {
-            		err := con.Close()
+            		err = con.Close()
             		if err != nil {
-            			__checkErrorAndExit__(err)
+            			_, _ = fmt.Fprintf(os.Stderr, "Closing connection failed: %s", err)
+            			os.Exit(1)
             		}
             	}()
 
             	jsonDecoder := json.NewDecoder(con)
             	for {
-            		funcName, rawValues, err := __parseJsonToFunctionNameAndRawValues__(jsonDecoder)
+            		var (
+            			funcName  string
+            			rawValues []__RawValue__
+            		)
+            		funcName, rawValues, err = __parseTestInput__(jsonDecoder)
             		if err == io.EOF {
             			break
             		}
-            		__checkErrorAndExit__(err)
+            		if err != nil {
+            			_, _ = fmt.Fprintf(os.Stderr, "Failed to parse test input: %s", err)
+            			os.Exit(1)
+            		}
 
-            		arguments := __convertRawValuesToReflectValues__(rawValues)
+            		var arguments []reflect.Value
+            		arguments, err = __convertRawValuesToReflectValues__(rawValues)
+            		if err != nil {
+            			_, _ = fmt.Fprintf(os.Stderr, "Failed to convert slice of RawValue to slice of reflect.Value: %s", err)
+            			os.Exit(1)
+            		}
 
             		var function reflect.Value
             		switch funcName {
@@ -149,21 +164,30 @@ internal object GoWorkerCodeGenerationHelper {
             }
         }
             		default:
-            			panic(fmt.Sprintf("no function with that name: %s", funcName))
+            			_, _ = fmt.Fprintf(os.Stderr, "Function %s not found", funcName)
+            			os.Exit(1)
             		}
 
-            		executionResult := __executeFunction__($eachExecutionTimeoutMillis*time.Millisecond, arguments, func(arguments []reflect.Value) []__RawValue__ {
-            			return __wrapResultValuesForUtBotGoWorker__(function.Call(arguments))
-            		})
+            		executionResult := __executeFunction__(function, arguments, $eachExecutionTimeoutMillis*time.Millisecond)
 
-            		jsonBytes, toJsonErr := json.MarshalIndent(executionResult, "", "  ")
-            		__checkErrorAndExit__(toJsonErr)
+            		var jsonBytes []byte
+            		jsonBytes, err = json.Marshal(executionResult)
+            		if err != nil {
+            			_, _ = fmt.Fprintf(os.Stderr, "Failed to serialize execution result to json: %s", err)
+            			os.Exit(1)
+            		}
 
             		_, err = con.Write([]byte(strconv.Itoa(len(jsonBytes)) + "\n"))
-            		__checkErrorAndExit__(err)
+            		if err != nil {
+            			_, _ = fmt.Fprintf(os.Stderr, "Failed to send length of execution result: %s", err)
+            			os.Exit(1)
+            		}
 
             		_, err = con.Write(jsonBytes)
-            		__checkErrorAndExit__(err)
+            		if err != nil {
+            			_, _ = fmt.Fprintf(os.Stderr, "Failed to send execution result: %s", err)
+            			os.Exit(1)
+            		}
             	}
             }
         """.trimIndent()

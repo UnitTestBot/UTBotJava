@@ -28,6 +28,8 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.getIdOrThrow
+import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -207,7 +209,10 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
                 ?: OBJECT_TYPE
 
             val resultObject = if (valueType is RefType) {
-                createObject(addr, valueType, useConcreteType = false)
+                val mockInfoGenerator = UtMockInfoGenerator { mockAddr ->
+                    UtObjectMockInfo(valueType.id, mockAddr)
+                }
+                createObject(addr, valueType, useConcreteType = false, mockInfoGenerator)
             } else {
                 require(valueType is ArrayType) {
                     "Unexpected Primitive Type $valueType in generic parameter for RangeModifiableUnlimitedArray $wrapper"
@@ -430,7 +435,9 @@ class AssociativeArrayWrapper : WrapperInterface {
         with(traverser) {
             val value = getStorageArrayExpression(wrapper).select(parameters[0].addr)
             val addr = UtAddrExpression(value)
-            val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false)
+            // TODO it is probably a bug, what mock generator should we provide here?
+            //      Seems like we don't know anything about its type here
+            val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false, mockInfoGenerator = null)
 
             val typeIndex = wrapper.asWrapperOrNull?.selectOperationTypeIndex
                 ?: error("Wrapper was expected, got $wrapper")

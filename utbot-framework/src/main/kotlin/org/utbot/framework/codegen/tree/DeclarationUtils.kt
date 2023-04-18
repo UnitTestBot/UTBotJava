@@ -13,3 +13,14 @@ fun needExpectedDeclaration(model: UtModel): Boolean {
     val representsBoolean = model is UtPrimitiveModel && model.value is Boolean
     return !(representsNull || representsBoolean)
 }
+
+/**
+ * Contains all possible visibility modifiers that may be used in code generation.
+ */
+enum class VisibilityModifier {
+    PUBLIC,
+    PRIVATE,
+    PROTECTED,
+    INTERNAL,
+    PACKAGE_PRIVATE,
+}

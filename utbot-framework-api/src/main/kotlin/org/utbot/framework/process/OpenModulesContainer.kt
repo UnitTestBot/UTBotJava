@@ -10,12 +10,17 @@ object OpenModulesContainer {
 
     init {
         modulesContainer = buildList {
+            openPackage("java.base", "java.util.concurrent.atomic")
             openPackage("java.base", "sun.security.util")
+            openPackage("java.base", "sun.reflect.annotation")
             openPackage("java.base", "java.text")
             openPackage("java.base", "java.lang.invoke")
             openPackage("java.base", "jdk.internal.misc")
             openPackage("java.base", "sun.reflect.generics.repository")
             openPackage("java.base", "java.io")
+            openPackage("java.base", "java.nio")
+            openPackage("java.base", "java.nio.file")
+            openPackage("java.base", "java.net")
             openPackage("java.base", "java.lang")
             openPackage("java.base", "java.security")
             openPackage("java.base", "java.util")
@@ -26,6 +31,8 @@ object OpenModulesContainer {
             openPackage("java.base", "java.lang.ref")
             openPackage("java.base", "java.lang.reflect")
             openPackage("java.base", "sun.security.provider")
+            openPackage("java.base", "sun.net.util")
+            openPackage("java.base", "sun.net.fs")
             openPackage("java.base", "jdk.internal.event")
             openPackage("java.base", "jdk.internal.jimage")
             openPackage("java.base", "jdk.internal.jimage.decompressor")

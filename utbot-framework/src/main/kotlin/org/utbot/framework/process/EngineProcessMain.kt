@@ -34,8 +34,10 @@ import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
+import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
+import org.utbot.spring.process.SpringAnalyzerProcess
 import org.utbot.summary.summarizeAll
 import java.io.File
 import java.net.URLClassLoader
@@ -51,16 +53,11 @@ object EngineProcessMain
 
 // use log4j2.configurationFile property to set log4j configuration
 suspend fun main(args: Array<String>) = runBlocking {
-    Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
-
     logger.info("-----------------------------------------------------------------------")
     logger.info("-------------------NEW ENGINE PROCESS STARTED--------------------------")
     logger.info("-----------------------------------------------------------------------")
-    // 0 - auto port for server, should not be used here
-    val port = findRdPort(args)
 
-
-    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
+    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(args) {
         AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol.settingsModel))
         val kryoHelper = KryoHelper(lifetime)
         engineProcessModel.setup(kryoHelper, it, protocol)
@@ -78,6 +75,23 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
             File(it).toURI().toURL()
         }.toTypedArray())))
+    }
+    watchdog.measureTimeForActiveCall(getSpringBeanQualifiedNames, "Getting Spring bean definitions") { params ->
+        try {
+            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
+            val beans = springAnalyzerProcess.terminateOnException { _ ->
+                springAnalyzerProcess.getBeanQualifiedNames(
+                    params.classpath.toList(),
+                    params.config,
+                    params.fileStorage,
+                ).toTypedArray()
+            }
+            springAnalyzerProcess.terminate()
+            beans
+        } catch (e: Exception) {
+            logger.error(e) { "Spring Analyzer crushed, resorting to using empty bean list" }
+            emptyArray()
+        }
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()

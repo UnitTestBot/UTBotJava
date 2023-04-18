@@ -106,8 +106,8 @@ class GoUtModelToCodeConverter(
         }
 
     private fun chanModelToGoCode(model: GoUtChanModel): String {
-        val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
-        return "make($typeName, ${model.value.size})"
+        val elemTypeName = model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases)
+        return "make(chan $elemTypeName, ${model.value.size})"
     }
 
     private fun namedModelToGoCode(model: GoUtNamedModel): String {

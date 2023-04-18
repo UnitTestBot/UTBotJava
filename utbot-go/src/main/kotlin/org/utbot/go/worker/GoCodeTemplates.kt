@@ -384,6 +384,7 @@ object GoCodeTemplates {
 
         		channel.Send(reflectValue)
         	}
+        	channel.Close()
 
         	return channel, nil
         }

@@ -302,9 +302,23 @@ object GoTestCasesCodeGenerator {
         variables: List<Variable>, goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         return if (variables.isNotEmpty()) {
-            variables.joinToString(separator = "\n") {
-                "\t${it.name} := ${goUtModelToCodeConverter.toGoCode(it.value)}"
-            } + "\n\n"
+            variables.joinToString(separator = "") { (name, _, value) ->
+                val declaration = "\t${name} := ${goUtModelToCodeConverter.toGoCode(value)}\n"
+                val initializing = when {
+                    value is GoUtChanModel -> value.getElements().joinToString(separator = "\n", postfix = "\n") {
+                        "\t$name <- ${goUtModelToCodeConverter.toGoCode(it)}"
+                    } + "\tclose($name)\n"
+
+                    value is GoUtNamedModel && value.value is GoUtChanModel -> {
+                        (value.value as GoUtChanModel).getElements().joinToString(separator = "\n", postfix = "\n") {
+                            "\t$name <- ${goUtModelToCodeConverter.toGoCode(it)}"
+                        } + "\tclose($name)\n"
+                    }
+
+                    else -> ""
+                }
+                declaration + initializing
+            } + "\n"
         } else {
             ""
         }

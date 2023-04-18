@@ -25,6 +25,9 @@ object GoChanValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
                         },
                         modify = Routine.ForEach(listOf(chanType.elementTypeId!!)) { self, i, values ->
                             val model = self as GoUtChanModel
+                            if (i >= model.value.size) {
+                                return@ForEach
+                            }
                             model.value[i] = values.first()
                         }
                     )

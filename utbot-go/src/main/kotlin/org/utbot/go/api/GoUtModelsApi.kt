@@ -203,9 +203,7 @@ class GoUtChanModel(
 
     override fun isComparable(): Boolean = value.all { it?.isComparable() ?: true }
 
-    fun getElements(): List<GoUtModel> = value.map {
-        it ?: typeId.elementTypeId!!.goDefaultValueModel()
-    }
+    fun getElements(): List<GoUtModel> = value.filterNotNull()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

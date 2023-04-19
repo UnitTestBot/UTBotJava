@@ -28,7 +28,7 @@ class FastCoverageService(
         for (i in 0..minOf(fuzzingThreshold - 1, testCaseIndices.last)) {
             val resFile = File("$utbotDirPath/$tempFileName$i.json")
             val rawResult = resFile.readText()
-//            resFile.delete()
+            resFile.delete()
             val json = JSONObject(rawResult)
             val index = json.getInt("index")
             if (index != i) logger.error { "Index $index != i $i" }

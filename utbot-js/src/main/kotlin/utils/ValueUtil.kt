@@ -17,11 +17,11 @@ fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, J
     this.buildUniqueValue()?.let { return it }
     with(this.rawString) {
         return when {
+            isError -> this to jsErrorClassId
             this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
             this == "null" || this == "undefined" -> null to jsUndefinedClassId
             returnType.isJsStdStructure ->
                 makeStructure(this, returnType) to returnType
-            this@toJsAny.isError -> this to jsErrorClassId
             returnType == jsStringClassId || this@toJsAny.type == jsStringClassId.name ->
                 this.replace("\"", "") to jsStringClassId
             else -> {

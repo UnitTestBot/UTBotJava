@@ -6,6 +6,7 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isExportable
 import framework.api.js.util.isUndefined
 import fuzzer.JsMethodDescription
+import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -20,7 +21,6 @@ import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.data.CoverageData
 import utils.data.ResultData
-import java.util.regex.Pattern
 
 class CoverageServiceProvider(
     private val context: ServiceContext,
@@ -58,7 +58,25 @@ function getType(value) {
 }
 
 function getRes(value, type) {
-    if (type === "Set" || type === "Map") return Array.from(value)
+    if (type === "Set" || type === "Array") {
+        return Array.from(value, (value) => {
+            let json = {}
+            json.type = getType(value)
+            check_value(value, json)
+            json.result = getRes(value, json.type)
+            json.index = 0
+            return json
+        })
+    } else if (type === "Map") {
+        return Array.from(value, ([name, value]) => {
+            let json = {}
+            json.type = getType(value)
+            check_value(value, json)
+            json.result = getRes(value, json.type)
+            json.index = 0
+            return {name, json}
+        })
+    }
     return value
 }
     """

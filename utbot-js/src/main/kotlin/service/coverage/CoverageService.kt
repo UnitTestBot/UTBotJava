@@ -101,10 +101,10 @@ abstract class CoverageService(
     }
 
     private fun removeTempFiles() {
-//        File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js").delete()
-//        File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.json").delete()
-//        for (index in scriptTexts.indices) {
-//            File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}$index.js").delete()
-//        }
+        File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js").delete()
+        File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.json").delete()
+        for (index in scriptTexts.indices) {
+            File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}$index.js").delete()
+        }
     }
 }

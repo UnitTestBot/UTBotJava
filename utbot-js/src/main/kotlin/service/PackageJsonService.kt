@@ -1,8 +1,8 @@
 package service
 
-import org.json.JSONObject
 import java.io.File
 import java.io.FilenameFilter
+import org.json.JSONObject
 
 data class PackageJson(
     val isModule: Boolean,

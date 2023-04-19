@@ -1,31 +1,15 @@
 package org.utbot.instrumentation.instrumentation.execution.constructors
 
-import java.lang.reflect.Modifier
-import java.util.IdentityHashMap
-import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
 import org.utbot.common.Reflection
 import org.utbot.common.invokeCatching
-import org.utbot.framework.plugin.api.util.constructor.CapturedArgument
-import org.utbot.framework.plugin.api.util.constructor.constructLambda
-import org.utbot.framework.plugin.api.util.constructor.constructStaticLambda
-import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockController
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
-import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockController
-import org.utbot.instrumentation.instrumentation.execution.mock.MockController
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.FieldMockTarget
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockId
-import org.utbot.framework.plugin.api.MockInfo
-import org.utbot.framework.plugin.api.MockTarget
-import org.utbot.framework.plugin.api.ObjectMockTarget
-import org.utbot.framework.plugin.api.ParameterMockTarget
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -35,7 +19,6 @@ import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtLambdaModel
-import org.utbot.framework.plugin.api.UtMockValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -43,16 +26,25 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.util.anyInstance
 import org.utbot.framework.plugin.api.util.constructor
+import org.utbot.framework.plugin.api.util.constructor.CapturedArgument
+import org.utbot.framework.plugin.api.util.constructor.constructLambda
+import org.utbot.framework.plugin.api.util.constructor.constructStaticLambda
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.anyInstance
+import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockController
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockController
+import org.utbot.instrumentation.instrumentation.execution.mock.MockController
 import org.utbot.instrumentation.process.runSandbox
+import java.lang.reflect.Modifier
+import java.util.*
+import kotlin.reflect.KClass
 
 /**
  * Constructs values (including mocks) from models.
@@ -82,39 +74,17 @@ class MockValueConstructor(
 
     // TODO: JIRA:1379 -- replace UtReferenceModel with Int
     private val constructedObjects = HashMap<UtReferenceModel, Any>()
-    private val mockInfo = mutableListOf<MockInfo>()
-    private var mockTarget: MockTarget? = null
-    private var mockCounter = 0
 
     /**
      * Controllers contain info about mocked methods and have to be closed to restore initial state.
      */
     private val controllers = mutableListOf<MockController>()
 
-    /**
-     * Sets mock context (possible mock target) before block execution and restores previous one after block execution.
-     */
-    private inline fun <T> withMockTarget(target: MockTarget?, block: () -> T): T {
-        val old = mockTarget
-        try {
-            mockTarget = target
-            return block()
-        } finally {
-            mockTarget = old
-        }
-    }
-
     fun constructMethodParameters(models: List<UtModel>): List<UtConcreteValue<*>> =
-        models.mapIndexed { index, model ->
-            val target = mockTarget(model) { ParameterMockTarget(model.classId.name, index) }
-            construct(model, target)
-        }
+        models.mapIndexed { _, model -> construct(model) }
 
     fun constructStatics(staticsBefore: Map<FieldId, UtModel>): Map<FieldId, UtConcreteValue<*>> =
-        staticsBefore.mapValues { (field, model) -> // TODO: refactor this
-            val target = FieldMockTarget(model.classId.name, field.declaringClass.name, owner = null, field.name)
-            construct(model, target)
-        }
+        staticsBefore.mapValues { (_, model) -> construct(model) }
 
     /**
      * Main construction method.
@@ -124,7 +94,7 @@ class MockValueConstructor(
      *
      * Takes mock creation context (possible mock target) to create mock if required.
      */
-    private fun construct(model: UtModel, target: MockTarget?): UtConcreteValue<*> = withMockTarget(target) {
+    private fun construct(model: UtModel): UtConcreteValue<*> =
         when (model) {
             is UtNullModel -> UtConcreteValue(null, model.classId.jClass)
             is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.jClass)
@@ -138,7 +108,6 @@ class MockValueConstructor(
             // PythonModel, JsUtModel may be here
             else -> throw UnsupportedOperationException()
         }
-    }
 
     /**
      * Constructs an Enum<*> instance by model, uses reference-equality cache.
@@ -157,22 +126,6 @@ class MockValueConstructor(
     private fun constructObject(model: UtCompositeModel): Any {
         constructedObjects[model]?.let { return it }
 
-        this.mockTarget?.let { mockTarget ->
-            model.mocks.forEach { (methodId, models) ->
-                mockInfo += MockInfo(mockTarget, methodId, models.map { model ->
-                    if (model.isMockModel()) {
-                        val mockId = MockId("mock${++mockCounter}")
-                        // Call to "construct" method still required to collect mock interaction
-                        construct(model, ObjectMockTarget(model.classId.name, mockId))
-                        UtMockValue(mockId, model.classId.name)
-                    } else {
-                        construct(model, target = null)
-                    }
-                })
-            }
-        }
-
-
         val javaClass = javaClass(model.classId)
 
         val classInstance = if (!model.isMock) {
@@ -181,9 +134,18 @@ class MockValueConstructor(
             constructedObjects[model] = notMockInstance
             notMockInstance
         } else {
-            val mockInstance = generateMockitoMock(javaClass, model.mocks)
+            val concreteValues = model.mocks.mapValues { mutableListOf<Any?>() }
+            val mockInstance = generateMockitoMock(javaClass, concreteValues)
 
             constructedObjects[model] = mockInstance
+
+            concreteValues.forEach { (executableId, valuesList) ->
+                val mockModels = model.mocks.getValue(executableId)
+                // If model is unit, then null should be returned (this model has to be already constructed).
+                val constructedValues = mockModels.map { model -> construct(model).value.takeIf { it != Unit } }
+                valuesList.addAll(constructedValues)
+            }
+
             mockInstance
         }
 
@@ -194,10 +156,7 @@ class MockValueConstructor(
 
             check(Reflection.isModifiersAccessible())
 
-            val target = mockTarget(fieldModel) {
-                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), fieldId.name)
-            }
-            val value = construct(fieldModel, target).value
+            val value = construct(fieldModel).value
             val instance = if (Modifier.isStatic(declaredField.modifiers)) null else classInstance
             declaredField.set(instance, value)
             declaredField.isAccessible = accessible
@@ -206,16 +165,8 @@ class MockValueConstructor(
         return classInstance
     }
 
-    private fun generateMockitoAnswer(methodToValues: Map<in ExecutableId, List<UtModel>>): Answer<*> {
-        val pointers = methodToValues.mapValues { (_, _) -> 0 }.toMutableMap()
-        val concreteValues = methodToValues.mapValues { (_, models) ->
-            models.map { model ->
-                val mockId = MockId("mock${++mockCounter}")
-                val target = mockTarget(model) { ObjectMockTarget(model.classId.name, mockId) }
-                construct(model, target).value.takeIf { it != Unit } // if it is unit, then null should be returned
-                // This model has to be already constructed, so it is OK to pass null as a target
-            }
-        }
+    private fun generateMockitoAnswer(concreteValues: Map<ExecutableId, List<Any?>>): Answer<*> {
+        val pointers = concreteValues.mapValues { (_, _) -> 0 }.toMutableMap()
         return Answer { invocation ->
             with(invocation.method) {
                 pointers[executableId].let { pointer ->
@@ -232,8 +183,9 @@ class MockValueConstructor(
         }
     }
 
-    private fun generateMockitoMock(clazz: Class<*>, mocks: Map<ExecutableId, List<UtModel>>): Any {
-        return Mockito.mock(clazz, generateMockitoAnswer(mocks))
+    private fun generateMockitoMock(clazz: Class<*>, concreteValues: Map<ExecutableId, List<Any?>>): Any {
+        val answer = generateMockitoAnswer(concreteValues)
+        return Mockito.mock(clazz, answer)
     }
 
     private fun computeConcreteValuesForMethods(
@@ -341,7 +293,7 @@ class MockValueConstructor(
                     constructedObjects[model] = instance
                     for (i in instance.indices) {
                         val elementModel = stores[i] ?: constModel
-                        val value = construct(elementModel, null).value
+                        val value = construct(elementModel).value
                         try {
                             java.lang.reflect.Array.set(instance, i, value)
                         } catch (iae:IllegalArgumentException) {
@@ -435,7 +387,6 @@ class MockValueConstructor(
         val instanceModel = directSetterModel.instance
         val instance = value(instanceModel)
 
-        val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
         val field = directSetterModel.fieldId.jField
@@ -445,18 +396,8 @@ class MockValueConstructor(
             //set field accessible to support protected or package-private direct setters
             field.isAccessible = true
 
-            //prepare mockTarget for field if it is a mock
-            val mockTarget = mockTarget(fieldModel) {
-                FieldMockTarget(
-                    fieldModel.classId.name,
-                    instanceClassId.name,
-                    UtConcreteValue(javaClass(instanceClassId).anyInstance),
-                    field.name
-                )
-            }
-
             //construct and set the value
-            val fieldValue = construct(fieldModel, mockTarget).value
+            val fieldValue = construct(fieldModel).value
             field.set(instance, fieldValue)
         } finally {
             //restore accessibility property of the field
@@ -467,14 +408,10 @@ class MockValueConstructor(
     /**
      * Constructs value from [UtModel].
      */
-    private fun value(model: UtModel) = construct(model, null).value
+    private fun value(model: UtModel) = construct(model).value
 
     private fun mockAndGet(model: UtModel): Any? {
-        val target = mockTarget(model) { // won't be called if model is not mockModel
-            val mockId = MockId("mock${++mockCounter}")
-            ObjectMockTarget(model.classId.name, mockId)
-        }
-        return construct(model, target).value
+        return construct(model).value
     }
 
     private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
@@ -536,9 +473,3 @@ class MockValueConstructor(
         controllers.forEach { it.close() }
     }
 }
-
-/**
- * Creates mock target using init lambda if model represents mock or null otherwise.
- */
-private fun mockTarget(model: UtModel, init: () -> MockTarget): MockTarget? =
-    if (model.isMockModel()) init() else null

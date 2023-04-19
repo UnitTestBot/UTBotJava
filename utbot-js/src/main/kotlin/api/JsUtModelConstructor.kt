@@ -27,6 +27,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
     @Suppress("NAME_SHADOWING")
     override fun construct(value: Any?, classId: ClassId): UtModel {
         val classId = classId as JsClassId
+        if (classId == jsErrorClassId) return UtModel(jsErrorClassId)
         return when (value) {
             null -> JsNullModel(classId)
             is Byte,
@@ -45,12 +46,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
                 constructObject(classId, value)
             }
 
-            else -> {
-                when (classId) {
-                    jsErrorClassId ->  UtModel(jsErrorClassId)
-                    else -> JsUndefinedModel(classId)
-                }
-            }
+            else -> JsUndefinedModel(classId)
         }
     }
 

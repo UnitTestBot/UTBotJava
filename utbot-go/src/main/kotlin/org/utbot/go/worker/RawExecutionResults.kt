@@ -68,6 +68,8 @@ data class NilValue(override val type: String) : RawValue(type)
 
 data class InterfaceValue(override val type: String) : RawValue(type)
 
+data class PointerValue(override val type: String, val elementType: String, val value: RawValue) : RawValue(type)
+
 @TypeFor(field = "type", adapter = RawValueAdapter::class)
 abstract class RawValue(open val type: String)
 
@@ -82,6 +84,7 @@ class RawValueAdapter : TypeAdapter<RawValue> {
             typeName.startsWith("[]") -> SliceValue::class
             typeName.startsWith("[") -> ArrayValue::class
             typeName.startsWith("<-chan") || typeName.startsWith("chan") -> ChanValue::class
+            typeName.startsWith("*") -> PointerValue::class
             goPrimitives.map { it.name }.contains(typeName) -> PrimitiveValue::class
             else -> NamedValue::class
         }

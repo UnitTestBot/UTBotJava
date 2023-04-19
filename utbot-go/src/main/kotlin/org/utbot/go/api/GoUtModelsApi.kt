@@ -318,3 +318,25 @@ class GoUtNamedModel(
 
     override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
+
+class GoUtPointerModel(
+    var value: GoUtModel,
+    typeId: GoPointerTypeId
+) : GoUtModel(typeId) {
+    override val typeId: GoPointerTypeId
+        get() = super.typeId as GoPointerTypeId
+
+    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
+        value.getRequiredPackages(destinationPackage)
+
+    override fun isComparable(): Boolean = value.isComparable()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoUtPointerModel) return false
+
+        return typeId == other.typeId && value == other.value
+    }
+
+    override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
+}

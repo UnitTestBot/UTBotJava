@@ -36,9 +36,19 @@ func ChanDirToString(dir types.ChanDir) (string, error) {
 	return "", fmt.Errorf("unsupported channel direction: %d", dir)
 }
 
-//goland:noinspection GoPreferNilSlice
 func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	switch t := typ.(type) {
+	case *types.Pointer:
+		elemType, err := toAnalyzedType(t.Elem())
+		checkError(err)
+
+		elemTypeName := elemType.GetName()
+
+		name := fmt.Sprintf("*%s", elemTypeName)
+		return AnalyzedPointerType{
+			Name:        name,
+			ElementType: elemType,
+		}, nil
 	case *types.Named:
 		name := t.Obj().Name()
 
@@ -69,7 +79,7 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	case *types.Struct:
 		name := "struct{}"
 
-		fields := []AnalyzedField{}
+		fields := make([]AnalyzedField, 0, t.NumFields())
 		for i := 0; i < t.NumFields(); i++ {
 			field := t.Field(i)
 
@@ -156,36 +166,79 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	return nil, fmt.Errorf("unsupported type: %s", typ)
 }
 
-// for now supports only basic and error result types
-func checkTypeIsSupported(typ types.Type, isResultType bool) bool {
+type ResultOfChecking int
+
+const (
+	SupportedType = iota
+	Unknown
+	UnsupportedType
+)
+
+func checkTypeIsSupported(typ types.Type, visited map[string]ResultOfChecking, isResultType bool, depth int) ResultOfChecking {
 	underlyingType := typ.Underlying() // analyze real type, not alias or defined type
+	if res, ok := visited[underlyingType.String()]; ok {
+		return res
+	}
+	visited[underlyingType.String()] = UnsupportedType
+	var result ResultOfChecking = Unknown
+	if pointerType, ok := underlyingType.(*types.Pointer); ok && !isResultType {
+		// no support for pointer to pointer and pointer to channel,
+		// support for pointer to primitive only if depth is 0
+		switch pointerType.Elem().Underlying().(type) {
+		case *types.Basic, *types.Chan:
+			if depth == 0 {
+				result = SupportedType
+			} else {
+				result = UnsupportedType
+			}
+		case *types.Pointer:
+			result = UnsupportedType
+		default:
+			result = checkTypeIsSupported(pointerType.Elem(), visited, isResultType, depth+1)
+		}
+	}
 	if _, ok := underlyingType.(*types.Basic); ok {
-		return true
+		result = SupportedType
 	}
 	if structType, ok := underlyingType.(*types.Struct); ok {
 		for i := 0; i < structType.NumFields(); i++ {
-			if !checkTypeIsSupported(structType.Field(i).Type(), isResultType) {
-				return false
+			if checkTypeIsSupported(structType.Field(i).Type(), visited, isResultType, depth+1) == UnsupportedType {
+				visited[structType.String()] = UnsupportedType
+				return UnsupportedType
 			}
 		}
-		return true
+		result = SupportedType
 	}
 	if arrayType, ok := underlyingType.(*types.Array); ok {
-		return checkTypeIsSupported(arrayType.Elem(), isResultType)
+		result = checkTypeIsSupported(arrayType.Elem(), visited, isResultType, depth+1)
 	}
 	if sliceType, ok := underlyingType.(*types.Slice); ok {
-		return checkTypeIsSupported(sliceType.Elem(), isResultType)
+		result = checkTypeIsSupported(sliceType.Elem(), visited, isResultType, depth+1)
 	}
 	if mapType, ok := underlyingType.(*types.Map); ok {
-		return checkTypeIsSupported(mapType.Key(), isResultType) && checkTypeIsSupported(mapType.Elem(), isResultType)
+		if checkTypeIsSupported(mapType.Key(), visited, isResultType, depth+1) == UnsupportedType ||
+			checkTypeIsSupported(mapType.Elem(), visited, isResultType, depth+1) == UnsupportedType {
+			result = UnsupportedType
+		} else {
+			result = SupportedType
+		}
 	}
-	if chanType, ok := underlyingType.(*types.Chan); ok && !isResultType {
-		return checkTypeIsSupported(chanType.Elem(), isResultType)
+	if chanType, ok := underlyingType.(*types.Chan); ok && !isResultType && depth == 0 {
+		result = checkTypeIsSupported(chanType.Elem(), visited, isResultType, depth+1)
 	}
 	if interfaceType, ok := underlyingType.(*types.Interface); ok && isResultType {
-		return implementsError(interfaceType)
+		if implementsError(interfaceType) {
+			result = SupportedType
+		} else {
+			result = UnsupportedType
+		}
 	}
-	return false
+
+	if result == Unknown {
+		result = UnsupportedType
+	}
+	visited[underlyingType.String()] = result
+	return visited[underlyingType.String()]
 }
 
 func checkIsSupported(signature *types.Signature) bool {
@@ -198,18 +251,27 @@ func checkIsSupported(signature *types.Signature) bool {
 	if signature.Variadic() { // is variadic
 		return false
 	}
+	visited := make(map[string]ResultOfChecking, signature.Results().Len()+signature.Params().Len())
 	if results := signature.Results(); results != nil {
 		for i := 0; i < results.Len(); i++ {
-			result := results.At(i)
-			if !checkTypeIsSupported(result.Type(), true) {
+			resultType := results.At(i).Type().Underlying()
+			if _, ok := visited[resultType.String()]; ok {
+				continue
+			}
+			checkTypeIsSupported(resultType, visited, true, 0)
+			if visited[resultType.String()] == UnsupportedType {
 				return false
 			}
 		}
 	}
 	if parameters := signature.Params(); parameters != nil {
 		for i := 0; i < parameters.Len(); i++ {
-			parameter := parameters.At(i)
-			if !checkTypeIsSupported(parameter.Type(), false) {
+			paramType := parameters.At(i).Type().Underlying()
+			if _, ok := visited[paramType.String()]; ok {
+				continue
+			}
+			checkTypeIsSupported(paramType, visited, false, 0)
+			if visited[paramType.String()] == UnsupportedType {
 				return false
 			}
 		}

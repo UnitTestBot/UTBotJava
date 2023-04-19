@@ -430,6 +430,33 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+    private val pointerValueStruct = """
+        type __PointerValue__ struct {
+        	Type        string       `json:"type"`
+        	ElementType string       `json:"elementType"`
+        	Value       __RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val pointerValueToReflectValueMethod = """
+        func (v __PointerValue__) __toReflectValue__() (reflect.Value, error) {
+        	elementType, err := __convertStringToReflectType__(v.ElementType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.Type, err)
+        	}
+
+        	value, err := v.Value.__toReflectValue__()
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        	}
+
+        	pointer := reflect.New(elementType)
+        	pointer.Elem().Set(value)
+
+        	return pointer, nil
+        }
+    """.trimIndent()
+
     private fun convertStringToReflectType(
         namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
@@ -507,6 +534,13 @@ object GoCodeTemplates {
             		}
 
             		result = reflect.ChanOf(dir, elemType)
+            	case strings.HasPrefix(typeName, "*"):
+            		elemType, err := __convertStringToReflectType__(typeName[1:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, typeName[1:], err)
+            		}
+
+            		result = reflect.PointerTo(elemType)
             	default:
             		switch typeName {
             		case "bool":
@@ -1142,6 +1176,26 @@ object GoCodeTemplates {
         			Length:      int(length),
         			Value:       values,
         		}, nil
+        	case strings.HasPrefix(typeNameStr, "*"):
+        		elementType, ok := rawValue["elementType"]
+        		if !ok {
+        			return nil, fmt.Errorf("PointerValue must contain field 'elementType'")
+        		}
+        		elementTypeStr, ok := elementType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("PointerValue field 'elementType' must be string")
+        		}
+
+        		value, err := __parseRawValue__(v.(map[string]interface{}), "")
+        		if err != nil {
+        			return nil, fmt.Errorf("failed to parse of PointerValue with type %s: %s", typeNameStr, err)
+        		}
+
+        		return __PointerValue__{
+        			Type:        typeNameStr,
+        			ElementType: elementTypeStr,
+        			Value:       value,
+        		}, nil
         	default:
         		switch typeNameStr {
         		case "bool", "rune", "int", "int8", "int16", "int32", "int64", "byte", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "complex64", "complex128", "string", "uintptr":
@@ -1257,6 +1311,8 @@ object GoCodeTemplates {
         nilValueToReflectValueMethod,
         namedValueStruct,
         namedValueToReflectValueMethod,
+        pointerValueStruct,
+        pointerValueToReflectValueMethod,
         convertStringToReflectType(namedTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,

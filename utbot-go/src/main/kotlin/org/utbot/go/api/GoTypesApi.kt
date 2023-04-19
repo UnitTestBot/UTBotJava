@@ -184,3 +184,25 @@ class GoNamedTypeId(
         return result
     }
 }
+
+class GoPointerTypeId(name: String, elementTypeId: GoTypeId) : GoTypeId(name, elementTypeId = elementTypeId) {
+    override val canonicalName: String = if (sourcePackage.isBuiltin) {
+        name
+    } else {
+        "${sourcePackage.packageName}.$name"
+    }
+
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
+        val elementType = elementTypeId!!.getRelativeName(destinationPackage, aliases)
+        return "*$elementType"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoPointerTypeId) return false
+
+        return elementTypeId == other.elementTypeId
+    }
+
+    override fun hashCode(): Int = elementTypeId.hashCode()
+}

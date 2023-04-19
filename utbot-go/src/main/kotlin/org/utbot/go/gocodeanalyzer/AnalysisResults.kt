@@ -98,6 +98,16 @@ data class AnalyzedNamedType(
     )
 }
 
+data class AnalyzedPointerType(
+    override val name: String,
+    val elementType: AnalyzedType
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId = GoPointerTypeId(
+        name = name,
+        elementTypeId = elementType.toGoTypeId()
+    )
+}
+
 @TypeFor(field = "name", adapter = AnalyzedTypeAdapter::class)
 abstract class AnalyzedType(open val name: String) {
     abstract fun toGoTypeId(): GoTypeId
@@ -113,6 +123,7 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
             typeName.startsWith("[]") -> AnalyzedSliceType::class
             typeName.startsWith("[") -> AnalyzedArrayType::class
             typeName.startsWith("<-chan") || typeName.startsWith("chan") -> AnalyzedChanType::class
+            typeName.startsWith("*") -> AnalyzedPointerType::class
             goPrimitives.map { it.name }.contains(typeName) -> AnalyzedPrimitiveType::class
             else -> AnalyzedNamedType::class
         }

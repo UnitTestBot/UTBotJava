@@ -87,7 +87,7 @@ object GoTestCasesCodeGenerator {
             "func Test${function.name.replaceFirstChar(Char::titlecaseChar)}${testFunctionNamePostfix}ByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
         val variables: List<Variable> = generateVariables(fuzzedFunction)
-        val variablesDeclaration = generateVariablesDeclaration(variables, goUtModelToCodeConverter)
+        val variablesDeclaration = generateVariablesDeclarationAndInitialization(variables, goUtModelToCodeConverter)
 
         if (function.resultTypes.isEmpty()) {
             val actualFunctionCall = generateFuzzedFunctionCall(function.name, variables)
@@ -241,7 +241,7 @@ object GoTestCasesCodeGenerator {
             "func Test${function.name.replaceFirstChar(Char::titlecaseChar)}PanicsByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
         val variables: List<Variable> = generateVariables(fuzzedFunction)
-        val variablesDeclaration = generateVariablesDeclaration(variables, goUtModelToCodeConverter)
+        val variablesDeclaration = generateVariablesDeclarationAndInitialization(variables, goUtModelToCodeConverter)
 
         val actualFunctionCall = generateFuzzedFunctionCall(function.name, variables)
         val actualFunctionCallLambda = buildString {
@@ -298,22 +298,51 @@ object GoTestCasesCodeGenerator {
             }
     }
 
-    private fun generateVariablesDeclaration(
+    private fun generateChannelInitialization(
+        nameOfVariable: String,
+        model: GoUtChanModel,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
+    ): String = model.getElements().joinToString(separator = "\n", postfix = "\n") {
+        "\t$nameOfVariable <- ${goUtModelToCodeConverter.toGoCode(it)}"
+    } + "\tclose($nameOfVariable)\n"
+
+    private fun generatePointerToPrimitiveInitialization(
+        nameOfVariable: String,
+        model: GoUtPrimitiveModel,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
+    ): String = "\t*$nameOfVariable = ${goUtModelToCodeConverter.toGoCodeWithoutTypeName(model)}\n"
+
+    private fun generateVariablesDeclarationAndInitialization(
         variables: List<Variable>, goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         return if (variables.isNotEmpty()) {
             variables.joinToString(separator = "") { (name, _, value) ->
                 val declaration = "\t${name} := ${goUtModelToCodeConverter.toGoCode(value)}\n"
-                val initializing = when {
-                    value is GoUtChanModel -> value.getElements().joinToString(separator = "\n", postfix = "\n") {
-                        "\t$name <- ${goUtModelToCodeConverter.toGoCode(it)}"
-                    } + "\tclose($name)\n"
+                val initializing = when (value) {
+                    is GoUtChanModel -> generateChannelInitialization(name, value, goUtModelToCodeConverter)
 
-                    value is GoUtNamedModel && value.value is GoUtChanModel -> {
-                        (value.value as GoUtChanModel).getElements().joinToString(separator = "\n", postfix = "\n") {
-                            "\t$name <- ${goUtModelToCodeConverter.toGoCode(it)}"
-                        } + "\tclose($name)\n"
+                    is GoUtNamedModel -> if (value.value is GoUtChanModel) {
+                        generateChannelInitialization(name, value.value as GoUtChanModel, goUtModelToCodeConverter)
+                    } else {
+                        ""
                     }
+
+                    is GoUtPointerModel ->
+                        if (value.value is GoUtPrimitiveModel) {
+                            generatePointerToPrimitiveInitialization(
+                                name,
+                                value.value as GoUtPrimitiveModel,
+                                goUtModelToCodeConverter
+                            )
+                        } else if (value.value is GoUtNamedModel && (value.value as GoUtNamedModel).value is GoUtPrimitiveModel) {
+                            generatePointerToPrimitiveInitialization(
+                                name,
+                                (value.value as GoUtNamedModel).value as GoUtPrimitiveModel,
+                                goUtModelToCodeConverter
+                            )
+                        } else {
+                            ""
+                        }
 
                     else -> ""
                 }

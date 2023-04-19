@@ -290,19 +290,55 @@ func NamedMap(n NM) NM {
 }
 
 func Channel(c chan Structure) {
-	if c != nil {
+	if c == nil {
 
 	}
 }
 
 func SendOnlyChannel(c chan<- int) {
-	if c != nil {
+	if c == nil {
 
 	}
 }
 
 func RecvOnlyChannel(c <-chan NM) {
-	if c != nil {
+	if c == nil {
+
+	}
+}
+
+func PointerToInt(n *int) {
+	if n == nil {
+
+	}
+}
+
+func PointerToSlice(n *[]int) {
+	if n == nil {
+
+	}
+}
+
+func PointerToArray(n *[3]int) {
+	if n == nil {
+
+	}
+}
+
+func PointerToMap(n *map[string]int) {
+	if n == nil {
+
+	}
+}
+
+func PointerToStructure(n *Structure) {
+	if n == nil {
+
+	}
+}
+
+func PointerToNamedType(n *Type) {
+	if n == nil {
 
 	}
 }

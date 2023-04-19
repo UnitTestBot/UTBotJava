@@ -97,6 +97,15 @@ func (t AnalyzedChanType) GetName() string {
 	return t.Name
 }
 
+type AnalyzedPointerType struct {
+	Name        string       `json:"name"`
+	ElementType AnalyzedType `json:"elementType"`
+}
+
+func (t AnalyzedPointerType) GetName() string {
+	return t.Name
+}
+
 type AnalyzedFunction struct {
 	Name                                string                      `json:"name"`
 	ModifiedName                        string                      `json:"modifiedName"`

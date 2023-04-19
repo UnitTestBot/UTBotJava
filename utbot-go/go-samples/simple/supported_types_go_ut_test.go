@@ -653,3 +653,101 @@ func TestRecvOnlyChannelByUtGoFuzzer2(t *testing.T) {
 		RecvOnlyChannel(c)
 	})
 }
+
+func TestPointerOnIntByUtGoFuzzer1(t *testing.T) {
+	n := new(int)
+	*n = 9223372036850581503
+
+	assert.NotPanics(t, func() {
+		PointerToInt(n)
+	})
+}
+
+func TestPointerOnIntByUtGoFuzzer2(t *testing.T) {
+	n := (*int)(nil)
+
+	assert.NotPanics(t, func() {
+		PointerToInt(n)
+	})
+}
+
+func TestPointerOnSliceByUtGoFuzzer1(t *testing.T) {
+	n := (*[]int)(nil)
+
+	assert.NotPanics(t, func() {
+		PointerToSlice(n)
+	})
+}
+
+func TestPointerOnSliceByUtGoFuzzer2(t *testing.T) {
+	n := new([]int)
+
+	assert.NotPanics(t, func() {
+		PointerToSlice(n)
+	})
+}
+
+func TestPointerOnArrayByUtGoFuzzer1(t *testing.T) {
+	n := (*[3]int)(nil)
+
+	assert.NotPanics(t, func() {
+		PointerToArray(n)
+	})
+}
+
+func TestPointerOnArrayByUtGoFuzzer2(t *testing.T) {
+	n := &[3]int{-9223372036854775800, 0, 0}
+
+	assert.NotPanics(t, func() {
+		PointerToArray(n)
+	})
+}
+
+func TestPointerOnMapByUtGoFuzzer1(t *testing.T) {
+	n := (*map[string]int)(nil)
+
+	assert.NotPanics(t, func() {
+		PointerToMap(n)
+	})
+}
+
+func TestPointerOnMapByUtGoFuzzer2(t *testing.T) {
+	n := &map[string]int{"hello": -9223372036854775552, "heulo": -9223372036854775808}
+
+	assert.NotPanics(t, func() {
+		PointerToMap(n)
+	})
+}
+
+func TestPointerOnStructureByUtGoFuzzer1(t *testing.T) {
+	n := (*Structure)(nil)
+
+	assert.NotPanics(t, func() {
+		PointerToStructure(n)
+	})
+}
+
+func TestPointerOnStructureByUtGoFuzzer2(t *testing.T) {
+	n := &Structure{}
+
+	assert.NotPanics(t, func() {
+		PointerToStructure(n)
+	})
+}
+
+func TestPointerOnNamedTypeByUtGoFuzzer1(t *testing.T) {
+	n := (*Type)(nil)
+
+	assert.NotPanics(t, func() {
+		PointerToNamedType(n)
+	})
+}
+
+func TestPointerOnNamedTypeByUtGoFuzzer2(t *testing.T) {
+	n := new(Type)
+	*n = 64
+
+	assert.NotPanics(t, func() {
+		PointerToNamedType(n)
+	})
+}

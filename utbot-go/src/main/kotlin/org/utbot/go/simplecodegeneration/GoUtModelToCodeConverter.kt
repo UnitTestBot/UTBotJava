@@ -3,6 +3,7 @@ package org.utbot.go.simplecodegeneration
 import org.utbot.go.api.*
 import org.utbot.go.api.util.goStringTypeId
 import org.utbot.go.framework.api.go.GoPackage
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 
 class GoUtModelToCodeConverter(
@@ -10,7 +11,7 @@ class GoUtModelToCodeConverter(
     private val aliases: Map<GoPackage, String?>
 ) {
 
-    fun toGoCode(model: GoUtModel, needAnExplicitCast: Boolean = true): String = when (model) {
+    fun toGoCode(model: GoUtModel): String = when (model) {
         is GoUtNilModel -> nilModelToGoCode(model)
 
         is GoUtPrimitiveModel -> when (model.explicitCastMode) {
@@ -28,10 +29,12 @@ class GoUtModelToCodeConverter(
 
         is GoUtNamedModel -> namedModelToGoCode(model)
 
+        is GoUtPointerModel -> pointerModelToGoCode(model)
+
         else -> error("Converting a ${model.javaClass} to Go code isn't supported")
     }
 
-    private fun toGoCodeWithoutTypeName(model: GoUtModel): String = when (model) {
+    fun toGoCodeWithoutTypeName(model: GoUtModel): String = when (model) {
         is GoUtNilModel -> "nil"
 
         is GoUtPrimitiveModel -> when (model.explicitCastMode) {
@@ -48,6 +51,8 @@ class GoUtModelToCodeConverter(
         is GoUtMapModel -> mapModelToGoCodeWithoutTypeName(model)
 
         is GoUtNamedModel -> toGoCodeWithoutTypeName(model.value)
+
+        is GoUtPointerModel -> pointerModelToGoCode(model)
 
         else -> error("Converting a ${model.javaClass} to Go code isn't supported")
     }
@@ -117,5 +122,25 @@ class GoUtModelToCodeConverter(
         } else {
             "$typeName${toGoCodeWithoutTypeName(model.value)}"
         }
+    }
+
+    private fun pointerToZeroValueOfType(typeId: GoTypeId): String {
+        val typeName = typeId.getRelativeName(destinationPackage, aliases)
+        return "new($typeName)"
+    }
+
+    private fun pointerModelToGoCode(model: GoUtPointerModel): String = when (val value = model.value) {
+        is GoUtNilModel -> pointerToZeroValueOfType(value.typeId)
+        is GoUtPrimitiveModel -> pointerToZeroValueOfType(value.typeId)
+
+        is GoUtNamedModel -> {
+            if (value.value is GoUtPrimitiveModel) {
+                pointerToZeroValueOfType(value.typeId)
+            } else {
+                "&${toGoCode(value)}"
+            }
+        }
+
+        else -> "&${toGoCode(value)}"
     }
 }

@@ -153,6 +153,7 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     is GoSliceTypeId -> GoUtNilModel(this)
     is GoMapTypeId -> GoUtNilModel(this)
     is GoChanTypeId -> GoUtNilModel(this)
+    is GoPointerTypeId -> GoUtNilModel(this)
     is GoNamedTypeId -> GoUtNamedModel(this.underlyingTypeId.goDefaultValueModel(), this)
     else -> error("Generating Go default value model for ${this.javaClass} is not supported")
 }
@@ -168,7 +169,9 @@ fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
         acc + (field.declaringType).getAllVisibleNamedTypes(goPackage)
     }
 
-    is GoArrayTypeId, is GoSliceTypeId, is GoChanTypeId -> elementTypeId!!.getAllVisibleNamedTypes(goPackage)
+    is GoArrayTypeId, is GoSliceTypeId, is GoChanTypeId, is GoPointerTypeId ->
+        elementTypeId!!.getAllVisibleNamedTypes(goPackage)
+
     is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage) + elementTypeId!!.getAllVisibleNamedTypes(goPackage)
 
     else -> emptySet()

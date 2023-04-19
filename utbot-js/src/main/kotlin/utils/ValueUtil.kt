@@ -14,31 +14,35 @@ import org.json.JSONObject
 import utils.data.ResultData
 
 fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, JsClassId> {
-    this.buildUniqueValue()?.let { return it }
-    with(this.rawString) {
-        return when {
-            isError -> this to jsErrorClassId
-            this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
-            this == "null" || this == "undefined" -> null to jsUndefinedClassId
-            returnType.isJsStdStructure ->
-                makeStructure(this, returnType) to returnType
-            returnType == jsStringClassId || this@toJsAny.type == jsStringClassId.name ->
-                this.replace("\"", "") to jsStringClassId
-            else -> {
-                if (contains('.')) {
-                    (toDoubleOrNull() ?: toBigDecimal()) to jsDoubleClassId
-                } else {
-                    val value = toByteOrNull() ?: toShortOrNull() ?: toIntOrNull() ?: toLongOrNull()
-                    ?: toBigIntegerOrNull() ?: toDoubleOrNull()
-                    if (value != null) value to jsNumberClassId else {
-                        val obj = makeObject(this)
-                        if (obj != null) obj to returnType else {
-                            throw IllegalStateException("Could not make js value from $this value with type ${this@toJsAny.type}")
+    try {
+        this.buildUniqueValue()?.let { return it }
+        with(this.rawString) {
+            return when {
+                isError -> this to jsErrorClassId
+                this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
+                this == "null" || this == "undefined" -> null to jsUndefinedClassId
+                returnType.isJsStdStructure ->
+                    makeStructure(this, returnType) to returnType
+                returnType == jsStringClassId || this@toJsAny.type == jsStringClassId.name ->
+                    this.replace("\"", "") to jsStringClassId
+
+                else -> {
+                    if (contains('.')) {
+                        (toDoubleOrNull() ?: toBigDecimal()) to jsDoubleClassId
+                    } else {
+                        val value = toByteOrNull() ?: toShortOrNull() ?: toIntOrNull() ?: toLongOrNull()
+                        ?: toBigIntegerOrNull() ?: toDoubleOrNull()
+                        if (value != null) value to jsNumberClassId else {
+                            val obj = makeObject(this)
+                            obj!! to returnType
                         }
                     }
                 }
             }
         }
+    } catch(e: Exception) {
+        if (e is IllegalStateException) throw e else
+        throw IllegalStateException("Could not make JavaScript value from $this value with type ${returnType.name}")
     }
 }
 

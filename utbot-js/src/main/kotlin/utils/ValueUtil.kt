@@ -1,12 +1,14 @@
 package utils
 
 import framework.api.js.JsClassId
+import framework.api.js.util.isJsStdStructure
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import utils.data.ResultData
@@ -17,8 +19,8 @@ fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, J
         return when {
             this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
             this == "null" || this == "undefined" -> null to jsUndefinedClassId
-            Regex("\\[.*]").matches(this) && returnType.name == "object" ->
-                makeArray(this) to JsClassId("array", elementClassId = jsUndefinedClassId)
+            returnType.isJsStdStructure ->
+                makeStructure(this, returnType) to returnType
             this@toJsAny.isError -> this to jsErrorClassId
             returnType == jsStringClassId || this@toJsAny.type == jsStringClassId.name ->
                 this.replace("\"", "") to jsStringClassId
@@ -54,7 +56,7 @@ private fun makeObject(objString: String): Map<String, Any>? {
         val json = JSONObject(trimmed)
         val resMap = mutableMapOf<String, Any>()
         json.keySet().forEach {
-            resMap[it] = ResultData(json.get(it).toString(), index = 0).toJsAny(jsUndefinedClassId).first as Any
+            resMap[it] = ResultData(json.get(it).toString(), index = 0).toJsAny().first as Any
         }
         resMap
     } catch (e: JSONException) {
@@ -62,7 +64,22 @@ private fun makeObject(objString: String): Map<String, Any>? {
     }
 }
 
-private fun makeArray(arrString: String): List<Any?> {
-    val strValues = arrString.replace(Regex("[\\[\\]]"), "").split(",")
-    return strValues.map { ResultData(it, index = 0).toJsAny(jsUndefinedClassId).first }
+private fun makeStructure(structString: String, type: JsClassId): List<Any?> {
+    val json = JSONArray(structString)
+    return when (type.name) {
+        "Array", "Set" -> {
+            json.map { jsonObj ->
+                ResultData(jsonObj as JSONObject).toJsAny().first
+            }
+        }
+        "Map" -> {
+            json.map { jsonObj ->
+                val name = (jsonObj as JSONObject).get("name")
+                name to ResultData(jsonObj.getJSONObject("json")).toJsAny().first
+            }
+        }
+        else -> throw UnsupportedOperationException(
+            "Can't make JavaScript structure from $structString with type ${type.name}"
+        )
+    }
 }

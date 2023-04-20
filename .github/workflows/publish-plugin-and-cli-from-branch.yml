@@ -67,6 +67,7 @@ jobs:
           echo "VERSION=${{ github.event.inputs.custom_version }}" >> $GITHUB_ENV
       - name: Setup version
         if: ${{ github.event.inputs.custom_version == '' }}
+        shell: bash
         run: |
           echo "VERSION=${GITHUB_REF_NAME:0:4}-$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
 

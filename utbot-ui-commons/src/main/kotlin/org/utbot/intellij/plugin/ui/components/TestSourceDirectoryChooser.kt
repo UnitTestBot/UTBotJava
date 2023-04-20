@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.ui.components
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -13,9 +14,9 @@ import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class TestSourceDirectoryChooser(
     val model: BaseTestsModel,
-    file: VirtualFile
+//    file: VirtualFile
 ) : TextFieldWithBrowseButton() {
-    private val projectRoot = getContentRoot(model.project, file)
+    private val projectRoot = model.project.guessProjectDir() ?: error("Source file lies outside of a module")//getContentRoot(model.project, file)
 
     init {
         val descriptor = FileChooserDescriptor(

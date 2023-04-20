@@ -12,10 +12,11 @@ import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
+import com.jetbrains.python.refactoring.classes.membersManager.MembersManager
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
-import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.intellij.plugin.language.python.table.UtPyMemberSelectionTable
 import org.utbot.intellij.plugin.settings.Settings
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
@@ -27,18 +28,19 @@ import javax.swing.*
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
+private const val STEP_TIMEOUT_VALUE_IN_SECONDS = 5
 private const val ACTION_GENERATE = "Generate Tests"
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
-    private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
-    private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
+    private val pyElementsTable = UtPyMemberSelectionTable<UtPyTableItem>(emptyList());
+    private val testSourceFolderField = TestSourceDirectoryChooser(model)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
             Int.MAX_VALUE,
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
+            STEP_TIMEOUT_VALUE_IN_SECONDS
         )
     private val testFrameworks =
         ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
@@ -77,11 +79,11 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             }
             row("Generate test methods for:") {}
             row {
-                scrollPane(functionsTable)
+                scrollPane(pyElementsTable)
             }
         }
 
-        updateFunctionsTable()
+        updatePyElementsTable()
         updateTestFrameworksList()
         return panel
     }
@@ -116,19 +118,34 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         if (containingClass == null) {
             return globalPyFunctionsToPyMemberInfo(project, functions)
         }
-        return PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass)
+        return MembersManager.getAllMembersCouldBeMoved(containingClass)
             .filter { it.member is PyFunction && fineFunction(it.member as PyFunction) }
     }
 
-    private fun updateFunctionsTable() {
-        val items = pyFunctionsToPyMemberInfo(model.project, model.functionsToDisplay, model.containingClass)
+    private fun pyClassToMemberInfo(pyClass: PyClass): List<PyMemberInfo<PyElement>> {
+        return PyMemberInfoStorage(pyClass).getClassMemberInfos(pyClass)
+            .filter { method -> method.member.let { it is PyFunction && fineFunction(it) } }
+    }
+
+    private fun updatePyElementsTable() {
+        val functions = model.elementsToDisplay.filterIsInstance<PyFunction>()
+        val classes = model.elementsToDisplay.filterIsInstance<PyClass>()
+        val functionItems = functions
+            .groupBy { it.containingClass }
+            .flatMap { (containingClass, pyFuncs) ->
+                pyFunctionsToPyMemberInfo(model.project, pyFuncs, containingClass)
+            }
+        val classItems = classes.flatMap {
+            pyClassToMemberInfo(it)
+        }
+        val items = classItems + functionItems
         updateMethodsTable(items)
-        val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
-        functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
+        val height = pyElementsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
+        pyElementsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
     private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {
-        val focusedNames = model.focusedMethod?.map { it.name }
+        val focusedNames = model.focusedElements?.map { it.name }
         val selectedMethods = allMethods.filter {
             focusedNames?.contains(it.member.name) ?: false
         }
@@ -139,7 +156,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             checkMembers(selectedMethods)
         }
 
-        functionsTable.setMemberInfos(allMethods)
+        pyElementsTable.setMemberInfos(allMethods)
     }
 
     private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
@@ -167,8 +184,8 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     override fun getOKAction() = okOptionAction
 
     override fun doOKAction() {
-        val selectedMembers = functionsTable.selectedMemberInfos
-        model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
+        val selectedMembers = pyElementsTable.selectedMemberInfos
+        model.selectedElements = selectedMembers.mapNotNull { it.member }.toSet()
         model.testFramework = testFrameworks.item
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
         model.testSourceRootPath = testSourceFolderField.text

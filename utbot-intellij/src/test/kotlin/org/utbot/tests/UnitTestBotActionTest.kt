@@ -2,11 +2,11 @@ package org.utbot.tests
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.utils.keyboard
-import com.intellij.remoterobot.utils.waitFor
+import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.MethodSource
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import org.utbot.data.NEW_PROJECT_NAME_START
@@ -18,11 +18,7 @@ import java.time.Duration
 class UnitTestBotActionTest : UTBotTest() {
 
     @ParameterizedTest(name = "Run UTBot action on a new Java class in existing {0} project")
-    @CsvSource(
-        "INTELLIJ, JDK_11",
-        "GRADLE, JDK_11",
-        "INTELLIJ, JDK_1_8",
-        "GRADLE, JDK_1_8" )
+    @MethodSource("projectListProvider")
     @Tags(Tag("Java"), Tag("UTBot"), Tag("NewClass"))
     fun runActionOnNewJavaClassInExistingProject(ideaBuildSystem: IdeaBuildSystem, jdkVersion: JDKVersion,
                                                  remoteRobot: RemoteRobot) : Unit = with(remoteRobot) {
@@ -54,16 +50,16 @@ class UnitTestBotActionTest : UTBotTest() {
                 }
             }
             callUnitTestBotActionOn(newClassName)
-            waitFor (Duration.ofSeconds(10)){
+            waitForIgnoringError (Duration.ofSeconds(10)){
                 inlineProgressTextPanel.isShowing
             }
-            waitFor(Duration.ofSeconds(30)) {
+            waitForIgnoringError(Duration.ofSeconds(30)) {
                 inlineProgressTextPanel.hasText("Generate tests: read classes")
             }
-            waitFor (Duration.ofSeconds(10)){
+            waitForIgnoringError (Duration.ofSeconds(10)){
                 inlineProgressTextPanel.hasText("Generate test cases for class $newClassName")
             }
-            waitFor(Duration.ofSeconds(20)) { //Can be changed to 60 for a complex class
+            waitForIgnoringError(Duration.ofSeconds(30)) { //Can be changed to 60 for a complex class
                 infoNotification.isShowing
             }
             assertThat(infoNotification.title.hasText("UnitTestBot: unit tests generated successfully")).isTrue

@@ -7,6 +7,7 @@ import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.keyboard
 import com.intellij.remoterobot.utils.waitFor
+import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.swing.core.MouseButton
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.dialogs.UnitTestBotDialogFixture
@@ -116,19 +117,20 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
     }
 
     open fun waitProjectIsOpened() {
-        waitFor(ofSeconds(30)) {
+        waitForIgnoringError(ofSeconds(30)) {
             projectViewTree.hasText(projectName)
         }
     }
 
     open fun waitProjectIsCreated() {
+        waitProjectIsOpened()
     }
 
     open fun expandProjectTree(projectName: String) {
         with(projectViewTree) {
             if (hasText("src").not()) {
                 findText(projectName).doubleClick()
-                waitFor{
+                waitForIgnoringError{
                     hasText("src").and(hasText(".idea"))
                 }
             }

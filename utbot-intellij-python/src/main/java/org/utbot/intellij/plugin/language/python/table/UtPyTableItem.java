@@ -4,7 +4,7 @@ import com.jetbrains.python.psi.PyElement;
 
 import javax.swing.*;
 
-interface UtPyTableItem {
+public interface UtPyTableItem {
 
     public PyElement getContent();
 

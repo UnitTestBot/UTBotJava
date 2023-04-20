@@ -17,6 +17,7 @@ import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.intellij.plugin.language.python.table.UtPyMemberSelectionTable
+import org.utbot.intellij.plugin.language.python.table.UtPyTableItem
 import org.utbot.intellij.plugin.settings.Settings
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
@@ -33,7 +34,7 @@ private const val ACTION_GENERATE = "Generate Tests"
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
-    private val pyElementsTable = UtPyMemberSelectionTable<UtPyTableItem>(emptyList());
+    private val pyElementsTable = UtPyMemberSelectionTable(emptyList());
     private val testSourceFolderField = TestSourceDirectoryChooser(model)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
@@ -156,7 +157,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             checkMembers(selectedMethods)
         }
 
-        pyElementsTable.setMemberInfos(allMethods)
+        pyElementsTable.setItems(allMethods)
     }
 
     private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }

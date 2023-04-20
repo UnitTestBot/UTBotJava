@@ -43,6 +43,10 @@ public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable i
         new MyEnableDisableAction().register();
     }
 
+    public void setItems(Collection<T> items) {
+        myItems = new ArrayList<>(items);
+    }
+
     @Override
     public @Nullable Object getData(@NotNull @NonNls String dataId) {
         if (CommonDataKeys.PSI_ELEMENT.is(dataId)) {

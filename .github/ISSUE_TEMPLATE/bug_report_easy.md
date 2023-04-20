@@ -25,7 +25,7 @@ assignees: ''
 
 
 
-**Screenshots, logs (if and)**
+**Screenshots, logs**
 
 
 

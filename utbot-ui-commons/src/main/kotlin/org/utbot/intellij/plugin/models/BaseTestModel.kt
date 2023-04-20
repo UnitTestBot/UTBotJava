@@ -23,9 +23,14 @@ import org.utbot.intellij.plugin.ui.utils.getResourcesPaths
 import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import java.io.IOException
+import java.io.StringReader
 import java.nio.file.Files
+import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.parsers.ParserConfigurationException
 import kotlin.streams.asSequence
+
 
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
 const val HISTORY_LIMIT = 10
@@ -125,7 +130,7 @@ open class BaseTestsModel(
                 .filter { it.fileExtension == ".xml" }
         }
 
-        val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        val builder = customizeXmlBuilder()
         return xmlFilePaths.mapNotNullTo(mutableSetOf()) { path ->
             try {
                 val doc = builder.parse(path.toFile())
@@ -137,12 +142,30 @@ open class BaseTestsModel(
                     else -> null
                 }
             } catch (e: Exception) {
-                // Sometimes xml parsing may fail, for example, when it references external DTD schemas.
-                // See https://stackoverflow.com/questions/343383/unable-to-parse-xml-file-using-documentbuilder.
+                // `DocumentBuilder.parse` is an unpredictable operation, may have some side effects, we suppress them.
                 null
             }
-
         }
+    }
+
+    /**
+     * Creates "safe" xml builder instance.
+     *
+     * Using standard `DocumentBuilderFactory.newInstance()` may lead to some problems like
+     * https://stackoverflow.com/questions/343383/unable-to-parse-xml-file-using-documentbuilder.
+     *
+     * We try to solve it in accordance with top-rated recommendation here
+     * https://stackoverflow.com/questions/155101/make-documentbuilder-parse-ignore-dtd-references.
+     */
+    private fun customizeXmlBuilder(): DocumentBuilder {
+        val builderFactory = DocumentBuilderFactory.newInstance()
+        builderFactory.isNamespaceAware = true
+
+        // See documentation https://xerces.apache.org/xerces2-j/features.html
+        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false)
+        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+
+        return builderFactory.newDocumentBuilder()
     }
 
     fun updateSourceRootHistory(path: String) {

@@ -80,24 +80,24 @@ func TestGenerateArrayOfIntegersByUtGoFuzzer(t *testing.T) {
 }
 
 func TestDistanceBetweenTwoPointsByUtGoFuzzer(t *testing.T) {
-	a := Point{}
-	b := Point{}
+	a := Point{x: 0.730967787376657, y: 0.730967787376657}
+	b := Point{x: 2.0, y: 2.0}
 
 	actualVal := DistanceBetweenTwoPoints(a, b)
 
-	expectedVal := 0.0
+	expectedVal := 1.794682566180269
 
 	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestGetCoordinatesOfMiddleBetweenTwoPointsByUtGoFuzzer(t *testing.T) {
-	a := Point{}
-	b := Point{}
+	a := Point{x: 0.24053641567148587, y: 0.24053641567148587}
+	b := Point{x: 2.0, y: 2.0}
 
 	actualVal0, actualVal1 := GetCoordinatesOfMiddleBetweenTwoPoints(a, b)
 
-	expectedVal0 := 0.0
-	expectedVal1 := 0.0
+	expectedVal0 := 1.1202682078357429
+	expectedVal1 := 1.1202682078357429
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(expectedVal0, actualVal0)
@@ -105,12 +105,12 @@ func TestGetCoordinatesOfMiddleBetweenTwoPointsByUtGoFuzzer(t *testing.T) {
 }
 
 func TestGetCoordinateSumOfPointsByUtGoFuzzer(t *testing.T) {
-	points := []Point{{}}
+	points := []Point{{x: 0.6374174253501083, y: 0.6374174253501083}}
 
 	actualVal0, actualVal1 := GetCoordinateSumOfPoints(points)
 
-	expectedVal0 := 0.0
-	expectedVal1 := 0.0
+	expectedVal0 := 0.6374174253501083
+	expectedVal1 := 0.6374174253501083
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(expectedVal0, actualVal0)
@@ -118,7 +118,7 @@ func TestGetCoordinateSumOfPointsByUtGoFuzzer(t *testing.T) {
 }
 
 func TestGetAreaOfCircleByUtGoFuzzer(t *testing.T) {
-	circle := Circle{Center: Point{}, Radius: 2.0}
+	circle := Circle{Center: Point{x: 2.0, y: 0.5504370051176339}, Radius: 2.0}
 
 	actualVal := GetAreaOfCircle(circle)
 
@@ -279,3 +279,61 @@ func TestSumOfChanElementsByUtGoFuzzer(t *testing.T) {
 }
 
 // SumOfChanElements((<-chan int)(nil)) exceeded 1000 ms timeout
+
+func TestLenOfListByUtGoFuzzer1(t *testing.T) {
+	l := &List{tail: (*List)(nil), val: 0}
+
+	actualVal := LenOfList(l)
+
+	expectedVal := 1
+
+	assert.Equal(t, expectedVal, actualVal)
+}
+
+func TestLenOfListByUtGoFuzzer2(t *testing.T) {
+	l := (*List)(nil)
+
+	actualVal := LenOfList(l)
+
+	expectedVal := 0
+
+	assert.Equal(t, expectedVal, actualVal)
+}
+
+func TestLenOfListByUtGoFuzzer3(t *testing.T) {
+	l := &List{tail: &List{}, val: 1}
+
+	actualVal := LenOfList(l)
+
+	expectedVal := 2
+
+	assert.Equal(t, expectedVal, actualVal)
+}
+
+func TestGetLastNodeByUtGoFuzzer1(t *testing.T) {
+	n := &Node{prev: (*Node)(nil), next: (*Node)(nil), val: 1}
+
+	actualVal := GetLastNode(n)
+
+	expectedVal := &Node{prev: (*Node)(nil), next: (*Node)(nil), val: 1}
+
+	assert.Equal(t, expectedVal, actualVal)
+}
+
+func TestGetLastNodeByUtGoFuzzer2(t *testing.T) {
+	n := (*Node)(nil)
+
+	actualVal := GetLastNode(n)
+
+	assert.Nil(t, actualVal)
+}
+
+func TestGetLastNodeByUtGoFuzzer3(t *testing.T) {
+	n := &Node{prev: (*Node)(nil), next: &Node{}, val: -1}
+
+	actualVal := GetLastNode(n)
+
+	expectedVal := &Node{prev: (*Node)(nil), next: (*Node)(nil), val: 0}
+
+	assert.Equal(t, expectedVal, actualVal)
+}

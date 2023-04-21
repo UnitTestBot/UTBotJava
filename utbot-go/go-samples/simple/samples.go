@@ -126,3 +126,29 @@ func SumOfChanElements(c <-chan int) int {
 	}
 	return sum
 }
+
+type List struct {
+	tail *List
+	val  int
+}
+
+func LenOfList(l *List) int {
+	if l == nil {
+		return 0
+	}
+	length := 1
+	for ; l.tail != nil; l = l.tail {
+		length++
+	}
+	return length
+}
+
+func GetLastNode(n *Node) *Node {
+	if n == nil {
+		return nil
+	}
+	for ; n.next != nil; n = n.next {
+
+	}
+	return n
+}

@@ -87,7 +87,8 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val getSpringBeanQualifiedNamesParams = structdef {
         field("classpath", array(PredefinedType.string))
         field("config", PredefinedType.string)
-        field("fileStorage", PredefinedType.string.nullable)
+        field("fileStorage", array(PredefinedType.string))
+        field("profileExpression", PredefinedType.string.nullable)
     }
     val methodDescription = structdef {
         field("name", PredefinedType.string)

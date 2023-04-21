@@ -147,11 +147,11 @@ class SpringAnalyzerProcess private constructor(
     private val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
 
     fun getBeanQualifiedNames(
-        classpath: List<String>,
         configuration: String,
-        fileStorage: String?,
+        fileStorage: Array<String>,
+        profileExpression: String?,
     ): List<String> {
-        val params = SpringAnalyzerParams(classpath.toTypedArray(), configuration, fileStorage)
+        val params = SpringAnalyzerParams(configuration, fileStorage, profileExpression)
         val result = springAnalyzerModel.analyze.startBlocking(params)
         return result.beanTypes.toList()
     }

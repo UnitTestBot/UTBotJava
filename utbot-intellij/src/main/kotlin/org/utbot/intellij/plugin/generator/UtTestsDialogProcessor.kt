@@ -246,11 +246,13 @@ object UtTestsDialogProcessor {
                                                         ModuleRootManager.getInstance(module).contentRoots.toList()
                                                     }
                                                 }
+
+                                                val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
                                                 process.getSpringBeanQualifiedNames(
                                                     classpathForClassLoader,
                                                     approach.config,
-                                                    // TODO: consider passing it as an array
-                                                    contentRoots.joinToString(File.pathSeparator),
+                                                    fileStorage,
+                                                    profileExpression = null,
                                                 )
                                             }
                                         }

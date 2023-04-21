@@ -10,7 +10,7 @@ import org.utbot.spring.utils.ConfigurationManager
 import java.io.File
 import kotlin.io.path.Path
 
-
+const val DEFAULT_PROFILE_NAME = "default"
 private val logger = getLogger<ApplicationConfigurator>()
 
 open class ApplicationConfigurator(
@@ -41,15 +41,20 @@ open class ApplicationConfigurator(
             }
         }
 
-        setActiveProfile()
+        setActiveProfile(applicationData.profileExpression ?: DEFAULT_PROFILE_NAME)
     }
 
-    private fun setActiveProfile() {
+    private fun setActiveProfile(profileExpression: String) {
+        val profilesToActivate = parseProfileExpression(profileExpression)
+
         val environment = StandardEnvironment()
-        environment.setActiveProfiles("huiiuh")
+        environment.setActiveProfiles(*profilesToActivate)
 
         applicationBuilder.environment(environment)
     }
+
+    //TODO: implement this, e.g. 'prod|web' -> listOf(prod, web)
+    private fun parseProfileExpression(profileExpression: String) : Array<String> = arrayOf(profileExpression)
 
     private fun findConfigurationType(applicationData: ApplicationData): ApplicationConfigurationType {
         //TODO: support Spring Boot Applications here.

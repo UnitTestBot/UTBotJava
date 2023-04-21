@@ -6,4 +6,5 @@ class ApplicationData(
     val classpath: Array<URL>,
     val configurationFile: String,
     val fileStorage: String?,
+    val profileExpression: String?,
 )

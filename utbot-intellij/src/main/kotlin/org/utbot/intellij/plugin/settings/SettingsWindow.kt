@@ -25,6 +25,7 @@ import org.utbot.intellij.plugin.util.showSettingsEditor
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JPanel
+import javax.swing.event.ChangeEvent
 import kotlin.reflect.KClass
 
 class SettingsWindow(val project: Project) {
@@ -181,11 +182,10 @@ class SettingsWindow(val project: Project) {
             forceMockCheckBox.addActionListener { updater.run() }
         }
 
-        val granularity = 20
-        var fuzzingPercent = 100.0 * settings.fuzzingValue
-        val fuzzLabel = JBLabel("Fuzzing %.0f %%".format(fuzzingPercent))
-        val symLabel = JBLabel("%.0f %% Symbolic execution".format(100.0 - fuzzingPercent))
+        val fuzzLabel = JBLabel("Fuzzing")
+        val symLabel = JBLabel("Symbolic execution")
         row("Test generation method:") {
+            val granularity = 20
             slider(0, granularity, 1, granularity / 4)
                 .bindValue(
                     getter = { ((1 - settings.fuzzingValue) * granularity).toInt() },
@@ -197,10 +197,11 @@ class SettingsWindow(val project: Project) {
                     this.toolTipText =
                         "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout. The slide has no effect for Spring Projects.</body></html>"
                     addChangeListener {
-                        fuzzingPercent = 100.0 * ( granularity - value ) / granularity
+                        val fuzzingPercent = 100.0 * ( granularity - value ) / granularity
                         fuzzLabel.text = "Fuzzing %.0f %%".format(fuzzingPercent)
                         symLabel.text = "%.0f %% Symbolic execution".format(100.0 - fuzzingPercent)
                     }
+                    changeListeners[0].stateChanged(ChangeEvent(this))
                 }
         }.enabled(UtSettings.useFuzzing)
         indent{ indent{ indent {

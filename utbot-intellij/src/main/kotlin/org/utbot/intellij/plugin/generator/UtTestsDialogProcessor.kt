@@ -177,7 +177,9 @@ object UtTestsDialogProcessor {
                 }
         }
 
-        val filesToCompile = model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
+        val filesToCompile = (model.srcClasses + listOfNotNull(springConfigClass))
+            .map { it.containingFile.virtualFile }
+            .toTypedArray()
 
         val promise = compile(project, filesToCompile, springConfigClass)
         promise.onSuccess {

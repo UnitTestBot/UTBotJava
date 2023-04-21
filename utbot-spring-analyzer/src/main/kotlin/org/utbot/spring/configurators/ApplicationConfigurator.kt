@@ -3,11 +3,13 @@ package org.utbot.spring.configurators
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.utbot.spring.config.TestApplicationConfiguration
+import org.springframework.core.env.StandardEnvironment
 import org.utbot.spring.api.ApplicationData
+import org.utbot.spring.config.TestApplicationConfiguration
 import org.utbot.spring.utils.ConfigurationManager
 import java.io.File
 import kotlin.io.path.Path
+
 
 private val logger = getLogger<ApplicationConfigurator>()
 
@@ -38,6 +40,15 @@ open class ApplicationConfigurator(
                 )
             }
         }
+
+        setActiveProfile()
+    }
+
+    private fun setActiveProfile() {
+        val environment = StandardEnvironment()
+        environment.setActiveProfiles("huiiuh")
+
+        applicationBuilder.environment(environment)
     }
 
     private fun findConfigurationType(applicationData: ApplicationData): ApplicationConfigurationType {

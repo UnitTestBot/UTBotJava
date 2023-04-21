@@ -5,7 +5,7 @@ import com.jetbrains.rd.util.info
 import java.io.File
 import java.io.IOException
 
-val logger = getLogger<FakeFileManager>()
+private val logger = getLogger<FakeFileManager>()
 
 class FakeFileManager(private val fakeFilesList: List<String>) {
 

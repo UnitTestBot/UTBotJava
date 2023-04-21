@@ -1,6 +1,6 @@
 ---
 name: Bug report without tips
-about: Defect report without examples (for experienced testers)
+about: Template without examples (for experienced QA engineers)
 title: ''
 labels: 'ctg-bug'
 assignees: ''

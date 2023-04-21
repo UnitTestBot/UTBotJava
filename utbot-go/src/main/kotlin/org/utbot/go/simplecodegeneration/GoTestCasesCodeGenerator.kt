@@ -87,12 +87,15 @@ object GoTestCasesCodeGenerator {
             "func Test${function.name.replaceFirstChar(Char::titlecaseChar)}${testFunctionNamePostfix}ByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
         val variables: List<Variable> = generateVariables(fuzzedFunction)
-        val variablesDeclaration = generateVariablesDeclarationAndInitialization(variables, goUtModelToCodeConverter)
+        val variablesDeclarationAndInitialization =
+            generateVariablesDeclarationAndInitialization(variables, goUtModelToCodeConverter)
 
         if (function.resultTypes.isEmpty()) {
             val actualFunctionCall = generateFuzzedFunctionCall(function.name, variables)
             val testFunctionBody = buildString {
-                append(variablesDeclaration)
+                if (variablesDeclarationAndInitialization != "\n") {
+                    append(variablesDeclarationAndInitialization)
+                }
                 appendLine("\tassert.NotPanics(t, func() {")
                 appendLine("\t\t$actualFunctionCall")
                 appendLine("\t})")
@@ -137,8 +140,8 @@ object GoTestCasesCodeGenerator {
             }
         }
 
-        val expectedVariablesDeclaration =
-            generateExpectedVariablesDeclaration(expectedResultVariables, goUtModelToCodeConverter)
+        val expectedVariablesDeclarationAndInitialization =
+            generateVariablesDeclarationAndInitialization(expectedResultVariables, goUtModelToCodeConverter)
 
         val (assertionName, assertionTParameter) = if (expectedResultValues.size > 1 || expectedResultValues.any { it.isComplexModelAndNeedsSeparateAssertions() }) {
             "assertMultiple" to ""
@@ -181,9 +184,13 @@ object GoTestCasesCodeGenerator {
                 }
 
         val testFunctionBody = buildString {
-            append(variablesDeclaration)
+            if (variablesDeclarationAndInitialization != "\n") {
+                append(variablesDeclarationAndInitialization)
+            }
             append("\t$actualFunctionCall\n\n")
-            append(expectedVariablesDeclaration)
+            if (expectedVariablesDeclarationAndInitialization != "\n") {
+                append(expectedVariablesDeclarationAndInitialization)
+            }
             if (expectedResultValues.size > 1 || expectedResultValues.any { it.isComplexModelAndNeedsSeparateAssertions() }) {
                 append("\tassertMultiple := assert.New(t)\n")
             }
@@ -312,61 +319,58 @@ object GoTestCasesCodeGenerator {
         goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String = "\t*$nameOfVariable = ${goUtModelToCodeConverter.toGoCodeWithoutTypeName(model)}\n"
 
-    private fun generateVariablesDeclarationAndInitialization(
-        variables: List<Variable>, goUtModelToCodeConverter: GoUtModelToCodeConverter
+    private fun generateVariableDeclaration(
+        variable: Variable,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
-        return if (variables.isNotEmpty()) {
-            variables.joinToString(separator = "") { (name, _, value) ->
-                val declaration = "\t${name} := ${goUtModelToCodeConverter.toGoCode(value)}\n"
-                val initializing = when (value) {
-                    is GoUtChanModel -> generateChannelInitialization(name, value, goUtModelToCodeConverter)
-
-                    is GoUtNamedModel -> if (value.value is GoUtChanModel) {
-                        generateChannelInitialization(name, value.value as GoUtChanModel, goUtModelToCodeConverter)
-                    } else {
-                        ""
-                    }
-
-                    is GoUtPointerModel ->
-                        if (value.value is GoUtPrimitiveModel) {
-                            generatePointerToPrimitiveInitialization(
-                                name,
-                                value.value as GoUtPrimitiveModel,
-                                goUtModelToCodeConverter
-                            )
-                        } else if (value.value is GoUtNamedModel && (value.value as GoUtNamedModel).value is GoUtPrimitiveModel) {
-                            generatePointerToPrimitiveInitialization(
-                                name,
-                                (value.value as GoUtNamedModel).value as GoUtPrimitiveModel,
-                                goUtModelToCodeConverter
-                            )
-                        } else {
-                            ""
-                        }
-
-                    else -> ""
-                }
-                declaration + initializing
-            } + "\n"
+        val (name, type, value) = variable
+        return if (type.implementsError && (value is GoUtNamedModel && value.value.typeId == goStringTypeId)) {
+            "\t$name := ${goUtModelToCodeConverter.toGoCode(value.value)}\n"
         } else {
-            ""
+            "\t$name := ${goUtModelToCodeConverter.toGoCode(value)}\n"
         }
     }
 
-    private fun generateExpectedVariablesDeclaration(
-        variables: List<Variable?>, goUtModelToCodeConverter: GoUtModelToCodeConverter
+    private fun generateVariableInitialization(
+        variable: Variable,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
-        return if (variables.any { it != null }) {
-            variables.filterNotNull().joinToString(separator = "\n") { (name, type, value) ->
-                if (type.implementsError && (value is GoUtNamedModel && value.value.typeId == goStringTypeId)) {
-                    "\t$name := ${goUtModelToCodeConverter.toGoCode(value.value)}"
-                } else {
-                    "\t$name := ${goUtModelToCodeConverter.toGoCode(value)}"
-                }
-            } + "\n\n"
-        } else {
-            ""
+        val (name, _, value) = variable
+        return when (value) {
+            is GoUtChanModel -> generateChannelInitialization(name, value, goUtModelToCodeConverter)
+
+            is GoUtNamedModel -> if (value.value is GoUtChanModel) {
+                generateChannelInitialization(name, value.value as GoUtChanModel, goUtModelToCodeConverter)
+            } else {
+                ""
+            }
+
+            is GoUtPointerModel -> if (value.value is GoUtPrimitiveModel) {
+                generatePointerToPrimitiveInitialization(
+                    name,
+                    value.value as GoUtPrimitiveModel,
+                    goUtModelToCodeConverter
+                )
+            } else if (value.value is GoUtNamedModel && (value.value as GoUtNamedModel).value is GoUtPrimitiveModel) {
+                generatePointerToPrimitiveInitialization(
+                    name,
+                    (value.value as GoUtNamedModel).value as GoUtPrimitiveModel,
+                    goUtModelToCodeConverter
+                )
+            } else {
+                ""
+            }
+
+            else -> ""
         }
+    }
+
+    private fun generateVariablesDeclarationAndInitialization(
+        variables: List<Variable?>, goUtModelToCodeConverter: GoUtModelToCodeConverter
+    ): String = variables.filterNotNull().joinToString(separator = "", postfix = "\n") { variable ->
+        val declaration = generateVariableDeclaration(variable, goUtModelToCodeConverter)
+        val initialization = generateVariableInitialization(variable, goUtModelToCodeConverter)
+        declaration + initialization
     }
 
     private fun generateFuzzedFunctionCall(functionName: String, variables: List<Variable>): String {

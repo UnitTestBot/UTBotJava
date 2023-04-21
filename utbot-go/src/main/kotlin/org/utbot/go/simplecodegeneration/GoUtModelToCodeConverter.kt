@@ -76,7 +76,7 @@ class GoUtModelToCodeConverter(
         "complex(${toGoCode(model.realValue)}, ${toGoCode(model.imagValue)})"
 
     private fun structModelToGoCodeWithoutStructName(model: GoUtStructModel): String =
-        model.getVisibleFields(destinationPackage).joinToString(prefix = "{", postfix = "}") {
+        model.value.joinToString(prefix = "{", postfix = "}") {
             "${it.fieldId.name}: ${toGoCode(it.model)}"
         }
 

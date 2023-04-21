@@ -780,6 +780,9 @@ object GoCodeTemplates {
         			Value:       mapValues,
         		}, nil
         	case reflect.Chan:
+        		if v.IsNil() {
+        			return __NilValue__{Type: "nil"}, nil
+        		}
         		typeName := v.Type().String()
         		elementType := v.Type().Elem().String()
         		dir := "SENDRECV"
@@ -826,6 +829,23 @@ object GoCodeTemplates {
         			}, nil
         		}
         		return nil, fmt.Errorf("unsupported result type: %s", v.Type().String())
+        	case reflect.Pointer:
+        		if v.IsNil() {
+        			return __NilValue__{Type: "nil"}, nil
+        		}
+        		typeName := v.Type().String()
+        		elementType := v.Type().Elem().String()
+
+        		value, err := __convertReflectValueToRawValue__(v.Elem())
+        		if err != nil {
+        			return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        		}
+
+        		return __PointerValue__{
+        			Type:        typeName,
+        			ElementType: elementType,
+        			Value:       value,
+        		}, nil
         	default:
         		return nil, fmt.Errorf("unsupported result type: %s", v.Type().String())
         	}

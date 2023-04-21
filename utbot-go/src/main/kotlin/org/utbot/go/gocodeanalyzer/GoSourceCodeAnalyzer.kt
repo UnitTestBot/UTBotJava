@@ -41,11 +41,10 @@ object GoSourceCodeAnalyzer {
         goExecutableAbsolutePath: Path,
         gopathAbsolutePath: Path
     ): GoSourceCodeAnalyzerResult {
-        val analysisTargets = AnalysisTargets(
-            targetFunctionsNamesBySourceFiles.map { (filePath, targetFunctionsNames) ->
+        val analysisTargets =
+            AnalysisTargets(targetFunctionsNamesBySourceFiles.map { (filePath, targetFunctionsNames) ->
                 AnalysisTarget(filePath.toAbsolutePath().toString(), targetFunctionsNames)
-            }
-        )
+            })
         val analysisTargetsFileName = createAnalysisTargetsFileName()
         val analysisResultsFileName = createAnalysisResultsFileName()
 
@@ -54,8 +53,7 @@ object GoSourceCodeAnalyzer {
         val analysisResultsFile = goCodeAnalyzerSourceDir.resolve(analysisResultsFileName)
 
         val goCodeAnalyzerRunCommand = listOf(
-            goExecutableAbsolutePath.toString(),
-            "run"
+            goExecutableAbsolutePath.toString(), "run"
         ) + getGoCodeAnalyzerSourceFilesNames() + listOf(
             "-targets",
             analysisTargetsFileName,
@@ -79,13 +77,16 @@ object GoSourceCodeAnalyzer {
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
                 val functions = analysisResult.analyzedFunctions.map { analyzedFunction ->
+                    val analyzedTypes = mutableMapOf<String, GoTypeId>()
+                    analyzedFunction.types.keys.forEach { index ->
+                        analyzedFunction.types[index]!!.toGoTypeId(index, analyzedTypes, analyzedFunction.types)
+                    }
                     val parameters = analyzedFunction.parameters.map { analyzedFunctionParameter ->
                         GoUtFunctionParameter(
-                            analyzedFunctionParameter.name,
-                            analyzedFunctionParameter.type.toGoTypeId()
+                            analyzedFunctionParameter.name, analyzedTypes[analyzedFunctionParameter.type]!!
                         )
                     }
-                    val resultTypes = analyzedFunction.resultTypes.map { analyzedType -> analyzedType.toGoTypeId() }
+                    val resultTypes = analyzedFunction.resultTypes.map { type -> analyzedTypes[type]!! }
                     val constants = mutableMapOf<GoTypeId, List<Any>>()
                     analyzedFunction.constants.map { (type, rawValues) ->
                         val typeId = GoPrimitiveTypeId(type)
@@ -110,15 +111,12 @@ object GoSourceCodeAnalyzer {
                     )
                 }
                 GoSourceFileAnalysisResult(
-                    functions,
-                    analysisResult.notSupportedFunctionsNames,
-                    analysisResult.notFoundFunctionsNames
+                    functions, analysisResult.notSupportedFunctionsNames, analysisResult.notFoundFunctionsNames
                 )
             }, intSize, maxTraceLength)
         } catch (exception: KlaxonException) {
             throw GoParsingSourceCodeAnalysisResultException(
-                "An error occurred while parsing the result of the source code analysis.",
-                exception
+                "An error occurred while parsing the result of the source code analysis.", exception
             )
         } finally {
             // TODO correctly?
@@ -132,8 +130,9 @@ object GoSourceCodeAnalyzer {
         val sourceDirectoryName = "go_source_code_analyzer"
         val classLoader = GoSourceCodeAnalyzer::class.java.classLoader
 
-        val containingResourceFile = classLoader.scanForResourcesContaining(sourceDirectoryName).firstOrNull()
-            ?: error("Can't find resource containing $sourceDirectoryName directory.")
+        val containingResourceFile = classLoader.scanForResourcesContaining(sourceDirectoryName).firstOrNull() ?: error(
+            "Can't find resource containing $sourceDirectoryName directory."
+        )
         if (containingResourceFile.extension != "jar") {
             error("Resource for $sourceDirectoryName directory is expected to be JAR: others are not supported yet.")
         }

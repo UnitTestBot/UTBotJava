@@ -28,7 +28,7 @@ class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
 
 class GoStructTypeId(
     name: String,
-    val fields: List<GoFieldId>,
+    var fields: List<GoFieldId>,
 ) : GoTypeId(name) {
     override val canonicalName: String = name
 

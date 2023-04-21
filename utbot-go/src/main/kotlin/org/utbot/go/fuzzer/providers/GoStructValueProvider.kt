@@ -16,10 +16,7 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
             type.let { it as GoStructTypeId }.also { structType ->
-                val function = description.methodUnderTest
-                val destinationPackage = function.sourcePackage
                 val fields = structType.fields
-                    .filter { structType.sourcePackage == destinationPackage || it.isExported }
                 yield(Seed.Recursive(
                     construct = Routine.Create(fields.map { it.declaringType }) { values ->
                         GoUtStructModel(

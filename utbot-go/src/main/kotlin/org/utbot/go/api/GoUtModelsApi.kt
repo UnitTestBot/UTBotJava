@@ -49,17 +49,14 @@ class GoUtStructModel(
     override val typeId: GoStructTypeId
         get() = super.typeId as GoStructTypeId
 
-    fun getVisibleFields(destinationPackage: GoPackage): List<GoUtFieldModel> =
-        value.filter { typeId.sourcePackage == destinationPackage || it.fieldId.isExported }
-
     override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
-        getVisibleFields(destinationPackage).fold(emptySet()) { acc, fieldModel ->
+        value.fold(emptySet()) { acc, fieldModel ->
             acc + fieldModel.getRequiredPackages(destinationPackage)
         }
 
     override fun isComparable(): Boolean = value.all { it.isComparable() }
 
-    override fun toString(): String = value.joinToString(prefix = "$typeId{", postfix = "}") {
+    override fun toString(): String = value.joinToString(prefix = "struct{", postfix = "}") {
         "${it.fieldId.name}: ${it.model}"
     }
 
@@ -145,7 +142,7 @@ class GoUtSliceModel(
         if (this === other) return true
         if (other !is GoUtSliceModel) return false
 
-        return typeId == other.typeId && value == other.value && length == other.length
+        return typeId == other.typeId && value.contentEquals(other.value) && length == other.length
     }
 
     override fun hashCode(): Int {

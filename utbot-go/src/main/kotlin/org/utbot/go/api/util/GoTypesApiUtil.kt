@@ -158,29 +158,38 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     else -> error("Generating Go default value model for ${this.javaClass} is not supported")
 }
 
-fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> = when (this) {
-    is GoNamedTypeId -> if (this.sourcePackage == goPackage || this.exported()) {
-        setOf(this) + underlyingTypeId.getAllVisibleNamedTypes(goPackage)
-    } else {
-        emptySet()
+fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage, visitedTypes: MutableSet<GoTypeId>): Set<GoNamedTypeId> {
+    if (visitedTypes.contains(this)) {
+        return emptySet()
     }
+    visitedTypes.add(this)
+    return when (this) {
+        is GoNamedTypeId -> if (this.sourcePackage == goPackage || this.exported()) {
+            setOf(this) + underlyingTypeId.getAllVisibleNamedTypes(goPackage, visitedTypes)
+        } else {
+            emptySet()
+        }
 
-    is GoStructTypeId -> fields.fold(emptySet()) { acc: Set<GoNamedTypeId>, field ->
-        acc + (field.declaringType).getAllVisibleNamedTypes(goPackage)
+        is GoStructTypeId -> fields.fold(emptySet()) { acc: Set<GoNamedTypeId>, field ->
+            acc + (field.declaringType).getAllVisibleNamedTypes(goPackage, visitedTypes)
+        }
+
+        is GoArrayTypeId, is GoSliceTypeId, is GoChanTypeId, is GoPointerTypeId ->
+            elementTypeId!!.getAllVisibleNamedTypes(goPackage, visitedTypes)
+
+        is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage, visitedTypes) +
+                elementTypeId!!.getAllVisibleNamedTypes(goPackage, visitedTypes)
+
+        else -> emptySet()
     }
-
-    is GoArrayTypeId, is GoSliceTypeId, is GoChanTypeId, is GoPointerTypeId ->
-        elementTypeId!!.getAllVisibleNamedTypes(goPackage)
-
-    is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage) + elementTypeId!!.getAllVisibleNamedTypes(goPackage)
-
-    else -> emptySet()
 }
 
-fun List<GoTypeId>.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
-    this.fold(emptySet()) { acc, type ->
-        acc + type.getAllVisibleNamedTypes(goPackage)
+fun List<GoTypeId>.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> {
+    val visitedTypes = mutableSetOf<GoTypeId>()
+    return this.fold(emptySet()) { acc, type ->
+        acc + type.getAllVisibleNamedTypes(goPackage, visitedTypes)
     }
+}
 
 fun GoNamedTypeId.getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
     if (!this.sourcePackage.isBuiltin && this.sourcePackage != destinationPackage) {

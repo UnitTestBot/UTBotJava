@@ -67,7 +67,7 @@ object GoTestCasesGenerator {
                     goExecutableAbsolutePath.toString(), "test", "-run", testFunctionName, "-timeout", "0"
                 )
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
-                val processStartTime = System.currentTimeMillis()
+                var processStartTime = System.currentTimeMillis()
                 val environment = modifyEnvironment(goExecutableAbsolutePath, gopathAbsolutePath)
                 fun startWorkerProcess(): Process =
                     executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir, environment)
@@ -109,6 +109,7 @@ object GoTestCasesGenerator {
                                         appendLine(processOutput)
                                     }
                                 }
+                                processStartTime = System.currentTimeMillis()
                                 process = startWorkerProcess()
                                 workerSocket.close()
                                 workerSocket = connectingToWorker()

@@ -48,6 +48,7 @@ import org.utbot.framework.codegen.tree.CgStatementConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.hasAmbiguousOverloadsOf
+import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -287,6 +288,9 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             nameGenerator.variableName(MOCKED_CONSTRUCTION_NAME),
             mockConstructionInitializer.mockConstructionCall
         )
+
+        importIfNeeded(mockedConstructionContextClassId)
+
         resources += mockedConstructionDeclaration
         +CgAssignment(mockedConstructionDeclaration.variable, mockConstructionInitializer.mockConstructionCall)
         mockedStaticConstructions += classId
@@ -367,10 +371,6 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 isMock = true
             )
         )
-        val contextParameter = variableConstructor.declareParameter(
-            mockedConstructionContextClassId,
-            nameGenerator.variableName("context")
-        )
 
         val mockAnswerStatements = mutableMapOf<Int, List<CgStatement>>()
 
@@ -425,11 +425,18 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
         }
 
+        val contextParameter = variableConstructor.declareParameter(
+            mockedConstructionContextClassId,
+            nameGenerator.variableName("context")
+        )
+
         val answersBlock = CgAnonymousFunction(
             voidClassId,
             listOf(mockParameter, contextParameter).map { CgParameterDeclaration(it, isVararg = false) },
             mockConstructionBody
         )
+
+        importIfNeeded(mockedConstructionContextClassId)
 
         return MockConstructionBlock(
             mockitoClassId[MockitoStaticMocking.mockConstructionMethodId](clazz, answersBlock),

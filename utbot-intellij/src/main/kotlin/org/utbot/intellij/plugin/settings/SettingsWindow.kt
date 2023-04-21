@@ -10,6 +10,8 @@ import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
+import javax.swing.*
+import kotlin.reflect.KClass
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ForceStaticMocking
@@ -22,11 +24,6 @@ import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.util.showSettingsEditor
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JCheckBox
-import javax.swing.JPanel
-import javax.swing.event.ChangeEvent
-import kotlin.reflect.KClass
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
@@ -184,34 +181,46 @@ class SettingsWindow(val project: Project) {
 
         val fuzzLabel = JBLabel("Fuzzing")
         val symLabel = JBLabel("Symbolic execution")
-        row("Test generation method:") {
-            val granularity = 20
-            slider(0, granularity, 1, granularity / 4)
-                .bindValue(
-                    getter = { ((1 - settings.fuzzingValue) * granularity).toInt() },
-                    setter = { settings.fuzzingValue = 1 - it / granularity.toDouble() }
-                )
-                .align(Align.FILL)
-                .component.apply {
-                    paintLabels = false
-                    this.toolTipText =
-                        "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout. The slide has no effect for Spring Projects.</body></html>"
-                    addChangeListener {
-                        val fuzzingPercent = 100.0 * ( granularity - value ) / granularity
-                        fuzzLabel.text = "Fuzzing %.0f %%".format(fuzzingPercent)
-                        symLabel.text = "%.0f %% Symbolic execution".format(100.0 - fuzzingPercent)
+        row {
+            cell(BorderLayoutPanel().apply {
+                topGap(TopGap.SMALL)
+                addToLeft(JBLabel("Test generation method:").apply { verticalAlignment = SwingConstants.TOP })
+                addToCenter(BorderLayoutPanel().apply {
+                    val granularity = 20
+                    val slider = object:JSlider() {
+                        val updater = Runnable() {
+                            val fuzzingPercent = 100.0 * (granularity - value) / granularity
+                            fuzzLabel.text = "Fuzzing %.0f %%".format(fuzzingPercent)
+                            symLabel.text = "%.0f %% Symbolic execution".format(100.0 - fuzzingPercent)
+                        }
+                        override fun getValue() = ((1 - settings.fuzzingValue) * granularity).toInt()
+
+                        override fun setValue(n: Int) {
+                            val tmp = value
+                            settings.fuzzingValue = 1 - n / granularity.toDouble()
+                            if (tmp != n) {
+                                updater.run()
+                            }
+                        }
                     }
-                    changeListeners[0].stateChanged(ChangeEvent(this))
-                }
+                    UIUtil.setSliderIsFilled(slider, true)
+                    slider.minimum = 0
+                    slider.maximum = granularity
+                    slider.minorTickSpacing = 1
+                    slider.majorTickSpacing = granularity / 4
+                    slider.paintTicks = true
+                    slider.paintTrack = true
+                    slider.paintLabels = false
+                    slider.toolTipText = "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout. The slide has no effect for Spring Projects.</body></html>"
+                    slider.updater.run()
+                    addToTop(slider)
+                    addToBottom(BorderLayoutPanel().apply {
+                        addToLeft(fuzzLabel)
+                        addToRight(symLabel)
+                    })
+                })
+            }).align(Align.FILL)
         }.enabled(UtSettings.useFuzzing)
-        indent{ indent{ indent {
-            row {
-                cell(BorderLayoutPanel().apply {
-                    addToLeft(fuzzLabel)
-                    addToRight(symLabel)
-                }).align(Align.FILL)
-            }
-        }}}
         if (!UtSettings.useFuzzing) {
             row {
                 comment("Fuzzing is disabled in configuration file.")

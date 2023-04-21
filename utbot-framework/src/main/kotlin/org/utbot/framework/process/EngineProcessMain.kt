@@ -81,9 +81,9 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
             val beans = springAnalyzerProcess.terminateOnException { _ ->
                 springAnalyzerProcess.getBeanQualifiedNames(
-                    params.classpath.toList(),
                     params.config,
                     params.fileStorage,
+                    params.profileExpression,
                 ).toTypedArray()
             }
             springAnalyzerProcess.terminate()

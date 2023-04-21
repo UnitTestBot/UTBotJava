@@ -3,12 +3,14 @@ package org.utbot.spring.configurators
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.utbot.spring.config.TestApplicationConfiguration
+import org.springframework.core.env.StandardEnvironment
 import org.utbot.spring.api.ApplicationData
+import org.utbot.spring.config.TestApplicationConfiguration
 import org.utbot.spring.utils.ConfigurationManager
 import java.io.File
 import kotlin.io.path.Path
 
+const val DEFAULT_PROFILE_NAME = "default"
 private val logger = getLogger<ApplicationConfigurator>()
 
 open class ApplicationConfigurator(
@@ -38,7 +40,21 @@ open class ApplicationConfigurator(
                 )
             }
         }
+
+        setActiveProfile(applicationData.profileExpression ?: DEFAULT_PROFILE_NAME)
     }
+
+    private fun setActiveProfile(profileExpression: String) {
+        val profilesToActivate = parseProfileExpression(profileExpression)
+
+        val environment = StandardEnvironment()
+        environment.setActiveProfiles(*profilesToActivate)
+
+        applicationBuilder.environment(environment)
+    }
+
+    //TODO: implement this, e.g. 'prod|web' -> listOf(prod, web)
+    private fun parseProfileExpression(profileExpression: String) : Array<String> = arrayOf(profileExpression)
 
     private fun findConfigurationType(applicationData: ApplicationData): ApplicationConfigurationType {
         //TODO: support Spring Boot Applications here.

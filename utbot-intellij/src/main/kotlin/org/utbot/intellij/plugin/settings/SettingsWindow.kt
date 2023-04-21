@@ -59,20 +59,20 @@ class SettingsWindow(val project: Project) {
                 }
             }
         }
-        val valuesComboBox: (KClass<*>, Array<*>) -> Unit = { loader, values ->
-            val serviceLabels = mapOf(
-                RuntimeExceptionTestsBehaviour::class to "Tests with exceptions:",
-                TreatOverflowAsError::class to "Overflow detection:",
-                JavaDocCommentStyle::class to "Javadoc comment style:"
-            )
 
-            row(serviceLabels[loader] ?: error("Unknown service loader: $loader")) {
-                comboBox(DefaultComboBoxModel(values))
-                    .bindItem(
-                        getter = { settings.providerNameByServiceLoader(loader) },
-                        setter = { settings.setProviderByLoader(loader, it as CodeGenerationSettingItem) },
-                    ).component.renderer = CodeGenerationSettingItemRenderer()
-            }
+        row {
+            enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
+                .onApply {
+                    settings.state.enableExperimentalLanguagesSupport =
+                        enableExperimentalLanguagesCheckBox.isSelected
+                }
+                .onReset {
+                    enableExperimentalLanguagesCheckBox.isSelected =
+                        settings.experimentalLanguagesSupport == true
+                }
+                .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
+                .component
+            contextHelp("Enable JavaScript and Python if IDE supports them")
         }
 
         row("Hanging test timeout:") {
@@ -99,10 +99,25 @@ class SettingsWindow(val project: Project) {
             )
         }
 
+        val valuesComboBox: (KClass<*>, Array<*>) -> Unit = { loader, values ->
+            val serviceLabels = mapOf(
+                RuntimeExceptionTestsBehaviour::class to "Tests with exceptions:",
+                TreatOverflowAsError::class to "Overflow detection:",
+                JavaDocCommentStyle::class to "Javadoc comment style:"
+            )
+
+            row(serviceLabels[loader] ?: error("Unknown service loader: $loader")) {
+                comboBox(DefaultComboBoxModel(values))
+                    .bindItem(
+                        getter = { settings.providerNameByServiceLoader(loader) },
+                        setter = { settings.setProviderByLoader(loader, it as CodeGenerationSettingItem) },
+                    ).component.renderer = CodeGenerationSettingItemRenderer()
+            }
+        }
+
         mapOf(
             RuntimeExceptionTestsBehaviour::class to RuntimeExceptionTestsBehaviour.values(),
-            TreatOverflowAsError::class to TreatOverflowAsError.values(),
-            JavaDocCommentStyle::class to JavaDocCommentStyle.values()
+            TreatOverflowAsError::class to TreatOverflowAsError.values()
         ).forEach { (loader, values) ->
             valuesComboBox(loader, values)
         }
@@ -125,7 +140,7 @@ class SettingsWindow(val project: Project) {
         }
 
         row {
-            enableSummarizationGenerationCheckBox = checkBox("Enable Summaries Generation")
+            enableSummarizationGenerationCheckBox = checkBox("Enable summaries generation")
                 .onApply {
                     settings.state.summariesGenerationType =
                         if (enableSummarizationGenerationCheckBox.isSelected) SummariesGenerationType.FULL else SummariesGenerationType.NONE
@@ -140,6 +155,7 @@ class SettingsWindow(val project: Project) {
                 .component
         }
 
+        valuesComboBox(JavaDocCommentStyle::class, JavaDocCommentStyle.values())
 
         row {
             forceMockCheckBox = checkBox("Force mocking static methods")
@@ -151,21 +167,6 @@ class SettingsWindow(val project: Project) {
                 .onIsModified { forceMockCheckBox.isSelected xor (settings.forceStaticMocking != ForceStaticMocking.DO_NOT_FORCE) }
                 .component
             contextHelp("Overrides other mocking settings")
-        }
-
-        row {
-            enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
-                .onApply {
-                    settings.state.enableExperimentalLanguagesSupport =
-                        enableExperimentalLanguagesCheckBox.isSelected
-                }
-                .onReset {
-                    enableExperimentalLanguagesCheckBox.isSelected =
-                        settings.experimentalLanguagesSupport == true
-                }
-                .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
-                .component
-            contextHelp("Enable JavaScript and Python if IDE supports them")
         }
 
         row("Classes to be forcedly mocked:") {}

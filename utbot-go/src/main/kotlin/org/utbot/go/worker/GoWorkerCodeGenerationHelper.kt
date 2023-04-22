@@ -36,7 +36,7 @@ internal object GoWorkerCodeGenerationHelper {
         maxTraceLength: Int,
         imports: Set<GoImport>
     ): File {
-        val fileToExecuteName = createFileToExecuteName(sourceFile)
+        val fileToExecuteName = createFileToExecuteName()
         val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
         val fileToExecute = sourceFileDir.resolve(fileToExecuteName)
 
@@ -66,8 +66,8 @@ internal object GoWorkerCodeGenerationHelper {
         return fileWithModifiedFunctions
     }
 
-    private fun createFileToExecuteName(sourceFile: GoUtFile): String {
-        return "utbot_go_worker_${sourceFile.fileNameWithoutExtension}_test.go"
+    private fun createFileToExecuteName(): String {
+        return "utbot_go_worker_test.go"
     }
 
     private fun createFileWithModifiedFunctionsName(): String {

@@ -384,7 +384,9 @@ object GoCodeTemplates {
 
         		channel.Send(reflectValue)
         	}
-        	channel.Close()
+        	if v.Direction != "SENDONLY" {
+        		channel.Close()
+        	}
 
         	return channel, nil
         }
@@ -788,23 +790,22 @@ object GoCodeTemplates {
         		dir := "SENDRECV"
         		if v.Type().ChanDir() == reflect.SendDir {
         			dir = "SENDONLY"
-        		} else {
+        		} else if v.Type().ChanDir() == reflect.RecvDir {
         			dir = "RECVONLY"
         		}
         		length := v.Len()
 
         		chanElementValues := make([]__RawValue__, 0, v.Len())
-        		for {
-        			v, ok := v.Recv()
-        			if !ok {
-        				break
-        			}
-        			rawValue, err := __convertReflectValueToRawValue__(v)
-        			if err != nil {
-        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
-        			}
+        		if dir != "SENDONLY" {
+        			for v.Len() > 0 {
+        				val, _ := v.Recv()
+        				rawValue, err := __convertReflectValueToRawValue__(val)
+        				if err != nil {
+        					return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        				}
 
-        			chanElementValues = append(chanElementValues, rawValue)
+        				chanElementValues = append(chanElementValues, rawValue)
+        			}
         		}
 
         		return __ChanValue__{

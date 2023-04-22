@@ -167,6 +167,8 @@ private fun createGoUtModelFromRawValue(
 
         is GoPointerTypeId -> createGoUtPointerModelFromRawValue(rawValue as PointerValue, typeId, intSize)
 
+        is GoChanTypeId -> createGoUtChanModelFromRawValue(rawValue as ChanValue, typeId, intSize)
+
         else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
     }
 }
@@ -257,4 +259,13 @@ private fun createGoUtPointerModelFromRawValue(
 ): GoUtPointerModel {
     val value = createGoUtModelFromRawValue(resultValue.value, resultTypeId.elementTypeId!!, intSize)
     return GoUtPointerModel(value, resultTypeId)
+}
+
+private fun createGoUtChanModelFromRawValue(
+    resultValue: ChanValue, resultTypeId: GoChanTypeId, intSize: Int
+): GoUtChanModel {
+    val value = resultValue.value.map {
+        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!, intSize)
+    }.toTypedArray<GoUtModel?>()
+    return GoUtChanModel(value, resultTypeId)
 }

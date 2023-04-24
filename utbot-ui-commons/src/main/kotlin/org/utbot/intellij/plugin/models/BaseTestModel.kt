@@ -84,46 +84,53 @@ open class BaseTestsModel(
     )
 
     /**
-     * Searches configuration classes in Spring application.
+     * Finds @SpringBootApplication classes in Spring application.
      *
-     * Classes are selected and sorted in the following order:
-     *   - Classes marked with `@TestConfiguration` annotation
-     *   - Classes marked with `@Configuration` annotation
-     *      - firstly, from test source roots (in the order provided by [getSortedTestRoots])
-     *      - after that, from source roots
+     * @see [getSortedAnnotatedClasses]
      */
-    fun getSortedSpringConfigurationClasses(): Set<String> {
-        val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
+    fun getSortedSpringBootApplicationClasses(): Set<String> =
+        getSortedAnnotatedClasses("org.springframework.boot.autoconfigure.SpringBootApplication")
 
-        // Not using `srcModule.testModules(project)` here because it returns
-        // test modules for dependent modules if no test roots are found in the source module itself.
-        // We don't want to search configurations there because they seem useless.
-        val testModules = ModuleManager.getInstance(project)
-            .modules
-            .filter { module -> TestModuleProperties.getInstance(module).productionModule == srcModule }
+    /**
+     * Finds @TestConfiguration and @Configuration classes in Spring application.
+     *
+     * @see [getSortedAnnotatedClasses]
+     */
+    fun getSortedSpringConfigurationClasses(): Set<String> =
+        getSortedAnnotatedClasses("org.springframework.boot.test.context.TestConfiguration") +
+                getSortedAnnotatedClasses("org.springframework.context.annotation.Configuration")
 
-        val searchScope = testModules.fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
+    /**
+     * Finds classes annotated with given annotation in [srcModule] and [potentialTestModules].
+     *
+     * Sorting order:
+     *   - classes from test source roots (in the order provided by [getSortedTestRoots])
+     *   - classes from production source roots
+     */
+    private fun getSortedAnnotatedClasses(annotationFqn: String): Set<String> {
+        val searchScope = potentialTestModules.fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
             accScope.union(GlobalSearchScope.moduleScope(module))
         }
 
-        val annotationClasses =  listOf(
-            "org.springframework.boot.test.context.TestConfiguration",
-            "org.springframework.context.annotation.Configuration"
-        ).mapNotNull {
-            JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.allScope(project))
-        }
+        val annotationClass = JavaPsiFacade
+            .getInstance(project)
+            .findClass(annotationFqn, GlobalSearchScope.allScope(project)) ?: return emptySet()
 
-        return annotationClasses.flatMap { annotation ->
-            AnnotatedElementsSearch
-                .searchPsiClasses(annotation, searchScope)
-                .findAll()
-                .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-        }.mapNotNullTo(mutableSetOf()) { it.qualifiedName }
+        val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
+
+        return AnnotatedElementsSearch
+            .searchPsiClasses(annotationClass, searchScope)
+            .findAll()
+            .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
+            .mapNotNullTo(mutableSetOf()) { it.qualifiedName }
     }
 
     fun getSpringXMLConfigurationFiles(): Set<String> {
         val resourcesPaths =
-            setOf(testModule, srcModule).flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
+            buildList {
+                addAll(potentialTestModules)
+                add(srcModule)
+            }.distinct().flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
         val xmlFilePaths = resourcesPaths.flatMapTo(mutableListOf()) { path ->
             Files.walk(path)
                 .asSequence()

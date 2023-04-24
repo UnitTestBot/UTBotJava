@@ -33,7 +33,7 @@ private const val ACTION_GENERATE = "Generate Tests"
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
-    private val pyElementsTable = UtPyMemberSelectionTable(emptyList());
+    private val pyElementsTable = UtPyMemberSelectionTable(emptyList())
     private val testSourceFolderField = TestSourceDirectoryChooser(model)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(

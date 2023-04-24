@@ -14,9 +14,12 @@ import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class TestSourceDirectoryChooser(
     val model: BaseTestsModel,
-//    file: VirtualFile
+    file: VirtualFile? = null
 ) : TextFieldWithBrowseButton() {
-    private val projectRoot = model.project.guessProjectDir() ?: error("Source file lies outside of a module")//getContentRoot(model.project, file)
+    private val projectRoot = file
+        ?.let { getContentRoot(model.project, file) }
+        ?: model.project.guessProjectDir()
+        ?: error("Source file lies outside of a module")
 
     init {
         val descriptor = FileChooserDescriptor(

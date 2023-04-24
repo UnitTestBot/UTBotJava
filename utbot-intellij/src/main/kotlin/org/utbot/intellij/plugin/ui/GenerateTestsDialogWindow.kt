@@ -407,15 +407,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     )
                 }
                 indent {
-                    row {
-                        cell(JBLabel("Profile name(s):     "))
-                        cell(profileExpression)
+                    row("Profile name(s):") {
+                        cell(profileExpression).align(Align.FILL)
                         contextHelp(
                             "Profile name or expression like \"prod|web\" may be passed here.<br>" +
                                     "If expression is incorrect, default profile will be used"
                         )
-                    }
-                        .enabledIf(selectProfile.selected)
+                    }.enabledIf(selectProfile.selected)
                 }
             }
             row("Mocking strategy:") {

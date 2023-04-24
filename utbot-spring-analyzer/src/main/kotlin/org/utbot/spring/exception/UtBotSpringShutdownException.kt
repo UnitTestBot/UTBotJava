@@ -19,6 +19,8 @@ class UtBotSpringShutdownException(
                 block()
                 throw IllegalStateException("UtBotSpringShutdownException has not been thrown")
             } catch (e: Throwable) {
+                // Spring sometimes wraps exceptions in other exceptions, so we go over
+                // all the causes to determine if UtBotSpringShutdownException was thrown
                 for(cause in generateSequence(e) { it.cause })
                     if (cause is UtBotSpringShutdownException) {
                         logger.info { "UtBotSpringShutdownException has been successfully caught" }

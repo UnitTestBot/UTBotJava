@@ -42,6 +42,7 @@ application {
     mainClass.set("org.utbot.spring.process.SpringAnalyzerProcessMainKt")
 }
 
+// see more details -- https://github.com/spring-projects/spring-boot/issues/1828
 tasks.shadowJar {
     configurations = listOf(shadowJarConfiguration)
 

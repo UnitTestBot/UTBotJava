@@ -6,6 +6,7 @@ import com.jetbrains.rd.util.warn
 import org.springframework.beans.factory.BeanCreationException
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
+import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.core.PriorityOrdered
 import org.utbot.spring.exception.UtBotSpringShutdownException
 
@@ -25,6 +26,7 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
 
         logger.info { "Finished post-processing bean factory in UtBot" }
 
+        destroyBeanDefinitions(beanFactory)
         throw UtBotSpringShutdownException("Finished post-processing bean factory in UtBot", beanQualifiedNames)
     }
 
@@ -38,5 +40,12 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
             }
         }.filterNot { it.startsWith("org.utbot.spring") }
          .distinct()
+    }
+
+    private fun destroyBeanDefinitions(beanFactory: ConfigurableListableBeanFactory) {
+        for (beanDefinitionName in beanFactory.beanDefinitionNames) {
+            val beanRegistry = beanFactory as BeanDefinitionRegistry
+            beanRegistry.removeBeanDefinition(beanDefinitionName)
+        }
     }
 }

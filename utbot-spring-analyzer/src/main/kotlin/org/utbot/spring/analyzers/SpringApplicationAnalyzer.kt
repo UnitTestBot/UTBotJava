@@ -1,5 +1,8 @@
 package org.utbot.spring.analyzers
 
+import org.springframework.core.env.ConfigurableEnvironment
+
 interface SpringApplicationAnalyzer {
-    fun analyze(analysisContext: SpringApplicationAnalysisContext): List<String>
+    fun analyze(sources: Array<Class<*>>, environment: ConfigurableEnvironment): List<String>
+    fun canAnalyze(): Boolean
 }

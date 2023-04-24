@@ -129,6 +129,7 @@ object PythonDialogProcessor {
                             else -> emptyList()
                         }
                     }
+                    .filter { fineFunction(it) }
                     .mapNotNull {
                         val functionName = it.name ?: return@mapNotNull null
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""

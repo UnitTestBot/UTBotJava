@@ -3,6 +3,7 @@ package org.utbot.intellij.plugin.language.python
 import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -38,7 +39,7 @@ object PythonLanguageAssistant : LanguageAssistant() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val targets = getPsiTargets2(e) ?: return
+        val targets = getPsiTargets(e) ?: return
 
         PythonDialogProcessor.createDialogAndGenerateTests(
             project,
@@ -49,10 +50,10 @@ object PythonLanguageAssistant : LanguageAssistant() {
     }
 
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabled = !LockFile.isLocked() && getPsiTargets2(e) != null
+        e.presentation.isEnabled = !LockFile.isLocked() && getPsiTargets(e) != null
     }
 
-    private fun getPsiTargets2(e: AnActionEvent): Targets? {
+    private fun getPsiTargets(e: AnActionEvent): Targets? {
         val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR)
 
@@ -107,6 +108,19 @@ object PythonLanguageAssistant : LanguageAssistant() {
                     resultFunctions.addAll(functions)
                     resultClasses.addAll(classes)
                 }
+            } else {
+                val someSelection = e.getData(PlatformDataKeys.PSI_ELEMENT_ARRAY)?: return null
+                someSelection.forEach {
+                    when(it) {
+                        is PsiFileSystemItem -> {
+                            val (classes, functions) = getAllElements(project, listOf(it.virtualFile))
+                            resultFunctions += functions
+                            resultClasses += classes
+                        }
+                    }
+                }
+            }
+            if (resultClasses.isNotEmpty() || resultFunctions.isNotEmpty()) {
                 return Targets(resultClasses, resultFunctions, null, null, null)
             }
         }

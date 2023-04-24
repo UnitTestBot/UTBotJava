@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
+import org.utbot.framework.process.generated.GenerateParams
 
 /**
  * Constructs [TestFlow] for customization and creates flow producer.
@@ -27,11 +28,11 @@ fun defaultTestFlow(timeout: Long) = testFlow {
 /**
  * Creates default flow for Spring application.
  */
-fun defaultSpringFlow(timeout: Long) = testFlow {
+fun defaultSpringFlow(params: GenerateParams) = testFlow {
+    generationTimeout = params.generationTimeout
     isSymbolicEngineEnabled = true
-    generationTimeout = timeout
-    isFuzzingEnabled = false
-    fuzzingValue = 0.0
+    isFuzzingEnabled = params.isFuzzingEnabled
+    fuzzingValue = params.fuzzingValue
 }
 
 /**

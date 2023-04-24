@@ -12,9 +12,6 @@ import org.utbot.spring.exception.UtBotSpringShutdownException
 val logger = getLogger<UtBotBeanFactoryPostProcessor>()
 
 object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered {
-    var beanQualifiedNames: List<String> = emptyList()
-        private set
-
     /**
      * Sets the priority of post processor to highest to avoid side effects from others.
      */
@@ -23,12 +20,12 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
     override fun postProcessBeanFactory(beanFactory: ConfigurableListableBeanFactory) {
         logger.info { "Started post-processing bean factory in UtBot" }
 
-        beanQualifiedNames = findBeanClassNames(beanFactory)
-        logger.info { "Detected Beans: $beanQualifiedNames" }
+        val beanQualifiedNames = findBeanClassNames(beanFactory)
+        logger.info { "Detected ${beanQualifiedNames.size} bean qualified names" }
 
         logger.info { "Finished post-processing bean factory in UtBot" }
 
-        throw UtBotSpringShutdownException("Finished post-processing bean factory in UtBot")
+        throw UtBotSpringShutdownException("Finished post-processing bean factory in UtBot", beanQualifiedNames)
     }
 
     private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): List<String> {

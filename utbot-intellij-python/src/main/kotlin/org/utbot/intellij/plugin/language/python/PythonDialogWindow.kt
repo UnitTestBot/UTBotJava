@@ -11,12 +11,15 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.components.BorderLayoutPanel
 import com.jetbrains.python.psi.*
-import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
-import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
-import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
+
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.intellij.plugin.language.python.settings.loadStateFromModel
+import org.utbot.intellij.plugin.language.python.table.UtPyClassItem
+import org.utbot.intellij.plugin.language.python.table.UtPyFunctionItem
+import org.utbot.intellij.plugin.language.python.table.UtPyMemberSelectionTable
+import org.utbot.intellij.plugin.language.python.table.UtPyTableItem
+
 import org.utbot.intellij.plugin.settings.Settings
 import java.util.concurrent.TimeUnit
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
@@ -26,18 +29,19 @@ import javax.swing.*
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 5
+private const val STEP_TIMEOUT_VALUE_IN_SECONDS = 5
 private const val ACTION_GENERATE = "Generate Tests"
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
-    private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
-    private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
+    private val pyElementsTable = UtPyMemberSelectionTable(emptyList())
+    private val testSourceFolderField = TestSourceDirectoryChooser(model)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(),
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
             Int.MAX_VALUE,
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
+            STEP_TIMEOUT_VALUE_IN_SECONDS
         )
     private val testFrameworks =
         ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
@@ -78,7 +82,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         }
 
         initDefaultValues()
-        updateFunctionsTable()
+        updatePyElementsTable()
         return panel
     }
 
@@ -96,47 +100,27 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
     }
 
-    private fun globalPyFunctionsToPyMemberInfo(
-        project: Project,
-        functions: Collection<PyFunction>
-    ): List<PyMemberInfo<PyElement>> {
-        val generator = PyElementGenerator.getInstance(project)
-        val fakeClassName = generateRandomString(15)
-        val newClass = generator.createFromText(
-            LanguageLevel.getDefault(),
-            PyClass::class.java,
-            "class __FakeWrapperUtBotClass_$fakeClassName:\npass"
-        )
-        functions.forEach {
-            newClass.add(it)
+    private fun updatePyElementsTable() {
+        val functions = model.elementsToDisplay.filterIsInstance<PyFunction>()
+        val classes = model.elementsToDisplay.filterIsInstance<PyClass>()
+        val functionItems = functions
+            .groupBy { it.containingClass }
+            .flatMap { (_, pyFuncs) ->
+                pyFuncs.map {UtPyFunctionItem(it)}
+            }
+        val classItems = classes.map {
+            UtPyClassItem(it)
         }
-        val storage = PyMemberInfoStorage(newClass)
-        return storage.getClassMemberInfos(newClass)
-    }
-
-    private fun pyFunctionsToPyMemberInfo(
-        project: Project,
-        functions: Collection<PyFunction>,
-        containingClass: PyClass?
-    ): List<PyMemberInfo<PyElement>> {
-        if (containingClass == null) {
-            return globalPyFunctionsToPyMemberInfo(project, functions)
-        }
-        return PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass)
-            .filter { it.member is PyFunction && fineFunction(it.member as PyFunction) }
-    }
-
-    private fun updateFunctionsTable() {
-        val items = pyFunctionsToPyMemberInfo(model.project, model.functionsToDisplay, model.containingClass)
+        val items = classItems + functionItems
         updateMethodsTable(items)
-        val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
-        functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
+        val height = pyElementsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
+        pyElementsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
-    private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {
-        val focusedNames = model.focusedMethod?.map { it.name }
+    private fun updateMethodsTable(allMethods: Collection<UtPyTableItem>) {
+        val focusedNames = model.focusedElements?.map { it.idName }
         val selectedMethods = allMethods.filter {
-            focusedNames?.contains(it.member.name) ?: false
+            focusedNames?.contains(it.idName) ?: false
         }
 
         if (selectedMethods.isEmpty()) {
@@ -145,10 +129,10 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             checkMembers(selectedMethods)
         }
 
-        functionsTable.setMemberInfos(allMethods)
+        pyElementsTable.setItems(allMethods)
     }
 
-    private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
+    private fun checkMembers(members: Collection<UtPyTableItem>) = members.forEach { it.isChecked = true }
 
     class OKOptionAction(private val okAction: Action) : AbstractAction(ACTION_GENERATE) {
         init {
@@ -164,8 +148,8 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     override fun getOKAction() = okOptionAction
 
     override fun doOKAction() {
-        val selectedMembers = functionsTable.selectedMemberInfos
-        model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
+        val selectedMembers = pyElementsTable.selectedMemberInfos
+        model.selectedElements = selectedMembers.mapNotNull { it.content }.toSet()
         model.testFramework = testFrameworks.item
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
         model.testSourceRootPath = testSourceFolderField.text

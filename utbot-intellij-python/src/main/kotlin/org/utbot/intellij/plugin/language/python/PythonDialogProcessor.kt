@@ -7,6 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
@@ -20,12 +21,15 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
 import com.jetbrains.python.psi.PyClass
+import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
+import com.jetbrains.python.psi.resolve.QualifiedNameFinder
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
+import org.jetbrains.kotlin.j2k.getContainingClass
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.plugin.api.util.LockFile
@@ -50,10 +54,8 @@ const val DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS = 2000L
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
         project: Project,
-        functionsToShow: Set<PyFunction>,
-        containingClass: PyClass?,
-        focusedMethod: PyFunction?,
-        file: PyFile,
+        elementsToShow: Set<PyElement>,
+        focusedElement: PyElement?,
         editor: Editor? = null,
     ) {
         editor?.let{
@@ -63,7 +65,7 @@ object PythonDialogProcessor {
                 }
             }
         }
-        val pythonPath = getPythonPath(functionsToShow)
+        val pythonPath = getPythonPath(elementsToShow)
         if (pythonPath == null) {
             showErrorDialogLater(
                 project,
@@ -73,10 +75,8 @@ object PythonDialogProcessor {
         } else {
             val dialog = createDialog(
                 project,
-                functionsToShow,
-                containingClass,
-                focusedMethod,
-                file,
+                elementsToShow,
+                focusedElement,
                 pythonPath,
             )
             if (!dialog.showAndGet()) {
@@ -86,54 +86,51 @@ object PythonDialogProcessor {
         }
     }
 
-    private fun getPythonPath(functionsToShow: Set<PyFunction>): String? {
-        return findSrcModule(functionsToShow).sdk?.homePath
+    private fun getPythonPath(elementsToShow: Set<PyElement>): String? {
+        return findSrcModules(elementsToShow).first().sdk?.homePath
     }
 
     private fun createDialog(
         project: Project,
-        functionsToShow: Set<PyFunction>,
-        containingClass: PyClass?,
-        focusedMethod: PyFunction?,
-        file: PyFile,
+        elementsToShow: Set<PyElement>,
+        focusedElement: PyElement?,
         pythonPath: String,
     ): PythonDialogWindow {
-        val srcModule = findSrcModule(functionsToShow)
-        val testModules = srcModule.testModules(project)
-        val (directoriesForSysPath, moduleToImport) = getDirectoriesForSysPath(srcModule, file)
+        val srcModules = findSrcModules(elementsToShow)
+        val testModules = srcModules.flatMap {it.testModules(project)}
+        val focusedElements = focusedElement
+            ?.let { setOf(focusedElement.toUtPyTableItem()).filterNotNull() }
+            ?.toSet()
 
         return PythonDialogWindow(
             PythonTestsModel(
                 project,
-                srcModule,
+                srcModules.first(),
                 testModules,
-                functionsToShow,
-                containingClass,
-                if (focusedMethod != null) setOf(focusedMethod) else null,
-                file,
-                directoriesForSysPath,
-                moduleToImport,
+                elementsToShow,
+                focusedElements,
                 project.service<Settings>().generationTimeoutInMillis,
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
                 pythonPath = pythonPath,
+                names = elementsToShow.associateBy { Pair(it.fileName()!!, it.name!!) },
             )
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodHeader> {
+    private fun findSelectedPythonMethods(model: PythonTestLocalModel): List<PythonMethodHeader> {
         return runBlocking {
             readAction {
-                val allFunctions: List<PyFunction> =
-                    if (model.containingClass == null) {
-                        model.file.topLevelFunctions
-                    } else {
-                        val classes = model.file.topLevelClasses
-                        val myClass = classes.find { it.name == model.containingClass.name }
-                            ?: error("Didn't find containing class")
-                        myClass.methods.filterNotNull()
+                model.selectedElements
+                    .filter { model.selectedElements.contains(it) }
+                    .flatMap {
+                        when (it) {
+                            is PyFunction -> listOf(it)
+                            is PyClass -> it.methods.toList()
+                            else -> emptyList()
+                        }
                     }
-                val shownFunctions: Set<PythonMethodHeader> = allFunctions
+                    .filter { fineFunction(it) }
                     .mapNotNull {
                         val functionName = it.name ?: return@mapNotNull null
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
@@ -145,70 +142,117 @@ object PythonDialogProcessor {
                             )
                     }
                     .toSet()
-
-                model.selectedFunctions.map { pyFunction ->
-                    shownFunctions.find { pythonMethod ->
-                        pythonMethod.name == pyFunction.name
-                    } ?: error("Didn't find PythonMethod ${pyFunction.name}")
-                }
+                    .toList()
             }
         }
     }
 
-    private fun getOutputFileName(model: PythonTestsModel) =
-        "test_${model.currentPythonModule.camelToSnakeCase().replace('.', '_')}.py"
+    private fun groupPyElementsByModule(model: PythonTestsModel): Set<PythonTestLocalModel> {
+        return runBlocking {
+            readAction {
+                model.selectedElements
+                    .groupBy { it.containingFile }
+                    .flatMap { fileGroup ->
+                        fileGroup.value
+                            .groupBy { it is PyClass }.values
+                    }
+                    .filter { it.isNotEmpty() }
+                    .map {
+                        val realElements = it.map { member -> model.names[Pair(member.fileName(), member.name)]!! }
+                        val file = realElements.first().containingFile as PyFile
+                        val srcModule = getSrcModule(realElements.first())
 
-    private fun createTests(project: Project, model: PythonTestsModel) {
+                        val (directoriesForSysPath, moduleToImport) = getDirectoriesForSysPath(srcModule, file)
+                        PythonTestLocalModel(
+                            model.project,
+                            model.timeout,
+                            model.timeoutForRun,
+                            model.cgLanguageAssistant,
+                            model.pythonPath,
+                            model.testSourceRootPath,
+                            model.testFramework,
+                            realElements.toSet(),
+                            model.runtimeExceptionTestsBehaviour,
+                            directoriesForSysPath,
+                            moduleToImport,
+                            file,
+                            realElements.first().getContainingClass() as PyClass?
+                        )
+                    }
+                    .toSet()
+            }
+        }
+    }
+
+    private fun getOutputFileName(model: PythonTestLocalModel): String {
+        val moduleName = model.currentPythonModule.camelToSnakeCase().replace('.', '_')
+        return if (model.containingClass == null) {
+            "test_$moduleName.py"
+        } else {
+            val className = model.containingClass.name?.camelToSnakeCase()?.replace('.', '_')
+            "test_${moduleName}_$className.py"
+        }
+    }
+
+    private fun createTests(project: Project, baseModel: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
                 if (!LockFile.lock()) {
                     return
                 }
                 try {
-                    val methods = findSelectedPythonMethods(model)
-                    val requirementsList = requirements.toMutableList()
-                    if (!model.testFramework.isInstalled) {
-                        requirementsList += model.testFramework.mainPackage
-                    }
+                    groupPyElementsByModule(baseModel).forEach { model ->
+                        val methods = findSelectedPythonMethods(model)
+                        val requirementsList = requirements.toMutableList()
+                        if (!model.testFramework.isInstalled) {
+                            requirementsList += model.testFramework.mainPackage
+                        }
 
-                    processTestGeneration(
-                        pythonPath = model.pythonPath,
-                        pythonFilePath = model.file.virtualFile.path,
-                        pythonFileContent = getContentFromPyFile(model.file),
-                        directoriesForSysPath = model.directoriesForSysPath,
-                        currentPythonModule = model.currentPythonModule,
-                        pythonMethods = methods,
-                        containingClassName = model.containingClass?.name,
-                        timeout = model.timeout,
-                        testFramework = model.testFramework,
-                        timeoutForRun = model.timeoutForRun,
-                        writeTestTextToFile = { generatedCode ->
-                            writeGeneratedCodeToPsiDocument(generatedCode, model)
-                        },
-                        pythonRunRoot = Path(model.testSourceRootPath),
-                        isCanceled = { indicator.isCanceled },
-                        checkingRequirementsAction = { indicator.text = "Checking requirements" },
-                        installingRequirementsAction = { indicator.text = "Installing requirements..." },
-                        requirementsAreNotInstalledAction = {
-                            askAndInstallRequirementsLater(model.project, model.pythonPath, requirementsList)
-                            PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
-                        },
-                        startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
-                        startedTestGenerationAction = { indicator.text = "Generating tests" },
-                        notGeneratedTestsAction = {
-                            showErrorDialogLater(
-                                project,
-                                message = "Cannot create tests for the following functions: " + it.joinToString(),
-                                title = "Python test generation error"
-                            )
-                        },
-                        processMypyWarnings = {
-                            val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
-                            WarningTestsReportNotifier.notify(message.toString())
-                        },
-                        runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
-                        startedCleaningAction = { indicator.text = "Cleaning up..." }
-                    )
+                        val content = runBlocking {
+                            readAction {
+                                getContentFromPyFile(model.file)
+                            }
+                        }
+
+                        processTestGeneration(
+                            pythonPath = model.pythonPath,
+                            pythonFilePath = model.file.virtualFile.path,
+                            pythonFileContent = content,
+                            directoriesForSysPath = model.directoriesForSysPath,
+                            currentPythonModule = model.currentPythonModule,
+                            pythonMethods = methods,
+                            containingClassName = model.containingClass?.name,
+                            timeout = model.timeout,
+                            testFramework = model.testFramework,
+                            timeoutForRun = model.timeoutForRun,
+                            writeTestTextToFile = { generatedCode ->
+                                writeGeneratedCodeToPsiDocument(generatedCode, model)
+                            },
+                            pythonRunRoot = Path(model.testSourceRootPath),
+                            isCanceled = { indicator.isCanceled },
+                            checkingRequirementsAction = { indicator.text = "Checking requirements" },
+                            installingRequirementsAction = { indicator.text = "Installing requirements..." },
+                            requirementsAreNotInstalledAction = {
+                                askAndInstallRequirementsLater(model.project, model.pythonPath, requirementsList)
+                                PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
+                            },
+                            startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
+                            startedTestGenerationAction = { indicator.text = "Generating tests" },
+                            notGeneratedTestsAction = {
+                                showErrorDialogLater(
+                                    project,
+                                    message = "Cannot create tests for the following functions: " + it.joinToString(),
+                                    title = "Python test generation error"
+                                )
+                            },
+                            processMypyWarnings = {
+                                val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
+                                WarningTestsReportNotifier.notify(message.toString())
+                            },
+                            runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
+                            startedCleaningAction = { indicator.text = "Cleaning up..." }
+                        )
+                    }
                 } finally {
                     LockFile.unlock()
                 }
@@ -222,7 +266,7 @@ object PythonDialogProcessor {
         return getDirectoriesFromRoot(root, path.parent) + listOf(path.fileName.toString())
     }
 
-    private fun createPsiDirectoryForTestSourceRoot(model: PythonTestsModel): PsiDirectory {
+    private fun createPsiDirectoryForTestSourceRoot(model: PythonTestLocalModel): PsiDirectory {
         val root = getContentRoot(model.project, model.file.virtualFile)
         val paths = getDirectoriesFromRoot(
             Paths.get(root.path),
@@ -234,7 +278,7 @@ object PythonDialogProcessor {
         }
     }
 
-    private fun writeGeneratedCodeToPsiDocument(generatedCode: String, model: PythonTestsModel) {
+    private fun writeGeneratedCodeToPsiDocument(generatedCode: String, model: PythonTestLocalModel) {
         invokeLater {
             runWriteAction {
                 val testDir = createPsiDirectoryForTestSourceRoot(model)
@@ -289,13 +333,16 @@ object PythonDialogProcessor {
     }
 }
 
-fun findSrcModule(functions: Collection<PyFunction>): Module {
-    val srcModules = functions.mapNotNull { it.module }.distinct()
-    return when (srcModules.size) {
-        0 -> error("Module for source classes not found")
-        1 -> srcModules.first()
-        else -> error("Can not generate tests for classes from different modules")
-    }
+fun findSrcModules(elements: Collection<PyElement>): List<Module> {
+    return elements.mapNotNull { it.module }.distinct()
+}
+
+fun getSrcModule(element: PyElement): Module {
+    return ModuleUtilCore.findModuleForPsiElement(element) ?: error("Module for source class or function not found")
+}
+
+fun getFullName(element: PyElement): String {
+    return QualifiedNameFinder.getQualifiedName(element) ?: error("Name for source class or function not found")
 }
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
@@ -307,70 +354,76 @@ fun getDirectoriesForSysPath(
     srcModule: Module,
     file: PyFile
 ): Pair<Set<String>, String> {
-    val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
-    val ancestor = ProjectFileIndex.getInstance(file.project).getContentRootForFile(file.virtualFile)
-    if (ancestor != null)
-        sources.add(ancestor)
+    return runBlocking {
+        readAction {
+            val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
+            val ancestor = ProjectFileIndex.getInstance(file.project).getContentRootForFile(file.virtualFile)
+            if (ancestor != null)
+                sources.add(ancestor)
 
-    // Collect sys.path directories with imported modules
-    val importedPaths = emptyList<VirtualFile>().toMutableList()
+            // Collect sys.path directories with imported modules
+            val importedPaths = emptyList<VirtualFile>().toMutableList()
 
-    // 1. import <module>
-    file.importTargets.forEach { importTarget ->
-        importTarget.multiResolve().forEach {
-            val element = it.element
-            if (element != null) {
-                val directory = element.parent
-                if (directory is PsiDirectory) {
-                    // If we have `import a.b.c` we need to add syspath to module `a` only
-                    val additionalLevel = importTarget.importedQName?.componentCount?.dec() ?: 0
-                    directory.topParent(additionalLevel)?.let { dir ->
-                        importedPaths.add(dir.virtualFile)
+            // 1. import <module>
+            file.importTargets.forEach { importTarget ->
+                importTarget.multiResolve().forEach {
+                    val element = it.element
+                    if (element != null) {
+                        val directory = element.parent
+                        if (directory is PsiDirectory) {
+                            // If we have `import a.b.c` we need to add syspath to module `a` only
+                            val additionalLevel = importTarget.importedQName?.componentCount?.dec() ?: 0
+                            directory.topParent(additionalLevel)?.let { dir ->
+                                importedPaths.add(dir.virtualFile)
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
 
-    // 2. from <module> import ...
-    file.fromImports.forEach { importTarget ->
-        importTarget.resolveImportSourceCandidates().forEach {
-            val directory = it.parent
-            val isRelativeImport = importTarget.relativeLevel > 0  // If we have `from . import a` we don't need to add syspath
-            if (directory is PsiDirectory && !isRelativeImport) {
-                // If we have `from a.b.c import d` we need to add syspath to module `a` only
-                val additionalLevel = importTarget.importSourceQName?.componentCount?.dec() ?: 0
-                directory.topParent(additionalLevel)?.let { dir ->
-                    importedPaths.add(dir.virtualFile)
+            // 2. from <module> import ...
+            file.fromImports.forEach { importTarget ->
+                importTarget.resolveImportSourceCandidates().forEach {
+                    val directory = it.parent
+                    val isRelativeImport =
+                        importTarget.relativeLevel > 0  // If we have `from . import a` we don't need to add syspath
+                    if (directory is PsiDirectory && !isRelativeImport) {
+                        // If we have `from a.b.c import d` we need to add syspath to module `a` only
+                        val additionalLevel = importTarget.importSourceQName?.componentCount?.dec() ?: 0
+                        directory.topParent(additionalLevel)?.let { dir ->
+                            importedPaths.add(dir.virtualFile)
+                        }
+                    }
                 }
             }
+
+            // Select modules only from this project but not from installation directory
+            importedPaths.forEach {
+                val path = it.toNioPath()
+                val hasSitePackages =
+                    (0 until (path.nameCount)).any { i -> path.subpath(i, i + 1).toString() == "site-packages" }
+                if (it.isProjectSubmodule(ancestor) && !hasSitePackages) {
+                    sources.add(it)
+                }
+            }
+
+            val fileName = file.name.removeSuffix(".py")
+            val importPath = ancestor?.let {
+                VfsUtil.getParentDir(
+                    VfsUtilCore.getRelativeLocation(file.virtualFile, it)
+                )
+            } ?: ""
+            val importStringPath = listOf(
+                importPath.toPath().joinToString("."),
+                fileName
+            )
+                .filterNot { it.isEmpty() }
+                .joinToString(".")
+
+            Pair(
+                sources.map { it.path }.toSet(),
+                importStringPath
+            )
         }
     }
-
-    // Select modules only from this project but not from installation directory
-    importedPaths.forEach {
-        val path = it.toNioPath()
-        val hasSitePackages = (0 until(path.nameCount)).any { i -> path.subpath(i, i+1).toString() == "site-packages"}
-        if (it.isProjectSubmodule(ancestor) && !hasSitePackages) {
-            sources.add(it)
-        }
-    }
-
-    val fileName = file.name.removeSuffix(".py")
-    val importPath = ancestor?.let {
-        VfsUtil.getParentDir(
-            VfsUtilCore.getRelativeLocation(file.virtualFile, it)
-        )
-    } ?: ""
-    val importStringPath = listOf(
-        importPath.toPath().joinToString("."),
-        fileName
-    )
-        .filterNot { it.isEmpty() }
-        .joinToString(".")
-
-    return Pair(
-        sources.map { it.path }.toSet(),
-        importStringPath
-    )
 }

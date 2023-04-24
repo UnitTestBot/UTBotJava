@@ -3,30 +3,29 @@ package org.utbot.intellij.plugin.language.python
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.*
-import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.components.Panel
-import com.intellij.ui.layout.CellBuilder
-import com.intellij.ui.layout.Row
-import com.intellij.ui.layout.panel
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.components.BorderLayoutPanel
 import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
-import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.intellij.plugin.language.python.settings.loadStateFromModel
 import org.utbot.intellij.plugin.settings.Settings
-import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
 import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
 import java.awt.event.ActionEvent
 import javax.swing.*
 
-
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
-private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
+private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 5
 private const val ACTION_GENERATE = "Generate Tests"
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
@@ -35,7 +34,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
-            TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
+            TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(),
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
@@ -44,6 +43,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
 
     private lateinit var panel: DialogPanel
+    private lateinit var currentFrameworkItem: TestFramework
 
     init {
         title = "Generate Tests with UnitTestBot"
@@ -57,36 +57,42 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     }
 
     override fun createCenterPanel(): JComponent {
-
         panel = panel {
             row("Test sources root:") {
-                component(testSourceFolderField)
+                cell(testSourceFolderField).align(Align.FILL)
             }
-            row("Test framework:") {
-                makePanelWithHelpTooltip(
-                    testFrameworks,
-                    null
-                )
+            row("Testing framework:") {
+                cell(testFrameworks)
             }
-            row("Timeout for all selected functions:") {
-                cell {
-                    component(timeoutSpinnerForTotalTimeout)
-                    label("seconds")
-                    component(ContextHelpLabel.create("Set the timeout for all test generation processes."))
-                }
+            row("Test generation timeout:") {
+                cell(BorderLayoutPanel().apply {
+                    addToLeft(timeoutSpinnerForTotalTimeout)
+                    addToRight(JBLabel("seconds per function"))
+                })
+                contextHelp("Set the timeout for all test generation processes per function to complete.")
             }
-            row("Generate test methods for:") {}
+            row("Generate tests for:") {}
             row {
-                scrollPane(functionsTable)
+                cell(JBScrollPane(functionsTable)).align(Align.FILL)
             }
         }
 
+        initDefaultValues()
         updateFunctionsTable()
-        updateTestFrameworksList()
         return panel
     }
 
+    private fun initDefaultValues() {
+        val settings = model.project.service<Settings>()
+
+        val installedTestFramework = TestFramework.allItems.singleOrNull { it.isInstalled }
+        currentFrameworkItem = installedTestFramework ?: settings.testFramework
+
+        updateTestFrameworksList()
+    }
+
     private fun updateTestFrameworksList() {
+        testFrameworks.item = currentFrameworkItem
         testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
     }
 
@@ -144,15 +150,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
 
     private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
 
-    private fun Row.makePanelWithHelpTooltip(
-        mainComponent: JComponent,
-        contextHelpLabel: ContextHelpLabel?
-    ): CellBuilder<JPanel> =
-        component(Panel().apply {
-            add(mainComponent, BorderLayout.LINE_START)
-            contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
-        })
-
     class OKOptionAction(private val okAction: Action) : AbstractAction(ACTION_GENERATE) {
         init {
             putValue(DEFAULT_ACTION, java.lang.Boolean.TRUE)
@@ -179,6 +176,8 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             model.timeoutForRun = hangingTestsTimeout.timeoutMs
             model.runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour
         }
+
+        loadStateFromModel(settings, model)
 
         super.doOKAction()
     }

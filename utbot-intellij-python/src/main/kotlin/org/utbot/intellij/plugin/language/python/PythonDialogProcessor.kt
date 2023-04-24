@@ -3,6 +3,7 @@ package org.utbot.intellij.plugin.language.python
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.readAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
@@ -27,8 +28,8 @@ import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
-import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.util.LockFile
+import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
@@ -112,7 +113,7 @@ object PythonDialogProcessor {
                 file,
                 directoriesForSysPath,
                 moduleToImport,
-                UtSettings.utBotGenerationTimeoutInMillis,
+                project.service<Settings>().generationTimeoutInMillis,
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
                 pythonPath = pythonPath,

@@ -63,6 +63,7 @@ import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.layout.ComboBoxPredicate
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.layout.selected
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.lang.JavaVersion
 import com.intellij.util.ui.JBUI
@@ -152,7 +153,7 @@ import org.utbot.intellij.plugin.util.findSdkVersion
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
+import javax.swing.JTextField
 import kotlin.io.path.notExists
 
 private const val RECENTS_KEY = "org.utbot.recents"
@@ -162,6 +163,7 @@ private const val SAME_PACKAGE_LABEL = "same as for sources"
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 
 private const val NO_SPRING_CONFIGURATION_OPTION = "No configuration"
+private const val DEFAULT_SPRING_PROFILE_NAME = "default"
 
 private const val ACTION_GENERATE = "Generate Tests"
 private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
@@ -192,10 +194,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val javaConfigurationHelper = SpringConfigurationsHelper(".")
     private val xmlConfigurationHelper = SpringConfigurationsHelper(File.separator)
 
-    private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
-
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
+
+    private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
+    private val selectProfile = JCheckBox("Select active profiles")
+    private val profileExpression = JTextField(DEFAULT_SPRING_PROFILE_NAME, 23)
+
     private val timeoutSpinner =
         JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
             when(val editor = it.editor) {
@@ -388,17 +393,35 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 row("Spring configuration:") {
                     cell(springConfig)
                     contextHelp(
-                        "100% Symbolic execution mode.\n" +
+                        "100% Symbolic execution mode.<br>" +
                                 "Classes defined in Spring configuration will be used instead " +
-                                "of interfaces and abstract classes.\n" +
+                                "of interfaces and abstract classes.<br>" +
                                 "Mocks will be used when necessary."
                     )
+                }
+                row {
+                    cell(selectProfile)
+                    contextHelp(
+                        "Only selected profile will be active.<br>" +
+                                "Otherwise, profile from the configuration class or default one is used."
+                    )
+                }
+                indent {
+                    row {
+                        cell(JBLabel("Profile name(s):     "))
+                        cell(profileExpression)
+                        contextHelp(
+                            "Profile name or expression like \"prod|web\" may be passed here.<br>" +
+                                    "If expression is incorrect, default profile will be used"
+                        )
+                    }
+                        .enabledIf(selectProfile.selected)
                 }
             }
             row("Mocking strategy:") {
                 cell(mockStrategies)
                 contextHelp(
-                    "Mock everything around the target class or the whole package except the system classes. " +
+                    "Mock everything around the target class or the whole package except the system classes.<br> " +
                             "Otherwise, mock nothing. Mockito will be installed, if you don't have one."
                 )
             }.enabledIf(ComboBoxPredicate(springConfig) {
@@ -638,6 +661,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     TypeReplacementApproach.ReplaceIfPossible(fullConfigName)
                 }
             }
+        model.profileExpression = profileExpression.text
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -1034,6 +1058,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.item = MockStrategyApi.springDefaultItem
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
+
+                selectProfile.isEnabled = true
+                selectProfile.isSelected = false
             } else {
                 mockStrategies.item = when (model.projectType) {
                     ProjectType.Spring -> MockStrategyApi.springDefaultItem
@@ -1041,7 +1068,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 }
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
+
+                selectProfile.isEnabled = false
+                selectProfile.isSelected = false
             }
+        }
+
+        selectProfile.addActionListener { _ ->
+            profileExpression.text = if (selectProfile.isSelected) "" else DEFAULT_SPRING_PROFILE_NAME
         }
 
         cbSpecifyTestPackage.addActionListener {
@@ -1120,6 +1154,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun updateSpringConfigurationEnabled() {
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
         springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
+        selectProfile.isEnabled = false
+        selectProfile.isSelected = false
     }
 
     private fun staticsMockingConfigured(): Boolean {

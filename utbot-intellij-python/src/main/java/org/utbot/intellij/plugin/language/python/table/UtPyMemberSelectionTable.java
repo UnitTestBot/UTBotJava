@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
@@ -26,9 +27,12 @@ public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable i
     protected static final int ICON_POSITION = 0;
 
     protected List<T> myItems;
+    protected MyTableModel<T> myTableModel;
 
     public UtPyMemberSelectionTable(Collection<T> items) {
         myItems = new ArrayList<>(items);
+        myTableModel = new MyTableModel<>(this);
+        setModel(myTableModel);
 
         TableColumnModel model = getColumnModel();
         model.getColumn(DISPLAY_NAME_COLUMN).setCellRenderer(new MyTableRenderer<>(this));
@@ -74,15 +78,11 @@ public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable i
 
         @Override
         protected void applyValue(int[] rows, boolean valueToBeSet) {
-            List<T> changedInfo = new ArrayList<>();
             for (int row : rows) {
                 final T memberInfo = myItems.get(row);
                 memberInfo.setChecked(valueToBeSet);
-                changedInfo.add(memberInfo);
             }
-//            fireMemberInfoChange(changedInfo);
             final int[] selectedRows = getSelectedRows();
-//            myTableModel.fireTableDataChanged();
             final ListSelectionModel selectionModel = getSelectionModel();
             for (int selectedRow : selectedRows) {
                 selectionModel.addSelectionInterval(selectedRow, selectedRow);
@@ -127,12 +127,10 @@ public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable i
 
             final int modelColumn = myTable.convertColumnIndexToModel(column);
             final T item = myTable.myItems.get(row);
-//            setToolTipText(myTable.myMemberInfoModel.getTooltipText(memberInfo));
             if (modelColumn == DISPLAY_NAME_COLUMN) {
                 Icon itemIcon = item.getIcon();
                 RowIcon icon = IconManager.getInstance().createRowIcon(3);
                 icon.setIcon(itemIcon, ICON_POSITION);
-//                myTable.setVisibilityIcon(memberInfo, icon);
                 setIcon(icon);
             }
             else {
@@ -140,20 +138,87 @@ public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable i
             }
             setIconOpaque(false);
             setOpaque(false);
-//            final boolean cellEditable = myTable.myMemberInfoModel.isMemberEnabled(memberInfo);
-//            setEnabled(cellEditable);
 
             if (value == null) return;
-//            final int problem = myTable.myMemberInfoModel.checkForProblems(memberInfo);
-//            Color c = null;
-//            if (problem == MemberInfoModel.ERROR) {
-//                c = JBColor.RED;
-//            }
-//            else if (problem == MemberInfoModel.WARNING && !isSelected) {
-//                c = JBColor.BLUE;
-//            }
-//            append((String)value, new SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, c));
+            append((String)value);
         }
 
+    }
+
+    protected static class MyTableModel<T extends UtPyTableItem> extends AbstractTableModel {
+        private final UtPyMemberSelectionTable<T> myTable;
+        private Boolean removePrefix;
+
+        public MyTableModel(UtPyMemberSelectionTable<T> table) {
+            myTable = table;
+        }
+
+        private void initRemovePrefix() {
+            List<String> names = new ArrayList<>();
+            for (UtPyTableItem item: myTable.myItems) {
+                names.add(item.getIdName());
+            }
+            removePrefix = Utils.haveCommonPrefix(names);
+        }
+
+        @Override
+        public int getColumnCount() {
+            return 2;
+        }
+
+        @Override
+        public int getRowCount() {
+            return myTable.myItems.size();
+        }
+
+        @Override
+        public Class getColumnClass(int columnIndex) {
+            if (columnIndex == CHECKED_COLUMN) {
+                return Boolean.class;
+            }
+            return super.getColumnClass(columnIndex);
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            if (removePrefix == null) {
+                initRemovePrefix();
+            }
+            final T itemInfo = myTable.myItems.get(rowIndex);
+            if (columnIndex == CHECKED_COLUMN) {
+                return itemInfo.isChecked();
+            } else if (columnIndex == DISPLAY_NAME_COLUMN) {
+                if (removePrefix) {
+                    return Utils.getSuffix(itemInfo.getIdName());
+                }
+                return itemInfo.getIdName();
+            } else {
+                throw new RuntimeException("Incorrect column index");
+            }
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            if (column == CHECKED_COLUMN) {
+                return " ";
+            } else if (column == DISPLAY_NAME_COLUMN) {
+                return "Members";
+            } else {
+                throw new RuntimeException("Incorrect column index");
+            }
+        }
+
+        @Override
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+            return columnIndex == CHECKED_COLUMN;
+        }
+
+
+        @Override
+        public void setValueAt(final Object aValue, final int rowIndex, final int columnIndex) {
+            if (columnIndex == CHECKED_COLUMN) {
+                myTable.myItems.get(rowIndex).setChecked((Boolean) aValue);
+            }
+        }
     }
 }

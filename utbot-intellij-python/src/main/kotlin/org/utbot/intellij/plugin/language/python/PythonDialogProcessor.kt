@@ -3,7 +3,6 @@ package org.utbot.intellij.plugin.language.python
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.readAction
-import com.intellij.openapi.application.writeAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
@@ -56,7 +55,6 @@ object PythonDialogProcessor {
         project: Project,
         elementsToShow: Set<PyElement>,
         focusedElement: PyElement?,
-//        file: PyFile,
         editor: Editor? = null,
     ) {
         editor?.let{
@@ -77,9 +75,7 @@ object PythonDialogProcessor {
             val dialog = createDialog(
                 project,
                 elementsToShow,
-//                containingClass,
                 focusedElement,
-//                file,
                 pythonPath,
             )
             if (!dialog.showAndGet()) {
@@ -96,16 +92,14 @@ object PythonDialogProcessor {
     private fun createDialog(
         project: Project,
         elementsToShow: Set<PyElement>,
-//        functionsToShow: Set<PyFunction>,
-//        containingClass: PyClass?,
         focusedElement: PyElement?,
-//        focusedMethod: PyFunction?,
-//        file: PyFile,
         pythonPath: String,
     ): PythonDialogWindow {
         val srcModule = findSrcModule(elementsToShow)
         val testModules = srcModule.testModules(project)
-//        val (directoriesForSysPath, moduleToImport) = getDirectoriesForSysPath(srcModule, file)
+        val focusedElements = focusedElement
+            ?.let { setOf(focusedElement.toUtPyTableItem()).filterNotNull() }
+            ?.toSet()
 
         return PythonDialogWindow(
             PythonTestsModel(
@@ -113,7 +107,7 @@ object PythonDialogProcessor {
                 srcModule,
                 testModules,
                 elementsToShow,
-                focusedElement?.let { setOf(focusedElement) } ?: emptySet(),
+                focusedElements,
                 UtSettings.utBotGenerationTimeoutInMillis,
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
@@ -152,36 +146,40 @@ object PythonDialogProcessor {
     }
 
     private fun groupPyElementsByModule(model: PythonTestsModel): Set<PythonTestLocalModel> {
-        return model.selectedElements
-            .groupBy { it.containingFile }
-            .flatMap { fileGroup ->
-                fileGroup.value
-                    .groupBy { it is PyClass }.values
-            }
-            .filter { it.isNotEmpty() }
-            .map {
-                val realElements = it.map { member -> model.names[Pair(member.fileName(), member.name)]!! }
-                val file = realElements.first().containingFile as PyFile
-                val srcModule = getSrcModule(realElements.first())
+        return runBlocking {
+            readAction {
+                model.selectedElements
+                    .groupBy { it.containingFile }
+                    .flatMap { fileGroup ->
+                        fileGroup.value
+                            .groupBy { it is PyClass }.values
+                    }
+                    .filter { it.isNotEmpty() }
+                    .map {
+                        val realElements = it.map { member -> model.names[Pair(member.fileName(), member.name)]!! }
+                        val file = realElements.first().containingFile as PyFile
+                        val srcModule = getSrcModule(realElements.first())
 
-                val (directoriesForSysPath, moduleToImport) = getDirectoriesForSysPath(srcModule, file)
-                PythonTestLocalModel(
-                    model.project,
-                    model.timeout,
-                    model.timeoutForRun,
-                    model.cgLanguageAssistant,
-                    model.pythonPath,
-                    model.testSourceRootPath,
-                    model.testFramework,
-                    realElements.toSet(),
-                    model.runtimeExceptionTestsBehaviour,
-                    directoriesForSysPath,
-                    moduleToImport,
-                    file,
-                    realElements.first().getContainingClass() as PyClass?
-                )
+                        val (directoriesForSysPath, moduleToImport) = getDirectoriesForSysPath(srcModule, file)
+                        PythonTestLocalModel(
+                            model.project,
+                            model.timeout,
+                            model.timeoutForRun,
+                            model.cgLanguageAssistant,
+                            model.pythonPath,
+                            model.testSourceRootPath,
+                            model.testFramework,
+                            realElements.toSet(),
+                            model.runtimeExceptionTestsBehaviour,
+                            directoriesForSysPath,
+                            moduleToImport,
+                            file,
+                            realElements.first().getContainingClass() as PyClass?
+                        )
+                    }
+                    .toSet()
             }
-            .toSet()
+        }
     }
 
     private fun getOutputFileName(model: PythonTestLocalModel): String {
@@ -208,10 +206,16 @@ object PythonDialogProcessor {
                             requirementsList += model.testFramework.mainPackage
                         }
 
+                        val content = runBlocking {
+                            readAction {
+                                getContentFromPyFile(model.file)
+                            }
+                        }
+
                         processTestGeneration(
                             pythonPath = model.pythonPath,
                             pythonFilePath = model.file.virtualFile.path,
-                            pythonFileContent = getContentFromPyFile(model.file),
+                            pythonFileContent = content,
                             directoriesForSysPath = model.directoriesForSysPath,
                             currentPythonModule = model.currentPythonModule,
                             pythonMethods = methods,

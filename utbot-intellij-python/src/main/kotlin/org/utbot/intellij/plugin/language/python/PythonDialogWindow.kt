@@ -12,10 +12,11 @@ import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
-import com.jetbrains.python.refactoring.classes.membersManager.MembersManager
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.intellij.plugin.language.python.table.UtPyClassItem
+import org.utbot.intellij.plugin.language.python.table.UtPyFunctionItem
 import org.utbot.intellij.plugin.language.python.table.UtPyMemberSelectionTable
 import org.utbot.intellij.plugin.language.python.table.UtPyTableItem
 import org.utbot.intellij.plugin.settings.Settings
@@ -111,33 +112,16 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         return storage.getClassMemberInfos(newClass)
     }
 
-    private fun pyFunctionsToPyMemberInfo(
-        project: Project,
-        functions: Collection<PyFunction>,
-        containingClass: PyClass?
-    ): List<PyMemberInfo<PyElement>> {
-        if (containingClass == null) {
-            return globalPyFunctionsToPyMemberInfo(project, functions)
-        }
-        return MembersManager.getAllMembersCouldBeMoved(containingClass)
-            .filter { it.member is PyFunction && fineFunction(it.member as PyFunction) }
-    }
-
-    private fun pyClassToMemberInfo(pyClass: PyClass): List<PyMemberInfo<PyElement>> {
-        return PyMemberInfoStorage(pyClass).getClassMemberInfos(pyClass)
-            .filter { method -> method.member.let { it is PyFunction && fineFunction(it) } }
-    }
-
     private fun updatePyElementsTable() {
         val functions = model.elementsToDisplay.filterIsInstance<PyFunction>()
         val classes = model.elementsToDisplay.filterIsInstance<PyClass>()
         val functionItems = functions
             .groupBy { it.containingClass }
-            .flatMap { (containingClass, pyFuncs) ->
-                pyFunctionsToPyMemberInfo(model.project, pyFuncs, containingClass)
+            .flatMap { (_, pyFuncs) ->
+                pyFuncs.map {UtPyFunctionItem(it)}
             }
-        val classItems = classes.flatMap {
-            pyClassToMemberInfo(it)
+        val classItems = classes.map {
+            UtPyClassItem(it)
         }
         val items = classItems + functionItems
         updateMethodsTable(items)
@@ -145,10 +129,10 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         pyElementsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
-    private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {
-        val focusedNames = model.focusedElements?.map { it.name }
+    private fun updateMethodsTable(allMethods: Collection<UtPyTableItem>) {
+        val focusedNames = model.focusedElements?.map { it.idName }
         val selectedMethods = allMethods.filter {
-            focusedNames?.contains(it.member.name) ?: false
+            focusedNames?.contains(it.idName) ?: false
         }
 
         if (selectedMethods.isEmpty()) {
@@ -160,7 +144,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         pyElementsTable.setItems(allMethods)
     }
 
-    private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
+    private fun checkMembers(members: Collection<UtPyTableItem>) = members.forEach { it.isChecked = true }
 
     private fun Row.makePanelWithHelpTooltip(
         mainComponent: JComponent,
@@ -186,7 +170,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
 
     override fun doOKAction() {
         val selectedMembers = pyElementsTable.selectedMemberInfos
-        model.selectedElements = selectedMembers.mapNotNull { it.member }.toSet()
+        model.selectedElements = selectedMembers.mapNotNull { it.content }.toSet()
         model.testFramework = testFrameworks.item
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
         model.testSourceRootPath = testSourceFolderField.text

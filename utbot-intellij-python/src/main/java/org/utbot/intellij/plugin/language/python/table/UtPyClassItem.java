@@ -21,6 +21,11 @@ public class UtPyClassItem implements UtPyTableItem {
     }
 
     @Override
+    public String getIdName() {
+        return pyClass.getQualifiedName();
+    }
+
+    @Override
     public Icon getIcon() {
         return AllIcons.Nodes.Class;
     }

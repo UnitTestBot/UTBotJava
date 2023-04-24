@@ -8,6 +8,8 @@ public interface UtPyTableItem {
 
     public PyElement getContent();
 
+    public String getIdName();
+
     public Icon getIcon();
 
     boolean isChecked();

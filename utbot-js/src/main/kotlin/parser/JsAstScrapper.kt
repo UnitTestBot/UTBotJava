@@ -123,7 +123,6 @@ class JsAstScrapper(
 
     @Suppress("unchecked_cast")
     private fun getExportedKeys(importPath: String): List<String> {
-//        val importPath = PathResolver.getRelativePath(pathToTempFile.pathString, basePath)
         val pathToTempFile = Paths.get(tempUtbotPath.pathString + "/exp_temp.js")
         val text = buildString {
             when (moduleType) {
@@ -192,7 +191,6 @@ class JsAstScrapper(
                 }
 
                 NodeUtil.findPreorder(this, { it.isImportStar }, { true }) != null -> {
-                    // Do we need to know alias for "*" import?
                     val aliases = this.getImportSpecAliases()
                     val importPath = PathResolver.getRelativePath(tempUtbotPath.pathString, pathToFile)
                     getExportedKeys(importPath).associateWith { key ->

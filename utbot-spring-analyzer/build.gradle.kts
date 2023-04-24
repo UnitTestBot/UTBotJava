@@ -1,4 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
 import com.github.jengelman.gradle.plugins.shadow.transformers.PropertiesFileTransformer
 
@@ -19,62 +18,34 @@ java {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-val withoutSpringConfiguration by configurations.creating {}
-val withSpringConfiguration by configurations.creating {
-    extendsFrom(withoutSpringConfiguration)
-}
-configurations.implementation.get().extendsFrom(withSpringConfiguration)
+val shadowJarConfiguration: Configuration by configurations.creating {}
+configurations.implementation.get().extendsFrom(shadowJarConfiguration)
 
 dependencies {
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
-    withSpringConfiguration("org.springframework.boot:spring-boot:$springBootVersion")
-
+    implementation("org.springframework.boot:spring-boot:$springBootVersion")
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
     fun ModuleDependency.excludeSlf4jApi() = exclude(group = "org.slf4j", module = "slf4j-api")
 
-    withoutSpringConfiguration(project(":utbot-rd")) { excludeSlf4jApi() }
-    withoutSpringConfiguration(project(":utbot-core")) { excludeSlf4jApi() }
-    withoutSpringConfiguration(project(":utbot-framework-api")) { excludeSlf4jApi() }
-    withoutSpringConfiguration("com.jetbrains.rd:rd-framework:$rdVersion") { excludeSlf4jApi() }
-    withoutSpringConfiguration("com.jetbrains.rd:rd-core:$rdVersion") { excludeSlf4jApi() }
-    withoutSpringConfiguration("commons-logging:commons-logging:$commonsLoggingVersion") { excludeSlf4jApi() }
-    withoutSpringConfiguration("commons-io:commons-io:$commonsIOVersion") { excludeSlf4jApi() }
+    // TODO stop putting dependencies that are only used in SpringAnalyzerProcess into shadow jar
+    shadowJarConfiguration(project(":utbot-rd")) { excludeSlf4jApi() }
+    shadowJarConfiguration(project(":utbot-core")) { excludeSlf4jApi() }
+    shadowJarConfiguration(project(":utbot-framework-api")) { excludeSlf4jApi() }
+    shadowJarConfiguration("com.jetbrains.rd:rd-framework:$rdVersion") { excludeSlf4jApi() }
+    shadowJarConfiguration("com.jetbrains.rd:rd-core:$rdVersion") { excludeSlf4jApi() }
+    shadowJarConfiguration("commons-logging:commons-logging:$commonsLoggingVersion") { excludeSlf4jApi() }
+    shadowJarConfiguration("commons-io:commons-io:$commonsIOVersion") { excludeSlf4jApi() }
 }
 
 application {
     mainClass.set("org.utbot.spring.process.SpringAnalyzerProcessMainKt")
 }
 
-val shadowWithoutSpring by tasks.register<ShadowJar>("shadowJarWithoutSpring") {
-    configureShadowJar(withoutSpringConfiguration)
-    archiveFileName.set("utbot-spring-analyzer-shadow.jar")
-}
+// see more details -- https://github.com/spring-projects/spring-boot/issues/1828
+tasks.shadowJar {
+    configurations = listOf(shadowJarConfiguration)
 
-val shadowWithSpring by tasks.register<ShadowJar>("shadowJarWithSpring") {
-    configureShadowJar(withSpringConfiguration)
-    archiveFileName.set("utbot-spring-analyzer-with-spring-shadow.jar")
-}
-
-val springAnalyzerJar: Configuration by configurations.creating {
-    isCanBeResolved = false
-    isCanBeConsumed = true
-}
-
-artifacts {
-    add(springAnalyzerJar.name, shadowWithoutSpring)
-    add(springAnalyzerJar.name, shadowWithSpring)
-}
-
-fun ShadowJar.configureShadowJar(configuration: Configuration) {
-    // see more details -- https://github.com/johnrengelman/shadow/blob/master/src/main/groovy/com/github/jengelman/gradle/plugins/shadow/ShadowJavaPlugin.groovy
-    group = "shadow"
-    from(sourceSets.main.get().output)
-    exclude("META-INF/INDEX.LIST", "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "module-info.class")
-
-    configurations = listOf(configuration)
-
-    // see more details -- https://github.com/spring-projects/spring-boot/issues/1828
     isZip64 = true
     // Required for Spring
     mergeServiceFiles()
@@ -87,4 +58,14 @@ fun ShadowJar.configureShadowJar(configuration: Configuration) {
     })
 
     transform(Log4j2PluginsCacheFileTransformer::class.java)
+    archiveFileName.set("utbot-spring-analyzer-shadow.jar")
+}
+
+val springAnalyzerJar: Configuration by configurations.creating {
+    isCanBeResolved = false
+    isCanBeConsumed = true
+}
+
+artifacts {
+    add(springAnalyzerJar.name, tasks.shadowJar)
 }

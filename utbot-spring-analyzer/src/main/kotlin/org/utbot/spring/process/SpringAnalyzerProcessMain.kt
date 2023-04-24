@@ -13,7 +13,7 @@ import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory
-import org.utbot.spring.analyzers.SpringApplicationAnalyzer
+import org.utbot.spring.analyzers.SpringApplicationAnalyzerFacade
 import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.SpringAnalyzerResult
@@ -47,7 +47,7 @@ private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtoco
             params.profileExpression,
         )
         SpringAnalyzerResult(
-                SpringApplicationAnalyzer(applicationData).analyze().toTypedArray()
+                SpringApplicationAnalyzerFacade(applicationData).analyze().toTypedArray()
         )
     }
 }

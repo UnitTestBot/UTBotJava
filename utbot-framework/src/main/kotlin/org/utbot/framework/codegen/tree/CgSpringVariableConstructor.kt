@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.tree
 
-import com.jetbrains.rd.util.firstOrNull
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
@@ -12,8 +11,6 @@ import org.utbot.framework.plugin.api.isMockModel
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
     val injectedMocksModelsVariables: MutableMap<Set<UtModel>, CgValue> = mutableMapOf()
     val mockedModelsVariables: MutableMap<Set<UtModel>, CgValue> = mutableMapOf()
-
-    private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val alreadyCreatedInjectMocks = findCgValueByModel(model, injectedMocksModelsVariables)
@@ -44,9 +41,12 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
         return super.getOrCreateVariable(model, name)
     }
 
-    private fun findCgValueByModel(model: UtModel, modelToValueMap: Map<Set<UtModel>, CgValue>): CgValue? =
+    private fun findCgValueByModel(modelToFind: UtModel, modelToValueMap: Map<Set<UtModel>, CgValue>): CgValue? =
+        // Here we really need to compare models by reference.
+        // Standard equals is not appropriate because two models from different execution may have same `id`.
+        // Equals on `ModelId` is not appropriate because injected items from different execution have same `executionId`.
         modelToValueMap
-            .filter { it.key.contains(model) }
+            .filter { models -> models.key.any { it === modelToFind } }
             .entries
             .singleOrNull()
             ?.value

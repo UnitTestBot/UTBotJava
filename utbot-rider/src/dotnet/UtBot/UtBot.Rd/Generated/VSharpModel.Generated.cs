@@ -84,7 +84,7 @@ namespace UtBot.Rd.Generated
     
     
     
-    protected override long SerializationHash => -7151966238299581951L;
+    protected override long SerializationHash => 9120359939503061610L;
     
     protected override Action<ISerializers> Register => RegisterDeclaredTypesSerializers;
     public static void RegisterDeclaredTypesSerializers(ISerializers serializers)
@@ -127,7 +127,7 @@ namespace UtBot.Rd.Generated
   
   
   /// <summary>
-  /// <p>Generated from: CSharpModel.kt:16</p>
+  /// <p>Generated from: CSharpModel.kt:21</p>
   /// </summary>
   public sealed class GenerateArguments : IPrintable, IEquatable<GenerateArguments>
   {
@@ -139,6 +139,7 @@ namespace UtBot.Rd.Generated
     [NotNull] public List<MethodDescriptor> Methods {get; private set;}
     public int GenerationTimeoutInSeconds {get; private set;}
     [CanBeNull] public string TargetFramework {get; private set;}
+    [NotNull] public List<MapEntry> AssembliesFullNameToTheirPath {get; private set;}
     
     //private fields
     //primary constructor
@@ -148,13 +149,15 @@ namespace UtBot.Rd.Generated
       [NotNull] string solutionFilePath,
       [NotNull] List<MethodDescriptor> methods,
       int generationTimeoutInSeconds,
-      [CanBeNull] string targetFramework
+      [CanBeNull] string targetFramework,
+      [NotNull] List<MapEntry> assembliesFullNameToTheirPath
     )
     {
       if (assemblyPath == null) throw new ArgumentNullException("assemblyPath");
       if (projectCsprojPath == null) throw new ArgumentNullException("projectCsprojPath");
       if (solutionFilePath == null) throw new ArgumentNullException("solutionFilePath");
       if (methods == null) throw new ArgumentNullException("methods");
+      if (assembliesFullNameToTheirPath == null) throw new ArgumentNullException("assembliesFullNameToTheirPath");
       
       AssemblyPath = assemblyPath;
       ProjectCsprojPath = projectCsprojPath;
@@ -162,10 +165,11 @@ namespace UtBot.Rd.Generated
       Methods = methods;
       GenerationTimeoutInSeconds = generationTimeoutInSeconds;
       TargetFramework = targetFramework;
+      AssembliesFullNameToTheirPath = assembliesFullNameToTheirPath;
     }
     //secondary constructor
     //deconstruct trait
-    public void Deconstruct([NotNull] out string assemblyPath, [NotNull] out string projectCsprojPath, [NotNull] out string solutionFilePath, [NotNull] out List<MethodDescriptor> methods, out int generationTimeoutInSeconds, [CanBeNull] out string targetFramework)
+    public void Deconstruct([NotNull] out string assemblyPath, [NotNull] out string projectCsprojPath, [NotNull] out string solutionFilePath, [NotNull] out List<MethodDescriptor> methods, out int generationTimeoutInSeconds, [CanBeNull] out string targetFramework, [NotNull] out List<MapEntry> assembliesFullNameToTheirPath)
     {
       assemblyPath = AssemblyPath;
       projectCsprojPath = ProjectCsprojPath;
@@ -173,6 +177,7 @@ namespace UtBot.Rd.Generated
       methods = Methods;
       generationTimeoutInSeconds = GenerationTimeoutInSeconds;
       targetFramework = TargetFramework;
+      assembliesFullNameToTheirPath = AssembliesFullNameToTheirPath;
     }
     //statics
     
@@ -184,11 +189,13 @@ namespace UtBot.Rd.Generated
       var methods = ReadMethodDescriptorList(ctx, reader);
       var generationTimeoutInSeconds = reader.ReadInt();
       var targetFramework = ReadStringNullable(ctx, reader);
-      var _result = new GenerateArguments(assemblyPath, projectCsprojPath, solutionFilePath, methods, generationTimeoutInSeconds, targetFramework);
+      var assembliesFullNameToTheirPath = ReadMapEntryList(ctx, reader);
+      var _result = new GenerateArguments(assemblyPath, projectCsprojPath, solutionFilePath, methods, generationTimeoutInSeconds, targetFramework, assembliesFullNameToTheirPath);
       return _result;
     };
     public static CtxReadDelegate<List<MethodDescriptor>> ReadMethodDescriptorList = MethodDescriptor.Read.List();
     public static CtxReadDelegate<string> ReadStringNullable = JetBrains.Rd.Impl.Serializers.ReadString.NullableClass();
+    public static CtxReadDelegate<List<MapEntry>> ReadMapEntryList = MapEntry.Read.List();
     
     public static CtxWriteDelegate<GenerateArguments> Write = (ctx, writer, value) => 
     {
@@ -198,9 +205,11 @@ namespace UtBot.Rd.Generated
       WriteMethodDescriptorList(ctx, writer, value.Methods);
       writer.Write(value.GenerationTimeoutInSeconds);
       WriteStringNullable(ctx, writer, value.TargetFramework);
+      WriteMapEntryList(ctx, writer, value.AssembliesFullNameToTheirPath);
     };
     public static  CtxWriteDelegate<List<MethodDescriptor>> WriteMethodDescriptorList = MethodDescriptor.Write.List();
     public static  CtxWriteDelegate<string> WriteStringNullable = JetBrains.Rd.Impl.Serializers.WriteString.NullableClass();
+    public static  CtxWriteDelegate<List<MapEntry>> WriteMapEntryList = MapEntry.Write.List();
     
     //constants
     
@@ -218,7 +227,7 @@ namespace UtBot.Rd.Generated
     {
       if (ReferenceEquals(null, other)) return false;
       if (ReferenceEquals(this, other)) return true;
-      return AssemblyPath == other.AssemblyPath && ProjectCsprojPath == other.ProjectCsprojPath && SolutionFilePath == other.SolutionFilePath && Methods.SequenceEqual(other.Methods) && GenerationTimeoutInSeconds == other.GenerationTimeoutInSeconds && Equals(TargetFramework, other.TargetFramework);
+      return AssemblyPath == other.AssemblyPath && ProjectCsprojPath == other.ProjectCsprojPath && SolutionFilePath == other.SolutionFilePath && Methods.SequenceEqual(other.Methods) && GenerationTimeoutInSeconds == other.GenerationTimeoutInSeconds && Equals(TargetFramework, other.TargetFramework) && AssembliesFullNameToTheirPath.SequenceEqual(other.AssembliesFullNameToTheirPath);
     }
     //hash code trait
     public override int GetHashCode()
@@ -231,6 +240,7 @@ namespace UtBot.Rd.Generated
         hash = hash * 31 + Methods.ContentHashCode();
         hash = hash * 31 + GenerationTimeoutInSeconds.GetHashCode();
         hash = hash * 31 + (TargetFramework != null ? TargetFramework.GetHashCode() : 0);
+        hash = hash * 31 + AssembliesFullNameToTheirPath.ContentHashCode();
         return hash;
       }
     }
@@ -245,6 +255,7 @@ namespace UtBot.Rd.Generated
         printer.Print("methods = "); Methods.PrintEx(printer); printer.Println();
         printer.Print("generationTimeoutInSeconds = "); GenerationTimeoutInSeconds.PrintEx(printer); printer.Println();
         printer.Print("targetFramework = "); TargetFramework.PrintEx(printer); printer.Println();
+        printer.Print("assembliesFullNameToTheirPath = "); AssembliesFullNameToTheirPath.PrintEx(printer); printer.Println();
       }
       printer.Print(")");
     }
@@ -259,7 +270,7 @@ namespace UtBot.Rd.Generated
   
   
   /// <summary>
-  /// <p>Generated from: CSharpModel.kt:25</p>
+  /// <p>Generated from: CSharpModel.kt:31</p>
   /// </summary>
   public sealed class GenerateResults : IPrintable, IEquatable<GenerateResults>
   {
@@ -366,6 +377,100 @@ namespace UtBot.Rd.Generated
         printer.Print("exceptionMessage = "); ExceptionMessage.PrintEx(printer); printer.Println();
         printer.Print("testsCount = "); TestsCount.PrintEx(printer); printer.Println();
         printer.Print("errorsCount = "); ErrorsCount.PrintEx(printer); printer.Println();
+      }
+      printer.Print(")");
+    }
+    //toString
+    public override string ToString()
+    {
+      var printer = new SingleLinePrettyPrinter();
+      Print(printer);
+      return printer.ToString();
+    }
+  }
+  
+  
+  /// <summary>
+  /// <p>Generated from: CSharpModel.kt:16</p>
+  /// </summary>
+  public sealed class MapEntry : IPrintable, IEquatable<MapEntry>
+  {
+    //fields
+    //public fields
+    [NotNull] public string Key {get; private set;}
+    [NotNull] public string Value {get; private set;}
+    
+    //private fields
+    //primary constructor
+    public MapEntry(
+      [NotNull] string key,
+      [NotNull] string value
+    )
+    {
+      if (key == null) throw new ArgumentNullException("key");
+      if (value == null) throw new ArgumentNullException("value");
+      
+      Key = key;
+      Value = value;
+    }
+    //secondary constructor
+    //deconstruct trait
+    public void Deconstruct([NotNull] out string key, [NotNull] out string value)
+    {
+      key = Key;
+      value = Value;
+    }
+    //statics
+    
+    public static CtxReadDelegate<MapEntry> Read = (ctx, reader) => 
+    {
+      var key = reader.ReadString();
+      var value = reader.ReadString();
+      var _result = new MapEntry(key, value);
+      return _result;
+    };
+    
+    public static CtxWriteDelegate<MapEntry> Write = (ctx, writer, value) => 
+    {
+      writer.Write(value.Key);
+      writer.Write(value.Value);
+    };
+    
+    //constants
+    
+    //custom body
+    //methods
+    //equals trait
+    public override bool Equals(object obj)
+    {
+      if (ReferenceEquals(null, obj)) return false;
+      if (ReferenceEquals(this, obj)) return true;
+      if (obj.GetType() != GetType()) return false;
+      return Equals((MapEntry) obj);
+    }
+    public bool Equals(MapEntry other)
+    {
+      if (ReferenceEquals(null, other)) return false;
+      if (ReferenceEquals(this, other)) return true;
+      return Key == other.Key && Value == other.Value;
+    }
+    //hash code trait
+    public override int GetHashCode()
+    {
+      unchecked {
+        var hash = 0;
+        hash = hash * 31 + Key.GetHashCode();
+        hash = hash * 31 + Value.GetHashCode();
+        return hash;
+      }
+    }
+    //pretty print
+    public void Print(PrettyPrinter printer)
+    {
+      printer.Println("MapEntry (");
+      using (printer.IndentCookie()) {
+        printer.Print("key = "); Key.PrintEx(printer); printer.Println();
+        printer.Print("value = "); Value.PrintEx(printer); printer.Println();
       }
       printer.Print(")");
     }

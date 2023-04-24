@@ -1,9 +1,21 @@
 package org.utbot.go.worker
 
-import org.utbot.go.api.GoStructTypeId
+import org.utbot.go.api.GoNamedTypeId
+import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoPackage
+import org.utbot.go.simplecodegeneration.GoUtModelToCodeConverter
 
 object GoCodeTemplates {
+
+    private val errorMessages = """
+        var (
+        	ErrParsingValue                  = "failed to parse %s value: %s"
+        	ErrInvalidTypeName               = "invalid type name: %s"
+        	ErrStringToReflectTypeFailure    = "failed to convert '%s' to reflect.Type: %s"
+        	ErrRawValueToReflectValueFailure = "failed to convert RawValue to reflect.Value: %s"
+        	ErrReflectValueToRawValueFailure = "failed to convert reflect.Value to RawValue: %s"
+        )
+    """.trimIndent()
 
     private val testInputStruct = """
         type __TestInput__ struct {
@@ -32,113 +44,153 @@ object GoCodeTemplates {
         	switch v.Type {
         	case "bool":
         		value, err := strconv.ParseBool(v.Value)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(value), nil
         	case "int":
         		value, err := strconv.Atoi(v.Value)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(value), nil
         	case "int8":
         		value, err := strconv.ParseInt(v.Value, 10, 8)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(int8(value)), nil
         	case "int16":
         		value, err := strconv.ParseInt(v.Value, 10, 16)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(int16(value)), nil
         	case "int32":
         		value, err := strconv.ParseInt(v.Value, 10, 32)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(int32(value)), nil
         	case "rune":
         		value, err := strconv.ParseInt(v.Value, 10, 32)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(rune(value)), nil
         	case "int64":
         		value, err := strconv.ParseInt(v.Value, 10, 64)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(value), nil
         	case "byte":
         		value, err := strconv.ParseUint(v.Value, 10, 8)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(byte(value)), nil
         	case "uint":
         		value, err := strconv.ParseUint(v.Value, 10, strconv.IntSize)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(uint(value)), nil
         	case "uint8":
         		value, err := strconv.ParseUint(v.Value, 10, 8)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(uint8(value)), nil
         	case "uint16":
         		value, err := strconv.ParseUint(v.Value, 10, 16)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(uint16(value)), nil
         	case "uint32":
         		value, err := strconv.ParseUint(v.Value, 10, 32)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(uint32(value)), nil
         	case "uint64":
         		value, err := strconv.ParseUint(v.Value, 10, 64)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(value), nil
         	case "float32":
         		value, err := strconv.ParseFloat(v.Value, 32)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(float32(value)), nil
         	case "float64":
         		value, err := strconv.ParseFloat(v.Value, 64)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(value), nil
         	case "complex64":
-        		splittedValue := strings.Split(v.Value, complexPartsDelimiter)
-        		if len(splittedValue) != 2 {
-        			return reflect.Value{}, fmt.Errorf("not correct complex64 value")
+        		splitValue := strings.Split(v.Value, complexPartsDelimiter)
+        		if len(splitValue) != 2 {
+        			return reflect.Value{}, fmt.Errorf("not correct complex64 value: %s", v.Value)
         		}
-        		realPart, err := strconv.ParseFloat(splittedValue[0], 32)
-        		__checkErrorAndExit__(err)
+        		realPart, err := strconv.ParseFloat(splitValue[0], 32)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
-        		imaginaryPart, err := strconv.ParseFloat(splittedValue[1], 32)
-        		__checkErrorAndExit__(err)
+        		imaginaryPart, err := strconv.ParseFloat(splitValue[1], 32)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(complex(float32(realPart), float32(imaginaryPart))), nil
         	case "complex128":
-        		splittedValue := strings.Split(v.Value, complexPartsDelimiter)
-        		if len(splittedValue) != 2 {
-        			return reflect.Value{}, fmt.Errorf("not correct complex128 value")
+        		splitValue := strings.Split(v.Value, complexPartsDelimiter)
+        		if len(splitValue) != 2 {
+        			return reflect.Value{}, fmt.Errorf("not correct complex128 value: %s", v.Value)
         		}
 
-        		realPart, err := strconv.ParseFloat(splittedValue[0], 64)
-        		__checkErrorAndExit__(err)
+        		realPart, err := strconv.ParseFloat(splitValue[0], 64)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
-        		imaginaryPart, err := strconv.ParseFloat(splittedValue[1], 64)
-        		__checkErrorAndExit__(err)
+        		imaginaryPart, err := strconv.ParseFloat(splitValue[1], 64)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(complex(realPart, imaginaryPart)), nil
         	case "string":
         		return reflect.ValueOf(v.Value), nil
         	case "uintptr":
         		value, err := strconv.ParseUint(v.Value, 10, strconv.IntSize)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
+        		}
 
         		return reflect.ValueOf(uintptr(value)), nil
         	}
-        	return reflect.Value{}, fmt.Errorf("not supported type %s", v.Type)
+        	return reflect.Value{}, fmt.Errorf("unsupported primitive type: '%s'", v.Type)
         }
     """.trimIndent()
 
@@ -160,7 +212,9 @@ object GoCodeTemplates {
     private val structValueToReflectValueMethod = """
         func (v __StructValue__) __toReflectValue__() (reflect.Value, error) {
         	structType, err := __convertStringToReflectType__(v.Type)
-        	__checkErrorAndExit__(err)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.Type, err)
+        	}
 
         	structPtr := reflect.New(structType)
 
@@ -168,8 +222,10 @@ object GoCodeTemplates {
         		field := structPtr.Elem().FieldByName(f.Name)
 
         		reflectValue, err := f.Value.__toReflectValue__()
-        		__checkErrorAndExit__(err)
-        		
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
+
         		if field.Type().Kind() == reflect.Uintptr {
         			reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().SetUint(reflectValue.Uint())
         		} else {
@@ -193,7 +249,9 @@ object GoCodeTemplates {
     private val arrayValueToReflectValueMethod = """
         func (v __ArrayValue__) __toReflectValue__() (reflect.Value, error) {
         	elementType, err := __convertStringToReflectType__(v.ElementType)
-        	__checkErrorAndExit__(err)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.ElementType, err)
+        	}
 
         	arrayType := reflect.ArrayOf(v.Length, elementType)
         	arrayPtr := reflect.New(arrayType)
@@ -202,7 +260,9 @@ object GoCodeTemplates {
         		element := arrayPtr.Elem().Index(i)
 
         		reflectValue, err := v.Value[i].__toReflectValue__()
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
 
         		element.Set(reflectValue)
         	}
@@ -223,7 +283,9 @@ object GoCodeTemplates {
     private val sliceValueToReflectValueMethod = """
         func (v __SliceValue__) __toReflectValue__() (reflect.Value, error) {
         	elementType, err := __convertStringToReflectType__(v.ElementType)
-        	__checkErrorAndExit__(err)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.ElementType, err)
+        	}
 
         	sliceType := reflect.SliceOf(elementType)
         	slice := reflect.MakeSlice(sliceType, v.Length, v.Length)
@@ -234,7 +296,9 @@ object GoCodeTemplates {
         		element := slicePtr.Elem().Index(i)
 
         		reflectValue, err := v.Value[i].__toReflectValue__()
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
 
         		element.Set(reflectValue)
         	}
@@ -243,100 +307,207 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private fun convertStringToReflectType(
-        structTypes: Set<GoStructTypeId>,
-        destinationPackage: GoPackage,
-        aliases: Map<GoPackage, String?>
-    ) = """
-        func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
-        	var result reflect.Type
-
-        	switch {
-        	case strings.HasPrefix(typeName, "map["):
-        		return nil, fmt.Errorf("map type not supported")
-        	case strings.HasPrefix(typeName, "[]"):
-        		index := strings.IndexRune(typeName, ']')
-        		if index == -1 {
-        			return nil, fmt.Errorf("not correct type name '%s'", typeName)
-        		}
-
-        		res, err := __convertStringToReflectType__(typeName[index+1:])
-        		if err != nil {
-        			return nil, err
-        		}
-
-        		result = reflect.SliceOf(res)
-        	case strings.HasPrefix(typeName, "["):
-        		index := strings.IndexRune(typeName, ']')
-        		if index == -1 {
-        			return nil, fmt.Errorf("not correct type name '%s'", typeName)
-        		}
-
-        		lengthStr := typeName[1:index]
-        		length, err := strconv.Atoi(lengthStr)
-        		if err != nil {
-        			return nil, err
-        		}
-
-        		res, err := __convertStringToReflectType__(typeName[index+1:])
-        		if err != nil {
-        			return nil, err
-        		}
-
-        		result = reflect.ArrayOf(length, res)
-        	default:
-        		switch typeName {
-        		case "bool":
-        			result = reflect.TypeOf(true)
-        		case "int":
-        			result = reflect.TypeOf(0)
-        		case "int8":
-        			result = reflect.TypeOf(int8(0))
-        		case "int16":
-        			result = reflect.TypeOf(int16(0))
-        		case "int32":
-        			result = reflect.TypeOf(int32(0))
-        		case "rune":
-        			result = reflect.TypeOf(rune(0))
-        		case "int64":
-        			result = reflect.TypeOf(int64(0))
-        		case "byte":
-        			result = reflect.TypeOf(byte(0))
-        		case "uint":
-        			result = reflect.TypeOf(uint(0))
-        		case "uint8":
-        			result = reflect.TypeOf(uint8(0))
-        		case "uint16":
-        			result = reflect.TypeOf(uint16(0))
-        		case "uint32":
-        			result = reflect.TypeOf(uint32(0))
-        		case "uint64":
-        			result = reflect.TypeOf(uint64(0))
-        		case "float32":
-        			result = reflect.TypeOf(float32(0))
-        		case "float64":
-        			result = reflect.TypeOf(float64(0))
-        		case "complex64":
-        			result = reflect.TypeOf(complex(float32(0), float32(0)))
-        		case "complex128":
-        			result = reflect.TypeOf(complex(float64(0), float64(0)))
-        		case "string":
-        			result = reflect.TypeOf("")
-        		case "uintptr":
-        			result = reflect.TypeOf(uintptr(0))
-                ${
-        structTypes.joinToString(separator = "\n") {
-            val relativeName = it.getRelativeName(destinationPackage, aliases)
-            "case \"${relativeName}\": result = reflect.TypeOf(${relativeName}{})"
-        }
-    }
-        		default:
-        			return nil, fmt.Errorf("type '%s' not supported", typeName)
-        		}
-        	}
-        	return result, nil
+    private val keyValueStruct = """
+        type __KeyValue__ struct {
+        	Key   __RawValue__ `json:"key"`
+        	Value __RawValue__ `json:"value"`
         }
     """.trimIndent()
+
+    private val mapValueStruct = """
+        type __MapValue__ struct {
+        	Type        string         `json:"type"`
+        	KeyType     string         `json:"keyType"`
+        	ElementType string         `json:"elementType"`
+        	Value       []__KeyValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val mapValueToReflectValueMethod = """
+        func (v __MapValue__) __toReflectValue__() (reflect.Value, error) {
+        	keyType, err := __convertStringToReflectType__(v.KeyType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.KeyType, err)
+        	}
+
+        	elementType, err := __convertStringToReflectType__(v.ElementType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.ElementType, err)
+        	}
+
+        	mapType := reflect.MapOf(keyType, elementType)
+        	m := reflect.MakeMap(mapType)
+        	for _, keyValue := range v.Value {
+        		keyReflectValue, err := keyValue.Key.__toReflectValue__()
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
+
+        		valueReflectValue, err := keyValue.Value.__toReflectValue__()
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
+
+        		m.SetMapIndex(keyReflectValue, valueReflectValue)
+        	}
+        	return m, nil
+        }
+    """.trimIndent()
+
+    private val nilValueStruct = """
+        type __NilValue__ struct {
+        	Type string `json:"type"`
+        }
+    """.trimIndent()
+
+    private val nilValueToReflectValueMethod = """
+        func (v __NilValue__) __toReflectValue__() (reflect.Value, error) {
+        	typ, err := __convertStringToReflectType__(v.Type)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.Type, err)
+        	}
+
+        	return reflect.Zero(typ), nil
+        }
+    """.trimIndent()
+
+    private val namedValueStruct = """
+        type __NamedValue__ struct {
+        	Type  string       `json:"type"`
+        	Value __RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val namedValueToReflectValueMethod = """
+        func (v __NamedValue__) __toReflectValue__() (reflect.Value, error) {
+        	value, err := v.Value.__toReflectValue__()
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        	}
+
+        	typ, err := __convertStringToReflectType__(v.Type)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.Type, err)
+        	}
+
+        	return value.Convert(typ), nil
+        }
+    """.trimIndent()
+
+    private fun convertStringToReflectType(
+        namedTypes: Set<GoNamedTypeId>,
+        destinationPackage: GoPackage,
+        aliases: Map<GoPackage, String?>
+    ): String {
+        val converter = GoUtModelToCodeConverter(destinationPackage, aliases)
+        return """
+            func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
+            	var result reflect.Type
+
+            	switch {
+            	case strings.HasPrefix(typeName, "map["):
+            		index := strings.IndexRune(typeName, ']')
+            		if index == -1 {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
+
+            		keyTypeStr := typeName[4:index]
+            		keyType, err := __convertStringToReflectType__(keyTypeStr)
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, keyTypeStr, err)
+            		}
+
+            		elementTypeStr := typeName[index+1:]
+            		elementType, err := __convertStringToReflectType__(elementTypeStr)
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, elementTypeStr, err)
+            		}
+
+            		result = reflect.MapOf(keyType, elementType)
+            	case strings.HasPrefix(typeName, "[]"):
+            		index := strings.IndexRune(typeName, ']')
+            		if index == -1 {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
+
+            		res, err := __convertStringToReflectType__(typeName[index+1:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
+
+            		result = reflect.SliceOf(res)
+            	case strings.HasPrefix(typeName, "["):
+            		index := strings.IndexRune(typeName, ']')
+            		if index == -1 {
+            			return nil, fmt.Errorf(ErrInvalidTypeName, typeName)
+            		}
+
+            		lengthStr := typeName[1:index]
+            		length, err := strconv.Atoi(lengthStr)
+            		if err != nil {
+            			return nil, err
+            		}
+
+            		res, err := __convertStringToReflectType__(typeName[index+1:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, typeName[index+1:], err)
+            		}
+
+            		result = reflect.ArrayOf(length, res)
+            	default:
+            		switch typeName {
+            		case "bool":
+            			result = reflect.TypeOf(true)
+            		case "int":
+            			result = reflect.TypeOf(0)
+            		case "int8":
+            			result = reflect.TypeOf(int8(0))
+            		case "int16":
+            			result = reflect.TypeOf(int16(0))
+            		case "int32":
+            			result = reflect.TypeOf(int32(0))
+            		case "rune":
+            			result = reflect.TypeOf(rune(0))
+            		case "int64":
+            			result = reflect.TypeOf(int64(0))
+            		case "byte":
+            			result = reflect.TypeOf(byte(0))
+            		case "uint":
+            			result = reflect.TypeOf(uint(0))
+            		case "uint8":
+            			result = reflect.TypeOf(uint8(0))
+            		case "uint16":
+            			result = reflect.TypeOf(uint16(0))
+            		case "uint32":
+            			result = reflect.TypeOf(uint32(0))
+            		case "uint64":
+            			result = reflect.TypeOf(uint64(0))
+            		case "float32":
+            			result = reflect.TypeOf(float32(0))
+            		case "float64":
+            			result = reflect.TypeOf(float64(0))
+            		case "complex64":
+            			result = reflect.TypeOf(complex(float32(0), float32(0)))
+            		case "complex128":
+            			result = reflect.TypeOf(complex(float64(0), float64(0)))
+            		case "string":
+            			result = reflect.TypeOf("")
+            		case "uintptr":
+            			result = reflect.TypeOf(uintptr(0))
+                ${
+            namedTypes.joinToString(separator = "\n") {
+                val relativeName = it.getRelativeName(destinationPackage, aliases)
+                "case \"${relativeName}\": result = reflect.TypeOf(${converter.toGoCode(it.goDefaultValueModel())})"
+            }
+        }
+            		default:
+            			return nil, fmt.Errorf("unsupported type: %s", typeName)
+            		}
+            	}
+            	return result, nil
+            }
+        """.trimIndent()
+    }
 
     private val panicMessageStruct = """
         type __RawPanicMessage__ struct {
@@ -354,11 +525,17 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val checkErrorFunction = """
-        func __checkErrorAndExit__(err error) {
+    private val convertReflectValueOfDefinedTypeToRawValueFunction = """
+        func __convertReflectValueOfDefinedTypeToRawValue__(v reflect.Value) (__RawValue__, error) {
+        	value, err := __convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValue__(v)
         	if err != nil {
-        		log.Fatal(err)
+        		return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
         	}
+
+        	return __NamedValue__{
+        		Type:  v.Type().Name(),
+        		Value: value,
+        	}, nil
         }
     """.trimIndent()
 
@@ -380,55 +557,56 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val convertReflectValueToRawValueFunction = """
-        //goland:noinspection GoPreferNilSlice
-        func __convertReflectValueToRawValue__(valueOfRes reflect.Value) (__RawValue__, error) {
+    private val convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValueFunction = """
+        func __convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValue__(v reflect.Value) (__RawValue__, error) {
         	const outputComplexPartsDelimiter = "@"
 
-        	switch valueOfRes.Kind() {
+        	switch v.Kind() {
         	case reflect.Bool:
         		return __PrimitiveValue__{
-        			Type:  valueOfRes.Kind().String(),
-        			Value: fmt.Sprintf("%#v", valueOfRes.Bool()),
+        			Type:  v.Kind().String(),
+        			Value: fmt.Sprintf("%#v", v.Bool()),
         		}, nil
         	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
         		return __PrimitiveValue__{
-        			Type:  valueOfRes.Kind().String(),
-        			Value: fmt.Sprintf("%#v", valueOfRes.Int()),
+        			Type:  v.Kind().String(),
+        			Value: fmt.Sprintf("%#v", v.Int()),
         		}, nil
         	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
         		return __PrimitiveValue__{
-        			Type:  valueOfRes.Kind().String(),
-        			Value: fmt.Sprintf("%v", valueOfRes.Uint()),
+        			Type:  v.Kind().String(),
+        			Value: fmt.Sprintf("%v", v.Uint()),
         		}, nil
         	case reflect.Float32, reflect.Float64:
         		return __PrimitiveValue__{
-        			Type:  valueOfRes.Kind().String(),
-        			Value: __convertFloat64ValueToString__(valueOfRes.Float()),
+        			Type:  v.Kind().String(),
+        			Value: __convertFloat64ValueToString__(v.Float()),
         		}, nil
         	case reflect.Complex64, reflect.Complex128:
-        		value := valueOfRes.Complex()
+        		value := v.Complex()
         		realPartString := __convertFloat64ValueToString__(real(value))
         		imagPartString := __convertFloat64ValueToString__(imag(value))
         		return __PrimitiveValue__{
-        			Type:  valueOfRes.Kind().String(),
+        			Type:  v.Kind().String(),
         			Value: fmt.Sprintf("%v%v%v", realPartString, outputComplexPartsDelimiter, imagPartString),
         		}, nil
         	case reflect.String:
         		return __PrimitiveValue__{
         			Type:  reflect.String.String(),
-        			Value: fmt.Sprintf("%v", valueOfRes.String()),
+        			Value: fmt.Sprintf("%v", v.String()),
         		}, nil
         	case reflect.Struct:
-        		fields := reflect.VisibleFields(valueOfRes.Type())
-        		resultValues := make([]__FieldValue__, 0, valueOfRes.NumField())
+        		fields := reflect.VisibleFields(v.Type())
+        		resultValues := make([]__FieldValue__, 0, v.NumField())
         		for _, field := range fields {
         			if len(field.Index) != 1 {
         				continue
         			}
 
-        			res, err := __convertReflectValueToRawValue__(valueOfRes.FieldByName(field.Name))
-        			__checkErrorAndExit__(err)
+        			res, err := __convertReflectValueToRawValue__(v.FieldByName(field.Name))
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
 
         			resultValues = append(resultValues, __FieldValue__{
         				Name:       field.Name,
@@ -437,16 +615,18 @@ object GoCodeTemplates {
         			})
         		}
         		return __StructValue__{
-        			Type:  valueOfRes.Type().String(),
+        			Type:  "struct{}",
         			Value: resultValues,
         		}, nil
         	case reflect.Array:
-        		elem := valueOfRes.Type().Elem()
+        		elem := v.Type().Elem()
         		elementType := elem.String()
-        		arrayElementValues := []__RawValue__{}
-        		for i := 0; i < valueOfRes.Len(); i++ {
-        			arrayElementValue, err := __convertReflectValueToRawValue__(valueOfRes.Index(i))
-        			__checkErrorAndExit__(err)
+        		arrayElementValues := make([]__RawValue__, 0, v.Len())
+        		for i := 0; i < v.Len(); i++ {
+        			arrayElementValue, err := __convertReflectValueToRawValue__(v.Index(i))
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
 
         			arrayElementValues = append(arrayElementValues, arrayElementValue)
         		}
@@ -458,42 +638,93 @@ object GoCodeTemplates {
         			Value:       arrayElementValues,
         		}, nil
         	case reflect.Slice:
-        		if valueOfRes.IsNil() {
-        			return nil, nil
+        		if v.IsNil() {
+        			return __NilValue__{Type: "nil"}, nil
         		}
-        		elem := valueOfRes.Type().Elem()
+        		elem := v.Type().Elem()
         		elementType := elem.String()
-        		sliceElementValues := []__RawValue__{}
-        		for i := 0; i < valueOfRes.Len(); i++ {
-        			sliceElementValue, err := __convertReflectValueToRawValue__(valueOfRes.Index(i))
-        			__checkErrorAndExit__(err)
+        		typeName := fmt.Sprintf("[]%s", elementType)
+        		sliceElementValues := make([]__RawValue__, 0, v.Len())
+        		for i := 0; i < v.Len(); i++ {
+        			sliceElementValue, err := __convertReflectValueToRawValue__(v.Index(i))
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
 
         			sliceElementValues = append(sliceElementValues, sliceElementValue)
         		}
         		length := len(sliceElementValues)
         		return __SliceValue__{
-        			Type:        fmt.Sprintf("[]%s", elementType),
+        			Type:        typeName,
         			ElementType: elementType,
         			Length:      length,
         			Value:       sliceElementValues,
         		}, nil
+        	case reflect.Map:
+        		if v.IsNil() {
+        			return __NilValue__{Type: "nil"}, nil
+        		}
+        		key := v.Type().Key()
+        		keyType := key.String()
+        		elem := v.Type().Elem()
+        		elementType := elem.String()
+        		typeName := fmt.Sprintf("map[%s]%s", keyType, elementType)
+        		mapValues := make([]__KeyValue__, 0, v.Len())
+        		for iter := v.MapRange(); iter.Next(); {
+        			key, err := __convertReflectValueToRawValue__(iter.Key())
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
+
+        			value, err := __convertReflectValueToRawValue__(iter.Value())
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
+
+        			mapValues = append(mapValues, __KeyValue__{
+        				Key:   key,
+        				Value: value,
+        			})
+        		}
+        		return __MapValue__{
+        			Type:        typeName,
+        			KeyType:     keyType,
+        			ElementType: elementType,
+        			Value:       mapValues,
+        		}, nil
         	case reflect.Interface:
-        		if valueOfRes.Interface() == nil {
-        			return nil, nil
+        		if v.Interface() == nil {
+        			return __NilValue__{Type: "nil"}, nil
         		}
-        		if e, ok := valueOfRes.Interface().(error); ok {
-        			return __convertReflectValueToRawValue__(reflect.ValueOf(e.Error()))
+        		if e, ok := v.Interface().(error); ok {
+        			value, err := __convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValue__(reflect.ValueOf(e.Error()))
+        			if err != nil {
+        				return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        			}
+        			return __NamedValue__{
+        				Type:  "error",
+        				Value: value,
+        			}, nil
         		}
-        		return nil, errors.New("unsupported result type: " + valueOfRes.Type().String())
+        		return nil, fmt.Errorf("unsupported result type: %s", v.Type().String())
         	default:
-        		return nil, errors.New("unsupported result type: " + valueOfRes.Type().String())
+        		return nil, fmt.Errorf("unsupported result type: %s", v.Type().String())
         	}
+        }
+    """.trimIndent()
+
+    private val convertReflectValueToRawValueFunction = """
+        func __convertReflectValueToRawValue__(v reflect.Value) (__RawValue__, error) {
+        	if v.Type().PkgPath() != "" {
+        		return __convertReflectValueOfDefinedTypeToRawValue__(v)
+        	}
+        	return __convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValue__(v)
         }
     """.trimIndent()
 
     private fun executeFunctionFunction(maxTraceLength: Int) = """
         func __executeFunction__(
-        	timeout time.Duration, arguments []reflect.Value, wrappedFunction func([]reflect.Value) []__RawValue__,
+        	function reflect.Value, arguments []reflect.Value, timeout time.Duration,
         ) __RawExecutionResult__ {
         	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
         	defer cancel()
@@ -523,7 +754,10 @@ object GoCodeTemplates {
         				} else {
         					resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicMessage))
         				}
-        				__checkErrorAndExit__(err)
+        				if err != nil {
+        					_, _ = fmt.Fprint(os.Stderr, ErrReflectValueToRawValueFailure, err)
+        					os.Exit(1)
+        				}
 
         				executionResult.PanicMessage = &__RawPanicMessage__{
         					RawResultValue:  resultValue,
@@ -535,7 +769,11 @@ object GoCodeTemplates {
         		}()
 
         		argumentsWithTrace := append(arguments, reflect.ValueOf(&trace))
-        		resultValues := wrappedFunction(argumentsWithTrace)
+        		resultValues, err := __wrapResultValues__(function.Call(argumentsWithTrace))
+        		if err != nil {
+        			_, _ = fmt.Fprintf(os.Stderr, "Failed to wrap result values: %s", err)
+        			os.Exit(1)
+        		}
         		executionResult.RawResultValues = resultValues
         		panicked = false
         	}()
@@ -555,63 +793,67 @@ object GoCodeTemplates {
     """.trimIndent()
 
     private val wrapResultValuesForWorkerFunction = """
-        //goland:noinspection GoPreferNilSlice
-        func __wrapResultValuesForUtBotGoWorker__(values []reflect.Value) []__RawValue__ {
-        	rawValues := []__RawValue__{}
+        func __wrapResultValues__(values []reflect.Value) ([]__RawValue__, error) {
+        	rawValues := make([]__RawValue__, 0, len(values))
         	for _, value := range values {
         		resultValue, err := __convertReflectValueToRawValue__(value)
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        		}
 
         		rawValues = append(rawValues, resultValue)
         	}
-        	return rawValues
+        	return rawValues, nil
         }
     """.trimIndent()
 
     private val convertRawValuesToReflectValuesFunction = """
-        //goland:noinspection GoPreferNilSlice
-        func __convertRawValuesToReflectValues__(values []__RawValue__) []reflect.Value {
-        	parameters := []reflect.Value{}
+        func __convertRawValuesToReflectValues__(values []__RawValue__) ([]reflect.Value, error) {
+        	parameters := make([]reflect.Value, 0, len(values))
 
         	for _, value := range values {
         		reflectValue, err := value.__toReflectValue__()
-        		__checkErrorAndExit__(err)
+        		if err != nil {
+        			return nil, fmt.Errorf("failed to convert RawValue %s to reflect.Value: %s", value, err)
+        		}
 
         		parameters = append(parameters, reflectValue)
         	}
 
-        	return parameters
+        	return parameters, nil
         }
     """.trimIndent()
 
-    private val parseJsonToFunctionNameAndRawValuesFunction = """
-        //goland:noinspection GoPreferNilSlice
-        func __parseJsonToFunctionNameAndRawValues__(decoder *json.Decoder) (string, []__RawValue__, error) {
+    private val parseTestInputFunction = """
+        func __parseTestInput__(decoder *json.Decoder) (funcName string, rawValues []__RawValue__, err error) {
         	var testInput __TestInput__
-        	err := decoder.Decode(&testInput)
-        	if err == io.EOF {
-        		return "", nil, err 
+        	err = decoder.Decode(&testInput)
+        	if err != nil {
+        		return
         	}
-        	__checkErrorAndExit__(err)
 
-        	result := make([]__RawValue__, 0)
+        	funcName = testInput.FunctionName
+        	rawValues = make([]__RawValue__, 0, 10)
         	for _, arg := range testInput.Arguments {
-        		rawValue, err := __convertParsedJsonToRawValue__(arg)
-        		__checkErrorAndExit__(err)
+        		var rawValue __RawValue__
 
-        		result = append(result, rawValue)
+        		rawValue, err = __parseRawValue__(arg, "")
+        		if err != nil {
+        			return "", nil, fmt.Errorf("failed to parse argument %s of function %s: %s", arg, funcName, err)
+        		}
+
+        		rawValues = append(rawValues, rawValue)
         	}
 
-        	return testInput.FunctionName, result, nil
+        	return
         }
     """.trimIndent()
 
-    private val convertParsedJsonToRawValueFunction = """
-        //goland:noinspection GoPreferNilSlice
-        func __convertParsedJsonToRawValue__(rawValue map[string]interface{}) (__RawValue__, error) {
+    private val parseRawValueFunction = """
+        func __parseRawValue__(rawValue map[string]interface{}, name string) (__RawValue__, error) {
         	typeName, ok := rawValue["type"]
         	if !ok {
-        		return nil, fmt.Errorf("every rawValue must contain field 'type'")
+        		return nil, fmt.Errorf("every RawValue must contain field 'type'")
         	}
         	typeNameStr, ok := typeName.(string)
         	if !ok {
@@ -620,39 +862,103 @@ object GoCodeTemplates {
 
         	v, ok := rawValue["value"]
         	if !ok {
-        		return nil, fmt.Errorf("every rawValue must contain field 'value'")
+        		return __NilValue__{Type: typeNameStr}, nil
         	}
 
         	switch {
+        	case typeNameStr == "struct{}":
+        		if name == "" {
+        			return nil, fmt.Errorf("anonymous structs is not supported")
+        		}
+
+        		value, ok := v.([]interface{})
+        		if !ok {
+        			return nil, fmt.Errorf("StructValue field 'value' must be array")
+        		}
+
+        		values := make([]__FieldValue__, 0, len(value))
+        		for _, v := range value {
+        			nextValue, err := __parseFieldValue__(v.(map[string]interface{}))
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse field %s of struct: %s", v, err)
+        			}
+
+        			values = append(values, nextValue)
+        		}
+
+        		return __StructValue__{
+        			Type:  name,
+        			Value: values,
+        		}, nil
         	case strings.HasPrefix(typeNameStr, "map["):
-        		return nil, fmt.Errorf("map type not supported")
-        	case strings.HasPrefix(typeNameStr, "[]"):
+        		keyType, ok := rawValue["keyType"]
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue must contain field 'keyType'")
+        		}
+        		keyTypeStr, ok := keyType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue field 'keyType' must be string")
+        		}
+
         		elementType, ok := rawValue["elementType"]
         		if !ok {
-        			return nil, fmt.Errorf("sliceValue must contain field 'elementType")
+        			return nil, fmt.Errorf("MapValue must contain field 'elementType'")
         		}
         		elementTypeStr, ok := elementType.(string)
         		if !ok {
-        			return nil, fmt.Errorf("sliceValue field 'elementType' must be string")
+        			return nil, fmt.Errorf("MapValue field 'elementType' must be string")
+        		}
+
+        		value, ok := v.([]interface{})
+        		if !ok {
+        			return nil, fmt.Errorf("MapValue field 'value' must be array")
+        		}
+
+        		values := make([]__KeyValue__, 0, len(value))
+        		for _, v := range value {
+        			nextValue, err := __parseKeyValue__(v.(map[string]interface{}))
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse KeyValue %s of map: %s", v, err)
+        			}
+
+        			values = append(values, nextValue)
+        		}
+
+        		return __MapValue__{
+        			Type:        typeNameStr,
+        			KeyType:     keyTypeStr,
+        			ElementType: elementTypeStr,
+        			Value:       values,
+        		}, nil
+        	case strings.HasPrefix(typeNameStr, "[]"):
+        		elementType, ok := rawValue["elementType"]
+        		if !ok {
+        			return nil, fmt.Errorf("SliceValue must contain field 'elementType'")
+        		}
+        		elementTypeStr, ok := elementType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("SliceValue field 'elementType' must be string")
         		}
 
         		if _, ok := rawValue["length"]; !ok {
-        			return nil, fmt.Errorf("sliceValue must contain field 'length'")
+        			return nil, fmt.Errorf("SliceValue must contain field 'length'")
         		}
         		length, ok := rawValue["length"].(float64)
         		if !ok {
-        			return nil, fmt.Errorf("sliceValue field 'length' must be float64")
+        			return nil, fmt.Errorf("SliceValue field 'length' must be float64")
         		}
 
         		value, ok := v.([]interface{})
         		if !ok || len(value) != int(length) {
-        			return nil, fmt.Errorf("sliceValue field 'value' must be array of length %d", int(length))
+        			return nil, fmt.Errorf("SliceValue field 'value' must be array of length %d", int(length))
         		}
 
-        		values := []__RawValue__{}
-        		for _, v := range value {
-        			nextValue, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}))
-        			__checkErrorAndExit__(err)
+        		values := make([]__RawValue__, 0, len(value))
+        		for i, v := range value {
+        			nextValue, err := __parseRawValue__(v.(map[string]interface{}), "")
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse %d slice element: %s", i, err)
+        			}
 
         			values = append(values, nextValue)
         		}
@@ -666,30 +972,32 @@ object GoCodeTemplates {
         	case strings.HasPrefix(typeNameStr, "["):
         		elementType, ok := rawValue["elementType"]
         		if !ok {
-        			return nil, fmt.Errorf("arrayValue must contain field 'elementType")
+        			return nil, fmt.Errorf("ArrayValue must contain field 'elementType")
         		}
         		elementTypeStr, ok := elementType.(string)
         		if !ok {
-        			return nil, fmt.Errorf("arrayValue field 'elementType' must be string")
+        			return nil, fmt.Errorf("ArrayValue field 'elementType' must be string")
         		}
 
         		if _, ok := rawValue["length"]; !ok {
-        			return nil, fmt.Errorf("arrayValue must contain field 'length'")
+        			return nil, fmt.Errorf("ArrayValue must contain field 'length'")
         		}
         		length, ok := rawValue["length"].(float64)
         		if !ok {
-        			return nil, fmt.Errorf("arrayValue field 'length' must be float64")
+        			return nil, fmt.Errorf("ArrayValue field 'length' must be float64")
         		}
 
         		value, ok := v.([]interface{})
         		if !ok || len(value) != int(length) {
-        			return nil, fmt.Errorf("arrayValue field 'value' must be array of length %d", int(length))
+        			return nil, fmt.Errorf("ArrayValue field 'value' must be array of length %d", int(length))
         		}
 
-        		values := []__RawValue__{}
-        		for _, v := range value {
-        			nextValue, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}))
-        			__checkErrorAndExit__(err)
+        		values := make([]__RawValue__, 0, len(value))
+        		for i, v := range value {
+        			nextValue, err := __parseRawValue__(v.(map[string]interface{}), "")
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse %d array element: %s", i, err)
+        			}
 
         			values = append(values, nextValue)
         		}
@@ -705,61 +1013,55 @@ object GoCodeTemplates {
         		case "bool", "rune", "int", "int8", "int16", "int32", "int64", "byte", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64", "complex64", "complex128", "string", "uintptr":
         			value, ok := v.(string)
         			if !ok {
-        				return nil, fmt.Errorf("primitiveValue field 'value' must be string")
+        				return nil, fmt.Errorf("PrimitiveValue field 'value' must be string")
         			}
 
         			return __PrimitiveValue__{
         				Type:  typeNameStr,
         				Value: value,
         			}, nil
-        		default:
-        			value, ok := v.([]interface{})
-        			if !ok {
-        				return nil, fmt.Errorf("structValue field 'value' must be array")
+        		default: // named type
+        			value, err := __parseRawValue__(v.(map[string]interface{}), typeNameStr)
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse of NamedValue with type %s: %s", typeNameStr, err)
         			}
 
-        			values := []__FieldValue__{}
-        			for _, v := range value {
-        				nextValue, err := __convertParsedJsonToFieldValue__(v.(map[string]interface{}))
-        				__checkErrorAndExit__(err)
-
-        				values = append(values, nextValue)
-        			}
-
-        			return __StructValue__{
+        			return __NamedValue__{
         				Type:  typeNameStr,
-        				Value: values,
+        				Value: value,
         			}, nil
         		}
         	}
         }
     """.trimIndent()
 
-    private val convertParsedJsonToFieldValueFunction = """
-        func __convertParsedJsonToFieldValue__(p map[string]interface{}) (__FieldValue__, error) {
+    private val parseFieldValueFunction = """
+        func __parseFieldValue__(p map[string]interface{}) (__FieldValue__, error) {
         	name, ok := p["name"]
         	if !ok {
-        		return __FieldValue__{}, fmt.Errorf("fieldValue must contain field 'name'")
+        		return __FieldValue__{}, fmt.Errorf("FieldValue must contain field 'name'")
         	}
         	nameStr, ok := name.(string)
         	if !ok {
-        		return __FieldValue__{}, fmt.Errorf("fieldValue 'name' must be string")
+        		return __FieldValue__{}, fmt.Errorf("FieldValue 'name' must be string")
+        	}
+
+        	if _, ok := p["value"]; !ok {
+        		return __FieldValue__{}, fmt.Errorf("FieldValue must contain field 'value'")
+        	}
+        	value, err := __parseRawValue__(p["value"].(map[string]interface{}), "")
+        	if err != nil {
+        		return __FieldValue__{}, err
         	}
 
         	isExported, ok := p["isExported"]
         	if !ok {
-        		return __FieldValue__{}, fmt.Errorf("fieldValue must contain field 'isExported'")
+        		return __FieldValue__{}, fmt.Errorf("FieldValue must contain field 'isExported'")
         	}
         	isExportedBool, ok := isExported.(bool)
         	if !ok {
-        		return __FieldValue__{}, fmt.Errorf("fieldValue 'isExported' must be bool")
+        		return __FieldValue__{}, fmt.Errorf("FieldValue 'isExported' must be bool")
         	}
-
-        	if _, ok := p["value"]; !ok {
-        		return __FieldValue__{}, fmt.Errorf("fieldValue must contain field 'value'")
-        	}
-        	value, err := __convertParsedJsonToRawValue__(p["value"].(map[string]interface{}))
-        	__checkErrorAndExit__(err)
 
         	return __FieldValue__{
         		Name:       nameStr,
@@ -769,12 +1071,38 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+    private val parseKeyValueFunction = """
+        func __parseKeyValue__(p map[string]interface{}) (__KeyValue__, error) {
+        	if _, ok := p["key"]; !ok {
+        		return __KeyValue__{}, fmt.Errorf("KeyValue must contain field 'key'")
+        	}
+        	key, err := __parseRawValue__(p["key"].(map[string]interface{}), "")
+        	if err != nil {
+        		return __KeyValue__{}, err
+        	}
+
+        	if _, ok := p["value"]; !ok {
+        		return __KeyValue__{}, fmt.Errorf("KeyValue must contain field 'value'")
+        	}
+        	value, err := __parseRawValue__(p["value"].(map[string]interface{}), "")
+        	if err != nil {
+        		return __KeyValue__{}, err
+        	}
+
+        	return __KeyValue__{
+        		Key:   key,
+        		Value: value,
+        	}, nil
+        }
+    """.trimIndent()
+
     fun getTopLevelHelperStructsAndFunctionsForWorker(
-        structTypes: Set<GoStructTypeId>,
+        namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
         aliases: Map<GoPackage, String?>,
         maxTraceLength: Int,
     ) = listOf(
+        errorMessages,
         testInputStruct,
         rawValueInterface,
         primitiveValueStruct,
@@ -782,21 +1110,30 @@ object GoCodeTemplates {
         fieldValueStruct,
         structValueStruct,
         structValueToReflectValueMethod,
+        keyValueStruct,
+        mapValueStruct,
+        mapValueToReflectValueMethod,
         arrayValueStruct,
         arrayValueToReflectValueMethod,
         sliceValueStruct,
         sliceValueToReflectValueMethod,
-        convertStringToReflectType(structTypes, destinationPackage, aliases),
+        nilValueStruct,
+        nilValueToReflectValueMethod,
+        namedValueStruct,
+        namedValueToReflectValueMethod,
+        convertStringToReflectType(namedTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,
-        checkErrorFunction,
+        convertReflectValueOfDefinedTypeToRawValueFunction,
         convertFloat64ValueToStringFunction,
+        convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValueFunction,
         convertReflectValueToRawValueFunction,
         executeFunctionFunction(maxTraceLength),
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
-        parseJsonToFunctionNameAndRawValuesFunction,
-        convertParsedJsonToRawValueFunction,
-        convertParsedJsonToFieldValueFunction
+        parseTestInputFunction,
+        parseRawValueFunction,
+        parseFieldValueFunction,
+        parseKeyValueFunction
     )
 }

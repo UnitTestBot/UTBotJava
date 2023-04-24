@@ -22,6 +22,11 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             "${model.realValue}@${model.imagValue}"
         )
 
+        is GoUtNamedModel -> NamedValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            model.value.convertToRawValue(destinationPackage, aliases)
+        )
+
         is GoUtArrayModel -> ArrayValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
             model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
@@ -29,12 +34,22 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             model.getElements().map { it.convertToRawValue(destinationPackage, aliases) }
         )
 
-
         is GoUtSliceModel -> SliceValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
             model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
             model.length,
             model.getElements().map { it.convertToRawValue(destinationPackage, aliases) }
+        )
+
+        is GoUtMapModel -> MapValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            model.typeId.keyTypeId.getRelativeName(destinationPackage, aliases),
+            model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
+            model.value.entries.map {
+                val key = it.key.convertToRawValue(destinationPackage, aliases)
+                val value = it.value.convertToRawValue(destinationPackage, aliases)
+                MapValue.KeyValue(key, value)
+            }
         )
 
         is GoUtStructModel -> StructValue(
@@ -49,6 +64,6 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
         )
 
         is GoUtPrimitiveModel -> PrimitiveValue(model.typeId.name, model.value.toString())
-
+        is GoUtNilModel -> NilValue(model.typeId.getRelativeName(destinationPackage, aliases))
         else -> error("Converting ${model.javaClass} to RawValue is not supported")
     }

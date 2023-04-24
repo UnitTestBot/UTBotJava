@@ -6,6 +6,7 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
@@ -30,6 +31,7 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
+private const val MAX_EMPTY_COVERAGE_TESTS = 5
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -123,7 +125,7 @@ class PythonTestCaseGenerator(
         typeStorage: PythonTypeStorage,
         coveredLines: MutableSet<Int>,
         errors: MutableList<UtError>,
-        executions: MutableList<UtExecution>,
+        executions: MutableList<PythonUtExecution>,
         initMissingLines: Set<Int>?,
         until: Long,
         additionalVars: String = ""
@@ -218,7 +220,7 @@ class PythonTestCaseGenerator(
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
 
-        val executions = mutableListOf<UtExecution>()
+        val executions = mutableListOf<PythonUtExecution>()
         val errors = mutableListOf<UtError>()
         val coveredLines = mutableSetOf<Int>()
 
@@ -261,12 +263,15 @@ class PythonTestCaseGenerator(
         }
 
         logger.info("Collect all test executions for ${method.name}")
-        val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
+        val (emptyCoverageExecutions, coverageExecutions) = executions.partition { it.coverage == null }
+        val (successfulExecutions, failedExecutions) = coverageExecutions.partition { it.result is UtExecutionSuccess }
 
         return PythonTestSet(
             method,
             if (withMinimization)
-                minimizeExecutions(successfulExecutions) + minimizeExecutions(failedExecutions)
+                minimizeExecutions(successfulExecutions) +
+                        minimizeExecutions(failedExecutions) +
+                        emptyCoverageExecutions.take(MAX_EMPTY_COVERAGE_TESTS)
             else
                 executions,
             errors,

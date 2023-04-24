@@ -9,6 +9,7 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
+import kotlin.time.Duration
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
@@ -18,8 +19,9 @@ import kotlin.jvm.JvmStatic
  * #### Generated from [LoggerModel.kt:8]
  */
 class LoggerModel private constructor(
+    private val _initRemoteLogging: RdSignal<Unit>,
     private val _log: RdSignal<LogArguments>,
-    private val _getCategoryMinimalLogLevel: RdCall<String, Int>
+    private val _getCategoryMinimalLogLevel: RdOptionalProperty<Int>
 ) : RdExtBase() {
     //companion
     
@@ -43,35 +45,38 @@ class LoggerModel private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): LoggerModel  {
             LoggerRoot.register(protocol.serializers)
             
-            return LoggerModel().apply {
-                identify(protocol.identity, RdId.Null.mix("LoggerModel"))
-                bind(lifetime, protocol, "LoggerModel")
-            }
+            return LoggerModel()
         }
         
         
-        const val serializationHash = -6259198217478203203L
+        const val serializationHash = -4262122198555578601L
         
     }
     override val serializersOwner: ISerializersOwner get() = LoggerModel
     override val serializationHash: Long get() = LoggerModel.serializationHash
     
     //fields
+    val initRemoteLogging: IAsyncSignal<Unit> get() = _initRemoteLogging
     val log: IAsyncSignal<LogArguments> get() = _log
     
     /**
-     * Parameter - log category.
-    Result - integer value for com.jetbrains.rd.util.LogLevel.
+     * Property value - integer for com.jetbrains.rd.util.LogLevel.
      */
-    val getCategoryMinimalLogLevel: RdCall<String, Int> get() = _getCategoryMinimalLogLevel
+    val getCategoryMinimalLogLevel: IOptProperty<Int> get() = _getCategoryMinimalLogLevel
     //methods
     //initializer
     init {
+        _getCategoryMinimalLogLevel.optimizeNested = true
+    }
+    
+    init {
+        _initRemoteLogging.async = true
         _log.async = true
         _getCategoryMinimalLogLevel.async = true
     }
     
     init {
+        bindableChildren.add("initRemoteLogging" to _initRemoteLogging)
         bindableChildren.add("log" to _log)
         bindableChildren.add("getCategoryMinimalLogLevel" to _getCategoryMinimalLogLevel)
     }
@@ -79,8 +84,9 @@ class LoggerModel private constructor(
     //secondary constructor
     private constructor(
     ) : this(
+        RdSignal<Unit>(FrameworkMarshallers.Void),
         RdSignal<LogArguments>(LogArguments),
-        RdCall<String, Int>(FrameworkMarshallers.String, FrameworkMarshallers.Int)
+        RdOptionalProperty<Int>(FrameworkMarshallers.Int)
     )
     
     //equals trait
@@ -89,6 +95,7 @@ class LoggerModel private constructor(
     override fun print(printer: PrettyPrinter)  {
         printer.println("LoggerModel (")
         printer.indent {
+            print("initRemoteLogging = "); _initRemoteLogging.print(printer); println()
             print("log = "); _log.print(printer); println()
             print("getCategoryMinimalLogLevel = "); _getCategoryMinimalLogLevel.print(printer); println()
         }
@@ -97,6 +104,7 @@ class LoggerModel private constructor(
     //deepClone
     override fun deepClone(): LoggerModel   {
         return LoggerModel(
+            _initRemoteLogging.deepClonePolymorphic(),
             _log.deepClonePolymorphic(),
             _getCategoryMinimalLogLevel.deepClonePolymorphic()
         )

@@ -26,20 +26,40 @@ func implementsError(typ types.Type) bool {
 
 //goland:noinspection GoPreferNilSlice
 func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
-	var result AnalyzedType
-	switch underlyingType := typ.Underlying().(type) {
+	switch t := typ.(type) {
+	case *types.Named:
+		name := t.Obj().Name()
+
+		pkg := t.Obj().Pkg()
+		packageName, packagePath := "", ""
+		if pkg != nil {
+			packageName = pkg.Name()
+			packagePath = pkg.Path()
+		}
+
+		isError := implementsError(t)
+
+		underlyingType, err := toAnalyzedType(t.Underlying())
+		checkError(err)
+
+		return AnalyzedNamedType{
+			Name: name,
+			SourcePackage: GoPackage{
+				PackageName: packageName,
+				PackagePath: packagePath,
+			},
+			ImplementsError: isError,
+			UnderlyingType:  underlyingType,
+		}, nil
 	case *types.Basic:
-		name := underlyingType.Name()
-		result = AnalyzedPrimitiveType{Name: name}
+		name := t.Name()
+		return AnalyzedPrimitiveType{Name: name}, nil
 	case *types.Struct:
-		namedType := typ.(*types.Named)
-		name := namedType.Obj().Name()
-		pkg := namedType.Obj().Pkg()
-		isError := implementsError(namedType)
+		name := "struct{}"
 
 		fields := []AnalyzedField{}
-		for i := 0; i < underlyingType.NumFields(); i++ {
-			field := underlyingType.Field(i)
+		for i := 0; i < t.NumFields(); i++ {
+			field := t.Field(i)
 
 			fieldType, err := toAnalyzedType(field.Type())
 			checkError(err)
@@ -47,64 +67,60 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 			fields = append(fields, AnalyzedField{field.Name(), fieldType, field.Exported()})
 		}
 
-		result = AnalyzedStructType{
-			Name:            name,
-			PackageName:     pkg.Name(),
-			PackagePath:     pkg.Path(),
-			ImplementsError: isError,
-			Fields:          fields,
-		}
+		return AnalyzedStructType{
+			Name:   name,
+			Fields: fields,
+		}, nil
 	case *types.Array:
-		arrayType := typ.(*types.Array)
-
-		arrayElemType, err := toAnalyzedType(arrayType.Elem())
+		arrayElemType, err := toAnalyzedType(t.Elem())
 		checkError(err)
 
 		elemTypeName := arrayElemType.GetName()
 
-		length := arrayType.Len()
+		length := t.Len()
 		name := fmt.Sprintf("[%d]%s", length, elemTypeName)
 
-		result = AnalyzedArrayType{
+		return AnalyzedArrayType{
 			Name:        name,
 			ElementType: arrayElemType,
 			Length:      length,
-		}
+		}, nil
 	case *types.Slice:
-		sliceType := typ.(*types.Slice)
-
-		sliceElemType, err := toAnalyzedType(sliceType.Elem())
+		sliceElemType, err := toAnalyzedType(t.Elem())
 		checkError(err)
 
 		elemTypeName := sliceElemType.GetName()
 		name := fmt.Sprintf("[]%s", elemTypeName)
 
-		result = AnalyzedSliceType{
+		return AnalyzedSliceType{
 			Name:        name,
 			ElementType: sliceElemType,
-		}
-	case *types.Interface:
-		namedType := typ.(*types.Named)
-		name := namedType.Obj().Name()
-		pkg := namedType.Obj().Pkg()
-		packageName, packagePath := "", ""
-		if pkg != nil {
-			packageName = pkg.Name()
-			packagePath = pkg.Path()
-		}
+		}, nil
+	case *types.Map:
+		keyType, err := toAnalyzedType(t.Key())
+		checkError(err)
 
-		isError := implementsError(namedType)
+		elemType, err := toAnalyzedType(t.Elem())
+		checkError(err)
+
+		name := fmt.Sprintf("map[%s]%s", keyType.GetName(), elemType.GetName())
+
+		return AnalyzedMapType{
+			Name:        name,
+			KeyType:     keyType,
+			ElementType: elemType,
+		}, nil
+	case *types.Interface:
+		name := "interface{}"
+		isError := implementsError(t)
 		if !isError {
 			return nil, errors.New("currently only error interface is supported")
 		}
-		result = AnalyzedInterfaceType{
-			Name:            fmt.Sprintf("interface %s", name),
-			ImplementsError: isError,
-			PackageName:     packageName,
-			PackagePath:     packagePath,
-		}
+		return AnalyzedInterfaceType{
+			Name: name,
+		}, nil
 	}
-	return result, nil
+	return nil, fmt.Errorf("unsupported type: %s", typ)
 }
 
 // for now supports only basic and error result types
@@ -126,6 +142,9 @@ func checkTypeIsSupported(typ types.Type, isResultType bool) bool {
 	}
 	if sliceType, ok := underlyingType.(*types.Slice); ok {
 		return checkTypeIsSupported(sliceType.Elem(), isResultType)
+	}
+	if mapType, ok := underlyingType.(*types.Map); ok {
+		return checkTypeIsSupported(mapType.Key(), isResultType) && checkTypeIsSupported(mapType.Elem(), isResultType)
 	}
 	if interfaceType, ok := underlyingType.(*types.Interface); ok && isResultType {
 		return implementsError(interfaceType)

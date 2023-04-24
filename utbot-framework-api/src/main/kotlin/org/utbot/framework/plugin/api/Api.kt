@@ -8,6 +8,7 @@
 
 package org.utbot.framework.plugin.api
 
+import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
@@ -1270,16 +1271,34 @@ class SpringApplicationContext(
     private val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
     private var areInjectedClassesInitialized : Boolean = false
 
     // Classes representing concrete types that are actually used in Spring application
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                springInjectedClassesStorage += beanQualifiedNames
-                    .map { fqn -> utContext.classLoader.loadClass(fqn) }
-                    .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
-                    .mapTo(mutableSetOf()) { it.id }
+                for (beanFqn in beanQualifiedNames) {
+                    try {
+                        val beanClass = utContext.classLoader.loadClass(beanFqn)
+                        if (!beanClass.isAbstract && !beanClass.isInterface &&
+                            !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
+                            springInjectedClassesStorage += beanClass.id
+                        }
+                    } catch (e: Throwable) {
+                        // For some Spring beans (e.g. with anonymous classes)
+                        // it is possible to have problems with classes loading.
+                        when (e) {
+                            is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
+                                logger.warn { "Failed to load bean class for $beanFqn (${e.message})" }
+
+                            else -> throw e
+                        }
+                    }
+                }
 
                 // This is done to be sure that this storage is not empty after the first class loading iteration.
                 // So, even if all loaded classes were filtered out, we will not try to load them again.
@@ -1365,6 +1384,11 @@ enum class MockStrategyApi(
     companion object : CodeGenerationSettingBox {
         override val defaultItem = OTHER_PACKAGES
         override val allItems: List<MockStrategyApi> = values().toList()
+
+        // Mock strategy gains more meaning in Spring Projects.
+        // We use OTHER_CLASSES strategy as default one in `No configuration` mode
+        // and as unique acceptable in other modes (combined with type replacement).
+        val springDefaultItem = OTHER_CLASSES
     }
 }
 

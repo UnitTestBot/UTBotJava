@@ -9,6 +9,7 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
+import kotlin.time.Duration
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
@@ -42,10 +43,7 @@ class RdInstrumenterAdapter private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): RdInstrumenterAdapter  {
             EngineProcessRoot.register(protocol.serializers)
             
-            return RdInstrumenterAdapter().apply {
-                identify(protocol.identity, RdId.Null.mix("RdInstrumenterAdapter"))
-                bind(lifetime, protocol, "RdInstrumenterAdapter")
-            }
+            return RdInstrumenterAdapter()
         }
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()

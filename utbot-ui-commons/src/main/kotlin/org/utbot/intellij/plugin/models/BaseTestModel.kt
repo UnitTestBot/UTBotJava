@@ -15,12 +15,22 @@ import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.jetbrains.kotlin.idea.util.sourceRoot
+import org.utbot.common.PathUtil.fileExtension
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
+import org.utbot.intellij.plugin.ui.utils.getResourcesPaths
 import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import java.io.IOException
+import java.io.StringReader
+import java.nio.file.Files
+import javax.xml.parsers.DocumentBuilder
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.parsers.ParserConfigurationException
+import kotlin.streams.asSequence
+
 
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
 const val HISTORY_LIMIT = 10
@@ -82,7 +92,7 @@ open class BaseTestsModel(
      *      - firstly, from test source roots (in the order provided by [getSortedTestRoots])
      *      - after that, from source roots
      */
-    fun getSortedSpringConfigurationClasses(): List<String> {
+    fun getSortedSpringConfigurationClasses(): Set<String> {
         val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
 
         // Not using `srcModule.testModules(project)` here because it returns
@@ -108,7 +118,54 @@ open class BaseTestsModel(
                 .searchPsiClasses(annotation, searchScope)
                 .findAll()
                 .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-        }.mapNotNull { it.qualifiedName }
+        }.mapNotNullTo(mutableSetOf()) { it.qualifiedName }
+    }
+
+    fun getSpringXMLConfigurationFiles(): Set<String> {
+        val resourcesPaths =
+            setOf(testModule, srcModule).flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
+        val xmlFilePaths = resourcesPaths.flatMapTo(mutableListOf()) { path ->
+            Files.walk(path)
+                .asSequence()
+                .filter { it.fileExtension == ".xml" }
+        }
+
+        val builder = customizeXmlBuilder()
+        return xmlFilePaths.mapNotNullTo(mutableSetOf()) { path ->
+            try {
+                val doc = builder.parse(path.toFile())
+
+                val hasBeanTagName = doc.documentElement.tagName == "beans"
+                val hasAttribute = doc.documentElement.getAttribute("xmlns") == "http://www.springframework.org/schema/beans"
+                when {
+                    hasBeanTagName && hasAttribute -> path.toString()
+                    else -> null
+                }
+            } catch (e: Exception) {
+                // `DocumentBuilder.parse` is an unpredictable operation, may have some side effects, we suppress them.
+                null
+            }
+        }
+    }
+
+    /**
+     * Creates "safe" xml builder instance.
+     *
+     * Using standard `DocumentBuilderFactory.newInstance()` may lead to some problems like
+     * https://stackoverflow.com/questions/343383/unable-to-parse-xml-file-using-documentbuilder.
+     *
+     * We try to solve it in accordance with top-rated recommendation here
+     * https://stackoverflow.com/questions/155101/make-documentbuilder-parse-ignore-dtd-references.
+     */
+    private fun customizeXmlBuilder(): DocumentBuilder {
+        val builderFactory = DocumentBuilderFactory.newInstance()
+        builderFactory.isNamespaceAware = true
+
+        // See documentation https://xerces.apache.org/xerces2-j/features.html
+        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false)
+        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+
+        return builderFactory.newDocumentBuilder()
     }
 
     fun updateSourceRootHistory(path: String) {

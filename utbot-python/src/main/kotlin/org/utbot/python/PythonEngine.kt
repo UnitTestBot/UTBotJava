@@ -4,8 +4,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
-import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.NoSeedValueException
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.*
@@ -14,6 +14,7 @@ import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
+import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
@@ -46,7 +47,7 @@ class PythonEngine(
                 // can be improved
                 description.name
             }
-            is UtExplicitlyThrownException -> "${description.name}_with_exception"
+            is UtExecutionFailure -> "${description.name}_with_exception"
             else -> description.name
         }
         val testName = "test_$testSuffix"
@@ -80,6 +81,37 @@ class PythonEngine(
         return Pair(stateThisObject, modelList)
     }
 
+    private fun handleTimeoutResult(
+        arguments: List<PythonFuzzedValue>,
+        methodUnderTestDescription: PythonMethodDescription,
+    ): FuzzingExecutionFeedback {
+        val summary = arguments
+            .zip(methodUnderTest.arguments)
+            .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+        val executionResult = UtTimeoutException(TimeoutException("Execution is too long"))
+        val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)
+
+        val hasThisObject = methodUnderTest.hasThisArgument
+        val (beforeThisObjectTree, beforeModelListTree) = if (hasThisObject) {
+            arguments.first() to arguments.drop(1)
+        } else {
+            null to arguments
+        }
+        val beforeThisObject = beforeThisObjectTree?.let { PythonTreeModel(it.tree) }
+        val beforeModelList = beforeModelListTree.map { PythonTreeModel(it.tree) }
+
+        val utFuzzedExecution = PythonUtExecution(
+            stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            stateAfter = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            diffIds = emptyList(),
+            result = executionResult,
+            testMethodName = testMethodName.testName?.camelToSnakeCase(),
+            displayName = testMethodName.displayName,
+            summary = summary.map { DocRegularStmt(it) }
+        )
+        return ValidExecution(utFuzzedExecution)
+    }
     private fun handleSuccessResult(
         arguments: List<PythonFuzzedValue>,
         types: List<Type>,
@@ -109,7 +141,7 @@ class PythonEngine(
 
         val executionResult =
             if (evaluationResult.isException) {
-                UtExplicitlyThrownException(Throwable(resultModel.type.toString()), false)
+                UtImplicitlyThrownException(Throwable(resultModel.type.toString()), false)
             }
             else {
                 UtExecutionSuccess(PythonTreeModel(resultModel))
@@ -117,12 +149,15 @@ class PythonEngine(
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)
 
+        val (thisObject, initModelList) = transformModelList(hasThisObject, evaluationResult.stateInit, evaluationResult.modelListIds)
         val (beforeThisObject, beforeModelList) = transformModelList(hasThisObject, evaluationResult.stateBefore, evaluationResult.modelListIds)
         val (afterThisObject, afterModelList) = transformModelList(hasThisObject, evaluationResult.stateAfter, evaluationResult.modelListIds)
 
-        val utFuzzedExecution = UtFuzzedExecution(
+        val utFuzzedExecution = PythonUtExecution(
+            stateInit = EnvironmentModels(thisObject, initModelList, emptyMap()),
             stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             stateAfter = EnvironmentModels(afterThisObject, afterModelList, emptyMap()),
+            diffIds = evaluationResult.diffIds,
             result = executionResult,
             coverage = evaluationResult.coverage,
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
@@ -153,8 +188,7 @@ class PythonEngine(
                     serverSocket,
                     pythonPath,
                     until,
-                    { constructEvaluationInput(it) },
-                )
+                ) { constructEvaluationInput(it) }
             } catch (_: TimeoutException) {
                 return@flow
             }
@@ -195,8 +229,8 @@ class PythonEngine(
                         }
 
                         is PythonEvaluationTimeout -> {
-                            val utError = UtError(evaluationResult.message, Throwable())
-                            PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
+                            val utTimeoutException = handleTimeoutResult(arguments, description)
+                            PythonExecutionResult(utTimeoutException, PythonFeedback(control = Control.PASS))
                         }
 
                         is PythonEvaluationSuccess -> {
@@ -280,7 +314,7 @@ class PythonEngine(
                         emit(result.fuzzingExecutionFeedback)
                         return@PythonFuzzing result.fuzzingPlatformFeedback
                     }.fuzz(pmd)
-                } catch (_: Exception) { // e.g. NoSeedValueException
+                } catch (_: NoSeedValueException) { // e.g. NoSeedValueException
                     logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
                 }
             }

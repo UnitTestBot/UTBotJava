@@ -11,115 +11,81 @@ import kotlin.reflect.KClass
 
 data class PrimitiveValue(
     override val type: String,
-    override val value: String,
-) : RawValue(type, value) {
-    override fun checkIsEqualTypes(type: GoTypeId): Boolean {
-        if (!type.isPrimitiveGoType && type !is GoInterfaceTypeId && !type.implementsError) {
-            return false
-        }
-        // for error support
-        if (this.type == "string" && type is GoInterfaceTypeId && type.implementsError) {
-            return true
-        }
-        return GoPrimitiveTypeId(this.type) == type
-    }
-}
+    val value: String,
+) : RawValue(type)
+
+data class NamedValue(
+    override val type: String,
+    val value: RawValue,
+) : RawValue(type)
 
 data class StructValue(
     override val type: String,
-    override val value: List<FieldValue>
-) : RawValue(type, value) {
+    val value: List<FieldValue>
+) : RawValue(type) {
     data class FieldValue(
         val name: String,
         val value: RawValue,
         val isExported: Boolean
     )
-
-    override fun checkIsEqualTypes(type: GoTypeId): Boolean {
-        if (type !is GoStructTypeId) {
-            return false
-        }
-        if (this.type != type.canonicalName) {
-            return false
-        }
-        if (value.size != type.fields.size) {
-            return false
-        }
-        value.zip(type.fields).forEach { (fieldValue, fieldId) ->
-            if (fieldValue.name != fieldId.name) {
-                return false
-            }
-            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringType)) {
-                return false
-            }
-            if (fieldValue.isExported != fieldId.isExported) {
-                return false
-            }
-        }
-        return true
-    }
 }
 
 data class ArrayValue(
     override val type: String,
     val elementType: String,
     val length: Int,
-    override val value: List<RawValue>
-) : RawValue(type, value) {
-    override fun checkIsEqualTypes(type: GoTypeId): Boolean {
-        if (type !is GoArrayTypeId) {
-            return false
-        }
-        if (length != type.length || elementType != type.elementTypeId!!.canonicalName) {
-            return false
-        }
-        return value.all { it.checkIsEqualTypes(type.elementTypeId) }
-    }
-}
+    val value: List<RawValue>
+) : RawValue(type)
 
 data class SliceValue(
     override val type: String,
     val elementType: String,
     val length: Int,
-    override val value: List<RawValue>
-) : RawValue(type, value) {
-    override fun checkIsEqualTypes(type: GoTypeId): Boolean {
-        if (type !is GoSliceTypeId) {
-            return false
-        }
-        if (elementType != type.elementTypeId!!.canonicalName) {
-            return false
-        }
-        return value.all { it.checkIsEqualTypes(type.elementTypeId) }
-    }
+    val value: List<RawValue>
+) : RawValue(type)
+
+data class MapValue(
+    override val type: String,
+    val keyType: String,
+    val elementType: String,
+    val value: List<KeyValue>
+) : RawValue(type) {
+    data class KeyValue(
+        val key: RawValue,
+        val value: RawValue
+    )
 }
 
+data class NilValue(override val type: String) : RawValue(type)
+
+data class InterfaceValue(override val type: String) : RawValue(type)
+
 @TypeFor(field = "type", adapter = RawResultValueAdapter::class)
-abstract class RawValue(open val type: String, open val value: Any) {
-    abstract fun checkIsEqualTypes(type: GoTypeId): Boolean
-}
+abstract class RawValue(open val type: String)
 
 class RawResultValueAdapter : TypeAdapter<RawValue> {
     override fun classFor(type: Any): KClass<out RawValue> {
         val typeName = type as String
         return when {
-            typeName.startsWith("map[") -> error("Map result type not supported")
+            typeName == "nil" -> NilValue::class
+            typeName == "interface{}" -> InterfaceValue::class
+            typeName == "struct{}" -> StructValue::class
+            typeName.startsWith("map[") -> MapValue::class
             typeName.startsWith("[]") -> SliceValue::class
             typeName.startsWith("[") -> ArrayValue::class
             goPrimitives.map { it.name }.contains(typeName) -> PrimitiveValue::class
-            else -> StructValue::class
+            else -> NamedValue::class
         }
     }
 }
 
 data class RawPanicMessage(
-    val rawResultValue: RawValue,
-    val implementsError: Boolean
+    val rawResultValue: RawValue, val implementsError: Boolean
 )
 
 data class RawExecutionResult(
     val timeoutExceeded: Boolean,
-    val rawResultValues: List<RawValue?>,
+    val rawResultValues: List<RawValue>,
     val panicMessage: RawPanicMessage?,
     val trace: List<Int>
 )
@@ -134,10 +100,7 @@ private object RawValuesCodes {
 class GoWorkerFailedException(s: String) : Exception(s)
 
 fun convertRawExecutionResultToExecutionResult(
-    rawExecutionResult: RawExecutionResult,
-    functionResultTypes: List<GoTypeId>,
-    intSize: Int,
-    timeoutMillis: Long
+    rawExecutionResult: RawExecutionResult, functionResultTypes: List<GoTypeId>, intSize: Int, timeoutMillis: Long
 ): GoUtExecutionResult {
     if (rawExecutionResult.timeoutExceeded) {
         return GoUtTimeoutExceeded(timeoutMillis, rawExecutionResult.trace)
@@ -146,9 +109,7 @@ fun convertRawExecutionResultToExecutionResult(
         val (rawResultValue, implementsError) = rawExecutionResult.panicMessage
         val panicValue = if (goPrimitives.map { it.simpleName }.contains(rawResultValue.type)) {
             createGoUtPrimitiveModelFromRawValue(
-                rawResultValue as PrimitiveValue,
-                GoPrimitiveTypeId(rawResultValue.type),
-                intSize
+                rawResultValue as PrimitiveValue, GoPrimitiveTypeId(rawResultValue.type), intSize
             )
         } else {
             error("Only primitive panic value is currently supported")
@@ -158,19 +119,13 @@ fun convertRawExecutionResultToExecutionResult(
     if (rawExecutionResult.rawResultValues.size != functionResultTypes.size) {
         error("Function completed execution must have as many result raw values as result types.")
     }
-    rawExecutionResult.rawResultValues.zip(functionResultTypes).forEach { (rawResultValue, resultType) ->
-        if (rawResultValue != null && !rawResultValue.checkIsEqualTypes(resultType)) {
-            error("Result of function execution must have same type as function result")
-        }
-    }
     var executedWithNonNilErrorString = false
-    val resultValues =
-        rawExecutionResult.rawResultValues.zip(functionResultTypes).map { (rawResultValue, resultType) ->
-            if (resultType.implementsError && rawResultValue != null) {
-                executedWithNonNilErrorString = true
-            }
-            createGoUtModelFromRawValue(rawResultValue, resultType, intSize)
+    val resultValues = rawExecutionResult.rawResultValues.zip(functionResultTypes).map { (rawResultValue, resultType) ->
+        if (resultType.implementsError) {
+            executedWithNonNilErrorString = true
         }
+        createGoUtModelFromRawValue(rawResultValue, resultType, intSize)
+    }
     return if (executedWithNonNilErrorString) {
         GoUtExecutionWithNonNilError(resultValues, rawExecutionResult.trace)
     } else {
@@ -179,11 +134,12 @@ fun convertRawExecutionResultToExecutionResult(
 }
 
 private fun createGoUtModelFromRawValue(
-    rawValue: RawValue?, typeId: GoTypeId, intSize: Int
-): GoUtModel = if (rawValue == null) {
+    rawValue: RawValue, typeId: GoTypeId, intSize: Int
+): GoUtModel = if (rawValue is NilValue) {
     GoUtNilModel(typeId)
 } else {
     when (typeId) {
+        is GoNamedTypeId -> createGoUtNamedModelFromRawValue(rawValue as NamedValue, typeId, intSize)
         // Only for error interface
         is GoInterfaceTypeId -> GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
 
@@ -192,6 +148,8 @@ private fun createGoUtModelFromRawValue(
         is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
 
         is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
+
+        is GoMapTypeId -> createGoUtMapModelFromRawValue(rawValue as MapValue, typeId, intSize)
 
         is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
 
@@ -260,4 +218,22 @@ private fun createGoUtSliceModelFromRawValue(
         createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, intSize)
     }.toMutableMap()
     return GoUtSliceModel(value, resultTypeId, resultValue.length)
+}
+
+private fun createGoUtMapModelFromRawValue(
+    resultValue: MapValue, resultTypeId: GoMapTypeId, intSize: Int
+): GoUtMapModel {
+    val value = resultValue.value.associate {
+        val key = createGoUtModelFromRawValue(it.key, resultTypeId.keyTypeId, intSize)
+        val value = createGoUtModelFromRawValue(it.value, resultTypeId.elementTypeId!!, intSize)
+        key to value
+    }.toMutableMap()
+    return GoUtMapModel(value, resultTypeId)
+}
+
+private fun createGoUtNamedModelFromRawValue(
+    resultValue: NamedValue, resultTypeId: GoNamedTypeId, intSize: Int
+): GoUtNamedModel {
+    val value = createGoUtModelFromRawValue(resultValue.value, resultTypeId.underlyingTypeId, intSize)
+    return GoUtNamedModel(value, resultTypeId)
 }

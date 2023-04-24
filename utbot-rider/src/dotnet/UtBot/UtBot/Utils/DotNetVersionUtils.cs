@@ -10,22 +10,14 @@ namespace UtBot.Utils;
 
 internal readonly record struct TestProjectTargetFramework(FrameworkMoniker FrameworkMoniker, bool IsDefault);
 
-[SolutionComponent]
-internal class DotNetVersionUtils
+internal static class DotNetVersionUtils
 {
-    public const int MinCompatibleSdkMajor = 6;
+    public const int MinCompatibleSdkMajor = 7;
     private const string NUnitProjectMinTfm = "net6.0";
 
-    private readonly Lazy<bool> _canRunVSharp;
+    public static bool CanRunVSharp(ISolution solution) => GetCanRunVSharp(solution.SolutionDirectory.FullPath);
 
-    public DotNetVersionUtils(ISolution solution)
-    {
-        _canRunVSharp = new Lazy<bool>(() => GetCanRunVSharp(solution.SolutionDirectory.FullPath));
-    }
-
-    public bool CanRunVSharp => _canRunVSharp.Value;
-
-    public TestProjectTargetFramework GetTestProjectFramework(IProject project)
+    public static TestProjectTargetFramework GetTestProjectFramework(IProject project)
     {
         var path = project.ProjectFileLocation.Directory.FullPath;
 
@@ -115,7 +107,7 @@ internal class DotNetVersionUtils
         return false;
     }
 
-    private IEnumerable<FrameworkMoniker> GetTfms(IProject project) =>
+    private static IEnumerable<FrameworkMoniker> GetTfms(IProject project) =>
         project.TargetFrameworkIds
             .Select(i => new FrameworkMoniker(i.TryGetShortIdentifier()));
 

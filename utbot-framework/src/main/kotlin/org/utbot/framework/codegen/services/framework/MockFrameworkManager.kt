@@ -70,6 +70,7 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import java.util.*
 
 abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgContextOwner by context,
@@ -180,8 +181,10 @@ private abstract class StaticMocker(
 }
 
 private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
+
+    private val alreadyMockedModels: MutableSet<UtCompositeModel> = Collections.newSetFromMap(IdentityHashMap())
+
     override fun createMock(model: UtCompositeModel, baseName: String): CgVariable {
-        // create mock object
         val modelClass = getClassOf(model.classId)
         val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
 
@@ -191,6 +194,10 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
     }
 
     fun mockForVariable(model: UtCompositeModel, mockObject: CgVariable) {
+        if (!alreadyMockedModels.add(model)) {
+            return
+        }
+
         for ((executable, values) in model.mocks) {
             val matchers = mockitoArgumentMatchersFor(executable)
 
@@ -223,8 +230,6 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                     else -> error("Only MethodId was expected to appear in simple mocker but got $executable")
                 }
             }
-
-
         }
     }
 

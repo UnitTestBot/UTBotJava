@@ -18,7 +18,7 @@ java {
 dependencies {
     api project(':utbot-framework-api')
 
-    api project(':utbot-fuzzers')
+    api project(':utbot-java-fuzzing')
     api project(':utbot-instrumentation')
     api project(':utbot-summary')
 
@@ -51,7 +51,6 @@ dependencies {
     testImplementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4PlatformVersion
     testImplementation group: 'org.antlr', name: 'antlr4', version: antlrVersion
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
-    testImplementation group: 'org.testng', name: 'testng', version: testNgVersion
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     testImplementation group: 'com.google.guava', name: 'guava', version: guavaVersion
 

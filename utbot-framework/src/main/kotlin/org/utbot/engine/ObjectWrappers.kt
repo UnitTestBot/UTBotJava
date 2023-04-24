@@ -381,7 +381,12 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
         workaround(MAKE_SYMBOLIC) {
             listOf(
                 MethodResult(
-                    createConst(method.returnType, typeRegistry.findNewSymbolicReturnValueName())
+                    createConst(
+                        method.returnType,
+                        typeRegistry.findNewSymbolicReturnValueName(),
+                        // we don't want to mock anything returned from a throwable instance's methods
+                        mockInfoGenerator = null
+                    )
                 )
             )
         }

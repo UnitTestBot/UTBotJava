@@ -16,25 +16,9 @@ object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
     override val assertionsClass = jsUndefinedClassId
     override val arraysAssertionsClass = jsUndefinedClassId
     override val kotlinFailureAssertionsClass: ClassId = jsUndefinedClassId
-    override val testAnnotation = ""
-    override val testAnnotationFqn = ""
 
-    override val beforeMethod: String = ""
     override val beforeMethodId: ClassId = jsUndefinedClassId
-    override val beforeMethodFqn: String = ""
-
-    override val afterMethod: String = ""
     override val afterMethodId: ClassId = jsUndefinedClassId
-    override val afterMethodFqn: String = ""
-
-    override val parameterizedTestAnnotation: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val parameterizedTestAnnotationFqn: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val methodSourceAnnotation: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val methodSourceAnnotationFqn: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
 
     override val nestedClassesShouldBeStatic: Boolean
         get() = false

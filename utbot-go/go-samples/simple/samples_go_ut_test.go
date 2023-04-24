@@ -46,29 +46,29 @@ func TestGenerateArrayOfIntegersByUtGoFuzzer(t *testing.T) {
 }
 
 func TestDistanceBetweenTwoPointsByUtGoFuzzer(t *testing.T) {
-	actualVal := DistanceBetweenTwoPoints(Point{x: 0.730967787376657, y: 0.730967787376657}, Point{x: 2.0, y: 2.0})
+	actualVal := DistanceBetweenTwoPoints(Point{}, Point{})
 
-	assert.Equal(t, 1.794682566180269, actualVal)
+	assert.Equal(t, 0.0, actualVal)
 }
 
 func TestGetCoordinatesOfMiddleBetweenTwoPointsByUtGoFuzzer(t *testing.T) {
-	actualVal0, actualVal1 := GetCoordinatesOfMiddleBetweenTwoPoints(Point{x: 0.24053641567148587, y: 0.24053641567148587}, Point{x: 2.0, y: 2.0})
+	actualVal0, actualVal1 := GetCoordinatesOfMiddleBetweenTwoPoints(Point{}, Point{})
 
 	assertMultiple := assert.New(t)
-	assertMultiple.Equal(1.1202682078357429, actualVal0)
-	assertMultiple.Equal(1.1202682078357429, actualVal1)
+	assertMultiple.Equal(0.0, actualVal0)
+	assertMultiple.Equal(0.0, actualVal1)
 }
 
 func TestGetCoordinateSumOfPointsByUtGoFuzzer(t *testing.T) {
-	actualVal0, actualVal1 := GetCoordinateSumOfPoints([]Point{{x: 0.6374174253501083, y: 0.6374174253501083}})
+	actualVal0, actualVal1 := GetCoordinateSumOfPoints([]Point{{}})
 
 	assertMultiple := assert.New(t)
-	assertMultiple.Equal(0.6374174253501083, actualVal0)
-	assertMultiple.Equal(0.6374174253501083, actualVal1)
+	assertMultiple.Equal(0.0, actualVal0)
+	assertMultiple.Equal(0.0, actualVal1)
 }
 
 func TestGetAreaOfCircleByUtGoFuzzer(t *testing.T) {
-	actualVal := GetAreaOfCircle(Circle{Center: Point{x: 0.5504370051176339, y: 0.5504370051176339}, Radius: 2.0})
+	actualVal := GetAreaOfCircle(Circle{Center: Point{}, Radius: 2.0})
 
 	assert.Equal(t, 12.566370614359172, actualVal)
 }
@@ -92,23 +92,23 @@ func TestIsIdentityByUtGoFuzzer3(t *testing.T) {
 }
 
 func TestBinaryWithNonNilErrorByUtGoFuzzer1(t *testing.T) {
-	actualVal, actualErr := Binary([]int{1}, 2, 0, -1)
+	actualVal, actualErr := Binary(nil, 2, 0, -1)
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(-1, actualVal)
 	assertMultiple.ErrorContains(actualErr, "target not found in array")
 }
 
-func TestBinaryByUtGoFuzzer2(t *testing.T) {
-	actualVal, actualErr := Binary([]int{9223372036854775807, -1, -1, -1, -1}, 9223372036854775807, 0, 1)
+func TestBinaryWithNonNilErrorByUtGoFuzzer2(t *testing.T) {
+	actualVal, actualErr := Binary([]int{1, 1, 0}, 2, 1, 1)
 
 	assertMultiple := assert.New(t)
-	assertMultiple.Equal(0, actualVal)
-	assertMultiple.Nil(actualErr)
+	assertMultiple.Equal(-1, actualVal)
+	assertMultiple.ErrorContains(actualErr, "target not found in array")
 }
 
 func TestBinaryWithNonNilErrorByUtGoFuzzer3(t *testing.T) {
-	actualVal, actualErr := Binary([]int{1, 17592186044417, 257, 1125899906842625}, -9223372036854775808, 1, 2)
+	actualVal, actualErr := Binary([]int{1, 1, 0}, -9214364837600034814, 1, 1)
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(-1, actualVal)
@@ -116,15 +116,15 @@ func TestBinaryWithNonNilErrorByUtGoFuzzer3(t *testing.T) {
 }
 
 func TestBinaryWithNonNilErrorByUtGoFuzzer4(t *testing.T) {
-	actualVal, actualErr := Binary([]int{-1, -1, -1, -1, 9223372036854775807}, 9223372036854775807, 0, 1)
+	actualVal, actualErr := Binary([]int{9223372036854775807, 9223372036854775807, 1, 9223372036854775807, -9223372036854775808}, 9223372036854775807, -1, 1)
 
 	assertMultiple := assert.New(t)
-	assertMultiple.Equal(-1, actualVal)
-	assertMultiple.ErrorContains(actualErr, "target not found in array")
+	assertMultiple.Equal(0, actualVal)
+	assertMultiple.Nil(actualErr)
 }
 
 func TestBinaryPanicsByUtGoFuzzer(t *testing.T) {
-	assert.PanicsWithError(t, "runtime error: index out of range [-4611686018427387905]", func() { Binary([]int{1}, 2, -9223372036854775808, -1) })
+	assert.PanicsWithError(t, "runtime error: index out of range [-4611686018427387905]", func() { Binary(nil, 2, -9223372036854775808, -1) })
 }
 
 func TestStringSearchByUtGoFuzzer1(t *testing.T) {

@@ -13,11 +13,11 @@ object LoggerModel : Ext(LoggerRoot) {
     }
 
     init {
+        signal("initRemoteLogging", PredefinedType.void).async
         signal("log", logArguments).async
-        call(
+        property(
             "getCategoryMinimalLogLevel",
-            PredefinedType.string,
             PredefinedType.int
-        ).async.doc("Parameter - log category.\nResult - integer value for com.jetbrains.rd.util.LogLevel.")
+        ).async.doc("Property value - integer for com.jetbrains.rd.util.LogLevel.")
     }
 }

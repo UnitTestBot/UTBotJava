@@ -84,6 +84,12 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
     }
+    val getSpringBeanQualifiedNamesParams = structdef {
+        field("classpath", array(PredefinedType.string))
+        field("config", PredefinedType.string)
+        field("fileStorage", array(PredefinedType.string))
+        field("profileExpression", PredefinedType.string.nullable)
+    }
     val methodDescription = structdef {
         field("name", PredefinedType.string)
         field("containingClass", PredefinedType.string.nullable)
@@ -124,6 +130,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     }
     init {
         call("setupUtContext", setupContextParams, PredefinedType.void).async
+        call("getSpringBeanQualifiedNames", getSpringBeanQualifiedNamesParams, array(PredefinedType.string)).async
         call("createTestGenerator", testGeneratorParams, PredefinedType.void).async
         call("isCancelled", PredefinedType.void, PredefinedType.bool).async
         call("generate", generateParams, generateResult).async

@@ -3,7 +3,6 @@ package org.utbot.framework.codegen.domain
 import org.utbot.framework.DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
 import org.utbot.framework.codegen.domain.builtin.mockitoClassId
 import org.utbot.framework.codegen.domain.builtin.ongoingStubbingClassId
-import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.tree.argumentsClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -182,21 +181,11 @@ abstract class TestFramework(
     abstract val assertionsClass: ClassId
     abstract val arraysAssertionsClass: ClassId
     abstract val kotlinFailureAssertionsClass: ClassId
-    abstract val testAnnotation: String
     abstract val testAnnotationId: ClassId
-    abstract val testAnnotationFqn: String
-    abstract val beforeMethod: String
     abstract val beforeMethodId: ClassId
-    abstract val beforeMethodFqn: String
-    abstract val afterMethod: String
     abstract val afterMethodId: ClassId
-    abstract val afterMethodFqn: String
-    abstract val parameterizedTestAnnotation: String
     abstract val parameterizedTestAnnotationId: ClassId
-    abstract val parameterizedTestAnnotationFqn: String
-    abstract val methodSourceAnnotation: String
     abstract val methodSourceAnnotationId: ClassId
-    abstract val methodSourceAnnotationFqn: String
     abstract val nestedClassesShouldBeStatic: Boolean
     abstract val argListClassId: ClassId
 
@@ -271,31 +260,20 @@ abstract class TestFramework(
 object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
     override val mainPackage: String = TEST_NG_PACKAGE
 
-    override val testAnnotation: String = "@$mainPackage.Test"
-    override val testAnnotationFqn: String = "$mainPackage.Test"
     override val testAnnotationId: ClassId = BuiltinClassId(
         canonicalName = "$mainPackage.annotations.Test",
         simpleName = "Test"
     )
 
-    override val beforeMethod = "@${mainPackage}.BeforeMethod"
-    override val beforeMethodFqn = "${mainPackage}.BeforeMethod"
     override val beforeMethodId = BuiltinClassId(
-        canonicalName = "${mainPackage}.BeforeMethod",
+        canonicalName = "$mainPackage.annotations.BeforeMethod",
         simpleName = "BeforeMethod"
     )
 
-    override val afterMethod = "@${mainPackage}.AfterMethod"
-    override val afterMethodFqn = "${mainPackage}.AfterMethod"
     override val afterMethodId = BuiltinClassId(
-        canonicalName = "${mainPackage}.AfterMethod",
+        canonicalName = "$mainPackage.annotations.AfterMethod",
         simpleName = "AfterMethod"
     )
-
-    override val parameterizedTestAnnotation: String = "@$mainPackage.Test"
-    override val parameterizedTestAnnotationFqn: String = "@$mainPackage.Test"
-    override val methodSourceAnnotation: String = "@$mainPackage.DataProvider"
-    override val methodSourceAnnotationFqn: String = "@$mainPackage.DataProvider"
 
     internal const val testXmlName: String = "testng.xml"
 
@@ -394,35 +372,20 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
 
     override val mainPackage: String = JUNIT4_PACKAGE
 
-    override val testAnnotation = "@$mainPackage.Test"
-    override val testAnnotationFqn: String = "$mainPackage.Test"
     override val testAnnotationId = BuiltinClassId(
         canonicalName = "$mainPackage.Test",
         simpleName = "Test"
     )
 
-    override val beforeMethod = "@$mainPackage.Before"
-    override val beforeMethodFqn = "$mainPackage.Before"
     override val beforeMethodId = BuiltinClassId(
         canonicalName = "$mainPackage.Before",
         simpleName = "Before"
     )
 
-    override val afterMethod = "@$mainPackage.After"
-    override val afterMethodFqn = "$mainPackage.After"
     override val afterMethodId = BuiltinClassId(
         canonicalName = "$mainPackage.After",
         simpleName = "After"
     )
-
-    override val parameterizedTestAnnotation
-        get() = parametrizedTestsNotSupportedError
-    override val parameterizedTestAnnotationFqn
-        get() = parametrizedTestsNotSupportedError
-    override val methodSourceAnnotation
-        get() = parametrizedTestsNotSupportedError
-    override val methodSourceAnnotationFqn
-        get() = parametrizedTestsNotSupportedError
 
     override val parameterizedTestAnnotationId = voidClassId
     override val methodSourceAnnotationId = voidClassId
@@ -469,31 +432,20 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
 object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
     override val mainPackage: String = JUNIT5_PACKAGE
 
-    override val testAnnotation = "@$mainPackage.Test"
-    override val testAnnotationFqn: String = "$mainPackage.Test"
     override val testAnnotationId = BuiltinClassId(
         canonicalName = "$JUNIT5_PACKAGE.Test",
         simpleName = "Test"
     )
 
-    override val beforeMethod = "@${mainPackage}.BeforeEach"
-    override val beforeMethodFqn = "${mainPackage}.BeforeEach"
     override val beforeMethodId = BuiltinClassId(
         canonicalName = "${mainPackage}.BeforeEach",
         simpleName = "BeforeEach"
     )
 
-    override val afterMethod = "@${mainPackage}.AfterEach"
-    override val afterMethodFqn = "${mainPackage}.AfterEach"
     override val afterMethodId = BuiltinClassId(
         canonicalName = "${mainPackage}.AfterEach",
         simpleName = "AfterEach"
     )
-
-    override val parameterizedTestAnnotation = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest"
-    override val parameterizedTestAnnotationFqn: String = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest"
-    override val methodSourceAnnotation: String = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource"
-    override val methodSourceAnnotationFqn: String = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource"
 
     val executableClassId = BuiltinClassId(
         canonicalName = "$JUNIT5_PACKAGE.function.Executable",
@@ -751,7 +703,7 @@ sealed class TypeReplacementApproach {
      *
      * Currently used in Spring applications only.
      */
-    class ReplaceIfPossible(val configFqn: String) : TypeReplacementApproach()
+    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
 }
 
 abstract class DependencyInjectionFramework(

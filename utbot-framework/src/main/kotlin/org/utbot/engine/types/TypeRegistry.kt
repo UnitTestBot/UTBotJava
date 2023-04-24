@@ -199,6 +199,20 @@ class TypeRegistry {
      */
     fun isMock(addr: UtAddrExpression) = isMockArray.select(addr)
 
+    private fun mockCorrectnessConstraint(addr: UtAddrExpression) =
+        mkOr(
+            mkEq(isMock(addr), UtFalse),
+            mkNot(mkEq(addr, nullObjectAddr))
+        )
+
+    fun isMockConstraint(addr: UtAddrExpression) = mkAnd(
+        mkOr(
+            mkEq(isMock(addr), UtTrue),
+            mkEq(addr, nullObjectAddr)
+        ),
+        mockCorrectnessConstraint(addr)
+    )
+
     /**
      * Makes the numbers of dimensions for every object in the program equal to zero by default
      */

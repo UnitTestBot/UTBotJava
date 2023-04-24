@@ -19,11 +19,6 @@ plugins {
     `maven-publish`
 }
 
-configure<JavaPluginExtension> {
-    sourceCompatibility = VERSION_11
-    targetCompatibility = VERSION_17
-}
-
 allprojects {
 
     apply {
@@ -63,6 +58,7 @@ allprojects {
             maxHeapSize = "3072m"
             jvmArgs = listOf(
                 "-XX:MaxHeapSize=3072m",
+                "--add-opens", "java.base/java.util.concurrent.atomic=ALL-UNNAMED",
                 "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED",
                 "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
                 "--add-opens", "java.base/java.util.concurrent.locks=ALL-UNNAMED",
@@ -189,7 +185,7 @@ configure(
         project(":utbot-core"),
         project(":utbot-framework"),
         project(":utbot-framework-api"),
-        project(":utbot-fuzzers"),
+        project(":utbot-java-fuzzing"),
         project(":utbot-instrumentation"),
         project(":utbot-rd"),
         project(":utbot-summary")

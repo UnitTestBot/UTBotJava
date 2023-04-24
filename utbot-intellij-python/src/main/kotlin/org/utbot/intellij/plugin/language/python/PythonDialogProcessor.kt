@@ -86,7 +86,7 @@ object PythonDialogProcessor {
     }
 
     private fun getPythonPath(elementsToShow: Set<PyElement>): String? {
-        return findSrcModule(elementsToShow).sdk?.homePath
+        return findSrcModules(elementsToShow).first().sdk?.homePath
     }
 
     private fun createDialog(
@@ -95,8 +95,8 @@ object PythonDialogProcessor {
         focusedElement: PyElement?,
         pythonPath: String,
     ): PythonDialogWindow {
-        val srcModule = findSrcModule(elementsToShow)
-        val testModules = srcModule.testModules(project)
+        val srcModules = findSrcModules(elementsToShow)
+        val testModules = srcModules.flatMap {it.testModules(project)}
         val focusedElements = focusedElement
             ?.let { setOf(focusedElement.toUtPyTableItem()).filterNotNull() }
             ?.toSet()
@@ -104,7 +104,7 @@ object PythonDialogProcessor {
         return PythonDialogWindow(
             PythonTestsModel(
                 project,
-                srcModule,
+                srcModules.first(),
                 testModules,
                 elementsToShow,
                 focusedElements,
@@ -331,15 +331,8 @@ object PythonDialogProcessor {
     }
 }
 
-fun findSrcModule(elements: Collection<PyElement>): Module {
-    QualifiedNameFinder.getQualifiedName(elements.first())
-    ModuleUtilCore.findModuleForPsiElement(elements.first())
-    val srcModules = elements.mapNotNull { it.module }.distinct()
-    return when (srcModules.size) {
-        0 -> error("Module for source classes and functions not found")
-        else -> srcModules.first()
-//        else -> error("Can not generate tests for classes and functions from different modules")
-    }
+fun findSrcModules(elements: Collection<PyElement>): List<Module> {
+    return elements.mapNotNull { it.module }.distinct()
 }
 
 fun getSrcModule(element: PyElement): Module {

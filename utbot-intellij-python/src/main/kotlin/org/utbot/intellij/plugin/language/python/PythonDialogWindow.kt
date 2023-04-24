@@ -11,8 +11,6 @@ import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import com.jetbrains.python.psi.*
-import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
-import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.intellij.plugin.language.python.table.UtPyClassItem
@@ -92,24 +90,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
 
     private fun updateTestFrameworksList() {
         testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
-    }
-
-    private fun globalPyFunctionsToPyMemberInfo(
-        project: Project,
-        functions: Collection<PyFunction>
-    ): List<PyMemberInfo<PyElement>> {
-        val generator = PyElementGenerator.getInstance(project)
-        val fakeClassName = generateRandomString(15)
-        val newClass = generator.createFromText(
-            LanguageLevel.getDefault(),
-            PyClass::class.java,
-            "class __FakeWrapperUtBotClass_$fakeClassName:\npass"
-        )
-        functions.forEach {
-            newClass.add(it)
-        }
-        val storage = PyMemberInfoStorage(newClass)
-        return storage.getClassMemberInfos(newClass)
     }
 
     private fun updatePyElementsTable() {

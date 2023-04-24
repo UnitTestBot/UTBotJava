@@ -11,15 +11,11 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.testIntegration.createTest.CreateTestAction
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-import com.jetbrains.python.sdk.PythonSdkType
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
-import org.jetbrains.kotlin.idea.util.projectStructure.module
-import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 
@@ -27,20 +23,6 @@ object PythonLanguageAssistant : LanguageAssistant() {
 
     private const val pythonID = "Python"
     val language: Language = Language.findLanguageByID(pythonID) ?: error("Language wasn't found")
-
-    data class FunctionTargets(
-        val functions: Set<PyFunction>,
-        val containingClass: PyClass?,
-        val focusedFunction: PyFunction?,
-        val file: PyFile,
-        val editor: Editor?,
-    )
-
-    data class ClassTargets(
-        val classes: Set<PyClass>,
-        val file: PyFile,
-        val editor: Editor?,
-    )
 
     data class Targets(
         val pyClasses: Set<PyClass>,
@@ -56,7 +38,6 @@ object PythonLanguageAssistant : LanguageAssistant() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-//        val (functions, containingClass, focusedFunction, file, editor) = getPsiTargets(e) ?: return
         val targets = getPsiTargets2(e) ?: return
 
         PythonDialogProcessor.createDialogAndGenerateTests(
@@ -77,7 +58,7 @@ object PythonLanguageAssistant : LanguageAssistant() {
 
         val resultFunctions = mutableSetOf<PyFunction>()
         val resultClasses = mutableSetOf<PyClass>()
-        var focusedFunction: PyFunction? = null
+        val focusedFunction: PyFunction?
         var focusedClass: PyClass? = null
 
         if (editor != null) {
@@ -127,54 +108,9 @@ object PythonLanguageAssistant : LanguageAssistant() {
                     resultClasses.addAll(classes)
                 }
                 return Targets(resultClasses, resultFunctions, null, null, null)
-            } else if (element is PsiElement) {
-                val file = element.containingFile ?: return null
-                return null
             }
         }
         return null
-    }
-
-    private fun getPsiTargets(e: AnActionEvent): FunctionTargets? {
-        val editor = e.getData(CommonDataKeys.EDITOR)
-        val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
-
-        if (file.module?.sdk?.sdkType !is PythonSdkType)
-            return null
-
-        val element = if (editor != null) {
-            findPsiElement(file, editor) ?: return null
-        } else {
-            e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
-        }
-
-        val containingClass = getContainingElement<PyClass>(element) { fineClass(it) }
-        val containingFunction: PyFunction? =
-            if (containingClass == null)
-                getContainingElement(element) { it.parent is PsiFile && fineFunction(it) }
-            else
-                getContainingElement(element) { func ->
-                    val ancestors = getAncestors(func)
-                    ancestors.dropLast(1).all { it !is PyFunction } &&
-                            ancestors.count { it is PyClass } == 1 && fineFunction(func)
-                }
-
-        if (containingClass == null) {
-            val functions = file.topLevelFunctions.filter { fineFunction(it) }
-            if (functions.isEmpty())
-                return null
-
-            val focusedFunction = if (functions.contains(containingFunction)) containingFunction else null
-            return FunctionTargets(functions.toSet(), null, focusedFunction, file, editor)
-        }
-
-        val functions = containingClass.methods.filter { fineFunction(it) }
-        if (functions.isEmpty())
-            return null
-
-        val focusedFunction =
-            if (functions.any { it.name == containingFunction?.name }) containingFunction else null
-        return FunctionTargets(functions.toSet(), containingClass, focusedFunction, file, editor)
     }
 
     // this method is copy-paste from GenerateTestsActions.kt

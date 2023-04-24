@@ -289,7 +289,8 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             mockConstructionInitializer.mockConstructionCall
         )
 
-        importIfNeeded(mockedConstructionContextClassId)
+        importIfNeeded(MockitoStaticMocking.mockedConstructionClassId)
+        importIfNeeded(classId)
 
         resources += mockedConstructionDeclaration
         +CgAssignment(mockedConstructionDeclaration.variable, mockConstructionInitializer.mockConstructionCall)
@@ -355,6 +356,9 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             ).also {
                 resources += it
                 +CgAssignment(it.variable, classMockStaticCall)
+
+                importIfNeeded(MockitoStaticMocking.mockedStaticClassId)
+                importIfNeeded(classId)
             }
         }
 
@@ -437,6 +441,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         )
 
         importIfNeeded(mockedConstructionContextClassId)
+        importIfNeeded(classId)
 
         return MockConstructionBlock(
             mockitoClassId[MockitoStaticMocking.mockConstructionMethodId](clazz, answersBlock),

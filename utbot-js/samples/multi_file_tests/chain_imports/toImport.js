@@ -10,6 +10,7 @@ class ObjectParameter {
         return 2 * value
     }
 }
+
 // Using global variable to "hide" actual class (Some) from the chainImports.js file
 let glob = new ObjectParameter(new Some(5))
 

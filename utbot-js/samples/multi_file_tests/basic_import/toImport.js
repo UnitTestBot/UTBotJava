@@ -1,4 +1,3 @@
-
 class ObjectParameter {
 
     constructor(a) {

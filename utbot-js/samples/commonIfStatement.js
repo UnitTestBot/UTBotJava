@@ -1,4 +1,4 @@
-function foo(a,b) {
+function foo(a, b) {
     if (a > 10) {
         return a * b
     } else {

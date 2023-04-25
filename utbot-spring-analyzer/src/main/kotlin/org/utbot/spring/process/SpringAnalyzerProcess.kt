@@ -37,7 +37,6 @@ private const val SPRING_ANALYZER_JAR_PATH = "lib/$SPRING_ANALYZER_JAR_FILENAME"
 private const val UNKNOWN_MODIFICATION_TIME = 0L
 
 private val logger = KotlinLogging.logger {}
-private val rdLogger = UtRdKLogger(logger, "")
 
 private var classpathArgs = listOf<String>()
 
@@ -106,7 +105,7 @@ class SpringAnalyzerProcess private constructor(
                 }
                 rdProcess.awaitProcessReady()
                 val proc = SpringAnalyzerProcess(rdProcess)
-                proc.loggerModel.setup(rdLogger, proc.lifetime)
+                proc.loggerModel.setup(logger, proc.lifetime)
                 return proc
             }
     }

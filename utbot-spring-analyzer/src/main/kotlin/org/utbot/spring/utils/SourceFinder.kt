@@ -23,7 +23,7 @@ open class SourceFinder(
             configurationManager.patchImportResourceAnnotation(Path(applicationData.configurationFile).fileName)
             arrayOf(TestApplicationConfiguration::class.java)
         }
-        else -> {
+        ApplicationConfigurationType.JavaConfiguration -> {
             logger.info { "Using java Spring configuration" }
             arrayOf(
                 TestApplicationConfiguration::class.java,
@@ -32,7 +32,6 @@ open class SourceFinder(
         }
     }
 
-    //TODO: support Spring Boot Applications here.
     private val configurationType: ApplicationConfigurationType
         get() = when (File(applicationData.configurationFile).extension) {
             "xml" -> ApplicationConfigurationType.XmlConfiguration

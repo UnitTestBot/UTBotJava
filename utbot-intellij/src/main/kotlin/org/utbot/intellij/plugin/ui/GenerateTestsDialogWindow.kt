@@ -224,16 +224,21 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     )
 
     private fun shortenConfigurationNames(): Set<Pair<String?, Collection<String>>> {
-        val shortenedSortedSpringConfigurationClasses =
-            javaConfigurationHelper.shortenSpringConfigNames(model.getSortedSpringConfigurationClasses())
+        val springBootApplicationClasses = model.getSortedSpringBootApplicationClasses()
+        val configurationClasses = model.getSortedSpringConfigurationClasses()
+        val xmlConfigurationFiles = model.getSpringXMLConfigurationFiles()
+
+        val shortenedJavaConfigurationClasses =
+            javaConfigurationHelper.shortenSpringConfigNames(springBootApplicationClasses + configurationClasses)
 
         val shortenedSpringXMLConfigurationFiles =
-            xmlConfigurationHelper.shortenSpringConfigNames(model.getSpringXMLConfigurationFiles())
+            xmlConfigurationHelper.shortenSpringConfigNames(xmlConfigurationFiles)
 
         return setOf(
             null to listOf(NO_SPRING_CONFIGURATION_OPTION),
-            "Java-based configurations" to shortenedSortedSpringConfigurationClasses,
-            "XML-based configurations" to shortenedSpringXMLConfigurationFiles
+            "@SpringBootApplication" to springBootApplicationClasses.map(shortenedJavaConfigurationClasses::getValue),
+            "@Configuration" to configurationClasses.map(shortenedJavaConfigurationClasses::getValue),
+            "XML configuration" to xmlConfigurationFiles.map(shortenedSpringXMLConfigurationFiles::getValue)
         )
     }
 

@@ -35,6 +35,15 @@ import kotlin.streams.asSequence
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
 const val HISTORY_LIMIT = 10
 
+const val SPRINGBOOT_APPLICATION_FQN = "org.springframework.boot.autoconfigure.SpringBootApplication"
+const val SPRINGBOOT_CONFIGURATION_FQN = "org.springframework.boot.SpringBootConfiguration"
+const val SPRING_CONFIGURATION_ANNOTATION = "org.springframework.context.annotation.Configuration"
+const val SPRING_TESTCONFIGURATION_ANNOTATION = "org.springframework.boot.test.context.TestConfiguration"
+
+const val SPRING_BEANS_SCHEMA_URL = "http://www.springframework.org/schema/beans"
+const val SPRING_LOAD_DTD_GRAMMAR_PROPERTY = "http://apache.org/xml/features/nonvalidating/load-dtd-grammar"
+const val SPRING_LOAD_EXTERNAL_DTD_PROPERTY = "http://apache.org/xml/features/nonvalidating/load-external-dtd"
+
 open class BaseTestsModel(
     val project: Project,
     val srcModule: Module,
@@ -84,46 +93,52 @@ open class BaseTestsModel(
     )
 
     /**
-     * Searches configuration classes in Spring application.
+     * Finds @SpringBootApplication classes in Spring application.
      *
-     * Classes are selected and sorted in the following order:
-     *   - Classes marked with `@TestConfiguration` annotation
-     *   - Classes marked with `@Configuration` annotation
-     *      - firstly, from test source roots (in the order provided by [getSortedTestRoots])
-     *      - after that, from source roots
+     * @see [getSortedAnnotatedClasses]
      */
-    fun getSortedSpringConfigurationClasses(): Set<String> {
-        val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
+    fun getSortedSpringBootApplicationClasses(): Set<String> =
+        getSortedAnnotatedClasses(SPRINGBOOT_CONFIGURATION_FQN) + getSortedAnnotatedClasses(SPRINGBOOT_APPLICATION_FQN)
 
-        // Not using `srcModule.testModules(project)` here because it returns
-        // test modules for dependent modules if no test roots are found in the source module itself.
-        // We don't want to search configurations there because they seem useless.
-        val testModules = ModuleManager.getInstance(project)
-            .modules
-            .filter { module -> TestModuleProperties.getInstance(module).productionModule == srcModule }
+    /**
+     * Finds @TestConfiguration and @Configuration classes in Spring application.
+     *
+     * @see [getSortedAnnotatedClasses]
+     */
+    fun getSortedSpringConfigurationClasses(): Set<String> =
+        getSortedAnnotatedClasses(SPRING_TESTCONFIGURATION_ANNOTATION) + getSortedAnnotatedClasses(SPRING_CONFIGURATION_ANNOTATION)
 
-        val searchScope = testModules.fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
+    /**
+     * Finds classes annotated with given annotation in [srcModule] and [potentialTestModules].
+     *
+     * Sorting order:
+     *   - classes from test source roots (in the order provided by [getSortedTestRoots])
+     *   - classes from production source roots
+     */
+    private fun getSortedAnnotatedClasses(annotationFqn: String): Set<String> {
+        val searchScope = potentialTestModules.fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
             accScope.union(GlobalSearchScope.moduleScope(module))
         }
 
-        val annotationClasses =  listOf(
-            "org.springframework.boot.test.context.TestConfiguration",
-            "org.springframework.context.annotation.Configuration"
-        ).mapNotNull {
-            JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.allScope(project))
-        }
+        val annotationClass = JavaPsiFacade
+            .getInstance(project)
+            .findClass(annotationFqn, GlobalSearchScope.allScope(project)) ?: return emptySet()
 
-        return annotationClasses.flatMap { annotation ->
-            AnnotatedElementsSearch
-                .searchPsiClasses(annotation, searchScope)
-                .findAll()
-                .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-        }.mapNotNullTo(mutableSetOf()) { it.qualifiedName }
+        val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
+
+        return AnnotatedElementsSearch
+            .searchPsiClasses(annotationClass, searchScope)
+            .findAll()
+            .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
+            .mapNotNullTo(mutableSetOf()) { it.qualifiedName }
     }
 
     fun getSpringXMLConfigurationFiles(): Set<String> {
         val resourcesPaths =
-            setOf(testModule, srcModule).flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
+            buildList {
+                addAll(potentialTestModules)
+                add(srcModule)
+            }.distinct().flatMapTo(mutableSetOf()) { it.getResourcesPaths() }
         val xmlFilePaths = resourcesPaths.flatMapTo(mutableListOf()) { path ->
             Files.walk(path)
                 .asSequence()
@@ -136,7 +151,7 @@ open class BaseTestsModel(
                 val doc = builder.parse(path.toFile())
 
                 val hasBeanTagName = doc.documentElement.tagName == "beans"
-                val hasAttribute = doc.documentElement.getAttribute("xmlns") == "http://www.springframework.org/schema/beans"
+                val hasAttribute = doc.documentElement.getAttribute("xmlns") == SPRING_BEANS_SCHEMA_URL
                 when {
                     hasBeanTagName && hasAttribute -> path.toString()
                     else -> null
@@ -162,8 +177,8 @@ open class BaseTestsModel(
         builderFactory.isNamespaceAware = true
 
         // See documentation https://xerces.apache.org/xerces2-j/features.html
-        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false)
-        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+        builderFactory.setFeature(SPRING_LOAD_DTD_GRAMMAR_PROPERTY, false)
+        builderFactory.setFeature(SPRING_LOAD_EXTERNAL_DTD_PROPERTY, false)
 
         return builderFactory.newDocumentBuilder()
     }

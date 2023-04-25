@@ -1,8 +1,10 @@
 package org.utbot.intellij.plugin.language.python
 
 import com.intellij.openapi.components.service
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.*
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -10,8 +12,8 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.components.BorderLayoutPanel
-import com.jetbrains.python.psi.*
-
+import com.jetbrains.python.psi.PyClass
+import com.jetbrains.python.psi.PyFunction
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.intellij.plugin.language.python.settings.loadStateFromModel
@@ -19,13 +21,15 @@ import org.utbot.intellij.plugin.language.python.table.UtPyClassItem
 import org.utbot.intellij.plugin.language.python.table.UtPyFunctionItem
 import org.utbot.intellij.plugin.language.python.table.UtPyMemberSelectionTable
 import org.utbot.intellij.plugin.language.python.table.UtPyTableItem
-
 import org.utbot.intellij.plugin.settings.Settings
-import java.util.concurrent.TimeUnit
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
 import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
 import java.awt.event.ActionEvent
-import javax.swing.*
+import java.util.concurrent.TimeUnit
+import javax.swing.AbstractAction
+import javax.swing.Action
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JComponent
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 5
@@ -77,7 +81,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             }
             row("Generate tests for:") {}
             row {
-                cell(JBScrollPane(functionsTable)).align(Align.FILL)
+                cell(JBScrollPane(pyElementsTable)).align(Align.FILL)
             }
         }
 

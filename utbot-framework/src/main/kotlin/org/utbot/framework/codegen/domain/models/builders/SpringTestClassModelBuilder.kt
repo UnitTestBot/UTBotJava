@@ -101,8 +101,10 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                 }
             }
             is UtCompositeModel -> {
+                // Here we traverse fields only.
+                // Traversing mocks as well will result in wrong models playing
+                // a role of class fields with @Mock annotation.
                 currentModel.fields.values.forEach { collectRecursively(it, allModels) }
-                currentModel.mocks.values.asSequence().flatten().forEach { collectRecursively(it, allModels) }
             }
             is UtAssembleModel -> {
                 currentModel.origin?.let { collectRecursively(it, allModels) }

@@ -35,6 +35,15 @@ import kotlin.streams.asSequence
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
 const val HISTORY_LIMIT = 10
 
+const val SPRINGBOOT_APPLICATION_FQN = "org.springframework.boot.autoconfigure.SpringBootApplication"
+const val SPRINGBOOT_CONFIGURATION_FQN = "org.springframework.boot.SpringBootConfiguration"
+const val SPRING_CONFIGURATION_ANNOTATION = "org.springframework.context.annotation.Configuration"
+const val SPRING_TESTCONFIGURATION_ANNOTATION = "org.springframework.boot.test.context.TestConfiguration"
+
+const val SPRING_BEANS_SCHEMA_URL = "http://www.springframework.org/schema/beans"
+const val SPRING_LOAD_DTD_GRAMMAR_PROPERTY = "http://apache.org/xml/features/nonvalidating/load-dtd-grammar"
+const val SPRING_LOAD_EXTERNAL_DTD_PROPERTY = "http://apache.org/xml/features/nonvalidating/load-external-dtd"
+
 open class BaseTestsModel(
     val project: Project,
     val srcModule: Module,
@@ -89,7 +98,7 @@ open class BaseTestsModel(
      * @see [getSortedAnnotatedClasses]
      */
     fun getSortedSpringBootApplicationClasses(): Set<String> =
-        getSortedAnnotatedClasses("org.springframework.boot.autoconfigure.SpringBootApplication")
+        getSortedAnnotatedClasses(SPRINGBOOT_CONFIGURATION_FQN) + getSortedAnnotatedClasses(SPRINGBOOT_APPLICATION_FQN)
 
     /**
      * Finds @TestConfiguration and @Configuration classes in Spring application.
@@ -97,8 +106,7 @@ open class BaseTestsModel(
      * @see [getSortedAnnotatedClasses]
      */
     fun getSortedSpringConfigurationClasses(): Set<String> =
-        getSortedAnnotatedClasses("org.springframework.boot.test.context.TestConfiguration") +
-                getSortedAnnotatedClasses("org.springframework.context.annotation.Configuration")
+        getSortedAnnotatedClasses(SPRING_TESTCONFIGURATION_ANNOTATION) + getSortedAnnotatedClasses(SPRING_CONFIGURATION_ANNOTATION)
 
     /**
      * Finds classes annotated with given annotation in [srcModule] and [potentialTestModules].
@@ -143,7 +151,7 @@ open class BaseTestsModel(
                 val doc = builder.parse(path.toFile())
 
                 val hasBeanTagName = doc.documentElement.tagName == "beans"
-                val hasAttribute = doc.documentElement.getAttribute("xmlns") == "http://www.springframework.org/schema/beans"
+                val hasAttribute = doc.documentElement.getAttribute("xmlns") == SPRING_BEANS_SCHEMA_URL
                 when {
                     hasBeanTagName && hasAttribute -> path.toString()
                     else -> null
@@ -169,8 +177,8 @@ open class BaseTestsModel(
         builderFactory.isNamespaceAware = true
 
         // See documentation https://xerces.apache.org/xerces2-j/features.html
-        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false)
-        builderFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+        builderFactory.setFeature(SPRING_LOAD_DTD_GRAMMAR_PROPERTY, false)
+        builderFactory.setFeature(SPRING_LOAD_EXTERNAL_DTD_PROPERTY, false)
 
         return builderFactory.newDocumentBuilder()
     }

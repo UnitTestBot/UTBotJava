@@ -29,7 +29,6 @@ class GoInstruction(
 )
 
 class GoDescription(
-    val mutex: Mutex,
     val worker: GoWorker,
     val methodUnderTest: GoUtFunction,
     val tracer: Trie<GoInstruction, *>,
@@ -37,7 +36,6 @@ class GoDescription(
 ) : Description<GoTypeId>(methodUnderTest.parameters.map { it.type }.toList())
 
 suspend fun runGoFuzzing(
-    mutex: Mutex,
     methodUnderTest: GoUtFunction,
     worker: GoWorker,
     index: Int,
@@ -47,7 +45,6 @@ suspend fun runGoFuzzing(
 ) {
     BaseFuzzing(providers, exec).fuzz(
         description = GoDescription(
-            mutex = mutex,
             worker = worker,
             methodUnderTest = methodUnderTest,
             tracer = Trie(GoInstruction::lineNumber),

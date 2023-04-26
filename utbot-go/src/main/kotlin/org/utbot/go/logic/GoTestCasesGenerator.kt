@@ -1,10 +1,7 @@
 package org.utbot.go.logic
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.go.GoEngine
@@ -92,7 +89,7 @@ object GoTestCasesGenerator {
                     allRawExecutionResults += rawExecutionResults
                 }
                 runBlocking {
-                    workers.map { async(Dispatchers.IO) { it.close() } }.awaitAll()
+                    workers.map { launch(Dispatchers.IO) { it.close() } }.joinAll()
                 }
             } catch (e: TimeoutException) {
                 logger.error { e.message }

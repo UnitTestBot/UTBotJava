@@ -31,8 +31,6 @@ class GoEngine(
     var numberOfFunctionExecutions: AtomicInteger = AtomicInteger(0)
 
     fun fuzzing(): Flow<Pair<GoUtFuzzedFunction, RawExecutionResult>> = channelFlow {
-        var attempts = 0
-        val attemptsLimit = Int.MAX_VALUE
         if (functionUnderTest.parameters.isEmpty()) {
             workers[0].sendFuzzedParametersValues(functionUnderTest, emptyList(), emptyMap())
             val rawExecutionResult = workers[0].receiveRawExecutionResult()
@@ -43,7 +41,9 @@ class GoEngine(
             val notCoveredLines = (1..functionUnderTest.numberOfAllStatements).toMutableSet()
             workers.mapIndexed { index, worker ->
                 launch(Dispatchers.IO) {
-                    runGoFuzzing(mutex, functionUnderTest, worker, index, intSize) { description, values ->
+                    var attempts = 0
+                    val attemptsLimit = Int.MAX_VALUE
+                    runGoFuzzing(functionUnderTest, worker, index, intSize) { description, values ->
                         try {
                             if (timeoutExceededOrIsCanceled() || notCoveredLines.isEmpty()) {
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
@@ -58,9 +58,7 @@ class GoEngine(
                                 logger.error { "Coverage is empty for [${functionUnderTest.name}] with $values}" }
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                             }
-                            val trieNode = description.mutex.withLock {
-                                description.tracer.add(rawExecutionResult.trace.map { GoInstruction(it) })
-                            }
+                            val trieNode = description.tracer.add(rawExecutionResult.trace.map { GoInstruction(it) })
                             if (trieNode.count > 1) {
                                 if (++attempts >= attemptsLimit) {
                                     return@runGoFuzzing BaseFeedback(
@@ -70,7 +68,7 @@ class GoEngine(
                                 }
                                 return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
                             }
-                            description.mutex.withLock {
+                            mutex.withLock {
                                 if (notCoveredLines.removeAll(rawExecutionResult.trace.toSet())) {
                                     send(fuzzedFunction to rawExecutionResult)
                                 }

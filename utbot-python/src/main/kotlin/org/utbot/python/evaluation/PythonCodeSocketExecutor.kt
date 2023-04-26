@@ -12,6 +12,7 @@ import org.utbot.python.evaluation.serialiation.FailExecution
 import org.utbot.python.evaluation.serialiation.PythonExecutionResult
 import org.utbot.python.evaluation.serialiation.SuccessExecution
 import org.utbot.python.evaluation.serialiation.serializeObjects
+import org.utbot.python.evaluation.utils.CoverageIdGenerator
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
@@ -60,6 +61,7 @@ class PythonCodeSocketExecutor(
                 fullname.drop(moduleToImport.length).removePrefix(".")
             }
 
+        val coverageId = CoverageIdGenerator.createId()
         val request = ExecutionRequest(
             functionTextName,
             moduleToImport,
@@ -69,6 +71,7 @@ class PythonCodeSocketExecutor(
             emptyMap(),  // here can be only-kwargs arguments
             memory,
             method.moduleFilename,
+            coverageId,
         )
         val message = ExecutionRequestSerializer.serializeRequest(request) ?: error("Cannot serialize request to python executor")
         try {

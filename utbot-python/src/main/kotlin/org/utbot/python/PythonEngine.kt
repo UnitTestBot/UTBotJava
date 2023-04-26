@@ -11,6 +11,7 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.*
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
+import org.utbot.python.evaluation.utils.CoverageIdGenerator
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper

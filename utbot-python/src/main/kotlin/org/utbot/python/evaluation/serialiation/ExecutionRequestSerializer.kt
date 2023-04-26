@@ -24,4 +24,5 @@ data class ExecutionRequest(
     val kwargumentsIds: Map<String, String>,
     val serializedMemory: String,
     val filepath: String,
+    val coverageId: String,
 )

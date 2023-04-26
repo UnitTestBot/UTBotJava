@@ -75,9 +75,9 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             row("Test generation timeout:") {
                 cell(BorderLayoutPanel().apply {
                     addToLeft(timeoutSpinnerForTotalTimeout)
-                    addToRight(JBLabel("seconds per function"))
+                    addToRight(JBLabel("seconds per module"))
                 })
-                contextHelp("Set the timeout for all test generation processes per function to complete.")
+                contextHelp("Set the timeout for all test generation processes per module to complete.")
             }
             row("Generate tests for:") {}
             row {

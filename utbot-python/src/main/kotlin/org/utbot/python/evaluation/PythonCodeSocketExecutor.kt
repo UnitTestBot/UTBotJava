@@ -50,6 +50,15 @@ class PythonCodeSocketExecutor(
         fuzzedValues: FunctionArguments,
         additionalModulesToImport: Set<String>
     ): PythonEvaluationResult {
+        val coverageId = CoverageIdGenerator.createId()
+        return runWithCoverage(fuzzedValues, additionalModulesToImport, coverageId)
+    }
+
+    override fun runWithCoverage(
+        fuzzedValues: FunctionArguments,
+        additionalModulesToImport: Set<String>,
+        coverageId: String
+    ): PythonEvaluationResult {
         val (arguments, memory) = serializeObjects(fuzzedValues.allArguments.map { it.tree })
 
         val containingClass = method.containingPythonClass
@@ -61,7 +70,6 @@ class PythonCodeSocketExecutor(
                 fullname.drop(moduleToImport.length).removePrefix(".")
             }
 
-        val coverageId = CoverageIdGenerator.createId()
         val request = ExecutionRequest(
             functionTextName,
             moduleToImport,

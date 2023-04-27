@@ -7,18 +7,26 @@ import java.net.DatagramSocket
 import java.net.SocketException
 
 class PythonCoverageReceiver(
-    private val port: Int,
-) {
+    private val until: Long,
+) : Thread() {
     val coverageStorage = mutableMapOf<String, MutableSet<Int>>()
-    private val socket = DatagramSocket(port)
+    private val socket = DatagramSocket()
     private val logger = KotlinLogging.logger {}
 
-    private fun run() {
+    fun address(): Pair<String, String> {
+        return "localhost" to socket.localPort.toString()
+    }
+
+    override fun run() {
         try {
-            while (true) {
-                val request = DatagramPacket(byteArrayOf(1), 1)
+            while (System.currentTimeMillis() < until) {
+                val buf = ByteArray(256)
+                val request = DatagramPacket(buf, buf.size)
                 socket.receive(request)
-                println(request.data)
+                val (id, line) = request.data.decodeToString().take(request.length).split(":")
+                logger.info { "Got coverage: $id, $line" }
+                val lineNumber = line.toInt()
+                coverageStorage.getOrPut(id) { mutableSetOf() } .add(lineNumber)
             }
         } catch (ex: SocketException) {
             logger.error("Socket error: " + ex.message);

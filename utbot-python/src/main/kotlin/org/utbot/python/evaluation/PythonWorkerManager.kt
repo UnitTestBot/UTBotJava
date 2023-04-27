@@ -26,7 +26,10 @@ class PythonWorkerManager(
     private lateinit var workerSocket: Socket
     private lateinit var codeExecutor: PythonCodeExecutor
 
+    val coverageReceiver = PythonCoverageReceiver(until)
+
     init {
+        coverageReceiver.start()
         connect()
     }
 
@@ -37,6 +40,8 @@ class PythonWorkerManager(
             "-m", "utbot_executor",
             "localhost",
             serverSocket.localPort.toString(),
+            coverageReceiver.address().first,
+            coverageReceiver.address().second,
             "--logfile", logfile.absolutePath,
             "--loglevel", "DEBUG",  // "DEBUG", "INFO", "WARNING", "ERROR"
         ))
@@ -60,11 +65,30 @@ class PythonWorkerManager(
     fun disconnect() {
         workerSocket.close()
         process.destroy()
+        coverageReceiver.interrupt()
     }
 
     fun reconnect() {
         disconnect()
         connect()
+    }
+
+    fun runWithCoverage(
+        fuzzedValues: FunctionArguments,
+        additionalModulesToImport: Set<String>,
+        coverageId: String
+    ): PythonEvaluationResult {
+        val evaluationResult = try {
+            codeExecutor.runWithCoverage(fuzzedValues, additionalModulesToImport, coverageId)
+        } catch (_: SocketTimeoutException) {
+            logger.debug { "Socket timeout" }
+            reconnect()
+            PythonEvaluationTimeout()
+        }
+        if (evaluationResult is PythonEvaluationError) {
+            reconnect()
+        }
+        return evaluationResult
     }
 
     fun run(

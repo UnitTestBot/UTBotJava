@@ -10,5 +10,4 @@ object CoverageIdGenerator {
     fun createId(): String {
         return lastId.incrementAndGet().toString(radix = 16)
     }
-
 }

@@ -90,7 +90,6 @@ import org.utbot.framework.codegen.domain.SpringBoot
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
-import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
@@ -99,6 +98,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.SpringTestsType
 import org.utbot.framework.plugin.api.SpringTestsType.*
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.framework.plugin.api.TypeReplacementApproach
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME

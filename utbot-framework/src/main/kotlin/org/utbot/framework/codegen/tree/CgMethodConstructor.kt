@@ -330,6 +330,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         when (methodType) {
             SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $expectedException")
             PASSED_EXCEPTION -> {
+                // TODO consider rendering message in a comment
+                //  expectedException.message?.let { +comment(it) }
                 testFrameworkManager.expectException(expectedException::class.id) {
                     methodInvocationBlock()
                 }

@@ -26,16 +26,6 @@ fun defaultTestFlow(timeout: Long) = testFlow {
 }
 
 /**
- * Creates default flow for Spring application.
- */
-fun defaultSpringFlow(params: GenerateParams) = testFlow {
-    generationTimeout = params.generationTimeout
-    isSymbolicEngineEnabled = true
-    isFuzzingEnabled = params.isFuzzingEnabled
-    fuzzingValue = params.fuzzingValue
-}
-
-/**
  * Creates default flow that uses [UtSettings] for customization.
  */
 fun defaultTestFlow(engine: UtBotSymbolicEngine, timeout: Long) = defaultTestFlow(timeout).invoke(engine)

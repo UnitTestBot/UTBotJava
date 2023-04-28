@@ -1,7 +1,6 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
 import org.utbot.framework.plugin.api.*
-import java.io.Closeable
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.execution.constructors.MockValueConstructor
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext

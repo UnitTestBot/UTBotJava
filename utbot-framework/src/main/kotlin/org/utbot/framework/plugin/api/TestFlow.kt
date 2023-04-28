@@ -30,7 +30,7 @@ fun defaultTestFlow(timeout: Long) = testFlow {
  */
 fun defaultSpringFlow(params: GenerateParams) = testFlow {
     generationTimeout = params.generationTimeout
-    isSymbolicEngineEnabled = true
+    isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
     isFuzzingEnabled = params.isFuzzingEnabled
     fuzzingValue = params.fuzzingValue
 }

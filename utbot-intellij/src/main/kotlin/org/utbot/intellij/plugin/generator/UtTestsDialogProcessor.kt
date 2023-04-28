@@ -49,7 +49,7 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.codegen.domain.TypeReplacementApproach.*
+import org.utbot.framework.plugin.api.TypeReplacementApproach.*
 import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
@@ -268,6 +268,7 @@ object UtTestsDialogProcessor {
                                         staticMockingConfigured,
                                         beanDefinitions,
                                         shouldUseImplementors,
+                                        model.typeReplacementApproach
                                     )
                                 }
                                 else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
@@ -357,10 +358,6 @@ object UtTestsDialogProcessor {
                                             )
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
-                                        val useFuzzing = when (model.projectType) {
-                                            Spring -> model.typeReplacementApproach == DoNotReplace
-                                            else -> UtSettings.useFuzzing
-                                        }
                                         val rdGenerateResult = process.generate(
                                             model.conflictTriggers,
                                             methods,
@@ -368,8 +365,8 @@ object UtTestsDialogProcessor {
                                             model.chosenClassesToMockAlways,
                                             model.timeout,
                                             model.timeout,
+                                            false,
                                             true,
-                                            useFuzzing,
                                             project.service<Settings>().fuzzingValue,
                                             searchDirectory.pathString
                                         )

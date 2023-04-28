@@ -19,7 +19,7 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.TypeReplacementApproach
+import org.utbot.framework.plugin.api.TypeReplacementApproach
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.util.ConflictTriggers

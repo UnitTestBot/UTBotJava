@@ -1,22 +1,24 @@
 package org.utbot.instrumentation.instrumentation.execution
 
-import java.security.ProtectionDomain
-import java.util.IdentityHashMap
-import kotlin.reflect.jvm.javaMethod
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.info
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
-import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
-import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
-import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import java.security.ProtectionDomain
+import java.util.*
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
@@ -45,15 +47,19 @@ class UtConcreteExecutionResult(
     }
 }
 
+private val logger = getLogger<UtExecutionInstrumentation>()
+
+// TODO if possible make it non singleton
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 
-    private val instrumentationContext = InstrumentationContext()
+    var instrumentationContext = InstrumentationContext()
 
     private val traceHandler = TraceHandler()
     private val pathsToUserClasses = mutableSetOf<String>()
 
     override fun init(pathsToUserClasses: Set<String>) {
+        super.init(pathsToUserClasses)
         UtExecutionInstrumentation.pathsToUserClasses.clear()
         UtExecutionInstrumentation.pathsToUserClasses += pathsToUserClasses
     }
@@ -140,7 +146,16 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
                 UtConcreteExecutionResult(
                     stateAfter,
-                    executionResult,
+                    when (executionResult) {
+                        is UtExecutionSuccess -> executionResult
+                        // TODO remove this workaround when deserialization of exceptions without serialVersionUID is fixed
+                        is UtExecutionFailure -> UtExplicitlyThrownException(
+                            Exception(
+                                "${executionResult.exception.javaClass.name} ${executionResult.exception.message}"
+                            ),
+                            fromNestedMethod = false
+                        )
+                    },
                     coverage
                 )
             } finally {

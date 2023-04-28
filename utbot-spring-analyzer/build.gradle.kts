@@ -23,19 +23,19 @@ configurations.implementation.get().extendsFrom(shadowJarConfiguration)
 
 dependencies {
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
-    implementation("org.springframework.boot:spring-boot:$springBootVersion")
-    implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
+    compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
+    compileOnly("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
+    compileOnly("commons-io:commons-io:$commonsIOVersion")
 
     fun ModuleDependency.excludeSlf4jApi() = exclude(group = "org.slf4j", module = "slf4j-api")
 
     // TODO stop putting dependencies that are only used in SpringAnalyzerProcess into shadow jar
-    shadowJarConfiguration(project(":utbot-rd")) { excludeSlf4jApi() }
-    shadowJarConfiguration(project(":utbot-core")) { excludeSlf4jApi() }
-    shadowJarConfiguration(project(":utbot-framework-api")) { excludeSlf4jApi() }
-    shadowJarConfiguration("com.jetbrains.rd:rd-framework:$rdVersion") { excludeSlf4jApi() }
-    shadowJarConfiguration("com.jetbrains.rd:rd-core:$rdVersion") { excludeSlf4jApi() }
-    shadowJarConfiguration("commons-logging:commons-logging:$commonsLoggingVersion") { excludeSlf4jApi() }
-    shadowJarConfiguration("commons-io:commons-io:$commonsIOVersion") { excludeSlf4jApi() }
+    implementation(project(":utbot-rd")) { excludeSlf4jApi() }
+    implementation(project(":utbot-core")) { excludeSlf4jApi() }
+    implementation(project(":utbot-framework-api")) { excludeSlf4jApi() }
+    implementation("com.jetbrains.rd:rd-framework:$rdVersion") { excludeSlf4jApi() }
+    implementation("com.jetbrains.rd:rd-core:$rdVersion") { excludeSlf4jApi() }
+    implementation("commons-logging:commons-logging:$commonsLoggingVersion") { excludeSlf4jApi() }
 }
 
 application {
@@ -44,18 +44,7 @@ application {
 
 // see more details -- https://github.com/spring-projects/spring-boot/issues/1828
 tasks.shadowJar {
-    configurations = listOf(shadowJarConfiguration)
-
     isZip64 = true
-    // Required for Spring
-    mergeServiceFiles()
-    append("META-INF/spring.handlers")
-    append("META-INF/spring.schemas")
-    append("META-INF/spring.tooling")
-    transform(PropertiesFileTransformer().apply {
-        paths = listOf("META-INF/spring.factories")
-        mergeStrategy = "append"
-    })
 
     transform(Log4j2PluginsCacheFileTransformer::class.java)
     archiveFileName.set("utbot-spring-analyzer-shadow.jar")

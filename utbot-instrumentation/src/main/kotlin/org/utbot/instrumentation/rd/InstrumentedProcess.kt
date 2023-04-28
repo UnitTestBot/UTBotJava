@@ -34,7 +34,7 @@ import java.io.File
 
 private val logger = KotlinLogging.logger { }
 
-private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
+private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation-shadow"
 private const val INSTRUMENTATION_LIB = "lib"
 
 private fun tryFindInstrumentationJarInResources(): File? {
@@ -68,8 +68,8 @@ private val instrumentationJarFile: File =
             logger.debug("Failed to find jar in the resources.")
             tryFindInstrumentationJarOnClasspath()
         } ?: error("""
-                    Can't find file: $UTBOT_INSTRUMENTATION-<version>.jar.
-                    Make sure you added $UTBOT_INSTRUMENTATION-<version>.jar to the resources folder from gradle.
+                    Can't find file: $UTBOT_INSTRUMENTATION.jar.
+                    Make sure you added $UTBOT_INSTRUMENTATION.jar to the resources folder from gradle.
                 """.trimIndent())
     }
 

@@ -2,6 +2,7 @@ package org.utbot.instrumentation.instrumentation
 
 import java.lang.instrument.ClassFileTransformer
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.instrumentation.agent.Agent
 
 /**
  * Abstract class for the instrumentation.
@@ -29,6 +30,11 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
 
     /**
      * Will be called in the very beginning in the instrumented process.
+     *
+     * Do not call from engine process to avoid unwanted side effects (e.g. Spring context initialization)
      */
-    fun init(pathsToUserClasses: Set<String>) {}
+    fun init(pathsToUserClasses: Set<String>) {
+        Agent.dynamicClassTransformer.transformer = this // classTransformer is set
+        Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
+    }
 }

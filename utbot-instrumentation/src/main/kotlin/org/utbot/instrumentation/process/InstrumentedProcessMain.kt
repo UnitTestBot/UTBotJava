@@ -7,10 +7,11 @@ import kotlinx.coroutines.*
 import org.mockito.Mockito
 import org.utbot.common.*
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.process.generated.CollectCoverageResult
+import org.utbot.instrumentation.process.generated.GetSpringBeanResult
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
@@ -139,8 +140,6 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         logger.debug { "setInstrumentation request" }
         instrumentation = kryoHelper.readObject(params.instrumentation)
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
-        Agent.dynamicClassTransformer.transformer = instrumentation // classTransformer is set
-        Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
         instrumentation.init(pathsToUserClasses)
     }
     watchdog.measureTimeForActiveCall(addPaths, "User and dependency classpath setup") { params ->
@@ -154,5 +153,10 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         logger.debug { "class - ${anyClass.name}" }
         val result = (instrumentation as CoverageInstrumentation).collectCoverageInfo(anyClass)
         CollectCoverageResult(kryoHelper.writeObject(result))
+    }
+    watchdog.measureTimeForActiveCall(getSpringBean, "Getting Spring bean") { params ->
+        GetSpringBeanResult(kryoHelper.writeObject(
+            (instrumentation as SpringUtExecutionInstrumentation).getBean(params.beanName)
+        ))
     }
 }

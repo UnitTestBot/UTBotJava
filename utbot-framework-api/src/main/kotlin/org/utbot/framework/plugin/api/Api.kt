@@ -62,7 +62,7 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.*
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.isNotSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootField
@@ -546,7 +546,9 @@ data class UtAssembleModel private constructor(
         other as UtAssembleModel
 
         if (id != other.id) return false
-        if (classId != other.classId) return false
+        if (classId != other.classId) {
+            if (classId isNotSubtypeOf other.classId && other.classId isNotSubtypeOf classId) return false
+        }
 
         return true
     }

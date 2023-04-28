@@ -57,6 +57,7 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.components.panels.OpaquePanel
@@ -200,7 +201,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val staticsMocking = JCheckBox("Mock static methods")
 
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
-    private val profileExpression = JTextField(DEFAULT_SPRING_PROFILE_NAME, 23)
+    private val profileExpression = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
 
     private val timeoutSpinner =
         JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
@@ -656,7 +657,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     TypeReplacementApproach.ReplaceIfPossible(fullConfigName)
                 }
             }
-        model.profileExpression = profileExpression.text
+        model.profileExpression = profileExpression.text.let { if (it == "") DEFAULT_SPRING_PROFILE_NAME else it }
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -1074,22 +1075,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             testPackageField.text = if (packageNameIsNeeded) testPackageName else ""
             testPackageField.isEnabled = !testPackageField.isEnabled
         }
-
-        profileExpression.addFocusListener(object : FocusListener {
-            override fun focusGained(e: FocusEvent) {
-                if (profileExpression.text == DEFAULT_SPRING_PROFILE_NAME) {
-                    profileExpression.text = ""
-                    profileExpression.foreground = Color.BLACK
-                }
-            }
-
-            override fun focusLost(e: FocusEvent) {
-                if (profileExpression.text.isEmpty()) {
-                    profileExpression.text = DEFAULT_SPRING_PROFILE_NAME
-                    profileExpression.foreground = Color.GRAY
-                }
-            }
-        })
     }
 
     private lateinit var currentFrameworkItem: TestFramework

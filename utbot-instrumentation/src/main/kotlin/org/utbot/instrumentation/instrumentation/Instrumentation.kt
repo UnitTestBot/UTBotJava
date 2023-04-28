@@ -29,6 +29,8 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
 
     /**
      * Will be called in the very beginning in the instrumented process.
+     *
+     * Do not call from engine process to avoid unwanted side effects (e.g. Spring context initialization)
      */
     fun init(pathsToUserClasses: Set<String>) {}
 }

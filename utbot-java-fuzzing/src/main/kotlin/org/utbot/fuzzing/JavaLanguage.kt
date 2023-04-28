@@ -7,6 +7,8 @@ import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.providers.*
+import org.utbot.fuzzing.type.factories.FuzzedTypeFactory
+import org.utbot.fuzzing.type.factories.SimpleFuzzedTypeFactory
 import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.*
 import java.util.concurrent.CancellationException
@@ -20,7 +22,7 @@ typealias JavaValueProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescr
 class FuzzedDescription(
     val description: FuzzedMethodDescription,
     val tracer: Trie<Instruction, *>,
-    val typeCache: MutableMap<Type, FuzzedType>,
+    val fuzzedTypeFactory: FuzzedTypeFactory,
     val random: Random,
 ) : Description<FuzzedType>(
     description.parameters.mapIndexed { index, classId ->
@@ -45,6 +47,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     IteratorValueProvider(idGenerator),
     EmptyCollectionValueProvider(idGenerator),
     DateValueProvider(idGenerator),
+    DelegatingToCustomJavaValueProvider,
 //    NullValueProvider,
 )
 
@@ -54,6 +57,7 @@ suspend fun runJavaFuzzing(
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
+    fuzzedTypeFactory: FuzzedTypeFactory = SimpleFuzzedTypeFactory(),
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val random = Random(0)
@@ -62,10 +66,6 @@ suspend fun runJavaFuzzing(
     val returnType = methodUnderTest.returnType
     val parameters = methodUnderTest.parameters
 
-    // For a concrete fuzzing run we need to track types we create.
-    // Because of generics can be declared as recursive structures like `<T extends Iterable<T>>`,
-    // we should track them by reference and do not call `equals` and `hashCode` recursively.
-    val typeCache = hashMapOf<Type, FuzzedType>()
     /**
      * To fuzz this instance, the class of it is added into head of parameters list.
      * Done for compatibility with old fuzzer logic and should be reworked more robust way.
@@ -88,9 +88,9 @@ suspend fun runJavaFuzzing(
         fuzzerType = {
             try {
                 when {
-                    self != null && it == 0 -> toFuzzerType(methodUnderTest.executable.declaringClass, typeCache)
-                    self != null -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it - 1], typeCache)
-                    else -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it], typeCache)
+                    self != null && it == 0 -> fuzzedTypeFactory.createFuzzedType(methodUnderTest.executable.declaringClass, isThisInstance = true)
+                    self != null -> fuzzedTypeFactory.createFuzzedType(methodUnderTest.executable.genericParameterTypes[it - 1], isThisInstance = false)
+                    else -> fuzzedTypeFactory.createFuzzedType(methodUnderTest.executable.genericParameterTypes[it], isThisInstance = false)
                 }
             } catch (_: Throwable) {
                 null
@@ -103,8 +103,8 @@ suspend fun runJavaFuzzing(
         if (!isStatic && !isConstructor) { classUnderTest } else { null }
     }
     val tracer = Trie(Instruction::id)
-    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, typeCache, random)
-    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, typeCache, random)
+    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, fuzzedTypeFactory, random)
+    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, fuzzedTypeFactory, random)
     val start = System.nanoTime()
     try {
         logger.info { "Starting fuzzing for method: $methodUnderTest" }

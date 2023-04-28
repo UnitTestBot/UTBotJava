@@ -41,6 +41,14 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("result", array(PredefinedType.byte))
     }
 
+    val GetSpringBeanParams = structdef {
+        field("beanName", PredefinedType.string)
+    }
+
+    val GetSpringBeanResult = structdef {
+        field("beanModel", array(PredefinedType.byte))
+    }
+
     init {
         call("AddPaths", AddPathsParams, PredefinedType.void).apply {
             async
@@ -75,6 +83,10 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
             documentation =
                 "This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to get value of static field\n" +
                         "[fieldId]"
+        }
+        call("GetSpringBean", GetSpringBeanParams, GetSpringBeanResult).apply {
+            async
+            documentation = "Gets Spring bean by name (requires Spring instrumentation)"
         }
     }
 }

@@ -40,11 +40,14 @@ import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
+import org.utbot.fuzzing.providers.AutowiredValueProvider
+import org.utbot.fuzzing.type.factories.SimpleFuzzedTypeFactory
+import org.utbot.fuzzing.type.factories.SpringFuzzedTypeFactory
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -105,7 +108,8 @@ class UtBotSymbolicEngine(
     dependencyPaths: String,
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
-    applicationContext: ApplicationContext,
+    val applicationContext: ApplicationContext,
+    executionInstrumentation: Instrumentation<UtConcreteExecutionResult>,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
@@ -154,7 +158,7 @@ class UtBotSymbolicEngine(
 
     private val concreteExecutor =
         ConcreteExecutor(
-            UtExecutionInstrumentation,
+            executionInstrumentation,
             classpath,
         ).apply { this.classLoader = utContext.classLoader }
 
@@ -355,7 +359,29 @@ class UtBotSymbolicEngine(
             methodUnderTest,
             collectConstantsForFuzzer(graph),
             names,
-            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
+            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator)))),
+            fuzzedTypeFactory = when (applicationContext) {
+                is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
+                    is TypeReplacementApproach.ReplaceIfPossible -> SpringFuzzedTypeFactory(
+                        autowiredValueProvider = AutowiredValueProvider(
+                            defaultIdGenerator,
+                            autowiredModelOriginCreator = { beanName ->
+                                runBlocking {
+                                    logger.info { "Getting bean: $beanName" }
+                                    concreteExecutor.withProcess { getBean(beanName) }
+                                }
+                            }
+                        ),
+                        beanNamesFinder = { classId ->
+                            applicationContext.beanDefinitions
+                                .filter { it.beanTypeFqn == classId.name }
+                                .map { it.beanName }
+                        }
+                    )
+                    is TypeReplacementApproach.DoNotReplace -> SimpleFuzzedTypeFactory()
+                }
+                else -> SimpleFuzzedTypeFactory()
+            },
         ) { thisInstance, descr, values ->
             if (thisInstance?.model is UtNullModel) {
                 // We should not try to run concretely any models with null-this.
@@ -593,7 +619,7 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
     return EnvironmentModels(thisInstanceBefore, paramsBefore, statics)
 }
 
-private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
+private suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<UtConcreteExecutionResult>>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>,

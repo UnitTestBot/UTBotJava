@@ -11,12 +11,14 @@ import org.utbot.common.nameOfPackage
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.DISABLE_SANDBOX_OPTION
 import org.utbot.instrumentation.process.generated.AddPathsParams
+import org.utbot.instrumentation.process.generated.GetSpringBeanParams
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.SetInstrumentationParams
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
@@ -28,13 +30,14 @@ import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.loggers.UtRdKLogger
 import org.utbot.rd.loggers.setup
 import org.utbot.rd.onSchedulerBlocking
+import org.utbot.rd.startBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
 import java.io.File
 
 private val logger = KotlinLogging.logger { }
 
-private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
+private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation-shadow"
 private const val INSTRUMENTATION_LIB = "lib"
 
 private fun tryFindInstrumentationJarInResources(): File? {
@@ -68,8 +71,8 @@ private val instrumentationJarFile: File =
             logger.debug("Failed to find jar in the resources.")
             tryFindInstrumentationJarOnClasspath()
         } ?: error("""
-                    Can't find file: $UTBOT_INSTRUMENTATION-<version>.jar.
-                    Make sure you added $UTBOT_INSTRUMENTATION-<version>.jar to the resources folder from gradle.
+                    Can't find file: $UTBOT_INSTRUMENTATION.jar.
+                    Make sure you added $UTBOT_INSTRUMENTATION.jar to the resources folder from gradle.
                 """.trimIndent())
     }
 
@@ -159,4 +162,7 @@ class InstrumentedProcess private constructor(
             return proc
         }
     }
+
+    fun getBean(beanName: String): UtModel =
+        kryoHelper.readObject(instrumentedProcessModel.getSpringBean.startBlocking(GetSpringBeanParams(beanName)).beanModel)
 }

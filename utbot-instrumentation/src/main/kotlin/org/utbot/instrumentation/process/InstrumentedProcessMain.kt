@@ -6,11 +6,15 @@ import com.jetbrains.rd.util.reactive.adviseOnce
 import kotlinx.coroutines.*
 import org.mockito.Mockito
 import org.utbot.common.*
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.process.generated.CollectCoverageResult
+import org.utbot.instrumentation.process.generated.GetSpringBeanResult
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
@@ -37,11 +41,14 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     }
 
     /**
-     * System classloader can find org.slf4j thus when we want to mock something from org.slf4j
-     * we also want this class will be loaded by [HandlerClassesLoader]
+     * System classloader can find org.slf4j and org.utbot.spring thus
+     *  - when we want to mock something from org.slf4j we also want this class will be loaded by [HandlerClassesLoader]
+     *  - we want org.utbot.spring to be loaded by [HandlerClassesLoader] so it can use Spring directly
      */
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
-        if (name.startsWith("org.slf4j")) {
+        // TODO extract `utbot-spring-commons-api` into a separate module to not mess around with class loader
+        if (name.startsWith("org.slf4j") ||
+            (name.startsWith("org.utbot.spring") && !name.startsWith("org.utbot.spring.api"))) {
             return (findLoadedClass(name) ?: findClass(name)).apply {
                 if (resolve) resolveClass(this)
             }
@@ -139,7 +146,7 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         logger.debug { "setInstrumentation request" }
         instrumentation = kryoHelper.readObject(params.instrumentation)
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
-        Agent.dynamicClassTransformer.transformer = instrumentation // classTransformer is set
+        Agent.dynamicClassTransformer.transformer = instrumentation
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
         instrumentation.init(pathsToUserClasses)
     }
@@ -154,5 +161,12 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         logger.debug { "class - ${anyClass.name}" }
         val result = (instrumentation as CoverageInstrumentation).collectCoverageInfo(anyClass)
         CollectCoverageResult(kryoHelper.writeObject(result))
+    }
+    watchdog.measureTimeForActiveCall(getSpringBean, "Getting Spring bean") { params ->
+        val bean = (instrumentation as SpringUtExecutionInstrumentation).getBean(params.beanName)
+        val model = UtModelConstructor.createOnlyUserClassesConstructor(pathsToUserClasses).construct(
+            bean, ClassId(bean.javaClass.name)
+        )
+        GetSpringBeanResult(kryoHelper.writeObject(model))
     }
 }

@@ -10,7 +10,7 @@ import org.utbot.framework.plugin.api.ClassId
  *
  * @see ClassId.typeParameters
  */
-class FuzzedType(
+open class FuzzedType(
     val classId: ClassId,
     val generics: List<FuzzedType> = emptyList(),
 ) {

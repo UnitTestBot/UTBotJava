@@ -1,7 +1,6 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
 import org.utbot.framework.plugin.api.*
-import java.io.Closeable
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.execution.constructors.MockValueConstructor
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
@@ -33,9 +32,10 @@ class ValueConstructionPhase(
         return constructor.objectToModelCache
     }
 
-    fun constructParameters(state: EnvironmentModels): ConstructedParameters {
-        val parametersModels = listOfNotNull(state.thisInstance) + state.parameters
-        return constructor.constructMethodParameters(parametersModels)
+    fun constructParameters(state: EnvironmentModels, thisInstanceCreator: (UtModel) -> UtConcreteValue<*>?): ConstructedParameters {
+        val createdThisInstance = state.thisInstance?.let { thisInstanceCreator(it) }
+        val parametersModels = listOfNotNull(state.thisInstance.takeIf { createdThisInstance == null }) + state.parameters
+        return listOfNotNull(createdThisInstance) + constructor.constructMethodParameters(parametersModels)
     }
 
     fun constructStatics(state: EnvironmentModels): ConstructedStatics =

@@ -1257,6 +1257,23 @@ open class ApplicationContext(
     ): Boolean = field.isFinal || !field.isPublic
 }
 
+sealed class TypeReplacementApproach {
+    /**
+     * Do not replace interfaces and abstract classes with concrete implementors.
+     * Use mocking instead of it.
+     */
+    object DoNotReplace : TypeReplacementApproach()
+
+    /**
+     * Try to replace interfaces and abstract classes with concrete implementors
+     * obtained from bean definitions.
+     * If it is impossible, use mocking.
+     *
+     * Currently used in Spring applications only.
+     */
+    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
+}
+
 /**
  * Data we get from Spring application context
  * to manage engine and code generator behaviour.
@@ -1269,6 +1286,7 @@ class SpringApplicationContext(
     staticsMockingIsConfigured: Boolean,
     private val beanQualifiedNames: List<String> = emptyList(),
     private val shouldUseImplementors: Boolean,
+    val typeReplacementApproach: TypeReplacementApproach
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
     companion object {

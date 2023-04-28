@@ -154,7 +154,13 @@ class UtBotSymbolicEngine(
 
     private val concreteExecutor =
         ConcreteExecutor(
-            UtExecutionInstrumentation,
+            // TODO refactor
+            UtExecutionInstrumentation.also {
+                it.typeReplacementApproach = when (applicationContext) {
+                    is SpringApplicationContext -> applicationContext.typeReplacementApproach
+                    else -> TypeReplacementApproach.DoNotReplace
+                }
+            },
             classpath,
         ).apply { this.classLoader = utContext.classLoader }
 

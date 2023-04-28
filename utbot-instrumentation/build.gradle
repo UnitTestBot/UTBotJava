@@ -30,6 +30,9 @@ dependencies {
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
     implementation group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
 
+// TODO add Spring to dependencies without adding it to jar (with shadowJar like in spring-analyzer), the following didn't work
+//    runtimeOnly group: 'org.springframework.boot', name: 'spring-boot', version: springBootVersion
+
 
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'

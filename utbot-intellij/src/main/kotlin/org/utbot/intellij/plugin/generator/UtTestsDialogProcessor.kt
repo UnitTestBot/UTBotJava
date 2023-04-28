@@ -47,7 +47,7 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.codegen.domain.TypeReplacementApproach.*
+import org.utbot.framework.plugin.api.TypeReplacementApproach.*
 import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
@@ -263,6 +263,7 @@ object UtTestsDialogProcessor {
                                         staticMockingConfigured,
                                         beanQualifiedNames,
                                         shouldUseImplementors,
+                                        model.typeReplacementApproach
                                     )
                                 }
                                 else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)

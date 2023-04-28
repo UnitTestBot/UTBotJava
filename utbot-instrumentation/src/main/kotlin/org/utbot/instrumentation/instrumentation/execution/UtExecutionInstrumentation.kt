@@ -5,6 +5,8 @@ import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
@@ -52,10 +54,29 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
     private val traceHandler = TraceHandler()
     private val pathsToUserClasses = mutableSetOf<String>()
+    private var thisInstanceCreator: (UtModel) -> UtConcreteValue<*>? = { null }
+    lateinit var typeReplacementApproach: TypeReplacementApproach
 
     override fun init(pathsToUserClasses: Set<String>) {
         UtExecutionInstrumentation.pathsToUserClasses.clear()
         UtExecutionInstrumentation.pathsToUserClasses += pathsToUserClasses
+        thisInstanceCreator = when (val typeReplacementApproach = typeReplacementApproach) {
+            TypeReplacementApproach.DoNotReplace -> {
+                { null }
+            }
+            is TypeReplacementApproach.ReplaceIfPossible -> {
+                val classLoader = UtContext.currentContext()!!.classLoader
+                // TODO use BootstrapContext (like in SpringBootTestContextBootstrapper) to create TestContext and get applicationContext out of it
+                //  but before that consider improving build.gradle (in utbot-instrumentation) so we don't have to use reflection for Spring
+                val springContextClass = classLoader.loadClass("org.springframework.context.annotation.AnnotationConfigApplicationContext")
+                val sources = arrayOf(typeReplacementApproach.config)
+                val springContext = springContextClass.getConstructor(sources::class.java).newInstance(sources);
+                { utModel ->
+                    val clazz = utModel.classId.jClass
+                    UtConcreteValue(springContextClass.getMethod("getBean", clazz::class.java).invoke(springContext, clazz))
+                }
+            }
+        }
     }
 
     /**
@@ -86,7 +107,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         ).computeConcreteExecutionResult {
             try {
                 val (params, statics, cache) = this.executePhaseInTimeout(valueConstructionPhase) {
-                    val params = constructParameters(stateBefore)
+                    val params = constructParameters(stateBefore, thisInstanceCreator)
                     val statics = constructStatics(stateBefore)
 
                     // here static methods and instances are mocked

@@ -41,12 +41,9 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
         return super.getOrCreateVariable(model, name)
     }
 
-    private fun findCgValueByModel(modelToFind: UtModel, modelToValueMap: Map<Set<UtModel>, CgValue>): CgValue? =
-        // Here we really need to compare models by reference.
-        // Standard equals is not appropriate because two models from different execution may have same `id`.
-        // Equals on `ModelId` is not appropriate because injected items from different execution have same `executionId`.
+    private fun findCgValueByModel(model: UtModel, modelToValueMap: Map<Set<UtModel>, CgValue>): CgValue? =
         modelToValueMap
-            .filter { models -> models.key.any { it === modelToFind } }
+            .filter { it.key.contains(model) }
             .entries
             .singleOrNull()
             ?.value

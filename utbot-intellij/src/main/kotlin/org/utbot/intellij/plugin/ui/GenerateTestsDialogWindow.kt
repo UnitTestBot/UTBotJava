@@ -135,8 +135,6 @@ import java.awt.Color
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.event.ActionEvent
-import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -154,7 +152,6 @@ import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JSpinner
-import javax.swing.JTextField
 import javax.swing.text.DefaultFormatter
 import kotlin.io.path.notExists
 
@@ -201,7 +198,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val staticsMocking = JCheckBox("Mock static methods")
 
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
-    private val profileExpression = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
+    private val profileNames = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
 
     private val timeoutSpinner =
         JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
@@ -396,6 +393,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             row("Testing framework:") {
                 cell(testFrameworks)
             }
+
             if (model.projectType == ProjectType.Spring) {
                 row("Spring configuration:") {
                     cell(springConfig)
@@ -407,13 +405,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     )
                 }
                 row("Active profile(s):") {
-                    cell(profileExpression)
+                    cell(profileNames)
                     contextHelp(
-                        "Profile name or expression like \"prod|web\" may be passed here.<br>" +
-                                "If expression is incorrect, default profile will be used"
+                        "One or several comma-separated names.<br>" +
+                                "If all names are incorrect, default profile is used"
                     )
-                }
+                }.enabledIf(
+                    ComboBoxPredicate(springConfig) { springConfig.item != NO_SPRING_CONFIGURATION_OPTION }
+                )
             }
+
             row("Mocking strategy:") {
                 cell(mockStrategies)
                 contextHelp(
@@ -657,7 +658,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     TypeReplacementApproach.ReplaceIfPossible(fullConfigName)
                 }
             }
-        model.profileExpression = profileExpression.text.let { if (it == "") DEFAULT_SPRING_PROFILE_NAME else it }
+        model.profileExpression = profileNames.text.let { it.ifEmpty { DEFAULT_SPRING_PROFILE_NAME } }
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -1055,7 +1056,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
 
-                profileExpression.isEnabled = true
+                profileNames.isEnabled = true
             } else {
                 mockStrategies.item = when (model.projectType) {
                     ProjectType.Spring -> MockStrategyApi.springDefaultItem
@@ -1064,7 +1065,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
 
-                profileExpression.isEnabled = false
+                profileNames.isEnabled = false
+                profileNames.text = DEFAULT_SPRING_PROFILE_NAME
             }
         }
 
@@ -1145,7 +1147,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
         springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
 
-        profileExpression.isEnabled =
+        profileNames.isEnabled =
             model.projectType == ProjectType.Spring && springConfig.item != NO_SPRING_CONFIGURATION_OPTION
     }
 

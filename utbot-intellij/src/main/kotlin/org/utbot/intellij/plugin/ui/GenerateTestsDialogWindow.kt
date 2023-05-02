@@ -1146,9 +1146,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun updateSpringConfigurationEnabled() {
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
         springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
-
-        profileNames.isEnabled =
-            model.projectType == ProjectType.Spring && springConfig.item != NO_SPRING_CONFIGURATION_OPTION
     }
 
     private fun staticsMockingConfigured(): Boolean {

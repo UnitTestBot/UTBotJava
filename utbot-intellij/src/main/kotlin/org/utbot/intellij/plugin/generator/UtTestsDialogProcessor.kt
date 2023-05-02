@@ -252,7 +252,7 @@ object UtTestsDialogProcessor {
                                                     classpathForClassLoader,
                                                     approach.config,
                                                     fileStorage,
-                                                    model.profileExpression,
+                                                    model.profileNames,
                                                 )
                                             }
                                         }

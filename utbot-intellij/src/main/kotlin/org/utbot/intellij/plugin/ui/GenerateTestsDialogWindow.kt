@@ -658,7 +658,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     TypeReplacementApproach.ReplaceIfPossible(fullConfigName)
                 }
             }
-        model.profileExpression = profileNames.text.let { it.ifEmpty { DEFAULT_SPRING_PROFILE_NAME } }
+        model.profileNames = profileNames.text.let { it.ifEmpty { DEFAULT_SPRING_PROFILE_NAME } }
 
         val settings = model.project.service<Settings>()
         with(settings) {

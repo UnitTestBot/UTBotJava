@@ -1066,7 +1066,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 updateMockStrategyList()
 
                 profileNames.isEnabled = false
-                profileNames.text = DEFAULT_SPRING_PROFILE_NAME
+                profileNames.text = ""
             }
         }
 

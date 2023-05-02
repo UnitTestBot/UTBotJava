@@ -6,14 +6,15 @@ import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import fuzzer.JsFuzzedContext
 import parser.JsParserUtils.getMethodName
+import parser.visitors.JsClassAstVisitor
 
 // TODO: make methods more safe by checking the Node method is called on.
 // Used for .children() calls.
 @Suppress("DEPRECATION")
 object JsParserUtils {
 
-    fun runParser(fileText: String): Node =
-        Compiler().parse(SourceFile.fromCode("jsFile", fileText))
+    fun runParser(fileText: String, filePath: String): Node =
+        Compiler().parse(SourceFile.fromCode(filePath, fileText))
 
     // TODO SEVERE: function only works in the same file scope. Add search in exports.
     fun searchForClassDecl(className: String?, parsedFile: Node, strict: Boolean = false): Node? {
@@ -206,4 +207,27 @@ object JsParserUtils {
      */
     fun Node.getImportSpecAliases(): String = this.firstChild!!.next!!.string
 
+    /**
+     * Checks if node is any kind of variable declaration.
+     */
+    fun Node.isAnyVariableDecl(): Boolean =
+        this.isVar || this.isConst || this.isLet
+
+    /**
+     * Called upon any variable declaration node.
+     *
+     * Returns variable name as [String].
+     */
+    fun Node.getVariableName(): String? = try {
+        this.firstChild!!.string
+    } catch (_: Exception) {
+        null
+    }
+
+    /**
+     * Called upon any variable declaration node.
+     *
+     * Returns variable initializer as [Node]
+     */
+    fun Node.getVariableValue(): Node = this.firstChild!!.firstChild!!
 }

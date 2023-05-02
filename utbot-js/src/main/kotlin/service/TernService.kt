@@ -20,7 +20,7 @@ import java.io.File
 /**
  * Installs and sets up scripts for running Tern.js type guesser.
  */
-class TernService(context: ServiceContext) : ContextOwner by context {
+class TernService(val context: ServiceContext) : ContextOwner by context {
 
     private val importProvider = IImportsProvider.providerByPackageJson(packageJson, context)
 
@@ -104,7 +104,7 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
         val parametersRegex = Regex("fn[(](.+)[)]")
         return parametersRegex.find(line)?.groups?.get(1)?.let { matchResult ->
             val value = matchResult.value
-            val paramGroupList = Regex("(\\w+:\\[\\w+(,\\w+)*]|\\w+:\\w+)|\\w+:\\?").findAll(value).toList()
+            val paramGroupList = Regex("(\\w+:\\[[\\w|]+(,[\\w|]+)*]|\\w+:[\\w|]+)|\\w+:\\?").findAll(value).toList()
             paramGroupList.map { paramGroup ->
                 val paramReg = Regex("\\w*:(.*)")
                 try {
@@ -170,12 +170,14 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
                 )
             }
 
-            name.contains('|') -> JsMultipleClassId(name)
+            name.contains('|') -> {
+                JsMultipleClassId(name.split("|").map { makeClassId(it) })
+            }
             else -> JsClassId(name)
         }
 
         return try {
-            val classNode = JsParserUtils.searchForClassDecl(
+            val classNode = importsMap[name] ?: JsParserUtils.searchForClassDecl(
                 className = name,
                 parsedFile = parsedFile,
                 strict = true,

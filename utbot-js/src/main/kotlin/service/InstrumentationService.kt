@@ -4,7 +4,7 @@ import com.google.javascript.jscomp.CodePrinter
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
 import org.apache.commons.io.FileUtils
-import parser.JsFunctionAstVisitor
+import parser.visitors.JsFunctionAstVisitor
 import parser.JsParserUtils.getAnyValue
 import parser.JsParserUtils.getRequireImportText
 import parser.JsParserUtils.isRequireImport
@@ -142,7 +142,7 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
             timeout = settings.timeout,
         )
         val instrumentedFileText = File(instrumentedFilePath).readText()
-        parsedInstrFile = runParser(instrumentedFileText)
+        parsedInstrFile = runParser(instrumentedFileText, instrumentedFilePath)
         val covFunRegex = Regex("function (cov_.*)\\(\\).*")
         val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
             ?: throw IllegalStateException("")
@@ -155,7 +155,7 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
 
     private fun File.writeTextAndUpdate(newText: String) {
         this.writeText(newText)
-        parsedInstrFile = runParser(File(instrumentedFilePath).readText())
+        parsedInstrFile = runParser(File(instrumentedFilePath).readText(), instrumentedFilePath)
     }
 
     private fun fixImportsInInstrumentedFile(): String {

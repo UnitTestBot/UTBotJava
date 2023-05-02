@@ -4,6 +4,7 @@ import codegen.JsCodeGenerator
 import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
+import framework.api.js.JsMultipleClassId
 import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isClass
 import framework.api.js.util.isJsArray
@@ -36,7 +37,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import parser.JsAstScrapper
-import parser.JsFuzzerAstVisitor
+import parser.visitors.JsFuzzerAstVisitor
 import parser.JsParserUtils
 import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getAbstractFunctionParams
@@ -44,7 +45,7 @@ import parser.JsParserUtils.getClassMethods
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
-import parser.JsToplevelFunctionAstVisitor
+import parser.visitors.JsToplevelFunctionAstVisitor
 import providers.exports.IExportsProvider
 import service.InstrumentationService
 import service.PackageJson
@@ -62,6 +63,7 @@ import utils.constructClass
 import utils.data.ResultData
 import utils.toJsAny
 import java.io.File
+import java.nio.file.Paths
 import java.util.concurrent.CancellationException
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
@@ -102,19 +104,28 @@ class JsTestGenerator(
      * Returns String representation of generated tests.
      */
     fun run(): String {
-        parsedFile = runParser(fileText)
-        astScrapper = JsAstScrapper(parsedFile, sourceFilePath)
+        parsedFile = runParser(fileText, sourceFilePath)
+        val packageJson = PackageJsonService(
+            sourceFilePath,
+            File(projectPath),
+        ).findClosestConfig()
+        val moduleType = ModuleType.fromPackageJson(packageJson)
+        astScrapper = JsAstScrapper(
+            parsedFile,
+            sourceFilePath,
+            Paths.get("$projectPath/$utbotDir"),
+            moduleType,
+            settings
+        )
         val context = ServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,
             filePathToInference = astScrapper.filesToInfer,
             parsedFile = parsedFile,
             settings = settings,
+            importsMap = astScrapper.importsMap,
+            packageJson = packageJson
         )
-        context.packageJson = PackageJsonService(
-            sourceFilePath,
-            File(projectPath),
-        ).findClosestConfig()
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
         val testSets = mutableListOf<CgMethodTestSet>()
         val classNode =
@@ -130,28 +141,40 @@ class JsTestGenerator(
         methods.forEach { funcNode ->
             makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
         }
-        val importPrefix = makeImportPrefix()
-        val moduleType = ModuleType.fromPackageJson(context.packageJson)
-        val imports = listOf(
-            JsImport(
-                "*",
-                fileUnderTestAliases,
-                "./$importPrefix/${sourceFilePath.substringAfterLast("/")}",
-                moduleType
-            ),
-            JsImport(
-                "*",
-                "assert",
-                "assert",
-                moduleType
-            )
-        )
+        val imports = context.necessaryImports.makeImportsForCodegen(moduleType)
         val codeGen = JsCodeGenerator(
             classUnderTest = classId,
             paramNames = paramNames,
             imports = imports
         )
         return codeGen.generateAsStringWithTestReport(testSets).generatedCode
+    }
+
+    private fun Map<String, Node>.makeImportsForCodegen(moduleType: ModuleType): List<JsImport> {
+        val baseImports = listOf(
+            JsImport(
+                "*",
+                "assert",
+                "assert",
+                moduleType
+            ),
+            JsImport(
+                "*",
+                fileUnderTestAliases,
+                "./${makeImportPrefix()}/${sourceFilePath.substringAfterLast("/")}",
+                moduleType
+            )
+        )
+        return baseImports + this.map { (key, value) ->
+            JsImport(
+                key,
+                key,
+                outputFilePath?.let { path ->
+                    PathResolver.getRelativePath(File(path).parent, value.sourceFileName!!)
+                } ?: "",
+                moduleType
+            )
+        }
     }
 
     private fun makeTestsForMethod(
@@ -214,7 +237,7 @@ class JsTestGenerator(
         fuzzedValues: List<UtModel>
     ): UtExecutionResult {
         if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
-            TimeoutException("  Timeout in generating test for ${
+            TimeoutException("Timeout in generating test for ${
                 execId.parameters
                     .zip(fuzzedValues)
                     .joinToString(
@@ -251,7 +274,7 @@ class JsTestGenerator(
         )
         val collectedValues = mutableListOf<List<UtModel>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
-        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:")
+        val funcLocation = funcNode.firstChild!!.location.substringAfter("${funcNode.sourceFileName}:")
             .split(":").map { it.toInt() }
         logger.info { "Function under test location according to parser is [${funcLocation[0]}, ${funcLocation[1]}]" }
         val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])
@@ -392,9 +415,10 @@ class JsTestGenerator(
 
     private fun JsClassId.collectExportsRecursively(): List<String> {
         return when {
-            this.isClass -> listOf(this.name) + (this.constructor?.parameters ?: emptyList())
+            this.isClass && !astScrapper.importsMap.contains(this.name) ->
+                listOf(this.name) + (this.constructor?.parameters ?: emptyList())
                 .flatMap { it.collectExportsRecursively() }
-
+            this is JsMultipleClassId -> this.classIds.flatMap { it.collectExportsRecursively() }
             this.isJsArray -> (this.elementClassId as? JsClassId)?.collectExportsRecursively() ?: emptyList()
             else -> emptyList()
         }

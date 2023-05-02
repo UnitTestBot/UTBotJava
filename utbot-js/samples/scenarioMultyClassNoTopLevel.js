@@ -1,4 +1,4 @@
-class Na {
+class Double {
     constructor(num) {
         this.num = num
     }
@@ -6,13 +6,9 @@ class Na {
     double() {
         return this.num * 2
     }
-
-    static test(a, b) {
-        return a + 2 * b
-    }
 }
 
-class Kek {
+class Functions {
     foo(a, b) {
         return a + b
     }

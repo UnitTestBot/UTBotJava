@@ -1,11 +1,10 @@
 package service.coverage
 
-import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
-import framework.api.js.util.isExportable
 import framework.api.js.util.isUndefined
 import fuzzer.JsMethodDescription
+import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -20,7 +19,6 @@ import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.data.CoverageData
 import utils.data.ResultData
-import java.util.regex.Pattern
 
 class CoverageServiceProvider(
     private val context: ServiceContext,
@@ -216,10 +214,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         }
 
     private fun UtAssembleModel.toParamString(): String {
-        val importPrefix = "new ${JsTestGenerationSettings.fileUnderTestAliases}.".takeIf {
-            (classId as JsClassId).isExportable
-        } ?: "new "
-        val callConstructorString = importPrefix + classId.name
+        val callConstructorString = "new " + classId.name
         val paramsString = instantiationCall.params.joinToString(
             prefix = "(",
             postfix = ")",

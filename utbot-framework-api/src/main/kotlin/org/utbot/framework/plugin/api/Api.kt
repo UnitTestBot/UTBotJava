@@ -544,7 +544,11 @@ data class UtAssembleModel private constructor(
         if (javaClass != other?.javaClass) return false
 
         other as UtAssembleModel
-        return id == other.id
+
+        if (id != other.id) return false
+        if (classId != other.classId) return false
+
+        return true
     }
 
     override fun hashCode(): Int = id ?: 0

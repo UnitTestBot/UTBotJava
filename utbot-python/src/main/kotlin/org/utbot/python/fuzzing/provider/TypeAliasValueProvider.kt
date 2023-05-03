@@ -20,7 +20,7 @@ object TypeAliasValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMet
         val compositeType = PythonTypeAliasDescription.castToCompatibleTypeApi(type)
         return sequenceOf(
             Seed.Recursive(
-                construct = Routine.Create(listOf(compositeType.members[0])) { v -> v.first() },
+                construct = Routine.Create(compositeType.members) { v -> v.first() },
                 empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
             )
         )

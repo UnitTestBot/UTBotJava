@@ -88,6 +88,8 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
             strict_optional = False
             allow_redefinition = True
             local_partial_types = True
+            
+            plugins = numpy.typing.mypy_plugin
             """.trimIndent()
     TemporaryFileManager.writeToAssignedFile(file, configContent)
     return file

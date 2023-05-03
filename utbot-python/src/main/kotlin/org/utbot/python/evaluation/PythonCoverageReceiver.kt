@@ -24,14 +24,14 @@ class PythonCoverageReceiver(
                 val request = DatagramPacket(buf, buf.size)
                 socket.receive(request)
                 val (id, line) = request.data.decodeToString().take(request.length).split(":")
-                logger.info { "Got coverage: $id, $line" }
+                logger.debug { "Got coverage: $id, $line" }
                 val lineNumber = line.toInt()
                 coverageStorage.getOrPut(id) { mutableSetOf() } .add(lineNumber)
             }
         } catch (ex: SocketException) {
-            logger.error("Socket error: " + ex.message);
+            logger.error("Socket error: " + ex.message)
         } catch (ex: IOException) {
-            logger.error("IO error: " + ex.message);
+            logger.error("IO error: " + ex.message)
         }
     }
 }

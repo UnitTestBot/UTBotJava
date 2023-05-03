@@ -92,6 +92,7 @@ class PythonCodeSocketExecutor(
         val (status, response) = UtExecutorThread.run(pythonWorker, executionTimeout)
         return when (status) {
             UtExecutorThread.Status.TIMEOUT -> {
+
                 PythonEvaluationTimeout()
             }
 

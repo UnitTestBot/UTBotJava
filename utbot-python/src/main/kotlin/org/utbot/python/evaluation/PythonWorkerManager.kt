@@ -43,7 +43,7 @@ class PythonWorkerManager(
             coverageReceiver.address().first,
             coverageReceiver.address().second,
             "--logfile", logfile.absolutePath,
-            "--loglevel", "DEBUG",  // "DEBUG", "INFO", "WARNING", "ERROR"
+            "--loglevel", "INFO",  // "DEBUG", "INFO", "WARNING", "ERROR"
         ))
         timeout = max(until - processStartTime, 0)
         workerSocket = try {
@@ -85,7 +85,7 @@ class PythonWorkerManager(
             reconnect()
             PythonEvaluationTimeout()
         }
-        if (evaluationResult is PythonEvaluationError) {
+        if (evaluationResult is PythonEvaluationError || evaluationResult is PythonEvaluationTimeout) {
             reconnect()
         }
         return evaluationResult

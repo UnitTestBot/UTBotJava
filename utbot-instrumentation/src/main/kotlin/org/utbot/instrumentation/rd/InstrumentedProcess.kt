@@ -33,7 +33,6 @@ import org.utbot.rd.terminateOnException
 import java.io.File
 
 private val logger = KotlinLogging.logger { }
-private val rdLogger = UtRdKLogger(logger, "")
 
 private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
 private const val INSTRUMENTATION_LIB = "lib"
@@ -136,7 +135,7 @@ class InstrumentedProcess private constructor(
             logger.trace("rd process started")
 
             val proc = InstrumentedProcess(classLoader, rdProcess)
-            proc.loggerModel.setup(rdLogger, proc.lifetime)
+            proc.loggerModel.setup(logger, proc.lifetime)
 
             proc.lifetime.onTermination {
                 logger.trace { "process is terminating" }

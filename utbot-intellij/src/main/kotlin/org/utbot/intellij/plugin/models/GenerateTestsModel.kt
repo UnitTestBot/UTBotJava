@@ -55,6 +55,7 @@ class GenerateTestsModel(
     lateinit var commentStyle: JavaDocCommentStyle
 
     lateinit var typeReplacementApproach: TypeReplacementApproach
+    lateinit var profileNames: String
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 

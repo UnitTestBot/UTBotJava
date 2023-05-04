@@ -23,7 +23,6 @@ import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.springAnalyzerProcessModel
 import java.io.File
 import java.net.URL
-import java.net.URLClassLoader
 import java.nio.file.Files
 
 class SpringAnalyzerProcessInstantDeathException :
@@ -32,37 +31,25 @@ class SpringAnalyzerProcessInstantDeathException :
         UtSettings.runSpringAnalyzerProcessWithDebug
     )
 
-private const val SPRING_ANALYZER_WITHOUT_SPRINGBOOT_JAR_FILENAME = "utbot-spring-analyzer-shadow.jar"
-private const val SPRING_ANALYZER_WITH_SPRINGBOOT_JAR_FILENAME = "utbot-spring-analyzer-with-spring-shadow.jar"
-private const val SPRING_ANALYZER_WITHOUT_SPRINBOOT_JAR_PATH = "lib/$SPRING_ANALYZER_WITHOUT_SPRINGBOOT_JAR_FILENAME"
-private const val SPRING_ANALYZER_WITH_SPRINBOOT_JAR_PATH = "lib/$SPRING_ANALYZER_WITH_SPRINGBOOT_JAR_FILENAME"
+private const val SPRING_ANALYZER_JAR_FILENAME = "utbot-spring-analyzer-shadow.jar"
+private const val SPRING_ANALYZER_JAR_PATH = "lib/$SPRING_ANALYZER_JAR_FILENAME"
 
 private const val UNKNOWN_MODIFICATION_TIME = 0L
 
 private val logger = KotlinLogging.logger {}
-private val rdLogger = UtRdKLogger(logger, "")
 
 private var classpathArgs = listOf<String>()
 
 private val springAnalyzerDirectory =
     Files.createDirectories(utBotTempDirectory.toFile().resolve("spring-analyzer").toPath()).toFile()
 
-private val springAnalyzerWithoutSpringBootJarFile =
+private val springAnalyzerJarFile =
     springAnalyzerDirectory
-        .resolve(SPRING_ANALYZER_WITHOUT_SPRINGBOOT_JAR_FILENAME).also { jarFile ->
-            val resource = SpringAnalyzerProcess::class.java.classLoader.getResource(SPRING_ANALYZER_WITHOUT_SPRINBOOT_JAR_PATH)
-                    ?: error("Unable to find \"$SPRING_ANALYZER_WITHOUT_SPRINBOOT_JAR_PATH\" in resources, make sure it's on the classpath")
+        .resolve(SPRING_ANALYZER_JAR_FILENAME).also { jarFile ->
+            val resource = SpringAnalyzerProcess::class.java.classLoader.getResource(SPRING_ANALYZER_JAR_PATH)
+                    ?: error("Unable to find \"$SPRING_ANALYZER_JAR_PATH\" in resources, make sure it's on the classpath")
             updateJarIfRequired(jarFile, resource)
         }
-
-private val springAnalyzerWithSpringBootJarFile =
-    springAnalyzerDirectory
-        .resolve(SPRING_ANALYZER_WITH_SPRINGBOOT_JAR_FILENAME).also { jarFile ->
-            val resource = SpringAnalyzerProcess::class.java.classLoader.getResource(SPRING_ANALYZER_WITH_SPRINBOOT_JAR_PATH)
-                ?: error("Unable to find \"$SPRING_ANALYZER_WITH_SPRINBOOT_JAR_PATH\" in resources, make sure it's on the classpath")
-            updateJarIfRequired(jarFile, resource)
-        }
-
 
 private fun updateJarIfRequired(jarFile: File, resource: URL) {
     val resourceConnection = resource.openConnection()
@@ -97,8 +84,7 @@ class SpringAnalyzerProcess private constructor(
 
         suspend operator fun invoke(classpathItems: List<String>): SpringAnalyzerProcess =
             LifetimeDefinition().terminateOnException { lifetime ->
-                val requiredSpringAnalyzerJarPath = findRequiredSpringAnalyzerJarPath(classpathItems)
-                val extendedClasspath = listOf(requiredSpringAnalyzerJarPath) + classpathItems
+                val extendedClasspath = listOf(springAnalyzerJarFile.path) + classpathItems
 
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
                     classpathArgs = listOf(
@@ -119,39 +105,20 @@ class SpringAnalyzerProcess private constructor(
                 }
                 rdProcess.awaitProcessReady()
                 val proc = SpringAnalyzerProcess(rdProcess)
-                proc.loggerModel.setup(rdLogger, proc.lifetime)
+                proc.loggerModel.setup(logger, proc.lifetime)
                 return proc
             }
-
-        /**
-         * Finds the required version of `utbot-spring-analyzer`.
-         *
-         * If user project type is SpringBootApplication, we use his `spring-boot` version.
-         * If it is a "pure Spring" project, we have to add dependencies on `spring-boot`
-         * to manage to create our internal SpringBootApplication for bean definitions analysis.
-         */
-        private fun findRequiredSpringAnalyzerJarPath(classpathItems: List<String>): String {
-            val testClassLoader = URLClassLoader(classpathItems.map { File(it).toURI().toURL() }.toTypedArray(), null)
-            try {
-                testClassLoader.loadClass("org.springframework.boot.builder.SpringApplicationBuilder")
-            } catch (e: ClassNotFoundException) {
-                return springAnalyzerWithSpringBootJarFile.path
-            }
-
-            // TODO: think about using different spring-boot versions depending on spring version in user project
-            return springAnalyzerWithoutSpringBootJarFile.path
-        }
     }
 
     private val springAnalyzerModel: SpringAnalyzerProcessModel = onSchedulerBlocking { protocol.springAnalyzerProcessModel }
     private val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
 
     fun getBeanQualifiedNames(
-        classpath: List<String>,
         configuration: String,
-        fileStorage: String?,
+        fileStorage: Array<String>,
+        profileExpression: String?,
     ): List<String> {
-        val params = SpringAnalyzerParams(classpath.toTypedArray(), configuration, fileStorage)
+        val params = SpringAnalyzerParams(configuration, fileStorage, profileExpression)
         val result = springAnalyzerModel.analyze.startBlocking(params)
         return result.beanTypes.toList()
     }

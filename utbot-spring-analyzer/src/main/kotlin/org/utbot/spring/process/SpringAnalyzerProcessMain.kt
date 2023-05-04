@@ -13,7 +13,7 @@ import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdRemoteLoggerFactory
-import org.utbot.spring.analyzers.SpringApplicationAnalyzer
+import org.utbot.spring.analyzers.SpringApplicationAnalyzerFacade
 import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.SpringAnalyzerResult
@@ -42,12 +42,12 @@ suspend fun main(args: Array<String>) =
 private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtocol: IProtocol) {
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->
         val applicationData = ApplicationData(
-            params.classpath.toList().map { File(it).toURI().toURL() }.toTypedArray(),
             params.configuration,
-            params.fileStorage,
+            params.fileStorage.map { File(it).toURI().toURL() },
+            params.profileExpression,
         )
         SpringAnalyzerResult(
-                SpringApplicationAnalyzer(applicationData).analyze().toTypedArray()
+                SpringApplicationAnalyzerFacade(applicationData).analyze().toTypedArray()
         )
     }
 }

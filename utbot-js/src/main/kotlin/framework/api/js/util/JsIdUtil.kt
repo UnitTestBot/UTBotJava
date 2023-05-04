@@ -44,19 +44,19 @@ fun JsClassId.defaultJsValueModel(): UtModel = when (this) {
 }
 
 val JsClassId.isJsBasic: Boolean
-    get() = this in jsBasic || this is JsMultipleClassId
+    get() = this in jsBasic || this.isJsStdStructure
 
 val JsClassId.isExportable: Boolean
-    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsStdStructure)
+    get() = !(this.isJsBasic || this == jsErrorClassId || this is JsMultipleClassId)
 
 val JsClassId.isClass: Boolean
-    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsStdStructure)
+    get() = !(this.isJsBasic || this == jsErrorClassId || this is JsMultipleClassId)
 
 val JsClassId.isUndefined: Boolean
     get() = this == jsUndefinedClassId
 
 val JsClassId.isJsArray: Boolean
-    get() = this.name == "array" && this.elementClassId is JsClassId
+    get() = this.name == "Array"
 
 val JsClassId.isJsMap: Boolean
     get() = this.name == "Map"

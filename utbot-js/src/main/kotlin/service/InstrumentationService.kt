@@ -3,18 +3,18 @@ package service
 import com.google.javascript.jscomp.CodePrinter
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
+import java.io.File
+import java.nio.file.Paths
 import org.apache.commons.io.FileUtils
 import parser.JsFunctionAstVisitor
 import parser.JsParserUtils.getAnyValue
+import parser.JsParserUtils.getModuleImportText
 import parser.JsParserUtils.getRequireImportText
 import parser.JsParserUtils.isRequireImport
 import parser.JsParserUtils.runParser
+import providers.exports.IExportsProvider
 import utils.JsCmdExec
 import utils.PathResolver.getRelativePath
-import java.io.File
-import java.nio.file.Paths
-import parser.JsParserUtils.getModuleImportText
-import providers.exports.IExportsProvider
 import kotlin.io.path.pathString
 import kotlin.math.roundToInt
 

@@ -1,37 +1,48 @@
 package utils
 
-import org.json.JSONException
-import org.json.JSONObject
 import framework.api.js.JsClassId
+import framework.api.js.util.isJsStdStructure
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import utils.data.ResultData
 
 fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, JsClassId> {
-    this.buildUniqueValue()?.let { return it }
-    with(this.rawString) {
-        return when {
-            this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
-            this == "null" || this == "undefined" -> null to jsUndefinedClassId
-            this@toJsAny.isError -> this to jsErrorClassId
-            returnType == jsStringClassId -> this.replace("\"", "") to jsStringClassId
-            else -> {
-                if (contains('.')) {
-                    (toDoubleOrNull() ?: toBigDecimal()) to jsDoubleClassId
-                } else {
-                    val value = toByteOrNull() ?: toShortOrNull() ?: toIntOrNull() ?: toLongOrNull()
-                    ?: toBigIntegerOrNull() ?: toDoubleOrNull()
-                    if (value != null) value to jsNumberClassId else {
-                        val obj = makeObject(this)
-                        if (obj != null) obj to returnType else throw IllegalStateException()
+    try {
+        this.buildUniqueValue()?.let { return it }
+        with(this.rawString) {
+            return when {
+                isError -> this to jsErrorClassId
+                this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
+                this == "null" || this == "undefined" -> null to jsUndefinedClassId
+                returnType.isJsStdStructure ->
+                    makeStructure(this, returnType) to returnType
+                returnType == jsStringClassId || this@toJsAny.type == jsStringClassId.name ->
+                    this.replace("\"", "") to jsStringClassId
+
+                else -> {
+                    if (contains('.')) {
+                        (toDoubleOrNull() ?: toBigDecimal()) to jsDoubleClassId
+                    } else {
+                        val value = toByteOrNull() ?: toShortOrNull() ?: toIntOrNull() ?: toLongOrNull()
+                        ?: toBigIntegerOrNull() ?: toDoubleOrNull()
+                        if (value != null) value to jsNumberClassId else {
+                            val obj = makeObject(this)
+                            obj!! to returnType
+                        }
                     }
                 }
             }
         }
+    } catch(e: Exception) {
+        if (e is IllegalStateException) throw e else
+        throw IllegalStateException("Could not make JavaScript value from $this value with type ${returnType.name}")
     }
 }
 
@@ -49,10 +60,30 @@ private fun makeObject(objString: String): Map<String, Any>? {
         val json = JSONObject(trimmed)
         val resMap = mutableMapOf<String, Any>()
         json.keySet().forEach {
-            resMap[it] = ResultData(json.get(it).toString(), index = 0).toJsAny(jsUndefinedClassId).first as Any
+            resMap[it] = ResultData(json.get(it).toString(), index = 0).toJsAny().first as Any
         }
         resMap
     } catch (e: JSONException) {
         null
+    }
+}
+
+private fun makeStructure(structString: String, type: JsClassId): List<Any?> {
+    val json = JSONArray(structString)
+    return when (type.name) {
+        "Array", "Set" -> {
+            json.map { jsonObj ->
+                ResultData(jsonObj as JSONObject).toJsAny().first
+            }
+        }
+        "Map" -> {
+            json.map { jsonObj ->
+                val name = (jsonObj as JSONObject).get("name")
+                name to ResultData(jsonObj.getJSONObject("json")).toJsAny().first
+            }
+        }
+        else -> throw UnsupportedOperationException(
+            "Can't make JavaScript structure from $structString with type ${type.name}"
+        )
     }
 }

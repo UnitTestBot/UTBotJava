@@ -99,7 +99,7 @@ data class RawExecutionResult(
     val timeoutExceeded: Boolean,
     val rawResultValues: List<RawValue>,
     val panicMessage: RawPanicMessage?,
-    val trace: List<Int>
+    val coverTab: Map<String, Int>
 )
 
 private object RawValuesCodes {
@@ -115,7 +115,7 @@ fun convertRawExecutionResultToExecutionResult(
     rawExecutionResult: RawExecutionResult, functionResultTypes: List<GoTypeId>, intSize: Int, timeoutMillis: Long
 ): GoUtExecutionResult {
     if (rawExecutionResult.timeoutExceeded) {
-        return GoUtTimeoutExceeded(timeoutMillis, rawExecutionResult.trace)
+        return GoUtTimeoutExceeded(timeoutMillis)
     }
     if (rawExecutionResult.panicMessage != null) {
         val (rawResultValue, implementsError) = rawExecutionResult.panicMessage
@@ -126,7 +126,7 @@ fun convertRawExecutionResultToExecutionResult(
         } else {
             error("Only primitive panic value is currently supported")
         }
-        return GoUtPanicFailure(panicValue, implementsError, rawExecutionResult.trace)
+        return GoUtPanicFailure(panicValue, implementsError)
     }
     if (rawExecutionResult.rawResultValues.size != functionResultTypes.size) {
         error("Function completed execution must have as many result raw values as result types.")
@@ -139,9 +139,9 @@ fun convertRawExecutionResultToExecutionResult(
         createGoUtModelFromRawValue(rawResultValue, resultType, intSize)
     }
     return if (executedWithNonNilErrorString) {
-        GoUtExecutionWithNonNilError(resultValues, rawExecutionResult.trace)
+        GoUtExecutionWithNonNilError(resultValues)
     } else {
-        GoUtExecutionSuccess(resultValues, rawExecutionResult.trace)
+        GoUtExecutionSuccess(resultValues)
     }
 }
 

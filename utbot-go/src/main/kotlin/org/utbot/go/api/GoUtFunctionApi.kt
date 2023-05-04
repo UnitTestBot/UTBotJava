@@ -1,6 +1,5 @@
 package org.utbot.go.api
 
-import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
@@ -17,13 +16,9 @@ data class GoUtFunctionParameter(val name: String, val type: GoTypeId)
 
 data class GoUtFunction(
     val name: String,
-    val modifiedName: String,
     val parameters: List<GoUtFunctionParameter>,
     val resultTypes: List<GoTypeId>,
-    val requiredImports: List<GoImport>,
     val constants: Map<GoTypeId, List<Any>>,
-    val modifiedFunctionForCollectingTraces: String,
-    val numberOfAllStatements: Int,
     val sourceFile: GoUtFile
 ) {
     val sourcePackage: GoPackage = sourceFile.sourcePackage

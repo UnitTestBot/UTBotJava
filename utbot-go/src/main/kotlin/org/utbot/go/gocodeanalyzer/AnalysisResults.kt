@@ -5,7 +5,6 @@ import com.beust.klaxon.TypeFor
 import org.utbot.go.api.*
 import org.utbot.go.api.util.goPrimitives
 import org.utbot.go.framework.api.go.GoFieldId
-import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import kotlin.reflect.KClass
@@ -245,14 +244,10 @@ internal data class AnalyzedFunctionParameter(val name: String, val type: String
 
 internal data class AnalyzedFunction(
     val name: String,
-    val modifiedName: String,
     val types: Map<String, AnalyzedType>,
     val parameters: List<AnalyzedFunctionParameter>,
     val resultTypes: List<String>,
-    val requiredImports: List<GoImport>,
     val constants: Map<String, List<String>>,
-    val modifiedFunctionForCollectingTraces: String,
-    val numberOfAllStatements: Int
 )
 
 internal data class AnalysisResult(
@@ -263,6 +258,6 @@ internal data class AnalysisResult(
     val notFoundFunctionsNames: List<String>
 )
 
-internal data class AnalysisResults(val results: List<AnalysisResult>, val intSize: Int, val maxTraceLength: Int)
+internal data class AnalysisResults(val results: List<AnalysisResult>, val intSize: Int)
 
 class GoParsingSourceCodeAnalysisResultException(s: String, t: Throwable) : Exception(s, t)

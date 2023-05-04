@@ -27,8 +27,7 @@ object GoSourceCodeAnalyzer {
 
     data class GoSourceCodeAnalyzerResult(
         val analysisResults: Map<GoUtFile, GoSourceFileAnalysisResult>,
-        val intSize: Int,
-        val maxTraceLength: Int,
+        val intSize: Int
     )
 
     /**
@@ -72,7 +71,6 @@ object GoSourceCodeAnalyzer {
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
             val intSize = analysisResults.intSize
-            val maxTraceLength = analysisResults.maxTraceLength
             return GoSourceCodeAnalyzerResult(analysisResults.results.map { analysisResult ->
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
@@ -100,26 +98,21 @@ object GoSourceCodeAnalyzer {
                     }
                     GoUtFunction(
                         analyzedFunction.name,
-                        analyzedFunction.modifiedName,
                         parameters,
                         resultTypes,
-                        analyzedFunction.requiredImports,
                         constants,
-                        analyzedFunction.modifiedFunctionForCollectingTraces,
-                        analyzedFunction.numberOfAllStatements,
                         sourceFile
                     )
                 }
                 GoSourceFileAnalysisResult(
                     functions, analysisResult.notSupportedFunctionsNames, analysisResult.notFoundFunctionsNames
                 )
-            }, intSize, maxTraceLength)
+            }, intSize)
         } catch (exception: KlaxonException) {
             throw GoParsingSourceCodeAnalysisResultException(
                 "An error occurred while parsing the result of the source code analysis.", exception
             )
         } finally {
-            // TODO correctly?
             analysisTargetsFile.delete()
             analysisResultsFile.delete()
             goCodeAnalyzerSourceDir.deleteRecursively()
@@ -148,7 +141,6 @@ object GoSourceCodeAnalyzer {
             "analyzer_core.go",
             "analysis_targets.go",
             "analysis_results.go",
-            "function_modifier.go",
             "imports_collector.go",
             "constant_extractor.go"
         )

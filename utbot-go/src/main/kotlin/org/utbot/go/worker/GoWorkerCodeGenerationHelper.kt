@@ -31,13 +31,13 @@ internal object GoWorkerCodeGenerationHelper {
     fun createFileToExecute(
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>,
+        absoluteInstrumentedPackagePath: String,
         eachExecutionTimeoutMillis: Long,
         port: Int,
-        maxTraceLength: Int,
         imports: Set<GoImport>
     ): File {
         val fileToExecuteName = createFileToExecuteName()
-        val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
+        val sourceFileDir = File(absoluteInstrumentedPackagePath)
         val fileToExecute = sourceFileDir.resolve(fileToExecuteName)
 
         val fileToExecuteGoCode =
@@ -46,32 +46,31 @@ internal object GoWorkerCodeGenerationHelper {
                 functions,
                 eachExecutionTimeoutMillis,
                 port,
-                maxTraceLength,
                 imports
             )
         fileToExecute.writeText(fileToExecuteGoCode)
         return fileToExecute
     }
 
-    fun createFileWithModifiedFunctions(
+    fun createFileWithCoverTab(
         sourceFile: GoUtFile,
-        functions: List<GoUtFunction>
+        absoluteInstrumentedPackagePath: String,
     ): File {
-        val fileWithModifiedFunctionsName = createFileWithModifiedFunctionsName()
-        val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
-        val fileWithModifiedFunctions = sourceFileDir.resolve(fileWithModifiedFunctionsName)
+        val fileWithCoverTabName = createFileWithCoverTabName()
+        val sourceFileDir = File(absoluteInstrumentedPackagePath)
+        val fileWithCoverTab = sourceFileDir.resolve(fileWithCoverTabName)
 
-        val fileWithModifiedFunctionsGoCode = generateFileWithModifiedFunctionsGoCode(sourceFile, functions)
-        fileWithModifiedFunctions.writeText(fileWithModifiedFunctionsGoCode)
-        return fileWithModifiedFunctions
+        val fileWithCoverTabGoCode = generateFileWithCoverTabGoCode(sourceFile.sourcePackage)
+        fileWithCoverTab.writeText(fileWithCoverTabGoCode)
+        return fileWithCoverTab
     }
 
     private fun createFileToExecuteName(): String {
         return "utbot_go_worker_test.go"
     }
 
-    private fun createFileWithModifiedFunctionsName(): String {
-        return "utbot_go_modified_functions.go"
+    private fun createFileWithCoverTabName(): String {
+        return "utbot_go_cover.go"
     }
 
     private fun generateWorkerTestFileGoCode(
@@ -79,7 +78,6 @@ internal object GoWorkerCodeGenerationHelper {
         functions: List<GoUtFunction>,
         eachExecutionTimeoutMillis: Long,
         port: Int,
-        maxTraceLength: Int,
         imports: Set<GoImport>
     ): String {
         val destinationPackage = sourceFile.sourcePackage
@@ -96,24 +94,17 @@ internal object GoWorkerCodeGenerationHelper {
                 namedTypes,
                 destinationPackage,
                 aliases,
-                maxTraceLength,
             ) + workerTestFunctionCode
         )
 
         return fileCodeBuilder.buildCodeString()
     }
 
-    private fun generateFileWithModifiedFunctionsGoCode(sourceFile: GoUtFile, functions: List<GoUtFunction>): String {
-        val destinationPackage = sourceFile.sourcePackage
-        val imports = functions.fold(emptySet<GoImport>()) { acc, function ->
-            acc + function.requiredImports
-        }
-        val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
-        fileCodeBuilder.addTopLevelElements(
-            functions.map { it.modifiedFunctionForCollectingTraces }
-        )
-        return fileCodeBuilder.buildCodeString()
-    }
+    private fun generateFileWithCoverTabGoCode(goPackage: GoPackage): String = """
+        package ${goPackage.packageName}
+
+        var __CoverTab__ map[string]int
+    """.trimIndent()
 
     private fun generateWorkerTestFunctionCode(
         functions: List<GoUtFunction>, eachExecutionTimeoutMillis: Long, port: Int
@@ -160,7 +151,7 @@ internal object GoWorkerCodeGenerationHelper {
             		switch funcName {
             ${
             functions.joinToString(separator = "\n") { function ->
-                "case \"${function.modifiedName}\": function = reflect.ValueOf(${function.modifiedName})"
+                "case \"${function.name}\": function = reflect.ValueOf(${function.name})"
             }
         }
             		default:

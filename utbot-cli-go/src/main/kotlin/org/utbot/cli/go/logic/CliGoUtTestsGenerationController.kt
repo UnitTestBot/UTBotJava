@@ -37,6 +37,20 @@ class CliGoUtTestsGenerationController(
         return handleMissingSelectedFunctions(analysisResults)
     }
 
+    override fun onPackageInstrumentationStart(): Boolean {
+        currentStageStarted = now()
+        logger.debug { "Package instrumentation - started" }
+
+        return true
+    }
+
+    override fun onPackageInstrumentationFinished(): Boolean {
+        val stageDuration = durationInMillis(currentStageStarted)
+        logger.debug { "Package instrumentation - completed in [$stageDuration] (ms)" }
+
+        return true
+    }
+
     override fun onTestCasesGenerationForGoSourceFileFunctionsStart(
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>

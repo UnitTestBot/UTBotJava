@@ -6,7 +6,6 @@ import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.util.convertToRawValue
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoUtModel
-import org.utbot.go.logic.logger
 import org.utbot.go.util.convertObjectToJsonString
 import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
 import org.utbot.go.util.modifyEnvironment
@@ -21,6 +20,7 @@ class GoWorker private constructor(
     private var process: Process,
     private var socket: Socket,
     private val testFunctionName: String,
+    private val testFilePath: String,
     private val goPackage: GoPackage,
     private val goExecutableAbsolutePath: Path,
     private val gopathAbsolutePath: Path,
@@ -28,7 +28,7 @@ class GoWorker private constructor(
     private val serverSocket: ServerSocket,
     private val readTimeoutMillis: Long,
     private val connectionTimeoutMillis: Long,
-    private val endOfWorkerExecutionTimeout: Long
+    private val endOfWorkerExecutionTimeoutMillis: Long
 ) : Closeable {
     private val reader: BufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
     private val writer: BufferedWriter = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
@@ -41,7 +41,7 @@ class GoWorker private constructor(
         function: GoUtFunction, arguments: List<GoUtModel>, aliases: Map<GoPackage, String?>
     ) {
         val rawValues = arguments.map { it.convertToRawValue(goPackage, aliases) }
-        val testCase = TestInput(function.modifiedName, rawValues)
+        val testCase = TestInput(function.name, rawValues)
         val json = convertObjectToJsonString(testCase)
         writer.write(json)
         writer.flush()
@@ -58,18 +58,17 @@ class GoWorker private constructor(
     fun restartWorker() {
         process.destroy()
         process = startWorkerProcess(
-            testFunctionName, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
+            testFunctionName, testFilePath, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
         )
-        val processStartTime = System.currentTimeMillis()
         socket.close()
         socket = connectingToWorker(
-            serverSocket, process, connectionTimeoutMillis, endOfWorkerExecutionTimeout, processStartTime
+            serverSocket, process, connectionTimeoutMillis, endOfWorkerExecutionTimeoutMillis
         )
     }
 
     override fun close() {
         socket.close()
-        val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
+        val processHasExited = process.waitFor(endOfWorkerExecutionTimeoutMillis, TimeUnit.MILLISECONDS)
         if (!processHasExited) {
             process.destroy()
             val processOutput = InputStreamReader(process.inputStream).readText()
@@ -91,14 +90,13 @@ class GoWorker private constructor(
     companion object {
         private fun startWorkerProcess(
             testFunctionName: String,
+            testFileName: String,
             goExecutableAbsolutePath: Path,
             gopathAbsolutePath: Path,
             workingDirectory: File,
         ): Process {
             val environment = modifyEnvironment(goExecutableAbsolutePath, gopathAbsolutePath)
-            val command = listOf(
-                goExecutableAbsolutePath.toString(), "test", "-run", testFunctionName, "-timeout", "0"
-            )
+            val command = listOf(testFileName, "--test.run", testFunctionName)
             return executeCommandByNewProcessOrFailWithoutWaiting(command, workingDirectory, environment)
         }
 
@@ -107,9 +105,7 @@ class GoWorker private constructor(
             process: Process,
             connectionTimeoutMillis: Long,
             endOfWorkerExecutionTimeout: Long,
-            processStartTime: Long,
         ): Socket {
-            logger.debug { "Trying to connect to worker" }
             val workerSocket = try {
                 serverSocket.soTimeout = connectionTimeoutMillis.toInt()
                 serverSocket.accept()
@@ -122,12 +118,12 @@ class GoWorker private constructor(
                 }
                 throw TimeoutException("Timeout exceeded: Worker not connected")
             }
-            logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
             return workerSocket
         }
 
         fun createWorker(
             testFunctionName: String,
+            testFilePath: String,
             goPackage: GoPackage,
             goExecutableAbsolutePath: Path,
             gopathAbsolutePath: Path,
@@ -137,16 +133,16 @@ class GoWorker private constructor(
             endOfWorkerExecutionTimeout: Long = 5000,
         ): GoWorker {
             val workerProcess = startWorkerProcess(
-                testFunctionName, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
+                testFunctionName, testFilePath, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
             )
-            val processStartTime = System.currentTimeMillis()
             val workerSocket = connectingToWorker(
-                serverSocket, workerProcess, connectionTimeoutMillis, endOfWorkerExecutionTimeout, processStartTime
+                serverSocket, workerProcess, connectionTimeoutMillis, endOfWorkerExecutionTimeout
             )
             return GoWorker(
                 process = workerProcess,
                 socket = workerSocket,
                 testFunctionName = testFunctionName,
+                testFilePath = testFilePath,
                 goPackage = goPackage,
                 goExecutableAbsolutePath = goExecutableAbsolutePath,
                 gopathAbsolutePath = gopathAbsolutePath,
@@ -154,7 +150,7 @@ class GoWorker private constructor(
                 serverSocket = serverSocket,
                 readTimeoutMillis = 2 * endOfWorkerExecutionTimeout,
                 connectionTimeoutMillis = connectionTimeoutMillis,
-                endOfWorkerExecutionTimeout = endOfWorkerExecutionTimeout
+                endOfWorkerExecutionTimeoutMillis = endOfWorkerExecutionTimeout
             )
         }
     }

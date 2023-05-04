@@ -4,6 +4,8 @@ import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFuzzedFunctionTestCase
 import org.utbot.go.gocodeanalyzer.GoSourceCodeAnalyzer
+import org.utbot.go.gocodeinstrumentation.GoPackageInstrumentation
+import org.utbot.go.gocodeinstrumentation.InstrumentationResult
 import org.utbot.go.simplecodegeneration.GoTestCasesCodeGenerator
 import java.nio.file.Path
 
@@ -15,12 +17,27 @@ abstract class AbstractGoUtTestsGenerationController {
         isCanceled: () -> Boolean = { false }
     ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
-        val (analysisResults, intSize, maxTraceLength) = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
+        val (analysisResults, intSize) = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionsNamesBySourceFiles,
             testsGenerationConfig.goExecutableAbsolutePath,
             testsGenerationConfig.gopathAbsolutePath
         )
         if (!onSourceCodeAnalysisFinished(analysisResults)) return
+
+        if (!onPackageInstrumentationStart()) return
+        val instrumentationResults = mutableMapOf<String, InstrumentationResult>()
+        analysisResults.forEach { (file, analysisResult) ->
+            val absoluteDirectoryPath = file.absoluteDirectoryPath
+            if (instrumentationResults[absoluteDirectoryPath] == null) {
+                instrumentationResults[absoluteDirectoryPath] = GoPackageInstrumentation.instrumentGoPackage(
+                    testedFunctions = analysisResult.functions.map { it.name },
+                    absoluteDirectoryPath = absoluteDirectoryPath,
+                    goExecutableAbsolutePath = testsGenerationConfig.goExecutableAbsolutePath,
+                    gopathAbsolutePath = testsGenerationConfig.gopathAbsolutePath
+                )
+            }
+        }
+        if (!onPackageInstrumentationFinished()) return
 
         val numOfFunctions = analysisResults.values
             .map { it.functions.size }
@@ -30,11 +47,15 @@ abstract class AbstractGoUtTestsGenerationController {
         val testCasesBySourceFiles = analysisResults.mapValues { (sourceFile, analysisResult) ->
             val functions = analysisResult.functions
             if (!onTestCasesGenerationForGoSourceFileFunctionsStart(sourceFile, functions)) return
+            val (absolutePathToInstrumentedPackage, absolutePathToInstrumentedModule, needToCoverLines) =
+                instrumentationResults[sourceFile.absoluteDirectoryPath]!!
             GoTestCasesGenerator.generateTestCasesForGoSourceFileFunctions(
                 sourceFile,
                 functions,
+                absolutePathToInstrumentedPackage,
+                absolutePathToInstrumentedModule,
+                needToCoverLines,
                 intSize,
-                maxTraceLength,
                 testsGenerationConfig.goExecutableAbsolutePath,
                 testsGenerationConfig.gopathAbsolutePath,
                 testsGenerationConfig.eachFunctionExecutionTimeoutMillis
@@ -59,6 +80,10 @@ abstract class AbstractGoUtTestsGenerationController {
     protected abstract fun onSourceCodeAnalysisFinished(
         analysisResults: Map<GoUtFile, GoSourceCodeAnalyzer.GoSourceFileAnalysisResult>
     ): Boolean
+
+    protected abstract fun onPackageInstrumentationStart(): Boolean
+
+    protected abstract fun onPackageInstrumentationFinished(): Boolean
 
     protected abstract fun onTestCasesGenerationForGoSourceFileFunctionsStart(
         sourceFile: GoUtFile,

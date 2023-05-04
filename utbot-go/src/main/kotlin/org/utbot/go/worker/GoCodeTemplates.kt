@@ -610,7 +610,7 @@ object GoCodeTemplates {
         	TimeoutExceeded bool                 `json:"timeoutExceeded"`
         	RawResultValues []__RawValue__       `json:"rawResultValues"`
         	PanicMessage    *__RawPanicMessage__ `json:"panicMessage"`
-        	Trace           []uint16             `json:"trace"`
+        	CoverTab        map[string]int       `json:"coverTab"`
         }
     """.trimIndent()
 
@@ -862,14 +862,14 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private fun executeFunctionFunction(maxTraceLength: Int) = """
+    private val executeFunctionFunction = """
         func __executeFunction__(
         	function reflect.Value, arguments []reflect.Value, timeout time.Duration,
         ) __RawExecutionResult__ {
         	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
         	defer cancel()
 
-        	trace := make([]uint16, 0, $maxTraceLength)
+        	__CoverTab__ = make(map[string]int, 256)
 
         	done := make(chan __RawExecutionResult__, 1)
         	go func() {
@@ -877,7 +877,7 @@ object GoCodeTemplates {
         			TimeoutExceeded: false,
         			RawResultValues: []__RawValue__{},
         			PanicMessage:    nil,
-        			Trace:           []uint16{},
+        			CoverTab:        nil,
         		}
 
         		panicked := true
@@ -904,12 +904,10 @@ object GoCodeTemplates {
         					ImplementsError: implementsError,
         				}
         			}
-        			executionResult.Trace = trace
         			done <- executionResult
         		}()
 
-        		argumentsWithTrace := append(arguments, reflect.ValueOf(&trace))
-        		resultValues, err := __wrapResultValues__(function.Call(argumentsWithTrace))
+        		resultValues, err := __wrapResultValues__(function.Call(arguments))
         		if err != nil {
         			_, _ = fmt.Fprintf(os.Stderr, "Failed to wrap result values: %s", err)
         			os.Exit(1)
@@ -920,13 +918,14 @@ object GoCodeTemplates {
 
         	select {
         	case timelyExecutionResult := <-done:
+        		timelyExecutionResult.CoverTab = __CoverTab__
         		return timelyExecutionResult
         	case <-ctxWithTimeout.Done():
         		return __RawExecutionResult__{
         			TimeoutExceeded: true,
         			RawResultValues: []__RawValue__{},
         			PanicMessage:    nil,
-        			Trace:           trace,
+        			CoverTab:        __CoverTab__,
         		}
         	}
         }
@@ -1309,7 +1308,6 @@ object GoCodeTemplates {
         namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
         aliases: Map<GoPackage, String?>,
-        maxTraceLength: Int,
     ) = listOf(
         errorMessages,
         testInputStruct,
@@ -1341,7 +1339,7 @@ object GoCodeTemplates {
         convertFloat64ValueToStringFunction,
         convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValueFunction,
         convertReflectValueToRawValueFunction,
-        executeFunctionFunction(maxTraceLength),
+        executeFunctionFunction,
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
         parseTestInputFunction,

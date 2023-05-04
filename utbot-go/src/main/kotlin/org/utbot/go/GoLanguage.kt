@@ -1,7 +1,7 @@
 package org.utbot.go
 
-import kotlinx.coroutines.sync.Mutex
 import org.utbot.fuzzing.*
+import org.utbot.fuzzing.utils.IdentityTrie
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.framework.api.go.GoTypeId
@@ -24,14 +24,10 @@ fun goDefaultValueProviders() = listOf(
     GoPointerValueProvider
 )
 
-class GoInstruction(
-    val lineNumber: Int
-)
-
 class GoDescription(
     val worker: GoWorker,
     val methodUnderTest: GoUtFunction,
-    val tracer: Trie<GoInstruction, *>,
+    val coverage: Trie<String, String>,
     val intSize: Int
 ) : Description<GoTypeId>(methodUnderTest.parameters.map { it.type }.toList())
 
@@ -41,13 +37,13 @@ suspend fun runGoFuzzing(
     index: Int,
     intSize: Int,
     providers: List<ValueProvider<GoTypeId, GoUtModel, GoDescription>> = goDefaultValueProviders(),
-    exec: suspend (description: GoDescription, values: List<GoUtModel>) -> BaseFeedback<Trie.Node<GoInstruction>, GoTypeId, GoUtModel>
+    exec: suspend (description: GoDescription, values: List<GoUtModel>) -> BaseFeedback<Trie.Node<String>, GoTypeId, GoUtModel>
 ) {
     BaseFuzzing(providers, exec).fuzz(
         description = GoDescription(
             worker = worker,
             methodUnderTest = methodUnderTest,
-            tracer = Trie(GoInstruction::lineNumber),
+            coverage = IdentityTrie(),
             intSize = intSize
         ),
         random = Random(index)

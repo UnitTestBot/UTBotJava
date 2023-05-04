@@ -60,6 +60,14 @@ class IntellijGoUtTestsGenerationController(
         return true
     }
 
+    override fun onPackageInstrumentationStart(): Boolean {
+        return true
+    }
+
+    override fun onPackageInstrumentationFinished(): Boolean {
+        return true
+    }
+
     override fun onTestCasesGenerationForGoSourceFileFunctionsStart(
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>

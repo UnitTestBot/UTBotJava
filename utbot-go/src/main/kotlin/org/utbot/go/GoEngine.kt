@@ -24,6 +24,7 @@ val logger = KotlinLogging.logger {}
 class GoEngine(
     private var workers: List<GoWorker>,
     private val functionUnderTest: GoUtFunction,
+    private val needToCoverLines: List<String>,
     private val aliases: Map<GoPackage, String?>,
     private val intSize: Int,
     private val timeoutExceededOrIsCanceled: () -> Boolean
@@ -38,7 +39,7 @@ class GoEngine(
             send(fuzzedFunction to rawExecutionResult)
         } else {
             val mutex = Mutex(false)
-            val notCoveredLines = (1..functionUnderTest.numberOfAllStatements).toMutableSet()
+            val notCoveredLines = needToCoverLines.toMutableSet()
             workers.mapIndexed { index, worker ->
                 launch(Dispatchers.IO) {
                     var attempts = 0
@@ -54,11 +55,12 @@ class GoEngine(
                                 description.worker.receiveRawExecutionResult()
                             }
                             numberOfFunctionExecutions.incrementAndGet()
-                            if (rawExecutionResult.trace.isEmpty()) {
+                            val coverTab = rawExecutionResult.coverTab
+                            if (coverTab.isEmpty()) {
                                 logger.error { "Coverage is empty for [${functionUnderTest.name}] with $values}" }
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                             }
-                            val trieNode = description.tracer.add(rawExecutionResult.trace.map { GoInstruction(it) })
+                            val trieNode = description.coverage.add(coverTab.keys.sorted())
                             if (trieNode.count > 1) {
                                 if (++attempts >= attemptsLimit) {
                                     return@runGoFuzzing BaseFeedback(
@@ -69,7 +71,7 @@ class GoEngine(
                                 return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
                             }
                             mutex.withLock {
-                                if (notCoveredLines.removeAll(rawExecutionResult.trace.toSet())) {
+                                if (notCoveredLines.removeAll(coverTab.keys)) {
                                     send(fuzzedFunction to rawExecutionResult)
                                 }
                             }

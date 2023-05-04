@@ -343,11 +343,10 @@ func collectTargetAnalyzedFunctions(
 				defer wg.Done()
 
 				analyzedFunction := AnalyzedFunction{
-					Name:            typedObj.Name(),
-					Parameters:      []AnalyzedFunctionParameter{},
-					ResultTypes:     []string{},
-					RequiredImports: []Import{},
-					position:        typedObj.Pos(),
+					Name:        typedObj.Name(),
+					Parameters:  []AnalyzedFunctionParameter{},
+					ResultTypes: []string{},
+					position:    typedObj.Pos(),
 				}
 
 				mutex.Lock()
@@ -394,10 +393,6 @@ func collectTargetAnalyzedFunctions(
 				ast.Walk(&constantExtractor, funcDecl)
 				analyzedFunction.Constants = constantExtractor.constants
 
-				functionModifier := FunctionModifier{maxTraceLen: MaxTraceLength}
-				functionModifier.ModifyFunctionDeclaration(funcDecl)
-				ast.Walk(&functionModifier, funcDecl)
-
 				importsCollector := ImportsCollector{
 					info:             info,
 					requiredImports:  map[Import]bool{},
@@ -419,12 +414,6 @@ func collectTargetAnalyzedFunctions(
 				checkError(err)
 
 				analyzedFunction.Types = analyzedTypes
-				analyzedFunction.ModifiedName = funcDecl.Name.String()
-				for i := range importsCollector.requiredImports {
-					analyzedFunction.RequiredImports = append(analyzedFunction.RequiredImports, i)
-				}
-				analyzedFunction.ModifiedFunctionForCollectingTraces = modifiedFunction.String()
-				analyzedFunction.NumberOfAllStatements = functionModifier.lineCounter
 
 				mutex.Lock()
 				analyzedFunctions = append(analyzedFunctions, analyzedFunction)

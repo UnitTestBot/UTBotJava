@@ -107,16 +107,12 @@ type AnalyzedFunctionParameter struct {
 }
 
 type AnalyzedFunction struct {
-	Name                                string                      `json:"name"`
-	ModifiedName                        string                      `json:"modifiedName"`
-	Types                               map[string]AnalyzedType     `json:"types"`
-	Parameters                          []AnalyzedFunctionParameter `json:"parameters"`
-	ResultTypes                         []string                    `json:"resultTypes"`
-	RequiredImports                     []Import                    `json:"requiredImports"`
-	Constants                           map[string][]string         `json:"constants"`
-	ModifiedFunctionForCollectingTraces string                      `json:"modifiedFunctionForCollectingTraces"`
-	NumberOfAllStatements               int                         `json:"numberOfAllStatements"`
-	position                            token.Pos
+	Name        string                      `json:"name"`
+	Types       map[string]AnalyzedType     `json:"types"`
+	Parameters  []AnalyzedFunctionParameter `json:"parameters"`
+	ResultTypes []string                    `json:"resultTypes"`
+	Constants   map[string][]string         `json:"constants"`
+	position    token.Pos
 }
 
 type AnalysisResult struct {
@@ -128,7 +124,6 @@ type AnalysisResult struct {
 }
 
 type AnalysisResults struct {
-	Results        []AnalysisResult `json:"results"`
-	IntSize        int              `json:"intSize"`
-	MaxTraceLength int              `json:"maxTraceLength"`
+	Results []AnalysisResult `json:"results"`
+	IntSize int              `json:"intSize"`
 }

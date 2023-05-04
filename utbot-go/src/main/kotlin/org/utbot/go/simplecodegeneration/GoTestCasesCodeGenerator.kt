@@ -253,7 +253,11 @@ object GoTestCasesCodeGenerator {
         val actualFunctionCall = generateFuzzedFunctionCall(function.name, variables)
         val actualFunctionCallLambda = buildString {
             appendLine("func() {")
-            appendLine("\t\t${function.resultTypes.joinToString { "_" }} = $actualFunctionCall")
+            if (function.resultTypes.isNotEmpty()) {
+                appendLine("\t\t${function.resultTypes.joinToString { "_" }} = $actualFunctionCall")
+            } else {
+                appendLine("\t\t$actualFunctionCall")
+            }
             append("\t}")
         }
         val testFunctionBodySb = StringBuilder(variablesDeclaration)

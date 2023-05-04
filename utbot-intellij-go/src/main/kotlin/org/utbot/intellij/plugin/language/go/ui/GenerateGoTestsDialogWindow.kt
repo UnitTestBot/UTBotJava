@@ -17,6 +17,7 @@ import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.settings.Settings
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
+import javax.swing.JCheckBox
 import javax.swing.JComponent
 
 private const val MINIMUM_ALL_EXECUTION_TIMEOUT_SECONDS = 1
@@ -30,6 +31,7 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
         val height = this.rowHeight * (targetInfos.size.coerceAtMost(12) + 1)
         this.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
+    private val fuzzingMode = JCheckBox("Fuzzing mode")
 
     private val allFunctionExecutionTimeoutSecondsSpinner =
         JBIntSpinner(
@@ -50,6 +52,10 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
     override fun createCenterPanel(): JComponent {
         panel = panel {
             row("Test source root: near to source files") {}
+            row  {
+                cell(fuzzingMode)
+                contextHelp("Stop test generation when a panic or error occurs (only one test will be generated for one of these cases)")
+            }
             row("Generate test methods for:") {}
             row {
                 scrollCell(targetFunctionsTable).align(Align.FILL)
@@ -75,6 +81,7 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
         }
         model.allFunctionExecutionTimeoutMillis =
             TimeUnit.SECONDS.toMillis(allFunctionExecutionTimeoutSecondsSpinner.number.toLong())
+        model.fuzzingMode = fuzzingMode.isSelected
         super.doOKAction()
     }
 

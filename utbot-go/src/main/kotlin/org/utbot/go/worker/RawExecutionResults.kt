@@ -133,10 +133,11 @@ fun convertRawExecutionResultToExecutionResult(
     }
     var executedWithNonNilErrorString = false
     val resultValues = rawExecutionResult.rawResultValues.zip(functionResultTypes).map { (rawResultValue, resultType) ->
-        if (resultType.implementsError) {
+        val model = createGoUtModelFromRawValue(rawResultValue, resultType, intSize)
+        if (resultType.implementsError && (model is GoUtNamedModel && model.value.typeId == goStringTypeId)) {
             executedWithNonNilErrorString = true
         }
-        createGoUtModelFromRawValue(rawResultValue, resultType, intSize)
+        return@map model
     }
     return if (executedWithNonNilErrorString) {
         GoUtExecutionWithNonNilError(resultValues)

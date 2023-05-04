@@ -111,7 +111,7 @@ object GoUtTestsDialogProcessor {
 
                 try {
                     IntellijGoUtTestsGenerationController(model, indicator).generateTests(
-                        selectedFunctionsNamesBySourceFiles, testsGenerationConfig
+                        selectedFunctionsNamesBySourceFiles, testsGenerationConfig, model.fuzzingMode
                     ) { indicator.isCanceled }
                 } catch (e: GoParsingSourceCodeAnalysisResultException) {
                     val errorMessage = buildErrorMessage(e)

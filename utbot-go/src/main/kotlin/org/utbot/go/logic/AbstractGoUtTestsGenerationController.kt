@@ -14,6 +14,7 @@ abstract class AbstractGoUtTestsGenerationController {
     fun generateTests(
         selectedFunctionsNamesBySourceFiles: Map<Path, List<String>>,
         testsGenerationConfig: GoUtTestsGenerationConfig,
+        fuzzingMode: Boolean,
         isCanceled: () -> Boolean = { false }
     ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
@@ -58,7 +59,8 @@ abstract class AbstractGoUtTestsGenerationController {
                 intSize,
                 testsGenerationConfig.goExecutableAbsolutePath,
                 testsGenerationConfig.gopathAbsolutePath,
-                testsGenerationConfig.eachFunctionExecutionTimeoutMillis
+                testsGenerationConfig.eachFunctionExecutionTimeoutMillis,
+                fuzzingMode,
             ) { index -> isCanceled() || System.currentTimeMillis() - (startTimeMillis + (index + 1) * functionTimeoutStepMillis) > 0 }
                 .also {
                     startTimeMillis += functionTimeoutStepMillis * functions.size

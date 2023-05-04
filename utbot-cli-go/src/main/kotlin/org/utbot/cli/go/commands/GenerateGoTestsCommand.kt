@@ -85,6 +85,13 @@ class GenerateGoTestsCommand :
     )
         .flag(default = false)
 
+    private val fuzzingMode: Boolean by option(
+        "-fm",
+        "--fuzzing-mode",
+        help = "Stop test generation when a panic or error occurs (only one test will be generated for one of these cases)"
+    )
+        .flag(default = false)
+
     override fun run() {
         val sourceFileAbsolutePath = sourceFile.toAbsolutePath()
         val goExecutableAbsolutePath = goExecutablePath.toAbsolutePath()
@@ -103,7 +110,8 @@ class GenerateGoTestsCommand :
                     gopathAbsolutePath,
                     eachFunctionExecutionTimeoutMillis,
                     allFunctionExecutionTimeoutMillis
-                )
+                ),
+                fuzzingMode
             )
         } catch (t: Throwable) {
             logger.error { "An error has occurred while generating test for snippet $sourceFile: $t" }

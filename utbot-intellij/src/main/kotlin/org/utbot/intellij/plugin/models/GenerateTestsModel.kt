@@ -55,9 +55,7 @@ class GenerateTestsModel(
     lateinit var commentStyle: JavaDocCommentStyle
 
     lateinit var typeReplacementApproach: TypeReplacementApproach
-
-    // TODO remove once issue with spring-analyzer expecting .properties and .xml file paths is resolved
-    var useSpringAnalyzer = false
+    lateinit var profileNames: String
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 

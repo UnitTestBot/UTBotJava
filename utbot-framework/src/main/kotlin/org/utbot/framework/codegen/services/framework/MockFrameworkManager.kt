@@ -48,6 +48,7 @@ import org.utbot.framework.codegen.tree.CgStatementConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.hasAmbiguousOverloadsOf
+import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -70,6 +71,7 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import java.util.*
 
 abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgContextOwner by context,
@@ -180,8 +182,10 @@ private abstract class StaticMocker(
 }
 
 private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
+
+    private val alreadyMockedModels: MutableSet<UtCompositeModel> = Collections.newSetFromMap(IdentityHashMap())
+
     override fun createMock(model: UtCompositeModel, baseName: String): CgVariable {
-        // create mock object
         val modelClass = getClassOf(model.classId)
         val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
 
@@ -191,6 +195,10 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
     }
 
     fun mockForVariable(model: UtCompositeModel, mockObject: CgVariable) {
+        if (!alreadyMockedModels.add(model)) {
+            return
+        }
+
         for ((executable, values) in model.mocks) {
             val matchers = mockitoArgumentMatchersFor(executable)
 
@@ -223,8 +231,6 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                     else -> error("Only MethodId was expected to appear in simple mocker but got $executable")
                 }
             }
-
-
         }
     }
 
@@ -282,6 +288,10 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             nameGenerator.variableName(MOCKED_CONSTRUCTION_NAME),
             mockConstructionInitializer.mockConstructionCall
         )
+
+        importIfNeeded(MockitoStaticMocking.mockedConstructionClassId)
+        importIfNeeded(classId)
+
         resources += mockedConstructionDeclaration
         +CgAssignment(mockedConstructionDeclaration.variable, mockConstructionInitializer.mockConstructionCall)
         mockedStaticConstructions += classId
@@ -346,6 +356,9 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             ).also {
                 resources += it
                 +CgAssignment(it.variable, classMockStaticCall)
+
+                importIfNeeded(MockitoStaticMocking.mockedStaticClassId)
+                importIfNeeded(classId)
             }
         }
 
@@ -361,10 +374,6 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 classId,
                 isMock = true
             )
-        )
-        val contextParameter = variableConstructor.declareParameter(
-            mockedConstructionContextClassId,
-            nameGenerator.variableName("context")
         )
 
         val mockAnswerStatements = mutableMapOf<Int, List<CgStatement>>()
@@ -420,11 +429,19 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
         }
 
+        val contextParameter = variableConstructor.declareParameter(
+            mockedConstructionContextClassId,
+            nameGenerator.variableName("context")
+        )
+
         val answersBlock = CgAnonymousFunction(
             voidClassId,
             listOf(mockParameter, contextParameter).map { CgParameterDeclaration(it, isVararg = false) },
             mockConstructionBody
         )
+
+        importIfNeeded(mockedConstructionContextClassId)
+        importIfNeeded(classId)
 
         return MockConstructionBlock(
             mockitoClassId[MockitoStaticMocking.mockConstructionMethodId](clazz, answersBlock),

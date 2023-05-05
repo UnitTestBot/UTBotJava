@@ -8,6 +8,7 @@
 
 package org.utbot.framework.plugin.api
 
+import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
@@ -438,10 +439,7 @@ data class UtCompositeModel(
 
         other as UtCompositeModel
 
-        if (id != other.id) return false
-        if (classId != other.classId) return false
-
-        return true
+        return id == other.id
     }
 
     override fun hashCode(): Int {
@@ -1270,16 +1268,34 @@ class SpringApplicationContext(
     private val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
     private var areInjectedClassesInitialized : Boolean = false
 
     // Classes representing concrete types that are actually used in Spring application
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                springInjectedClassesStorage += beanQualifiedNames
-                    .map { fqn -> utContext.classLoader.loadClass(fqn) }
-                    .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
-                    .mapTo(mutableSetOf()) { it.id }
+                for (beanFqn in beanQualifiedNames) {
+                    try {
+                        val beanClass = utContext.classLoader.loadClass(beanFqn)
+                        if (!beanClass.isAbstract && !beanClass.isInterface &&
+                            !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
+                            springInjectedClassesStorage += beanClass.id
+                        }
+                    } catch (e: Throwable) {
+                        // For some Spring beans (e.g. with anonymous classes)
+                        // it is possible to have problems with classes loading.
+                        when (e) {
+                            is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
+                                logger.warn { "Failed to load bean class for $beanFqn (${e.message})" }
+
+                            else -> throw e
+                        }
+                    }
+                }
 
                 // This is done to be sure that this storage is not empty after the first class loading iteration.
                 // So, even if all loaded classes were filtered out, we will not try to load them again.

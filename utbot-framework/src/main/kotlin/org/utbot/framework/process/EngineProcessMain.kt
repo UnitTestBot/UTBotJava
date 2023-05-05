@@ -1,8 +1,6 @@
 package org.utbot.framework.process
 
 import com.jetbrains.rd.framework.IProtocol
-import com.jetbrains.rd.util.Logger
-import com.jetbrains.rd.util.lifetime.Lifetime
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.analytics.AnalyticsConfigureUtil
@@ -31,9 +29,7 @@ import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
-import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.settingsModel
-import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
@@ -77,19 +73,21 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         }.toTypedArray())))
     }
     watchdog.measureTimeForActiveCall(getSpringBeanQualifiedNames, "Getting Spring bean definitions") { params ->
-        val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking()
-        val beans = springAnalyzerProcess.terminateOnException { _ ->
-            springAnalyzerProcess.getBeanQualifiedNames(
-                params.classpath.toList(),
-                params.config,
-                // TODO remove once spring-analyzer learns to find resources on its own, temporarily leaving it here for testing with hardcoded absolute paths
-                propertyFilesPaths = emptyList(),
-                xmlConfigurationPaths = emptyList(),
-                params.useSpringAnalyzer
-            ).toTypedArray()
+        try {
+            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
+            val beans = springAnalyzerProcess.terminateOnException { _ ->
+                springAnalyzerProcess.getBeanQualifiedNames(
+                    params.config,
+                    params.fileStorage,
+                    params.profileExpression,
+                ).toTypedArray()
+            }
+            springAnalyzerProcess.terminate()
+            beans
+        } catch (e: Exception) {
+            logger.error(e) { "Spring Analyzer crushed, resorting to using empty bean list" }
+            emptyArray()
         }
-        springAnalyzerProcess.terminate()
-        beans
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
@@ -111,7 +109,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)
         logger.debug().measureTime({ "starting generation for ${methods.size} methods, starting with ${methods.first()}" }) {
             val generateFlow = when (testGenerator.applicationContext) {
-                is SpringApplicationContext -> defaultSpringFlow(params.generationTimeout)
+                is SpringApplicationContext -> defaultSpringFlow(params)
                 is ApplicationContext -> testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled

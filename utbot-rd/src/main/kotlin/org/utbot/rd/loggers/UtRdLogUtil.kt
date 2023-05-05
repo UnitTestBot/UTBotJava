@@ -26,13 +26,14 @@ fun overrideDefaultRdLoggerFactoryWithKLogger(logger: KLogger) {
     }
 }
 
-fun LoggerModel.setup(rdLogger: UtRdKLogger, processLifetime: Lifetime) {
+fun LoggerModel.setup(logger: KLogger, processLifetime: Lifetime) {
+    // we do not log trace on error here because it's a job of clint-side process logger
+    // server-side process logger can only log trace of where it was set up from which isn't particularly useful
+    val rdLogger = UtRdKLogger(logger, "", logTraceOnError = false)
     // currently we do not specify log level for different categories
     // though it is possible with some additional map on categories -> consider performance
-    getCategoryMinimalLogLevel.set { _ ->
-        // this logLevel is obtained from KotlinLogger
-        rdLogger.logLevel.ordinal
-    }
+    // this logLevel is obtained from KotlinLogger
+    getCategoryMinimalLogLevel.set(rdLogger.logLevel.ordinal)
 
     log.advise(processLifetime) {
         val logLevel = UtRdRemoteLogger.logLevelValues[it.logLevelOrdinal]

@@ -8,6 +8,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
@@ -46,7 +47,7 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.codegen.domain.TypeReplacementApproach
+import org.utbot.framework.codegen.domain.TypeReplacementApproach.*
 import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
@@ -139,15 +140,24 @@ object UtTestsDialogProcessor {
         return GenerateTestsDialogWindow(model)
     }
 
-    private fun compile(project: Project, files: Array<VirtualFile>): Promise<ProjectTaskManager.Result> {
-        val wholeModules = MavenProjectsManager.getInstance(project)?.hasProjects()?:false
+    private fun compile(
+        project: Project,
+        files: Array<VirtualFile>,
+        springConfigClass: PsiClass?,
+    ): Promise<ProjectTaskManager.Result> {
+        // For Maven project narrow compile scope may not work, see https://github.com/UnitTestBot/UTBotJava/issues/2021.
+        // For Spring project classes may contain `@ComponentScan` annotations, so we need to compile the whole module.
+        val isMavenProject = MavenProjectsManager.getInstance(project)?.hasProjects() ?: false
+        val isSpringProject = springConfigClass != null
+        val wholeModules = isMavenProject || isSpringProject
+
         val buildTasks = ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
             Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
                 ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
             }).entries
         ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
             if (wholeModules) {
-                // Maven-specific case, we have to compile the whole module
+                // This is a specific case, we have to compile the whole module
                 ModuleBuildTaskImpl(key!!, false)
             } else {
                 // Compile only chosen classes and their dependencies before generation.
@@ -159,14 +169,19 @@ object UtTestsDialogProcessor {
 
     private fun createTests(project: Project, model: GenerateTestsModel) {
         val springConfigClass = when (val approach = model.typeReplacementApproach) {
-            TypeReplacementApproach.DoNotReplace -> null
-            is TypeReplacementApproach.ReplaceIfPossible ->
+            DoNotReplace -> null
+            is ReplaceIfPossible ->
                 approach.config.takeUnless { it.endsWith(".xml") }?.let {
                     JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.projectScope(project)) ?:
                         error("Can't find configuration class $it")
                 }
         }
-        val promise = compile(project, (model.srcClasses + listOfNotNull(springConfigClass)).map { it.containingFile.virtualFile }.toTypedArray())
+
+        val filesToCompile = (model.srcClasses + listOfNotNull(springConfigClass))
+            .map { it.containingFile.virtualFile }
+            .toTypedArray()
+
+        val promise = compile(project, filesToCompile, springConfigClass)
         promise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess
@@ -215,25 +230,39 @@ object UtTestsDialogProcessor {
                         val process = EngineProcess.createBlocking(project, classNameToPath)
 
                         process.terminateOnException { _ ->
-                            process.setupUtContext(buildDirs + classpathList)
+                            val classpathForClassLoader = buildDirs + classpathList
+                            process.setupUtContext(classpathForClassLoader)
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanQualifiedNames =
                                         when (val approach = model.typeReplacementApproach) {
-                                            TypeReplacementApproach.DoNotReplace -> emptyList()
-                                            is TypeReplacementApproach.ReplaceIfPossible ->
+                                            DoNotReplace -> emptyList()
+                                            is ReplaceIfPossible -> {
+                                                val contentRoots = runReadAction {
+                                                    listOfNotNull(
+                                                        model.srcModule,
+                                                        springConfigClass?.module
+                                                    ).distinct().flatMap { module ->
+                                                        ModuleRootManager.getInstance(module).contentRoots.toList()
+                                                    }
+                                                }
+
+                                                val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
                                                 process.getSpringBeanQualifiedNames(
-                                                    buildDirs + classpathList,
+                                                    classpathForClassLoader,
                                                     approach.config,
-                                                    model.useSpringAnalyzer
-                                                ).also { logger.info { "Detected Spring Beans: $it" } }
+                                                    fileStorage,
+                                                    model.profileNames,
+                                                )
+                                            }
                                         }
+                                    val shouldUseImplementors = beanQualifiedNames.isNotEmpty()
 
                                     SpringApplicationContext(
                                         mockFrameworkInstalled,
                                         staticMockingConfigured,
                                         beanQualifiedNames,
-                                        shouldUseImplementors = beanQualifiedNames.isNotEmpty(),
+                                        shouldUseImplementors,
                                     )
                                 }
                                 else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
@@ -323,6 +352,10 @@ object UtTestsDialogProcessor {
                                             )
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
+                                        val useFuzzing = when (model.projectType) {
+                                            Spring -> model.typeReplacementApproach == DoNotReplace
+                                            else -> UtSettings.useFuzzing
+                                        }
                                         val rdGenerateResult = process.generate(
                                             model.conflictTriggers,
                                             methods,
@@ -331,7 +364,7 @@ object UtTestsDialogProcessor {
                                             model.timeout,
                                             model.timeout,
                                             true,
-                                            UtSettings.useFuzzing,
+                                            useFuzzing,
                                             project.service<Settings>().fuzzingValue,
                                             searchDirectory.pathString
                                         )

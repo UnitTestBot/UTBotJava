@@ -1,9 +1,9 @@
 package utils
 
-import org.utbot.framework.plugin.api.TimeoutException
-import settings.JsTestGenerationSettings.defaultTimeout
 import java.io.File
 import java.util.concurrent.TimeUnit
+import org.utbot.framework.plugin.api.TimeoutException
+import settings.JsTestGenerationSettings.defaultTimeout
 
 object JsCmdExec {
 

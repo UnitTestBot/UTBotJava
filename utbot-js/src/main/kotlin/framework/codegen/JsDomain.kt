@@ -1,13 +1,13 @@
 package framework.codegen
 
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
 import framework.api.js.JsClassId
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
 import org.utbot.framework.codegen.domain.Import
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.ClassId
 import service.PackageJson
 
 
@@ -16,25 +16,9 @@ object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
     override val assertionsClass = jsUndefinedClassId
     override val arraysAssertionsClass = jsUndefinedClassId
     override val kotlinFailureAssertionsClass: ClassId = jsUndefinedClassId
-    override val testAnnotation = ""
-    override val testAnnotationFqn = ""
 
-    override val beforeMethod: String = ""
     override val beforeMethodId: ClassId = jsUndefinedClassId
-    override val beforeMethodFqn: String = ""
-
-    override val afterMethod: String = ""
     override val afterMethodId: ClassId = jsUndefinedClassId
-    override val afterMethodFqn: String = ""
-
-    override val parameterizedTestAnnotation: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val parameterizedTestAnnotationFqn: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val methodSourceAnnotation: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val methodSourceAnnotationFqn: String
-        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
 
     override val nestedClassesShouldBeStatic: Boolean
         get() = false

@@ -10,13 +10,14 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
+import kotlin.time.Duration
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
 
 
 /**
- * #### Generated from [RiderExtend.kt:8]
+ * #### Generated from [UtBotRiderModel.kt:8]
  */
 class UtBotRiderModel private constructor(
     private val _startPublish: RdSignal<StartPublishArgs>,
@@ -122,7 +123,7 @@ val Solution.utBotRiderModel get() = getOrCreateExtension("utBotRiderModel", ::U
 
 
 /**
- * #### Generated from [RiderExtend.kt:9]
+ * #### Generated from [UtBotRiderModel.kt:9]
  */
 data class StartPublishArgs (
     val fileName: String,

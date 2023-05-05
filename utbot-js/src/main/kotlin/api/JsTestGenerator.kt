@@ -19,6 +19,8 @@ import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
+import java.io.File
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -54,6 +56,8 @@ import service.TernService
 import service.coverage.CoverageMode
 import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
+import settings.JsExportsSettings.endComment
+import settings.JsExportsSettings.startComment
 import settings.JsTestGenerationSettings.fileUnderTestAliases
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import settings.JsTestGenerationSettings.fuzzingTimeout
@@ -61,10 +65,6 @@ import utils.PathResolver
 import utils.constructClass
 import utils.data.ResultData
 import utils.toJsAny
-import java.io.File
-import java.util.concurrent.CancellationException
-import settings.JsExportsSettings.endComment
-import settings.JsExportsSettings.startComment
 
 private val logger = KotlinLogging.logger {}
 
@@ -214,7 +214,7 @@ class JsTestGenerator(
         fuzzedValues: List<UtModel>
     ): UtExecutionResult {
         if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
-            TimeoutException("  Timeout in generating test for ${
+            TimeoutException("Timeout in generating test for ${
                 execId.parameters
                     .zip(fuzzedValues)
                     .joinToString(

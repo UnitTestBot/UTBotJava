@@ -3,45 +3,23 @@ name: "[M] Plugin and CLI: publish as archives"
 on: 
   workflow_call:
     inputs:
-        minor-release:
-          type: string
-          description: "It adds minor release indicator to version."
-          required: false
-          default: 'none'
-        version-postfix:
-          type: string
-          description: "It adds postfix (alpha or beta) to version (optional)."
-          required: false
-          default: no-postfix
         upload-artifact:
           type: string
           description: "Upload artifacts or not"
           required: false
           default: false
+        commit_sha:
+          required: false
+          type: string
+          description: "(optional) Commit SHA"
+        custom_version:
+          type: string
+          description: "Custom version"
+          required: false
+          default: ""
 
   workflow_dispatch:
     inputs:
-        minor-release:
-          type: choice
-          description: "It adds minor release indicator to version."
-          required: true
-          default: 'none'
-          options:
-          - 'none'
-          - '1'
-          - '2'
-          - '3'
-          - '4'
-        version-postfix:
-          type: choice
-          description: "It adds alpha or beta postfix to version."
-          required: true
-          default: no-postfix-prod
-          options:
-          - no-postfix-prod
-          - no-postfix
-          - alpha
-          - beta
         upload-artifact:
           type: choice
           description: "Upload artifacts or not"
@@ -50,6 +28,15 @@ on:
           options:
           - true
           - false
+        commit_sha:
+          required: false
+          type: string
+          description: "(optional) Commit SHA"
+        custom_version:
+          type: string
+          description: "Custom version"
+          required: false
+          default: ""
 
 jobs:
     publish_plugin_and_cli:
@@ -65,25 +52,25 @@ jobs:
       container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
       steps:
       - uses: actions/checkout@v3
+      - name: Check out ${{ github.event.inputs.commit_sha }} commit
+        if: github.event.inputs.commit_sha != ''
+        run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git fetch
+          git checkout ${{ github.event.inputs.commit_sha }}
 
       # "You can make an environment variable available to any subsequent steps in a workflow job by
       # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
-      - name: Set environment variables
+      - name: Setup custom version
+        if: ${{ github.event.inputs.custom_version != '' }}
         run: |
-          echo "VERSION="$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}"" >> $GITHUB_ENV
-          echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
-      - name: Set production version
-        if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
+          echo "VERSION=${{ github.event.inputs.custom_version }}" >> $GITHUB_ENV
+      - name: Setup version
+        if: ${{ github.event.inputs.custom_version == '' }}
+        shell: bash
         run: |
-          echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
-      - name: Set version for minor release
-        if: ${{ github.event.inputs.minor-release != 'none' }}
-        run: |
-          echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
-      - name: Create version with postfix
-        if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
-        run:
-          echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
+          echo "VERSION=${GITHUB_REF_NAME:0:4}-$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+
       - name: Print environment variables
         run: printenv
 

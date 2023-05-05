@@ -292,8 +292,11 @@ class Resolver(
         // Associates mock infos by concrete addresses
         // Sometimes we might have two mocks with the same concrete address, and here we group their mockInfos
         // Then we should merge executables for mocks with the same concrete addresses with respect to the calls order
-        val mocks = memory
-            .mocks()
+        val memoryMocks = memory.mocks()
+            // TODO add a comment about why is it impossible to have nulls here
+            .filter { holder.concreteAddr(it.mockInfo.addr) != SYMBOLIC_NULL_ADDR }
+
+        val mocks = memoryMocks
             .groupBy { enriched -> holder.concreteAddr(enriched.mockInfo.addr) }
             .map { (address, mockInfos) -> address to mockInfos.mergeExecutables() }
 
@@ -303,7 +306,7 @@ class Resolver(
         val staticMethodMocks = mutableMapOf<MethodId, List<UtModel>>()
 
         // Enriches mock info with information from callsToMocks
-        memory.mocks().forEach { (mockInfo, executables) ->
+        memoryMocks.forEach { (mockInfo, executables) ->
             when (mockInfo) {
                 // Collects static field mocks differently
                 is UtFieldMockInfo -> if (mockInfo.ownerAddr == null) {
@@ -319,7 +322,7 @@ class Resolver(
         }
 
         // Collects instrumentation
-        val newInstancesInstrumentation = memory.mocks()
+        val newInstancesInstrumentation = memoryMocks
             .map { it.mockInfo }
             .filterIsInstance<UtNewInstanceMockInfo>()
             .groupBy { it.classId }
@@ -1219,7 +1222,8 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
     return when (value) {
         null -> asMethodResult {
             if (sootType is RefType) {
-                createObject(nullObjectAddr, sootType, useConcreteType = true)
+                // We don't want to mock values we took from a concrete environment
+                createObject(nullObjectAddr, sootType, useConcreteType = true, mockInfoGenerator = null)
             } else {
                 createArray(nullObjectAddr, sootType as ArrayType, useConcreteType = true)
             }
@@ -1262,7 +1266,8 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
                             ?.let { type -> type to true }
                             ?: (elementType to false)
 
-                    createObject(addr, type, useConcreteType)
+                    // We don't want to mock values we took from a concrete environment
+                    createObject(addr, type, useConcreteType, mockInfoGenerator = null)
                 } else {
                     require(elementType is ArrayType)
                     // We cannot use concrete types since we do not receive
@@ -1296,7 +1301,8 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
                         ?.let { type -> type to true }
                         ?: (sootType as RefType to false)
 
-                    createObject(addr, type, useConcreteType)
+                    // We don't want to mock values we took from a concrete environment
+                    createObject(addr, type, useConcreteType, mockInfoGenerator = null)
                 }
             }
         }

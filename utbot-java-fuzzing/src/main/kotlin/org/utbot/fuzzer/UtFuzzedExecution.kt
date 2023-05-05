@@ -1,11 +1,6 @@
 package org.utbot.fuzzer
 
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.DocStatement
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.*
 
 /**
  * Fuzzed execution.
@@ -26,7 +21,8 @@ class UtFuzzedExecution(
     testMethodName: String? = null,
     displayName: String? = null,
     val fuzzingValues:  List<FuzzedValue>? = null,
-    val fuzzedMethodDescription:  FuzzedMethodDescription? = null
+    val fuzzedMethodDescription:  FuzzedMethodDescription? = null,
+    val instrumentation: List<UtInstrumentation> = emptyList(),
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.

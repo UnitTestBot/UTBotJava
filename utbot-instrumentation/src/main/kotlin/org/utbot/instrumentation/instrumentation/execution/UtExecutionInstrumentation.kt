@@ -1,22 +1,24 @@
 package org.utbot.instrumentation.instrumentation.execution
 
-import java.security.ProtectionDomain
-import java.util.IdentityHashMap
-import kotlin.reflect.jvm.javaMethod
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
-import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
-import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
-import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicClassVisitor
+import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicDetector
+import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import java.security.ProtectionDomain
+import java.util.*
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
@@ -35,7 +37,8 @@ data class UtConcreteExecutionData(
 class UtConcreteExecutionResult(
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
-    val coverage: Coverage
+    val coverage: Coverage,
+    val newInstrumentation: List<UtInstrumentation>? = null,
 ) {
     override fun toString(): String = buildString {
         appendLine("UtConcreteExecutionResult(")
@@ -51,6 +54,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val instrumentationContext = InstrumentationContext()
 
     private val traceHandler = TraceHandler()
+    private val ndDetector = NonDeterministicDetector()
     private val pathsToUserClasses = mutableSetOf<String>()
 
     override fun init(pathsToUserClasses: Set<String>) {
@@ -101,6 +105,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 postprocessingPhase.setStaticFields(preparationPhase.start {
                     val result = setStaticFields(statics)
                     resetTrace()
+                    resetND()
                     result
                 })
 
@@ -110,12 +115,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 }
 
                 // statistics collection
-                val coverage = executePhaseInTimeout(statisticsCollectionPhase) {
-                    getCoverage(clazz)
+                val (coverage, ndResults) = executePhaseInTimeout(statisticsCollectionPhase) {
+                    getCoverage(clazz) to getNonDeterministicResults()
                 }
 
                 // model construction
-                val (executionResult, stateAfter) = executePhaseInTimeout(modelConstructionPhase) {
+                val (executionResult, stateAfter, newInstrumentation) = executePhaseInTimeout(modelConstructionPhase) {
                     configureConstructor {
                         this.cache = cache
                         strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
@@ -123,6 +128,10 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                             cache
                         )
                     }
+
+                    val ndStatics = constructStaticInstrumentation(ndResults.statics)
+                    val ndNews = constructNewInstrumentation(ndResults.news, ndResults.calls)
+                    val newInstrumentation = mergeInstrumentations(instrumentations, ndStatics, ndNews)
 
                     val executionResult = convertToExecutionResult(concreteResult, returnClassId)
 
@@ -135,13 +144,14 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     }
                     val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
 
-                    executionResult to stateAfter
+                    Triple(executionResult, stateAfter, newInstrumentation)
                 }
 
                 UtConcreteExecutionResult(
                     stateAfter,
                     executionResult,
-                    coverage
+                    coverage,
+                    newInstrumentation
                 )
             } finally {
                 postprocessingPhase.start {
@@ -174,6 +184,10 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
         traceHandler.registerClass(className)
         instrumenter.visitInstructions(traceHandler.computeInstructionVisitor(className))
+
+        instrumenter.visitClass { writer ->
+            NonDeterministicClassVisitor(writer, ndDetector)
+        }
 
         val mockClassVisitor = instrumenter.visitClass { writer ->
             MockClassVisitor(

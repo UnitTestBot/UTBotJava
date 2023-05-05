@@ -185,7 +185,12 @@ class UtSymbolicExecution(
         append(")")
     }
 
-    fun copy(stateAfter: EnvironmentModels, result: UtExecutionResult, coverage: Coverage): UtResult {
+    fun copy(
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage,
+        instrumentation: List<UtInstrumentation> = this.instrumentation,
+    ): UtResult {
         return UtSymbolicExecution(
             stateBefore,
             stateAfter,

@@ -1,17 +1,17 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
-import java.security.AccessControlException
-import java.util.IdentityHashMap
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.*
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
+import java.security.AccessControlException
+import java.util.*
 
 /**
  * This phase of model construction from concrete values.
@@ -22,8 +22,12 @@ class ModelConstructionPhase(
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
         val message = this.javaClass.simpleName
-        return when(e) {
-            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
+        return when (e) {
+            is TimeoutException -> ExecutionPhaseStop(
+                message,
+                UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage())
+            )
+
             else -> ExecutionPhaseError(message, e)
         }
     }
@@ -40,6 +44,40 @@ class ModelConstructionPhase(
             block()
             constructor = UtModelConstructor(cache, strategy)
         }
+    }
+
+    fun mergeInstrumentations(
+        oldInstrumentations: List<UtInstrumentation>,
+        statics: List<UtStaticMethodInstrumentation>,
+        news: List<UtNewInstanceInstrumentation>
+    ): List<UtInstrumentation> = mutableListOf<UtInstrumentation>().apply {
+        val st = statics.associateBy { it.methodId }
+        val nw = news.associateBy { it.classId }
+
+        addAll(oldInstrumentations.filterNot {
+            when (it) {
+                is UtStaticMethodInstrumentation -> st.contains(it.methodId)
+                is UtNewInstanceInstrumentation -> nw.contains(it.classId)
+            }
+        })
+        addAll(statics)
+        addAll(news)
+    }
+
+    fun constructStaticInstrumentation(statics: Map<MethodId, List<Any?>>): List<UtStaticMethodInstrumentation> =
+        statics.map { (method, values) ->
+            UtStaticMethodInstrumentation(method, values.map { constructor.construct(it, method.returnType) })
+        }
+
+    fun constructNewInstrumentation(
+        news: Map<ClassId, Pair<List<Any>, Set<ClassId>>>,
+        calls: IdentityHashMap<Any, Map<MethodId, List<Any?>>>,
+    ): List<UtNewInstanceInstrumentation> = news.map { (classId, info) ->
+        val models = info.first.map { instance ->
+            constructor.constructMock(instance, classId, calls[instance] ?: emptyMap())
+        }
+
+        UtNewInstanceInstrumentation(classId, models, info.second)
     }
 
     fun constructParameters(params: List<UtConcreteValue<*>>): List<UtModel> =

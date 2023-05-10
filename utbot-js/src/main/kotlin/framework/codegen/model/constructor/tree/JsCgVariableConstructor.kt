@@ -106,7 +106,7 @@ class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
     }
 
     private fun constructArray(arrayModel: UtArrayModel, baseName: String?): CgVariable {
-        val elementType = arrayModel.classId.elementClassId!! as JsClassId
+        val elementType = (arrayModel.classId.elementClassId ?: jsUndefinedClassId) as JsClassId
         val elementModels = (0 until arrayModel.length).map {
             arrayModel.stores.getOrDefault(it, arrayModel.constModel)
         }

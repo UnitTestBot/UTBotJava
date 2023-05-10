@@ -1,12 +1,12 @@
 package framework.api.js
 
 import framework.api.js.util.toJsClassId
+import java.lang.reflect.Modifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.primitiveModelValueToClassId
-import java.lang.reflect.Modifier
 
 open class JsClassId(
     private val jsName: String,

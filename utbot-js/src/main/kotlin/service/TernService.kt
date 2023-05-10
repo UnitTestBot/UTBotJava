@@ -4,6 +4,7 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
+import java.io.File
 import org.json.JSONException
 import org.json.JSONObject
 import parser.JsParserUtils
@@ -15,7 +16,6 @@ import providers.imports.IImportsProvider
 import utils.JsCmdExec
 import utils.constructClass
 import utils.data.MethodTypes
-import java.io.File
 
 /**
  * Installs and sets up scripts for running Tern.js type guesser.
@@ -165,7 +165,7 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
                 val arrType = Regex("\\[(.*)]").find(name)?.groups?.get(1)?.value?.substringBefore(",")
                     ?: throw IllegalStateException()
                 JsClassId(
-                    jsName = "array",
+                    jsName = "Array",
                     elementClassId = makeClassId(arrType)
                 )
             }

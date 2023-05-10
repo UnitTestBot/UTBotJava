@@ -42,7 +42,7 @@ class SpringConfigurationsHelper(val separator: String) {
             ?.fullName
             ?: error("Full name of configuration file cannot be restored by shortened name $shortenedName")
 
-    fun shortenSpringConfigNames(fullNames: Set<String>): Set<String> {
+    fun shortenSpringConfigNames(fullNames: Set<String>): Map<String, String> {
         fullNames.forEach { nameToInfo[it] = NameInfo(it) }
         var nameInfoCollection = nameToInfo.values
 
@@ -87,6 +87,6 @@ class SpringConfigurationsHelper(val separator: String) {
         return collectShortenedNames()
     }
 
-    private fun collectShortenedNames() = nameToInfo.values.mapTo(mutableSetOf()) { it.shortenedName }
+    private fun collectShortenedNames() = nameToInfo.values.associate { it.fullName to it.shortenedName }
 
 }

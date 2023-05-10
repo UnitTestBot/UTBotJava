@@ -3,6 +3,7 @@ package org.utbot.intellij.plugin.generator
 import com.intellij.analysis.AnalysisScope
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.codeInsight.FileModificationService
+import com.intellij.codeInsight.actions.OptimizeImportsProcessor
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
@@ -781,6 +782,7 @@ object CodeGenerationController {
         }
 
         DumbService.getInstance(model.project).runWhenSmart {
+            OptimizeImportsProcessor(project, file).run()
             codeStyleManager.reformat(file)
             when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> {

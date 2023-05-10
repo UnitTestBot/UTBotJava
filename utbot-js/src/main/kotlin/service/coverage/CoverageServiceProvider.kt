@@ -6,6 +6,7 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isExportable
 import framework.api.js.util.isUndefined
 import fuzzer.JsMethodDescription
+import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -20,7 +21,6 @@ import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.data.CoverageData
 import utils.data.ResultData
-import java.util.regex.Pattern
 
 class CoverageServiceProvider(
     private val context: ServiceContext,
@@ -44,6 +44,40 @@ function check_value(value, json) {
     if (Number.isNaN(value)) {
         json.is_nan = true
     }
+}
+
+function getType(value) {
+    if (value instanceof Set) {
+        return "Set"
+    } else if (value instanceof Map) {
+        return "Map"
+    } else if (value instanceof Array) {
+        return "Array"
+    }
+    return typeof value
+}
+
+function getRes(value, type) {
+    if (type === "Set" || type === "Array") {
+        return Array.from(value, (value) => {
+            let json = {}
+            json.type = getType(value)
+            check_value(value, json)
+            json.result = getRes(value, json.type)
+            json.index = 0
+            return json
+        })
+    } else if (type === "Map") {
+        return Array.from(value, ([name, value]) => {
+            let json = {}
+            json.type = getType(value)
+            check_value(value, json)
+            json.result = getRes(value, json.type)
+            json.index = 0
+            return {name, json}
+        })
+    }
+    return value
 }
     """
 
@@ -159,8 +193,8 @@ try {
     res$index = e.message
     json$index.is_error = true
 }
-json$index.result = res$index
-json$index.type = typeof res$index
+json$index.type = getType(res$index)
+json$index.result = getRes(res$index, json$index.type)
 json$index.index = $index
 json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s   
     

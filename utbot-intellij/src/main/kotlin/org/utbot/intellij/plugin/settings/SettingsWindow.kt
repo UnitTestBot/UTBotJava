@@ -87,6 +87,23 @@ class SettingsWindow(val project: Project) {
             createCombo(TreatOverflowAsError::class, TreatOverflowAsError.values())
         }
         row {
+            runInspectionAfterTestGenerationCheckBox =
+                checkBox("Display detected errors on the Problems tool window")
+                    .onApply {
+                        settings.state.runInspectionAfterTestGeneration =
+                            runInspectionAfterTestGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        runInspectionAfterTestGenerationCheckBox.isSelected =
+                            settings.state.runInspectionAfterTestGeneration
+                    }
+                    .onIsModified {
+                        runInspectionAfterTestGenerationCheckBox.isSelected xor settings.state.runInspectionAfterTestGeneration
+                    }
+                    .component
+            contextHelp("Automatically run code inspection after test generation")
+        }
+        row {
             enableSummarizationGenerationCheckBox = checkBox("Enable summaries generation")
                 .onApply {
                     settings.state.summariesGenerationType =
@@ -104,25 +121,8 @@ class SettingsWindow(val project: Project) {
         indent {
             row("Javadoc comment style:") {
                 createCombo(JavaDocCommentStyle::class, JavaDocCommentStyle.values())
-            }.enabledIf(enableSummarizationGenerationCheckBox.selected)
+            }.enabledIf(enableSummarizationGenerationCheckBox.selected).bottomGap(BottomGap.MEDIUM)
         }
-        row {
-            runInspectionAfterTestGenerationCheckBox =
-                checkBox("Display detected errors on the Problems tool window")
-                    .onApply {
-                        settings.state.runInspectionAfterTestGeneration =
-                            runInspectionAfterTestGenerationCheckBox.isSelected
-                    }
-                    .onReset {
-                        runInspectionAfterTestGenerationCheckBox.isSelected =
-                            settings.state.runInspectionAfterTestGeneration
-                    }
-                    .onIsModified {
-                        runInspectionAfterTestGenerationCheckBox.isSelected xor settings.state.runInspectionAfterTestGeneration
-                    }
-                    .component
-            contextHelp("Automatically run code inspection after test generation")
-        }.bottomGap(BottomGap.MEDIUM)
 
         row {
             forceMockCheckBox = checkBox("Force mocking static methods")

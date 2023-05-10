@@ -439,10 +439,7 @@ data class UtCompositeModel(
 
         other as UtCompositeModel
 
-        if (id != other.id) return false
-        if (classId != other.classId) return false
-
-        return true
+        return id == other.id
     }
 
     override fun hashCode(): Int {

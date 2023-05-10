@@ -57,13 +57,13 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.components.panels.OpaquePanel
 import com.intellij.ui.dsl.builder.Align
-import com.intellij.ui.layout.ComboBoxPredicate
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.ui.layout.selected
+import com.intellij.ui.layout.ComboBoxPredicate
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.lang.JavaVersion
 import com.intellij.util.ui.JBUI
@@ -74,31 +74,10 @@ import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import mu.KotlinLogging
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.Component
-import java.awt.Dimension
-import java.awt.event.ActionEvent
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.text.ParseException
-import java.util.concurrent.TimeUnit
-import javax.swing.AbstractAction
-import javax.swing.Action
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JButton
-import javax.swing.JCheckBox
-import javax.swing.JComboBox
-import javax.swing.JComponent
-import javax.swing.JList
-import javax.swing.JSpinner
-import javax.swing.text.DefaultFormatter
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.DependencyInjectionFramework
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit4
@@ -106,11 +85,12 @@ import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.SpringBeans
-import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
+import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
@@ -150,11 +130,31 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.SpringConfigurationsHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Component
+import java.awt.Dimension
+import java.awt.event.ActionEvent
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.text.ParseException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import javax.swing.JTextField
+import java.util.concurrent.TimeUnit
+import javax.swing.AbstractAction
+import javax.swing.Action
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JButton
+import javax.swing.JCheckBox
+import javax.swing.JComboBox
+import javax.swing.JComponent
+import javax.swing.JList
+import javax.swing.JSpinner
+import javax.swing.text.DefaultFormatter
 import kotlin.io.path.notExists
+
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -198,8 +198,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val staticsMocking = JCheckBox("Mock static methods")
 
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
-    private val selectProfile = JCheckBox("Select active profiles")
-    private val profileExpression = JTextField(DEFAULT_SPRING_PROFILE_NAME, 23)
+    private val profileNames = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
 
     private val timeoutSpinner =
         JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
@@ -394,6 +393,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             row("Testing framework:") {
                 cell(testFrameworks)
             }
+
             if (model.projectType == ProjectType.Spring) {
                 row("Spring configuration:") {
                     cell(springConfig)
@@ -404,23 +404,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                                 "Mocks will be used when necessary."
                     )
                 }
-                row {
-                    cell(selectProfile)
+                row("Active profile(s):") {
+                    cell(profileNames)
                     contextHelp(
-                        "Only selected profile will be active.<br>" +
-                                "Otherwise, profile from the configuration class or default one is used."
+                        "One or several comma-separated names.<br>" +
+                                "If all names are incorrect, default profile is used"
                     )
-                }
-                indent {
-                    row("Profile name(s):") {
-                        cell(profileExpression).align(Align.FILL)
-                        contextHelp(
-                            "Profile name or expression like \"prod|web\" may be passed here.<br>" +
-                                    "If expression is incorrect, default profile will be used"
-                        )
-                    }.enabledIf(selectProfile.selected)
-                }
+                }.enabledIf(
+                    ComboBoxPredicate(springConfig) { springConfig.item != NO_SPRING_CONFIGURATION_OPTION }
+                )
             }
+
             row("Mocking strategy:") {
                 cell(mockStrategies)
                 contextHelp(
@@ -664,7 +658,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     TypeReplacementApproach.ReplaceIfPossible(fullConfigName)
                 }
             }
-        model.profileExpression = profileExpression.text
+        model.profileNames = profileNames.text.let { it.ifEmpty { DEFAULT_SPRING_PROFILE_NAME } }
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -1062,8 +1056,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
 
-                selectProfile.isEnabled = true
-                selectProfile.isSelected = false
+                profileNames.isEnabled = true
             } else {
                 mockStrategies.item = when (model.projectType) {
                     ProjectType.Spring -> MockStrategyApi.springDefaultItem
@@ -1072,13 +1065,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
 
-                selectProfile.isEnabled = false
-                selectProfile.isSelected = false
+                profileNames.isEnabled = false
+                profileNames.text = ""
             }
-        }
-
-        selectProfile.addActionListener { _ ->
-            profileExpression.text = if (selectProfile.isSelected) "" else DEFAULT_SPRING_PROFILE_NAME
         }
 
         cbSpecifyTestPackage.addActionListener {
@@ -1157,8 +1146,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun updateSpringConfigurationEnabled() {
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
         springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
-        selectProfile.isEnabled = false
-        selectProfile.isSelected = false
     }
 
     private fun staticsMockingConfigured(): Boolean {

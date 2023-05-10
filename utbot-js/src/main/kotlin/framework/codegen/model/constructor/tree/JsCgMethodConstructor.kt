@@ -1,20 +1,20 @@
 package framework.codegen.model.constructor.tree
 
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtExecution
 import framework.api.js.JsClassId
-import org.utbot.framework.plugin.api.onFailure
-import org.utbot.framework.plugin.api.onSuccess
-import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.framework.util.isUnit
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.tree.CgMethodConstructor
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.onFailure
+import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.util.isUnit
 
 class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
 

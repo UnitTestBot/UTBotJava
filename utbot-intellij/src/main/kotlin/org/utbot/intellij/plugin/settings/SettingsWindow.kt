@@ -80,34 +80,6 @@ class SettingsWindow(val project: Project) {
             contextHelp("Enable JavaScript and Python if IDE supports them")
         }.bottomGap(BottomGap.MEDIUM)
 
-        row {
-            forceMockCheckBox = checkBox("Force mocking static methods")
-                .onApply {
-                    settings.state.forceStaticMocking =
-                        if (forceMockCheckBox.isSelected) ForceStaticMocking.FORCE else ForceStaticMocking.DO_NOT_FORCE
-                }
-                .onReset { forceMockCheckBox.isSelected = settings.forceStaticMocking == ForceStaticMocking.FORCE }
-                .onIsModified { forceMockCheckBox.isSelected xor (settings.forceStaticMocking != ForceStaticMocking.DO_NOT_FORCE) }
-                .component
-            contextHelp("Overrides other mocking settings")
-        }
-        row("Classes to be forcedly mocked:") {}
-        row {
-            val updater = Runnable {
-                UIUtil.setEnabled(excludeTable.component, forceMockCheckBox.isSelected, true)
-            }
-            cell(excludeTable.component)
-                .align(Align.FILL)
-                .onApply { excludeTable.apply() }
-                .onReset {
-                    excludeTable.reset()
-                    updater.run()
-                }
-                .onIsModified { excludeTable.isModified() }
-
-            forceMockCheckBox.addActionListener { updater.run() }
-        }.bottomGap(BottomGap.MEDIUM)
-
         row("Tests with exceptions:") {
             createCombo(RuntimeExceptionTestsBehaviour::class, RuntimeExceptionTestsBehaviour.values())
         }
@@ -150,6 +122,34 @@ class SettingsWindow(val project: Project) {
                     }
                     .component
             contextHelp("Automatically run code inspection after test generation")
+        }.bottomGap(BottomGap.MEDIUM)
+
+        row {
+            forceMockCheckBox = checkBox("Force mocking static methods")
+                .onApply {
+                    settings.state.forceStaticMocking =
+                        if (forceMockCheckBox.isSelected) ForceStaticMocking.FORCE else ForceStaticMocking.DO_NOT_FORCE
+                }
+                .onReset { forceMockCheckBox.isSelected = settings.forceStaticMocking == ForceStaticMocking.FORCE }
+                .onIsModified { forceMockCheckBox.isSelected xor (settings.forceStaticMocking != ForceStaticMocking.DO_NOT_FORCE) }
+                .component
+            contextHelp("Overrides other mocking settings")
+        }
+        row("Classes to be forcedly mocked:") {}
+        row {
+            val updater = Runnable {
+                UIUtil.setEnabled(excludeTable.component, forceMockCheckBox.isSelected, true)
+            }
+            cell(excludeTable.component)
+                .align(Align.FILL)
+                .onApply { excludeTable.apply() }
+                .onReset {
+                    excludeTable.reset()
+                    updater.run()
+                }
+                .onIsModified { excludeTable.isModified() }
+
+            forceMockCheckBox.addActionListener { updater.run() }
         }.bottomGap(BottomGap.MEDIUM)
 
         row("Hanging test timeout:") {

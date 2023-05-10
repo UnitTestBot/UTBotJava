@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.closeMethodId
 import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
@@ -20,7 +21,6 @@ import org.utbot.framework.codegen.domain.models.CgSimpleRegion
 import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -51,14 +51,16 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
                 methodRegions += closeableMethods
             }
 
-            for (testSet in testClassModel.methodTestSets) {
+            for ((testSetIndex, testSet) in testClassModel.methodTestSets.withIndex()) {
                 updateCurrentExecutable(testSet.executableId)
-                val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
-                val executableUnderTestCluster = CgMethodsCluster(
-                    "Test suites for executable $currentExecutable",
-                    currentMethodUnderTestRegions
-                )
-                methodRegions += executableUnderTestCluster
+                withTestSetIdScope(testSetIndex) {
+                    val currentMethodUnderTestRegions = constructTestSet(testSet) ?: return@withTestSetIdScope
+                    val executableUnderTestCluster = CgMethodsCluster(
+                        "Test suites for executable $currentExecutable",
+                        currentMethodUnderTestRegions
+                    )
+                    methodRegions += executableUnderTestCluster
+                }
             }
 
             if (currentTestClass == outerMostTestClass) {
@@ -91,7 +93,7 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
     }
 
     private fun constructClassFields(
-        groupedModelsByClassId: ClassModels,
+        groupedModelsByClassId: Map<ClassId, Set<UtModelWrapper>>,
         annotationClassId: ClassId
     ): MutableList<CgFieldDeclaration> {
         require(annotationClassId == injectMocksClassId || annotationClassId == mockClassId) {
@@ -103,15 +105,19 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
         for ((classId, listOfUtModels) in groupedModelsByClassId) {
             val model = listOfUtModels.firstOrNull() ?: continue
-            val createdVariable = variableConstructor.getOrCreateVariable(model) as? CgVariable
+            val createdVariable = variableConstructor.getOrCreateVariable(model.model) as? CgVariable
                 ?: error("`UtCompositeModel` model was expected, but $model was found")
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
             constructedDeclarations += CgFieldDeclaration(ownerClassId = currentTestClass, declaration, annotation)
 
+            listOfUtModels.forEach { key ->
+                valueByUtModelWrapper[key] = createdVariable
+            }
+
             when (annotationClassId) {
-                injectMocksClassId -> variableConstructor.injectedMocksModelsVariables += listOfUtModels to createdVariable
-                mockClassId -> variableConstructor.mockedModelsVariables += listOfUtModels to createdVariable
+                injectMocksClassId -> variableConstructor.injectedMocksModelsVariables += listOfUtModels
+                mockClassId -> variableConstructor.mockedModelsVariables += listOfUtModels
             }
         }
 
@@ -133,11 +139,11 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
             listOf(
                 variableConstructor.mockedModelsVariables,
                 variableConstructor.injectedMocksModelsVariables
-            ).flatMap { modelSet -> modelSet.keys.map { models -> context.getIdByModel(models.first()) } }
+            ).flatten()
 
-        valueByModelId
+        valueByUtModelWrapper
             .filter { it.key !in whiteListOfModels }
-            .forEach { valueByModelId.remove(it.key) }
+            .forEach { valueByUtModelWrapper.remove(it.key) }
     }
 
     private fun constructMockitoCloseables(): Pair<CgFieldDeclaration, CgMethodsCluster> {

@@ -49,14 +49,16 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
                 }
             }
 
-            for (testSet in notYetConstructedTestSets) {
+            for ((testSetIndex, testSet) in notYetConstructedTestSets.withIndex()) {
                 updateCurrentExecutable(testSet.executableId)
-                val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
-                val executableUnderTestCluster = CgMethodsCluster(
-                    "Test suites for executable $currentExecutable",
-                    currentMethodUnderTestRegions
-                )
-                methodRegions += executableUnderTestCluster
+                withTestSetIdScope(testSetIndex) {
+                    val currentMethodUnderTestRegions = constructTestSet(testSet) ?: return@withTestSetIdScope
+                    val executableUnderTestCluster = CgMethodsCluster(
+                        "Test suites for executable $currentExecutable",
+                        currentMethodUnderTestRegions
+                    )
+                    methodRegions += executableUnderTestCluster
+                }
             }
 
             val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
@@ -159,8 +161,11 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
 
         testSet.executions
             .filterIsInstance<UtFuzzedExecution>()
-            .forEach { execution ->
-                testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
+            .withIndex()
+            .forEach { (index, execution) ->
+                withExecutionIdScope(index) {
+                    testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
+                }
             }
 
         return testMethods
@@ -176,8 +181,11 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
         testSet.executions
             .filterIsInstance<UtSymbolicExecution>()
             .filter { it.containsMocking }
-            .forEach { execution ->
-                testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
+            .withIndex()
+            .forEach { (index, execution) ->
+                withExecutionIdScope(index) {
+                    testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
+                }
             }
 
         return testMethods

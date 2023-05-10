@@ -234,7 +234,7 @@ object UtTestsDialogProcessor {
                             process.setupUtContext(classpathForClassLoader)
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
-                                    val beanQualifiedNames =
+                                    val beanDefinitions =
                                         when (val approach = model.typeReplacementApproach) {
                                             DoNotReplace -> emptyList()
                                             is ReplaceIfPossible -> {
@@ -248,7 +248,7 @@ object UtTestsDialogProcessor {
                                                 }
 
                                                 val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
-                                                process.getSpringBeanQualifiedNames(
+                                                process.getSpringBeanDefinitions(
                                                     classpathForClassLoader,
                                                     approach.config,
                                                     fileStorage,
@@ -256,12 +256,12 @@ object UtTestsDialogProcessor {
                                                 )
                                             }
                                         }
-                                    val shouldUseImplementors = beanQualifiedNames.isNotEmpty()
+                                    val shouldUseImplementors = beanDefinitions.isNotEmpty()
 
                                     SpringApplicationContext(
                                         mockFrameworkInstalled,
                                         staticMockingConfigured,
-                                        beanQualifiedNames,
+                                        beanDefinitions,
                                         shouldUseImplementors,
                                     )
                                 }

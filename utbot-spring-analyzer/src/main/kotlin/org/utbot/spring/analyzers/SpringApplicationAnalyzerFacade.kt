@@ -6,6 +6,7 @@ import com.jetbrains.rd.util.info
 import org.springframework.boot.SpringBootVersion
 import org.springframework.core.SpringVersion
 import org.utbot.spring.api.ApplicationData
+import org.utbot.spring.generated.BeanDefinitionData
 import org.utbot.spring.utils.EnvironmentFactory
 import org.utbot.spring.utils.SourceFinder
 
@@ -13,7 +14,7 @@ private val logger = getLogger<SpringApplicationAnalyzerFacade>()
 
 class SpringApplicationAnalyzerFacade(private val applicationData: ApplicationData) {
 
-    fun analyze(): List<String> {
+    fun analyze(): List<BeanDefinitionData> {
         logger.info { "Current Java version is: " + System.getProperty("java.version") }
         logger.info { "Current Spring version is: " + runCatching { SpringVersion.getVersion() }.getOrNull() }
         logger.info { "Current Spring Boot version is: " + runCatching { SpringBootVersion.getVersion() }.getOrNull() }

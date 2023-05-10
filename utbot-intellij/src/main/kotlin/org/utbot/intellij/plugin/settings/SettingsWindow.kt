@@ -7,6 +7,7 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.layout.selected
 import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
@@ -36,24 +37,35 @@ class SettingsWindow(val project: Project) {
     private lateinit var enableSummarizationGenerationCheckBox: JCheckBox
     private lateinit var enableExperimentalLanguagesCheckBox: JCheckBox
 
+    private fun Row.createCombo(loader: KClass<*>, values: Array<*>) {
+        comboBox(DefaultComboBoxModel(values))
+            .bindItem(
+                getter = { settings.providerNameByServiceLoader(loader) },
+                setter = { settings.setProviderByLoader(loader, it as CodeGenerationSettingItem) },
+            ).component.renderer = CodeGenerationSettingItemRenderer()
+    }
+
     val panel: JPanel = panel {
         row("Generated test language:") {
-            codegenLanguageCombo = comboBox(DefaultComboBoxModel(CodegenLanguage.values()))
+            codegenLanguageCombo = comboBox(DefaultComboBoxModel(CodegenLanguage.values())).gap(RightGap.COLUMNS)
                 .apply {
-                component.renderer = CodeGenerationSettingItemRenderer()
-                ContextHelpLabel.create("You can generate test methods in Java or Kotlin regardless of your source code language.")
-            }.bindItem(
-                getter = { settings.providerNameByServiceLoader(CodegenLanguage::class) as CodegenLanguage },
-                setter = { settings.setProviderByLoader(CodegenLanguage::class, it as CodeGenerationSettingItem) }
-            ).component
+                    component.renderer = CodeGenerationSettingItemRenderer()
+                    ContextHelpLabel.create("You can generate test methods in Java or Kotlin regardless of your source code language.")
+                }.bindItem(
+                    getter = { settings.providerNameByServiceLoader(CodegenLanguage::class) as CodegenLanguage },
+                    setter = {
+                        settings.setProviderByLoader(
+                            CodegenLanguage::class,
+                            it as CodeGenerationSettingItem
+                        )
+                    }
+                ).component
             codegenLanguageCombo.addActionListener {
                 if (!codegenLanguageCombo.item.isSummarizationCompatible()) {
                     enableSummarizationGenerationCheckBox.isSelected = false
                 }
             }
-        }
 
-        row {
             enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
                 .onApply {
                     settings.state.enableExperimentalLanguagesSupport =
@@ -66,7 +78,79 @@ class SettingsWindow(val project: Project) {
                 .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
                 .component
             contextHelp("Enable JavaScript and Python if IDE supports them")
+        }.bottomGap(BottomGap.MEDIUM)
+
+        row {
+            forceMockCheckBox = checkBox("Force mocking static methods")
+                .onApply {
+                    settings.state.forceStaticMocking =
+                        if (forceMockCheckBox.isSelected) ForceStaticMocking.FORCE else ForceStaticMocking.DO_NOT_FORCE
+                }
+                .onReset { forceMockCheckBox.isSelected = settings.forceStaticMocking == ForceStaticMocking.FORCE }
+                .onIsModified { forceMockCheckBox.isSelected xor (settings.forceStaticMocking != ForceStaticMocking.DO_NOT_FORCE) }
+                .component
+            contextHelp("Overrides other mocking settings")
         }
+        row("Classes to be forcedly mocked:") {}
+        row {
+            val updater = Runnable {
+                UIUtil.setEnabled(excludeTable.component, forceMockCheckBox.isSelected, true)
+            }
+            cell(excludeTable.component)
+                .align(Align.FILL)
+                .onApply { excludeTable.apply() }
+                .onReset {
+                    excludeTable.reset()
+                    updater.run()
+                }
+                .onIsModified { excludeTable.isModified() }
+
+            forceMockCheckBox.addActionListener { updater.run() }
+        }.bottomGap(BottomGap.MEDIUM)
+
+        row("Tests with exceptions:") {
+            createCombo(RuntimeExceptionTestsBehaviour::class, RuntimeExceptionTestsBehaviour.values())
+        }
+        row("Overflow detection:") {
+            createCombo(TreatOverflowAsError::class, TreatOverflowAsError.values())
+        }
+        row {
+            enableSummarizationGenerationCheckBox = checkBox("Enable summaries generation")
+                .onApply {
+                    settings.state.summariesGenerationType =
+                        if (enableSummarizationGenerationCheckBox.isSelected) SummariesGenerationType.FULL else SummariesGenerationType.NONE
+                }
+                .onReset {
+                    enableSummarizationGenerationCheckBox.isSelected =
+                        settings.state.summariesGenerationType != SummariesGenerationType.NONE
+                }
+                .onIsModified {
+                    enableSummarizationGenerationCheckBox.isSelected xor (settings.state.summariesGenerationType != SummariesGenerationType.NONE)
+                }.enabledIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
+                .component
+        }
+        indent {
+            row("Javadoc comment style:") {
+                createCombo(JavaDocCommentStyle::class, JavaDocCommentStyle.values())
+            }.enabledIf(enableSummarizationGenerationCheckBox.selected)
+        }
+        row {
+            runInspectionAfterTestGenerationCheckBox =
+                checkBox("Display detected errors on the Problems tool window")
+                    .onApply {
+                        settings.state.runInspectionAfterTestGeneration =
+                            runInspectionAfterTestGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        runInspectionAfterTestGenerationCheckBox.isSelected =
+                            settings.state.runInspectionAfterTestGeneration
+                    }
+                    .onIsModified {
+                        runInspectionAfterTestGenerationCheckBox.isSelected xor settings.state.runInspectionAfterTestGeneration
+                    }
+                    .component
+            contextHelp("Automatically run code inspection after test generation")
+        }.bottomGap(BottomGap.MEDIUM)
 
         row("Hanging test timeout:") {
             spinner(
@@ -91,94 +175,6 @@ class SettingsWindow(val project: Project) {
                         "time-consuming method or decrease if the execution speed is critical for you."
             )
         }
-
-        val valuesComboBox: (KClass<*>, Array<*>) -> Unit = { loader, values ->
-            val serviceLabels = mapOf(
-                RuntimeExceptionTestsBehaviour::class to "Tests with exceptions:",
-                TreatOverflowAsError::class to "Overflow detection:",
-                JavaDocCommentStyle::class to "Javadoc comment style:"
-            )
-
-            row(serviceLabels[loader] ?: error("Unknown service loader: $loader")) {
-                comboBox(DefaultComboBoxModel(values))
-                    .bindItem(
-                        getter = { settings.providerNameByServiceLoader(loader) },
-                        setter = { settings.setProviderByLoader(loader, it as CodeGenerationSettingItem) },
-                    ).component.renderer = CodeGenerationSettingItemRenderer()
-            }
-        }
-
-        mapOf(
-            RuntimeExceptionTestsBehaviour::class to RuntimeExceptionTestsBehaviour.values(),
-            TreatOverflowAsError::class to TreatOverflowAsError.values()
-        ).forEach { (loader, values) ->
-            valuesComboBox(loader, values)
-        }
-
-        row {
-            runInspectionAfterTestGenerationCheckBox = checkBox("Display detected errors on the Problems tool window")
-                .onApply {
-                    settings.state.runInspectionAfterTestGeneration =
-                        runInspectionAfterTestGenerationCheckBox.isSelected
-                }
-                .onReset {
-                    runInspectionAfterTestGenerationCheckBox.isSelected =
-                        settings.state.runInspectionAfterTestGeneration
-                }
-                .onIsModified {
-                    runInspectionAfterTestGenerationCheckBox.isSelected xor settings.state.runInspectionAfterTestGeneration
-                }
-                .component
-            contextHelp("Automatically run code inspection after test generation")
-        }
-
-        row {
-            enableSummarizationGenerationCheckBox = checkBox("Enable summaries generation")
-                .onApply {
-                    settings.state.summariesGenerationType =
-                        if (enableSummarizationGenerationCheckBox.isSelected) SummariesGenerationType.FULL else SummariesGenerationType.NONE
-                }
-                .onReset {
-                    enableSummarizationGenerationCheckBox.isSelected =
-                        settings.state.summariesGenerationType != SummariesGenerationType.NONE
-                }
-                .onIsModified {
-                    enableSummarizationGenerationCheckBox.isSelected xor (settings.state.summariesGenerationType != SummariesGenerationType.NONE)
-                }.enabledIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
-                .component
-        }
-
-        valuesComboBox(JavaDocCommentStyle::class, JavaDocCommentStyle.values())
-
-        row {
-            forceMockCheckBox = checkBox("Force mocking static methods")
-                .onApply {
-                    settings.state.forceStaticMocking =
-                        if (forceMockCheckBox.isSelected) ForceStaticMocking.FORCE else ForceStaticMocking.DO_NOT_FORCE
-                }
-                .onReset { forceMockCheckBox.isSelected = settings.forceStaticMocking == ForceStaticMocking.FORCE }
-                .onIsModified { forceMockCheckBox.isSelected xor (settings.forceStaticMocking != ForceStaticMocking.DO_NOT_FORCE) }
-                .component
-            contextHelp("Overrides other mocking settings")
-        }
-
-        row("Classes to be forcedly mocked:") {}
-        row {
-            val updater = Runnable {
-                UIUtil.setEnabled(excludeTable.component, forceMockCheckBox.isSelected, true)
-            }
-            cell(excludeTable.component)
-                .align(Align.FILL)
-                .onApply { excludeTable.apply() }
-                .onReset {
-                    excludeTable.reset()
-                    updater.run()
-                }
-                .onIsModified { excludeTable.isModified() }
-
-            forceMockCheckBox.addActionListener { updater.run() }
-        }
-
         val fuzzLabel = JBLabel("Fuzzing")
         val symLabel = JBLabel("Symbolic execution")
         row {
@@ -187,12 +183,13 @@ class SettingsWindow(val project: Project) {
                 addToLeft(JBLabel("Test generation method:").apply { verticalAlignment = SwingConstants.TOP })
                 addToCenter(BorderLayoutPanel().apply {
                     val granularity = 20
-                    val slider = object:JSlider() {
+                    val slider = object : JSlider() {
                         val updater = Runnable() {
                             val fuzzingPercent = 100.0 * (granularity - value) / granularity
                             fuzzLabel.text = "Fuzzing %.0f %%".format(fuzzingPercent)
                             symLabel.text = "%.0f %% Symbolic execution".format(100.0 - fuzzingPercent)
                         }
+
                         override fun getValue() = ((1 - settings.fuzzingValue) * granularity).toInt()
 
                         override fun setValue(n: Int) {
@@ -211,7 +208,8 @@ class SettingsWindow(val project: Project) {
                     slider.paintTicks = true
                     slider.paintTrack = true
                     slider.paintLabels = false
-                    slider.toolTipText = "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout. The slide has no effect for Spring Projects.</body></html>"
+                    slider.toolTipText =
+                        "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout. The slide has no effect for Spring Projects.</body></html>"
                     slider.updater.run()
                     addToTop(slider)
                     addToBottom(BorderLayoutPanel().apply {

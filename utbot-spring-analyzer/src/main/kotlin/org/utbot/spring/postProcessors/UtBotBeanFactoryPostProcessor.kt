@@ -37,7 +37,6 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
         beanFactory.beanDefinitionNames
             .mapNotNull { getBeanDefinitionData(beanFactory, it) }
             .filterNot { it.beanTypeFqn.startsWith("org.utbot.spring") }
-            .distinctBy { it.beanTypeFqn }
 
     private fun getBeanDefinitionData(beanFactory: ConfigurableListableBeanFactory, beanName: String): BeanDefinitionData? {
         val beanDefinition = beanFactory.getBeanDefinition(beanName)

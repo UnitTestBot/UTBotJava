@@ -1277,7 +1277,7 @@ class SpringApplicationContext(
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                // TODO: use more info from SpringBeanDefinitionData than beanTypeFqn only here
+                // TODO: use more info from SpringBeanDefinitionData than beanTypeFqn offers here
                 for (beanFqn in beanDefinitions.map { it.beanTypeFqn }) {
                     try {
                         val beanClass = utContext.classLoader.loadClass(beanFqn)

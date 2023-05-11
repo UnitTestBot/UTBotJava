@@ -68,7 +68,11 @@ data class TaintConfiguration(
 
     private fun ExecutableId.getMethodFqn(): MethodFqn? =
         runCatching {
-            MethodFqn(classId.packageName.split('.'), classId.simpleName, name)
+            val packages = if (classId.packageName == "")
+                listOf()
+            else
+                classId.packageName.split('.')
+            MethodFqn(packages, classId.simpleName, name)
         }.getOrNull()
 }
 

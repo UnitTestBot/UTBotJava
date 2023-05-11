@@ -162,7 +162,7 @@ class SarifReport(
             is UtTaintAnalysisFailure ->
                 executionFailure.exception.message
             else ->
-                "Unexpected exception: ${executionFailure.exception}"
+                "Unexpected ${executionFailure.exception::class.java.simpleName}${executionFailure.exception.message?.let { ": $it" } ?: ""}"
         }
 
         val sarifResult = SarifResult(
@@ -322,7 +322,7 @@ class SarifReport(
         for (step in utExecution.symbolicSteps) {
             if (step.depth >= depth2LastStep.size) {
                 depth2LastStep.add(step)
-            } else {
+            } else if (step.depth >= 0) {
                 depth2LastStep[step.depth] = step
                 while (step.depth != depth2LastStep.size - 1) {
                     depth2LastStep.removeLast()

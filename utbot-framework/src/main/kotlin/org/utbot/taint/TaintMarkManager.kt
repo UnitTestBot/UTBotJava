@@ -102,13 +102,15 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
 
         val taintMarks = constructTaintVector(marks).toLongValue()
         val oldTaintVectorFrom = memory.taintVector(fromAddr).toLongValue()
-        val intersection = And(taintMarks, oldTaintVectorFrom).toLongValue()
+        val intersection = And(taintMarks, oldTaintVectorFrom)
+        val hasAtLeastOneMark = mkNot(mkEq(intersection, mkLong(0)))
 
         val oldTaintVectorExprTo = memory.taintVector(toAddr)
-        val newTaintVectorExprTo = Or(intersection, oldTaintVectorExprTo.toLongValue())
+        val taintMarksToAdd = if (marks is TaintMarksAll) intersection.toLongValue() else taintMarks
+        val newTaintVectorExprTo = Or(taintMarksToAdd, oldTaintVectorExprTo.toLongValue())
 
         val taintUpdateExpr = UtIteExpression(
-            condition,
+            mkAnd(condition, hasAtLeastOneMark),
             thenExpr = newTaintVectorExprTo,
             elseExpr = oldTaintVectorExprTo
         )

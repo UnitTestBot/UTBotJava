@@ -10,6 +10,8 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
+import org.utbot.framework.process.kryo.KryoHelper
+import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.DISABLE_SANDBOX_OPTION
 import org.utbot.instrumentation.process.generated.AddPathsParams
@@ -17,7 +19,6 @@ import org.utbot.instrumentation.process.generated.GetSpringBeanParams
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.SetInstrumentationParams
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
-import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.LoggerModel

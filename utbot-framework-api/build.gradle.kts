@@ -5,6 +5,8 @@ val sootVersion: String by rootProject
 val commonsLangVersion: String by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val rdVersion: String? by rootProject
+val kryoVersion: String? by rootProject
+val kryoSerializersVersion: String? by rootProject
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
@@ -22,6 +24,9 @@ dependencies {
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     // TODO do we really need apache commons?
     implementation(group = "org.apache.commons", name = "commons-lang3", version = commonsLangVersion)
+    implementation(group = "com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)
+    // this is necessary for serialization of some collections
+    implementation(group = "de.javakaffee", name = "kryo-serializers", version = kryoSerializersVersion)
     testImplementation(group = "junit", name = "junit", version = junit4Version)
 }
 

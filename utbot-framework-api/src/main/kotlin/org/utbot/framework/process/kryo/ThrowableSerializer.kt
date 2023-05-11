@@ -1,4 +1,4 @@
-package org.utbot.instrumentation.util
+package org.utbot.framework.process.kryo
 
 import com.esotericsoftware.kryo.kryo5.Kryo
 import com.esotericsoftware.kryo.kryo5.KryoException

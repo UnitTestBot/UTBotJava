@@ -4,9 +4,9 @@ import com.beust.klaxon.KlaxonException
 import org.utbot.common.FileUtil.extractDirectoryFromArchive
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.go.api.GoPrimitiveTypeId
+import org.utbot.go.api.GoUtDeclaredVariable
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
-import org.utbot.go.api.GoUtFunctionParameter
 import org.utbot.go.api.util.goSupportedConstantTypes
 import org.utbot.go.api.util.rawValueOfGoPrimitiveTypeToValue
 import org.utbot.go.framework.api.go.GoTypeId
@@ -21,8 +21,8 @@ object GoSourceCodeAnalyzer {
 
     data class GoSourceFileAnalysisResult(
         val functions: List<GoUtFunction>,
-        val notSupportedFunctionsNames: List<String>,
-        val notFoundFunctionsNames: List<String>
+        val notSupportedFunctionAndMethodNames: List<String>,
+        val notFoundFunctionAndMethodNames: List<String>
     )
 
     data class GoSourceCodeAnalyzerResult(
@@ -36,14 +36,18 @@ object GoSourceCodeAnalyzer {
      * Returns GoSourceFileAnalysisResult-s grouped by their source files.
      */
     fun analyzeGoSourceFilesForFunctions(
-        targetFunctionsNamesBySourceFiles: Map<Path, List<String>>,
+        targetFunctionNamesBySourceFiles: Map<Path, List<String>>,
+        targetMethodNamesBySourceFiles: Map<Path, List<String>>,
         goExecutableAbsolutePath: Path,
         gopathAbsolutePath: Path
     ): GoSourceCodeAnalyzerResult {
-        val analysisTargets =
-            AnalysisTargets(targetFunctionsNamesBySourceFiles.map { (filePath, targetFunctionsNames) ->
-                AnalysisTarget(filePath.toAbsolutePath().toString(), targetFunctionsNames)
-            })
+        val analysisTargets = AnalysisTargets(
+            (targetFunctionNamesBySourceFiles.keys + targetMethodNamesBySourceFiles.keys).toSet().map { filePath ->
+                val targetFunctionNames = targetFunctionNamesBySourceFiles[filePath] ?: emptyList()
+                val targetMethodNames = targetMethodNamesBySourceFiles[filePath] ?: emptyList()
+                AnalysisTarget(filePath.toAbsolutePath().toString(), targetFunctionNames, targetMethodNames)
+            }
+        )
         val analysisTargetsFileName = createAnalysisTargetsFileName()
         val analysisResultsFileName = createAnalysisResultsFileName()
 
@@ -79,12 +83,21 @@ object GoSourceCodeAnalyzer {
                     analyzedFunction.types.keys.forEach { index ->
                         analyzedFunction.types[index]!!.toGoTypeId(index, analyzedTypes, analyzedFunction.types)
                     }
-                    val parameters = analyzedFunction.parameters.map { analyzedFunctionParameter ->
-                        GoUtFunctionParameter(
-                            analyzedFunctionParameter.name, analyzedTypes[analyzedFunctionParameter.type]!!
+                    val receiver = analyzedFunction.receiver?.let { receiver ->
+                        GoUtDeclaredVariable(
+                            receiver.name, analyzedTypes[receiver.type]!!
                         )
                     }
-                    val resultTypes = analyzedFunction.resultTypes.map { type -> analyzedTypes[type]!! }
+                    val parameters = analyzedFunction.parameters.map { parameter ->
+                        GoUtDeclaredVariable(
+                            parameter.name, analyzedTypes[parameter.type]!!
+                        )
+                    }
+                    val resultTypes = analyzedFunction.resultTypes.map { result ->
+                        GoUtDeclaredVariable(
+                            result.name, analyzedTypes[result.type]!!,
+                        )
+                    }
                     val constants = mutableMapOf<GoTypeId, List<Any>>()
                     analyzedFunction.constants.map { (type, rawValues) ->
                         val typeId = GoPrimitiveTypeId(type)
@@ -98,6 +111,7 @@ object GoSourceCodeAnalyzer {
                     }
                     GoUtFunction(
                         analyzedFunction.name,
+                        receiver,
                         parameters,
                         resultTypes,
                         constants,
@@ -105,7 +119,9 @@ object GoSourceCodeAnalyzer {
                     )
                 }
                 GoSourceFileAnalysisResult(
-                    functions, analysisResult.notSupportedFunctionsNames, analysisResult.notFoundFunctionsNames
+                    functions,
+                    analysisResult.notSupportedFunctionNames,
+                    analysisResult.notFoundFunctionNames
                 )
             }, intSize)
         } catch (exception: KlaxonException) {
@@ -141,7 +157,6 @@ object GoSourceCodeAnalyzer {
             "analyzer_core.go",
             "analysis_targets.go",
             "analysis_results.go",
-            "imports_collector.go",
             "constant_extractor.go"
         )
     }

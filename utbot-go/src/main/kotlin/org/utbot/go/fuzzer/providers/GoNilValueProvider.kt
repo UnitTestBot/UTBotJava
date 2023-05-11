@@ -9,7 +9,7 @@ import org.utbot.go.framework.api.go.GoUtModel
 
 object GoNilValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
     override fun accept(type: GoTypeId): Boolean =
-        type is GoSliceTypeId || type is GoMapTypeId || type is GoChanTypeId || type is GoPointerTypeId
+        type is GoSliceTypeId || type is GoMapTypeId || type is GoChanTypeId || type is GoPointerTypeId || type is GoInterfaceTypeId
 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequenceOf(Seed.Simple(GoUtNilModel(type)))

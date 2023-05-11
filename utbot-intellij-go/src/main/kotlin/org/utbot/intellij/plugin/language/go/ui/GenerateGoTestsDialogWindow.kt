@@ -1,6 +1,8 @@
 package org.utbot.intellij.plugin.language.go.ui
 
+import com.goide.psi.GoFunctionDeclaration
 import com.goide.psi.GoFunctionOrMethodDeclaration
+import com.goide.psi.GoMethodDeclaration
 import com.goide.refactor.ui.GoDeclarationInfo
 import com.intellij.openapi.components.service
 import com.intellij.openapi.ui.DialogPanel
@@ -52,7 +54,7 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
     override fun createCenterPanel(): JComponent {
         panel = panel {
             row("Test source root: near to source files") {}
-            row  {
+            row {
                 cell(fuzzingMode)
                 contextHelp("Stop test generation when a panic or error occurs (only one test will be generated for one of these cases)")
             }
@@ -70,7 +72,10 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
     }
 
     override fun doOKAction() {
-        model.selectedFunctions = targetFunctionsTable.selectedMemberInfos.fromInfos()
+        model.selectedFunctions =
+            targetFunctionsTable.selectedMemberInfos.fromInfos().filterIsInstance<GoFunctionDeclaration>().toSet()
+        model.selectedMethods =
+            targetFunctionsTable.selectedMemberInfos.fromInfos().filterIsInstance<GoMethodDeclaration>().toSet()
         try {
             allFunctionExecutionTimeoutSecondsSpinner.commitEdit()
         } catch (_: ParseException) {

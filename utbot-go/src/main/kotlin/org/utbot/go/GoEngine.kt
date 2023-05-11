@@ -33,13 +33,13 @@ class GoEngine(
     var numberOfFunctionExecutions: AtomicInteger = AtomicInteger(0)
 
     fun fuzzing(): Flow<GoUtFuzzedFunctionTestCase> = channelFlow {
-        if (functionUnderTest.parameters.isEmpty()) {
+        if (!functionUnderTest.isMethod && functionUnderTest.parameters.isEmpty()) {
             workers[0].sendFuzzedParametersValues(functionUnderTest, emptyList(), emptyMap())
             val executionResult = run {
                 val rawExecutionResult = workers[0].receiveRawExecutionResult()
                 convertRawExecutionResultToExecutionResult(
                     rawExecutionResult = rawExecutionResult,
-                    functionResultTypes = functionUnderTest.resultTypes,
+                    functionResultTypes = functionUnderTest.results.map { it.type },
                     intSize = intSize,
                     timeoutMillis = functionExecutionTimeoutMillis,
                 )
@@ -62,9 +62,10 @@ class GoEngine(
                             val (executionResult, coverTab) = run {
                                 description.worker.sendFuzzedParametersValues(functionUnderTest, values, aliases)
                                 val rawExecutionResult = description.worker.receiveRawExecutionResult()
+                                println(rawExecutionResult)
                                 convertRawExecutionResultToExecutionResult(
                                     rawExecutionResult = rawExecutionResult,
-                                    functionResultTypes = functionUnderTest.resultTypes,
+                                    functionResultTypes = functionUnderTest.results.map { it.type },
                                     intSize = intSize,
                                     timeoutMillis = functionExecutionTimeoutMillis,
                                 ) to rawExecutionResult.coverTab

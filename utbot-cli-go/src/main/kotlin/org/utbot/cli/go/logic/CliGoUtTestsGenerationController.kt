@@ -21,7 +21,10 @@ class CliGoUtTestsGenerationController(
 
     private lateinit var currentStageStarted: LocalDateTime
 
-    override fun onSourceCodeAnalysisStart(targetFunctionsNamesBySourceFiles: Map<Path, List<String>>): Boolean {
+    override fun onSourceCodeAnalysisStart(
+        targetFunctionNamesBySourceFiles: Map<Path, List<String>>,
+        targetMethodNamesBySourceFiles: Map<Path, List<String>>
+    ): Boolean {
         currentStageStarted = now()
         logger.debug { "Source code analysis - started" }
 

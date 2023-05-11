@@ -155,6 +155,7 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     is GoChanTypeId -> GoUtNilModel(this)
     is GoPointerTypeId -> GoUtNilModel(this)
     is GoNamedTypeId -> GoUtNamedModel(this.underlyingTypeId.goDefaultValueModel(), this)
+    is GoInterfaceTypeId -> GoUtNilModel(this)
     else -> error("Generating Go default value model for ${this.javaClass} is not supported")
 }
 
@@ -164,7 +165,7 @@ fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage, visitedTypes: Mutable
     }
     visitedTypes.add(this)
     return when (this) {
-        is GoNamedTypeId -> if (this.sourcePackage == goPackage || this.exported()) {
+        is GoNamedTypeId -> if (this.sourcePackage == goPackage || this.sourcePackage.isBuiltin || this.exported()) {
             setOf(this) + underlyingTypeId.getAllVisibleNamedTypes(goPackage, visitedTypes)
         } else {
             emptySet()

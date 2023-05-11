@@ -90,8 +90,8 @@ object GoTestCasesCodeGenerator {
         val variablesDeclarationAndInitialization =
             generateVariablesDeclarationAndInitialization(variables, goUtModelToCodeConverter)
 
-        if (function.resultTypes.isEmpty()) {
-            val actualFunctionCall = generateFuzzedFunctionCall(function.name, variables)
+        if (function.results.isEmpty()) {
+            val actualFunctionCall = generateFuzzedFunctionCall(function, variables)
             val testFunctionBody = buildString {
                 if (variablesDeclarationAndInitialization != "\n") {
                     append(variablesDeclarationAndInitialization)
@@ -104,7 +104,7 @@ object GoTestCasesCodeGenerator {
             return "$testFunctionSignatureDeclaration {\n$testFunctionBody}"
         }
 
-        val resultTypes = function.resultTypes
+        val resultTypes = function.results.map { it.type }
         val doResultTypesImplementError = resultTypes.map { it.implementsError }
         val errorVariablesNumber = doResultTypesImplementError.count { it }
         val commonVariablesNumber = resultTypes.size - errorVariablesNumber
@@ -250,11 +250,11 @@ object GoTestCasesCodeGenerator {
         val variables: List<Variable> = generateVariables(fuzzedFunction)
         val variablesDeclaration = generateVariablesDeclarationAndInitialization(variables, goUtModelToCodeConverter)
 
-        val actualFunctionCall = generateFuzzedFunctionCall(function.name, variables)
+        val actualFunctionCall = generateFuzzedFunctionCall(function, variables)
         val actualFunctionCallLambda = buildString {
             appendLine("func() {")
-            if (function.resultTypes.isNotEmpty()) {
-                appendLine("\t\t${function.resultTypes.joinToString { "_" }} = $actualFunctionCall")
+            if (function.results.isNotEmpty()) {
+                appendLine("\t\t${function.results.joinToString { "_" }} = $actualFunctionCall")
             } else {
                 appendLine("\t\t$actualFunctionCall")
             }
@@ -300,7 +300,11 @@ object GoTestCasesCodeGenerator {
 
     private fun generateVariables(fuzzedFunction: GoUtFuzzedFunction): List<Variable> {
         val function = fuzzedFunction.function
-        val parameters = function.parameters
+        val parameters = if (function.isMethod) {
+            listOf(function.receiver!!) + function.parameters
+        } else {
+            function.parameters
+        }
         val parametersValues = fuzzedFunction.parametersValues
         return parameters.map { it.name }.zip(parameters.map { it.type }).zip(parametersValues)
             .map { (nameAndType, value) ->
@@ -377,11 +381,18 @@ object GoTestCasesCodeGenerator {
         declaration + initialization
     }
 
-    private fun generateFuzzedFunctionCall(functionName: String, variables: List<Variable>): String {
-        val fuzzedParametersToString = variables.joinToString(prefix = "(", postfix = ")") {
-            it.name
+    private fun generateFuzzedFunctionCall(function: GoUtFunction, variables: List<Variable>): String {
+        return if (function.isMethod) {
+            val fuzzedParametersToString = variables.drop(1).joinToString(prefix = "(", postfix = ")") {
+                it.name
+            }
+            "${variables[0].name}.${function.name}$fuzzedParametersToString"
+        } else {
+            val fuzzedParametersToString = variables.joinToString(prefix = "(", postfix = ")") {
+                it.name
+            }
+            "${function.name}$fuzzedParametersToString"
         }
-        return "$functionName$fuzzedParametersToString"
     }
 
     private fun generateVariablesDeclarationTo(variablesNames: List<String>, expression: String): String {
@@ -392,7 +403,7 @@ object GoTestCasesCodeGenerator {
     private fun generateFuzzedFunctionCallSavedToVariables(
         variablesNames: List<String>, fuzzedFunction: GoUtFuzzedFunction, variables: List<Variable>
     ): String = generateVariablesDeclarationTo(
-        variablesNames, expression = generateFuzzedFunctionCall(fuzzedFunction.function.name, variables)
+        variablesNames, expression = generateFuzzedFunctionCall(fuzzedFunction.function, variables)
     )
 
     private fun modelIsNilOrBoolOrFloatNanOrFloatInf(value: GoUtModel): Boolean = value is GoUtNilModel

@@ -26,14 +26,23 @@ class GenerateGoTestsCommand :
             it.endsWith(".go") && Files.exists(Paths.get(it))
         }
 
-    private val selectedFunctionsNames: List<String> by option(
+    private val selectedFunctionNames: List<String> by option(
         "-f", "--function",
         help = StringBuilder()
             .append("Specifies function name to generate tests for. ")
             .append("Can be used multiple times to select multiple functions at the same time.")
             .toString()
     )
-        .multiple(required = true)
+        .multiple()
+
+    private val selectedMethodNames: List<String> by option(
+        "-m", "--method",
+        help = StringBuilder()
+            .append("Specifies method name to generate tests for. ")
+            .append("Can be used multiple times to select multiple methods at the same time.")
+            .toString()
+    )
+        .multiple()
 
     private val goExecutablePath: String by option(
         "-go",
@@ -93,6 +102,10 @@ class GenerateGoTestsCommand :
         .flag(default = false)
 
     override fun run() {
+        if (selectedFunctionNames.isEmpty() && selectedMethodNames.isEmpty()) {
+            throw IllegalArgumentException("Functions or methods must be passed")
+        }
+
         val sourceFileAbsolutePath = sourceFile.toAbsolutePath()
         val goExecutableAbsolutePath = goExecutablePath.toAbsolutePath()
         val gopathAbsolutePath = gopath.toAbsolutePath()
@@ -104,7 +117,8 @@ class GenerateGoTestsCommand :
                 printToStdOut = printToStdOut,
                 overwriteTestFiles = overwriteTestFiles
             ).generateTests(
-                mapOf(sourceFileAbsolutePath to selectedFunctionsNames),
+                mapOf(sourceFileAbsolutePath to selectedFunctionNames),
+                mapOf(sourceFileAbsolutePath to selectedMethodNames),
                 GoUtTestsGenerationConfig(
                     goExecutableAbsolutePath,
                     gopathAbsolutePath,

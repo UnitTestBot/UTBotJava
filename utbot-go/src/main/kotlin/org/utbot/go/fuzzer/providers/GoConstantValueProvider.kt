@@ -17,7 +17,7 @@ object GoConstantValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescriptio
 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> = sequence {
         type.let { it as GoPrimitiveTypeId }.also { primitiveType ->
-            val constants = description.methodUnderTest.constants
+            val constants = description.functionUnderTest.constants
             val intSize = description.intSize
             val primitives: List<Seed<GoTypeId, GoUtModel>> = (constants[primitiveType] ?: emptyList()).mapNotNull {
                 when (primitiveType) {

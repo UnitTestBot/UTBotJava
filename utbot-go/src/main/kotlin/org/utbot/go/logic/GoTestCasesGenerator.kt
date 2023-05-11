@@ -62,7 +62,7 @@ object GoTestCasesGenerator {
             val modCommand = listOf(
                 goExecutableAbsolutePath.toString(), "mod", "tidy"
             )
-            logger.info { "Adding missing and removing unused modules in instrumented package [$absolutePathToInstrumentedPackage] - started" }
+            logger.debug { "Adding missing and removing unused modules in instrumented package [$absolutePathToInstrumentedPackage] - started" }
             val goModTime = measureTimeMillis {
                 executeCommandByNewProcessOrFail(
                     modCommand,
@@ -71,7 +71,7 @@ object GoTestCasesGenerator {
                     environment
                 )
             }
-            logger.info { "Adding missing and removing unused modules in instrumented package [$absolutePathToInstrumentedPackage] - completed in [$goModTime] (ms)" }
+            logger.debug { "Adding missing and removing unused modules in instrumented package [$absolutePathToInstrumentedPackage] - completed in [$goModTime] (ms)" }
 
             // compiling the test binary
             testFile = run {
@@ -84,7 +84,7 @@ object GoTestCasesGenerator {
             val buildCommand = listOf(
                 goExecutableAbsolutePath.toString(), "test", "-c", "-o", testFile.absolutePath
             )
-            logger.info { "Compiling the test binary - started" }
+            logger.debug { "Compiling the test binary - started" }
             val compilingTestBinaryTime = measureTimeMillis {
                 executeCommandByNewProcessOrFail(
                     buildCommand,
@@ -93,7 +93,7 @@ object GoTestCasesGenerator {
                     environment
                 )
             }
-            logger.info { "Compiling the test binary - completed in [$compilingTestBinaryTime] (ms)" }
+            logger.debug { "Compiling the test binary - completed in [$compilingTestBinaryTime] (ms)" }
 
             // starting worker processes
             logger.debug { "Creation of workers - started" }

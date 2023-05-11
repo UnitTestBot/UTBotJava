@@ -43,6 +43,7 @@ class GoWorker private constructor(
         val rawValues = arguments.map { it.convertToRawValue(goPackage, aliases) }
         val testCase = TestInput(function.name, rawValues)
         val json = convertObjectToJsonString(testCase)
+        println(json)
         writer.write(json)
         writer.flush()
     }
@@ -57,6 +58,8 @@ class GoWorker private constructor(
 
     fun restartWorker() {
         process.destroy()
+        val processOutput = InputStreamReader(process.inputStream).readText()
+        println(processOutput)
         process = startWorkerProcess(
             testFunctionName, testFilePath, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
         )

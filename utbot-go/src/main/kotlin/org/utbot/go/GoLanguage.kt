@@ -26,13 +26,19 @@ fun goDefaultValueProviders() = listOf(
 
 class GoDescription(
     val worker: GoWorker,
-    val methodUnderTest: GoUtFunction,
+    val functionUnderTest: GoUtFunction,
     val coverage: Trie<String, String>,
     val intSize: Int
-) : Description<GoTypeId>(methodUnderTest.parameters.map { it.type }.toList())
+) : Description<GoTypeId>(
+    if (functionUnderTest.isMethod) {
+        listOf(functionUnderTest.receiver!!.type) + functionUnderTest.parameters.map { it.type }.toList()
+    } else {
+        functionUnderTest.parameters.map { it.type }.toList()
+    }
+)
 
 suspend fun runGoFuzzing(
-    methodUnderTest: GoUtFunction,
+    function: GoUtFunction,
     worker: GoWorker,
     index: Int,
     intSize: Int,
@@ -42,7 +48,7 @@ suspend fun runGoFuzzing(
     BaseFuzzing(providers, exec).fuzz(
         description = GoDescription(
             worker = worker,
-            methodUnderTest = methodUnderTest,
+            functionUnderTest = function,
             coverage = IdentityTrie(),
             intSize = intSize
         ),

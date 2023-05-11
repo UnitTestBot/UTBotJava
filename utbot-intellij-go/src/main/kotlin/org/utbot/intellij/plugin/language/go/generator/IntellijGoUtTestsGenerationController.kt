@@ -38,7 +38,10 @@ class IntellijGoUtTestsGenerationController(
         }
     }
 
-    override fun onSourceCodeAnalysisStart(targetFunctionsNamesBySourceFiles: Map<Path, List<String>>): Boolean {
+    override fun onSourceCodeAnalysisStart(
+        targetFunctionNamesBySourceFiles: Map<Path, List<String>>,
+        targetMethodNamesBySourceFiles: Map<Path, List<String>>
+    ): Boolean {
         indicator.isIndeterminate = false
         indicator.text = "Analyze source files"
         indicator.fraction = ProgressIndicatorConstants.START_FRACTION

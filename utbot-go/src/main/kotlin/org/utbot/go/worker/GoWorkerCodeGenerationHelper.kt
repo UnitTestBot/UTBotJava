@@ -83,12 +83,15 @@ internal object GoWorkerCodeGenerationHelper {
         val destinationPackage = sourceFile.sourcePackage
         val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
 
-        val workerTestFunctionCode = generateWorkerTestFunctionCode(functions, eachExecutionTimeoutMillis, port)
-
-        val types = functions.flatMap { it.parameters }.map { it.type }
+        val types = functions.flatMap {
+            it.parameters + if (it.isMethod) listOf(it.receiver!!) else emptyList()
+        }.map { it.type }
         val aliases = imports.associate { it.goPackage to it.alias }
         val namedTypes = types.getAllVisibleNamedTypes(destinationPackage)
 
+        val workerTestFunctionCode = generateWorkerTestFunctionCode(
+            functions, destinationPackage, aliases, eachExecutionTimeoutMillis, port
+        )
         fileCodeBuilder.addTopLevelElements(
             GoCodeTemplates.getTopLevelHelperStructsAndFunctionsForWorker(
                 namedTypes,
@@ -107,8 +110,19 @@ internal object GoWorkerCodeGenerationHelper {
     """.trimIndent()
 
     private fun generateWorkerTestFunctionCode(
-        functions: List<GoUtFunction>, eachExecutionTimeoutMillis: Long, port: Int
+        functions: List<GoUtFunction>,
+        destinationPackage: GoPackage,
+        aliases: Map<GoPackage, String?>,
+        eachExecutionTimeoutMillis: Long,
+        port: Int
     ): String {
+        val functionNameToFunctionCall = functions.map { function ->
+            function.name to if (function.isMethod) {
+                "(${function.receiver!!.type.getRelativeName(destinationPackage, aliases)}).${function.name}"
+            } else {
+                function.name
+            }
+        }
         return """
             func $workerTestFunctionName(t *testing.T) {
             	con, err := net.Dial("tcp", ":$port")
@@ -150,8 +164,8 @@ internal object GoWorkerCodeGenerationHelper {
             		var function reflect.Value
             		switch funcName {
             ${
-            functions.joinToString(separator = "\n") { function ->
-                "case \"${function.name}\": function = reflect.ValueOf(${function.name})"
+            functionNameToFunctionCall.joinToString(separator = "\n") { (functionName, functionCall) ->
+                "case \"${functionName}\": function = reflect.ValueOf($functionCall)"
             }
         }
             		default:

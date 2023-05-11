@@ -240,13 +240,14 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
     }
 }
 
-internal data class AnalyzedFunctionParameter(val name: String, val type: String)
+internal data class AnalyzedVariable(val name: String, val type: String)
 
 internal data class AnalyzedFunction(
     val name: String,
     val types: Map<String, AnalyzedType>,
-    val parameters: List<AnalyzedFunctionParameter>,
-    val resultTypes: List<String>,
+    val receiver: AnalyzedVariable?,
+    val parameters: List<AnalyzedVariable>,
+    val resultTypes: List<AnalyzedVariable>,
     val constants: Map<String, List<String>>,
 )
 
@@ -254,8 +255,8 @@ internal data class AnalysisResult(
     val absoluteFilePath: String,
     val sourcePackage: GoPackage,
     val analyzedFunctions: List<AnalyzedFunction>,
-    val notSupportedFunctionsNames: List<String>,
-    val notFoundFunctionsNames: List<String>
+    val notSupportedFunctionNames: List<String>,
+    val notFoundFunctionNames: List<String>
 )
 
 internal data class AnalysisResults(val results: List<AnalysisResult>, val intSize: Int)

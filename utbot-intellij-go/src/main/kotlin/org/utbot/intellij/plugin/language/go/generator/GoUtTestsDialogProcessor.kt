@@ -99,8 +99,9 @@ object GoUtTestsDialogProcessor {
         ProgressManager.getInstance().run(object : Task.Backgroundable(model.project, "Generate Go tests") {
             override fun run(indicator: ProgressIndicator) {
                 // readAction is required to read PSI-tree or else "Read access" exception occurs.
-                val selectedFunctionsNamesBySourceFiles = runReadAction {
-                    model.selectedFunctions.groupBy({ Paths.get(it.containingFile.virtualFile.path) }) { it.name!! }
+                val (selectedFunctionNamesBySourceFiles, selectedMethodNamesBySourceFiles) = runReadAction {
+                    model.selectedFunctions.groupBy({ Paths.get(it.containingFile.virtualFile.path) }) { it.name!! } to
+                            model.selectedMethods.groupBy({ Paths.get(it.containingFile.virtualFile.path) }) { it.name!! }
                 }
                 val testsGenerationConfig = GoUtTestsGenerationConfig(
                     model.goExecutableAbsolutePath,
@@ -111,7 +112,10 @@ object GoUtTestsDialogProcessor {
 
                 try {
                     IntellijGoUtTestsGenerationController(model, indicator).generateTests(
-                        selectedFunctionsNamesBySourceFiles, testsGenerationConfig, model.fuzzingMode
+                        selectedFunctionNamesBySourceFiles,
+                        selectedMethodNamesBySourceFiles,
+                        testsGenerationConfig,
+                        model.fuzzingMode
                     ) { indicator.isCanceled }
                 } catch (e: GoParsingSourceCodeAnalysisResultException) {
                     val errorMessage = buildErrorMessage(e)

@@ -51,12 +51,19 @@ object GoLanguageAssistant : LanguageAssistant() {
             e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
         }
 
-        val containingFunction = getContainingFunction(element)
+
         val targetFunctions = extractTargetFunctionsOrMethods(file)
-        val focusedTargetFunctions = if (containingFunction != null) {
-            setOf(containingFunction)
+        val containingFunctionOrMethod = getContainingFunctionOrMethod(element)
+        val containingStruct = getContainingStruct(element)
+        val focusedTargetFunctions = if (containingFunctionOrMethod != null) {
+            setOf(containingFunctionOrMethod)
         } else {
-            emptySet()
+            if (containingStruct != null) {
+                targetFunctions.filterIsInstance<GoMethodDeclaration>()
+                    .filter { containingStruct == getMethodReceiverStruct(it) }.toSet()
+            } else {
+                emptySet()
+            }
         }
 
         return PsiTargets(targetFunctions, focusedTargetFunctions)
@@ -67,12 +74,12 @@ object GoLanguageAssistant : LanguageAssistant() {
         return file.functions.toSet() union file.methods.toSet()
     }
 
-    private fun getContainingFunction(element: PsiElement): GoFunctionOrMethodDeclaration? {
+    private fun getContainingFunctionOrMethod(element: PsiElement): GoFunctionOrMethodDeclaration? {
         if (element is GoFunctionOrMethodDeclaration)
             return element
 
         val parent = element.parent ?: return null
-        return getContainingFunction(parent)
+        return getContainingFunctionOrMethod(parent)
     }
 
     // Unused for now, but may be used for more complicated extract logic in the future.
@@ -82,12 +89,12 @@ object GoLanguageAssistant : LanguageAssistant() {
 
     // Unused for now, but may be used to access all methods of receiver's struct.
     @Suppress("unused")
-    private fun getMethodReceiverStruct(method: GoMethodDeclaration): GoStructType {
-        val receiverType = method.receiverType
+    private fun getMethodReceiverStruct(method: GoMethodDeclaration): GoStructType? {
+        val receiverType = method.receiverType?.contextlessUnderlyingType ?: return null
         if (receiverType is GoPointerType) {
-            return receiverType.type as GoStructType
+            return receiverType.type as? GoStructType
         }
-        return receiverType as GoStructType
+        return receiverType as? GoStructType
     }
 
     // This method is cloned from GenerateTestsActions.kt.

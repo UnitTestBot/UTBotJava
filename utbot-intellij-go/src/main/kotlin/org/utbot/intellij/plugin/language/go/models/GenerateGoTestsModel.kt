@@ -1,6 +1,8 @@
 package org.utbot.intellij.plugin.language.go.models
 
+import com.goide.psi.GoFunctionDeclaration
 import com.goide.psi.GoFunctionOrMethodDeclaration
+import com.goide.psi.GoMethodDeclaration
 import com.intellij.openapi.project.Project
 import org.utbot.go.logic.GoUtTestsGenerationConfig
 import java.nio.file.Path
@@ -21,7 +23,8 @@ data class GenerateGoTestsModel(
     val targetFunctions: Set<GoFunctionOrMethodDeclaration>,
     val focusedTargetFunctions: Set<GoFunctionOrMethodDeclaration>,
 ) {
-    lateinit var selectedFunctions: Set<GoFunctionOrMethodDeclaration>
+    lateinit var selectedFunctions: Set<GoFunctionDeclaration>
+    lateinit var selectedMethods: Set<GoMethodDeclaration>
     var eachFunctionExecutionTimeoutMillis: Long = GoUtTestsGenerationConfig.DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS
     var allFunctionExecutionTimeoutMillis: Long = GoUtTestsGenerationConfig.DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS
     var fuzzingMode: Boolean = false

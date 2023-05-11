@@ -12,14 +12,16 @@ import java.nio.file.Path
 abstract class AbstractGoUtTestsGenerationController {
 
     fun generateTests(
-        selectedFunctionsNamesBySourceFiles: Map<Path, List<String>>,
+        selectedFunctionNamesBySourceFiles: Map<Path, List<String>>,
+        selectedMethodNamesBySourceFiles: Map<Path, List<String>>,
         testsGenerationConfig: GoUtTestsGenerationConfig,
         fuzzingMode: Boolean,
         isCanceled: () -> Boolean = { false }
     ) {
-        if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
+        if (!onSourceCodeAnalysisStart(selectedFunctionNamesBySourceFiles, selectedMethodNamesBySourceFiles)) return
         val (analysisResults, intSize) = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
-            selectedFunctionsNamesBySourceFiles,
+            selectedFunctionNamesBySourceFiles,
+            selectedMethodNamesBySourceFiles,
             testsGenerationConfig.goExecutableAbsolutePath,
             testsGenerationConfig.gopathAbsolutePath
         )
@@ -76,7 +78,8 @@ abstract class AbstractGoUtTestsGenerationController {
     }
 
     protected abstract fun onSourceCodeAnalysisStart(
-        targetFunctionsNamesBySourceFiles: Map<Path, List<String>>
+        targetFunctionNamesBySourceFiles: Map<Path, List<String>>,
+        targetMethodNamesBySourceFiles: Map<Path, List<String>>,
     ): Boolean
 
     protected abstract fun onSourceCodeAnalysisFinished(
@@ -111,14 +114,14 @@ abstract class AbstractGoUtTestsGenerationController {
         analysisResults: Map<GoUtFile, GoSourceCodeAnalyzer.GoSourceFileAnalysisResult>,
     ): String? {
         val missingSelectedFunctions = analysisResults.filter { (_, analysisResult) ->
-            analysisResult.notSupportedFunctionsNames.isNotEmpty() || analysisResult.notFoundFunctionsNames.isNotEmpty()
+            analysisResult.notSupportedFunctionAndMethodNames.isNotEmpty() || analysisResult.notFoundFunctionAndMethodNames.isNotEmpty()
         }
         if (missingSelectedFunctions.isEmpty()) {
             return null
         }
         return missingSelectedFunctions.map { (sourceFile, analysisResult) ->
-            val notSupportedFunctions = analysisResult.notSupportedFunctionsNames.joinToString(separator = ", ")
-            val notFoundFunctions = analysisResult.notFoundFunctionsNames.joinToString(separator = ", ")
+            val notSupportedFunctions = analysisResult.notSupportedFunctionAndMethodNames.joinToString(separator = ", ")
+            val notFoundFunctions = analysisResult.notFoundFunctionAndMethodNames.joinToString(separator = ", ")
             val messageSb = StringBuilder()
             messageSb.append("File ${sourceFile.absolutePath}")
             if (notSupportedFunctions.isNotEmpty()) {

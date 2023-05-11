@@ -1,5 +1,6 @@
 package org.utbot.go.worker
 
+import org.utbot.go.api.GoInterfaceTypeId
 import org.utbot.go.api.GoNamedTypeId
 import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoPackage
@@ -418,14 +419,18 @@ object GoCodeTemplates {
 
     private val namedValueToReflectValueMethod = """
         func (v __NamedValue__) __toReflectValue__() (reflect.Value, error) {
-        	value, err := v.Value.__toReflectValue__()
-        	if err != nil {
-        		return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
-        	}
-
         	typ, err := __convertStringToReflectType__(v.Type)
         	if err != nil {
         		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.Type, err)
+        	}
+
+        	if n, ok := v.Value.(__NilValue__); ok && n.Type == "interface{}" {
+        		return reflect.Zero(typ), nil
+        	}
+
+        	value, err := v.Value.__toReflectValue__()
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
         	}
 
         	return value.Convert(typ), nil
@@ -459,7 +464,7 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private fun convertStringToReflectType(
+    private fun convertStringToReflectTypeFunction(
         namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
         aliases: Map<GoPackage, String?>
@@ -586,7 +591,11 @@ object GoCodeTemplates {
                 ${
             namedTypes.joinToString(separator = "\n") {
                 val relativeName = it.getRelativeName(destinationPackage, aliases)
-                "case \"${relativeName}\": result = reflect.TypeOf(${converter.toGoCode(it.goDefaultValueModel())})"
+                if (it.underlyingTypeId is GoInterfaceTypeId) {
+                    "case \"${relativeName}\": result = reflect.TypeOf((*$relativeName)(nil)).Elem()"
+                } else {
+                    "case \"${relativeName}\": result = reflect.TypeOf(${converter.toGoCode(it.goDefaultValueModel())})"
+                }
             }
         }
             		default:
@@ -1332,7 +1341,7 @@ object GoCodeTemplates {
         namedValueToReflectValueMethod,
         pointerValueStruct,
         pointerValueToReflectValueMethod,
-        convertStringToReflectType(namedTypes, destinationPackage, aliases),
+        convertStringToReflectTypeFunction(namedTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,
         convertReflectValueOfDefinedTypeToRawValueFunction,

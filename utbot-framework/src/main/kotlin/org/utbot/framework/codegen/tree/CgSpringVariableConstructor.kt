@@ -16,8 +16,8 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         if (model is UtAutowiredModel)
-            // TODO properly render
-            CgVariable(name ?: model.classId.jClass.simpleName.let { it[0].lowercase() + it.drop(1) }, model.classId)
+            // TODO also, properly render corresponding @Autowired field, and make sure name isn't taken
+            return CgVariable(name ?: model.classId.jClass.simpleName.let { it[0].lowercase() + it.drop(1) }, model.classId)
 
         val alreadyCreatedInjectMocks = findCgValueByModel(model, injectedMocksModelsVariables)
         if (alreadyCreatedInjectMocks != null) {

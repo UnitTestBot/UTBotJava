@@ -46,8 +46,9 @@ private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtoco
             params.fileStorage.map { File(it).toURI().toURL() },
             params.profileExpression,
         )
+
         SpringAnalyzerResult(
-                SpringApplicationAnalyzerFacade(applicationData).analyze().toTypedArray()
+            SpringApplicationAnalyzerFacade(applicationData).analyze().toTypedArray()
         )
     }
 }

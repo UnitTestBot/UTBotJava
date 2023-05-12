@@ -2,6 +2,7 @@ package org.utbot.spring.exception
 
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
+import org.utbot.spring.generated.BeanDefinitionData
 
 private val logger = getLogger<UtBotSpringShutdownException>()
 
@@ -11,7 +12,7 @@ private val logger = getLogger<UtBotSpringShutdownException>()
  */
 class UtBotSpringShutdownException(
     message: String,
-    val beanQualifiedNames: List<String>
+    val beanDefinitions: List<BeanDefinitionData>
 ): RuntimeException(message) {
     companion object {
         fun catch(block: () -> Unit): UtBotSpringShutdownException {

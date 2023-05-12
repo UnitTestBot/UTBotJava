@@ -8,10 +8,10 @@ RUN apt-get update \
     && apt-get install -y -q --no-install-recommends \
       curl \
       python3.9 \
-      python3.9-distutils \
+      python3-distutils \
     && rm -rf /var/lib/apt/lists/* \
     && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
-    && python3.9 get-pip.py \
+    && python3 get-pip.py \
     && pip install -U \
       pytest
 

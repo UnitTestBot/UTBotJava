@@ -38,8 +38,33 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+
+    private val parseFloatFunction = """
+        func __parseFloat__(s string, bitSize int) (float64, error) {
+        	if s == "NaN" {
+        		return math.NaN(), nil
+        	}
+
+        	if s == "+Inf" {
+        		return math.Inf(1), nil
+        	}
+
+        	if s == "-Inf" {
+        		return math.Inf(-1), nil
+        	}
+
+        	value, err := strconv.ParseFloat(s, bitSize)
+        	if err != nil {
+        		return value, fmt.Errorf("failed to parse float: %s", s)
+        	}
+
+        	return value, nil
+        }
+    """.trimIndent()
+
     private val primitiveValueToReflectValueMethod = """
         func (v __PrimitiveValue__) __toReflectValue__() (reflect.Value, error) {
+
         	const complexPartsDelimiter = "@"
 
         	switch v.Type {
@@ -135,14 +160,14 @@ object GoCodeTemplates {
 
         		return reflect.ValueOf(value), nil
         	case "float32":
-        		value, err := strconv.ParseFloat(v.Value, 32)
+        		value, err := __parseFloat__(v.Value, 32)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
 
         		return reflect.ValueOf(float32(value)), nil
         	case "float64":
-        		value, err := strconv.ParseFloat(v.Value, 64)
+        		value, err := __parseFloat__(v.Value, 64)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
@@ -153,12 +178,12 @@ object GoCodeTemplates {
         		if len(splitValue) != 2 {
         			return reflect.Value{}, fmt.Errorf("not correct complex64 value: %s", v.Value)
         		}
-        		realPart, err := strconv.ParseFloat(splitValue[0], 32)
+        		realPart, err := __parseFloat__(splitValue[0], 32)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
 
-        		imaginaryPart, err := strconv.ParseFloat(splitValue[1], 32)
+        		imaginaryPart, err := __parseFloat__(splitValue[1], 32)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
@@ -465,9 +490,7 @@ object GoCodeTemplates {
     """.trimIndent()
 
     private fun convertStringToReflectTypeFunction(
-        namedTypes: Set<GoNamedTypeId>,
-        destinationPackage: GoPackage,
-        aliases: Map<GoPackage, String?>
+        namedTypes: Set<GoNamedTypeId>, destinationPackage: GoPackage, aliases: Map<GoPackage, String?>
     ): String {
         val converter = GoUtModelToCodeConverter(destinationPackage, aliases)
         return """
@@ -1322,6 +1345,7 @@ object GoCodeTemplates {
         testInputStruct,
         rawValueInterface,
         primitiveValueStruct,
+        parseFloatFunction,
         primitiveValueToReflectValueMethod,
         fieldValueStruct,
         structValueStruct,

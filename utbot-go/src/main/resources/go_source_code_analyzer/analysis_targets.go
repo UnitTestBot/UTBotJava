@@ -1,8 +1,9 @@
 package main
 
 type AnalysisTarget struct {
-	AbsoluteFilePath     string   `json:"absoluteFilePath"`
-	TargetFunctionsNames []string `json:"targetFunctionsNames"`
+	AbsoluteFilePath    string   `json:"absoluteFilePath"`
+	TargetFunctionNames []string `json:"targetFunctionNames"`
+	TargetMethodNames   []string `json:"targetMethodNames"`
 }
 
 type AnalysisTargets struct {

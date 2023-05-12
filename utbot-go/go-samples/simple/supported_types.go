@@ -72,10 +72,24 @@ func UintPtr(n uintptr) uintptr {
 }
 
 func Float32(n float32) float32 {
+	if math.IsInf(float64(n), 1) {
+		return n
+	} else if math.IsInf(float64(n), -1) {
+		return n
+	} else if math.IsNaN(float64(n)) {
+		return n
+	}
 	return n
 }
 
 func Float64(n float64) float64 {
+	if math.IsInf(n, 1) {
+		return n
+	} else if math.IsInf(n, -1) {
+		return n
+	} else if math.IsNaN(n) {
+		return n
+	}
 	return n
 }
 

@@ -19,8 +19,8 @@ func failf(str string, args ...any) {
 	os.Exit(1)
 }
 
-func instrument(astFile *ast.File, modifier FunctionModifier) {
-	ast.Walk(&modifier, astFile)
+func instrument(astFile *ast.File, modifier *FunctionModifier) {
+	ast.Walk(modifier, astFile)
 }
 
 func copyFile(src, dst string) {
@@ -62,14 +62,11 @@ func main() {
 	}
 
 	pkgPath := instrumentationTarget.AbsolutePackagePath
-	err := os.Chdir(pkgPath)
-	if err != nil {
-		failf("failed to change working directory: %s", err)
-	}
 	cfg := packages.Config{
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedImports |
 			packages.NeedTypes | packages.NeedTypesSizes | packages.NeedSyntax | packages.NeedTypesInfo |
 			packages.NeedDeps | packages.NeedModule,
+		Dir: pkgPath,
 	}
 	cfg.Env = os.Environ()
 	pkgs, err := packages.Load(&cfg, pkgPath)
@@ -112,7 +109,7 @@ func main() {
 			}
 			astFile := pkg.Syntax[i]
 			if pkg.PkgPath == targetPackage.PkgPath {
-				instrument(astFile, modifier)
+				instrument(astFile, &modifier)
 				absolutePathToInstrumentedPackage = filepath.Dir(outpath)
 			}
 			buf := new(bytes.Buffer)

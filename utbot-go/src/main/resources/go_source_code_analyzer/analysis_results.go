@@ -2,7 +2,7 @@ package main
 
 import "go/token"
 
-type GoPackage struct {
+type Package struct {
 	PackageName string `json:"packageName"`
 	PackagePath string `json:"packagePath"`
 }
@@ -12,10 +12,10 @@ type AnalyzedType interface {
 }
 
 type AnalyzedNamedType struct {
-	Name            string    `json:"name"`
-	SourcePackage   GoPackage `json:"sourcePackage"`
-	ImplementsError bool      `json:"implementsError"`
-	UnderlyingType  string    `json:"underlyingType"`
+	Name            string  `json:"name"`
+	SourcePackage   Package `json:"sourcePackage"`
+	ImplementsError bool    `json:"implementsError"`
+	UnderlyingType  string  `json:"underlyingType"`
 }
 
 func (t AnalyzedNamedType) GetName() string {
@@ -101,26 +101,27 @@ func (t AnalyzedPointerType) GetName() string {
 	return t.Name
 }
 
-type AnalyzedFunctionParameter struct {
+type AnalyzedVariable struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
 type AnalyzedFunction struct {
-	Name        string                      `json:"name"`
-	Types       map[string]AnalyzedType     `json:"types"`
-	Parameters  []AnalyzedFunctionParameter `json:"parameters"`
-	ResultTypes []string                    `json:"resultTypes"`
-	Constants   map[string][]string         `json:"constants"`
+	Name        string                  `json:"name"`
+	Types       map[string]AnalyzedType `json:"types"`
+	Receiver    *AnalyzedVariable       `json:"receiver"`
+	Parameters  []AnalyzedVariable      `json:"parameters"`
+	ResultTypes []AnalyzedVariable      `json:"resultTypes"`
+	Constants   map[string][]string     `json:"constants"`
 	position    token.Pos
 }
 
 type AnalysisResult struct {
-	AbsoluteFilePath           string             `json:"absoluteFilePath"`
-	SourcePackage              Package            `json:"sourcePackage"`
-	AnalyzedFunctions          []AnalyzedFunction `json:"analyzedFunctions"`
-	NotSupportedFunctionsNames []string           `json:"notSupportedFunctionsNames"`
-	NotFoundFunctionsNames     []string           `json:"notFoundFunctionsNames"`
+	AbsoluteFilePath          string             `json:"absoluteFilePath"`
+	SourcePackage             Package            `json:"sourcePackage"`
+	AnalyzedFunctions         []AnalyzedFunction `json:"analyzedFunctions"`
+	NotSupportedFunctionNames []string           `json:"notSupportedFunctionNames"`
+	NotFoundFunctionNames     []string           `json:"notFoundFunctionNames"`
 }
 
 type AnalysisResults struct {

@@ -229,6 +229,8 @@ class GoUtFloatNaNModel(
     override fun equals(other: Any?): Boolean = this === other || other is GoUtFloatNaNModel
 
     override fun hashCode(): Int = typeId.hashCode()
+
+    override fun toString(): String = "NaN"
 }
 
 class GoUtFloatInfModel(
@@ -251,6 +253,12 @@ class GoUtFloatInfModel(
     }
 
     override fun hashCode(): Int = sign.hashCode()
+
+    override fun toString(): String = if (sign >= 0) {
+        "+Inf"
+    } else {
+        "-Inf"
+    }
 }
 
 class GoUtComplexModel(

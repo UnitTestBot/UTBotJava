@@ -22,6 +22,16 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             "${model.realValue}@${model.imagValue}"
         )
 
+        is GoUtFloatInfModel -> PrimitiveValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            this.toString()
+        )
+
+        is GoUtFloatNaNModel -> PrimitiveValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            this.toString()
+        )
+
         is GoUtNamedModel -> NamedValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
             model.value.convertToRawValue(destinationPackage, aliases)

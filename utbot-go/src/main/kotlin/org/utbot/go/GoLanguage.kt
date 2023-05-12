@@ -24,6 +24,8 @@ fun goDefaultValueProviders() = listOf(
     GoPointerValueProvider
 )
 
+data class CoveredLines(val lines: Set<String>)
+
 class GoDescription(
     val worker: GoWorker,
     val functionUnderTest: GoUtFunction,

@@ -5,8 +5,12 @@ import kotlinx.coroutines.flow.catch
 import mu.KotlinLogging
 import org.utbot.common.isWindows
 import org.utbot.framework.plugin.api.TimeoutException
+import org.utbot.go.CoveredLines
 import org.utbot.go.GoEngine
-import org.utbot.go.api.*
+import org.utbot.go.api.ExecutionResults
+import org.utbot.go.api.GoUtFile
+import org.utbot.go.api.GoUtFunction
+import org.utbot.go.api.GoUtFuzzedFunctionTestCase
 import org.utbot.go.imports.GoImportsResolver
 import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.modifyEnvironment
@@ -121,11 +125,11 @@ object GoTestCasesGenerator {
             // fuzzing
             functions.forEachIndexed { index, function ->
                 if (timeoutExceededOrIsCanceled(index)) return@forEachIndexed
-                val testCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
+                val testCases = mutableMapOf<CoveredLines, ExecutionResults>()
                 val engine = GoEngine(
                     workers = workers,
                     functionUnderTest = function,
-                    needToCoverLines = needToCoverLines[function.name]!!,
+                    needToCoverLines = needToCoverLines[function.name]!!.toSet(),
                     aliases = aliases,
                     intSize = intSize,
                     functionExecutionTimeoutMillis = eachExecutionTimeoutMillis,
@@ -136,8 +140,14 @@ object GoTestCasesGenerator {
                     measureTimeMillis {
                         engine.fuzzing().catch {
                             logger.error { "Error in flow: ${it.message}" }
-                        }.collect { testCase ->
-                            testCases.add(testCase)
+                        }.collect {
+                            it.entries.forEach { (coveredLines, executionResults) ->
+                                if (testCases[coveredLines] == null) {
+                                    testCases[coveredLines] = executionResults
+                                } else {
+                                    testCases[coveredLines]!!.update(executionResults)
+                                }
+                            }
                         }
                     }
                 }
@@ -148,7 +158,7 @@ object GoTestCasesGenerator {
                 }.toString()
                 logger.debug { "Number of function executions - [${engine.numberOfFunctionExecutions}] ($numberOfExecutionsPerSecond/sec)" }
                 logger.info { "Fuzzing for function [${function.name}] - completed in [$totalFuzzingTime] (ms). Generated [${testCases.size}] test cases" }
-                allTestCases += testCases
+                allTestCases += testCases.values.flatMap { it.getTestCases() }
             }
             runBlocking {
                 workers.map { launch(Dispatchers.IO) { it.close() } }.joinAll()

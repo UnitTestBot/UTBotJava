@@ -39,13 +39,13 @@ class GoWorker private constructor(
 
     fun sendFuzzedParametersValues(
         function: GoUtFunction, arguments: List<GoUtModel>, aliases: Map<GoPackage, String?>
-    ) {
+    ): Int {
         val rawValues = arguments.map { it.convertToRawValue(goPackage, aliases) }
         val testCase = TestInput(function.name, rawValues)
         val json = convertObjectToJsonString(testCase)
-        println(json)
         writer.write(json)
         writer.flush()
+        return json.length
     }
 
     fun receiveRawExecutionResult(): RawExecutionResult {

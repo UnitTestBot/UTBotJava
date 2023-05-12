@@ -110,8 +110,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     result
                 })
 
-                logger.info { "Invoking $methodSignature in $clazz with params: $params" }
-
                 // invocation
                 val concreteResult = executePhaseInTimeout(invocationPhase) {
                     invoke(clazz, methodSignature, params.map { it.value })
@@ -121,8 +119,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 val coverage = executePhaseInTimeout(statisticsCollectionPhase) {
                     getCoverage(clazz)
                 }
-
-                logger.info { "Covered: ${coverage.coveredInstructions.size}, missed ${coverage.missedInstructions.size}, total: ${coverage.instructionsCount}" }
 
                 // model construction
                 val (executionResult, stateAfter) = executePhaseInTimeout(modelConstructionPhase) {

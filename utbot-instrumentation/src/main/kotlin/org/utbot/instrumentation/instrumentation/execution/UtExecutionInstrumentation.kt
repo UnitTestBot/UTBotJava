@@ -1,24 +1,24 @@
 package org.utbot.instrumentation.instrumentation.execution
 
-import java.security.ProtectionDomain
-import java.util.IdentityHashMap
-import kotlin.reflect.jvm.javaMethod
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.info
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
-import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
-import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import java.security.ProtectionDomain
+import java.util.*
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
@@ -47,36 +47,21 @@ class UtConcreteExecutionResult(
     }
 }
 
+private val logger = getLogger<UtExecutionInstrumentation>()
+
+// TODO if possible make it non singleton
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 
-    private val instrumentationContext = InstrumentationContext()
+    var instrumentationContext = InstrumentationContext()
 
     private val traceHandler = TraceHandler()
     private val pathsToUserClasses = mutableSetOf<String>()
-    private var thisInstanceCreator: (UtModel) -> UtConcreteValue<*>? = { null }
-    lateinit var typeReplacementApproach: TypeReplacementApproach
 
     override fun init(pathsToUserClasses: Set<String>) {
+        super.init(pathsToUserClasses)
         UtExecutionInstrumentation.pathsToUserClasses.clear()
         UtExecutionInstrumentation.pathsToUserClasses += pathsToUserClasses
-        thisInstanceCreator = when (val typeReplacementApproach = typeReplacementApproach) {
-            TypeReplacementApproach.DoNotReplace -> {
-                { null }
-            }
-            is TypeReplacementApproach.ReplaceIfPossible -> {
-                val classLoader = UtContext.currentContext()!!.classLoader
-                // TODO use BootstrapContext (like in SpringBootTestContextBootstrapper) to create TestContext and get applicationContext out of it
-                //  but before that consider improving build.gradle (in utbot-instrumentation) so we don't have to use reflection for Spring
-                val springContextClass = classLoader.loadClass("org.springframework.context.annotation.AnnotationConfigApplicationContext")
-                val sources = arrayOf(typeReplacementApproach.config)
-                val springContext = springContextClass.getConstructor(sources::class.java).newInstance(sources);
-                { utModel ->
-                    val clazz = utModel.classId.jClass
-                    UtConcreteValue(springContextClass.getMethod("getBean", clazz::class.java).invoke(springContext, clazz))
-                }
-            }
-        }
     }
 
     /**
@@ -107,7 +92,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         ).computeConcreteExecutionResult {
             try {
                 val (params, statics, cache) = this.executePhaseInTimeout(valueConstructionPhase) {
-                    val params = constructParameters(stateBefore, thisInstanceCreator)
+                    val params = constructParameters(stateBefore)
                     val statics = constructStatics(stateBefore)
 
                     // here static methods and instances are mocked
@@ -125,6 +110,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     result
                 })
 
+                logger.info { "Invoking $methodSignature in $clazz with params: $params" }
+
                 // invocation
                 val concreteResult = executePhaseInTimeout(invocationPhase) {
                     invoke(clazz, methodSignature, params.map { it.value })
@@ -134,6 +121,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 val coverage = executePhaseInTimeout(statisticsCollectionPhase) {
                     getCoverage(clazz)
                 }
+
+                logger.info { "Covered: ${coverage.coveredInstructions.size}, missed ${coverage.missedInstructions.size}, total: ${coverage.instructionsCount}" }
 
                 // model construction
                 val (executionResult, stateAfter) = executePhaseInTimeout(modelConstructionPhase) {

@@ -24,7 +24,7 @@ class ObjectValueProvider(
         NumberValueProvider.classId
     )
 
-    override fun accept(type: FuzzedType) = !isIgnored(type.classId)
+    override fun accept(type: FuzzedType) = !isIgnored(type.classId) && !type.usesCustomValueProvider
 
     override fun generate(
         description: FuzzedDescription,

@@ -636,6 +636,14 @@ class UtLambdaModel(
     }
 }
 
+class UtAutowiredModel(
+    override val id: Int?,
+    override val classId: ClassId,
+    val beanName: String,
+) : UtReferenceModel(
+    id, classId, modelName = "@Autowired $beanName#$id"
+)
+
 /**
  * Model for a step to obtain [UtAssembleModel].
  */

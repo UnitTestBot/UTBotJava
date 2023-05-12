@@ -10,10 +10,12 @@ import org.utbot.framework.plugin.api.ClassId
  *
  * @see ClassId.typeParameters
  */
-class FuzzedType(
+open class FuzzedType(
     val classId: ClassId,
     val generics: List<FuzzedType> = emptyList(),
 ) {
+    open val usesCustomValueProvider get() = false
+
     override fun toString(): String {
         return "FuzzedType(classId=$classId, generics=${generics.map { it.classId }})"
     }

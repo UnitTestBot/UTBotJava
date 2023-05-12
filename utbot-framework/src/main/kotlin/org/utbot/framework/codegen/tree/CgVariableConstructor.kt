@@ -113,6 +113,7 @@ open class CgVariableConstructor(val context: CgContext) :
                 is UtEnumConstantModel -> constructEnumConstant(model, baseName)
                 is UtClassRefModel -> constructClassRef(model, baseName)
                 is UtLambdaModel -> constructLambda(model, baseName)
+                else -> error("Unexpected UtModel: ${model::class}")
             }
         } else valueByModel.getOrPut(model) {
             when (model) {

@@ -45,6 +45,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     IteratorValueProvider(idGenerator),
     EmptyCollectionValueProvider(idGenerator),
     DateValueProvider(idGenerator),
+    AutowiredValueProvider(idGenerator)
 //    NullValueProvider,
 )
 
@@ -54,6 +55,7 @@ suspend fun runJavaFuzzing(
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
+    thisInstanceFuzzedTypeWrapper: (FuzzedType) -> FuzzedType = { it },
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val random = Random(0)
@@ -88,7 +90,7 @@ suspend fun runJavaFuzzing(
         fuzzerType = {
             try {
                 when {
-                    self != null && it == 0 -> toFuzzerType(methodUnderTest.executable.declaringClass, typeCache)
+                    self != null && it == 0 -> thisInstanceFuzzedTypeWrapper(toFuzzerType(methodUnderTest.executable.declaringClass, typeCache))
                     self != null -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it - 1], typeCache)
                     else -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it], typeCache)
                 }

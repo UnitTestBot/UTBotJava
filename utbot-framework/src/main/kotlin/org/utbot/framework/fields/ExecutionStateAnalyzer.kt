@@ -8,6 +8,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtAutowiredModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -234,6 +235,12 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
     }
 
     override fun visit(element: UtLambdaModel, data: FieldData) {
+        recordFieldState(data, element)
+    }
+
+    override fun visit(element: UtAutowiredModel, data: FieldData) {
+        // TODO consider making UtAutowiredModel wrap UtCompositeModel or
+        //  even extend UtAssembleModel so here it's possible to recursively record field state
         recordFieldState(data, element)
     }
 

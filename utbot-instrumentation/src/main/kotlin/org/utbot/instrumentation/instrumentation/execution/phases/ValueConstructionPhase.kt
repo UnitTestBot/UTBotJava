@@ -32,10 +32,9 @@ class ValueConstructionPhase(
         return constructor.objectToModelCache
     }
 
-    fun constructParameters(state: EnvironmentModels, thisInstanceCreator: (UtModel) -> UtConcreteValue<*>?): ConstructedParameters {
-        val createdThisInstance = state.thisInstance?.let { thisInstanceCreator(it) }
-        val parametersModels = listOfNotNull(state.thisInstance.takeIf { createdThisInstance == null }) + state.parameters
-        return listOfNotNull(createdThisInstance) + constructor.constructMethodParameters(parametersModels)
+    fun constructParameters(state: EnvironmentModels): ConstructedParameters {
+        val parametersModels = listOfNotNull(state.thisInstance) + state.parameters
+        return constructor.constructMethodParameters(parametersModels)
     }
 
     fun constructStatics(state: EnvironmentModels): ConstructedStatics =

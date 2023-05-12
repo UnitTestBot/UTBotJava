@@ -353,10 +353,6 @@ object UtTestsDialogProcessor {
                                             )
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
-                                        val useFuzzing = when (model.projectType) {
-                                            Spring -> model.typeReplacementApproach == DoNotReplace
-                                            else -> UtSettings.useFuzzing
-                                        }
                                         val rdGenerateResult = process.generate(
                                             model.conflictTriggers,
                                             methods,
@@ -365,7 +361,7 @@ object UtTestsDialogProcessor {
                                             model.timeout,
                                             model.timeout,
                                             true,
-                                            useFuzzing,
+                                            UtSettings.useFuzzing,
                                             project.service<Settings>().fuzzingValue,
                                             searchDirectory.pathString
                                         )

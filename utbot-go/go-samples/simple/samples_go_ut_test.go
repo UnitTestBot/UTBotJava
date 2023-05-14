@@ -6,18 +6,18 @@ import (
 )
 
 func TestDivOrPanicByUtGoFuzzer(t *testing.T) {
-	x := 0
+	x := 1
 	y := 1
 
 	actualVal := DivOrPanic(x, y)
 
-	expectedVal := 0
+	expectedVal := 1
 
 	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestDivOrPanicPanicsByUtGoFuzzer(t *testing.T) {
-	x := 1
+	x := 0
 	y := 0
 
 	expectedVal := "div by 0"
@@ -29,7 +29,7 @@ func TestDivOrPanicPanicsByUtGoFuzzer(t *testing.T) {
 
 func TestExtendedByUtGoFuzzer1(t *testing.T) {
 	a := int64(1)
-	b := int64(0)
+	b := int64(9)
 
 	actualVal0, actualVal1, actualVal2 := Extended(a, b)
 
@@ -45,11 +45,11 @@ func TestExtendedByUtGoFuzzer1(t *testing.T) {
 
 func TestExtendedByUtGoFuzzer2(t *testing.T) {
 	a := int64(0)
-	b := int64(1)
+	b := int64(0)
 
 	actualVal0, actualVal1, actualVal2 := Extended(a, b)
 
-	expectedVal0 := int64(1)
+	expectedVal0 := int64(0)
 	expectedVal1 := int64(0)
 	expectedVal2 := int64(1)
 
@@ -70,11 +70,11 @@ func TestArraySumByUtGoFuzzer(t *testing.T) {
 }
 
 func TestGenerateArrayOfIntegersByUtGoFuzzer(t *testing.T) {
-	num := 4
+	num := 1
 
 	actualVal := GenerateArrayOfIntegers(num)
 
-	expectedVal := [10]int{4, 4, 4, 4, 4, 4, 4, 4, 4, 4}
+	expectedVal := [10]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 
 	assert.Equal(t, expectedVal, actualVal)
 }
@@ -105,19 +105,6 @@ func TestGetCoordinatesOfMiddleBetweenTwoPointsByUtGoFuzzer(t *testing.T) {
 }
 
 func TestGetCoordinateSumOfPointsByUtGoFuzzer1(t *testing.T) {
-	points := ([]Point)(nil)
-
-	actualVal0, actualVal1 := GetCoordinateSumOfPoints(points)
-
-	expectedVal0 := 0.0
-	expectedVal1 := 0.0
-
-	assertMultiple := assert.New(t)
-	assertMultiple.Equal(expectedVal0, actualVal0)
-	assertMultiple.Equal(expectedVal1, actualVal1)
-}
-
-func TestGetCoordinateSumOfPointsByUtGoFuzzer2(t *testing.T) {
 	points := []Point{{x: 0.0, y: 0.0}}
 
 	actualVal0, actualVal1 := GetCoordinateSumOfPoints(points)
@@ -130,18 +117,31 @@ func TestGetCoordinateSumOfPointsByUtGoFuzzer2(t *testing.T) {
 	assertMultiple.Equal(expectedVal1, actualVal1)
 }
 
+func TestGetCoordinateSumOfPointsByUtGoFuzzer2(t *testing.T) {
+	points := ([]Point)(nil)
+
+	actualVal0, actualVal1 := GetCoordinateSumOfPoints(points)
+
+	expectedVal0 := 0.0
+	expectedVal1 := 0.0
+
+	assertMultiple := assert.New(t)
+	assertMultiple.Equal(expectedVal0, actualVal0)
+	assertMultiple.Equal(expectedVal1, actualVal1)
+}
+
 func TestGetAreaOfCircleByUtGoFuzzer(t *testing.T) {
-	circle := Circle{Center: Point{x: 2.0, y: 2.0}, Radius: 8.0}
+	circle := Circle{Center: Point{x: 2.0, y: 2.0}, Radius: 2.0}
 
 	actualVal := GetAreaOfCircle(circle)
 
-	expectedVal := 201.06192982974676
+	expectedVal := 12.566370614359172
 
 	assert.Equal(t, expectedVal, actualVal)
 }
 
 func TestIsIdentityByUtGoFuzzer1(t *testing.T) {
-	matrix := [3][3]int{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}
+	matrix := [3][3]int{{1, 0, 3}, {0, 0, 0}, {0, 0, 0}}
 
 	actualVal := IsIdentity(matrix)
 
@@ -149,7 +149,7 @@ func TestIsIdentityByUtGoFuzzer1(t *testing.T) {
 }
 
 func TestIsIdentityByUtGoFuzzer2(t *testing.T) {
-	matrix := [3][3]int{{1, 3, 0}, {3, 1, 0}, {0, 0, 0}}
+	matrix := [3][3]int{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}
 
 	actualVal := IsIdentity(matrix)
 
@@ -176,7 +176,7 @@ func TestBinaryWithNonNilErrorByUtGoFuzzer1(t *testing.T) {
 	array := ([]int)(nil)
 	target := 2
 	lowIndex := 2
-	highIndex := 0
+	highIndex := 1
 
 	actualVal, actualErr := Binary(array, target, lowIndex, highIndex)
 
@@ -188,39 +188,22 @@ func TestBinaryWithNonNilErrorByUtGoFuzzer1(t *testing.T) {
 	assertMultiple.ErrorContains(actualErr, expectedErrorMessage)
 }
 
-func TestBinaryWithNonNilErrorByUtGoFuzzer2(t *testing.T) {
-	array := []int{1}
+func TestBinaryByUtGoFuzzer2(t *testing.T) {
+	array := []int{0}
 	target := 0
 	lowIndex := 0
 	highIndex := 0
 
 	actualVal, actualErr := Binary(array, target, lowIndex, highIndex)
 
-	expectedVal := -1
-	expectedErrorMessage := "target not found in array"
+	expectedVal := 0
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(expectedVal, actualVal)
-	assertMultiple.ErrorContains(actualErr, expectedErrorMessage)
+	assertMultiple.Nil(actualErr)
 }
 
 func TestBinaryWithNonNilErrorByUtGoFuzzer3(t *testing.T) {
-	array := []int{1}
-	target := 3
-	lowIndex := 0
-	highIndex := 0
-
-	actualVal, actualErr := Binary(array, target, lowIndex, highIndex)
-
-	expectedVal := -1
-	expectedErrorMessage := "target not found in array"
-
-	assertMultiple := assert.New(t)
-	assertMultiple.Equal(expectedVal, actualVal)
-	assertMultiple.ErrorContains(actualErr, expectedErrorMessage)
-}
-
-func TestBinaryWithNonNilErrorByUtGoFuzzer4(t *testing.T) {
 	array := []int{1, 33554433}
 	target := 16385
 	lowIndex := 0
@@ -236,37 +219,23 @@ func TestBinaryWithNonNilErrorByUtGoFuzzer4(t *testing.T) {
 	assertMultiple.ErrorContains(actualErr, expectedErrorMessage)
 }
 
-func TestBinaryByUtGoFuzzer5(t *testing.T) {
+func TestBinaryWithNonNilErrorByUtGoFuzzer4(t *testing.T) {
 	array := []int{1}
-	target := 1
+	target := 2
 	lowIndex := 0
 	highIndex := 0
 
 	actualVal, actualErr := Binary(array, target, lowIndex, highIndex)
 
-	expectedVal := 0
+	expectedVal := -1
+	expectedErrorMessage := "target not found in array"
 
 	assertMultiple := assert.New(t)
 	assertMultiple.Equal(expectedVal, actualVal)
-	assertMultiple.Nil(actualErr)
+	assertMultiple.ErrorContains(actualErr, expectedErrorMessage)
 }
 
-func TestBinaryByUtGoFuzzer6(t *testing.T) {
-	array := []int{1, 65}
-	target := 1
-	lowIndex := 0
-	highIndex := 2
-
-	actualVal, actualErr := Binary(array, target, lowIndex, highIndex)
-
-	expectedVal := 0
-
-	assertMultiple := assert.New(t)
-	assertMultiple.Equal(expectedVal, actualVal)
-	assertMultiple.Nil(actualErr)
-}
-
-func TestBinaryByUtGoFuzzer7(t *testing.T) {
+func TestBinaryByUtGoFuzzer5(t *testing.T) {
 	array := []int{-1, 2}
 	target := 2
 	lowIndex := -1
@@ -281,7 +250,23 @@ func TestBinaryByUtGoFuzzer7(t *testing.T) {
 	assertMultiple.Nil(actualErr)
 }
 
-func TestBinaryByUtGoFuzzer8(t *testing.T) {
+func TestBinaryWithNonNilErrorByUtGoFuzzer6(t *testing.T) {
+	array := []int{1}
+	target := 0
+	lowIndex := 0
+	highIndex := 0
+
+	actualVal, actualErr := Binary(array, target, lowIndex, highIndex)
+
+	expectedVal := -1
+	expectedErrorMessage := "target not found in array"
+
+	assertMultiple := assert.New(t)
+	assertMultiple.Equal(expectedVal, actualVal)
+	assertMultiple.ErrorContains(actualErr, expectedErrorMessage)
+}
+
+func TestBinaryByUtGoFuzzer7(t *testing.T) {
 	array := []int{-9151296850630803456, 0, 70}
 	target := 0
 	lowIndex := -1
@@ -296,13 +281,28 @@ func TestBinaryByUtGoFuzzer8(t *testing.T) {
 	assertMultiple.Nil(actualErr)
 }
 
+func TestBinaryByUtGoFuzzer8(t *testing.T) {
+	array := []int{1, 65}
+	target := 1
+	lowIndex := 0
+	highIndex := 2
+
+	actualVal, actualErr := Binary(array, target, lowIndex, highIndex)
+
+	expectedVal := 0
+
+	assertMultiple := assert.New(t)
+	assertMultiple.Equal(expectedVal, actualVal)
+	assertMultiple.Nil(actualErr)
+}
+
 func TestBinaryPanicsByUtGoFuzzer1(t *testing.T) {
 	array := ([]int)(nil)
-	target := 0
-	lowIndex := 1
-	highIndex := 1
+	target := 2
+	lowIndex := 2
+	highIndex := 2
 
-	expectedErrorMessage := "runtime error: index out of range [1] with length 0"
+	expectedErrorMessage := "runtime error: index out of range [2] with length 0"
 
 	assert.PanicsWithError(t, expectedErrorMessage, func() {
 		_, _ = Binary(array, target, lowIndex, highIndex)
@@ -310,10 +310,10 @@ func TestBinaryPanicsByUtGoFuzzer1(t *testing.T) {
 }
 
 func TestBinaryPanicsByUtGoFuzzer2(t *testing.T) {
-	array := []int{1}
-	target := 0
+	array := []int{2}
+	target := 1
 	lowIndex := -1
-	highIndex := 1
+	highIndex := 2
 
 	expectedErrorMessage := "runtime error: index out of range [-1]"
 
@@ -344,7 +344,7 @@ func TestStringSearchByUtGoFuzzer1(t *testing.T) {
 }
 
 func TestStringSearchByUtGoFuzzer2(t *testing.T) {
-	str := "£"
+	str := "°"
 
 	actualVal := StringSearch(str)
 
@@ -352,7 +352,7 @@ func TestStringSearchByUtGoFuzzer2(t *testing.T) {
 }
 
 func TestStringSearchByUtGoFuzzer3(t *testing.T) {
-	str := "A￙￼"
+	str := "A7j"
 
 	actualVal := StringSearch(str)
 
@@ -360,11 +360,19 @@ func TestStringSearchByUtGoFuzzer3(t *testing.T) {
 }
 
 func TestStringSearchByUtGoFuzzer4(t *testing.T) {
-	str := "ABH"
+	str := "ABY"
 
 	actualVal := StringSearch(str)
 
 	assert.False(t, actualVal)
+}
+
+func TestStringSearchByUtGoFuzzer5(t *testing.T) {
+	str := "ABC"
+
+	actualVal := StringSearch(str)
+
+	assert.True(t, actualVal)
 }
 
 func TestSumOfChanElementsByUtGoFuzzer1(t *testing.T) {
@@ -394,7 +402,7 @@ func TestSumOfChanElementsByUtGoFuzzer2(t *testing.T) {
 // SumOfChanElements((<-chan int)(nil)) exceeded 1000 ms timeout
 
 func TestLenOfListByUtGoFuzzer1(t *testing.T) {
-	l := &List{tail: (*List)(nil), val: 0}
+	l := &List{tail: (*List)(nil), val: 1}
 
 	actualVal := LenOfList(l)
 
@@ -442,11 +450,11 @@ func TestGetLastNodeByUtGoFuzzer2(t *testing.T) {
 }
 
 func TestGetLastNodeByUtGoFuzzer3(t *testing.T) {
-	n := &Node{prev: (*Node)(nil), next: (*Node)(nil), val: 0}
+	n := &Node{prev: (*Node)(nil), next: (*Node)(nil), val: 1}
 
 	actualVal := GetLastNode(n)
 
-	expectedVal := &Node{prev: (*Node)(nil), next: (*Node)(nil), val: 0}
+	expectedVal := &Node{prev: (*Node)(nil), next: (*Node)(nil), val: 1}
 
 	assert.Equal(t, expectedVal, actualVal)
 }

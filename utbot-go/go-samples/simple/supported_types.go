@@ -2,6 +2,7 @@ package simple
 
 import (
 	"errors"
+	"fmt"
 	"github.com/pmezard/go-difflib/difflib"
 	dif "github.com/pmezard/go-difflib/difflib"
 	"go-samples/simple/nested"
@@ -403,4 +404,15 @@ func PointerToRecursiveStruct(n *Node) *Node {
 		return n
 	}
 	return n
+}
+
+type I interface {
+	String() string
+}
+
+func Interface(i fmt.Stringer) {
+	if i != nil {
+		return
+	}
+	return
 }

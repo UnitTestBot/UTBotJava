@@ -21,7 +21,8 @@ fun goDefaultValueProviders() = listOf(
     GoConstantValueProvider,
     GoNamedValueProvider,
     GoNilValueProvider,
-    GoPointerValueProvider
+    GoPointerValueProvider,
+    GoInterfaceValueProvider
 )
 
 data class CoveredLines(val lines: Set<String>)

@@ -131,7 +131,7 @@ class GoChanTypeId(
     override fun hashCode(): Int = 31 * elementTypeId.hashCode() + direction.hashCode()
 }
 
-class GoInterfaceTypeId(name: String) : GoTypeId(name) {
+class GoInterfaceTypeId(name: String, val implementations: List<GoTypeId>) : GoTypeId(name) {
     override val canonicalName: String = name
 
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = simpleName

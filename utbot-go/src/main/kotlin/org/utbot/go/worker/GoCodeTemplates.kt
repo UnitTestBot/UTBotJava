@@ -611,6 +611,8 @@ object GoCodeTemplates {
             			result = reflect.TypeOf("")
             		case "uintptr":
             			result = reflect.TypeOf(uintptr(0))
+            		case "interface{}":
+			            result = reflect.TypeOf((*interface{})(nil)).Elem()
                 ${
             namedTypes.joinToString(separator = "\n") {
                 val relativeName = it.getRelativeName(destinationPackage, aliases)

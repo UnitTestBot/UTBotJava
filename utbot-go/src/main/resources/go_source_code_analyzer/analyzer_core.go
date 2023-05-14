@@ -40,6 +40,7 @@ func toAnalyzedType(
 	typeToIndex map[string]string,
 	sourcePackage Package,
 	currentPackage Package,
+	info *types.Info,
 ) string {
 	if index, ok := typeToIndex[typ.String()]; ok {
 		return index
@@ -51,13 +52,10 @@ func toAnalyzedType(
 
 	switch t := typ.(type) {
 	case *types.Pointer:
-		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage)
+		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
-		elemTypeName := analyzedTypes[indexOfElemType].GetName()
-
-		name := fmt.Sprintf("*%s", elemTypeName)
 		result = AnalyzedPointerType{
-			Name:        name,
+			Name:        "*",
 			ElementType: indexOfElemType,
 		}
 	case *types.Named:
@@ -71,7 +69,7 @@ func toAnalyzedType(
 
 		isError := implementsError(t)
 
-		indexOfUnderlyingType := toAnalyzedType(t.Underlying(), analyzedTypes, typeToIndex, sourcePackage, pkg)
+		indexOfUnderlyingType := toAnalyzedType(t.Underlying(), analyzedTypes, typeToIndex, sourcePackage, pkg, info)
 
 		result = AnalyzedNamedType{
 			Name:            name,
@@ -83,8 +81,6 @@ func toAnalyzedType(
 		name := t.Name()
 		result = AnalyzedPrimitiveType{Name: name}
 	case *types.Struct:
-		name := "struct{}"
-
 		fields := make([]AnalyzedField, 0, t.NumFields())
 		for i := 0; i < t.NumFields(); i++ {
 			field := t.Field(i)
@@ -92,75 +88,78 @@ func toAnalyzedType(
 				continue
 			}
 
-			fieldType := toAnalyzedType(field.Type(), analyzedTypes, typeToIndex, sourcePackage, currentPackage)
+			fieldType := toAnalyzedType(field.Type(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 			fields = append(fields, AnalyzedField{field.Name(), fieldType, field.Exported()})
 		}
 
 		result = AnalyzedStructType{
-			Name:   name,
+			Name:   "struct{}",
 			Fields: fields,
 		}
 	case *types.Array:
-		indexOfArrayElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage)
-
-		elemTypeName := analyzedTypes[indexOfArrayElemType].GetName()
+		indexOfArrayElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		length := t.Len()
-		name := fmt.Sprintf("[%d]%s", length, elemTypeName)
 
 		result = AnalyzedArrayType{
-			Name:        name,
+			Name:        "[_]",
 			ElementType: indexOfArrayElemType,
 			Length:      length,
 		}
 	case *types.Slice:
-		indexOfSliceElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage)
-
-		elemTypeName := analyzedTypes[indexOfSliceElemType].GetName()
-		name := fmt.Sprintf("[]%s", elemTypeName)
+		indexOfSliceElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		result = AnalyzedSliceType{
-			Name:        name,
+			Name:        "[]",
 			ElementType: indexOfSliceElemType,
 		}
 	case *types.Map:
-		indexOfKeyType := toAnalyzedType(t.Key(), analyzedTypes, typeToIndex, sourcePackage, currentPackage)
-		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage)
-
-		keyTypeName := analyzedTypes[indexOfKeyType].GetName()
-		elemTypeName := analyzedTypes[indexOfElemType].GetName()
-		name := fmt.Sprintf("map[%s]%s", keyTypeName, elemTypeName)
+		indexOfKeyType := toAnalyzedType(t.Key(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
+		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		result = AnalyzedMapType{
-			Name:        name,
+			Name:        "map",
 			KeyType:     indexOfKeyType,
 			ElementType: indexOfElemType,
 		}
 	case *types.Chan:
-		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage)
-
-		chanName := "chan"
-		switch t.Dir() {
-		case types.SendOnly:
-			chanName = chanName + "<-"
-		case types.RecvOnly:
-			chanName = "<-" + chanName
-		}
-		chanName += " " + analyzedTypes[indexOfElemType].GetName()
+		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		chanDir, err := ChanDirToString(t.Dir())
 		checkError(err)
 
 		result = AnalyzedChanType{
-			Name:        chanName,
+			Name:        "chan",
 			ElementType: indexOfElemType,
 			Direction:   chanDir,
 		}
 	case *types.Interface:
-		name := "interface{}"
+		implementations := make([]string, 0)
+		used := make(map[string]bool)
+		for _, typeAndValue := range info.Types {
+			switch typeAndValue.Type.(type) {
+			case *types.Struct, *types.Signature, *types.Tuple, *types.TypeParam, *types.Union:
+				continue
+			case *types.Basic:
+				b := typeAndValue.Type.(*types.Basic)
+				switch b.Kind() {
+				case types.UntypedBool, types.UntypedInt, types.UntypedRune, types.UntypedFloat, types.UntypedComplex, types.UntypedString, types.UntypedNil:
+					continue
+				}
+			}
+			if !types.IsInterface(typeAndValue.Type) && types.Implements(typeAndValue.Type, t) {
+				analyzedType := toAnalyzedType(typeAndValue.Type, analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
+				if used[analyzedType] {
+					continue
+				}
+				used[analyzedType] = true
+				implementations = append(implementations, analyzedType)
+			}
+		}
 		result = AnalyzedInterfaceType{
-			Name: name,
+			Name:            "interface{}",
+			Implementations: implementations,
 		}
 	default:
 		err := fmt.Errorf("unsupported type: %s", typ.Underlying())
@@ -251,7 +250,11 @@ func checkTypeIsSupported(
 			result = checkTypeIsSupported(t.Elem(), visited, isResultType, sourcePackage, currentPackage, depth+1)
 		}
 	case *types.Interface:
-		result = SupportedType
+		if isResultType && !implementsError(t) {
+			result = UnsupportedType
+		} else {
+			result = SupportedType
+		}
 	}
 
 	if result == Unknown {
@@ -381,7 +384,7 @@ func collectTargetAnalyzedFunctions(
 				analyzedTypes := make(map[string]AnalyzedType, signature.Params().Len()+signature.Results().Len())
 				typeToIndex := make(map[string]string, signature.Params().Len()+signature.Results().Len())
 				if receiver := signature.Recv(); receiver != nil {
-					receiverType := toAnalyzedType(receiver.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage)
+					receiverType := toAnalyzedType(receiver.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage, info)
 					analyzedFunction.Receiver = &AnalyzedVariable{
 						Name: receiver.Name(),
 						Type: receiverType,
@@ -390,7 +393,7 @@ func collectTargetAnalyzedFunctions(
 				if parameters := signature.Params(); parameters != nil {
 					for i := 0; i < parameters.Len(); i++ {
 						parameter := parameters.At(i)
-						parameterType := toAnalyzedType(parameter.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage)
+						parameterType := toAnalyzedType(parameter.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage, info)
 						analyzedFunction.Parameters = append(
 							analyzedFunction.Parameters,
 							AnalyzedVariable{
@@ -403,7 +406,7 @@ func collectTargetAnalyzedFunctions(
 				if results := signature.Results(); results != nil {
 					for i := 0; i < results.Len(); i++ {
 						result := results.At(i)
-						resultType := toAnalyzedType(result.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage)
+						resultType := toAnalyzedType(result.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage, info)
 						analyzedFunction.ResultTypes = append(
 							analyzedFunction.ResultTypes,
 							AnalyzedVariable{

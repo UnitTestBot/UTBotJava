@@ -116,6 +116,9 @@ class GoUtModelToCodeConverter(
     }
 
     private fun namedModelToGoCode(model: GoUtNamedModel): String {
+        if (model.value is GoUtNamedModel) {
+            return toGoCode(model.value)
+        }
         val typeName = model.typeId.getRelativeName(destinationPackage, aliases)
         return if (model.value is GoUtPrimitiveModel || model.value is GoUtNilModel) {
             "$typeName(${toGoCodeWithoutTypeName(model.value)})"

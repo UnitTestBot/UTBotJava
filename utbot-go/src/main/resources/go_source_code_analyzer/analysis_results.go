@@ -23,7 +23,8 @@ func (t AnalyzedNamedType) GetName() string {
 }
 
 type AnalyzedInterfaceType struct {
-	Name string `json:"name"`
+	Name            string   `json:"name"`
+	Implementations []string `json:"implementations"`
 }
 
 func (t AnalyzedInterfaceType) GetName() string {

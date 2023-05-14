@@ -16,6 +16,7 @@ import org.utbot.go.worker.GoWorker
 import org.utbot.go.worker.convertRawExecutionResultToExecutionResult
 import java.net.SocketException
 import java.net.SocketTimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 val logger = KotlinLogging.logger {}
@@ -52,6 +53,7 @@ class GoEngine(
             send(mapOf(CoveredLines(coverTab.keys) to ExecutionResults(testCase, lengthOfParameters)))
         } else {
             val mutex = Mutex(false)
+            val needToStop = AtomicBoolean()
             workers.mapIndexed { index, worker ->
                 launch(Dispatchers.IO) {
                     var attempts = 0
@@ -59,7 +61,7 @@ class GoEngine(
                     val testCases = mutableMapOf<CoveredLines, ExecutionResults>()
                     runGoFuzzing(functionUnderTest, worker, index, intSize) { description, values ->
                         try {
-                            if (timeoutExceededOrIsCanceled()) {
+                            if (needToStop.get() || timeoutExceededOrIsCanceled()) {
                                 send(testCases)
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                             }
@@ -85,10 +87,12 @@ class GoEngine(
                             val coveredLines = CoveredLines(needToCoverLines.intersect(coverTab.keys))
                             val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
                             val testCase = GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult)
-                            if (testCases[coveredLines] == null) {
-                                testCases[coveredLines] = ExecutionResults(testCase, lengthOfParameters)
-                            } else {
-                                testCases[coveredLines]!!.update(testCase, lengthOfParameters)
+                            if (!fuzzingMode) {
+                                if (testCases[coveredLines] == null) {
+                                    testCases[coveredLines] = ExecutionResults(testCase, lengthOfParameters)
+                                } else {
+                                    testCases[coveredLines]!!.update(testCase, lengthOfParameters)
+                                }
                             }
 
                             val trieNode = description.coverage.add(coveredLines.lines.sorted())
@@ -101,6 +105,7 @@ class GoEngine(
                             }
                             mutex.withLock {
                                 if (fuzzingMode && (executionResult is GoUtExecutionWithNonNilError || executionResult is GoUtPanicFailure)) {
+                                    needToStop.set(true)
                                     send(mapOf(coveredLines to ExecutionResults(testCase, lengthOfParameters)))
                                     return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                                 }

@@ -58,8 +58,6 @@ class GoWorker private constructor(
 
     fun restartWorker() {
         process.destroy()
-        val processOutput = InputStreamReader(process.inputStream).readText()
-        println(processOutput)
         process = startWorkerProcess(
             testFunctionName, testFilePath, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
         )

@@ -181,6 +181,10 @@ fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage, visitedTypes: Mutable
         is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage, visitedTypes) +
                 elementTypeId!!.getAllVisibleNamedTypes(goPackage, visitedTypes)
 
+        is GoInterfaceTypeId -> implementations.fold(emptySet()) { acc, type ->
+            acc + type.getAllVisibleNamedTypes(goPackage, visitedTypes)
+        }
+
         else -> emptySet()
     }
 }

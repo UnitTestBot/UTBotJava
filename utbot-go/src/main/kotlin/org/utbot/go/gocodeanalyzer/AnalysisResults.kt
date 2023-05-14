@@ -149,6 +149,7 @@ data class AnalyzedChanType(
 
 data class AnalyzedInterfaceType(
     override val name: String,
+    val implementations: List<String>,
 ) : AnalyzedType(name) {
     override fun toGoTypeId(
         index: String,
@@ -157,7 +158,15 @@ data class AnalyzedInterfaceType(
     ): GoTypeId {
         var result = analyzedTypes[index]
         if (result == null) {
-            result = GoInterfaceTypeId(name = name)
+            result = GoInterfaceTypeId(
+                name = name,
+                implementations = implementations.map { type ->
+                    typesToAnalyze[type]!!.toGoTypeId(
+                        type,
+                        analyzedTypes,
+                        typesToAnalyze
+                    )
+                })
             analyzedTypes[index] = result
         }
         return result
@@ -229,11 +238,11 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
         return when {
             typeName == "interface{}" -> AnalyzedInterfaceType::class
             typeName == "struct{}" -> AnalyzedStructType::class
-            typeName.startsWith("map[") -> AnalyzedMapType::class
-            typeName.startsWith("[]") -> AnalyzedSliceType::class
-            typeName.startsWith("[") -> AnalyzedArrayType::class
-            typeName.startsWith("<-chan") || typeName.startsWith("chan") -> AnalyzedChanType::class
-            typeName.startsWith("*") -> AnalyzedPointerType::class
+            typeName == "map" -> AnalyzedMapType::class
+            typeName == "[]" -> AnalyzedSliceType::class
+            typeName == "[_]" -> AnalyzedArrayType::class
+            typeName == "chan" -> AnalyzedChanType::class
+            typeName == "*" -> AnalyzedPointerType::class
             goPrimitives.map { it.name }.contains(typeName) -> AnalyzedPrimitiveType::class
             else -> AnalyzedNamedType::class
         }

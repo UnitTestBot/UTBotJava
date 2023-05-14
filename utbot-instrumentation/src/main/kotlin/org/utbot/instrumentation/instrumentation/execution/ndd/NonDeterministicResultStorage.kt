@@ -7,6 +7,8 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import java.util.IdentityHashMap
 
+// TODO: refactor using code generation
+// TODO: support all primitives
 object NonDeterministicResultStorage {
 
     data class NDMethodResult(val signature: String, val result: Any?)
@@ -50,13 +52,33 @@ object NonDeterministicResultStorage {
     }
 
     @JvmStatic
-    fun putParameter(value: Int) {
+    fun putParameterI(value: Int) {
         parameters.add(value)
     }
 
     @JvmStatic
-    fun peakParameter(): Int {
+    fun peakParameterI(): Int {
         return parameters.removeLast() as Int
+    }
+
+    @JvmStatic
+    fun putParameterJ(value: Long) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterJ(): Long {
+        return parameters.removeLast() as Long
+    }
+
+    @JvmStatic
+    fun putParameterL(value: Any?) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterL(): Any? {
+        return parameters.removeLast()
     }
 
     @JvmStatic
@@ -65,7 +87,27 @@ object NonDeterministicResultStorage {
     }
 
     @JvmStatic
+    fun storeStatic(result: Long, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeStatic(result: Any?, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
     fun storeCall(result: Int, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeCall(result: Long, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeCall(result: Any?, signature: String) {
         callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
     }
 }

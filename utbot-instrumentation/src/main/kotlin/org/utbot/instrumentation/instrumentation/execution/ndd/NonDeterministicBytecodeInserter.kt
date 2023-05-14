@@ -44,14 +44,16 @@ class NonDeterministicBytecodeInserter {
         }
 
         methodId.parameters.asReversed().forEach {
-            mv.invoke("putParameter", "(${it.descriptor()})V")
+            val desc = it.descriptor()
+            mv.invoke("putParameter${desc[0]}", "($desc)V")
         }
 
         mv.visitInsn(Opcodes.DUP)
         mv.invoke("saveInstance", "(Ljava/lang/Object;)V")
 
         methodId.parameters.forEach {
-            mv.invoke("peakParameter", "()${it.descriptor()}")
+            val desc = it.descriptor()
+            mv.invoke("peakParameter${desc[0]}", "()$desc")
         }
     }
 

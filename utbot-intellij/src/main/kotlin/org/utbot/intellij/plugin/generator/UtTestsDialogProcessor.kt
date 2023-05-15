@@ -40,6 +40,8 @@ import kotlin.io.path.exists
 import kotlin.io.path.pathString
 import mu.KotlinLogging
 import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.all
+import org.jetbrains.concurrency.thenRun
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.kotlin.idea.base.util.module
 import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
@@ -181,8 +183,11 @@ object UtTestsDialogProcessor {
             .map { it.containingFile.virtualFile }
             .toTypedArray()
 
-        val promise = compile(project, filesToCompile, springConfigClass)
-        promise.onSuccess {
+        val compilationPromise = model.preCompilePromises
+            .all()
+            .thenAsync { compile(project, filesToCompile, springConfigClass) }
+
+        compilationPromise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess
 

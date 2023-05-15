@@ -1341,6 +1341,32 @@ class SpringApplicationContext(
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
 
+enum class SpringTestType(
+    override val id: String,
+    override val displayName: String,
+    override val description: String,
+    // Integration tests generation requires spring test framework being installed
+    var frameworkInstalled: Boolean = false,
+) : CodeGenerationSettingItem {
+    UNIT_TESTS(
+        "Unit tests",
+        "Unit tests",
+        "Generate unit tests mocking other classes"
+    ),
+    INTEGRATION_TESTS(
+        "Integration tests",
+        "Integration tests",
+        "Generate integration tests autowiring real instance"
+    );
+
+    override fun toString() = id
+
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem = UNIT_TESTS
+        override val allItems: List<SpringTestType> = values().toList()
+    }
+}
+
 /**
  * Describes information about beans obtained from Spring analysis process.
  *

@@ -62,7 +62,6 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.*
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootField
@@ -439,10 +438,7 @@ data class UtCompositeModel(
 
         other as UtCompositeModel
 
-        if (id != other.id) return false
-        if (classId != other.classId) return false
-
-        return true
+        return id == other.id
     }
 
     override fun hashCode(): Int {
@@ -1261,13 +1257,13 @@ open class ApplicationContext(
  * Data we get from Spring application context
  * to manage engine and code generator behaviour.
  *
- * @param beanQualifiedNames describes fqn of types from bean definitions
+ * @param beanDefinitions describes bean definitions (bean name, type, some optional additional data)
  * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
  */
 class SpringApplicationContext(
     mockInstalled: Boolean,
     staticsMockingIsConfigured: Boolean,
-    private val beanQualifiedNames: List<String> = emptyList(),
+    private val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
@@ -1281,7 +1277,8 @@ class SpringApplicationContext(
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                for (beanFqn in beanQualifiedNames) {
+                // TODO: use more info from SpringBeanDefinitionData than beanTypeFqn offers here
+                for (beanFqn in beanDefinitions.map { it.beanTypeFqn }) {
                     try {
                         val beanClass = utContext.classLoader.loadClass(beanFqn)
                         if (!beanClass.isAbstract && !beanClass.isInterface &&
@@ -1343,6 +1340,55 @@ class SpringApplicationContext(
         classUnderTest: ClassId,
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
+
+enum class SpringTestType(
+    override val id: String,
+    override val displayName: String,
+    override val description: String,
+    // Integration tests generation requires spring test framework being installed
+    var frameworkInstalled: Boolean = false,
+) : CodeGenerationSettingItem {
+    UNIT_TESTS(
+        "Unit tests",
+        "Unit tests",
+        "Generate unit tests mocking other classes"
+    ),
+    INTEGRATION_TESTS(
+        "Integration tests",
+        "Integration tests",
+        "Generate integration tests autowiring real instance"
+    );
+
+    override fun toString() = id
+
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem = UNIT_TESTS
+        override val allItems: List<SpringTestType> = values().toList()
+    }
+}
+
+/**
+ * Describes information about beans obtained from Spring analysis process.
+ *
+ * Contains the name of the bean, its type (class or interface) and optional additional data.
+ */
+data class BeanDefinitionData(
+    val beanName: String,
+    val beanTypeFqn: String,
+    val additionalData: BeanAdditionalData?,
+)
+
+/**
+ * Describes some additional information about beans obtained from Spring analysis process.
+ *
+ * Sometimes the actual type of the bean can not be obtained from bean definition.
+ * Then we try to recover it by method and class defining bean (e.g. using Psi elements).
+ */
+data class BeanAdditionalData(
+    val factoryMethodName: String,
+    val configClassFqn: String,
+)
+
 
 val RefType.isAbstractType
  get() = this.sootClass.isAbstract || this.sootClass.isInterface

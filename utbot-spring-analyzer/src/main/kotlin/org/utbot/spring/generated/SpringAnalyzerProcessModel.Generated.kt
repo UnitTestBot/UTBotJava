@@ -27,6 +27,8 @@ class SpringAnalyzerProcessModel private constructor(
         
         override fun registerSerializersCore(serializers: ISerializers)  {
             serializers.register(SpringAnalyzerParams)
+            serializers.register(BeanAdditionalData)
+            serializers.register(BeanDefinitionData)
             serializers.register(SpringAnalyzerResult)
         }
         
@@ -48,7 +50,7 @@ class SpringAnalyzerProcessModel private constructor(
         }
         
         
-        const val serializationHash = 476832059519556525L
+        const val serializationHash = -2275009816925697183L
         
     }
     override val serializersOwner: ISerializersOwner get() = SpringAnalyzerProcessModel
@@ -95,12 +97,144 @@ val IProtocol.springAnalyzerProcessModel get() = getOrCreateExtension(SpringAnal
 
 
 /**
+ * #### Generated from [SpringAnalyzerModel.kt:15]
+ */
+data class BeanAdditionalData (
+    val factoryMethodName: String,
+    val configClassFqn: String
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<BeanAdditionalData> {
+        override val _type: KClass<BeanAdditionalData> = BeanAdditionalData::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanAdditionalData  {
+            val factoryMethodName = buffer.readString()
+            val configClassFqn = buffer.readString()
+            return BeanAdditionalData(factoryMethodName, configClassFqn)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanAdditionalData)  {
+            buffer.writeString(value.factoryMethodName)
+            buffer.writeString(value.configClassFqn)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as BeanAdditionalData
+        
+        if (factoryMethodName != other.factoryMethodName) return false
+        if (configClassFqn != other.configClassFqn) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + factoryMethodName.hashCode()
+        __r = __r*31 + configClassFqn.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("BeanAdditionalData (")
+        printer.indent {
+            print("factoryMethodName = "); factoryMethodName.print(printer); println()
+            print("configClassFqn = "); configClassFqn.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [SpringAnalyzerModel.kt:20]
+ */
+data class BeanDefinitionData (
+    val beanName: String,
+    val beanTypeFqn: String,
+    val additionalData: BeanAdditionalData?
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<BeanDefinitionData> {
+        override val _type: KClass<BeanDefinitionData> = BeanDefinitionData::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanDefinitionData  {
+            val beanName = buffer.readString()
+            val beanTypeFqn = buffer.readString()
+            val additionalData = buffer.readNullable { BeanAdditionalData.read(ctx, buffer) }
+            return BeanDefinitionData(beanName, beanTypeFqn, additionalData)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanDefinitionData)  {
+            buffer.writeString(value.beanName)
+            buffer.writeString(value.beanTypeFqn)
+            buffer.writeNullable(value.additionalData) { BeanAdditionalData.write(ctx, buffer, it) }
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as BeanDefinitionData
+        
+        if (beanName != other.beanName) return false
+        if (beanTypeFqn != other.beanTypeFqn) return false
+        if (additionalData != other.additionalData) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + beanName.hashCode()
+        __r = __r*31 + beanTypeFqn.hashCode()
+        __r = __r*31 + if (additionalData != null) additionalData.hashCode() else 0
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("BeanDefinitionData (")
+        printer.indent {
+            print("beanName = "); beanName.print(printer); println()
+            print("beanTypeFqn = "); beanTypeFqn.print(printer); println()
+            print("additionalData = "); additionalData.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
  * #### Generated from [SpringAnalyzerModel.kt:9]
  */
 data class SpringAnalyzerParams (
-    val classpath: Array<String>,
     val configuration: String,
-    val fileStorage: String?
+    val fileStorage: Array<String>,
+    val profileExpression: String?
 ) : IPrintable {
     //companion
     
@@ -109,16 +243,16 @@ data class SpringAnalyzerParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerParams  {
-            val classpath = buffer.readArray {buffer.readString()}
             val configuration = buffer.readString()
-            val fileStorage = buffer.readNullable { buffer.readString() }
-            return SpringAnalyzerParams(classpath, configuration, fileStorage)
+            val fileStorage = buffer.readArray {buffer.readString()}
+            val profileExpression = buffer.readNullable { buffer.readString() }
+            return SpringAnalyzerParams(configuration, fileStorage, profileExpression)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerParams)  {
-            buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.configuration)
-            buffer.writeNullable(value.fileStorage) { buffer.writeString(it) }
+            buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
+            buffer.writeNullable(value.profileExpression) { buffer.writeString(it) }
         }
         
         
@@ -134,27 +268,27 @@ data class SpringAnalyzerParams (
         
         other as SpringAnalyzerParams
         
-        if (!(classpath contentDeepEquals other.classpath)) return false
         if (configuration != other.configuration) return false
-        if (fileStorage != other.fileStorage) return false
+        if (!(fileStorage contentDeepEquals other.fileStorage)) return false
+        if (profileExpression != other.profileExpression) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + classpath.contentDeepHashCode()
         __r = __r*31 + configuration.hashCode()
-        __r = __r*31 + if (fileStorage != null) fileStorage.hashCode() else 0
+        __r = __r*31 + fileStorage.contentDeepHashCode()
+        __r = __r*31 + if (profileExpression != null) profileExpression.hashCode() else 0
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("SpringAnalyzerParams (")
         printer.indent {
-            print("classpath = "); classpath.print(printer); println()
             print("configuration = "); configuration.print(printer); println()
             print("fileStorage = "); fileStorage.print(printer); println()
+            print("profileExpression = "); profileExpression.print(printer); println()
         }
         printer.print(")")
     }
@@ -164,10 +298,10 @@ data class SpringAnalyzerParams (
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:15]
+ * #### Generated from [SpringAnalyzerModel.kt:26]
  */
 data class SpringAnalyzerResult (
-    val beanTypes: Array<String>
+    val beanDefinitions: Array<BeanDefinitionData>
 ) : IPrintable {
     //companion
     
@@ -176,12 +310,12 @@ data class SpringAnalyzerResult (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerResult  {
-            val beanTypes = buffer.readArray {buffer.readString()}
-            return SpringAnalyzerResult(beanTypes)
+            val beanDefinitions = buffer.readArray {BeanDefinitionData.read(ctx, buffer)}
+            return SpringAnalyzerResult(beanDefinitions)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerResult)  {
-            buffer.writeArray(value.beanTypes) { buffer.writeString(it) }
+            buffer.writeArray(value.beanDefinitions) { BeanDefinitionData.write(ctx, buffer, it) }
         }
         
         
@@ -197,21 +331,21 @@ data class SpringAnalyzerResult (
         
         other as SpringAnalyzerResult
         
-        if (!(beanTypes contentDeepEquals other.beanTypes)) return false
+        if (!(beanDefinitions contentDeepEquals other.beanDefinitions)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + beanTypes.contentDeepHashCode()
+        __r = __r*31 + beanDefinitions.contentDeepHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("SpringAnalyzerResult (")
         printer.indent {
-            print("beanTypes = "); beanTypes.print(printer); println()
+            print("beanDefinitions = "); beanDefinitions.print(printer); println()
         }
         printer.print(")")
     }

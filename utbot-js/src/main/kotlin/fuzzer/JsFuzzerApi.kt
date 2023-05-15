@@ -3,14 +3,14 @@ package fuzzer
 import framework.api.js.JsClassId
 import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isClass
+import java.util.concurrent.atomic.AtomicInteger
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.utils.Trie
-import java.util.concurrent.atomic.AtomicInteger
 
 sealed interface JsFuzzingExecutionFeedback
 class JsValidExecution(val utFuzzedExecution: JsUtFuzzedExecution) : JsFuzzingExecutionFeedback

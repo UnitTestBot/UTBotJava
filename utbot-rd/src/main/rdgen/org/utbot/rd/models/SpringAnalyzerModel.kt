@@ -7,13 +7,24 @@ object SpringAnalyzerRoot : Root()
 
 object SpringAnalyzerProcessModel : Ext(SpringAnalyzerRoot) {
     val springAnalyzerParams = structdef {
-        field("classpath", array(PredefinedType.string))
         field("configuration", PredefinedType.string)
-        field("fileStorage", PredefinedType.string.nullable)
+        field("fileStorage", array(PredefinedType.string))
+        field("profileExpression", PredefinedType.string.nullable)
+    }
+
+    val beanAdditionalData = structdef {
+        field("factoryMethodName", PredefinedType.string)
+        field("configClassFqn", PredefinedType.string)
+    }
+
+    val beanDefinitionData = structdef {
+        field("beanName", PredefinedType.string)
+        field("beanTypeFqn", PredefinedType.string)
+        field("additionalData", beanAdditionalData.nullable)
     }
 
     val springAnalyzerResult = structdef {
-        field("beanTypes", array(PredefinedType.string))
+        field("beanDefinitions", array(beanDefinitionData))
     }
 
     init {

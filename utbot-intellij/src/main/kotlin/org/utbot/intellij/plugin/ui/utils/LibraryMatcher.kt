@@ -3,53 +3,53 @@ package org.utbot.intellij.plugin.ui.utils
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.MockFramework
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
 import org.utbot.framework.codegen.domain.DependencyInjectionFramework
 import org.utbot.framework.plugin.api.utils.Patterns
 import org.utbot.framework.plugin.api.utils.parametrizedTestsPatterns
 import org.utbot.framework.plugin.api.utils.patterns
+import org.utbot.framework.plugin.api.utils.testPatterns
 
 fun findFrameworkLibrary(
-    project: Project,
-    testModule: Module,
+    module: Module,
     testFramework: TestFramework,
     scope: LibrarySearchScope = LibrarySearchScope.Module,
-): LibraryOrderEntry? {
-    return findMatchingLibrary(project, testModule, testFramework.patterns(), scope)
-}
+): LibraryOrderEntry? = findMatchingLibraryOrNull(module, testFramework.patterns(), scope)
 
 fun findFrameworkLibrary(
-    project: Project,
-    testModule: Module,
+    module: Module,
     mockFramework: MockFramework,
     scope: LibrarySearchScope = LibrarySearchScope.Module,
-): LibraryOrderEntry? = findMatchingLibrary(project, testModule, mockFramework.patterns(), scope)
+): LibraryOrderEntry? = findMatchingLibraryOrNull(module, mockFramework.patterns(), scope)
 
 fun findParametrizedTestsLibrary(
-    project: Project,
-    testModule: Module,
+    module: Module,
     testFramework: TestFramework,
     scope: LibrarySearchScope = LibrarySearchScope.Module,
-): LibraryOrderEntry? = findMatchingLibrary(project, testModule, testFramework.parametrizedTestsPatterns(), scope)
+): LibraryOrderEntry? = findMatchingLibraryOrNull(module, testFramework.parametrizedTestsPatterns(), scope)
 
 fun findDependencyInjectionLibrary(
-    project: Project,
-    testModule: Module,
-    springModule: DependencyInjectionFramework,
+    module: Module,
+    springFrameworkType: DependencyInjectionFramework,
     scope: LibrarySearchScope = LibrarySearchScope.Module
-): LibraryOrderEntry? = findMatchingLibrary(project, testModule, springModule.patterns(), scope)
+): LibraryOrderEntry? = findMatchingLibraryOrNull(module, springFrameworkType.patterns(), scope)
 
-private fun findMatchingLibrary(
-    project: Project,
-    testModule: Module,
+fun findDependencyInjectionTestLibrary(
+    module: Module,
+    springFrameworkType: DependencyInjectionFramework,
+    scope: LibrarySearchScope = LibrarySearchScope.Module
+): LibraryOrderEntry? = findMatchingLibraryOrNull(module, springFrameworkType.testPatterns(), scope)
+
+private fun findMatchingLibraryOrNull(
+    module: Module,
     patterns: Patterns,
     scope: LibrarySearchScope,
 ): LibraryOrderEntry? {
     val installedLibraries = when (scope) {
-        LibrarySearchScope.Module -> testModule.allLibraries()
-        LibrarySearchScope.Project -> project.allLibraries()
+        LibrarySearchScope.Module -> module.allLibraries()
+        LibrarySearchScope.Project -> module.project.allLibraries()
     }
+
     return installedLibraries
         .matchesFrameworkPatterns(patterns.moduleLibraryPatterns, patterns.libraryPatterns)
 }

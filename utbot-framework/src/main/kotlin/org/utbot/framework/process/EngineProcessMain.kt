@@ -1,8 +1,6 @@
 package org.utbot.framework.process
 
 import com.jetbrains.rd.framework.IProtocol
-import com.jetbrains.rd.util.Logger
-import com.jetbrains.rd.util.lifetime.Lifetime
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.analytics.AnalyticsConfigureUtil
@@ -26,14 +24,14 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
+import org.utbot.framework.process.generated.BeanAdditionalData
+import org.utbot.framework.process.generated.BeanDefinitionData
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
-import org.utbot.rd.findRdPort
 import org.utbot.rd.generated.settingsModel
-import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
@@ -76,21 +74,27 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             File(it).toURI().toURL()
         }.toTypedArray())))
     }
-    watchdog.measureTimeForActiveCall(getSpringBeanQualifiedNames, "Getting Spring bean definitions") { params ->
+    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
         try {
             val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
-            val beans = springAnalyzerProcess.terminateOnException { _ ->
-                springAnalyzerProcess.getBeanQualifiedNames(
-                    params.classpath.toList(),
+            val result = springAnalyzerProcess.terminateOnException { _ ->
+                springAnalyzerProcess.getBeanDefinitions(
                     params.config,
                     params.fileStorage,
-                ).toTypedArray()
+                    params.profileExpression,
+                )
             }
             springAnalyzerProcess.terminate()
-            beans
+            val beanDefinitions = result.beanDefinitions
+                .map { data ->
+                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.configClassFqn) }
+                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
+                }
+                .toTypedArray()
+            SpringAnalyzerResult(beanDefinitions)
         } catch (e: Exception) {
-            logger.error(e) { "Spring Analyzer crushed, resorting to using empty bean list" }
-            emptyArray()
+            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
+            SpringAnalyzerResult(emptyArray())
         }
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
@@ -113,7 +117,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)
         logger.debug().measureTime({ "starting generation for ${methods.size} methods, starting with ${methods.first()}" }) {
             val generateFlow = when (testGenerator.applicationContext) {
-                is SpringApplicationContext -> defaultSpringFlow(params.generationTimeout)
+                is SpringApplicationContext -> defaultSpringFlow(params)
                 is ApplicationContext -> testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled

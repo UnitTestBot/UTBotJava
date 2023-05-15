@@ -2,7 +2,6 @@ package parser
 
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
-import java.lang.IllegalStateException
 import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getClassName
 

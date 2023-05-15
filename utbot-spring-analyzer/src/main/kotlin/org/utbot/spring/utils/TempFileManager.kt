@@ -5,9 +5,9 @@ import com.jetbrains.rd.util.info
 import java.io.File
 import java.io.IOException
 
-val logger = getLogger<FakeFileManager>()
+private val logger = getLogger<TempFileManager>()
 
-class FakeFileManager(private val fakeFilesList: List<String>) {
+class TempFileManager(private val fakeFilesList: List<String>) {
 
     fun createTempFiles() {
         for (fileName in fakeFilesList) {

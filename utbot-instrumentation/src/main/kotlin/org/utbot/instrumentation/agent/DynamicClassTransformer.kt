@@ -38,8 +38,12 @@ class DynamicClassTransformer : ClassFileTransformer {
             return if (pathToClassfile in pathsToUserClasses ||
                 packsToAlwaysTransform.any(className::startsWith)
             ) {
-                logger.info { "Transforming: $className" }
-                transformer.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
+                if(listOf("org/springframework", "com/fasterxml", "org/hibernate", "org/apache", "org/h2").none {
+                  className.startsWith(it)
+                }) {
+                    logger.info { "Transforming: $className" }
+                    transformer.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
+                } else null
             } else {
                 null
             }

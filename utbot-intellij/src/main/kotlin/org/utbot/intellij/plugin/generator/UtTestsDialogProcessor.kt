@@ -360,8 +360,8 @@ object UtTestsDialogProcessor {
                                             model.chosenClassesToMockAlways,
                                             model.timeout,
                                             model.timeout,
+                                            false,
                                             true,
-                                            UtSettings.useFuzzing,
                                             project.service<Settings>().fuzzingValue,
                                             searchDirectory.pathString
                                         )

@@ -1,5 +1,6 @@
 configurations {
     fetchSpringAnalyzerJar
+    fetchInstrumentationJar
 }
 
 dependencies {
@@ -41,10 +42,14 @@ dependencies {
     implementation project(':utbot-spring-analyzer')
 
     fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 }
 
 processResources {
     from(configurations.fetchSpringAnalyzerJar) {
+        into "lib"
+    }
+    from(configurations.fetchInstrumentationJar) {
         into "lib"
     }
 }

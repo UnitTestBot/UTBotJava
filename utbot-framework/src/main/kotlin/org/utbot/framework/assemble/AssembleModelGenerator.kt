@@ -1,5 +1,6 @@
 package org.utbot.framework.assemble
 
+import mu.KotlinLogging
 import org.utbot.common.isPrivate
 import org.utbot.common.isPublic
 import org.utbot.engine.ResolvedExecution
@@ -54,6 +55,10 @@ import java.util.IdentityHashMap
  * Note: Caches class related information, can be reused if classes don't change.
  */
 class AssembleModelGenerator(private val basePackageName: String) {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     //Instantiated models are stored to avoid cyclic references during reference graph analysis
     private val instantiatedModels: IdentityHashMap<UtModel, UtReferenceModel> =
@@ -175,8 +180,13 @@ class AssembleModelGenerator(private val basePackageName: String) {
     private fun assembleModel(utModel: UtModel): UtModel {
         val collectedCallChain = callChain.toMutableList()
 
-        // We cannot create an assemble model for an anonymous class instance
-        if (utModel.classId.isAnonymous) {
+        try {
+            // We cannot create an assemble model for an anonymous class instance
+            if (utModel.classId.isAnonymous) {
+                return utModel
+            }
+        } catch (e: Exception) {
+            logger.warn { "Failed to load jClass for class ${utModel.classId.name} when assembling model" }
             return utModel
         }
 

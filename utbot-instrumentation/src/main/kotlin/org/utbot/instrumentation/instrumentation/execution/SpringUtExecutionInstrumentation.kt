@@ -3,6 +3,7 @@ package org.utbot.instrumentation.instrumentation.execution
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
+import kotlin.random.Random
 
 /**
  * UtExecutionInstrumentation wrapper that is aware of Spring config and initialises Spring context
@@ -19,13 +20,17 @@ class SpringUtExecutionInstrumentation(
         instrumentation.init(pathsToUserClasses)
 
         val classLoader = UtContext.currentContext()!!.classLoader
+        Thread.currentThread().contextClassLoader = classLoader
+
         val configClass = classLoader.loadClass(springConfig)
-        // TODO use BootstrapContext (like in SpringBootTestContextBootstrapper) to create TestContext and get applicationContext out of it
-        //  but before that consider improving build.gradle (in utbot-instrumentation) so we don't have to use reflection for Spring
-        val springContextClass =
-            classLoader.loadClass("org.springframework.context.annotation.AnnotationConfigApplicationContext")
-        val sources = arrayOf(configClass)
-        springContext = springContextClass.getConstructor(sources::class.java).newInstance(sources)
+        val args = arrayOf("--server.port=${Random.nextInt(2048, 65536)}")
+        // TODO if we don't have SpringBoot just create ApplicationContext here, reuse code from utbot-spring-analyzer
+        // TODO recreate context/app every time with change method under test
+        val springAppClass =
+            classLoader.loadClass("org.springframework.boot.SpringApplication")
+        springContext = springAppClass
+            .getMethod("run", configClass::class.java, args::class.java)
+            .invoke(null, configClass, args)
     }
 
     // TODO use `springContext.getBean(String)` here

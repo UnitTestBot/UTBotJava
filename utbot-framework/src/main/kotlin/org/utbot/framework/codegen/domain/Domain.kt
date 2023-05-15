@@ -12,7 +12,6 @@ import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -730,18 +729,13 @@ object SpringBoot : DependencyInjectionFramework(
 )
 
 /**
- * Extended id of [UtModel], unique for whole test set.
+ * Extended [UtModel] model with testSet id and execution id.
  *
- * Allows distinguishing models from different executions and test sets,
- * even if they have the same value of `UtModel.id` that is allowed.
+ * Used as a key in [valueByUtModelWrapper].
+ * Was introduced primarily for shared among all test methods global variables.
  */
-data class ModelId private constructor(
-    private val id: Int?,
-    private val executionId: Int,
-    private val testSetId: Int,
-) {
-    companion object {
-        fun create(model: UtModel, executionId: Int = -1, testSetId: Int = -1) = ModelId(model.idOrNull(), executionId, testSetId)
-    }
-}
-
+data class UtModelWrapper(
+    val testSetId: Int,
+    val executionId: Int,
+    val model: UtModel
+)

@@ -15,14 +15,13 @@ import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgThisInstance
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
-import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
-import org.utbot.framework.codegen.domain.ModelId
+import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
@@ -195,10 +194,30 @@ interface CgContextOwner {
 
     val shouldOptimizeImports: Boolean
 
-    var valueByModel: IdentityHashMap<UtModel, CgValue>
+    /**
+     * Used for differentiating models in codegen
+     * because comparisons by [UtModel] are not enough,
+     * especially for Spring related variable processing.
+     *
+     * Default value is -1, meaning that we are not processing any test set.
+     *
+     * @see [CgContext.withTestSetIdScope]
+     */
+    var currentTestSetId: Int
 
-    // use it to compare stateBefore and result variables - in case of equality do not create new variable
-    var valueByModelId: MutableMap<ModelId, CgValue>
+    /**
+     * Used for differentiating models in codegen
+     * because comparisons by [UtModel] are not enough,
+     * especially for Spring related variable processing.
+     *
+     * Default value is -1, meaning that we are not processing any execution.
+     *
+     * @see [CgContext.withExecutionIdScope]
+     */
+    var currentExecutionId: Int
+
+    // used for comparing stateBefore and result variables -- in case of equality do not create new variable
+    var valueByUtModelWrapper: MutableMap<UtModelWrapper, CgValue>
 
     // parameters of the method currently being generated
     val currentMethodParameters: MutableMap<CgParameterKind, CgVariable>
@@ -227,12 +246,6 @@ interface CgContextOwner {
      */
     var successfulExecutionsModels: List<UtModel>
 
-    /**
-     * Gives a unique identifier to model in test set.
-     * Determines which execution current model belongs to.
-     */
-    var modelIds: MutableMap<UtModel, ModelId>
-
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
         return try {
@@ -258,6 +271,16 @@ interface CgContextOwner {
 
     fun updateCurrentExecutable(executableId: ExecutableId) {
         currentExecutable = executableId
+    }
+
+    fun <R> withTestSetIdScope(testSetId: Int, block: () -> R): R {
+        currentTestSetId = testSetId
+        return block()
+    }
+
+    fun <R> withExecutionIdScope(executionId: Int, block: () -> R): R {
+        currentExecutionId = executionId
+        return block()
     }
 
     fun addExceptionIfNeeded(exception: ClassId) {
@@ -316,11 +339,10 @@ interface CgContextOwner {
 
     fun updateVariableScope(variable: CgVariable, model: UtModel? = null) {
         model?.let {
-            valueByModel[it] = variable
+            valueByUtModelWrapper[it.wrap()] = variable
             (model as UtReferenceModel).let { refModel ->
                 refModel.id.let {
-                    val modelId = getIdByModel(model)
-                    valueByModelId[modelId] = variable
+                    valueByUtModelWrapper[model.wrap()] = variable
                 }
             }
         }
@@ -331,8 +353,7 @@ interface CgContextOwner {
         val prevDeclaredClassRefs = declaredClassRefs
         val prevDeclaredExecutableRefs = declaredExecutableRefs
         val prevDeclaredFieldRefs = declaredFieldRefs
-        val prevValueByModel = IdentityHashMap(valueByModel)
-        val prevValueByModelId = valueByModelId.toMutableMap()
+        val prevValueByCgModel = valueByUtModelWrapper.toMutableMap()
         return try {
             block()
         } finally {
@@ -340,8 +361,7 @@ interface CgContextOwner {
             declaredClassRefs = prevDeclaredClassRefs
             declaredExecutableRefs = prevDeclaredExecutableRefs
             declaredFieldRefs = prevDeclaredFieldRefs
-            valueByModel = prevValueByModel
-            valueByModelId = prevValueByModelId
+            valueByUtModelWrapper = prevValueByCgModel
         }
     }
 
@@ -439,7 +459,7 @@ interface CgContextOwner {
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
 
-    fun getIdByModel(model: UtModel): ModelId
+    fun UtModel.wrap(): UtModelWrapper
 }
 
 /**
@@ -490,8 +510,6 @@ class CgContext(
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
     override lateinit var successfulExecutionsModels: List<UtModel>
-
-    override var modelIds: MutableMap<UtModel, ModelId> = mutableMapOf()
 
     /**
      * This property cannot be accessed outside of test class file scope
@@ -570,7 +588,12 @@ class CgContext(
         }
     }
 
-    override fun getIdByModel(model: UtModel): ModelId = modelIds.getOrPut(model) { ModelId.create(model) }
+    override fun UtModel.wrap(): UtModelWrapper =
+        UtModelWrapper(
+            testSetId = currentTestSetId,
+            executionId = currentExecutionId,
+            model = this
+        )
 
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
@@ -588,15 +611,15 @@ class CgContext(
         importedClasses.clear()
         testMethods.clear()
         requiredUtilMethods.clear()
-        valueByModel.clear()
-        valueByModelId.clear()
-        modelIds.clear()
+        valueByUtModelWrapper.clear()
         mockFrameworkUsed = false
     }
 
-    override var valueByModel: IdentityHashMap<UtModel, CgValue> = IdentityHashMap()
+    override var currentTestSetId: Int = -1
 
-    override var valueByModelId: MutableMap<ModelId, CgValue> = mutableMapOf()
+    override var currentExecutionId: Int = -1
+
+    override var valueByUtModelWrapper: MutableMap<UtModelWrapper, CgValue> = mutableMapOf()
 
     override val currentMethodParameters: MutableMap<CgParameterKind, CgVariable> = mutableMapOf()
 

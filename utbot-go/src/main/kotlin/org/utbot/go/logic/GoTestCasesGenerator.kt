@@ -24,7 +24,6 @@ import kotlin.system.measureTimeMillis
 val logger = KotlinLogging.logger {}
 
 object GoTestCasesGenerator {
-    private const val NUM_OF_WORKERS = 8
 
     fun generateTestCasesForGoSourceFileFunctions(
         sourceFile: GoUtFile,
@@ -33,10 +32,7 @@ object GoTestCasesGenerator {
         absolutePathToInstrumentedModule: String,
         needToCoverLines: Map<String, List<String>>,
         intSize: Int,
-        goExecutableAbsolutePath: Path,
-        gopathAbsolutePath: Path,
-        eachExecutionTimeoutMillis: Long,
-        fuzzingMode: Boolean,
+        testsGenerationConfig: GoUtTestsGenerationConfig,
         timeoutExceededOrIsCanceled: (index: Int) -> Boolean = { false },
     ): List<GoUtFuzzedFunctionTestCase> = ServerSocket(0).use { serverSocket ->
         val allTestCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
@@ -52,7 +48,7 @@ object GoTestCasesGenerator {
                 sourceFile,
                 functions,
                 absolutePathToInstrumentedPackage,
-                eachExecutionTimeoutMillis,
+                testsGenerationConfig.eachFunctionExecutionTimeoutMillis,
                 serverSocket.localPort,
                 imports
             )
@@ -62,9 +58,12 @@ object GoTestCasesGenerator {
             )
 
             // adding missing and removing unused modules in instrumented package
-            val environment = modifyEnvironment(goExecutableAbsolutePath, gopathAbsolutePath)
+            val environment = modifyEnvironment(
+                testsGenerationConfig.goExecutableAbsolutePath,
+                testsGenerationConfig.gopathAbsolutePath
+            )
             val modCommand = listOf(
-                goExecutableAbsolutePath.toString(), "mod", "tidy"
+                testsGenerationConfig.goExecutableAbsolutePath.toString(), "mod", "tidy"
             )
             logger.debug { "Adding missing and removing unused modules in instrumented package [$absolutePathToInstrumentedPackage] - started" }
             val goModTime = measureTimeMillis {
@@ -86,7 +85,7 @@ object GoTestCasesGenerator {
                 }
             }.toFile()
             val buildCommand = listOf(
-                goExecutableAbsolutePath.toString(), "test", "-c", "-o", testFile.absolutePath
+                testsGenerationConfig.goExecutableAbsolutePath.toString(), "test", "-c", "-o", testFile.absolutePath
             )
             logger.debug { "Compiling the test binary - started" }
             val compilingTestBinaryTime = measureTimeMillis {
@@ -106,14 +105,14 @@ object GoTestCasesGenerator {
                 val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
                 val goPackage = sourceFile.sourcePackage
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
-                return@runBlocking (1..NUM_OF_WORKERS).map {
+                return@runBlocking (1..testsGenerationConfig.numberOfFuzzingProcess).map {
                     async(Dispatchers.IO) {
                         GoWorker.createWorker(
                             testFunctionName,
                             testFile.absolutePath,
                             goPackage,
-                            goExecutableAbsolutePath,
-                            gopathAbsolutePath,
+                            testsGenerationConfig.goExecutableAbsolutePath,
+                            testsGenerationConfig.gopathAbsolutePath,
                             sourceFileDir,
                             serverSocket
                         )
@@ -132,8 +131,8 @@ object GoTestCasesGenerator {
                     needToCoverLines = needToCoverLines[function.name]!!.toSet(),
                     aliases = aliases,
                     intSize = intSize,
-                    functionExecutionTimeoutMillis = eachExecutionTimeoutMillis,
-                    fuzzingMode = fuzzingMode,
+                    functionExecutionTimeoutMillis = testsGenerationConfig.eachFunctionExecutionTimeoutMillis,
+                    mode = testsGenerationConfig.mode,
                 ) { timeoutExceededOrIsCanceled(index) }
                 logger.info { "Fuzzing for function [${function.name}] - started" }
                 val totalFuzzingTime = runBlocking {
@@ -152,10 +151,10 @@ object GoTestCasesGenerator {
                     }
                 }
                 val numberOfExecutionsPerSecond = if (totalFuzzingTime / 1000 != 0L) {
-                    engine.numberOfFunctionExecutions.get() / (totalFuzzingTime / 1000)
+                    (engine.numberOfFunctionExecutions.get() / (totalFuzzingTime / 1000)).toString()
                 } else {
                     ">${engine.numberOfFunctionExecutions}"
-                }.toString()
+                }
                 logger.debug { "Number of function executions - [${engine.numberOfFunctionExecutions}] ($numberOfExecutionsPerSecond/sec)" }
                 logger.info { "Fuzzing for function [${function.name}] - completed in [$totalFuzzingTime] (ms). Generated [${testCases.size}] test cases" }
                 allTestCases += testCases.values.flatMap { it.getTestCases() }

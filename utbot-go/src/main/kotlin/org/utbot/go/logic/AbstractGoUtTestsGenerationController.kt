@@ -15,7 +15,6 @@ abstract class AbstractGoUtTestsGenerationController {
         selectedFunctionNamesBySourceFiles: Map<Path, List<String>>,
         selectedMethodNamesBySourceFiles: Map<Path, List<String>>,
         testsGenerationConfig: GoUtTestsGenerationConfig,
-        fuzzingMode: Boolean,
         isCanceled: () -> Boolean = { false }
     ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionNamesBySourceFiles, selectedMethodNamesBySourceFiles)) return
@@ -59,10 +58,7 @@ abstract class AbstractGoUtTestsGenerationController {
                 absolutePathToInstrumentedModule,
                 needToCoverLines,
                 intSize,
-                testsGenerationConfig.goExecutableAbsolutePath,
-                testsGenerationConfig.gopathAbsolutePath,
-                testsGenerationConfig.eachFunctionExecutionTimeoutMillis,
-                fuzzingMode,
+                testsGenerationConfig
             ) { index -> isCanceled() || System.currentTimeMillis() - (startTimeMillis + (index + 1) * functionTimeoutStepMillis) > 0 }
                 .also {
                     startTimeMillis += functionTimeoutStepMillis * functions.size

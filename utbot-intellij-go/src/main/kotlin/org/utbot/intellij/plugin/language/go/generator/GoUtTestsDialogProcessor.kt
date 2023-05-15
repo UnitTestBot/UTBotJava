@@ -106,6 +106,8 @@ object GoUtTestsDialogProcessor {
                 val testsGenerationConfig = GoUtTestsGenerationConfig(
                     model.goExecutableAbsolutePath,
                     model.gopathAbsolutePath,
+                    model.numberOfFuzzingProcess,
+                    model.mode,
                     model.eachFunctionExecutionTimeoutMillis,
                     model.allFunctionExecutionTimeoutMillis
                 )
@@ -114,8 +116,7 @@ object GoUtTestsDialogProcessor {
                     IntellijGoUtTestsGenerationController(model, indicator).generateTests(
                         selectedFunctionNamesBySourceFiles,
                         selectedMethodNamesBySourceFiles,
-                        testsGenerationConfig,
-                        model.fuzzingMode
+                        testsGenerationConfig
                     ) { indicator.isCanceled }
                 } catch (e: GoParsingSourceCodeAnalysisResultException) {
                     val errorMessage = buildErrorMessage(e)

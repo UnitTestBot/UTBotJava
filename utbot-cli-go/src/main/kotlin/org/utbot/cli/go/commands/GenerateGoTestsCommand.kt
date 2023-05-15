@@ -2,6 +2,7 @@ package org.utbot.cli.go.commands
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.utbot.cli.go.logic.CliGoUtTestsGenerationController
@@ -9,6 +10,7 @@ import org.utbot.cli.go.util.durationInMillis
 import org.utbot.cli.go.util.now
 import org.utbot.cli.go.util.toAbsolutePath
 import org.utbot.go.logic.GoUtTestsGenerationConfig
+import org.utbot.go.logic.TestsGenerationMode
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -57,6 +59,14 @@ class GenerateGoTestsCommand :
             appendLine("It defaults to a directory named go inside your home directory, so \$HOME/go on Unix, \$home/go on Plan 9, and %USERPROFILE%\\go (usually C:\\Users\\YourName\\go) on Windows.")
         }
     ).required() // TODO: attempt to find it if not specified
+
+    private val numberOfFuzzingProcesses: Int by option(
+        "-parallel",
+        help = "The number of fuzzing processes running at once, default 8."
+    )
+        .int()
+        .default(8)
+        .check("Must be positive") { it > 0 }
 
     private val eachFunctionExecutionTimeoutMillis: Long by option(
         "-et", "--each-execution-timeout",
@@ -109,6 +119,11 @@ class GenerateGoTestsCommand :
         val sourceFileAbsolutePath = sourceFile.toAbsolutePath()
         val goExecutableAbsolutePath = goExecutablePath.toAbsolutePath()
         val gopathAbsolutePath = gopath.toAbsolutePath()
+        val mode = if (fuzzingMode) {
+            TestsGenerationMode.FUZZING_MODE
+        } else {
+            TestsGenerationMode.DEFAULT
+        }
 
         val testsGenerationStarted = now()
         logger.info { "Test file generation for [$sourceFile] - started" }
@@ -122,10 +137,11 @@ class GenerateGoTestsCommand :
                 GoUtTestsGenerationConfig(
                     goExecutableAbsolutePath,
                     gopathAbsolutePath,
+                    numberOfFuzzingProcesses,
+                    mode,
                     eachFunctionExecutionTimeoutMillis,
                     allFunctionExecutionTimeoutMillis
                 ),
-                fuzzingMode
             )
         } catch (t: Throwable) {
             logger.error { "An error has occurred while generating test for snippet $sourceFile: $t" }

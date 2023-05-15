@@ -4,14 +4,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.utbot.fuzzing.BaseFeedback
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.go.api.*
 import org.utbot.go.framework.api.go.GoPackage
+import org.utbot.go.logic.TestsGenerationMode
 import org.utbot.go.worker.GoWorker
 import org.utbot.go.worker.convertRawExecutionResultToExecutionResult
 import java.net.SocketException
@@ -28,7 +27,7 @@ class GoEngine(
     private val aliases: Map<GoPackage, String?>,
     private val intSize: Int,
     private val functionExecutionTimeoutMillis: Long,
-    private val fuzzingMode: Boolean,
+    private val mode: TestsGenerationMode,
     private val timeoutExceededOrIsCanceled: () -> Boolean
 ) {
     var numberOfFunctionExecutions: AtomicInteger = AtomicInteger(0)
@@ -52,7 +51,6 @@ class GoEngine(
             )
             send(mapOf(CoveredLines(coverTab.keys) to ExecutionResults(testCase, lengthOfParameters)))
         } else {
-            val mutex = Mutex(false)
             val needToStop = AtomicBoolean()
             workers.mapIndexed { index, worker ->
                 launch(Dispatchers.IO) {
@@ -87,7 +85,7 @@ class GoEngine(
                             val coveredLines = CoveredLines(needToCoverLines.intersect(coverTab.keys))
                             val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
                             val testCase = GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult)
-                            if (!fuzzingMode) {
+                            if (mode != TestsGenerationMode.FUZZING_MODE) {
                                 if (testCases[coveredLines] == null) {
                                     testCases[coveredLines] = ExecutionResults(testCase, lengthOfParameters)
                                 } else {
@@ -103,12 +101,11 @@ class GoEngine(
                                 }
                                 return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
                             }
-                            mutex.withLock {
-                                if (fuzzingMode && (executionResult is GoUtExecutionWithNonNilError || executionResult is GoUtPanicFailure)) {
-                                    needToStop.set(true)
-                                    send(mapOf(coveredLines to ExecutionResults(testCase, lengthOfParameters)))
-                                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                                }
+
+                            if (mode == TestsGenerationMode.FUZZING_MODE && executionResult !is GoUtExecutionSuccess) {
+                                needToStop.set(true)
+                                send(mapOf(coveredLines to ExecutionResults(testCase, lengthOfParameters)))
+                                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                             }
                             BaseFeedback(result = trieNode, control = Control.CONTINUE)
                         } catch (e: SocketTimeoutException) {

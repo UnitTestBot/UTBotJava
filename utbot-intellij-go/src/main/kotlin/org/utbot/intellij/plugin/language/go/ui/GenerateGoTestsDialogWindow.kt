@@ -15,6 +15,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.utbot.go.logic.GoUtTestsGenerationConfig
+import org.utbot.go.logic.TestsGenerationMode
 import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.settings.Settings
 import java.text.ParseException
@@ -25,6 +26,9 @@ import javax.swing.JComponent
 private const val MINIMUM_ALL_EXECUTION_TIMEOUT_SECONDS = 1
 private const val ALL_EXECUTION_TIMEOUT_SECONDS_SPINNER_STEP = 10
 
+private const val MINIMUM_NUMBER_OF_FUZZING_PROCESSES = 1
+private const val NUMBER_OF_FUZZING_PROCESSES_STEP = 1
+
 // This class is highly inspired by GenerateTestsDialogWindow.
 class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapper(model.project) {
 
@@ -33,6 +37,12 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
         val height = this.rowHeight * (targetInfos.size.coerceAtMost(12) + 1)
         this.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
+    private val numberOfFuzzingProcessesSpinner: JBIntSpinner = JBIntSpinner(
+        GoUtTestsGenerationConfig.DEFAULT_NUMBER_OF_FUZZING_PROCESSES,
+        MINIMUM_NUMBER_OF_FUZZING_PROCESSES,
+        Int.MAX_VALUE,
+        NUMBER_OF_FUZZING_PROCESSES_STEP
+    )
     private val fuzzingMode = JCheckBox("Fuzzing mode")
 
     private val allFunctionExecutionTimeoutSecondsSpinner =
@@ -53,7 +63,13 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
 
     override fun createCenterPanel(): JComponent {
         panel = panel {
-            row("Test source root: near to source files") {}
+            row("Timeout for all functions:") {
+                cell(allFunctionExecutionTimeoutSecondsSpinner)
+                cell(JBLabel("seconds"))
+            }
+            row("Number of fuzzing processes:") {
+                cell(numberOfFuzzingProcessesSpinner)
+            }
             row {
                 cell(fuzzingMode)
                 contextHelp("Stop test generation when a panic or error occurs (only one test will be generated for one of these cases)")
@@ -61,10 +77,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
             row("Generate test methods for:") {}
             row {
                 scrollCell(targetFunctionsTable).align(Align.FILL)
-            }
-            row("Timeout for all functions:") {
-                cell(allFunctionExecutionTimeoutSecondsSpinner)
-                cell(JBLabel("seconds"))
             }
         }
         updateFunctionsOrMethodsTable()
@@ -77,8 +89,15 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
         model.selectedMethods =
             targetFunctionsTable.selectedMemberInfos.fromInfos().filterIsInstance<GoMethodDeclaration>().toSet()
         try {
+            numberOfFuzzingProcessesSpinner.commitEdit()
             allFunctionExecutionTimeoutSecondsSpinner.commitEdit()
         } catch (_: ParseException) {
+        }
+        model.numberOfFuzzingProcess = numberOfFuzzingProcessesSpinner.number
+        model.mode = if (fuzzingMode.isSelected) {
+            TestsGenerationMode.FUZZING_MODE
+        } else {
+            TestsGenerationMode.DEFAULT
         }
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -86,7 +105,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
         }
         model.allFunctionExecutionTimeoutMillis =
             TimeUnit.SECONDS.toMillis(allFunctionExecutionTimeoutSecondsSpinner.number.toLong())
-        model.fuzzingMode = fuzzingMode.isSelected
         super.doOKAction()
     }
 

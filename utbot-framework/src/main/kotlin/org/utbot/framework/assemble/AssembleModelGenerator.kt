@@ -526,3 +526,4 @@ class AssembleModelGenerator(private val basePackageName: String) {
         return null
     }
 }
+

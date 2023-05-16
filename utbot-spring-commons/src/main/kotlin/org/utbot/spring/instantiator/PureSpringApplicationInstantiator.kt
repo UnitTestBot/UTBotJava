@@ -1,13 +1,13 @@
-package org.utbot.spring.analyzers
+package org.utbot.spring.instantiator
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.env.ConfigurableEnvironment
 
-class PureSpringApplicationAnalyzer : SpringApplicationAnalyzer {
+class PureSpringApplicationInstantiator : SpringApplicationInstantiator {
 
-    override fun canAnalyze() = true
+    override fun canInstantiate() = true
 
-    override fun analyze(sources: Array<Class<*>>, environment: ConfigurableEnvironment) {
+    override fun instantiate(sources: Array<Class<*>>, environment: ConfigurableEnvironment) {
         val applicationContext = AnnotationConfigApplicationContext()
         applicationContext.register(*sources)
         applicationContext.environment = environment

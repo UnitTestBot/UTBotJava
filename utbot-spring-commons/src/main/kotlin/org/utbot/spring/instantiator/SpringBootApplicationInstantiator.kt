@@ -1,18 +1,18 @@
-package org.utbot.spring.analyzers
+package org.utbot.spring.instantiator
 
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.core.env.ConfigurableEnvironment
 
-class SpringBootApplicationAnalyzer : SpringApplicationAnalyzer {
+class SpringBootApplicationInstantiator : SpringApplicationInstantiator {
 
-    override fun canAnalyze(): Boolean = try {
+    override fun canInstantiate(): Boolean = try {
         this::class.java.classLoader.loadClass("org.springframework.boot.SpringApplication")
         true
     } catch (e: ClassNotFoundException) {
         false
     }
 
-    override fun analyze(sources: Array<Class<*>>, environment: ConfigurableEnvironment) {
+    override fun instantiate(sources: Array<Class<*>>, environment: ConfigurableEnvironment) {
         val application = SpringApplicationBuilder(*sources)
             .environment(environment)
             .build()

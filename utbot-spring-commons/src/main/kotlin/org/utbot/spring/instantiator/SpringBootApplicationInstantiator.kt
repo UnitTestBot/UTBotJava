@@ -1,6 +1,7 @@
 package org.utbot.spring.instantiator
 
 import org.springframework.boot.builder.SpringApplicationBuilder
+import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.core.env.ConfigurableEnvironment
 
 class SpringBootApplicationInstantiator : SpringApplicationInstantiator {
@@ -12,11 +13,11 @@ class SpringBootApplicationInstantiator : SpringApplicationInstantiator {
         false
     }
 
-    override fun instantiate(sources: Array<Class<*>>, environment: ConfigurableEnvironment) {
+    override fun instantiate(sources: Array<Class<*>>, environment: ConfigurableEnvironment): ConfigurableApplicationContext {
         val application = SpringApplicationBuilder(*sources)
             .environment(environment)
             .build()
 
-        application.run()
+        return application.run()
     }
 }

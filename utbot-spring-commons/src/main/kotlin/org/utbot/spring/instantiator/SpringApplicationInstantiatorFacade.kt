@@ -1,5 +1,6 @@
 package org.utbot.spring.instantiator
 
+import org.springframework.context.ConfigurableApplicationContext
 import org.utbot.spring.context.InstantiationContext
 import org.utbot.spring.environment.EnvironmentFactory
 
@@ -11,7 +12,7 @@ import org.utbot.spring.environment.EnvironmentFactory
 
 class SpringApplicationInstantiatorFacade(private val instantiationContext: InstantiationContext) {
 
-    fun instantiate() {
+    fun instantiate(): ConfigurableApplicationContext? {
         //logger.info { "Current Java version is: " + System.getProperty("java.version") }
         //logger.info { "Current Spring version is: " + runCatching { SpringVersion.getVersion() }.getOrNull() }
         //logger.info { "Current Spring Boot version is: " + runCatching { SpringBootVersion.getVersion() }.getOrNull() }
@@ -26,13 +27,14 @@ class SpringApplicationInstantiatorFacade(private val instantiationContext: Inst
 
         //logger.info { "Analyzing with $suitableAnalyzer" }
 
-        try {
+        return try {
             suitableInstantiator.instantiate(
                 instantiationContext.configurationClasses,
                 environmentFactory.createEnvironment(),
             )
         } catch (e: Throwable) {
             //logger.error("Analyzer $suitableAnalyzer failed", e)
+            null
         }
     }
 }

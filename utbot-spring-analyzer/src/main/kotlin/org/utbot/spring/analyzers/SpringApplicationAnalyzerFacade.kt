@@ -27,10 +27,8 @@ class SpringApplicationAnalyzerFacade(private val applicationData: ApplicationDa
             if (analyzer.canAnalyze()) {
                 logger.info { "Analyzing with $analyzer" }
                 try {
-                    val infrastructure = analyzer.setup(sources, environmentFactory.createEnvironment())
-
                     return UtBotSpringShutdownException
-                        .catch { analyzer.analyzeWith(infrastructure) }
+                        .catch { analyzer.analyze(sources, environmentFactory.createEnvironment()) }
                         .beanDefinitions
                 } catch (e: Throwable) {
                     logger.error("Analyzer $analyzer failed", e)

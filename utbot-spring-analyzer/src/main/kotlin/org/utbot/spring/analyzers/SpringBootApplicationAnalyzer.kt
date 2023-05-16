@@ -12,15 +12,11 @@ class SpringBootApplicationAnalyzer : SpringApplicationAnalyzer {
         false
     }
 
-    override fun setup(sources: Array<Class<*>>, environment: ConfigurableEnvironment): SpringCustomInfrastructure {
+    override fun analyze(sources: Array<Class<*>>, environment: ConfigurableEnvironment) {
         val application = SpringApplicationBuilder(*sources)
             .environment(environment)
             .build()
 
-        return SpringCustomInfrastructure(application = application)
-    }
-
-    override fun analyzeWith(infrastructure: SpringCustomInfrastructure) {
-        infrastructure.application?.run()
+        application.run()
     }
 }

@@ -7,15 +7,11 @@ class PureSpringApplicationAnalyzer : SpringApplicationAnalyzer {
 
     override fun canAnalyze() = true
 
-    override fun setup(sources: Array<Class<*>>, environment: ConfigurableEnvironment): SpringCustomInfrastructure {
+    override fun analyze(sources: Array<Class<*>>, environment: ConfigurableEnvironment) {
         val applicationContext = AnnotationConfigApplicationContext()
         applicationContext.register(*sources)
         applicationContext.environment = environment
 
-        return SpringCustomInfrastructure(context = applicationContext)
-    }
-
-    override fun analyzeWith(infrastructure: SpringCustomInfrastructure) {
-        infrastructure.context?.refresh()
+        applicationContext.refresh()
     }
 }

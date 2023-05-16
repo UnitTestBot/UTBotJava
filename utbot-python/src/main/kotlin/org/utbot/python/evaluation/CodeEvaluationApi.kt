@@ -17,6 +17,12 @@ interface PythonCodeExecutor {
         additionalModulesToImport: Set<String>
     ): PythonEvaluationResult
 
+    fun runWithCoverage(
+        fuzzedValues: FunctionArguments,
+        additionalModulesToImport: Set<String>,
+        coverageId: String,
+    ): PythonEvaluationResult
+
     fun stop()
 }
 

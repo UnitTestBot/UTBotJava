@@ -9,7 +9,6 @@ import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
-import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
 import org.utbot.framework.codegen.domain.models.CgArrayInitializer
@@ -38,22 +37,24 @@ import kotlin.collections.set
 class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
 
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-    
-    override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        val modelId: ModelId = context.getIdByModel(model)
 
-        return if (model is UtAssembleModel) valueByModelId.getOrPut(modelId) {
-            // TODO SEVERE: May lead to unexpected behavior in case of changes to the original method
-            super.getOrCreateVariable(model, name)
-        } else valueByModel.getOrPut(model) {
-            val baseName = name ?: nameGenerator.nameFrom(model.classId)
+    override fun getOrCreateVariable(model: UtModel, name: String?): CgValue =
+        valueByUtModelWrapper.getOrPut(model.wrap()) {
             when (model) {
+                is UtAssembleModel -> {
+                    // TODO SEVERE: May lead to unexpected behavior in case of changes to the original method
+                    super.getOrCreateVariable(model, name)
+                }
+
                 is JsPrimitiveModel -> CgLiteral(model.classId, model.value)
-                is UtArrayModel -> constructArray(model, baseName)
+                is UtArrayModel -> {
+                    val baseName = name ?: nameGenerator.nameFrom(model.classId)
+                    constructArray(model, baseName)
+                }
+
                 else -> nullLiteral()
             }
         }
-    }
 
     private val MAX_ARRAY_INITIALIZER_SIZE = 10
 
@@ -131,9 +132,7 @@ class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
         }
 
         val array = newVar(arrayModel.classId, baseName) { initializer }
-        val arrayModelId = context.getIdByModel(arrayModel)
-
-        valueByModelId[arrayModelId] = array
+        valueByUtModelWrapper[arrayModel.wrap()] = array
 
         if (canInitWithValues) {
             return array

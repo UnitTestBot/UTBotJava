@@ -11,6 +11,8 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.*
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
+import org.utbot.python.evaluation.utils.CoverageIdGenerator
+import org.utbot.python.evaluation.utils.coveredLinesToInstructions
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
@@ -84,6 +86,7 @@ class PythonEngine(
     private fun handleTimeoutResult(
         arguments: List<PythonFuzzedValue>,
         methodUnderTestDescription: PythonMethodDescription,
+        coveredLines: Collection<Int>,
     ): FuzzingExecutionFeedback {
         val summary = arguments
             .zip(methodUnderTest.arguments)
@@ -100,12 +103,16 @@ class PythonEngine(
         val beforeThisObject = beforeThisObjectTree?.let { PythonTreeModel(it.tree) }
         val beforeModelList = beforeModelListTree.map { PythonTreeModel(it.tree) }
 
+        val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
+        val coverage = Coverage(coveredInstructions)
+
         val utFuzzedExecution = PythonUtExecution(
             stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             stateAfter = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             diffIds = emptyList(),
             result = executionResult,
+            coverage = coverage,
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
             displayName = testMethodName.displayName,
             summary = summary.map { DocRegularStmt(it) }
@@ -218,7 +225,9 @@ class PythonEngine(
                     methodUnderTest.argumentsNames
                 )
                 try {
-                    return when (val evaluationResult = manager.run(functionArguments, localAdditionalModules)) {
+                    val coverageId = CoverageIdGenerator.createId()
+                    return when (val evaluationResult =
+                        manager.runWithCoverage(functionArguments, localAdditionalModules, coverageId)) {
                         is PythonEvaluationError -> {
                             val utError = UtError(
                                 "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
@@ -229,8 +238,20 @@ class PythonEngine(
                         }
 
                         is PythonEvaluationTimeout -> {
-                            val utTimeoutException = handleTimeoutResult(arguments, description)
-                            PythonExecutionResult(utTimeoutException, PythonFeedback(control = Control.PASS))
+                            val coveredLines =
+                                manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableSetOf())
+                            val utTimeoutException = handleTimeoutResult(arguments, description, coveredLines)
+                            val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
+                            val trieNode: Trie.Node<Instruction> =
+                                if (coveredInstructions.isEmpty())
+                                    Trie.emptyNode()
+                                else description.tracer.add(
+                                    coveredInstructions
+                                )
+                            PythonExecutionResult(
+                                utTimeoutException,
+                                PythonFeedback(control = Control.PASS, result = trieNode)
+                            )
                         }
 
                         is PythonEvaluationSuccess -> {

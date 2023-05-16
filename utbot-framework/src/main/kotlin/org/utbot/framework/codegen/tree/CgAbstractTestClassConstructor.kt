@@ -98,7 +98,9 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
             }
 
             for (i in checkedRange) {
-                currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
+                withExecutionIdScope(i) {
+                    currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
+                }
             }
 
             val comments = listOf("Actual number of generated tests (${executionIndices.last - executionIndices.first}) exceeds per-method limit (${UtSettings.maxTestsPerMethodInRegion})",

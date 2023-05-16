@@ -33,13 +33,8 @@ class SpringUtExecutionInstrumentation(
             .invoke(null, configClass, args)
     }
 
-    // TODO use `springContext.getBean(String)` here
-    //  should be fixed together with ("use bean names here, which should be made available here via SpringApplicationContext" in UtBotSymbolicEngine)
     fun getBean(beanName: String): Any =
-        getBean(UtContext.currentContext()!!.classLoader.loadClass(beanName))
-
-    private fun getBean(clazz: Class<*>): Any =
         springContext::class.java
-            .getMethod("getBean", clazz::class.java)
-            .invoke(springContext, clazz)
+            .getMethod("getBean", String::class.java)
+            .invoke(springContext, beanName)
 }

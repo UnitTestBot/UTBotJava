@@ -360,9 +360,10 @@ class UtBotSymbolicEngine(
             thisInstanceFuzzedTypeWrapper = { fuzzedType ->
                 when (applicationContext) {
                     is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
-                        // TODO use bean names here, which should be made available here via SpringApplicationContext
-                        //  should be fixed together with ("use `springContext.getBean(String)` here" in SpringUtExecutionInstrumentation)
-                        is TypeReplacementApproach.ReplaceIfPossible -> AutowiredFuzzedType(fuzzedType, listOf(fuzzedType.classId.jClass.name))
+                        is TypeReplacementApproach.ReplaceIfPossible -> {
+                            val beanNames = applicationContext.beanDefinitions.map { it.beanName }
+                            AutowiredFuzzedType(fuzzedType, beanNames)
+                        }
                         is TypeReplacementApproach.DoNotReplace -> fuzzedType
                     }
                     else -> fuzzedType

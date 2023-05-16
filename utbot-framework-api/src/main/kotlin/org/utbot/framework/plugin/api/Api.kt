@@ -1288,7 +1288,7 @@ sealed class TypeReplacementApproach {
 class SpringApplicationContext(
     mockInstalled: Boolean,
     staticsMockingIsConfigured: Boolean,
-    private val beanDefinitions: List<BeanDefinitionData> = emptyList(),
+    val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
     val typeReplacementApproach: TypeReplacementApproach
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {

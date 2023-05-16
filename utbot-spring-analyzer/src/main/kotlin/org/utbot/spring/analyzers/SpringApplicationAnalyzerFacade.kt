@@ -6,6 +6,7 @@ import com.jetbrains.rd.util.info
 import org.springframework.boot.SpringBootVersion
 import org.springframework.core.SpringVersion
 import org.utbot.spring.api.ApplicationData
+import org.utbot.spring.exception.UtBotSpringShutdownException
 import org.utbot.spring.generated.BeanDefinitionData
 import org.utbot.spring.utils.EnvironmentFactory
 import org.utbot.spring.utils.SourceFinder
@@ -26,7 +27,9 @@ class SpringApplicationAnalyzerFacade(private val applicationData: ApplicationDa
             if (analyzer.canAnalyze()) {
                 logger.info { "Analyzing with $analyzer" }
                 try {
-                    return analyzer.analyze(sources, environmentFactory.createEnvironment())
+                    return UtBotSpringShutdownException
+                        .catch { analyzer.analyze(sources, environmentFactory.createEnvironment()) }
+                        .beanDefinitions
                 } catch (e: Throwable) {
                     logger.error("Analyzer $analyzer failed", e)
                 }

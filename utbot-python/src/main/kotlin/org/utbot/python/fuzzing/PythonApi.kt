@@ -70,7 +70,8 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
     ReduceValueProvider,
     ConstantValueProvider,
     TypeAliasValueProvider,
-    SubtypeValueProvider(typeStorage)
+    SubtypeValueProvider(typeStorage),
+    NumpyArrayValueProvider,
 )
 
 class PythonFuzzing(
@@ -89,7 +90,6 @@ class PythonFuzzing(
 
     override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
-        println("====== Description: ${description.name} - ${type.pythonTypeRepresentation()}")
 
         if (type.isAny()) {
             logger.debug("Any does not have provider")

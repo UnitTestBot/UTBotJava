@@ -208,7 +208,7 @@ object PythonTree {
         id: Long,
         type: PythonClassId,
         val constructor: PythonClassId,
-        val args: List<PythonTreeNode>,
+        val args: MutableList<PythonTreeNode>,
         var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
@@ -219,14 +219,14 @@ object PythonTree {
             type: PythonClassId,
             constructor: PythonClassId,
             args: List<PythonTreeNode>,
-        ) : this(PythonIdGenerator.createId(), type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
+        ) : this(PythonIdGenerator.createId(), type, constructor, args.toMutableList(), emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
 
         constructor(
             id: Long,
             type: PythonClassId,
             constructor: PythonClassId,
             args: List<PythonTreeNode>,
-        ) : this(id, type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
+        ) : this(id, type, constructor, args.toMutableList(), emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
 
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys + PythonTreeNode(constructor)

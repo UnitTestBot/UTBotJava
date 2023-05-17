@@ -18,6 +18,8 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.BeanAdditionalData
+import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
@@ -143,15 +145,24 @@ class EngineProcess private constructor(val project: Project, private val classN
         engineModel.setupUtContext.startBlocking(SetupContextParams(classpathForUrlsClassloader))
     }
 
-    fun getSpringBeanQualifiedNames(
+    fun getSpringBeanDefinitions(
         classpathList: List<String>,
         config: String,
         fileStorage: Array<String>,
-        profileExpression: String?): List<String> {
+        profileExpression: String?): List<BeanDefinitionData> {
         assertReadAccessNotAllowed()
-        return engineModel.getSpringBeanQualifiedNames.startBlocking(
-            GetSpringBeanQualifiedNamesParams(classpathList.toTypedArray(), config, fileStorage, profileExpression)
-        ).toList()
+        val result = engineModel.getSpringBeanDefinitions.startBlocking(
+            GetSpringBeanDefinitions(classpathList.toTypedArray(), config, fileStorage, profileExpression)
+        )
+        return result.beanDefinitions
+            .map { data ->
+                BeanDefinitionData(
+                    beanName = data.beanName,
+                    beanTypeFqn = data.beanTypeFqn,
+                    additionalData = data.additionalData
+                        ?.let { BeanAdditionalData(it.factoryMethodName, it.configClassFqn) }
+                )
+            }
     }
 
     private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String =

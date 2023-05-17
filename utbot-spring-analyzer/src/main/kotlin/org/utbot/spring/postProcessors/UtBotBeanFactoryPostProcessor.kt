@@ -10,6 +10,8 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.core.PriorityOrdered
 import org.utbot.spring.exception.UtBotSpringShutdownException
+import org.utbot.spring.generated.BeanAdditionalData
+import org.utbot.spring.generated.BeanDefinitionData
 
 val logger = getLogger<UtBotBeanFactoryPostProcessor>()
 
@@ -22,24 +24,25 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
     override fun postProcessBeanFactory(beanFactory: ConfigurableListableBeanFactory) {
         logger.info { "Started post-processing bean factory in UtBot" }
 
-        val beanQualifiedNames = findBeanClassNames(beanFactory)
-        logger.info { "Detected ${beanQualifiedNames.size} bean qualified names" }
+        val beanDefinitions = findBeanDefinitions(beanFactory)
+        logger.info { "Detected ${beanDefinitions.size} bean qualified names" }
 
         logger.info { "Finished post-processing bean factory in UtBot" }
 
         destroyBeanDefinitions(beanFactory)
-        throw UtBotSpringShutdownException("Finished post-processing bean factory in UtBot", beanQualifiedNames)
+        throw UtBotSpringShutdownException("Finished post-processing bean factory in UtBot", beanDefinitions)
     }
 
-    private fun findBeanClassNames(beanFactory: ConfigurableListableBeanFactory): List<String> =
+    private fun findBeanDefinitions(beanFactory: ConfigurableListableBeanFactory): List<BeanDefinitionData> =
         beanFactory.beanDefinitionNames
-            .mapNotNull { getBeanFqn(beanFactory, it) }
-            .filterNot { it.startsWith("org.utbot.spring") }
-            .distinct()
+            .mapNotNull { getBeanDefinitionData(beanFactory, it) }
+            .filterNot { it.beanTypeFqn.startsWith("org.utbot.spring") }
 
-    private fun getBeanFqn(beanFactory: ConfigurableListableBeanFactory, beanName: String): String? {
+    private fun getBeanDefinitionData(beanFactory: ConfigurableListableBeanFactory, beanName: String): BeanDefinitionData? {
         val beanDefinition = beanFactory.getBeanDefinition(beanName)
-        return if (beanDefinition is AnnotatedBeanDefinition) {
+
+        var beanAdditionalData: BeanAdditionalData? = null
+        val beanTypeFqn = if (beanDefinition is AnnotatedBeanDefinition) {
             if (beanDefinition.factoryMethodMetadata == null) {
                 // there's no factoryMethod so bean is defined with @Component-like annotation rather than @Bean annotation
                 // same approach isn't applicable for @Bean beans, because for them, it returns name of @Configuration class
@@ -47,6 +50,10 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
                     logger.info { "Got $fqn as metadata.className for @Component-like bean: $beanName" }
                 }
             } else try {
+                beanAdditionalData = BeanAdditionalData(
+                    beanDefinition.factoryMethodMetadata.methodName,
+                    beanDefinition.factoryMethodMetadata.declaringClassName
+                )
                 // TODO to avoid side effects, determine beanClassName without getting bean by analyzing method
                 //  defining bean, for example, by finding all its return statements and determining their common type
                 //  NOTE: do not simply use return type from method signature because it may be an interface type
@@ -62,6 +69,8 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
                 logger.info { "Got $fqn as beanClassName for XML-like bean: $beanName" }
             }
         }
+
+        return beanTypeFqn?.let { BeanDefinitionData(beanName, beanTypeFqn, beanAdditionalData) }
     }
 
     private fun destroyBeanDefinitions(beanFactory: ConfigurableListableBeanFactory) {

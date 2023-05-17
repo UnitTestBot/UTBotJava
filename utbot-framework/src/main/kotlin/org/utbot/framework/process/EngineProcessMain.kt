@@ -24,6 +24,8 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
+import org.utbot.framework.process.generated.BeanAdditionalData
+import org.utbot.framework.process.generated.BeanDefinitionData
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
@@ -72,21 +74,27 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             File(it).toURI().toURL()
         }.toTypedArray())))
     }
-    watchdog.measureTimeForActiveCall(getSpringBeanQualifiedNames, "Getting Spring bean definitions") { params ->
+    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
         try {
             val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
-            val beans = springAnalyzerProcess.terminateOnException { _ ->
-                springAnalyzerProcess.getBeanQualifiedNames(
+            val result = springAnalyzerProcess.terminateOnException { _ ->
+                springAnalyzerProcess.getBeanDefinitions(
                     params.config,
                     params.fileStorage,
                     params.profileExpression,
-                ).toTypedArray()
+                )
             }
             springAnalyzerProcess.terminate()
-            beans
+            val beanDefinitions = result.beanDefinitions
+                .map { data ->
+                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.configClassFqn) }
+                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
+                }
+                .toTypedArray()
+            SpringAnalyzerResult(beanDefinitions)
         } catch (e: Exception) {
-            logger.error(e) { "Spring Analyzer crushed, resorting to using empty bean list" }
-            emptyArray()
+            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
+            SpringAnalyzerResult(emptyArray())
         }
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->

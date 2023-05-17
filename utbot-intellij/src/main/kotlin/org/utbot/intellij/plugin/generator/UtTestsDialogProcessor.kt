@@ -40,6 +40,8 @@ import kotlin.io.path.exists
 import kotlin.io.path.pathString
 import mu.KotlinLogging
 import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.all
+import org.jetbrains.concurrency.thenRun
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.kotlin.idea.base.util.module
 import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
@@ -181,8 +183,11 @@ object UtTestsDialogProcessor {
             .map { it.containingFile.virtualFile }
             .toTypedArray()
 
-        val promise = compile(project, filesToCompile, springConfigClass)
-        promise.onSuccess {
+        val compilationPromise = model.preCompilePromises
+            .all()
+            .thenAsync { compile(project, filesToCompile, springConfigClass) }
+
+        compilationPromise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess
 
@@ -234,7 +239,7 @@ object UtTestsDialogProcessor {
                             process.setupUtContext(classpathForClassLoader)
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
-                                    val beanQualifiedNames =
+                                    val beanDefinitions =
                                         when (val approach = model.typeReplacementApproach) {
                                             DoNotReplace -> emptyList()
                                             is ReplaceIfPossible -> {
@@ -248,7 +253,7 @@ object UtTestsDialogProcessor {
                                                 }
 
                                                 val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
-                                                process.getSpringBeanQualifiedNames(
+                                                process.getSpringBeanDefinitions(
                                                     classpathForClassLoader,
                                                     approach.config,
                                                     fileStorage,
@@ -256,12 +261,12 @@ object UtTestsDialogProcessor {
                                                 )
                                             }
                                         }
-                                    val shouldUseImplementors = beanQualifiedNames.isNotEmpty()
+                                    val shouldUseImplementors = beanDefinitions.isNotEmpty()
 
                                     SpringApplicationContext(
                                         mockFrameworkInstalled,
                                         staticMockingConfigured,
-                                        beanQualifiedNames,
+                                        beanDefinitions,
                                         shouldUseImplementors,
                                     )
                                 }

@@ -12,6 +12,7 @@ import org.utbot.python.evaluation.serialiation.FailExecution
 import org.utbot.python.evaluation.serialiation.PythonExecutionResult
 import org.utbot.python.evaluation.serialiation.SuccessExecution
 import org.utbot.python.evaluation.serialiation.serializeObjects
+import org.utbot.python.evaluation.utils.CoverageIdGenerator
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
@@ -49,6 +50,15 @@ class PythonCodeSocketExecutor(
         fuzzedValues: FunctionArguments,
         additionalModulesToImport: Set<String>
     ): PythonEvaluationResult {
+        val coverageId = CoverageIdGenerator.createId()
+        return runWithCoverage(fuzzedValues, additionalModulesToImport, coverageId)
+    }
+
+    override fun runWithCoverage(
+        fuzzedValues: FunctionArguments,
+        additionalModulesToImport: Set<String>,
+        coverageId: String
+    ): PythonEvaluationResult {
         val (arguments, memory) = serializeObjects(fuzzedValues.allArguments.map { it.tree })
 
         val containingClass = method.containingPythonClass
@@ -69,6 +79,7 @@ class PythonCodeSocketExecutor(
             emptyMap(),  // here can be only-kwargs arguments
             memory,
             method.moduleFilename,
+            coverageId,
         )
         val message = ExecutionRequestSerializer.serializeRequest(request) ?: error("Cannot serialize request to python executor")
         try {
@@ -81,6 +92,7 @@ class PythonCodeSocketExecutor(
         val (status, response) = UtExecutorThread.run(pythonWorker, executionTimeout)
         return when (status) {
             UtExecutorThread.Status.TIMEOUT -> {
+
                 PythonEvaluationTimeout()
             }
 

@@ -22,6 +22,13 @@ fun jUnit5ParametrizedTestsLibraryDescriptor(versionInProject: String?) =
 fun mockitoCoreLibraryDescriptor(versionInProject: String?) =
     ExternalLibraryDescriptor("org.mockito", "mockito-core", "3.5.0", null, versionInProject ?: "4.2.0")
 
+fun springBootTestLibraryDescriptor(versionInProject: String?) =
+    ExternalLibraryDescriptor("org.springframework.boot", "spring-boot-test", "2.4.0", null, versionInProject ?: "3.0.6")
+
+fun springTestLibraryDescriptor(versionInProject: String?) =
+    ExternalLibraryDescriptor("org.springframework", "spring-test", "2.5", null, versionInProject ?: "6.0.8")
+
+
 /**
  * TestNg requires JDK 11 since version 7.6.0
  * For projects with JDK 8 version 7.5 should be installed.

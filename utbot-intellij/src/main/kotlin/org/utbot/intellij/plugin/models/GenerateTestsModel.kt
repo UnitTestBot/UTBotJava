@@ -15,11 +15,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import org.jetbrains.concurrency.Promise
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
+import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
 
@@ -52,12 +54,14 @@ class GenerateTestsModel(
     var runInspectionAfterTestGeneration: Boolean = true
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
+    lateinit var springTestType: SpringTestType
     lateinit var commentStyle: JavaDocCommentStyle
 
     lateinit var typeReplacementApproach: TypeReplacementApproach
     lateinit var profileNames: String
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
+    val preCompilePromises: MutableList<Promise<*>> = mutableListOf()
 
     var runGeneratedTestsWithCoverage : Boolean = false
     var summariesGenerationType : SummariesGenerationType = UtSettings.summaryGenerationType

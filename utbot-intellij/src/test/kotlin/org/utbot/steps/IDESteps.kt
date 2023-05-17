@@ -10,7 +10,6 @@ import org.utbot.dialogs.DialogFixture
 import org.utbot.dialogs.DialogFixture.Companion.byTitle
 import org.utbot.pages.IdeaFrame
 import java.awt.event.KeyEvent
-import java.time.Duration
 import java.time.Duration.ofSeconds
 
 fun IdeaFrame.autocomplete(text: String) {
@@ -48,7 +47,6 @@ fun IdeaFrame.closeTipOfTheDay() {
         try {
             find<DialogFixture>(byTitle ("Tip of the Day"))
                 .button("Close").click()
-        } catch (ignore: Throwable) {
-        }
+        } catch (ignore: Throwable) {}
     }
 }

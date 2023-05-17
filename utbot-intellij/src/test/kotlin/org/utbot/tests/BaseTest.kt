@@ -8,20 +8,21 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.provider.Arguments
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
-import org.utbot.data.random
 import org.utbot.pages.IdeaFrame
 import org.utbot.pages.IdeaGradleFrame
+import org.utbot.pages.IdeaMavenFrame
 import org.utbot.pages.idea
 import org.utbot.utils.RemoteRobotExtension
 import org.utbot.utils.StepsLogger
 import java.time.Duration.ofSeconds
 
 @ExtendWith(RemoteRobotExtension::class)
-open class UTBotTest {
-    fun getIdeaFrameForSpecificBuildSystem(remoteRobot: RemoteRobot, ideaBuildSystem: IdeaBuildSystem): IdeaFrame {
+open class BaseTest {
+    fun getIdeaFrameForBuildSystem(remoteRobot: RemoteRobot, ideaBuildSystem: IdeaBuildSystem): IdeaFrame {
         when (ideaBuildSystem) {
             IdeaBuildSystem.INTELLIJ -> return remoteRobot.find(IdeaFrame::class.java, ofSeconds(10))
             IdeaBuildSystem.GRADLE -> return remoteRobot.find(IdeaGradleFrame::class.java, ofSeconds(10))
+            IdeaBuildSystem.MAVEN -> return remoteRobot.find(IdeaMavenFrame::class.java, ofSeconds(10))
         }
     }
 
@@ -48,27 +49,45 @@ open class UTBotTest {
             StepsLogger.init()
         }
 
-        private val createdProjectsList: MutableList<Arguments> = mutableListOf()
+        private val supportedProjectsList: List<Arguments> =
+            addPairsToList(true)
+        private val unsupportedProjectsList: List<Arguments> =
+            addPairsToList(false)
+
         @JvmStatic
-        fun projectListProvider(): List<Arguments> {
-            if (createdProjectsList.isEmpty()) {
-                combineEnums()
-            }
-            return createdProjectsList
+        fun supportedProjectsProvider(): List<Arguments> {
+            return supportedProjectsList
         }
 
         @JvmStatic
-        private fun combineEnums() {
-            val ideaBuildSystems = IdeaBuildSystem.values()
-            val jdkVersions = JDKVersion.values()
+        fun unsupportedProjectsProvider(): List<Arguments> {
+            return unsupportedProjectsList
+        }
 
+        @JvmStatic
+        fun allProjectsProvider(): List<Arguments> {
+            return supportedProjectsList + unsupportedProjectsList
+        }
+
+        @JvmStatic
+        private fun addPairsToList(supported: Boolean): List<Arguments> {
+            val ideaBuildSystems = IdeaBuildSystem.values()
+            ideaBuildSystems.shuffle()
             var j = 0
-            ideaBuildSystems.forEach { system ->
-                j = random.nextInt(jdkVersions.size)
-                createdProjectsList.add(
-                    Arguments.of(system, jdkVersions[j])
+
+            val listOfArguments: MutableList<Arguments> = mutableListOf()
+            JDKVersion.values().toMutableList().filter {
+                it.supported == supported
+            }.forEach {
+                listOfArguments.add(
+                    Arguments.of(ideaBuildSystems[j], it) //each (un)supported JDK with a random build system
                 )
+                j++
+                if (j >= ideaBuildSystems.size) {
+                    j = 0
+                }
             }
+            return listOfArguments
         }
     }
 }

@@ -11,6 +11,7 @@ import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.swing.core.MouseButton
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.dialogs.UnitTestBotDialogFixture
+import org.utbot.dialogs.WarningDialogFixture
 import org.utbot.elements.NotificationFixture
 import java.awt.event.KeyEvent
 import java.time.Duration
@@ -20,7 +21,6 @@ fun RemoteRobot.idea(function: IdeaFrame.() -> Unit) {
     find<IdeaFrame>(timeout = ofSeconds(5)).apply(function)
 }
 
-@FixtureName("Idea frame")
 @DefaultXpath("IdeFrameImpl type", "//div[@class='IdeFrameImpl']")
 open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) : CommonContainerFixture(remoteRobot, remoteComponent) {
 
@@ -37,10 +37,6 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         get() = step("Menu...") {
             return@step remoteRobot.find(JMenuBarFixture::class.java, JMenuBarFixture.byType())
         }
-
-    val unitTestBotDialog
-        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java,
-            ofSeconds(10))
 
     val inlineProgressTextPanel
         get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='InlineProgressPanel']//div[@class='TextPanel']"),
@@ -64,6 +60,10 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     val infoNotification
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@val_icon='balloonInformation.svg']/../div[@class='NotificationCenterPanel']"),
+            ofSeconds(10))
+
+    val unitTestBotDialog
+        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java,
             ofSeconds(10))
 
     @JvmOverloads
@@ -103,16 +103,19 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         } else {
             menuBar.select("File", "Close Project")
         }
+        try {
+            remoteRobot.find(WarningDialogFixture::class.java, ofSeconds(2))
+                .terminateButton.click()
+        } catch (ignore: Throwable) {}
     }
 
-    fun callUnitTestBotActionOn(classname: String) {
+    fun openUTBotDialogFromProjectViewForClass(classname: String) {
         step("Call UnitTestBot action") {
             waitFor(ofSeconds(200)) { !isDumbMode() }
             with(projectViewTree) {
                 findText(classname).click(MouseButton.RIGHT_BUTTON)
             }
             remoteRobot.actionMenuItem("Generate Tests with UnitTestBot...").click()
-            unitTestBotDialog.generateTestsButton.click()
        }
     }
 
@@ -138,7 +141,9 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
     }
 
     fun createNewJavaClass(newClassname: String = "Example",
-                           textToClickOn: String = "Main") {
+                           textToClickOn: String = "org.example") {
+        waitProjectIsOpened()
+        expandProjectTree(projectName)
         with(projectViewTree) {
             findText(textToClickOn).click(MouseButton.RIGHT_BUTTON)
         }

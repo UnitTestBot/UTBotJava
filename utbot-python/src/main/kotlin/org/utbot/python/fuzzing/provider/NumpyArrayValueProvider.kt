@@ -18,7 +18,7 @@ object NumpyArrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMe
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
         print(type)
-        val param = listOf(type.parameters.first())
+        val param = listOf(type.parameters.last().parameters.first())
         yield(Seed.Collection(
             construct = Routine.Collection {
                 PythonFuzzedValue(

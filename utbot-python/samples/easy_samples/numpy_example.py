@@ -1,10 +1,10 @@
 import typing
 
 import numpy as np
-import numpy.typing as ntp
+import numpy.typing as npt
 
 
-def transpose(arr: ntp.ArrayLike):
+def transpose(arr: npt.ArrayLike):
     arr = np.array(arr)
     if len(arr.shape) == 0:
         return 239
@@ -14,7 +14,7 @@ def transpose(arr: ntp.ArrayLike):
         return arr.dot(arr.T)
 
 
-def f(arr: np.ndarray[np.float64, np.dtype[np.float64]]):
+def f(arr: npt.NDArray[np.float64]):
     if len(arr.shape) > 0:
         return arr.shape[0], arr * 2
     return arr

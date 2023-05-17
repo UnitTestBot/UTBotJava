@@ -27,7 +27,7 @@ class SpringApplicationInstantiatorFacade(private val instantiationContext: Inst
 
         //logger.info { "Analyzing with $suitableAnalyzer" }
 
-        suitableInstantiator.instantiate(
+        return suitableInstantiator.instantiate(
             instantiationContext.configurationClasses,
             environmentFactory.createEnvironment(),
         )

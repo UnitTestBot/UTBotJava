@@ -30,8 +30,8 @@ class GoWorker private constructor(
     private val connectionTimeoutMillis: Long,
     private val endOfWorkerExecutionTimeoutMillis: Long
 ) : Closeable {
-    private val reader: BufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
-    private val writer: BufferedWriter = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+    private var reader: BufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
+    private var writer: BufferedWriter = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
 
     data class TestInput(
         val functionName: String, val arguments: List<RawValue>
@@ -62,13 +62,19 @@ class GoWorker private constructor(
             testFunctionName, testFilePath, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
         )
         socket.close()
+        reader.close()
+        writer.close()
         socket = connectingToWorker(
             serverSocket, process, connectionTimeoutMillis, endOfWorkerExecutionTimeoutMillis
         )
+        reader = BufferedReader(InputStreamReader(socket.getInputStream()))
+        writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
     }
 
     override fun close() {
         socket.close()
+        reader.close()
+        writer.close()
         val processHasExited = process.waitFor(endOfWorkerExecutionTimeoutMillis, TimeUnit.MILLISECONDS)
         if (!processHasExited) {
             process.destroy()

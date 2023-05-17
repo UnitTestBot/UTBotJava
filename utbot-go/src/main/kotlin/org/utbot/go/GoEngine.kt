@@ -94,6 +94,11 @@ class GoEngine(
                             }
 
                             val trieNode = description.coverage.add(coveredLines.lines.sorted())
+                            if (executionResult is GoUtTimeoutExceeded) {
+                                send(testCases)
+                                description.worker.restartWorker()
+                                return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.PASS)
+                            }
                             if (trieNode.count > 1) {
                                 if (++attempts >= attemptsLimit) {
                                     send(testCases)
@@ -109,9 +114,11 @@ class GoEngine(
                             }
                             BaseFeedback(result = trieNode, control = Control.CONTINUE)
                         } catch (e: SocketTimeoutException) {
+                            send(testCases)
                             description.worker.restartWorker()
                             return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                         } catch (e: SocketException) {
+                            send(testCases)
                             description.worker.restartWorker()
                             return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                         }

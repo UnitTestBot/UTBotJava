@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"crypto/sha1"
 	"go/ast"
 	"go/token"
 	"strconv"
@@ -113,9 +113,6 @@ func (f *FunctionModifier) addCounter(stmts []ast.Stmt) []ast.Stmt {
 	if len(stmts) == 0 {
 		return []ast.Stmt{f.newCounter()}
 	}
-	if f.currFunction == "Test" {
-		println(1)
-	}
 
 	var newList []ast.Stmt
 	for _, stmt := range stmts {
@@ -129,17 +126,25 @@ func (f *FunctionModifier) addCounter(stmts []ast.Stmt) []ast.Stmt {
 	return newList
 }
 
-func (f *FunctionModifier) newCounter() ast.Stmt {
-	funcName := f.currFunction
+func (f *FunctionModifier) getNextCounter() int {
 	f.lineCounter++
-	cnt := strconv.Itoa(f.lineCounter)
+	id := f.lineCounter
+	buf := []byte{byte(id), byte(id >> 8), byte(id >> 16), byte(id >> 24)}
+	hash := sha1.Sum(buf)
+	return int(uint16(hash[0]) | uint16(hash[1])<<8)
+}
+
+func (f *FunctionModifier) newCounter() ast.Stmt {
+	cnt := strconv.Itoa(f.getNextCounter())
+
+	funcName := f.currFunction
 	if _, ok := f.testedFunctions[funcName]; ok {
 		f.functionToCounters[funcName] = append(f.functionToCounters[funcName], cnt)
 	}
 
 	idx := &ast.BasicLit{
-		Kind:  token.STRING,
-		Value: fmt.Sprintf("\"%s\"", cnt),
+		Kind:  token.INT,
+		Value: cnt,
 	}
 	counter := &ast.IndexExpr{
 		X:     ast.NewIdent("__CoverTab__"),

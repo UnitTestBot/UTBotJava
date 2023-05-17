@@ -124,7 +124,7 @@ object GoTestCasesGenerator {
             // fuzzing
             functions.forEachIndexed { index, function ->
                 if (timeoutExceededOrIsCanceled(index)) return@forEachIndexed
-                val testCases = mutableMapOf<CoveredLines, ExecutionResults>()
+                val coveredLinesToExecutionResults = mutableMapOf<CoveredLines, ExecutionResults>()
                 val engine = GoEngine(
                     workers = workers,
                     functionUnderTest = function,
@@ -141,10 +141,10 @@ object GoTestCasesGenerator {
                             logger.error { "Error in flow: ${it.message}" }
                         }.collect {
                             it.entries.forEach { (coveredLines, executionResults) ->
-                                if (testCases[coveredLines] == null) {
-                                    testCases[coveredLines] = executionResults
+                                if (coveredLinesToExecutionResults[coveredLines] == null) {
+                                    coveredLinesToExecutionResults[coveredLines] = executionResults
                                 } else {
-                                    testCases[coveredLines]!!.update(executionResults)
+                                    coveredLinesToExecutionResults[coveredLines]!!.update(executionResults)
                                 }
                             }
                         }
@@ -156,8 +156,9 @@ object GoTestCasesGenerator {
                     ">${engine.numberOfFunctionExecutions}"
                 }
                 logger.debug { "Number of function executions - [${engine.numberOfFunctionExecutions}] ($numberOfExecutionsPerSecond/sec)" }
-                logger.info { "Fuzzing for function [${function.name}] - completed in [$totalFuzzingTime] (ms). Generated [${testCases.size}] test cases" }
-                allTestCases += testCases.values.flatMap { it.getTestCases() }
+                val testCases = coveredLinesToExecutionResults.values.flatMap { it.getTestCases() }
+                logger.info { "Fuzzing for function [${function.name}] - completed in [$totalFuzzingTime] (ms). Generated [${coveredLinesToExecutionResults.size}] test cases" }
+                allTestCases += testCases
             }
             runBlocking {
                 workers.map { launch(Dispatchers.IO) { it.close() } }.joinAll()

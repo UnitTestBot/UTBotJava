@@ -644,7 +644,7 @@ object GoCodeTemplates {
         	TimeoutExceeded bool                 `json:"timeoutExceeded"`
         	RawResultValues []__RawValue__       `json:"rawResultValues"`
         	PanicMessage    *__RawPanicMessage__ `json:"panicMessage"`
-        	CoverTab        map[string]int       `json:"coverTab"`
+        	CoverTab        map[int]int          `json:"coverTab"`
         }
     """.trimIndent()
 
@@ -903,7 +903,7 @@ object GoCodeTemplates {
         	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
         	defer cancel()
 
-        	__CoverTab__ = make(map[string]int, 256)
+        	__CoverTab__ = make([]int, __CoverSize__)
 
         	done := make(chan __RawExecutionResult__, 1)
         	go func() {
@@ -950,18 +950,27 @@ object GoCodeTemplates {
         		panicked = false
         	}()
 
+        	var result __RawExecutionResult__
         	select {
         	case timelyExecutionResult := <-done:
-        		timelyExecutionResult.CoverTab = __CoverTab__
-        		return timelyExecutionResult
+        		result = timelyExecutionResult
         	case <-ctxWithTimeout.Done():
-        		return __RawExecutionResult__{
+        		result = __RawExecutionResult__{
         			TimeoutExceeded: true,
         			RawResultValues: []__RawValue__{},
         			PanicMessage:    nil,
-        			CoverTab:        __CoverTab__,
         		}
         	}
+
+        	coverTab := make(map[int]int, 256)
+        	for i, v := range __CoverTab__ {
+        		if v != 0 {
+        			coverTab[i] = v
+        		}
+        	}
+        	result.CoverTab = coverTab
+        	
+        	return result
         }
     """.trimIndent()
 

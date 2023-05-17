@@ -106,7 +106,9 @@ internal object GoWorkerCodeGenerationHelper {
     private fun generateFileWithCoverTabGoCode(goPackage: GoPackage): String = """
         package ${goPackage.packageName}
 
-        var __CoverTab__ map[string]int
+        const __CoverSize__ = 64 << 10
+
+        var __CoverTab__ []int
     """.trimIndent()
 
     private fun generateWorkerTestFunctionCode(

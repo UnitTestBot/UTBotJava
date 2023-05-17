@@ -18,9 +18,9 @@ data class GoUtTimeoutExceeded(val timeoutMillis: Long) : GoUtExecutionResult
 
 class ExecutionResults(testCase: GoUtFuzzedFunctionTestCase, length: Int) {
     private var successfulExecutionTestCaseWithLengthOfParameters: Pair<GoUtFuzzedFunctionTestCase, Int>? = null
-    private var executionWithErrorTestCase: Pair<GoUtFuzzedFunctionTestCase, Int>? = null
-    private var panicFailureTestCase: Pair<GoUtFuzzedFunctionTestCase, Int>? = null
-    private var timeoutExceededTestCase: Pair<GoUtFuzzedFunctionTestCase, Int>? = null
+    private var executionWithErrorTestCaseWithLengthOfParameters: Pair<GoUtFuzzedFunctionTestCase, Int>? = null
+    private var panicFailureTestCaseWithLengthOfParameters: Pair<GoUtFuzzedFunctionTestCase, Int>? = null
+    private var timeoutExceededTestCaseWithLengthOfParameters: Pair<GoUtFuzzedFunctionTestCase, Int>? = null
 
     private fun Pair<GoUtFuzzedFunctionTestCase, Int>?.relax(
         testCase: GoUtFuzzedFunctionTestCase,
@@ -42,9 +42,9 @@ class ExecutionResults(testCase: GoUtFuzzedFunctionTestCase, length: Int) {
     init {
         when (testCase.executionResult) {
             is GoUtExecutionSuccess -> successfulExecutionTestCaseWithLengthOfParameters = testCase to length
-            is GoUtExecutionWithNonNilError -> executionWithErrorTestCase = testCase to length
-            is GoUtPanicFailure -> panicFailureTestCase = testCase to length
-            is GoUtTimeoutExceeded -> timeoutExceededTestCase = testCase to length
+            is GoUtExecutionWithNonNilError -> executionWithErrorTestCaseWithLengthOfParameters = testCase to length
+            is GoUtPanicFailure -> panicFailureTestCaseWithLengthOfParameters = testCase to length
+            is GoUtTimeoutExceeded -> timeoutExceededTestCaseWithLengthOfParameters = testCase to length
         }
     }
 
@@ -52,26 +52,33 @@ class ExecutionResults(testCase: GoUtFuzzedFunctionTestCase, length: Int) {
         is GoUtExecutionSuccess -> successfulExecutionTestCaseWithLengthOfParameters =
             successfulExecutionTestCaseWithLengthOfParameters.relax(testCase, length)
 
-        is GoUtExecutionWithNonNilError -> executionWithErrorTestCase =
-            executionWithErrorTestCase.relax(testCase, length)
+        is GoUtExecutionWithNonNilError -> executionWithErrorTestCaseWithLengthOfParameters =
+            executionWithErrorTestCaseWithLengthOfParameters.relax(testCase, length)
 
-        is GoUtPanicFailure -> panicFailureTestCase = panicFailureTestCase.relax(testCase, length)
-        is GoUtTimeoutExceeded -> timeoutExceededTestCase = timeoutExceededTestCase.relax(testCase, length)
+        is GoUtPanicFailure -> panicFailureTestCaseWithLengthOfParameters =
+            panicFailureTestCaseWithLengthOfParameters.relax(testCase, length)
+
+        is GoUtTimeoutExceeded -> timeoutExceededTestCaseWithLengthOfParameters =
+            timeoutExceededTestCaseWithLengthOfParameters.relax(testCase, length)
+
         else -> error("${testCase.executionResult.javaClass.name} is not supported")
     }
 
     fun update(executionResults: ExecutionResults) {
         successfulExecutionTestCaseWithLengthOfParameters =
             successfulExecutionTestCaseWithLengthOfParameters.relax(executionResults.successfulExecutionTestCaseWithLengthOfParameters)
-        executionWithErrorTestCase = executionWithErrorTestCase.relax(executionResults.executionWithErrorTestCase)
-        panicFailureTestCase = panicFailureTestCase.relax(executionResults.panicFailureTestCase)
-        timeoutExceededTestCase = timeoutExceededTestCase.relax(executionResults.timeoutExceededTestCase)
+        executionWithErrorTestCaseWithLengthOfParameters =
+            executionWithErrorTestCaseWithLengthOfParameters.relax(executionResults.executionWithErrorTestCaseWithLengthOfParameters)
+        panicFailureTestCaseWithLengthOfParameters =
+            panicFailureTestCaseWithLengthOfParameters.relax(executionResults.panicFailureTestCaseWithLengthOfParameters)
+        timeoutExceededTestCaseWithLengthOfParameters =
+            timeoutExceededTestCaseWithLengthOfParameters.relax(executionResults.timeoutExceededTestCaseWithLengthOfParameters)
     }
 
     fun getTestCases(): List<GoUtFuzzedFunctionTestCase> = listOfNotNull(
         successfulExecutionTestCaseWithLengthOfParameters?.first,
-        executionWithErrorTestCase?.first,
-        panicFailureTestCase?.first,
-        timeoutExceededTestCase?.first
+        executionWithErrorTestCaseWithLengthOfParameters?.first,
+        panicFailureTestCaseWithLengthOfParameters?.first,
+        timeoutExceededTestCaseWithLengthOfParameters?.first
     )
 }

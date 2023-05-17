@@ -155,6 +155,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         val codeGenerator = CodeGenerator(
             classUnderTest = classId,
             projectType = ProjectType.valueOf(params.projectType),
+            testsType = TestsType.valueOf(params.testsType),
             generateUtilClassFile = params.generateUtilClassFile,
             paramNames = kryoHelper.readObject(params.paramNames),
             testFramework = testFramework,

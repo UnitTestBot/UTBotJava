@@ -1367,7 +1367,7 @@ class SpringApplicationContext(
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
 
-enum class SpringTestType(
+enum class TestsType(
     override val id: String,
     override val displayName: String,
     override val description: String,
@@ -1389,7 +1389,7 @@ enum class SpringTestType(
 
     companion object : CodeGenerationSettingBox {
         override val defaultItem = UNIT_TESTS
-        override val allItems: List<SpringTestType> = values().toList()
+        override val allItems: List<TestsType> = values().toList()
     }
 }
 

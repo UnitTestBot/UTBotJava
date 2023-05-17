@@ -13,7 +13,6 @@ import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
-import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework

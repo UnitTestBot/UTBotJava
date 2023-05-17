@@ -83,7 +83,7 @@ fun main(args: Array<String>) {
             stmts += it
             listOfNotNull(engine.globalGraph.succStmts(it).firstOrNull())
         }
-        val state = engine.buildExecutionState(stmts)
+        val state = engine.buildExecutionState(stmts) ?: return
         require(state.stmt == stmts.last())
         require(state.path == stmts.take(stmts.size - 1))
         println(state.stmt)

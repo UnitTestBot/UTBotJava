@@ -1,5 +1,6 @@
 package org.utbot.engine
 
+import com.microsoft.z3.Context
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -203,10 +204,14 @@ class UtBotSymbolicEngine(
         }
     }
 
-    fun buildExecutionState(path: List<Stmt>) : ExecutionState {
+    fun buildExecutionState(path: List<Stmt>) : ExecutionState? {
+        val ctx = Context()
         val state = ExecutionState(
             path.first(),
-            SymbolicState(UtSolver(typeRegistry, trackableResources, solverTimeoutInMillis)),
+            SymbolicState(UtSolver(
+                typeRegistry = typeRegistry,
+                context = ctx,
+            )),
             executionStack = persistentListOf(ExecutionStackElement(null, method = graph.body.method)),
         )
         val p = path.drop(1).toMutableList()
@@ -228,11 +233,20 @@ class UtBotSymbolicEngine(
             mocker,
             applicationContext,
         )
-        val last = generateSequence(state) {
-            tr.traverse(it, TC()).also { require(it.size <= 1) }.firstOrNull()
-        }.last()
-        require(p.isEmpty()) { "Incomplete path" }
-        return last
+        return generateSequence(state) { s ->
+            val firstOrNull = tr.takeIf {
+                p.isNotEmpty() && s.solver.lastStatus !is UtSolverStatusUNSAT
+            }?.traverse(
+                s, TC()
+            )?.also { c ->
+                require(c.size <= 1)
+            }?.firstOrNull()
+            val a = 2
+            firstOrNull
+        }.last().takeIf { s ->
+            s.stmt == path.last() &&
+            s.path == path.subList(0, path.size - 1)
+        }
     }
 
     private fun traverseImpl(): Flow<UtResult> = flow {
@@ -373,7 +387,11 @@ class UtBotSymbolicEngine(
                     // TODO: think about concise modifying globalGraph in Traverser and UtBotSymbolicEngine
                     globalGraph.visitNode(state)
 
-                    stateListeners.forEach{l -> l.visit(globalGraph, state)}
+                    try {
+                        stateListeners.forEach { l -> l.visit(globalGraph, state) }
+                    } catch (ce: CancellationException) {
+                        break
+                    }
                 }
             }
         }

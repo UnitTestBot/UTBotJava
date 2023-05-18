@@ -17,7 +17,7 @@ object NumpyArrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMe
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        print(type)
+        println(type)
         val param = listOf(type.parameters.last().parameters.first())
         yield(Seed.Collection(
             construct = Routine.Collection {
@@ -31,7 +31,12 @@ object NumpyArrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMe
                 )
             },
             modify = Routine.ForEach(param) { self, i, values ->
-                (self.tree as PythonTree.ReduceNode).args[i] = values.first().tree
+                val tree = (self.tree as PythonTree.ReduceNode)
+                if (tree.args.size < i) {
+                    tree.args.add(values.first().tree)
+                } else {
+                    tree.args[i] = values.first().tree
+                }
             }
         ))
 

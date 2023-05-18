@@ -26,6 +26,8 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
         pythonFloatClassId.canonicalName,
         pythonStrClassId.canonicalName,
         pythonBoolClassId.canonicalName,
+        PythonClassId("numpy.ndarray").canonicalName,
+        PythonClassId("typing.TypeAlias").canonicalName,
     )
 
     override fun accept(type: Type): Boolean {

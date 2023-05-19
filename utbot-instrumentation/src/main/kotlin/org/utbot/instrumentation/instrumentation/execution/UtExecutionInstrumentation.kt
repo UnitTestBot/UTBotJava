@@ -146,16 +146,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
                 UtConcreteExecutionResult(
                     stateAfter,
-                    when (executionResult) {
-                        is UtExecutionSuccess -> executionResult
-                        // TODO remove this workaround when deserialization of exceptions without serialVersionUID is fixed
-                        is UtExecutionFailure -> UtExplicitlyThrownException(
-                            Exception(
-                                "${executionResult.exception.javaClass.name} ${executionResult.exception.message}"
-                            ),
-                            fromNestedMethod = false
-                        )
-                    },
+                    executionResult,
                     coverage
                 )
             } finally {

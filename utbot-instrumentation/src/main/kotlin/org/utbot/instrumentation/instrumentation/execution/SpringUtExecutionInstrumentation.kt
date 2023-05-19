@@ -1,11 +1,8 @@
 package org.utbot.instrumentation.instrumentation.execution
 
-import org.springframework.context.ConfigurableApplicationContext
-import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
-import org.utbot.spring.context.InstantiationContext
-import org.utbot.spring.instantiator.SpringApplicationInstantiatorFacade
 import kotlin.random.Random
 
 /**
@@ -15,25 +12,30 @@ class SpringUtExecutionInstrumentation(
     private val instrumentation: UtExecutionInstrumentation,
     private val springConfig: String
 ) : Instrumentation<UtConcreteExecutionResult> by instrumentation {
-    private lateinit var springContext: ConfigurableApplicationContext
+    private lateinit var springContext: Any
 
     override fun init(pathsToUserClasses: Set<String>) {
         instrumentation.instrumentationContext = SpringInstrumentationContext(this::getBean)
 
         instrumentation.init(pathsToUserClasses)
 
-        val classLoader = UtContext.currentContext()!!.classLoader
+        val classLoader = utContext.classLoader
         Thread.currentThread().contextClassLoader = classLoader
 
+        // TODO correctly handle the case when springConfig is an XML config
         val configClass = classLoader.loadClass(springConfig)
-        // TODO recreate context/app every time with change method under test
-        // TODO obtain profile expression here
-        springContext = SpringApplicationInstantiatorFacade(
-            InstantiationContext(arrayOf(configClass), profileExpression = null)
-        )
-            .instantiate()
-            ?: error("Cannot instantiate Spring context")
+        val args = arrayOf("--server.port=${Random.nextInt(2048, 65536)}")
+        // TODO if we don't have SpringBoot just create ApplicationContext here, reuse code from utbot-spring-analyzer
+        // TODO recreate context/app every time whenever we change method under test
+        val springAppClass =
+            classLoader.loadClass("org.springframework.boot.SpringApplication")
+        springContext = springAppClass
+            .getMethod("run", configClass::class.java, args::class.java)
+            .invoke(null, configClass, args)
     }
 
-    fun getBean(beanName: String): Any = springContext.getBean(beanName)
+    fun getBean(beanName: String): Any =
+        springContext::class.java
+            .getMethod("getBean", String::class.java)
+            .invoke(springContext, beanName)
 }

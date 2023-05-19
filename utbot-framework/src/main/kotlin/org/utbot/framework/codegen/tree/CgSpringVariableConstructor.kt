@@ -16,9 +16,22 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
     val mockedModelsVariables: MutableSet<UtModelWrapper> = mutableSetOf()
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        if (model is UtAutowiredModel)
-            // TODO also, properly render corresponding @Autowired field, and make sure name isn't taken
-            return CgVariable(name ?: model.classId.jClass.simpleName.let { it[0].lowercase() + it.drop(1) }, model.classId)
+        if (model is UtAutowiredModel) {
+            // TODO also, properly render corresponding @Autowired field(s), and make sure name isn't taken
+            comment("begin repository fill up")
+            model.repositoriesContent.forEach { repositoryContent ->
+                repositoryContent.entityModels.forEach { entity ->
+                    // TODO actually fill up repositories
+                    getOrCreateVariable(entity)
+                    emptyLine()
+                }
+            }
+            comment("end repository fill up")
+            return CgVariable(
+                name ?: model.classId.jClass.simpleName.let { it[0].lowercase() + it.drop(1) },
+                model.classId
+            )
+        }
 
         val alreadyCreatedInjectMocks = findCgValueByModel(model, injectedMocksModelsVariables)
         if (alreadyCreatedInjectMocks != null) {

@@ -6,7 +6,7 @@ import org.utbot.common.FileUtil
 import java.io.File
 
 abstract class Z3Initializer : AutoCloseable {
-    protected val context: Context by lazy {
+    private val contextDelegate = lazy {
         Context().also {
 //            Global.setParameter("smt.core.minimize", "true")
             Global.setParameter("rewriter.hi_fp_unspecified", "true")
@@ -14,8 +14,13 @@ abstract class Z3Initializer : AutoCloseable {
             Global.setParameter("parallel.threads.max", "4")
         }
     }
+    protected val context: Context by contextDelegate
 
-    override fun close() = context.close()
+    override fun close() {
+        if (contextDelegate.isInitialized()) {
+            context.close()
+        }
+    }
 
     companion object {
         private val libraries = listOf("libz3", "libz3java")

@@ -1,7 +1,5 @@
 package org.utbot.instrumentation.instrumentation.execution
 
-import com.jetbrains.rd.util.getLogger
-import com.jetbrains.rd.util.info
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.singleExecutableId
@@ -17,7 +15,6 @@ import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
 import java.security.ProtectionDomain
-import java.util.*
 import kotlin.reflect.jvm.javaMethod
 
 /**
@@ -46,8 +43,6 @@ class UtConcreteExecutionResult(
         appendLine("coverage=$coverage)")
     }
 }
-
-private val logger = getLogger<UtExecutionInstrumentation>()
 
 // TODO if possible make it non singleton
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {

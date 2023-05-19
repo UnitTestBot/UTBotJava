@@ -2,7 +2,6 @@ package org.utbot.instrumentation.instrumentation
 
 import java.lang.instrument.ClassFileTransformer
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.instrumentation.agent.Agent
 
 /**
  * Abstract class for the instrumentation.

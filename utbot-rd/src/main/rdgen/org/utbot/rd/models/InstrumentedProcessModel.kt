@@ -46,7 +46,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
     }
 
     val GetSpringBeanResult = structdef {
-        field("bean", array(PredefinedType.byte))
+        field("beanModel", array(PredefinedType.byte))
     }
 
     init {

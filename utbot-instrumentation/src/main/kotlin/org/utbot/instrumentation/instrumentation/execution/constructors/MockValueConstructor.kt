@@ -107,7 +107,7 @@ class MockValueConstructor(
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
-            is UtAutowiredModel -> UtConcreteValue((instrumentationContext as SpringInstrumentationContext).getBean(model.beanName))
+            is UtAutowiredModel -> UtConcreteValue(constructFromAutowiredModel(model))
             // PythonModel, JsUtModel may be here
             else -> throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
         }
@@ -361,6 +361,19 @@ class MockValueConstructor(
         }
         constructedObjects[lambdaModel] = lambda
         return lambda
+    }
+
+    private fun constructFromAutowiredModel(autowiredModel: UtAutowiredModel): Any {
+        val springInstrumentationContext = instrumentationContext as SpringInstrumentationContext
+        autowiredModel.repositoriesContent.forEach { repositoryContent ->
+            val repository = springInstrumentationContext.getBean(repositoryContent.repositoryBeanName)
+            repositoryContent.entityModels.forEach { entityModel ->
+                construct(entityModel).value?.let { entity ->
+                    springInstrumentationContext.saveToRepository(repository, entity)
+                }
+            }
+        }
+        return springInstrumentationContext.getBean(autowiredModel.beanName)
     }
 
     /**

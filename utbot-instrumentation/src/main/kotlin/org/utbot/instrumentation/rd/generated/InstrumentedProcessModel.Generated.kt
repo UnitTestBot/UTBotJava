@@ -62,7 +62,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 5461724483309322244L
+        const val serializationHash = 821530494958270551L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -522,7 +522,7 @@ data class GetSpringBeanParams (
  * #### Generated from [InstrumentedProcessModel.kt:48]
  */
 data class GetSpringBeanResult (
-    val bean: ByteArray
+    val beanModel: ByteArray
 ) : IPrintable {
     //companion
     
@@ -531,12 +531,12 @@ data class GetSpringBeanResult (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanResult  {
-            val bean = buffer.readByteArray()
-            return GetSpringBeanResult(bean)
+            val beanModel = buffer.readByteArray()
+            return GetSpringBeanResult(beanModel)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanResult)  {
-            buffer.writeByteArray(value.bean)
+            buffer.writeByteArray(value.beanModel)
         }
         
         
@@ -552,21 +552,21 @@ data class GetSpringBeanResult (
         
         other as GetSpringBeanResult
         
-        if (!(bean contentEquals other.bean)) return false
+        if (!(beanModel contentEquals other.beanModel)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + bean.contentHashCode()
+        __r = __r*31 + beanModel.contentHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("GetSpringBeanResult (")
         printer.indent {
-            print("bean = "); bean.print(printer); println()
+            print("beanModel = "); beanModel.print(printer); println()
         }
         printer.print(")")
     }

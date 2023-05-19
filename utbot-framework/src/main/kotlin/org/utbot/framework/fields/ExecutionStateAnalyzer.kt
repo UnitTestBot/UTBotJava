@@ -239,9 +239,7 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
     }
 
     override fun visit(element: UtAutowiredModel, data: FieldData) {
-        // TODO consider making UtAutowiredModel wrap UtCompositeModel or
-        //  even extend UtAssembleModel so here it's possible to recursively record field state
-        recordFieldState(data, element)
+        element.origin.accept(this, data)
     }
 
     private fun recordFieldState(data: FieldData, model: UtModel) {

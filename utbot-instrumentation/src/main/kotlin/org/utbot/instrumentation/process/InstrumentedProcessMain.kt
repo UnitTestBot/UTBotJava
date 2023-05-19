@@ -6,10 +6,12 @@ import com.jetbrains.rd.util.reactive.adviseOnce
 import kotlinx.coroutines.*
 import org.mockito.Mockito
 import org.utbot.common.*
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.process.generated.CollectCoverageResult
 import org.utbot.instrumentation.process.generated.GetSpringBeanResult
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
@@ -155,8 +157,10 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         CollectCoverageResult(kryoHelper.writeObject(result))
     }
     watchdog.measureTimeForActiveCall(getSpringBean, "Getting Spring bean") { params ->
-        GetSpringBeanResult(kryoHelper.writeObject(
-            (instrumentation as SpringUtExecutionInstrumentation).getBean(params.beanName)
-        ))
+        val bean = (instrumentation as SpringUtExecutionInstrumentation).getBean(params.beanName)
+        val model = UtModelConstructor.createOnlyUserClassesConstructor(pathsToUserClasses).construct(
+            bean, ClassId(bean.javaClass.name)
+        )
+        GetSpringBeanResult(kryoHelper.writeObject(model))
     }
 }

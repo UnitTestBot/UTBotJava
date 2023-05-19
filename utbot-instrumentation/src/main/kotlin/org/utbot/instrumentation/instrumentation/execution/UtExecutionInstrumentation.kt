@@ -160,13 +160,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =
         delegateInstrumentation.getStaticField(fieldId).map { value ->
-            val cache = IdentityHashMap<Any, UtModel>()
-            val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
-                pathsToUserClasses, cache
-            )
-            UtModelConstructor(cache, strategy).run {
-                construct(value, fieldId.type)
-            }
+            UtModelConstructor.createOnlyUserClassesConstructor(pathsToUserClasses)
+                .construct(value, fieldId.type)
         }
 
     override fun transform(

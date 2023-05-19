@@ -45,7 +45,6 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     IteratorValueProvider(idGenerator),
     EmptyCollectionValueProvider(idGenerator),
     DateValueProvider(idGenerator),
-    AutowiredValueProvider(idGenerator)
 //    NullValueProvider,
 )
 

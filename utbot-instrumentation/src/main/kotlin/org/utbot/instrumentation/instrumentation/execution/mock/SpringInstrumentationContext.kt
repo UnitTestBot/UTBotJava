@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.execution.mock
 
-class SpringInstrumentationContext(private val beanGetter: (beanName: String) -> Any) : InstrumentationContext() {
-    fun getBean(beanName: String): Any = beanGetter(beanName)
+abstract class SpringInstrumentationContext : InstrumentationContext() {
+    abstract fun getBean(beanName: String): Any
+    abstract fun saveToRepository(repository: Any, entity: Any)
 }

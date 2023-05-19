@@ -186,7 +186,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
                 return utModel
             }
         } catch (e: Exception) {
-            logger.warn { "Failed to load jClass for class ${utModel.classId.name} when assembling model" }
+            // happens, for example, when `utModel.classId.name` is something like "jdk.proxy3.$Proxy144"
             return utModel
         }
 

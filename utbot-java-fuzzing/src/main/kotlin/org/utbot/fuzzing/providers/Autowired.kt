@@ -5,7 +5,8 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 
 class AutowiredValueProvider(
-    val idGenerator: IdGenerator<Int>
+    private val idGenerator: IdGenerator<Int>,
+    private val autowiredModelOriginCreator: (beanName: String) -> UtModel
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
     override fun accept(type: FuzzedType) = type is AutowiredFuzzedType
 
@@ -13,11 +14,44 @@ class AutowiredValueProvider(
         description: FuzzedDescription,
         type: FuzzedType
     ) = sequence {
+        // TODO if there are no beanNames just use constructor
         (type as AutowiredFuzzedType).beanNames.forEach { beanName ->
             yield(
-                Seed.Simple<FuzzedType, FuzzedValue>(
-                    value = FuzzedValue(UtAutowiredModel(idGenerator.createId(), type.classId, beanName), "@Autowired ${type.classId.simpleName} $beanName"),
-                    mutation = { fuzzedValue, _ -> fuzzedValue } // TODO implement bean mutation
+                Seed.Recursive<FuzzedType, FuzzedValue>(
+                    construct = Routine.Create(types = emptyList()) {
+                        UtAutowiredModel(
+                            id = idGenerator.createId(),
+                            classId = type.classId,
+                            beanName = beanName,
+                            origin = autowiredModelOriginCreator(beanName), // TODO think about setting origin id and its fields ids
+                            // TODO properly detect which repositories need to be filled up (right now orderRepository is hardcoded)
+                            repositoriesContent = listOf(
+                                RepositoryContent(
+                                    repositoryBeanName = "orderRepository",
+                                    entityModels = mutableListOf()
+                                )
+                            )
+                        ).fuzzed { "@Autowired ${type.classId.simpleName} $beanName" }
+                    },
+                    modify = sequence {
+                        // TODO mutate model itself (not just repositories)
+                        // TODO properly detect which repositories need to be filled up (right now orderRepository is hardcoded)
+                        yield(Routine.Call(
+                            listOf(FuzzedType(ClassId("com.rest.order.models.Order"))),
+                        ) { self, values ->
+                            val entityValue = values[0]
+                            val model = self.model as UtAutowiredModel
+                            // TODO maybe use `entityValue.summary` to update `model.summary`
+                            model.repositoriesContent
+                                .first { it.repositoryBeanName == "orderRepository" }
+                                .entityModels as MutableList += entityValue.model
+                        })
+                    },
+                    empty = Routine.Empty {
+                        UtNullModel(type.classId).fuzzed {
+                            summary = "%var% = null"
+                        }
+                    }
                 )
             )
         }

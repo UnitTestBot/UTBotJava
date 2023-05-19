@@ -11,12 +11,14 @@ import org.utbot.common.nameOfPackage
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.DISABLE_SANDBOX_OPTION
 import org.utbot.instrumentation.process.generated.AddPathsParams
+import org.utbot.instrumentation.process.generated.GetSpringBeanParams
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.SetInstrumentationParams
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
@@ -28,6 +30,7 @@ import org.utbot.rd.generated.loggerModel
 import org.utbot.rd.loggers.UtRdKLogger
 import org.utbot.rd.loggers.setup
 import org.utbot.rd.onSchedulerBlocking
+import org.utbot.rd.startBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
 import java.io.File
@@ -159,4 +162,7 @@ class InstrumentedProcess private constructor(
             return proc
         }
     }
+
+    fun getBean(beanName: String): UtModel =
+        kryoHelper.readObject(instrumentedProcessModel.getSpringBean.startBlocking(GetSpringBeanParams(beanName)).beanModel)
 }

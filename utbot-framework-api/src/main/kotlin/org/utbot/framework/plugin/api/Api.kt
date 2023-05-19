@@ -636,8 +636,15 @@ class UtAutowiredModel(
     override val id: Int?,
     override val classId: ClassId,
     val beanName: String,
+    val origin: UtModel,
+    val repositoriesContent: List<RepositoryContent>,
 ) : UtReferenceModel(
     id, classId, modelName = "@Autowired $beanName#$id"
+)
+
+data class RepositoryContent(
+    val repositoryBeanName: String,
+    val entityModels: List<UtModel>,
 )
 
 /**

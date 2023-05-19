@@ -40,6 +40,7 @@ import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
+import org.utbot.fuzzing.providers.AutowiredValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -356,7 +357,15 @@ class UtBotSymbolicEngine(
             methodUnderTest,
             collectConstantsForFuzzer(graph),
             names,
-            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator)))),
+            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator) + AutowiredValueProvider(
+                defaultIdGenerator,
+                autowiredModelOriginCreator = { beanName ->
+                    runBlocking {
+                        logger.info { "Getting bean: $beanName" }
+                        concreteExecutor.withProcess { getBean(beanName) }
+                    }
+                }
+            )))),
             thisInstanceFuzzedTypeWrapper = { fuzzedType ->
                 when (applicationContext) {
                     is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {

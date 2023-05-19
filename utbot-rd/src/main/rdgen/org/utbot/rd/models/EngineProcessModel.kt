@@ -60,7 +60,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("testSetsId", PredefinedType.long)
     }
     val renderParams = structdef {
-        field("testsType", PredefinedType.string)
         field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
         field("projectType", PredefinedType.string)

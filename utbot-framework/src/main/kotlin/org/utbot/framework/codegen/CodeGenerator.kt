@@ -19,13 +19,11 @@ import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
-import org.utbot.framework.codegen.tree.CgSpringIntegrationTestClassConstructor
-import org.utbot.framework.codegen.tree.CgSpringUnitTestClassConstructor
+import org.utbot.framework.codegen.tree.CgSpringTestClassConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.TestsType
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -33,7 +31,6 @@ import java.time.format.DateTimeFormatter
 open class CodeGenerator(
     val classUnderTest: ClassId,
     val projectType: ProjectType,
-    val testsType: TestsType = TestsType.defaultItem,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     generateUtilClassFile: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
@@ -109,10 +106,7 @@ open class CodeGenerator(
     }
 
     private fun generateForSpringClass(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
-        val astConstructor = when (testsType) {
-            TestsType.UNIT_TESTS -> CgSpringUnitTestClassConstructor(context)
-            TestsType.INTEGRATION_TESTS -> CgSpringIntegrationTestClassConstructor(context)
-        }
+        val astConstructor = CgSpringTestClassConstructor(context)
         val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }

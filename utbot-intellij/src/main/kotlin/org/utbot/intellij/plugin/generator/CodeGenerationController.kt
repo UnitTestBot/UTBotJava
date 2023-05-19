@@ -684,7 +684,6 @@ object CodeGenerationController {
                     return@run
                 }
                 proc.render(
-                    model.testType,
                     testSetsId,
                     classUnderTest,
                     model.projectType,

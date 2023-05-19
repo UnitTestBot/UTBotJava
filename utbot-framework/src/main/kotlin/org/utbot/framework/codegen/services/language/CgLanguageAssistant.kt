@@ -48,7 +48,7 @@ abstract class CgLanguageAssistant {
     open fun getStatementConstructorBy(context: CgContext): CgStatementConstructor = CgStatementConstructorImpl(context)
 
     open fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = when (context.projectType) {
-            ProjectType.Spring-> CgSpringVariableConstructor(context)
+            ProjectType.Spring -> CgSpringVariableConstructor(context)
             else -> CgVariableConstructor(context)
         }
 

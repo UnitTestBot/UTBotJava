@@ -10,8 +10,6 @@ import org.utbot.framework.codegen.domain.models.CgAllocateInitializedArray
 import org.utbot.framework.codegen.domain.models.CgArrayInitializer
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.domain.models.CgExpression
-import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
-import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable

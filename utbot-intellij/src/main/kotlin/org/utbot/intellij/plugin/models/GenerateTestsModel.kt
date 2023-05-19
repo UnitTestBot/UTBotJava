@@ -21,7 +21,7 @@ import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.TypeReplacementApproach
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.TestsType
+import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
 
@@ -44,8 +44,6 @@ class GenerateTestsModel(
     override var sourceRootHistory = project.service<Settings>().sourceRootHistory
     override var codegenLanguage = project.service<Settings>().codegenLanguage
 
-    lateinit var testType: TestsType
-
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     lateinit var mockFramework: MockFramework
@@ -56,6 +54,7 @@ class GenerateTestsModel(
     var runInspectionAfterTestGeneration: Boolean = true
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
+    lateinit var springTestType: SpringTestType
     lateinit var commentStyle: JavaDocCommentStyle
 
     lateinit var typeReplacementApproach: TypeReplacementApproach

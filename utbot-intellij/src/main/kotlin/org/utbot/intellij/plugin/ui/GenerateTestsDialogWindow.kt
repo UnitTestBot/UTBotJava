@@ -96,8 +96,8 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestsType
-import org.utbot.framework.plugin.api.TestsType.*
+import org.utbot.framework.plugin.api.SpringTestType
+import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.TypeReplacementApproach
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
@@ -203,7 +203,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
 
-    private val sprintTestType = createComboBox(TestsType.values())
+    private val sprintTestType = createComboBox(SpringTestType.values())
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
     private val profileNames = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
 
@@ -682,7 +682,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 }
             }
         model.profileNames = profileNames.text.let { it.ifEmpty { DEFAULT_SPRING_PROFILE_NAME } }
-        model.testType = sprintTestType.item
+        model.springTestType = sprintTestType.item
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -830,7 +830,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ?: if (settings.testFramework != Junit4) settings.testFramework else TestFramework.parametrizedDefaultItem
         }
 
-        sprintTestType.item = settings.testsType
+        sprintTestType.item = settings.springTestType
 
         updateTestFrameworksList(settings.parametrizedTestSource)
         updateParametrizationEnabled()
@@ -1208,13 +1208,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun updateSpringSettings() {
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
-        springConfig.isEnabled =
-            (model.projectType == ProjectType.Spring || model.projectType == ProjectType.Spring)
-                    && springConfig.itemCount > 1
+        springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
 
-        sprintTestType.renderer = object : ColoredListCellRenderer<TestsType>() {
+        sprintTestType.renderer = object : ColoredListCellRenderer<SpringTestType>() {
             override fun customizeCellRenderer(
-                list: JList<out TestsType>, value: TestsType,
+                list: JList<out SpringTestType>, value: SpringTestType,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
                 this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)

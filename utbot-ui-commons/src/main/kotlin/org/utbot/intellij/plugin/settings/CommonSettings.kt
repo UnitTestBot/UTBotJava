@@ -36,7 +36,7 @@ import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
 import org.utbot.common.isWindows
 import org.utbot.framework.SummariesGenerationType
-import org.utbot.framework.plugin.api.TestsType
+import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 @State(
@@ -61,7 +61,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
-        var testsType: TestsType = TestsType.defaultItem,
+        var springTestType: SpringTestType = SpringTestType.defaultItem,
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
@@ -89,7 +89,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (treatOverflowAsError != other.treatOverflowAsError) return false
             if (parametrizedTestSource != other.parametrizedTestSource) return false
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
-            if (testsType != other.testsType) return false
+            if (springTestType != other.springTestType) return false
             if (fuzzingValue != other.fuzzingValue) return false
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
             if (commentStyle != other.commentStyle) return false
@@ -112,7 +112,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + treatOverflowAsError.hashCode()
             result = 31 * result + parametrizedTestSource.hashCode()
             result = 31 * result + classesToMockAlways.contentHashCode()
-            result = 31 * result + testsType.hashCode()
+            result = 31 * result + springTestType.hashCode()
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
             result = 31 * result + summariesGenerationType.hashCode()
@@ -159,7 +159,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     val classesToMockAlways: Set<String> get() = state.classesToMockAlways.toSet()
 
-    val testsType: TestsType get() = state.testsType
+    val springTestType: SpringTestType get() = state.springTestType
 
     val javaDocCommentStyle: JavaDocCommentStyle get() = state.commentStyle
 

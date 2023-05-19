@@ -23,7 +23,7 @@ private fun fromGenerateTestsModel(model: GenerateTestsModel): Settings.State {
         forceStaticMocking = model.forceStaticMocking,
         parametrizedTestSource = model.parametrizedTestSource,
         classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
-        testsType = model.testType,
+        springTestType = model.springTestType,
         fuzzingValue = model.fuzzingValue,
         runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,
         commentStyle = model.commentStyle,

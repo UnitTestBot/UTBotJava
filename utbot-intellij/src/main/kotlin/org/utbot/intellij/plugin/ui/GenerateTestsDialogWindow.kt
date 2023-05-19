@@ -65,7 +65,6 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.ComboBoxPredicate
 import com.intellij.util.IncorrectOperationException
-import com.intellij.util.lang.JavaVersion
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.JBUI.Borders.empty
 import com.intellij.util.ui.JBUI.Borders.merge
@@ -160,6 +159,7 @@ import javax.swing.JList
 import javax.swing.JSpinner
 import javax.swing.text.DefaultFormatter
 import kotlin.io.path.notExists
+import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 
 
 private const val RECENTS_KEY = "org.utbot.recents"
@@ -469,15 +469,30 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         initDefaultValues()
         setListeners()
         updateMembersTable()
+        initValidation()
         return panel
     }
 
-    override fun createTitlePane(): JComponent? {
-        val sdkVersion = findSdkVersion(model.srcModule)
-        // TODO:SAT-1571 investigate Android Studio specific sdk issues
-        if (sdkVersion.feature in minSupportedSdkVersion..maxSupportedSdkVersion || IntelliJApiHelper.isAndroidStudio()) return null
-        isOKActionEnabled = false
-        return SdkNotificationPanel(model, sdkVersion)
+    // TODO:SAT-1571 investigate Android Studio specific sdk issues
+    fun isSdkSupported() : Boolean =
+        findSdkVersion(model.srcModule).feature in minSupportedSdkVersion..maxSupportedSdkVersion
+                || IntelliJApiHelper.isAndroidStudio()
+
+    override fun setOKActionEnabled(isEnabled: Boolean) {
+        super.setOKActionEnabled(isEnabled)
+        getButton(okAction)?.apply {
+            UIUtil.setEnabled(this, isEnabled, true)
+            okOptionAction?.isEnabled = isEnabled
+            okOptionAction?.options?.forEach { it.isEnabled = isEnabled }
+        }
+    }
+
+    override fun createTitlePane(): JComponent? = if (isSdkSupported()) null else SdkNotificationPanel(model)
+
+    override fun createSouthPanel(): JComponent {
+        val southPanel = super.createSouthPanel()
+        if (!isSdkSupported()) isOKActionEnabled = false
+        return southPanel
     }
 
     private fun findTestPackageComboValue(): String {
@@ -493,19 +508,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      *
      * Note: this implementation was encouraged by NonModalCommitPromoter.
      */
-    private inner class SdkNotificationPanel(
-        private val model: GenerateTestsModel,
-        private val sdkVersion: JavaVersion?,
-    ) : BorderLayoutPanel() {
+    private inner class SdkNotificationPanel(private val model: GenerateTestsModel) :
+        BorderLayoutPanel(scale(UIUtil.DEFAULT_HGAP), 0) {
         init {
             border = merge(empty(10), createBorder(JBColor.border(), SideBorder.BOTTOM), true)
 
-            addToLeft(JBLabel().apply {
+            addToCenter(JBLabel().apply {
                 icon = AllIcons.Ide.FatalError
-                text = if (sdkVersion != null) {
-                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}, ${JavaSdkVersion.JDK_11} or ${JavaSdkVersion.JDK_17}"
-                } else {
-                    "SDK is not defined"
+                text = run {
+                    val sdkVersion = findSdkVersionOrNull(this@GenerateTestsDialogWindow.model.srcModule)?.feature
+                    if (sdkVersion != null) {
+                        "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}, ${JavaSdkVersion.JDK_11} or ${JavaSdkVersion.JDK_17}"
+                    } else {
+                        "SDK is not defined"
+                    }
                 }
             })
 
@@ -530,6 +546,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     if (sdkFixed) {
                         this@SdkNotificationPanel.isVisible = false
                         isOKActionEnabled = true
+                        initValidation()
                     }
                 }
             }
@@ -633,8 +650,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
-    private val okOptionAction: OKOptionAction get() = OKOptionAction(model, super.getOKAction())
-    override fun getOKAction() = okOptionAction
+    private var okOptionAction: OKOptionAction? = null
+    override fun getOKAction(): Action {
+        if (okOptionAction == null) {
+            okOptionAction = OKOptionAction(model, super.getOKAction())
+        }
+        return okOptionAction!!
+    }
 
     override fun doOKAction() {
         fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))

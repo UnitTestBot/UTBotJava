@@ -361,7 +361,11 @@ class UtBotSymbolicEngine(
                 when (applicationContext) {
                     is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
                         is TypeReplacementApproach.ReplaceIfPossible -> {
-                            val beanNames = applicationContext.beanDefinitions.map { it.beanName }
+                            val beanNames = applicationContext.beanDefinitions.filter {
+                                it.beanTypeFqn == fuzzedType.classId.name
+                            }.map {
+                                it.beanName
+                            }
                             AutowiredFuzzedType(fuzzedType, beanNames)
                         }
                         is TypeReplacementApproach.DoNotReplace -> fuzzedType

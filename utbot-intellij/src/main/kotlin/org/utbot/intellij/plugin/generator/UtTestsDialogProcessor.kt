@@ -14,11 +14,10 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.psi.JavaPsiFacade
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
-import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.PsiUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.task.ProjectTask
 import com.intellij.task.ProjectTaskManager
@@ -41,7 +40,6 @@ import kotlin.io.path.pathString
 import mu.KotlinLogging
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.all
-import org.jetbrains.concurrency.thenRun
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.kotlin.idea.base.util.module
 import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
@@ -51,6 +49,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.codegen.domain.TypeReplacementApproach.*
 import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.SpringApplicationContext
@@ -69,6 +68,8 @@ import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
+import org.utbot.intellij.plugin.util.PsiClassHelper
+import org.utbot.intellij.plugin.util.isAbstract
 import org.utbot.intellij.plugin.util.PluginJdkInfoProvider
 import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
@@ -174,8 +175,7 @@ object UtTestsDialogProcessor {
             DoNotReplace -> null
             is ReplaceIfPossible ->
                 approach.config.takeUnless { it.endsWith(".xml") }?.let {
-                    JavaPsiFacade.getInstance(project).findClass(it, GlobalSearchScope.projectScope(project)) ?:
-                        error("Can't find configuration class $it")
+                    PsiClassHelper.findClass(it, project) ?: error("Cannot find configuration class $it.")
                 }
         }
 
@@ -263,10 +263,13 @@ object UtTestsDialogProcessor {
                                         }
                                     val shouldUseImplementors = beanDefinitions.isNotEmpty()
 
+                                    val clarifiedBeanDefinitions =
+                                        clarifyBeanDefinitionReturnTypes(beanDefinitions, project)
+
                                     SpringApplicationContext(
                                         mockFrameworkInstalled,
                                         staticMockingConfigured,
-                                        beanDefinitions,
+                                        clarifiedBeanDefinitions,
                                         shouldUseImplementors,
                                     )
                                 }
@@ -443,6 +446,60 @@ object UtTestsDialogProcessor {
                     ?: error("Unable to get canonical name for $this")
                 "$packageName.$name"
             }
+        }
+
+    private fun clarifyBeanDefinitionReturnTypes(beanDefinitions: List<BeanDefinitionData>, project: Project) =
+        beanDefinitions.map { bean ->
+            // Here we extract a real return type.
+            // E.g. for a method
+            // public Toy getToy() { return new SpecToy() }
+            // we want not Toy but SpecToy type.
+            // If there are more than one return type, we take type from a signature.
+            // We process beans with present additional data only.
+            val beanType = runReadAction {
+                val additionalData = bean.additionalData ?: return@runReadAction null
+
+                val configPsiClass =
+                    PsiClassHelper.findClass(additionalData.configClassFqn, project) ?: return@runReadAction null
+                        .also {
+                            logger.warn("Cannot find configuration class ${additionalData.configClassFqn}.")
+                        }
+
+                val beanPsiMethod =
+                    configPsiClass
+                        .findMethodsByName(bean.beanName)
+                        .mapNotNull { jvmMethod ->
+                            (jvmMethod as PsiMethod)
+                                .takeIf { method ->
+                                    !method.isAbstract && method.body?.isEmpty == false &&
+                                            method.parameterList.parameters.map { it.type.canonicalText } == additionalData.parameterTypes
+                                }
+                        }
+                        // Here we try to take a single element
+                        // because we expect no or one method matching previous conditions only.
+                        // If there were two or more similar methods in one class, it would be a weird case.
+                        .singleOrNull()
+                        ?: return@runReadAction null
+                            .also {
+                                logger.warn(
+                                    "Several similar methods named ${bean.beanName} " +
+                                            "were found in ${additionalData.configClassFqn} configuration class."
+                                )
+                            }
+
+                val beanTypes =
+                    PsiUtil
+                        .findReturnStatements(beanPsiMethod)
+                        .mapNotNullTo(mutableSetOf()) { stmt -> stmt.returnValue?.type?.canonicalText }
+
+                beanTypes.singleOrNull() ?: bean.beanTypeFqn
+            } ?: return@map bean
+
+            BeanDefinitionData(
+                beanName = bean.beanName,
+                beanTypeFqn = beanType,
+                additionalData = bean.additionalData
+            )
         }
 
     private fun errorMessage(className: String?, timeout: Long) = buildString {

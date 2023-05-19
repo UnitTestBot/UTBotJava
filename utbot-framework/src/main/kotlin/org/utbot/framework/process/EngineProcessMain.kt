@@ -87,7 +87,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             springAnalyzerProcess.terminate()
             val beanDefinitions = result.beanDefinitions
                 .map { data ->
-                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.configClassFqn) }
+                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
                     BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
                 }
                 .toTypedArray()

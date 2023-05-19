@@ -1386,9 +1386,9 @@ data class BeanDefinitionData(
  */
 data class BeanAdditionalData(
     val factoryMethodName: String,
+    val parameterTypes: List<String>,
     val configClassFqn: String,
 )
-
 
 val RefType.isAbstractType
  get() = this.sootClass.isAbstract || this.sootClass.isInterface

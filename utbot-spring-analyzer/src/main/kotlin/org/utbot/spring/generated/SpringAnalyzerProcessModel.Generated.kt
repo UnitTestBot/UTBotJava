@@ -50,7 +50,7 @@ class SpringAnalyzerProcessModel private constructor(
         }
         
         
-        const val serializationHash = -2275009816925697183L
+        const val serializationHash = 8934866731594302609L
         
     }
     override val serializersOwner: ISerializersOwner get() = SpringAnalyzerProcessModel
@@ -101,6 +101,7 @@ val IProtocol.springAnalyzerProcessModel get() = getOrCreateExtension(SpringAnal
  */
 data class BeanAdditionalData (
     val factoryMethodName: String,
+    val parameterTypes: List<String>,
     val configClassFqn: String
 ) : IPrintable {
     //companion
@@ -111,12 +112,14 @@ data class BeanAdditionalData (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanAdditionalData  {
             val factoryMethodName = buffer.readString()
+            val parameterTypes = buffer.readList { buffer.readString() }
             val configClassFqn = buffer.readString()
-            return BeanAdditionalData(factoryMethodName, configClassFqn)
+            return BeanAdditionalData(factoryMethodName, parameterTypes, configClassFqn)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanAdditionalData)  {
             buffer.writeString(value.factoryMethodName)
+            buffer.writeList(value.parameterTypes) { v -> buffer.writeString(v) }
             buffer.writeString(value.configClassFqn)
         }
         
@@ -134,6 +137,7 @@ data class BeanAdditionalData (
         other as BeanAdditionalData
         
         if (factoryMethodName != other.factoryMethodName) return false
+        if (parameterTypes != other.parameterTypes) return false
         if (configClassFqn != other.configClassFqn) return false
         
         return true
@@ -142,6 +146,7 @@ data class BeanAdditionalData (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + factoryMethodName.hashCode()
+        __r = __r*31 + parameterTypes.hashCode()
         __r = __r*31 + configClassFqn.hashCode()
         return __r
     }
@@ -150,6 +155,7 @@ data class BeanAdditionalData (
         printer.println("BeanAdditionalData (")
         printer.indent {
             print("factoryMethodName = "); factoryMethodName.print(printer); println()
+            print("parameterTypes = "); parameterTypes.print(printer); println()
             print("configClassFqn = "); configClassFqn.print(printer); println()
         }
         printer.print(")")
@@ -160,7 +166,7 @@ data class BeanAdditionalData (
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:20]
+ * #### Generated from [SpringAnalyzerModel.kt:21]
  */
 data class BeanDefinitionData (
     val beanName: String,
@@ -298,7 +304,7 @@ data class SpringAnalyzerParams (
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:26]
+ * #### Generated from [SpringAnalyzerModel.kt:27]
  */
 data class SpringAnalyzerResult (
     val beanDefinitions: Array<BeanDefinitionData>

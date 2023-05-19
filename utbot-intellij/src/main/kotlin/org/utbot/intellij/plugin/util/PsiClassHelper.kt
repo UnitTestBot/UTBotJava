@@ -3,8 +3,11 @@ package org.utbot.intellij.plugin.util
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMember
 import com.intellij.psi.PsiMethod
-import com.intellij.psi.PsiModifier
 import com.intellij.psi.SyntheticElement
+import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.PsiModifier
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.openapi.project.Project
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import org.jetbrains.kotlin.asJava.elements.KtLightMember
@@ -84,3 +87,10 @@ fun PsiClass.extractFirstLevelMembers(includeInherited: Boolean): List<MemberInf
 
 val PsiClass.isVisible: Boolean
     get() = generateSequence(this) { it.containingClass }.none { it.isPrivateOrProtected }
+
+object PsiClassHelper {
+    fun findClass(name: String, project: Project): PsiClass? =
+        JavaPsiFacade
+            .getInstance(project)
+            .findClass(name, GlobalSearchScope.projectScope(project))
+}

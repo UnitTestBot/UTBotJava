@@ -54,6 +54,7 @@ import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.SpringApplicationContext
+import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -358,6 +359,23 @@ object UtTestsDialogProcessor {
                                             )
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
+                                        val useEngine = when (model.projectType) {
+                                            Spring -> when (model.springTestType) {
+                                                SpringTestType.UNIT_TESTS -> true
+                                                SpringTestType.INTEGRATION_TESTS -> false
+                                            }
+                                            else -> true
+                                        }
+                                        val useFuzzing = when (model.projectType) {
+                                            Spring -> when (model.springTestType) {
+                                                SpringTestType.UNIT_TESTS -> when (model.typeReplacementApproach) {
+                                                    DoNotReplace -> true
+                                                    is ReplaceIfPossible -> false
+                                                }
+                                                SpringTestType.INTEGRATION_TESTS -> true
+                                            }
+                                            else -> UtSettings.useFuzzing
+                                        }
                                         val rdGenerateResult = process.generate(
                                             model.conflictTriggers,
                                             methods,
@@ -365,8 +383,8 @@ object UtTestsDialogProcessor {
                                             model.chosenClassesToMockAlways,
                                             model.timeout,
                                             model.timeout,
-                                            false,
-                                            true,
+                                            useEngine,
+                                            useFuzzing,
                                             project.service<Settings>().fuzzingValue,
                                             searchDirectory.pathString
                                         )

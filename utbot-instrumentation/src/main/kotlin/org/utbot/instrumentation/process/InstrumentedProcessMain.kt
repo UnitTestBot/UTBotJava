@@ -8,6 +8,7 @@ import org.mockito.Mockito
 import org.utbot.common.*
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
@@ -142,6 +143,8 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         logger.debug { "setInstrumentation request" }
         instrumentation = kryoHelper.readObject(params.instrumentation)
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
+        Agent.dynamicClassTransformer.transformer = instrumentation
+        Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
         instrumentation.init(pathsToUserClasses)
     }
     watchdog.measureTimeForActiveCall(addPaths, "User and dependency classpath setup") { params ->

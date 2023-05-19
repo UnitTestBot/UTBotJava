@@ -59,7 +59,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val pathsToUserClasses = mutableSetOf<String>()
 
     override fun init(pathsToUserClasses: Set<String>) {
-        super.init(pathsToUserClasses)
         UtExecutionInstrumentation.pathsToUserClasses.clear()
         UtExecutionInstrumentation.pathsToUserClasses += pathsToUserClasses
     }

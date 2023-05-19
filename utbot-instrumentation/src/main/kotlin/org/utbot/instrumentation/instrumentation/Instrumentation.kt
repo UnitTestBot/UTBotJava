@@ -33,8 +33,5 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
      *
      * Do not call from engine process to avoid unwanted side effects (e.g. Spring context initialization)
      */
-    fun init(pathsToUserClasses: Set<String>) {
-        Agent.dynamicClassTransformer.transformer = this // classTransformer is set
-        Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
-    }
+    fun init(pathsToUserClasses: Set<String>) {}
 }

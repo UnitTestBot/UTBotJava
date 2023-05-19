@@ -1,9 +1,12 @@
 package org.utbot.instrumentation.instrumentation.execution
 
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.info
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
+import java.security.ProtectionDomain
 import kotlin.random.Random
 
 /**
@@ -14,6 +17,10 @@ class SpringUtExecutionInstrumentation(
     private val springConfig: String
 ) : Instrumentation<UtConcreteExecutionResult> by instrumentation {
     private lateinit var springContext: Any
+
+    companion object {
+        private val logger = getLogger<SpringUtExecutionInstrumentation>()
+    }
 
     override fun init(pathsToUserClasses: Set<String>) {
         instrumentation.instrumentationContext = object : SpringInstrumentationContext() {
@@ -66,4 +73,27 @@ class SpringUtExecutionInstrumentation(
             .getMethod("save", Any::class.java)
             .invoke(repository, entity)
     }
+
+    override fun transform(
+        loader: ClassLoader?,
+        className: String,
+        classBeingRedefined: Class<*>?,
+        protectionDomain: ProtectionDomain,
+        classfileBuffer: ByteArray
+    ): ByteArray? =
+        // TODO automatically detect which libraries we don't want to transform (by total transformation time)
+        // transforming Spring takes too long
+        if (listOf(
+                "org/springframework",
+                "com/fasterxml",
+                "org/hibernate",
+                "org/apache",
+                "org/h2"
+            ).any { className.startsWith(it) }
+        ) {
+            logger.info { "Skipping transforming: $className" }
+            null
+        } else {
+            instrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
+        }
 }

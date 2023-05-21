@@ -1292,14 +1292,14 @@ sealed class TypeReplacementApproach {
  * @param beanDefinitions describes bean definitions (bean name, type, some optional additional data)
  * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
  */
-// TODO move it to utbot-framework so we can get use it as abstract factory
+// TODO move this class to utbot-framework so we can use it as abstract factory
 //  to get rid of numerous `when`s and polymorphically create things like:
 //    - Instrumentation<UtConcreteExecutionResult>
 //    - FuzzedType (to get rid of thisInstanceFuzzedTypeWrapper)
 //    - JavaValueProvider
 //    - CgVariableConstructor
 //    - CodeGeneratorResult (generateForSpringClass)
-//  Right now this refactoring is block because interface need to be extracted and moved to utbot-framework-api
+//  Right now this refactoring is blocked because some interfaces need to get extracted and moved to utbot-framework-api
 //  As an alternative we can just move ApplicationContext itself to utbot-framework
 class SpringApplicationContext(
     mockInstalled: Boolean,

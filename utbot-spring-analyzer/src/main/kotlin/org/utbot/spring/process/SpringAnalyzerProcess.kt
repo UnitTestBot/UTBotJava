@@ -89,7 +89,7 @@ class SpringAnalyzerProcess private constructor(
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
                     classpathArgs = listOf(
                         "-cp",
-                        "\"${extendedClasspath.joinToString(File.pathSeparator)}\"",
+                        extendedClasspath.joinToString(File.pathSeparator),
                         "org.utbot.spring.process.SpringAnalyzerProcessMainKt"
                     )
                     val cmd = obtainProcessCommandLine(port)

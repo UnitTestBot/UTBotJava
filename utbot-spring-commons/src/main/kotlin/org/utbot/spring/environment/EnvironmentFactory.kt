@@ -1,13 +1,13 @@
 package org.utbot.spring.environment
 
-//import com.jetbrains.rd.util.getLogger
-//import com.jetbrains.rd.util.info
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.info
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.env.StandardEnvironment
 import org.utbot.spring.context.InstantiationContext
 
 
-//private val logger = getLogger<EnvironmentFactory>()
+private val logger = getLogger<EnvironmentFactory>()
 
 class EnvironmentFactory(
     private val instantiationContext: InstantiationContext
@@ -24,7 +24,7 @@ class EnvironmentFactory(
         try {
             environment.setActiveProfiles(*profilesToActivate)
         } catch (e: Exception) {
-            //logger.info { "Setting ${applicationData.profileExpression} as active profiles failed with exception $e" }
+            logger.info { "Setting ${instantiationContext.profileExpression} as active profiles failed with exception $e" }
         }
 
         return environment

@@ -116,15 +116,11 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     watchdog.measureTimeForActiveCall(generate, "Generating tests") { params ->
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)
         logger.debug().measureTime({ "starting generation for ${methods.size} methods, starting with ${methods.first()}" }) {
-            val generateFlow = when (testGenerator.applicationContext) {
-                is SpringApplicationContext -> defaultSpringFlow(params)
-                is ApplicationContext -> testFlow {
+            val generateFlow = testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                     isFuzzingEnabled = params.isFuzzingEnabled
                     fuzzingValue = params.fuzzingValue
-                }
-                else -> error("Unknown application context ${testGenerator.applicationContext}")
             }
 
             val result = testGenerator.generate(

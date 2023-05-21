@@ -18,7 +18,6 @@ import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.SpringAnalyzerResult
 import org.utbot.spring.generated.springAnalyzerProcessModel
-import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 private val messageFromMainTimeoutMillis = 120.seconds
@@ -43,7 +42,7 @@ private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtoco
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->
         val applicationData = ApplicationData(
             params.configuration,
-            params.fileStorage.map { File(it).toURI().toURL() },
+            params.fileStorage,
             params.profileExpression,
         )
 

@@ -8,6 +8,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.roots.ProjectFileIndex
@@ -252,7 +253,7 @@ object UtTestsDialogProcessor {
                                                     }
                                                 }
 
-                                                val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
+                                                val fileStorage = arrayOf(model.project.guessProjectDir().toString())
                                                 process.getSpringBeanDefinitions(
                                                     classpathForClassLoader,
                                                     approach.config,

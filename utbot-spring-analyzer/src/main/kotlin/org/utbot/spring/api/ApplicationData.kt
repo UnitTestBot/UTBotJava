@@ -1,9 +1,7 @@
 package org.utbot.spring.api
 
-import java.net.URL
-
 class ApplicationData(
     val configurationFile: String,
-    val fileStorage: List<URL>,
+    val fileStorage: Array<String>,
     val profileExpression: String?,
 )

@@ -9,6 +9,7 @@ import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.generated.BeanDefinitionData
 import org.utbot.spring.utils.EnvironmentFactory
 import org.utbot.spring.utils.SourceFinder
+import org.utbot.spring.patchers.SourcePatcher
 
 private val logger = getLogger<SpringApplicationAnalyzerFacade>()
 
@@ -20,6 +21,8 @@ class SpringApplicationAnalyzerFacade(private val applicationData: ApplicationDa
         logger.info { "Current Spring Boot version is: " + runCatching { SpringBootVersion.getVersion() }.getOrNull() }
 
         val sources = SourceFinder(applicationData).findSources()
+        SourcePatcher(applicationData.fileStorage).patchSources(sources)
+
         val environmentFactory = EnvironmentFactory(applicationData)
 
         for (analyzer in listOf(SpringBootApplicationAnalyzer(), PureSpringApplicationAnalyzer())) {

@@ -2,11 +2,12 @@ package org.utbot.spring.utils
 
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
+import org.springframework.context.annotation.ImportResource
 import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.config.TestApplicationConfiguration
 import org.utbot.spring.configurators.ApplicationConfigurationType
+import org.utbot.spring.patchers.AnnotationPatcher
 import java.io.File
-import kotlin.io.path.Path
 
 private val logger = getLogger<SourceFinder>()
 
@@ -18,9 +19,9 @@ open class SourceFinder(
     fun findSources(): Array<Class<*>> = when (configurationType) {
         ApplicationConfigurationType.XmlConfiguration -> {
             logger.info { "Using xml Spring configuration" }
-            val configurationManager = ConfigurationManager(classLoader, TestApplicationConfiguration::class.java)
+            val annotationPatcher = AnnotationPatcher(TestApplicationConfiguration::class.java, applicationData.fileStorage)
             // Put `applicationData.configurationFile` in `@ImportResource` of `TestApplicationConfiguration`
-            configurationManager.patchImportResourceAnnotation(Path(applicationData.configurationFile).fileName)
+            annotationPatcher.patchAnnotation(ImportResource::class, arrayOf("file:${applicationData.configurationFile}"))
             arrayOf(TestApplicationConfiguration::class.java)
         }
         ApplicationConfigurationType.JavaConfiguration -> {

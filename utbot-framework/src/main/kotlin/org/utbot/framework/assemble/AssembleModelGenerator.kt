@@ -185,7 +185,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
             if (utModel.classId.isAnonymous) {
                 return utModel
             }
-        } catch (e: Exception) {
+        } catch (e: ClassNotFoundException) {
             // happens, for example, when `utModel.classId.name` is something like "jdk.proxy3.$Proxy144"
             return utModel
         }

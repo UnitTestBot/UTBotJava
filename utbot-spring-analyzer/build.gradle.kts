@@ -1,5 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
-import com.github.jengelman.gradle.plugins.shadow.transformers.PropertiesFileTransformer
 
 val springBootVersion: String by rootProject
 val rdVersion: String by rootProject
@@ -43,7 +42,6 @@ application {
     mainClass.set("org.utbot.spring.process.SpringAnalyzerProcessMainKt")
 }
 
-// see more details -- https://github.com/spring-projects/spring-boot/issues/1828
 tasks.shadowJar {
     isZip64 = true
 

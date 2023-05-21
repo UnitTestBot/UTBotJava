@@ -1,5 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
-import com.github.jengelman.gradle.plugins.shadow.transformers.PropertiesFileTransformer
 
 val asmVersion: String by rootProject
 val kryoVersion: String by rootProject
@@ -58,7 +57,6 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
 }
 
-// see more details -- https://github.com/spring-projects/spring-boot/issues/1828
 tasks.shadowJar {
     manifest {
         attributes(

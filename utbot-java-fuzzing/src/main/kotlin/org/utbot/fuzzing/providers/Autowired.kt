@@ -8,13 +8,12 @@ class AutowiredValueProvider(
     private val idGenerator: IdGenerator<Int>,
     private val autowiredModelOriginCreator: (beanName: String) -> UtModel
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
-    override fun accept(type: FuzzedType) = type is AutowiredFuzzedType
+    override fun accept(type: FuzzedType) = type is AutowiredFuzzedType && type.beanNames.isNotEmpty()
 
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
     ) = sequence {
-        // TODO if there are no beanNames just use constructor
         (type as AutowiredFuzzedType).beanNames.forEach { beanName ->
             yield(
                 Seed.Recursive<FuzzedType, FuzzedValue>(

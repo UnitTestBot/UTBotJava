@@ -103,4 +103,11 @@ class PythonFuzzing(
     override suspend fun handle(description: PythonMethodDescription, values: List<PythonFuzzedValue>): PythonFeedback {
         return execute(description, values)
     }
+
+    override suspend fun isCancelled(
+        description: PythonMethodDescription,
+        stats: Statistic<Type, PythonFuzzedValue>
+    ): Boolean {
+        return false
+    }
 }

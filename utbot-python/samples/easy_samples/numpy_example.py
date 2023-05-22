@@ -14,7 +14,20 @@ def transpose(arr: npt.ArrayLike):
         return arr.dot(arr.T)
 
 
-def f(arr: np.ndarray[np.int64, np.dtype[np.int64]]):
+def f(arr: np.ndarray[np.int64, np.dtype[np.float64]]):
     if len(arr.shape) > 0:
         return arr.shape[0], arr * 2
     return arr
+
+
+def nf(x: npt.DTypeLike[np.int64]):
+    return x
+
+
+class A:
+    pass
+
+
+def f1(x: A):
+    x.a = 100
+    return str(x)

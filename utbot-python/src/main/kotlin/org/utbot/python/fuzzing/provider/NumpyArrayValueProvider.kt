@@ -23,7 +23,7 @@ object NumpyArrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMe
             construct = Routine.Collection {
                 PythonFuzzedValue(
                     PythonTree.ReduceNode(
-                        PythonClassId("numpy.array"),
+                        PythonClassId("numpy.ndarray"),
                         PythonClassId("numpy.array"),
                         mutableListOf(),
                     ),
@@ -32,39 +32,12 @@ object NumpyArrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMe
             },
             modify = Routine.ForEach(param) { self, i, values ->
                 val tree = (self.tree as PythonTree.ReduceNode)
-                if (tree.args.size < i) {
+                if (tree.args.size <= i) {
                     tree.args.add(values.first().tree)
                 } else {
                     tree.args[i] = values.first().tree
                 }
             }
         ))
-
-//            construct = Routine.Create(
-//                listOf(
-//                    type.parameters.last()
-//                )
-//            ) { v ->
-//                val value = v.first().tree as PythonTree.ListNode
-//                PythonFuzzedValue(
-//                    PythonTree.ReduceNode(
-//                        PythonClassId("numpy.array"),
-//                        PythonClassId("numpy.array"),
-//                        listOf(value)
-//                    ),
-//                    "%var% = ${type.pythonTypeRepresentation()}",
-//                )
-//            },
-//            empty = Routine.Empty {
-//                PythonFuzzedValue(
-//                    PythonTree.ReduceNode(
-//                        PythonClassId("numpy.array"),
-//                        PythonClassId("numpy.array"),
-//                        listOf(PythonTree.ListNode(mutableMapOf()))
-//                    ),
-//                    "%var% = ${type.pythonTypeRepresentation()}"
-//                )
-//            }
-//        ))
     }
 }

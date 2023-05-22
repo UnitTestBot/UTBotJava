@@ -33,6 +33,21 @@ def bfs(nodes):
     return visited
 
 
+def dfs(nodes):
+    if len(nodes) == 0:
+        return []
+
+    visited = []
+    queue = deque(nodes)
+    while len(queue) > 0:
+        node = queue.pop()
+        if node not in visited:
+            visited.append(node)
+            for child in node.children:
+                queue.append(child)
+    return visited
+
+
 if __name__ == '__main__':
     a = Node('a', [])
     b = Node('b', [])

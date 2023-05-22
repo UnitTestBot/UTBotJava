@@ -236,6 +236,12 @@ open class EnvironmentModels(
     operator fun component1(): UtModel? = thisInstance
     operator fun component2(): List<UtModel> = parameters
     operator fun component3(): Map<FieldId, UtModel> = statics
+
+    fun copy(
+        thisInstance: UtModel? = this.thisInstance,
+        parameters: List<UtModel> = this.parameters,
+        statics: Map<FieldId, UtModel> = this.statics
+    ) = EnvironmentModels(thisInstance, parameters, statics)
 }
 
 /**

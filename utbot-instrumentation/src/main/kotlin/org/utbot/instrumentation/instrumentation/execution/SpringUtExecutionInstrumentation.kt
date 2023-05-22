@@ -2,11 +2,19 @@ package org.utbot.instrumentation.instrumentation.execution
 
 import org.utbot.common.JarUtils
 import com.jetbrains.rd.util.getLogger
-import com.jetbrains.rd.util.info
+import org.utbot.framework.plugin.api.RepositoryInteractionModel
+import org.utbot.framework.plugin.api.UtAutowiredStateAfterModel
+import org.utbot.framework.plugin.api.UtConcreteValue
+import org.utbot.framework.plugin.api.idOrNull
+import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.phases.ModelConstructionPhase
+import org.utbot.instrumentation.process.HandlerClassesLoader
+import org.utbot.spring.api.repositoryWrapper.RepositoryInteraction
 import java.security.ProtectionDomain
 import kotlin.random.Random
 
@@ -21,6 +29,7 @@ class SpringUtExecutionInstrumentation(
 
     companion object {
         private val logger = getLogger<SpringUtExecutionInstrumentation>()
+        private const val SPRING_COMMONS_JAR_FILENAME = "utbot-spring-commons-shadow.jar"
     }
 
     override fun init(pathsToUserClasses: Set<String>) {
@@ -44,15 +53,18 @@ class SpringUtExecutionInstrumentation(
         Thread.currentThread().contextClassLoader = classLoader
 
         // TODO correctly handle the case when springConfig is an XML config
-        val configClass = classLoader.loadClass(springConfig)
+        val primarySources = arrayOf(
+            classLoader.loadClass(springConfig),
+            classLoader.loadClass("org.utbot.spring.repositoryWrapper.RepositoryWrapperConfiguration")
+        )
         val args = arrayOf("--server.port=${Random.nextInt(2048, 65536)}")
         // TODO if we don't have SpringBoot just create ApplicationContext here, reuse code from utbot-spring-analyzer
         // TODO recreate context/app every time whenever we change method under test
         val springAppClass =
             classLoader.loadClass("org.springframework.boot.SpringApplication")
         springContext = springAppClass
-            .getMethod("run", configClass::class.java, args::class.java)
-            .invoke(null, configClass, args)
+            .getMethod("run", primarySources::class.java, args::class.java)
+            .invoke(null, primarySources, args)
     }
 
     override fun invoke(
@@ -61,6 +73,7 @@ class SpringUtExecutionInstrumentation(
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult {
+        RepositoryInteraction.recordedInteractions.clear()
         // TODO properly detect which beans need to be reset, right now "orderRepository" and "orderService" are hardcoded
         val beanNamesToReset = listOf("orderRepository", "orderService")
         beanNamesToReset.forEach { beanNameToReset ->
@@ -90,7 +103,22 @@ class SpringUtExecutionInstrumentation(
             .getMethod("execute", sql::class.java)
             .invoke(jdbcTemplate, sql2)
 
-        return instrumentation.invoke(clazz, methodSignature, arguments, parameters)
+        return instrumentation.invoke(clazz, methodSignature, arguments, parameters) { executionResult ->
+            executePhaseInTimeout(modelConstructionPhase) {
+                executionResult.copy(
+                    stateAfter = executionResult.stateAfter.copy(
+                        thisInstance = executionResult.stateAfter.thisInstance?.let { thisInstance ->
+                            UtAutowiredStateAfterModel(
+                                id = thisInstance.idOrNull(),
+                                classId = thisInstance.classId,
+                                origin = thisInstance,
+                                repositoryInteractions = constructRepositoryInteractionModels()
+                            )
+                        }
+                    )
+                )
+            }
+        }
     }
 
     fun getBean(beanName: String): Any =
@@ -99,9 +127,26 @@ class SpringUtExecutionInstrumentation(
             .invoke(springContext, beanName)
 
     fun saveToRepository(repository: Any, entity: Any) {
+        // ignore repository interactions done during repository fill up
+        val savedRecordedRepositoryResponses = RepositoryInteraction.recordedInteractions.toList()
         repository::class.java
             .getMethod("save", Any::class.java)
             .invoke(repository, entity)
+        RepositoryInteraction.recordedInteractions.clear()
+        RepositoryInteraction.recordedInteractions.addAll(savedRecordedRepositoryResponses)
+    }
+
+    private fun ModelConstructionPhase.constructRepositoryInteractionModels(): List<RepositoryInteractionModel> {
+        return RepositoryInteraction.recordedInteractions.map { interaction ->
+            RepositoryInteractionModel(
+                beanName = interaction.beanName,
+                executableId = interaction.method.executableId,
+                args = constructParameters(interaction.args.zip(interaction.method.parameters).map { (arg, param) ->
+                    UtConcreteValue(arg, param.type)
+                }),
+                result = convertToExecutionResult(interaction.result, interaction.method.returnType.id)
+            )
+        }
     }
 
     override fun transform(

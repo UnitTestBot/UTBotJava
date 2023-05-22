@@ -31,7 +31,7 @@ data class UtConcreteExecutionData(
     val timeout: Long
 )
 
-class UtConcreteExecutionResult(
+data class UtConcreteExecutionResult(
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
     val coverage: Coverage
@@ -69,6 +69,15 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?
+    ): UtConcreteExecutionResult =
+        invoke(clazz, methodSignature, arguments, parameters, additionalPhases = { it })
+
+    fun invoke(
+        clazz: Class<*>,
+        methodSignature: String,
+        arguments: ArgumentList,
+        parameters: Any?,
+        additionalPhases: PhasesController.(UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
@@ -138,11 +147,11 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     executionResult to stateAfter
                 }
 
-                UtConcreteExecutionResult(
+                additionalPhases(UtConcreteExecutionResult(
                     stateAfter,
                     executionResult,
                     coverage
-                )
+                ))
             } finally {
                 postprocessingPhase.start {
                     resetStaticFields()

@@ -69,7 +69,11 @@ open class TestCaseGenerator(
     private val executionInstrumentation by lazy {
         when (applicationContext) {
             is SpringApplicationContext -> when (val approach = applicationContext.typeReplacementApproach) {
-                is TypeReplacementApproach.ReplaceIfPossible -> SpringUtExecutionInstrumentation(UtExecutionInstrumentation, approach.config)
+                is TypeReplacementApproach.ReplaceIfPossible ->
+                    when (applicationContext.testType) {
+                        SpringTestType.UNIT_TESTS -> UtExecutionInstrumentation
+                        SpringTestType.INTEGRATION_TESTS -> SpringUtExecutionInstrumentation(UtExecutionInstrumentation, approach.config)
+                    }
                 is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation
             }
             else -> UtExecutionInstrumentation

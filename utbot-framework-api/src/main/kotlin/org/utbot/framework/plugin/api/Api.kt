@@ -1306,7 +1306,8 @@ class SpringApplicationContext(
     staticsMockingIsConfigured: Boolean,
     val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
-    val typeReplacementApproach: TypeReplacementApproach
+    val typeReplacementApproach: TypeReplacementApproach,
+    val testType: SpringTestType
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
     companion object {

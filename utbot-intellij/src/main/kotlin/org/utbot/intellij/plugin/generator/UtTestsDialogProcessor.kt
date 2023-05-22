@@ -269,7 +269,8 @@ object UtTestsDialogProcessor {
                                         staticMockingConfigured,
                                         beanDefinitions,
                                         shouldUseImplementors,
-                                        model.typeReplacementApproach
+                                        model.typeReplacementApproach,
+                                        model.springTestType
                                     )
                                 }
                                 else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)

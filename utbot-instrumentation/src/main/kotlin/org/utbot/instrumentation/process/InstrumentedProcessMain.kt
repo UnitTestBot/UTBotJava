@@ -41,11 +41,13 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     }
 
     /**
-     * System classloader can find org.slf4j thus when we want to mock something from org.slf4j
-     * we also want this class will be loaded by [HandlerClassesLoader]
+     * System classloader can find org.slf4j and org.utbot.spring thus
+     *  - when we want to mock something from org.slf4j we also want this class will be loaded by [HandlerClassesLoader]
+     *  - we want org.utbot.spring to be loaded by [HandlerClassesLoader] so it can use Spring directly
      */
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
-        if (name.startsWith("org.slf4j")) {
+        // TODO figure out why system class loader can find org.utbot.spring
+        if (name.startsWith("org.slf4j") || name.startsWith("org.utbot.spring")) {
             return (findLoadedClass(name) ?: findClass(name)).apply {
                 if (resolve) resolveClass(this)
             }

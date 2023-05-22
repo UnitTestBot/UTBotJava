@@ -34,10 +34,14 @@ application {
     mainClass.set("org.utbot.instrumentation.process.InstrumentedProcessMainKt")
 }
 
+val fetchSpringCommonsJar: Configuration by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
 dependencies {
     implementation(project(":utbot-framework-api"))
     implementation(project(":utbot-rd"))
-    implementation(project(":utbot-spring-commons"))
 
     implementation("org.ow2.asm:asm:$asmVersion")
     implementation("org.ow2.asm:asm-commons:$asmVersion")
@@ -55,9 +59,27 @@ dependencies {
     implementation("org.mockito:mockito-inline:4.2.0")
 
     compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
+    fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
+}
+
+/**
+ * Shadow plugin unpacks the nested `utbot-spring-commons-shadow.jar`.
+ * But we need it to be packed. Workaround: double-nest the jar.
+ */
+val shadowJarUnpackWorkaround by tasks.register<Jar>("shadowBugWorkaround") {
+    destinationDirectory.set(layout.buildDirectory.dir("build/shadow-bug-workaround"))
+    from(fetchSpringCommonsJar) {
+        into("lib")
+    }
 }
 
 tasks.shadowJar {
+    dependsOn(shadowJarUnpackWorkaround)
+
+    from(shadowJarUnpackWorkaround) {
+        into("lib")
+    }
+
     manifest {
         attributes(
             "Main-Class" to "org.utbot.instrumentation.process.InstrumentedProcessMainKt",

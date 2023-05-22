@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.execution
 
+import org.utbot.common.JarUtils
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.utbot.framework.plugin.api.util.utContext
@@ -23,6 +24,12 @@ class SpringUtExecutionInstrumentation(
     }
 
     override fun init(pathsToUserClasses: Set<String>) {
+        HandlerClassesLoader.addUrls(listOf(JarUtils.extractJarFileFromResources(
+            jarFileName = SPRING_COMMONS_JAR_FILENAME,
+            jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
+            targetDirectoryName = "spring-commons"
+        ).path))
+
         instrumentation.instrumentationContext = object : SpringInstrumentationContext() {
             override fun getBean(beanName: String) =
                 this@SpringUtExecutionInstrumentation.getBean(beanName)

@@ -3,7 +3,7 @@ package org.utbot.spring.process
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.apache.commons.io.FileUtils
+import org.utbot.common.JarUtils
 import org.utbot.common.getPid
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
@@ -22,7 +22,6 @@ import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.SpringAnalyzerResult
 import org.utbot.spring.generated.springAnalyzerProcessModel
 import java.io.File
-import java.net.URL
 import java.nio.file.Files
 
 class SpringAnalyzerProcessInstantDeathException :
@@ -31,42 +30,18 @@ class SpringAnalyzerProcessInstantDeathException :
         UtSettings.runSpringAnalyzerProcessWithDebug
     )
 
-private const val SPRING_ANALYZER_JAR_FILENAME = "utbot-spring-analyzer-shadow.jar"
-private const val SPRING_ANALYZER_JAR_PATH = "lib/$SPRING_ANALYZER_JAR_FILENAME"
-
-private const val UNKNOWN_MODIFICATION_TIME = 0L
-
 private val logger = KotlinLogging.logger {}
 
 private var classpathArgs = listOf<String>()
 
-private val springAnalyzerDirectory =
-    Files.createDirectories(utBotTempDirectory.toFile().resolve("spring-analyzer").toPath()).toFile()
+private const val SPRING_ANALYZER_JAR_FILENAME = "utbot-spring-analyzer-shadow.jar"
 
 private val springAnalyzerJarFile =
-    springAnalyzerDirectory
-        .resolve(SPRING_ANALYZER_JAR_FILENAME).also { jarFile ->
-            val resource = SpringAnalyzerProcess::class.java.classLoader.getResource(SPRING_ANALYZER_JAR_PATH)
-                    ?: error("Unable to find \"$SPRING_ANALYZER_JAR_PATH\" in resources, make sure it's on the classpath")
-            updateJarIfRequired(jarFile, resource)
-        }
-
-private fun updateJarIfRequired(jarFile: File, resource: URL) {
-    val resourceConnection = resource.openConnection()
-    val lastResourceModification = try {
-        resourceConnection.lastModified
-    } finally {
-        resourceConnection.getInputStream().close()
-    }
-    if (
-        !jarFile.exists() ||
-        jarFile.lastModified() == UNKNOWN_MODIFICATION_TIME ||
-        lastResourceModification == UNKNOWN_MODIFICATION_TIME ||
-        jarFile.lastModified() < lastResourceModification
-    ) {
-        FileUtils.copyURLToFile(resource, jarFile)
-    }
-}
+    JarUtils.extractJarFileFromResources(
+        jarFileName = SPRING_ANALYZER_JAR_FILENAME,
+        jarResourcePath = "lib/$SPRING_ANALYZER_JAR_FILENAME",
+        targetDirectoryName = "spring-analyzer"
+    )
 
 class SpringAnalyzerProcess private constructor(
     rdProcess: ProcessWithRdServer
@@ -89,7 +64,7 @@ class SpringAnalyzerProcess private constructor(
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
                     classpathArgs = listOf(
                         "-cp",
-                        "\"${extendedClasspath.joinToString(File.pathSeparator)}\"",
+                        extendedClasspath.joinToString(File.pathSeparator),
                         "org.utbot.spring.process.SpringAnalyzerProcessMainKt"
                     )
                     val cmd = obtainProcessCommandLine(port)

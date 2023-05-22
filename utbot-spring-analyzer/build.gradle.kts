@@ -24,7 +24,6 @@ dependencies {
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
     compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
     compileOnly("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
-    compileOnly("commons-io:commons-io:$commonsIOVersion")
 
     fun ModuleDependency.excludeSlf4jApi() = exclude(group = "org.slf4j", module = "slf4j-api")
 

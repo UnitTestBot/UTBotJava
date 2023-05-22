@@ -632,19 +632,44 @@ class UtLambdaModel(
     }
 }
 
-class UtAutowiredModel(
+abstract class UtAutowiredBaseModel(
     override val id: Int?,
     override val classId: ClassId,
-    val beanName: String,
     val origin: UtModel,
-    val repositoriesContent: List<RepositoryContent>,
+    modelName: String
 ) : UtReferenceModel(
-    id, classId, modelName = "@Autowired $beanName#$id"
+    id, classId, modelName
 )
 
-data class RepositoryContent(
+class UtAutowiredStateBeforeModel(
+    id: Int?,
+    classId: ClassId,
+    origin: UtModel,
+    val beanName: String,
+    val repositoriesContent: List<RepositoryContentModel>,
+) : UtAutowiredBaseModel(
+    id, classId, origin, modelName = "@Autowired $beanName#$id"
+)
+
+data class RepositoryContentModel(
     val repositoryBeanName: String,
     val entityModels: List<UtModel>,
+)
+
+class UtAutowiredStateAfterModel(
+    id: Int?,
+    classId: ClassId,
+    origin: UtModel,
+    val repositoryInteractions: List<RepositoryInteractionModel>,
+) : UtAutowiredBaseModel(
+    id, classId, origin, modelName = "@Autowired ${classId.name}#$id"
+)
+
+data class RepositoryInteractionModel(
+    val beanName: String,
+    val executableId: ExecutableId,
+    val args: List<UtModel>,
+    val result: UtExecutionResult
 )
 
 /**

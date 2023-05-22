@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtAutowiredModel
+import org.utbot.framework.plugin.api.UtAutowiredStateBeforeModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
@@ -107,7 +107,7 @@ class MockValueConstructor(
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
-            is UtAutowiredModel -> UtConcreteValue(constructFromAutowiredModel(model))
+            is UtAutowiredStateBeforeModel -> UtConcreteValue(constructFromAutowiredModel(model))
             // PythonModel, JsUtModel may be here
             else -> throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
         }
@@ -363,7 +363,7 @@ class MockValueConstructor(
         return lambda
     }
 
-    private fun constructFromAutowiredModel(autowiredModel: UtAutowiredModel): Any {
+    private fun constructFromAutowiredModel(autowiredModel: UtAutowiredStateBeforeModel): Any {
         val springInstrumentationContext = instrumentationContext as SpringInstrumentationContext
         autowiredModel.repositoriesContent.forEach { repositoryContent ->
             val repository = springInstrumentationContext.getBean(repositoryContent.repositoryBeanName)

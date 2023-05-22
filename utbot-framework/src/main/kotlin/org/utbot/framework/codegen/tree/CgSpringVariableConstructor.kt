@@ -5,7 +5,8 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtAutowiredModel
+import org.utbot.framework.plugin.api.UtAutowiredBaseModel
+import org.utbot.framework.plugin.api.UtAutowiredStateBeforeModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.isMockModel
@@ -16,17 +17,20 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
     val mockedModelsVariables: MutableSet<UtModelWrapper> = mutableSetOf()
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        if (model is UtAutowiredModel) {
+        if (model is UtAutowiredBaseModel) {
             // TODO also, properly render corresponding @Autowired field(s), and make sure name isn't taken
-            comment("begin repository fill up")
-            model.repositoriesContent.forEach { repositoryContent ->
-                repositoryContent.entityModels.forEach { entity ->
-                    // TODO actually fill up repositories
-                    getOrCreateVariable(entity)
-                    emptyLine()
+            if (model is UtAutowiredStateBeforeModel) {
+                comment("begin repository fill up")
+                model.repositoriesContent.forEach { repositoryContent ->
+                    repositoryContent.entityModels.forEach { entity ->
+                        // TODO actually fill up repositories
+                        getOrCreateVariable(entity)
+                        emptyLine()
+                    }
                 }
+                comment("end repository fill up")
             }
-            comment("end repository fill up")
+            emptyLine()
             return CgVariable(
                 name ?: model.classId.jClass.simpleName.let { it[0].lowercase() + it.drop(1) },
                 model.classId

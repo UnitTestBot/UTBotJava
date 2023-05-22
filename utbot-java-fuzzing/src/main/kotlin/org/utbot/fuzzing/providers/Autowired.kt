@@ -18,18 +18,18 @@ class AutowiredValueProvider(
             yield(
                 Seed.Recursive<FuzzedType, FuzzedValue>(
                     construct = Routine.Create(types = emptyList()) {
-                        UtAutowiredModel(
+                        UtAutowiredStateBeforeModel(
                             id = idGenerator.createId(),
                             classId = type.classId,
                             beanName = beanName,
                             origin = autowiredModelOriginCreator(beanName), // TODO think about setting origin id and its fields ids
                             // TODO properly detect which repositories need to be filled up (right now orderRepository is hardcoded)
                             repositoriesContent = listOf(
-                                RepositoryContent(
+                                RepositoryContentModel(
                                     repositoryBeanName = "orderRepository",
                                     entityModels = mutableListOf()
                                 )
-                            )
+                            ),
                         ).fuzzed { "@Autowired ${type.classId.simpleName} $beanName" }
                     },
                     modify = sequence {
@@ -39,7 +39,7 @@ class AutowiredValueProvider(
                             listOf(FuzzedType(ClassId("com.rest.order.models.Order"))),
                         ) { self, values ->
                             val entityValue = values[0]
-                            val model = self.model as UtAutowiredModel
+                            val model = self.model as UtAutowiredStateBeforeModel
                             // TODO maybe use `entityValue.summary` to update `model.summary`
                             model.repositoriesContent
                                 .first { it.repositoryBeanName == "orderRepository" }

@@ -61,6 +61,24 @@ class SpringUtExecutionInstrumentation(
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult {
+        // TODO properly detect which beans need to be reset, right now "orderRepository" and "orderService" are hardcoded
+        val beanNamesToReset = listOf("orderRepository", "orderService")
+        beanNamesToReset.forEach { beanNameToReset ->
+            val beanDefToReset = springContext::class.java
+                .getMethod("getBeanDefinition", String::class.java)
+                .invoke(springContext, beanNameToReset)
+            springContext::class.java
+                .getMethod("removeBeanDefinition", String::class.java)
+                .invoke(springContext, beanNameToReset)
+            springContext::class.java
+                .getMethod(
+                    "registerBeanDefinition",
+                    String::class.java,
+                    utContext.classLoader.loadClass("org.springframework.beans.factory.config.BeanDefinition")
+                )
+                .invoke(springContext, beanNameToReset, beanDefToReset)
+        }
+
         val jdbcTemplate = getBean("jdbcTemplate")
         // TODO properly detect which repositories need to be cleared, right now "orders" is hardcoded
         val sql = "TRUNCATE TABLE orders"

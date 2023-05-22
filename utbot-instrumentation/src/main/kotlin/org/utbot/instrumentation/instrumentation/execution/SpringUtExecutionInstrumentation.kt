@@ -85,6 +85,11 @@ class SpringUtExecutionInstrumentation(
         jdbcTemplate::class.java
             .getMethod("execute", sql::class.java)
             .invoke(jdbcTemplate, sql)
+        val sql2 = "ALTER TABLE orders ALTER COLUMN id RESTART WITH 1"
+        jdbcTemplate::class.java
+            .getMethod("execute", sql::class.java)
+            .invoke(jdbcTemplate, sql2)
+
         return instrumentation.invoke(clazz, methodSignature, arguments, parameters)
     }
 

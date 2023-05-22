@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.FileUtil
 import org.utbot.common.measureTime
 import org.utbot.common.info
-import org.utbot.framework.codegen.CodeGenerator
-import org.utbot.framework.codegen.CodeGeneratorResult
+import org.utbot.framework.codegen.generator.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME

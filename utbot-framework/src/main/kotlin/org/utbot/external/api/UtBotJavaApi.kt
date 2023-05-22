@@ -3,13 +3,13 @@ package org.utbot.external.api
 import org.utbot.common.FileUtil
 import org.utbot.common.nameOfPackage
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult

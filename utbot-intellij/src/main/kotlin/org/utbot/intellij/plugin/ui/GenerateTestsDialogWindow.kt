@@ -96,8 +96,8 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.SpringTestType
-import org.utbot.framework.plugin.api.SpringTestType.*
+import org.utbot.framework.plugin.api.SpringTestsType
+import org.utbot.framework.plugin.api.SpringTestsType.*
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
@@ -203,7 +203,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
 
-    private val sprintTestType = createComboBox(SpringTestType.values())
+    private val springTestsType = createComboBox(SpringTestsType.values())
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
     private val profileNames = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
 
@@ -421,7 +421,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     )
                 }
                 row("Tests type:") {
-                    cell(sprintTestType)
+                    cell(sprintTestsType)
                     contextHelp(
                         "Unit tests do not initialize ApplicationContext <br>" +
                                 "and do not autowire beans, while integration tests do."
@@ -706,7 +706,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 }
             }
         model.profileNames = profileNames.text.let { it.ifEmpty { DEFAULT_SPRING_PROFILE_NAME } }
-        model.springTestType = sprintTestType.item
+        model.springTestsType = springTestsType.item
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -857,7 +857,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ?: if (settings.testFramework != Junit4) settings.testFramework else TestFramework.parametrizedDefaultItem
         }
 
-        sprintTestType.item = if (isSpringConfigSelected()) settings.springTestType else SpringTestType.defaultItem
+        sprintTestsType.item = if (isSpringConfigSelected()) settings.springTestType else SpringTestType.defaultItem
 
         updateTestFrameworksList(settings.parametrizedTestSource)
         updateParametrizationEnabled()
@@ -917,7 +917,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun configureSpringTestFrameworkIfRequired() {
-        if (sprintTestType.item == INTEGRATION_TESTS) {
+        if (springTestsType.item == INTEGRATION_TESTS) {
 
             val framework = when {
                 SpringBoot.isInstalled -> SpringBoot
@@ -1240,9 +1240,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         // We check for > 1 because there is already extra-dummy NO_SPRING_CONFIGURATION_OPTION option
         springConfig.isEnabled = model.projectType == ProjectType.Spring && springConfig.itemCount > 1
 
-        sprintTestType.renderer = object : ColoredListCellRenderer<SpringTestType>() {
+        springTestsType.renderer = object : ColoredListCellRenderer<SpringTestsType>() {
             override fun customizeCellRenderer(
-                list: JList<out SpringTestType>, value: SpringTestType,
+                list: JList<out SpringTestsType>, value: SpringTestsType,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
                 this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)

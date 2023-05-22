@@ -317,8 +317,8 @@ object GoTestCasesCodeGenerator {
         nameOfVariable: String,
         model: GoUtChanModel,
         goUtModelToCodeConverter: GoUtModelToCodeConverter
-    ): String = model.getElements().joinToString(separator = "\n", postfix = "\n") {
-        "\t$nameOfVariable <- ${goUtModelToCodeConverter.toGoCode(it)}"
+    ): String = model.getElements().joinToString(separator = "") {
+        "\t$nameOfVariable <- ${goUtModelToCodeConverter.toGoCode(it)}\n"
     } + "\tclose($nameOfVariable)\n"
 
     private fun generatePointerToPrimitiveInitialization(

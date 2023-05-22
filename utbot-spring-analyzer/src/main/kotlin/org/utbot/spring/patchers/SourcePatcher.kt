@@ -12,9 +12,14 @@ class SourcePatcher(val fileStorage: Array<String>) {
     }
 
     private fun patchClass(configurationClass: Class<*>) {
+        // Patching class annotations
         val annotationPatcher = AnnotationPatcher(configurationClass, fileStorage)
         patchClassAnnotation(configurationClass, PropertySource::class, annotationPatcher)
         patchClassAnnotation(configurationClass, ImportResource::class, annotationPatcher)
+
+        // Patching xml files
+        val xmlFilePatcher = XmlFilePatcher(fileStorage)
+        patchXmlFiles(configurationClass, xmlFilePatcher)
 
         // Recursive call of configuration classes specified in @Import annotation
         val memberValues = AnnotationsUtils.getAnnotationMemberValues(configurationClass, Import::class) ?: return
@@ -29,7 +34,12 @@ class SourcePatcher(val fileStorage: Array<String>) {
 
         annotationPatcher.clearAnnotation(annotationClass)
         memberValues.let { annotationPatcher.patchAnnotation(annotationClass, memberValues) }
+    }
 
-        //TODO(patchXMLFile)
+    private fun patchXmlFiles(configurationClass: Class<*>, xmlFilePatcher: XmlFilePatcher){
+        val annotationInfo = AnnotationsUtils.getAnnotationMemberValues(configurationClass, ImportResource::class) ?: return
+        val memberValues = annotationInfo["value"] as Array<String>
+
+        memberValues.forEach { userXmlConfigurationFilePath -> xmlFilePatcher.patchXmlConfigurationFile(userXmlConfigurationFilePath) }
     }
 }

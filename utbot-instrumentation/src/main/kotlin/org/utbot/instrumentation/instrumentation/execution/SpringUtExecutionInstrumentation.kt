@@ -98,7 +98,6 @@ class SpringUtExecutionInstrumentation(
                 "org/h2"
             ).any { className.startsWith(it) }
         ) {
-            logger.info { "Skipping transforming: $className" }
             null
         } else {
             instrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)

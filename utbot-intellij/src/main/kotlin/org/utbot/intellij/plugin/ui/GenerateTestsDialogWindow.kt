@@ -427,7 +427,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                                 "and do not autowire beans, while integration tests do."
                     )
                 }.enabledIf(
-                    ComboBoxPredicate(springConfig) { isSpringConfigSelected() }
+                    ComboBoxPredicate(springConfig) { isSpringConfigSelected() && !isXmlSpringConfigUsed() }
                 )
                 row("Active profile(s):") {
                     cell(profileNames)
@@ -696,7 +696,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 else -> {
                     val shortConfigName = springConfig.item.toString()
                     //TODO: avoid this check on xml here, merge two helpers into one
-                    val fullConfigName = if (shortConfigName.endsWith(".xml")) {
+                    val fullConfigName = if (isXmlSpringConfigUsed()) {
                         xmlConfigurationHelper.restoreFullName(shortConfigName)
                     } else {
                         javaConfigurationHelper.restoreFullName(shortConfigName)
@@ -830,6 +830,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun trimPackageName(name: String?): String = name?.trim() ?: ""
 
     private fun isSpringConfigSelected(): Boolean = springConfig.item != NO_SPRING_CONFIGURATION_OPTION
+    private fun isXmlSpringConfigUsed(): Boolean = springConfig.item.toString().endsWith(".xml")
 
     private fun initDefaultValues() {
         testPackageField.isEnabled = false
@@ -1144,7 +1145,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
 
-                sprintTestType.isEnabled = true
+                sprintTestType.isEnabled = !isXmlSpringConfigUsed()
                 profileNames.isEnabled = true
             } else {
                 mockStrategies.item = when (model.projectType) {

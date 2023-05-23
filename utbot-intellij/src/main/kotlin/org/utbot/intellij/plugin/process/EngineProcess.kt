@@ -274,6 +274,7 @@ class EngineProcess private constructor(val project: Project, private val classN
     }
 
     fun render(
+        springTestsType: SpringTestsType,
         testSetsId: Long,
         classUnderTest: ClassId,
         projectType: ProjectType,
@@ -293,6 +294,7 @@ class EngineProcess private constructor(val project: Project, private val classN
     ): Pair<String, UtilClassKind?> {
         assertReadAccessNotAllowed()
         val params = RenderParams(
+            springTestsType.name,
             testSetsId,
             kryoHelper.writeObject(classUnderTest),
             projectType.toString(),

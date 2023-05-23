@@ -411,13 +411,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
 
             if (model.projectType == ProjectType.Spring) {
-                row("Tests type:") {
-                    cell(sprintTestType)
-                    contextHelp(
-                        "Unit tests do not initialize ApplicationContext <br>" +
-                                "and do not autowire beans, while integration tests do."
-                    )
-                }
                 row("Spring configuration:") {
                     cell(springConfig)
                     contextHelp(
@@ -427,6 +420,15 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                                 "Mocks will be used when necessary."
                     )
                 }
+                row("Tests type:") {
+                    cell(sprintTestType)
+                    contextHelp(
+                        "Unit tests do not initialize ApplicationContext <br>" +
+                                "and do not autowire beans, while integration tests do."
+                    )
+                }.enabledIf(
+                    ComboBoxPredicate(springConfig) { isSpringConfigSelected() }
+                )
                 row("Active profile(s):") {
                     cell(profileNames)
                     contextHelp(
@@ -434,7 +436,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                                 "If all names are incorrect, default profile is used"
                     )
                 }.enabledIf(
-                    ComboBoxPredicate(springConfig) { springConfig.item != NO_SPRING_CONFIGURATION_OPTION }
+                    ComboBoxPredicate(springConfig) { isSpringConfigSelected() }
                 )
             }
 
@@ -445,7 +447,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                             "Otherwise, mock nothing. Mockito will be installed, if you don't have one."
                 )
             }.enabledIf(ComboBoxPredicate(springConfig) {
-                model.projectType != ProjectType.Spring || springConfig.item == NO_SPRING_CONFIGURATION_OPTION
+                model.projectType != ProjectType.Spring || !isSpringConfigSelected()
             })
             row { cell(staticsMocking)}
             row {
@@ -827,6 +829,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun trimPackageName(name: String?): String = name?.trim() ?: ""
 
+    private fun isSpringConfigSelected(): Boolean = springConfig.item != NO_SPRING_CONFIGURATION_OPTION
+
     private fun initDefaultValues() {
         testPackageField.isEnabled = false
         cbSpecifyTestPackage.isEnabled = model.srcClasses.all { cl -> cl.packageName.isNotEmpty() }
@@ -852,7 +856,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ?: if (settings.testFramework != Junit4) settings.testFramework else TestFramework.parametrizedDefaultItem
         }
 
-        sprintTestType.item = settings.springTestType
+        sprintTestType.item = if (isSpringConfigSelected()) settings.springTestType else SpringTestType.defaultItem
 
         updateTestFrameworksList(settings.parametrizedTestSource)
         updateParametrizationEnabled()
@@ -1135,12 +1139,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         springConfig.addActionListener { _ ->
-            val isSpringConfigSelected = springConfig.item != NO_SPRING_CONFIGURATION_OPTION
-            if (isSpringConfigSelected) {
+            if (isSpringConfigSelected()) {
                 mockStrategies.item = MockStrategyApi.springDefaultItem
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
 
+                sprintTestType.isEnabled = true
                 profileNames.isEnabled = true
             } else {
                 mockStrategies.item = when (model.projectType) {
@@ -1149,6 +1153,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 }
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
+
+                sprintTestType.isEnabled = false
+                sprintTestType.item = SpringTestType.defaultItem
 
                 profileNames.isEnabled = false
                 profileNames.text = ""

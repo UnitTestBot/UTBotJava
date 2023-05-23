@@ -6,7 +6,7 @@ import java.nio.file.Path
 
 fun modifyEnvironment(goExecutableAbsolutePath: Path, gopathAbsolutePath: Path): MutableMap<String, String> {
     val environment = System.getenv().toMutableMap().apply {
-        this["Path"] = goExecutableAbsolutePath.parent.toString() + File.pathSeparator + (this["Path"] ?: "")
+        this["Path"] = goExecutableAbsolutePath.resolve(File.pathSeparator).toString() + (this["Path"] ?: "")
         this["GOROOT"] = goExecutableAbsolutePath.parent.parent.toString()
         this["GOPATH"] = gopathAbsolutePath.toString()
     }

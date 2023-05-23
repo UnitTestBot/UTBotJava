@@ -26,9 +26,6 @@ object GoSliceValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> 
                         },
                         modify = Routine.ForEach(listOf(sliceType.elementTypeId!!)) { self, i, values ->
                             val model = self as GoUtSliceModel
-                            if (i >= model.length) {
-                                return@ForEach
-                            }
                             model.value[i] = values.first()
                         }
                     )

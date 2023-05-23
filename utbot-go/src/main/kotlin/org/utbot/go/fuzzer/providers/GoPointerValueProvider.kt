@@ -20,11 +20,6 @@ object GoPointerValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription
                     construct = Routine.Create(listOf(pointerType.elementTypeId!!)) { values ->
                         GoUtPointerModel(value = values.first(), typeId = pointerType)
                     },
-                    modify = sequenceOf(Routine.Call(listOf(pointerType.elementTypeId)) { self, values ->
-                        val model = self as GoUtPointerModel
-                        val value = values.first()
-                        model.value = value
-                    }),
                     empty = Routine.Empty { GoUtNilModel(pointerType) }
                 )
             )

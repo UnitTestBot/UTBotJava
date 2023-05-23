@@ -16,6 +16,7 @@ internal object GoWorkerCodeGenerationHelper {
         GoPackage("io", "io"),
         GoPackage("os", "os"),
         GoPackage("context", "context"),
+        GoPackage("binary", "encoding/binary"),
         GoPackage("json", "encoding/json"),
         GoPackage("fmt", "fmt"),
         GoPackage("math", "math"),
@@ -184,7 +185,9 @@ internal object GoWorkerCodeGenerationHelper {
             			os.Exit(1)
             		}
 
-            		_, err = con.Write([]byte(strconv.Itoa(len(jsonBytes)) + "\n"))
+            		bs := make([]byte, 4)
+            		binary.BigEndian.PutUint32(bs, uint32(len(jsonBytes)))
+            		_, err = con.Write(bs)
             		if err != nil {
             			_, _ = fmt.Fprintf(os.Stderr, "Failed to send length of execution result: %s", err)
             			os.Exit(1)

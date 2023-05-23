@@ -157,7 +157,7 @@ object GoTestCasesGenerator {
                 }
                 logger.debug { "Number of function executions - [${engine.numberOfFunctionExecutions}] ($numberOfExecutionsPerSecond/sec)" }
                 val testCases = coveredLinesToExecutionResults.values.flatMap { it.getTestCases() }
-                logger.info { "Fuzzing for function [${function.name}] - completed in [$totalFuzzingTime] (ms). Generated [${coveredLinesToExecutionResults.size}] test cases" }
+                logger.info { "Fuzzing for function [${function.name}] - completed in [$totalFuzzingTime] (ms). Generated [${testCases.size}] test cases" }
                 allTestCases += testCases
             }
             runBlocking {

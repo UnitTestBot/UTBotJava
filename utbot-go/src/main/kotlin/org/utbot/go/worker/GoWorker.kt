@@ -13,6 +13,7 @@ import java.io.*
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
@@ -30,8 +31,8 @@ class GoWorker private constructor(
     private val connectionTimeoutMillis: Long,
     private val endOfWorkerExecutionTimeoutMillis: Long
 ) : Closeable {
-    private var reader: BufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
-    private var writer: BufferedWriter = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+    private var input: DataInputStream = DataInputStream(socket.getInputStream())
+    private var output: DataOutputStream = DataOutputStream(socket.getOutputStream())
 
     data class TestInput(
         val functionName: String, val arguments: List<RawValue>
@@ -43,38 +44,42 @@ class GoWorker private constructor(
         val rawValues = arguments.map { it.convertToRawValue(goPackage, aliases) }
         val testCase = TestInput(function.name, rawValues)
         val json = convertObjectToJsonString(testCase)
-        writer.write(json)
-        writer.flush()
+        output.write(json.encodeToByteArray())
+        output.flush()
         return json.length
     }
 
     fun receiveRawExecutionResult(): RawExecutionResult {
         socket.soTimeout = readTimeoutMillis.toInt()
-        val length = reader.readLine().toInt()
-        val buffer = CharArray(length)
-        reader.read(buffer)
-        return Klaxon().parse(String(buffer)) ?: error("Error with parsing json as raw execution result")
+        val length = input.readInt()
+        val buffer = ByteArray(length)
+        input.read(buffer)
+        return Klaxon().parse(buffer.toString(StandardCharsets.UTF_8))
+            ?: error("Error with parsing json as raw execution result")
     }
 
     fun restartWorker() {
+        socket.close()
+        input.close()
+        output.close()
+
         process.destroy()
         process = startWorkerProcess(
             testFunctionName, testFilePath, goExecutableAbsolutePath, gopathAbsolutePath, workingDirectory
         )
-        socket.close()
-        reader.close()
-        writer.close()
+
         socket = connectingToWorker(
             serverSocket, process, connectionTimeoutMillis, endOfWorkerExecutionTimeoutMillis
         )
-        reader = BufferedReader(InputStreamReader(socket.getInputStream()))
-        writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+        input = DataInputStream(socket.getInputStream())
+        output = DataOutputStream(socket.getOutputStream())
     }
 
     override fun close() {
         socket.close()
-        reader.close()
-        writer.close()
+        input.close()
+        output.close()
+
         val processHasExited = process.waitFor(endOfWorkerExecutionTimeoutMillis, TimeUnit.MILLISECONDS)
         if (!processHasExited) {
             process.destroy()

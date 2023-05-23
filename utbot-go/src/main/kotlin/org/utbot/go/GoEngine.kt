@@ -54,76 +54,87 @@ class GoEngine(
             val needToStop = AtomicBoolean()
             workers.mapIndexed { index, worker ->
                 launch(Dispatchers.IO) {
-                    var attempts = 0
-                    val attemptsLimit = Int.MAX_VALUE
                     val testCases = mutableMapOf<CoveredLines, ExecutionResults>()
-                    runGoFuzzing(functionUnderTest, worker, index, intSize) { description, values ->
-                        try {
-                            if (needToStop.get() || timeoutExceededOrIsCanceled()) {
-                                send(testCases)
-                                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                            }
-
-                            val lengthOfParameters =
-                                description.worker.sendFuzzedParametersValues(functionUnderTest, values, aliases)
-                            val (executionResult, coverTab) = run {
-                                val rawExecutionResult = description.worker.receiveRawExecutionResult()
-                                numberOfFunctionExecutions.incrementAndGet()
-                                convertRawExecutionResultToExecutionResult(
-                                    rawExecutionResult = rawExecutionResult,
-                                    functionResultTypes = functionUnderTest.results.map { it.type },
-                                    intSize = intSize,
-                                    timeoutMillis = functionExecutionTimeoutMillis,
-                                ) to rawExecutionResult.coverTab
-                            }
-
-                            if (coverTab.isEmpty()) {
-                                logger.error { "Coverage is empty for [${functionUnderTest.name}] with $values}" }
-                                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-                            }
-
-                            val coveredLines = CoveredLines(needToCoverLines.intersect(coverTab.keys))
-                            val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
-                            val testCase = GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult)
-                            if (mode != TestsGenerationMode.FUZZING_MODE) {
-                                if (testCases[coveredLines] == null) {
-                                    testCases[coveredLines] = ExecutionResults(testCase, lengthOfParameters)
-                                } else {
-                                    testCases[coveredLines]!!.update(testCase, lengthOfParameters)
-                                }
-                            }
-
-                            val trieNode = description.coverage.add(coveredLines.lines.sorted())
-                            if (executionResult is GoUtTimeoutExceeded) {
-                                send(testCases)
-                                description.worker.restartWorker()
-                                return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.PASS)
-                            }
-                            if (trieNode.count > 1) {
-                                if (++attempts >= attemptsLimit) {
-                                    send(testCases)
-                                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                                }
-                                return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
-                            }
-
-                            if (mode == TestsGenerationMode.FUZZING_MODE && executionResult !is GoUtExecutionSuccess) {
-                                needToStop.set(true)
-                                send(mapOf(coveredLines to ExecutionResults(testCase, lengthOfParameters)))
-                                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                            }
-                            BaseFeedback(result = trieNode, control = Control.CONTINUE)
-                        } catch (e: SocketTimeoutException) {
-                            send(testCases)
-                            description.worker.restartWorker()
-                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-                        } catch (e: SocketException) {
-                            send(testCases)
-                            description.worker.restartWorker()
-                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-                        }
+                    try {
+                        fuzzingProcessRoutine(needToStop, testCases, worker, index)
+                    } finally {
+                        send(testCases)
                     }
                 }
+            }
+        }
+    }
+
+    private suspend fun fuzzingProcessRoutine(
+        needToStop: AtomicBoolean,
+        testCases: MutableMap<CoveredLines, ExecutionResults>,
+        worker: GoWorker,
+        index: Int
+    ) {
+        var attempts = 0
+        val attemptsLimit = Int.MAX_VALUE
+        runGoFuzzing(functionUnderTest, worker, index, intSize) { description, values ->
+            try {
+                if (needToStop.get() || timeoutExceededOrIsCanceled()) {
+                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                }
+
+                val lengthOfParameters =
+                    description.worker.sendFuzzedParametersValues(functionUnderTest, values, aliases)
+                val (executionResult, coverTab) = run {
+                    val rawExecutionResult = description.worker.receiveRawExecutionResult()
+                    numberOfFunctionExecutions.incrementAndGet()
+                    convertRawExecutionResultToExecutionResult(
+                        rawExecutionResult = rawExecutionResult,
+                        functionResultTypes = functionUnderTest.results.map { it.type },
+                        intSize = intSize,
+                        timeoutMillis = functionExecutionTimeoutMillis,
+                    ) to rawExecutionResult.coverTab
+                }
+
+                if (coverTab.isEmpty()) {
+                    logger.error { "Coverage is empty for [${functionUnderTest.name}] with $values}" }
+                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+                }
+
+                val coveredLines = CoveredLines(needToCoverLines.intersect(coverTab.keys))
+                val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
+                val testCase = GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult)
+                if (mode != TestsGenerationMode.FUZZING_MODE) {
+                    if (testCases[coveredLines] == null) {
+                        testCases[coveredLines] = ExecutionResults(testCase, lengthOfParameters)
+                    } else {
+                        testCases[coveredLines]!!.update(testCase, lengthOfParameters)
+                    }
+                }
+
+                val trieNode = description.coverage.add(coveredLines.lines.sorted())
+                if (executionResult is GoUtTimeoutExceeded) {
+                    description.worker.restartWorker()
+                    return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.PASS)
+                }
+                if (trieNode.count > 1) {
+                    if (++attempts >= attemptsLimit) {
+                        return@runGoFuzzing BaseFeedback(
+                            result = Trie.emptyNode(),
+                            control = Control.STOP
+                        )
+                    }
+                    return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                }
+
+                if (mode == TestsGenerationMode.FUZZING_MODE && executionResult !is GoUtExecutionSuccess) {
+                    needToStop.set(true)
+                    testCases[coveredLines] = ExecutionResults(testCase, lengthOfParameters)
+                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                }
+                BaseFeedback(result = trieNode, control = Control.CONTINUE)
+            } catch (e: SocketTimeoutException) {
+                description.worker.restartWorker()
+                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+            } catch (e: SocketException) {
+                description.worker.restartWorker()
+                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
         }
     }

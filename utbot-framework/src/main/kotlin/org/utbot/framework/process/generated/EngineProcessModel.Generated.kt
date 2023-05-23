@@ -75,7 +75,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 3784735644533105887L
+        const val serializationHash = 2605460374173973135L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -251,7 +251,7 @@ data class BeanAdditionalData (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:136]
+ * #### Generated from [EngineProcessModel.kt:137]
  */
 data class BeanDefinitionData (
     val beanName: String,
@@ -1370,7 +1370,7 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:141]
+ * #### Generated from [EngineProcessModel.kt:142]
  */
 data class SpringAnalyzerResult (
     val beanDefinitions: Array<BeanDefinitionData>

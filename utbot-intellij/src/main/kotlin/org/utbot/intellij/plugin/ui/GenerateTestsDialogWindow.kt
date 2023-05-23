@@ -421,7 +421,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     )
                 }
                 row("Tests type:") {
-                    cell(sprintTestsType)
+                    cell(springTestsType)
                     contextHelp(
                         "Unit tests do not initialize ApplicationContext <br>" +
                                 "and do not autowire beans, while integration tests do."
@@ -857,7 +857,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ?: if (settings.testFramework != Junit4) settings.testFramework else TestFramework.parametrizedDefaultItem
         }
 
-        sprintTestsType.item = if (isSpringConfigSelected()) settings.springTestType else SpringTestType.defaultItem
+        springTestsType.item = if (isSpringConfigSelected()) settings.springTestsType else SpringTestsType.defaultItem
 
         updateTestFrameworksList(settings.parametrizedTestSource)
         updateParametrizationEnabled()
@@ -1145,7 +1145,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
 
-                sprintTestType.isEnabled = !isXmlSpringConfigUsed()
+                springTestsType.isEnabled = !isXmlSpringConfigUsed()
                 profileNames.isEnabled = true
             } else {
                 mockStrategies.item = when (model.projectType) {
@@ -1155,8 +1155,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
 
-                sprintTestType.isEnabled = false
-                sprintTestType.item = SpringTestType.defaultItem
+                springTestsType.isEnabled = false
+                springTestsType.item = SpringTestsType.defaultItem
 
                 profileNames.isEnabled = false
                 profileNames.text = ""

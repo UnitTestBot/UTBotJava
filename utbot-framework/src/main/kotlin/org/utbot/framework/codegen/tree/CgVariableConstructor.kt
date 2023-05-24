@@ -205,6 +205,14 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
+        // If assemble model represents a primitive wrapper without modification chain, we just create a literal
+        if (isPrimitiveWrapperOrString(model.classId)
+            && model.modificationsChain.isEmpty()
+            && model.instantiationCall.params.size == 1
+        ) {
+            return cgLiteralForWrapper(model.instantiationCall.params)
+        }
+
         val instantiationCall = model.instantiationCall
         processInstantiationStatement(model, instantiationCall, baseName)
 

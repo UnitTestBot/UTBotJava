@@ -61,18 +61,27 @@ data class TaintConfiguration(
         when (argumentType) {
             ArgumentTypeAny -> true
             is ArgumentTypeString -> argumentType.typeFqn == classId.name
+            is ArgumentTypeRegex -> classId.name.matches(Regex(argumentType.typeFqnRegex))
         }
 
     private fun equalMethodNames(executableId: ExecutableId, methodFqn: MethodFqn): Boolean =
-        methodFqn == executableId.getMethodFqn()
+        when (methodFqn) {
+            is MethodFqnRegex -> {
+                val executableFqn = executableId.getMethodFqn()?.run {
+                    packageNames.plus(className).plus(methodName).joinToString(".")
+                }
+                executableFqn?.matches(Regex(methodFqn.regex)) ?: false
+            }
+            is MethodFqnValue -> methodFqn == executableId.getMethodFqn()
+        }
 
-    private fun ExecutableId.getMethodFqn(): MethodFqn? =
+    private fun ExecutableId.getMethodFqn(): MethodFqnValue? =
         runCatching {
             val packages = if (classId.packageName == "")
                 listOf()
             else
                 classId.packageName.split('.')
-            MethodFqn(packages, classId.simpleName, name)
+            MethodFqnValue(packages, classId.simpleName, name)
         }.getOrNull()
 }
 

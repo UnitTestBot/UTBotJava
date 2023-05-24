@@ -98,6 +98,7 @@ class ConditionIsType(
                     }
                 }
             }
+            is ArgumentTypeRegex -> UtTrue // TODO: support regex type constraints
         }
     }
 }

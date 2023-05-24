@@ -90,7 +90,7 @@ object TaintConfigurationAdapter {
         }
 
     private fun DtoMethodFqn.convert() =
-        MethodFqn(packageNames, className, methodName)
+        MethodFqnValue(packageNames, className, methodName)
 
     private fun DtoTaintEntities.convert(): TaintEntities =
         when (this) {

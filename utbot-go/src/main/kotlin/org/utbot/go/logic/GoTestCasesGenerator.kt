@@ -52,29 +52,9 @@ object GoTestCasesGenerator {
                 serverSocket.localPort,
                 imports
             )
-
             GoWorkerCodeGenerationHelper.createFileWithCoverTab(
                 sourceFile, absolutePathToInstrumentedPackage
             )
-
-            // adding missing and removing unused modules in instrumented package
-            val environment = modifyEnvironment(
-                testsGenerationConfig.goExecutableAbsolutePath,
-                testsGenerationConfig.gopathAbsolutePath
-            )
-            val modCommand = listOf(
-                testsGenerationConfig.goExecutableAbsolutePath.toString(), "mod", "tidy"
-            )
-            logger.debug { "Adding missing and removing unused modules in instrumented package [$absolutePathToInstrumentedPackage] - started" }
-            val goModTime = measureTimeMillis {
-                executeCommandByNewProcessOrFail(
-                    modCommand,
-                    File(absolutePathToInstrumentedPackage),
-                    "adding missing and removing unused modules in instrumented package",
-                    environment
-                )
-            }
-            logger.debug { "Adding missing and removing unused modules in instrumented package [$absolutePathToInstrumentedPackage] - completed in [$goModTime] (ms)" }
 
             // compiling the test binary
             testFile = run {
@@ -86,6 +66,10 @@ object GoTestCasesGenerator {
             }.toFile()
             val buildCommand = listOf(
                 testsGenerationConfig.goExecutableAbsolutePath.toString(), "test", "-c", "-o", testFile.absolutePath
+            )
+            val environment = modifyEnvironment(
+                testsGenerationConfig.goExecutableAbsolutePath,
+                testsGenerationConfig.gopathAbsolutePath
             )
             logger.debug { "Compiling the test binary - started" }
             val compilingTestBinaryTime = measureTimeMillis {

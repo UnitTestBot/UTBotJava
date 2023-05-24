@@ -9,13 +9,30 @@ import org.utbot.go.simplecodegeneration.GoUtModelToCodeConverter
 object GoCodeTemplates {
 
     private val errorMessages = """
-        var (
+        const (
         	ErrParsingValue                  = "failed to parse %s value: %s"
         	ErrInvalidTypeName               = "invalid type name: %s"
         	ErrStringToReflectTypeFailure    = "failed to convert '%s' to reflect.Type: %s"
         	ErrRawValueToReflectValueFailure = "failed to convert RawValue to reflect.Value: %s"
         	ErrReflectValueToRawValueFailure = "failed to convert reflect.Value to RawValue: %s"
         )
+    """.trimIndent()
+
+    private val typeOfExecutionResult = """
+        type __TypeOfExecutionResult__ int
+
+        const (
+        	Completed = iota
+        	PanicFailure
+        	TimeoutExceeded
+        )
+    """.trimIndent()
+
+    private val executionResultStruct = """
+        type __ExecutionResult__ struct {
+        	Type         __TypeOfExecutionResult__
+        	ResultValues []reflect.Value
+        }
     """.trimIndent()
 
     private val testInputStruct = """
@@ -905,60 +922,77 @@ object GoCodeTemplates {
 
         	__CoverTab__ = make([]int, __CoverSize__)
 
-        	done := make(chan __RawExecutionResult__, 1)
+        	executionResult := make(chan __ExecutionResult__, 1)
         	go func() {
-        		executionResult := __RawExecutionResult__{
-        			TimeoutExceeded: false,
-        			RawResultValues: []__RawValue__{},
-        			PanicMessage:    nil,
-        			CoverTab:        nil,
-        		}
-
         		panicked := true
         		defer func() {
         			panicMessage := recover()
         			if panicked {
-        				panicAsError, implementsError := panicMessage.(error)
-        				var (
-        					resultValue __RawValue__
-        					err         error
-        				)
-        				if implementsError {
-        					resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicAsError.Error()))
-        				} else {
-        					resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicMessage))
-        				}
-        				if err != nil {
-        					_, _ = fmt.Fprint(os.Stderr, ErrReflectValueToRawValueFailure, err)
-        					os.Exit(1)
-        				}
-
-        				executionResult.PanicMessage = &__RawPanicMessage__{
-        					RawResultValue:  resultValue,
-        					ImplementsError: implementsError,
+        				executionResult <- __ExecutionResult__{
+        					Type:         PanicFailure,
+        					ResultValues: []reflect.Value{reflect.ValueOf(panicMessage)},
         				}
         			}
-        			done <- executionResult
         		}()
 
-        		resultValues, err := __wrapResultValues__(function.Call(arguments))
+        		executionResult <- __ExecutionResult__{
+        			Type:         Completed,
+        			ResultValues: function.Call(arguments),
+        		}
+        		panicked = false
+        	}()
+
+        	var result __ExecutionResult__
+        	select {
+        	case result = <-executionResult:
+        	case <-ctxWithTimeout.Done():
+        		result = __ExecutionResult__{Type: TimeoutExceeded}
+        	}
+
+        	return __wrapExecutionResult__(result)
+        }
+    """.trimIndent()
+
+    private val wrapExecutionResultFunction = """
+        func __wrapExecutionResult__(executionResult __ExecutionResult__) __RawExecutionResult__ {
+        	var result __RawExecutionResult__
+        	switch executionResult.Type {
+        	case Completed:
+        		resultValues, err := __wrapResultValues__(executionResult.ResultValues)
         		if err != nil {
         			_, _ = fmt.Fprintf(os.Stderr, "Failed to wrap result values: %s", err)
         			os.Exit(1)
         		}
-        		executionResult.RawResultValues = resultValues
-        		panicked = false
-        	}()
 
-        	var result __RawExecutionResult__
-        	select {
-        	case timelyExecutionResult := <-done:
-        		result = timelyExecutionResult
-        	case <-ctxWithTimeout.Done():
+        		result = __RawExecutionResult__{RawResultValues: resultValues}
+        	case PanicFailure:
+        		panicMessage := executionResult.ResultValues[0].Interface()
+        		panicAsError, implementsError := panicMessage.(error)
+        		var (
+        			resultValue __RawValue__
+        			err         error
+        		)
+        		if implementsError {
+        			resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicAsError.Error()))
+        		} else {
+        			resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicMessage))
+        		}
+        		if err != nil {
+        			_, _ = fmt.Fprintf(os.Stderr, ErrReflectValueToRawValueFailure, err)
+        			os.Exit(1)
+        		}
+
+        		result = __RawExecutionResult__{
+        			RawResultValues: []__RawValue__{},
+        			PanicMessage: &__RawPanicMessage__{
+        				RawResultValue:  resultValue,
+        				ImplementsError: implementsError,
+        			},
+        		}
+        	case TimeoutExceeded:
         		result = __RawExecutionResult__{
         			TimeoutExceeded: true,
         			RawResultValues: []__RawValue__{},
-        			PanicMessage:    nil,
         		}
         	}
 
@@ -969,7 +1003,7 @@ object GoCodeTemplates {
         		}
         	}
         	result.CoverTab = coverTab
-        	
+
         	return result
         }
     """.trimIndent()
@@ -1353,6 +1387,8 @@ object GoCodeTemplates {
         aliases: Map<GoPackage, String?>,
     ) = listOf(
         errorMessages,
+        typeOfExecutionResult,
+        executionResultStruct,
         testInputStruct,
         rawValueInterface,
         primitiveValueStruct,
@@ -1384,6 +1420,7 @@ object GoCodeTemplates {
         convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValueFunction,
         convertReflectValueToRawValueFunction,
         executeFunctionFunction,
+        wrapExecutionResultFunction,
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
         parseTestInputFunction,

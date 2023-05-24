@@ -375,10 +375,17 @@ object GoTestCasesCodeGenerator {
 
     private fun generateVariablesDeclarationAndInitialization(
         variables: List<Variable?>, goUtModelToCodeConverter: GoUtModelToCodeConverter
-    ): String = variables.filterNotNull().joinToString(separator = "", postfix = "\n") { variable ->
-        val declaration = generateVariableDeclaration(variable, goUtModelToCodeConverter)
-        val initialization = generateVariableInitialization(variable, goUtModelToCodeConverter)
-        declaration + initialization
+    ): String {
+        val vars = variables.filterNotNull()
+        return if (vars.isNotEmpty()) {
+            vars.joinToString(separator = "", postfix = "\n") { variable ->
+                val declaration = generateVariableDeclaration(variable, goUtModelToCodeConverter)
+                val initialization = generateVariableInitialization(variable, goUtModelToCodeConverter)
+                declaration + initialization
+            }
+        } else {
+            ""
+        }
     }
 
     private fun generateFuzzedFunctionCall(function: GoUtFunction, variables: List<Variable>): String {

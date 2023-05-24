@@ -250,8 +250,12 @@ func checkTypeIsSupported(
 			result = checkTypeIsSupported(t.Elem(), visited, isResultType, sourcePackage, currentPackage, depth+1)
 		}
 	case *types.Interface:
-		if isResultType && !implementsError(t) {
-			result = UnsupportedType
+		if isResultType {
+			if implementsError(t) && depth == 0 {
+				result = SupportedType
+			} else {
+				result = UnsupportedType
+			}
 		} else {
 			result = SupportedType
 		}

@@ -9,6 +9,7 @@ import (
 	"go/printer"
 	"golang.org/x/tools/go/packages"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +29,7 @@ func copyFile(src, dst string) {
 	if err != nil {
 		failf("copyFile: could not read %v", src, err)
 	}
-	w, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+	w, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		failf("copyFile: could not write %v: %v", dst, err)
 	}
@@ -54,18 +55,18 @@ func main() {
 	if readErr != nil {
 		failf("failed to read file %s: %s", targetFilePath, readErr)
 	}
-
 	var instrumentationTarget InstrumentationTarget
 	fromJsonErr := json.Unmarshal(targetBytes, &instrumentationTarget)
 	if fromJsonErr != nil {
 		failf("failed to parse instrumentation target: %s", fromJsonErr)
 	}
 
+	// parse package
 	pkgPath := instrumentationTarget.AbsolutePackagePath
 	cfg := packages.Config{
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedImports |
 			packages.NeedTypes | packages.NeedTypesSizes | packages.NeedSyntax | packages.NeedTypesInfo |
-			packages.NeedDeps | packages.NeedModule,
+			packages.NeedDeps | packages.NeedModule | packages.NeedEmbedFiles | packages.NeedEmbedPatterns | packages.NeedExportFile,
 		Dir: pkgPath,
 	}
 	cfg.Env = os.Environ()
@@ -87,7 +88,7 @@ func main() {
 	if err != nil {
 		failf("failed to create temporary directory: %s", err)
 	}
-	copyFile(module.GoMod, filepath.Join(workdir, "go.mod"))
+
 	testedFunctions := make(map[string]struct{}, len(instrumentationTarget.TestedFunctions))
 	for _, f := range instrumentationTarget.TestedFunctions {
 		testedFunctions[f] = struct{}{}
@@ -122,7 +123,7 @@ func main() {
 			if err != nil {
 				failf("failed to fprint: %s", err)
 			}
-			err = os.MkdirAll(filepath.Dir(outpath), 0700)
+			err = os.MkdirAll(filepath.Dir(outpath), 0666)
 			if err != nil {
 				failf("failed to create directories: %s", err)
 			}
@@ -130,14 +131,38 @@ func main() {
 			if err != nil {
 				failf("failed to create file: %s", err)
 			}
-			err = os.WriteFile(outpath, buf.Bytes(), 0700)
+			err = os.WriteFile(outpath, buf.Bytes(), 0666)
 			if err != nil {
 				failf("failed to write to file: %s", err)
 			}
 		}
 	}
-
 	packages.Visit(pkgs, nil, visit)
+
+	err = filepath.Walk(module.Dir, func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() && info.Name() == ".git" {
+			return filepath.SkipDir
+		}
+		if info.IsDir() {
+			dname := strings.Replace(path, module.Dir, "", 1)
+			dirPath := filepath.Join(workdir, dname)
+			err = os.MkdirAll(dirPath, 0666)
+			return err
+		}
+		if !strings.HasSuffix(path, ".go") {
+			fname := strings.Replace(path, module.Dir, "", 1)
+			outpath := filepath.Join(workdir, fname)
+			err = os.Symlink(path, outpath)
+			if err != nil {
+				copyFile(path, outpath)
+			}
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		failf("failed to walk the module directory: %s", err)
+	}
 
 	// serialize and write results
 	instrumentationResult := InstrumentationResult{
@@ -149,7 +174,6 @@ func main() {
 	if toJsonErr != nil {
 		failf("failed to serialize instrumentation result: %s", toJsonErr)
 	}
-
 	writeErr := os.WriteFile(resultFilePath, jsonBytes, os.ModePerm)
 	if writeErr != nil {
 		failf("failed to write instrumentation result: %s", writeErr)

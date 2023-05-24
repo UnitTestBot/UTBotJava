@@ -21,10 +21,7 @@ internal class CollectionConstructor : UtAssembleModelConstructorBase() {
         // If [value] constructed incorrectly (some inner transient fields are null, etc.) this may fail.
         // This value will be constructed as UtCompositeModel.
         val models = value.map { internalConstructor.construct(it, valueToClassId(it)) }
-
-        val classId = value::class.java.id
-
-        val addMethodId = MethodId(classId, "add", booleanClassId, listOf(objectClassId))
+        val addMethodId = MethodId(java.util.Collection::class.id, "add", booleanClassId, listOf(objectClassId))
 
         return models.map { UtExecutableCallModel(this, addMethodId, listOf(it)) }
     }
@@ -63,7 +60,7 @@ internal class MapConstructor : UtAssembleModelConstructorBase() {
             internalConstructor.run { construct(key, valueToClassId(key)) to construct(value, valueToClassId(value)) }
         }
 
-        val putMethodId = MethodId(classId, "put", objectClassId, listOf(objectClassId, objectClassId))
+        val putMethodId = MethodId(java.util.AbstractMap::class.id, "put", objectClassId, listOf(objectClassId, objectClassId))
 
         return keyToValueModels.map { (key, value) ->
             UtExecutableCallModel(this, putMethodId, listOf(key, value))

@@ -13,7 +13,6 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.junitByVersion
-import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -53,6 +52,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.*

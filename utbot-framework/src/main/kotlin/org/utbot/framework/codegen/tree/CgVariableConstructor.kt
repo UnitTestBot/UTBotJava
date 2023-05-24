@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.common.isStatic
-import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -100,28 +99,27 @@ open class CgVariableConstructor(val context: CgContext) :
      * We use [valueByModelId] for [UtReferenceModel] by id to not create new variable in case state before
      * was not transformed.
      */
-    open fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
+    open fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue =
+        valueByUtModelWrapper.getOrPut(model.wrap()) {
+            constructValueByModel(model, name)
+        }
+
+    private fun constructValueByModel(model: UtModel, name: String?): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
-        val modelId: ModelId = context.getIdByModel(model)
 
-        return if (model is UtReferenceModel) valueByModelId.getOrPut(modelId) {
-            when (model) {
-                is UtCompositeModel -> constructComposite(model, baseName)
-                is UtAssembleModel -> constructAssemble(model, baseName)
-                is UtArrayModel -> constructArray(model, baseName)
-                is UtEnumConstantModel -> constructEnumConstant(model, baseName)
-                is UtClassRefModel -> constructClassRef(model, baseName)
-                is UtLambdaModel -> constructLambda(model, baseName)
-            }
-        } else valueByModel.getOrPut(model) {
-            when (model) {
-                is UtNullModel -> nullLiteral()
-                is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
-                is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
-                is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
-                else -> error("Unexpected UtModel: ${model::class}")
-            }
+        return when (model) {
+            is UtCompositeModel -> constructComposite(model, baseName)
+            is UtAssembleModel -> constructAssemble(model, baseName)
+            is UtArrayModel -> constructArray(model, baseName)
+            is UtEnumConstantModel -> constructEnumConstant(model, baseName)
+            is UtClassRefModel -> constructClassRef(model, baseName)
+            is UtLambdaModel -> constructLambda(model, baseName)
+            is UtNullModel -> nullLiteral()
+            is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
+            is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
+            is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
+            else -> error("Unexpected UtModel: ${model::class}")
         }
     }
 
@@ -175,8 +173,7 @@ open class CgVariableConstructor(val context: CgContext) :
             newVar(variableType, baseName) { utilsClassId[createInstance](model.classId.name) }
         }
 
-        val modelId = context.getIdByModel(model)
-        valueByModelId[modelId] = obj
+        valueByUtModelWrapper[model.wrap()] = obj
 
         require(obj.type !is BuiltinClassId) {
             "Unexpected BuiltinClassId ${obj.type} found while constructing from composite model"
@@ -229,8 +226,7 @@ open class CgVariableConstructor(val context: CgContext) :
             }
         }
 
-        val modelId = context.getIdByModel(model)
-        return valueByModelId.getValue(modelId)
+        return valueByUtModelWrapper.getValue(model.wrap())
     }
 
     private fun processInstantiationStatement(
@@ -254,8 +250,7 @@ open class CgVariableConstructor(val context: CgContext) :
         newVar(type, model, baseName) {
             initExpr
         }.also {
-            val modelId = context.getIdByModel(model)
-            valueByModelId[modelId] = it
+            valueByUtModelWrapper[model.wrap()] = it
         }
     }
 
@@ -353,8 +348,8 @@ open class CgVariableConstructor(val context: CgContext) :
         }
 
         val array = newVar(arrayModel.classId, baseName) { initializer }
-        val arrayModelId = context.getIdByModel(arrayModel)
-        valueByModelId[arrayModelId] = array
+
+        valueByUtModelWrapper[arrayModel.wrap()] = array
 
         if (canInitWithValues) {
             return array
@@ -483,7 +478,8 @@ open class CgVariableConstructor(val context: CgContext) :
      * Either declares a new variable or gets it from context's cache
      * Returns the obtained variable
      */
-    private fun declareOrGet(model: UtModel): CgValue = valueByModel[model] ?: getOrCreateVariable(model)
+    private fun declareOrGet(model: UtModel): CgValue =
+        valueByUtModelWrapper[model.wrap()] ?: getOrCreateVariable(model)
 
     private fun basicForLoop(start: Any, until: Any, body: (i: CgExpression) -> Unit) {
         forLoop {

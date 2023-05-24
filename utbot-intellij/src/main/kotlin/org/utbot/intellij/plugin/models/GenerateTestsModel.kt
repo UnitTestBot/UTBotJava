@@ -15,11 +15,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import org.jetbrains.concurrency.Promise
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
+import org.utbot.framework.plugin.api.SpringTestsType
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
 
@@ -42,6 +44,8 @@ class GenerateTestsModel(
     override var sourceRootHistory = project.service<Settings>().sourceRootHistory
     override var codegenLanguage = project.service<Settings>().codegenLanguage
 
+    lateinit var springTestsType: SpringTestsType
+
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     lateinit var mockFramework: MockFramework
@@ -58,6 +62,7 @@ class GenerateTestsModel(
     lateinit var profileNames: String
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
+    val preCompilePromises: MutableList<Promise<*>> = mutableListOf()
 
     var runGeneratedTestsWithCoverage : Boolean = false
     var summariesGenerationType : SummariesGenerationType = UtSettings.summaryGenerationType

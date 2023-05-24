@@ -1,9 +1,8 @@
 package org.utbot.framework.codegen.domain.models.builders
 
-import org.utbot.framework.codegen.domain.ModelId
+import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
-import org.utbot.framework.codegen.domain.models.ClassModels
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -20,68 +19,73 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 
+typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
+
 class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder() {
 
     override fun createTestClassModel(classUnderTest: ClassId, testSets: List<CgMethodTestSet>): SpringTestClassModel {
         val baseModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
-        val (injectedModels, mockedModels) = collectInjectedAndMockedModels(testSets)
+        val (thisInstanceModels, dependentMockModels) = collectThisInstanceAndDependentModels(testSets)
 
         return SpringTestClassModel(
-            baseModel.classUnderTest,
-            baseModel.methodTestSets,
-            baseModel.nestedClasses,
-            injectedModels,
-            mockedModels,
+            classUnderTest = baseModel.classUnderTest,
+            methodTestSets = baseModel.methodTestSets,
+            nestedClasses = baseModel.nestedClasses,
+            thisInstanceModels = thisInstanceModels,
+            thisInstanceDependentMocks = dependentMockModels
         )
     }
 
-    private fun collectInjectedAndMockedModels(testSets: List<CgMethodTestSet>): Pair<ClassModels, ClassModels> {
-        val thisInstances = mutableSetOf<UtModel>()
-        val thisInstancesDependentModels = mutableSetOf<UtModel>()
+    private fun collectThisInstanceAndDependentModels(testSets: List<CgMethodTestSet>): Pair<TypedModelWrappers, TypedModelWrappers> {
+        val thisInstanceModels = mutableSetOf<UtModelWrapper>()
+        val thisInstancesDependentModels = mutableSetOf<UtModelWrapper>()
 
-        for ((testSetIndex, testSet) in testSets.withIndex()) {
-            for ((executionIndex, execution) in testSet.executions.withIndex()) {
-
-                setOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
-                    .filterNotNull()
-                    .forEach { model ->
-                        thisInstances += model
-                        thisInstancesDependentModels += collectByThisInstanceModel(model, executionIndex, testSetIndex)
+        with(context) {
+            for ((testSetIndex, testSet) in testSets.withIndex()) {
+                withTestSetIdScope(testSetIndex) {
+                    for ((executionIndex, execution) in testSet.executions.withIndex()) {
+                        withExecutionIdScope(executionIndex) {
+                            setOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
+                                .filterNotNull()
+                                .forEach { model ->
+                                    thisInstanceModels += model.wrap()
+                                    thisInstancesDependentModels += collectByThisInstanceModel(model)
+                                }
+                        }
                     }
+                }
             }
         }
 
         val dependentMockModels =
-            thisInstancesDependentModels.filterTo(mutableSetOf()) { it.isMockModel() && it !in thisInstances }
+            thisInstancesDependentModels
+                .filterTo(mutableSetOf()) { cgModel ->
+                    cgModel.model.isMockModel() && cgModel !in thisInstanceModels
+                }
 
-        return thisInstances.groupByClassId() to dependentMockModels.groupByClassId()
+        return thisInstanceModels.groupByClassId() to dependentMockModels.groupByClassId()
     }
 
-    private fun collectByThisInstanceModel(model: UtModel, executionIndex: Int, testSetIndex: Int): Set<UtModel> {
-        context.modelIds[model] = ModelId.create(model, executionIndex, testSetIndex)
-
-        val dependentModels = mutableSetOf<UtModel>()
+    private fun collectByThisInstanceModel(model: UtModel): Set<UtModelWrapper> {
+        val dependentModels = mutableSetOf<UtModelWrapper>()
         collectRecursively(model, dependentModels)
-
-        dependentModels.forEach { model ->
-            context.modelIds[model] = ModelId.create(model, executionIndex, testSetIndex)
-        }
 
         return dependentModels
     }
 
-    private fun Set<UtModel>.groupByClassId(): ClassModels {
-        val classModels = mutableMapOf<ClassId, Set<UtModel>>()
+    private fun Set<UtModelWrapper>.groupByClassId(): TypedModelWrappers {
+        val classModels = mutableMapOf<ClassId, Set<UtModelWrapper>>()
 
-        for (modelGroup in this.groupBy { it.classId }) {
+        for (modelGroup in this.groupBy { it.model.classId }) {
             classModels[modelGroup.key] = modelGroup.value.toSet()
         }
 
         return classModels
     }
 
-    private fun collectRecursively(currentModel: UtModel, allModels: MutableSet<UtModel>) {
-        if (!allModels.add(currentModel)) {
+    private fun collectRecursively(currentModel: UtModel, allModels: MutableSet<UtModelWrapper>) {
+        val cgModel = with(context) { currentModel.wrap() }
+        if (!allModels.add(cgModel)) {
             return
         }
 

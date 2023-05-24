@@ -12,7 +12,6 @@ import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.LoggerModel
 import org.utbot.rd.generated.loggerModel
-import org.utbot.rd.loggers.UtRdKLogger
 import org.utbot.rd.loggers.setup
 import org.utbot.rd.onSchedulerBlocking
 import org.utbot.rd.startBlocking
@@ -20,6 +19,7 @@ import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
 import org.utbot.spring.generated.SpringAnalyzerParams
 import org.utbot.spring.generated.SpringAnalyzerProcessModel
+import org.utbot.spring.generated.SpringAnalyzerResult
 import org.utbot.spring.generated.springAnalyzerProcessModel
 import java.io.File
 import java.net.URL
@@ -89,7 +89,7 @@ class SpringAnalyzerProcess private constructor(
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
                     classpathArgs = listOf(
                         "-cp",
-                        "\"${extendedClasspath.joinToString(File.pathSeparator)}\"",
+                        extendedClasspath.joinToString(File.pathSeparator),
                         "org.utbot.spring.process.SpringAnalyzerProcessMainKt"
                     )
                     val cmd = obtainProcessCommandLine(port)
@@ -113,13 +113,12 @@ class SpringAnalyzerProcess private constructor(
     private val springAnalyzerModel: SpringAnalyzerProcessModel = onSchedulerBlocking { protocol.springAnalyzerProcessModel }
     private val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
 
-    fun getBeanQualifiedNames(
+    fun getBeanDefinitions(
         configuration: String,
         fileStorage: Array<String>,
         profileExpression: String?,
-    ): List<String> {
+    ): SpringAnalyzerResult {
         val params = SpringAnalyzerParams(configuration, fileStorage, profileExpression)
-        val result = springAnalyzerModel.analyze.startBlocking(params)
-        return result.beanTypes.toList()
+        return springAnalyzerModel.analyze.startBlocking(params)
     }
 }

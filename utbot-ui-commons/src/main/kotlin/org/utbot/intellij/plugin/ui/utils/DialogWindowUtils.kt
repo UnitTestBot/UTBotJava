@@ -5,7 +5,7 @@ import com.intellij.ui.SimpleTextAttributes
 import org.utbot.framework.codegen.domain.TestFramework
 import javax.swing.JList
 
-fun createTestFrameworksRenderer(willBeInstalledLabel: String): ColoredListCellRenderer<TestFramework> {
+fun createTestFrameworksRenderer(additionalText: String): ColoredListCellRenderer<TestFramework> {
     return object : ColoredListCellRenderer<TestFramework>() {
         override fun customizeCellRenderer(
             list: JList<out TestFramework>, value: TestFramework,
@@ -13,7 +13,7 @@ fun createTestFrameworksRenderer(willBeInstalledLabel: String): ColoredListCellR
         ) {
             this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
             if (!value.isInstalled) {
-                this.append(willBeInstalledLabel, SimpleTextAttributes.ERROR_ATTRIBUTES)
+                this.append(additionalText, SimpleTextAttributes.ERROR_ATTRIBUTES)
             }
         }
     }

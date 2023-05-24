@@ -22,7 +22,8 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
-        return valueByModel.getOrPut(model) {
+
+        return valueByUtModelWrapper.getOrPut(model.wrap()) {
             when (model) {
                 is PythonTreeModel -> {
                     val (value, arguments) = pythonBuildObject(model.tree, baseName)

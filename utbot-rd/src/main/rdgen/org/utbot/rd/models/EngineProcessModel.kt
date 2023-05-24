@@ -60,6 +60,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("testSetsId", PredefinedType.long)
     }
     val renderParams = structdef {
+        field("springTestsType", PredefinedType.string)
         field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
         field("projectType", PredefinedType.string)
@@ -84,7 +85,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
     }
-    val getSpringBeanQualifiedNamesParams = structdef {
+    val getSpringBeanDefinitions = structdef {
         field("classpath", array(PredefinedType.string))
         field("config", PredefinedType.string)
         field("fileStorage", array(PredefinedType.string))
@@ -128,9 +129,23 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("statistics", PredefinedType.string.nullable)
         field("hasWarnings", PredefinedType.bool)
     }
+    val beanAdditionalData = structdef {
+        field("factoryMethodName", PredefinedType.string)
+        field("parameterTypes", immutableList(PredefinedType.string))
+        field("configClassFqn", PredefinedType.string)
+    }
+    val beanDefinitionData = structdef {
+        field("beanName", PredefinedType.string)
+        field("beanTypeFqn", PredefinedType.string)
+        field("additionalData", beanAdditionalData.nullable)
+    }
+    val springAnalyzerResult = structdef {
+        field("beanDefinitions", array(beanDefinitionData))
+    }
+
     init {
         call("setupUtContext", setupContextParams, PredefinedType.void).async
-        call("getSpringBeanQualifiedNames", getSpringBeanQualifiedNamesParams, array(PredefinedType.string)).async
+        call("getSpringBeanDefinitions", getSpringBeanDefinitions, springAnalyzerResult).async
         call("createTestGenerator", testGeneratorParams, PredefinedType.void).async
         call("isCancelled", PredefinedType.void, PredefinedType.bool).async
         call("generate", generateParams, generateResult).async

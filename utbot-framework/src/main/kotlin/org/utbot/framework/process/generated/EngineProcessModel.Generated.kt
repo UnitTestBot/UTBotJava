@@ -20,7 +20,7 @@ import kotlin.jvm.JvmStatic
  */
 class EngineProcessModel private constructor(
     private val _setupUtContext: RdCall<SetupContextParams, Unit>,
-    private val _getSpringBeanQualifiedNames: RdCall<GetSpringBeanQualifiedNamesParams, Array<String>>,
+    private val _getSpringBeanDefinitions: RdCall<GetSpringBeanDefinitions, SpringAnalyzerResult>,
     private val _createTestGenerator: RdCall<TestGeneratorParams, Unit>,
     private val _isCancelled: RdCall<Unit, Boolean>,
     private val _generate: RdCall<GenerateParams, GenerateResult>,
@@ -43,7 +43,7 @@ class EngineProcessModel private constructor(
             serializers.register(RenderParams)
             serializers.register(RenderResult)
             serializers.register(SetupContextParams)
-            serializers.register(GetSpringBeanQualifiedNamesParams)
+            serializers.register(GetSpringBeanDefinitions)
             serializers.register(MethodDescription)
             serializers.register(FindMethodsInClassMatchingSelectedArguments)
             serializers.register(FindMethodsInClassMatchingSelectedResult)
@@ -52,6 +52,9 @@ class EngineProcessModel private constructor(
             serializers.register(WriteSarifReportArguments)
             serializers.register(GenerateTestReportArgs)
             serializers.register(GenerateTestReportResult)
+            serializers.register(BeanAdditionalData)
+            serializers.register(BeanDefinitionData)
+            serializers.register(SpringAnalyzerResult)
         }
         
         
@@ -71,9 +74,8 @@ class EngineProcessModel private constructor(
             return EngineProcessModel()
         }
         
-        private val __StringArraySerializer = FrameworkMarshallers.String.array()
         
-        const val serializationHash = 6076922965808046990L
+        const val serializationHash = 2605460374173973135L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -81,7 +83,7 @@ class EngineProcessModel private constructor(
     
     //fields
     val setupUtContext: RdCall<SetupContextParams, Unit> get() = _setupUtContext
-    val getSpringBeanQualifiedNames: RdCall<GetSpringBeanQualifiedNamesParams, Array<String>> get() = _getSpringBeanQualifiedNames
+    val getSpringBeanDefinitions: RdCall<GetSpringBeanDefinitions, SpringAnalyzerResult> get() = _getSpringBeanDefinitions
     val createTestGenerator: RdCall<TestGeneratorParams, Unit> get() = _createTestGenerator
     val isCancelled: RdCall<Unit, Boolean> get() = _isCancelled
     val generate: RdCall<GenerateParams, GenerateResult> get() = _generate
@@ -95,7 +97,7 @@ class EngineProcessModel private constructor(
     //initializer
     init {
         _setupUtContext.async = true
-        _getSpringBeanQualifiedNames.async = true
+        _getSpringBeanDefinitions.async = true
         _createTestGenerator.async = true
         _isCancelled.async = true
         _generate.async = true
@@ -109,7 +111,7 @@ class EngineProcessModel private constructor(
     
     init {
         bindableChildren.add("setupUtContext" to _setupUtContext)
-        bindableChildren.add("getSpringBeanQualifiedNames" to _getSpringBeanQualifiedNames)
+        bindableChildren.add("getSpringBeanDefinitions" to _getSpringBeanDefinitions)
         bindableChildren.add("createTestGenerator" to _createTestGenerator)
         bindableChildren.add("isCancelled" to _isCancelled)
         bindableChildren.add("generate" to _generate)
@@ -125,7 +127,7 @@ class EngineProcessModel private constructor(
     private constructor(
     ) : this(
         RdCall<SetupContextParams, Unit>(SetupContextParams, FrameworkMarshallers.Void),
-        RdCall<GetSpringBeanQualifiedNamesParams, Array<String>>(GetSpringBeanQualifiedNamesParams, __StringArraySerializer),
+        RdCall<GetSpringBeanDefinitions, SpringAnalyzerResult>(GetSpringBeanDefinitions, SpringAnalyzerResult),
         RdCall<TestGeneratorParams, Unit>(TestGeneratorParams, FrameworkMarshallers.Void),
         RdCall<Unit, Boolean>(FrameworkMarshallers.Void, FrameworkMarshallers.Bool),
         RdCall<GenerateParams, GenerateResult>(GenerateParams, GenerateResult),
@@ -144,7 +146,7 @@ class EngineProcessModel private constructor(
         printer.println("EngineProcessModel (")
         printer.indent {
             print("setupUtContext = "); _setupUtContext.print(printer); println()
-            print("getSpringBeanQualifiedNames = "); _getSpringBeanQualifiedNames.print(printer); println()
+            print("getSpringBeanDefinitions = "); _getSpringBeanDefinitions.print(printer); println()
             print("createTestGenerator = "); _createTestGenerator.print(printer); println()
             print("isCancelled = "); _isCancelled.print(printer); println()
             print("generate = "); _generate.print(printer); println()
@@ -161,7 +163,7 @@ class EngineProcessModel private constructor(
     override fun deepClone(): EngineProcessModel   {
         return EngineProcessModel(
             _setupUtContext.deepClonePolymorphic(),
-            _getSpringBeanQualifiedNames.deepClonePolymorphic(),
+            _getSpringBeanDefinitions.deepClonePolymorphic(),
             _createTestGenerator.deepClonePolymorphic(),
             _isCancelled.deepClonePolymorphic(),
             _generate.deepClonePolymorphic(),
@@ -180,7 +182,145 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:105]
+ * #### Generated from [EngineProcessModel.kt:132]
+ */
+data class BeanAdditionalData (
+    val factoryMethodName: String,
+    val parameterTypes: List<String>,
+    val configClassFqn: String
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<BeanAdditionalData> {
+        override val _type: KClass<BeanAdditionalData> = BeanAdditionalData::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanAdditionalData  {
+            val factoryMethodName = buffer.readString()
+            val parameterTypes = buffer.readList { buffer.readString() }
+            val configClassFqn = buffer.readString()
+            return BeanAdditionalData(factoryMethodName, parameterTypes, configClassFqn)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanAdditionalData)  {
+            buffer.writeString(value.factoryMethodName)
+            buffer.writeList(value.parameterTypes) { v -> buffer.writeString(v) }
+            buffer.writeString(value.configClassFqn)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as BeanAdditionalData
+        
+        if (factoryMethodName != other.factoryMethodName) return false
+        if (parameterTypes != other.parameterTypes) return false
+        if (configClassFqn != other.configClassFqn) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + factoryMethodName.hashCode()
+        __r = __r*31 + parameterTypes.hashCode()
+        __r = __r*31 + configClassFqn.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("BeanAdditionalData (")
+        printer.indent {
+            print("factoryMethodName = "); factoryMethodName.print(printer); println()
+            print("parameterTypes = "); parameterTypes.print(printer); println()
+            print("configClassFqn = "); configClassFqn.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:137]
+ */
+data class BeanDefinitionData (
+    val beanName: String,
+    val beanTypeFqn: String,
+    val additionalData: BeanAdditionalData?
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<BeanDefinitionData> {
+        override val _type: KClass<BeanDefinitionData> = BeanDefinitionData::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanDefinitionData  {
+            val beanName = buffer.readString()
+            val beanTypeFqn = buffer.readString()
+            val additionalData = buffer.readNullable { BeanAdditionalData.read(ctx, buffer) }
+            return BeanDefinitionData(beanName, beanTypeFqn, additionalData)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanDefinitionData)  {
+            buffer.writeString(value.beanName)
+            buffer.writeString(value.beanTypeFqn)
+            buffer.writeNullable(value.additionalData) { BeanAdditionalData.write(ctx, buffer, it) }
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as BeanDefinitionData
+        
+        if (beanName != other.beanName) return false
+        if (beanTypeFqn != other.beanTypeFqn) return false
+        if (additionalData != other.additionalData) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + beanName.hashCode()
+        __r = __r*31 + beanTypeFqn.hashCode()
+        __r = __r*31 + if (additionalData != null) additionalData.hashCode() else 0
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("BeanDefinitionData (")
+        printer.indent {
+            print("beanName = "); beanName.print(printer); println()
+            print("beanTypeFqn = "); beanTypeFqn.print(printer); println()
+            print("additionalData = "); additionalData.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:106]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -243,7 +383,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:109]
+ * #### Generated from [EngineProcessModel.kt:110]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -300,7 +440,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:98]
+ * #### Generated from [EngineProcessModel.kt:99]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -363,7 +503,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:102]
+ * #### Generated from [EngineProcessModel.kt:103]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -588,7 +728,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:117]
+ * #### Generated from [EngineProcessModel.kt:118]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -681,7 +821,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:126]
+ * #### Generated from [EngineProcessModel.kt:127]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -750,9 +890,9 @@ data class GenerateTestReportResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:87]
+ * #### Generated from [EngineProcessModel.kt:88]
  */
-data class GetSpringBeanQualifiedNamesParams (
+data class GetSpringBeanDefinitions (
     val classpath: Array<String>,
     val config: String,
     val fileStorage: Array<String>,
@@ -760,19 +900,19 @@ data class GetSpringBeanQualifiedNamesParams (
 ) : IPrintable {
     //companion
     
-    companion object : IMarshaller<GetSpringBeanQualifiedNamesParams> {
-        override val _type: KClass<GetSpringBeanQualifiedNamesParams> = GetSpringBeanQualifiedNamesParams::class
+    companion object : IMarshaller<GetSpringBeanDefinitions> {
+        override val _type: KClass<GetSpringBeanDefinitions> = GetSpringBeanDefinitions::class
         
         @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanQualifiedNamesParams  {
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanDefinitions  {
             val classpath = buffer.readArray {buffer.readString()}
             val config = buffer.readString()
             val fileStorage = buffer.readArray {buffer.readString()}
             val profileExpression = buffer.readNullable { buffer.readString() }
-            return GetSpringBeanQualifiedNamesParams(classpath, config, fileStorage, profileExpression)
+            return GetSpringBeanDefinitions(classpath, config, fileStorage, profileExpression)
         }
         
-        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanQualifiedNamesParams)  {
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanDefinitions)  {
             buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.config)
             buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
@@ -790,7 +930,7 @@ data class GetSpringBeanQualifiedNamesParams (
         if (this === other) return true
         if (other == null || other::class != this::class) return false
         
-        other as GetSpringBeanQualifiedNamesParams
+        other as GetSpringBeanDefinitions
         
         if (!(classpath contentDeepEquals other.classpath)) return false
         if (config != other.config) return false
@@ -810,7 +950,7 @@ data class GetSpringBeanQualifiedNamesParams (
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("GetSpringBeanQualifiedNamesParams (")
+        printer.println("GetSpringBeanDefinitions (")
         printer.indent {
             print("classpath = "); classpath.print(printer); println()
             print("config = "); config.print(printer); println()
@@ -888,7 +1028,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:93]
+ * #### Generated from [EngineProcessModel.kt:94]
  */
 data class MethodDescription (
     val name: String,
@@ -960,6 +1100,7 @@ data class MethodDescription (
  * #### Generated from [EngineProcessModel.kt:62]
  */
 data class RenderParams (
+    val springTestsType: String,
     val testSetsId: Long,
     val classUnderTest: ByteArray,
     val projectType: String,
@@ -984,6 +1125,7 @@ data class RenderParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): RenderParams  {
+            val springTestsType = buffer.readString()
             val testSetsId = buffer.readLong()
             val classUnderTest = buffer.readByteArray()
             val projectType = buffer.readString()
@@ -1000,10 +1142,11 @@ data class RenderParams (
             val hangingTestsTimeout = buffer.readLong()
             val enableTestsTimeout = buffer.readBool()
             val testClassPackageName = buffer.readString()
-            return RenderParams(testSetsId, classUnderTest, projectType, paramNames, generateUtilClassFile, testFramework, mockFramework, codegenLanguage, parameterizedTestSource, staticsMocking, forceStaticMocking, generateWarningsForStaticMocking, runtimeExceptionTestsBehaviour, hangingTestsTimeout, enableTestsTimeout, testClassPackageName)
+            return RenderParams(springTestsType, testSetsId, classUnderTest, projectType, paramNames, generateUtilClassFile, testFramework, mockFramework, codegenLanguage, parameterizedTestSource, staticsMocking, forceStaticMocking, generateWarningsForStaticMocking, runtimeExceptionTestsBehaviour, hangingTestsTimeout, enableTestsTimeout, testClassPackageName)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: RenderParams)  {
+            buffer.writeString(value.springTestsType)
             buffer.writeLong(value.testSetsId)
             buffer.writeByteArray(value.classUnderTest)
             buffer.writeString(value.projectType)
@@ -1035,6 +1178,7 @@ data class RenderParams (
         
         other as RenderParams
         
+        if (springTestsType != other.springTestsType) return false
         if (testSetsId != other.testSetsId) return false
         if (!(classUnderTest contentEquals other.classUnderTest)) return false
         if (projectType != other.projectType) return false
@@ -1057,6 +1201,7 @@ data class RenderParams (
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
+        __r = __r*31 + springTestsType.hashCode()
         __r = __r*31 + testSetsId.hashCode()
         __r = __r*31 + classUnderTest.contentHashCode()
         __r = __r*31 + projectType.hashCode()
@@ -1079,6 +1224,7 @@ data class RenderParams (
     override fun print(printer: PrettyPrinter)  {
         printer.println("RenderParams (")
         printer.indent {
+            print("springTestsType = "); springTestsType.print(printer); println()
             print("testSetsId = "); testSetsId.print(printer); println()
             print("classUnderTest = "); classUnderTest.print(printer); println()
             print("projectType = "); projectType.print(printer); println()
@@ -1104,7 +1250,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:80]
+ * #### Generated from [EngineProcessModel.kt:81]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1167,7 +1313,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:84]
+ * #### Generated from [EngineProcessModel.kt:85]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1215,6 +1361,63 @@ data class SetupContextParams (
         printer.println("SetupContextParams (")
         printer.indent {
             print("classpathForUrlsClassloader = "); classpathForUrlsClassloader.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:142]
+ */
+data class SpringAnalyzerResult (
+    val beanDefinitions: Array<BeanDefinitionData>
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<SpringAnalyzerResult> {
+        override val _type: KClass<SpringAnalyzerResult> = SpringAnalyzerResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerResult  {
+            val beanDefinitions = buffer.readArray {BeanDefinitionData.read(ctx, buffer)}
+            return SpringAnalyzerResult(beanDefinitions)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerResult)  {
+            buffer.writeArray(value.beanDefinitions) { BeanDefinitionData.write(ctx, buffer, it) }
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as SpringAnalyzerResult
+        
+        if (!(beanDefinitions contentDeepEquals other.beanDefinitions)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + beanDefinitions.contentDeepHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("SpringAnalyzerResult (")
+        printer.indent {
+            print("beanDefinitions = "); beanDefinitions.print(printer); println()
         }
         printer.print(")")
     }
@@ -1305,7 +1508,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:112]
+ * #### Generated from [EngineProcessModel.kt:113]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

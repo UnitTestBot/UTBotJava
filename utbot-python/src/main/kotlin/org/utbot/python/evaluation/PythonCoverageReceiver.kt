@@ -17,6 +17,11 @@ class PythonCoverageReceiver(
         return "localhost" to socket.localPort.toString()
     }
 
+    fun kill() {
+        socket.close()
+        this.interrupt()
+    }
+
     override fun run() {
         try {
             while (System.currentTimeMillis() < until) {

@@ -65,7 +65,7 @@ class PythonWorkerManager(
     fun disconnect() {
         workerSocket.close()
         process.destroy()
-        coverageReceiver.interrupt()
+        coverageReceiver.kill()
     }
 
     fun reconnect() {

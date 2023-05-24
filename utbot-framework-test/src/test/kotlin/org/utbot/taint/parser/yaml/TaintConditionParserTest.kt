@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 
 class TaintConditionParserTest {
 

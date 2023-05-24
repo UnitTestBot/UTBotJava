@@ -3,7 +3,6 @@ package org.utbot.taint.parser.yaml
 import com.charleskorn.kaml.YamlList
 import com.charleskorn.kaml.YamlNode
 import com.charleskorn.kaml.YamlScalar
-import org.utbot.taint.parser.model.*
 import kotlin.contracts.ExperimentalContracts
 
 @OptIn(ExperimentalContracts::class)

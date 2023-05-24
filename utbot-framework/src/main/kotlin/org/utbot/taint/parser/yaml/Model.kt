@@ -1,4 +1,4 @@
-package org.utbot.taint.parser.model
+package org.utbot.taint.parser.yaml
 
 /**
  * See "docs/TaintAnalysis.md" for configuration format.

@@ -3,9 +3,6 @@ package org.utbot.taint.parser.yaml
 import com.charleskorn.kaml.YamlList
 import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
-import org.utbot.taint.parser.model.DtoTaintSignatureAny
-import org.utbot.taint.parser.model.DtoTaintSignature
-import org.utbot.taint.parser.model.DtoTaintSignatureList
 import org.utbot.taint.parser.yaml.MethodArgumentParser.isArgumentType
 import org.utbot.taint.parser.yaml.MethodArgumentParser.parseArgumentType
 import kotlin.contracts.ExperimentalContracts

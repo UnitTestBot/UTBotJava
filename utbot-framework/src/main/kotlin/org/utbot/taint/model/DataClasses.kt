@@ -3,14 +3,11 @@ package org.utbot.taint.model
 import kotlinx.serialization.Serializable
 
 // Data classes corresponding to the parsed data transfer objects.
-// See [org.utbot.taint.parser.model] for more details.
+// See [org.utbot.taint.parser] for more details.
 
-@Serializable
-data class MethodFqn(
-    val packageNames: List<String>,
-    val className: String,
-    val methodName: String
-)
+@Serializable sealed interface MethodFqn
+@Serializable data class MethodFqnValue(val packageNames: List<String>, val className: String, val methodName: String) : MethodFqn
+@Serializable data class MethodFqnRegex(val regex: String) : MethodFqn
 
 @Serializable
 sealed interface TaintEntities {
@@ -27,7 +24,7 @@ sealed interface TaintEntities {
 @Serializable object TaintEntityReturn : TaintEntity
 @Serializable data class TaintEntityArgument(/** one-based */ val index: UInt) : TaintEntity
 
-@Serializable  data class TaintMark(val name: String)
+@Serializable data class TaintMark(val name: String)
 
 @Serializable sealed interface ArgumentValue
 @Serializable object ArgumentValueNull : ArgumentValue
@@ -39,6 +36,7 @@ sealed interface TaintEntities {
 @Serializable sealed interface ArgumentType
 @Serializable object ArgumentTypeAny : ArgumentType
 @Serializable data class ArgumentTypeString(val typeFqn: String) : ArgumentType
+@Serializable data class ArgumentTypeRegex(val typeFqnRegex: String) : ArgumentType
 
 @Serializable sealed interface TaintSignature
 @Serializable object TaintSignatureAny : TaintSignature

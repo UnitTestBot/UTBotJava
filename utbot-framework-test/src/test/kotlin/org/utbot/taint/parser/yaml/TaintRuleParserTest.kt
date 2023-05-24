@@ -4,7 +4,6 @@ import com.charleskorn.kaml.Yaml
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 
 class TaintRuleParserTest {
 

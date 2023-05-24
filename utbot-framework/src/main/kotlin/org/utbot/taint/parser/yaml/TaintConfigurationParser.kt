@@ -2,7 +2,6 @@ package org.utbot.taint.parser.yaml
 
 import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
-import org.utbot.taint.parser.model.DtoTaintConfiguration
 import org.utbot.taint.parser.yaml.Constants.KEY_CLEANERS
 import org.utbot.taint.parser.yaml.Constants.KEY_PASSES
 import org.utbot.taint.parser.yaml.Constants.KEY_SINKS

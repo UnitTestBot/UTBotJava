@@ -1,12 +1,12 @@
 package org.utbot.taint
 
 import org.utbot.taint.model.*
-import org.utbot.taint.parser.model.*
+import org.utbot.taint.parser.yaml.*
 
 /**
  * Converts data transfer objects from .yaml config to model data classes.
  */
-object TaintConfigurationAdapter {
+object YamlTaintConfigurationAdapter {
 
     fun convert(configuration: DtoTaintConfiguration) =
         TaintConfiguration(

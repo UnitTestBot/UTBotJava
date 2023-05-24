@@ -4,7 +4,6 @@ import com.charleskorn.kaml.YamlNode
 import com.charleskorn.kaml.YamlNull
 import com.charleskorn.kaml.YamlScalar
 import com.charleskorn.kaml.YamlScalarFormatException
-import org.utbot.taint.parser.model.*
 import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_PREFIX
 import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_SUFFIX
 import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_UNDERSCORE

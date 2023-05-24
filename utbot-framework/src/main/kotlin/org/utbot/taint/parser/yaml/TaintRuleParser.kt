@@ -3,7 +3,6 @@ package org.utbot.taint.parser.yaml
 import com.charleskorn.kaml.YamlList
 import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
-import org.utbot.taint.parser.model.*
 import org.utbot.taint.parser.yaml.TaintConditionParser.parseConditionsKey
 import org.utbot.taint.parser.yaml.TaintSignatureParser.parseSignatureKey
 import org.utbot.taint.parser.yaml.TaintEntityParser.parseTaintEntities

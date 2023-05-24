@@ -6,7 +6,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
 class MethodArgumentParserTest {

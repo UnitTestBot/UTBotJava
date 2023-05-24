@@ -1,10 +1,7 @@
-package org.utbot.taint.parser
+package org.utbot.taint.parser.yaml
 
 import com.charleskorn.kaml.Yaml
 import com.charleskorn.kaml.YamlException
-import org.utbot.taint.parser.model.DtoTaintConfiguration
-import org.utbot.taint.parser.yaml.TaintConfigurationParser
-import org.utbot.taint.parser.yaml.TaintParseError
 
 /**
  * YAML configuration file parser.

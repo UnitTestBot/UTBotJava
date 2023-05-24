@@ -1,7 +1,6 @@
 package org.utbot.taint.parser.yaml
 
 import com.charleskorn.kaml.*
-import org.utbot.taint.parser.model.*
 import org.utbot.taint.parser.yaml.MethodArgumentParser.isArgumentType
 import org.utbot.taint.parser.yaml.MethodArgumentParser.isArgumentValue
 import org.utbot.taint.parser.yaml.MethodArgumentParser.parseArgumentType

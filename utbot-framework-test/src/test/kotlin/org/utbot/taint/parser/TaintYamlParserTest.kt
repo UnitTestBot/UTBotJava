@@ -5,8 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
-import org.utbot.taint.parser.yaml.TaintParseError
+import org.utbot.taint.parser.yaml.*
 
 class TaintYamlParserTest {
 

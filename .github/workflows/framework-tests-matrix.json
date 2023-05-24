@@ -1,9 +1,14 @@
 {
   "project": [
     {
-      "PART_NAME": "composite",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.manual.*\" --tests \"org.utbot.examples.stream.*\" --tests \"org.utbot.engine.*\" --tests \"org.utbot.framework.*\" --tests \"org.utbot.sarif.*\""
+      "PART_NAME": "composite-part1",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.manual.*\" --tests \"org.utbot.examples.stream.*\""
     },
+    {
+      "PART_NAME": "composite-part2",
+      "TESTS_TO_RUN": "--tests \"org.utbot.engine.*\" --tests \"org.utbot.framework.*\" --tests \"org.utbot.sarif.*\""
+    },
+
     {
       "PART_NAME": "collections-part1",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapValuesTest\" --tests \"org.utbot.examples.collections.OptionalsTest\" --tests \"org.utbot.examples.collections.SetIteratorsTest\" --tests \"org.utbot.examples.collections.CustomerExamplesTest\" --tests \"org.utbot.examples.collections.GenericListsExampleTest\" --tests \"org.utbot.examples.collections.LinkedListsTest\" --tests \"org.utbot.examples.collections.ListAlgorithmsTest\""

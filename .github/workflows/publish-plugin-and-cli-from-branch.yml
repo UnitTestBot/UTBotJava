@@ -99,3 +99,41 @@ jobs:
         with:
           name: utbot-cli-${{ env.VERSION }}
           path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar
+          
+      - name: Build UTBot CLI Python
+        run: |
+          cd utbot-cli-python
+          gradle clean build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
+
+      - name: Archive UTBot CLI Python
+        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: utbot-cli-python-${{ env.VERSION }}
+          path: utbot-cli-python/build/libs/utbot-cli-python-${{ env.VERSION }}.jar
+      
+      - name: Build UTBot CLI Javascript
+        if: ${{ matrix.configuration.plugin_type == 'IU' }}
+        run: |
+          cd utbot-cli-js
+          gradle clean build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
+
+      - name: Archive UTBot CLI Javascript
+        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IU' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: utbot-cli-js-${{ env.VERSION }}
+          path: utbot-cli-js/build/libs/utbot-cli-js-${{ env.VERSION }}.jar
+                
+      - name: Build UTBot CLI Go
+        if: ${{ matrix.configuration.plugin_type == 'IU' }}
+        run: |
+          cd utbot-cli-go
+          gradle clean build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
+
+      - name: Archive UTBot CLI Go
+        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IU' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: utbot-cli-go-${{ env.VERSION }}
+          path: utbot-cli-go/build/libs/utbot-cli-go-${{ env.VERSION }}.jar

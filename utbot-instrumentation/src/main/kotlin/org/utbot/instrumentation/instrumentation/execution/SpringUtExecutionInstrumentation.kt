@@ -52,12 +52,15 @@ class SpringUtExecutionInstrumentation(
         val classLoader = utContext.classLoader
         Thread.currentThread().contextClassLoader = classLoader
 
-        // TODO correctly handle the case when springConfig is an XML config
         val primarySources = arrayOf(
             classLoader.loadClass(springConfig),
             classLoader.loadClass("org.utbot.spring.repositoryWrapper.RepositoryWrapperConfiguration")
         )
-        val args = arrayOf("--server.port=${Random.nextInt(2048, 65536)}")
+
+        // Setting server.port value to 0 means given Spring to select any appropriate port itself.
+        // See https://stackoverflow.com/questions/21083170/how-to-configure-port-for-a-spring-boot-application
+        val args = arrayOf("--server.port=0")
+
         // TODO if we don't have SpringBoot just create ApplicationContext here, reuse code from utbot-spring-analyzer
         // TODO recreate context/app every time whenever we change method under test
         val springAppClass =

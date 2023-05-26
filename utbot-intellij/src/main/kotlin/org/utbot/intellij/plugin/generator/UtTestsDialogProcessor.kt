@@ -378,16 +378,16 @@ object UtTestsDialogProcessor {
                                             else -> UtSettings.useFuzzing
                                         }
                                         val rdGenerateResult = process.generate(
-                                            model.conflictTriggers,
-                                            methods,
-                                            model.mockStrategy,
-                                            model.chosenClassesToMockAlways,
-                                            model.timeout,
-                                            model.timeout,
-                                            useEngine,
-                                            useFuzzing,
-                                            project.service<Settings>().fuzzingValue,
-                                            searchDirectory.pathString
+                                            conflictTriggers = model.conflictTriggers,
+                                            methods = methods,
+                                            mockStrategyApi = model.mockStrategy,
+                                            chosenClassesToMockAlways = model.chosenClassesToMockAlways,
+                                            timeout = model.timeout,
+                                            generationTimeout = model.timeout,
+                                            isSymbolicEngineEnabled = useEngine,
+                                            isFuzzingEnabled = useFuzzing,
+                                            fuzzingValue = project.service<Settings>().fuzzingValue,
+                                            searchDirectory = searchDirectory.pathString
                                         )
 
                                         if (rdGenerateResult.notEmptyCases == 0) {

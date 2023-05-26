@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.utbot.common.PathUtil;
+import org.utbot.engine.api.UTBotIterator;
+import org.utbot.engine.state.ExecutionState;
 import org.utbot.examples.assemble.DirectAccess;
 import org.utbot.examples.assemble.PrimitiveFields;
 import org.utbot.examples.assemble.ArrayOfComplexArrays;
@@ -26,10 +28,12 @@ import org.utbot.framework.codegen.domain.Junit4;
 import org.utbot.framework.codegen.domain.MockitoStaticMocking;
 import org.utbot.framework.codegen.domain.ProjectType;
 import org.utbot.framework.plugin.api.*;
+import org.utbot.framework.plugin.api.util.IdUtilKt;
 import org.utbot.framework.plugin.api.util.UtContext;
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider;
 import org.utbot.framework.util.Snippet;
 import org.utbot.framework.util.SootUtils;
+import soot.jimple.IfStmt;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -1307,7 +1311,11 @@ public class UtBotJavaApiTest {
 
     @NotNull
     private String getClassPath(Class<?> clazz) {
-        return clazz.getProtectionDomain().getCodeSource().getLocation().getPath();
+        try {
+            return new File(clazz.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @NotNull
@@ -1400,20 +1408,6 @@ public class UtBotJavaApiTest {
                 int.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                environmentModels
-                        )
-                ),
-                Trivial.class,
-                classpath,
-                dependencyClassPath,
-                MockStrategyApi.OTHER_PACKAGES,
-                3000L
-        );
-
         UnitTestBotLight.run(
                 (graph, state) -> {
                     System.err.println(state.getStmt());
@@ -1426,6 +1420,21 @@ public class UtBotJavaApiTest {
                 classpath,
                 dependencyClassPath
         );
+    }
+
+    @Test
+    public void testUnitTestBotLightIterator() {
+        String classpath = getClassPath(Trivial.class);
+        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+                Trivial.class,
+                "aMethod",
+                int.class
+        );
+        UTBotIterator.stream(IdUtilKt.getExecutableId(methodUnderTest), classpath)
+                .limit(10)
+                .map(ExecutionState::getStmt)
+                .filter(stmt -> stmt instanceof IfStmt)
+                .forEach(System.out::println);
     }
 
 }

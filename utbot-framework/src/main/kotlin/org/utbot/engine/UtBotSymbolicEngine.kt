@@ -41,6 +41,8 @@ import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.AutowiredValueProvider
+import org.utbot.fuzzing.type.factories.SimpleFuzzedTypeFactory
+import org.utbot.fuzzing.type.factories.SpringFuzzedTypeFactory
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -357,31 +359,29 @@ class UtBotSymbolicEngine(
             methodUnderTest,
             collectConstantsForFuzzer(graph),
             names,
-            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator) + AutowiredValueProvider(
-                defaultIdGenerator,
-                autowiredModelOriginCreator = { beanName ->
-                    runBlocking {
-                        logger.info { "Getting bean: $beanName" }
-                        concreteExecutor.withProcess { getBean(beanName) }
-                    }
-                }
-            )))),
-            thisInstanceFuzzedTypeWrapper = { fuzzedType ->
-                when (applicationContext) {
-                    is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
-                        is TypeReplacementApproach.ReplaceIfPossible -> {
-                            val beanNames = applicationContext.beanDefinitions.filter {
-                                it.beanTypeFqn == fuzzedType.classId.name
-                            }.map {
-                                it.beanName
+            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator)))),
+            fuzzedTypeFactory = when (applicationContext) {
+                is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
+                    is TypeReplacementApproach.ReplaceIfPossible -> SpringFuzzedTypeFactory(
+                        autowiredValueProvider = AutowiredValueProvider(
+                            defaultIdGenerator,
+                            autowiredModelOriginCreator = { beanName ->
+                                runBlocking {
+                                    logger.info { "Getting bean: $beanName" }
+                                    concreteExecutor.withProcess { getBean(beanName) }
+                                }
                             }
-                            AutowiredFuzzedType(fuzzedType, beanNames)
+                        ),
+                        beanNamesFinder = { classId ->
+                            applicationContext.beanDefinitions
+                                .filter { it.beanTypeFqn == classId.name }
+                                .map { it.beanName }
                         }
-                        is TypeReplacementApproach.DoNotReplace -> fuzzedType
-                    }
-                    else -> fuzzedType
+                    )
+                    is TypeReplacementApproach.DoNotReplace -> SimpleFuzzedTypeFactory()
                 }
-            }
+                else -> SimpleFuzzedTypeFactory()
+            },
         ) { thisInstance, descr, values ->
             if (thisInstance?.model is UtNullModel) {
                 // We should not try to run concretely any models with null-this.

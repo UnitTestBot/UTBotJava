@@ -24,7 +24,7 @@ class ObjectValueProvider(
         NumberValueProvider.classId
     )
 
-    override fun accept(type: FuzzedType) = !isIgnored(type.classId) && !type.usesCustomValueProvider
+    override fun accept(type: FuzzedType) = !isIgnored(type.classId) && type !is CustomJavaValueProviderHolder
 
     override fun generate(
         description: FuzzedDescription,
@@ -45,7 +45,7 @@ class ObjectValueProvider(
     private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.executable.genericParameterTypes.map {
-                toFuzzerType(it, description.typeCache)
+                description.fuzzedTypeFactory.createFuzzedType(it, isThisInstance = false)
             }) { values ->
                 val id = idGenerator.createId()
                 UtAssembleModel(
@@ -146,7 +146,7 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
         val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)
         FieldDescription(
             name = field.name,
-            type = if (description != null) toFuzzerType(field.type, description.typeCache) else FuzzedType(field.type.id),
+            type = description?.fuzzedTypeFactory?.createFuzzedType(field.type, isThisInstance = false) ?: FuzzedType(field.type.id),
             canBeSetDirectly = isAccessible(
                 field,
                 packageName

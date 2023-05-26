@@ -8,7 +8,7 @@ class AutowiredValueProvider(
     private val idGenerator: IdGenerator<Int>,
     private val autowiredModelOriginCreator: (beanName: String) -> UtModel
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
-    override fun accept(type: FuzzedType) = type is AutowiredFuzzedType && type.beanNames.isNotEmpty()
+    override fun accept(type: FuzzedType) = type is AutowiredFuzzedType
 
     override fun generate(
         description: FuzzedDescription,

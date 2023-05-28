@@ -14,6 +14,7 @@ object SpringAnalyzerProcessModel : Ext(SpringAnalyzerRoot) {
 
     val beanAdditionalData = structdef {
         field("factoryMethodName", PredefinedType.string)
+        field("parameterTypes", immutableList(PredefinedType.string))
         field("configClassFqn", PredefinedType.string)
     }
 

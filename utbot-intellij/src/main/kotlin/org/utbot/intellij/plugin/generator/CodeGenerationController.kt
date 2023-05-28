@@ -684,6 +684,7 @@ object CodeGenerationController {
                     return@run
                 }
                 proc.render(
+                    model.springTestsType,
                     testSetsId,
                     classUnderTest,
                     model.projectType,

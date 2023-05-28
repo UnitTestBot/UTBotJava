@@ -59,7 +59,9 @@ We use an outdated approach with the [Soot](https://github.com/soot-oss/soot) fr
 The current domain of code generation is specific for generating tests, though it could be reused for other purposes. Currently, the engine can be used to generate tests for different test frameworks. One can use the code generator to generate test templates inside the IntelliJ-based IDEs.
 
 Entry and exit point:
-`org.utbot.framework.codegen.CodeGenerator#generateAsStringWithTestReport`
+`org.utbot.framework.codegen.generator.CodeGenerator#generateAsStringWithTestReport`
+
+Note that for Spring projects `SpringCodeGenerator` is used. It supports both unit and integration tests generation.
 
 ## SARIF report visualizer
 

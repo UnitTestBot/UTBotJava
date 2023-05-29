@@ -15,7 +15,7 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
-import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorResult
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
 import org.utbot.framework.plugin.api.CodegenLanguage

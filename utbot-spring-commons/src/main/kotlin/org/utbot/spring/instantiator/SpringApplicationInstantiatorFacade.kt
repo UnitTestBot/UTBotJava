@@ -1,7 +1,6 @@
 package org.utbot.spring.instantiator
 
-import org.springframework.context.ConfigurableApplicationContext
-import org.utbot.spring.context.InstantiationContext
+import org.utbot.spring.api.instantiator.InstantiationSettings
 import org.utbot.spring.environment.EnvironmentFactory
 
 import com.jetbrains.rd.util.error
@@ -9,17 +8,19 @@ import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.springframework.boot.SpringBootVersion
 import org.springframework.core.SpringVersion
+import org.utbot.spring.api.instantiator.ApplicationInstantiatorFacade
+import org.utbot.spring.context.SpringContextWrapper
 
 private val logger = getLogger<SpringApplicationInstantiatorFacade>()
 
-class SpringApplicationInstantiatorFacade(private val instantiationContext: InstantiationContext) {
+class SpringApplicationInstantiatorFacade : ApplicationInstantiatorFacade {
 
-    fun instantiate(): ConfigurableApplicationContext? {
+    override fun instantiate(instantiationSettings: InstantiationSettings): SpringContextWrapper? {
         logger.info { "Current Java version is: " + System.getProperty("java.version") }
         logger.info { "Current Spring version is: " + runCatching { SpringVersion.getVersion() }.getOrNull() }
         logger.info { "Current Spring Boot version is: " + runCatching { SpringBootVersion.getVersion() }.getOrNull() }
 
-        val environmentFactory = EnvironmentFactory(instantiationContext)
+        val environmentFactory = EnvironmentFactory(instantiationSettings)
 
         val suitableInstantiator =
             listOf(SpringBootApplicationInstantiator(), PureSpringApplicationInstantiator())
@@ -28,9 +29,11 @@ class SpringApplicationInstantiatorFacade(private val instantiationContext: Inst
 
         logger.info { "Instantiating Spring application with $suitableInstantiator" }
 
-        return suitableInstantiator?.instantiate(
-            instantiationContext.configurationClasses,
+        val context = suitableInstantiator?.instantiate(
+            instantiationSettings.configurationClasses,
             environmentFactory.createEnvironment(),
         )
+
+        return context?.let { SpringContextWrapper(it) }
     }
 }

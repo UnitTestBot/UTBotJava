@@ -29,6 +29,16 @@ internal object TestIdentityPreservingIdGenerator : IdentityPreservingIdGenerato
     override fun createId(): Int = gen.incrementAndGet()
 }
 
+internal inline fun <reified C, T> C.runBlockingWithContext(crossinline block: suspend () -> T) : T {
+    return withUtContext(UtContext(C::class.java.classLoader)) {
+        runBlocking {
+            withTimeout(10000) {
+                block()
+            }
+        }
+    }
+}
+
 class JavaFuzzingTest {
 
     @Test
@@ -262,16 +272,6 @@ class JavaFuzzingTest {
         assertEquals(size, collections.count { it is UtAssembleModel }) { "Total assemble models size must be $size" }
         collections.filterIsInstance<UtAssembleModel>().forEach {
             assertEquals(0, it.modificationsChain.size)
-        }
-    }
-
-    private fun <T> runBlockingWithContext(block: suspend () -> T) : T {
-        return withUtContext(UtContext(this::class.java.classLoader)) {
-            runBlocking {
-                withTimeout(10000) {
-                    block()
-                }
-            }
         }
     }
 }

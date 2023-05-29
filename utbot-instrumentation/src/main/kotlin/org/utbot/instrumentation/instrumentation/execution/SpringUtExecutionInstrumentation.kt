@@ -14,9 +14,11 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ModelConstructionPhase
 import org.utbot.instrumentation.process.HandlerClassesLoader
+import org.utbot.spring.api.context.ContextWrapper
+import org.utbot.spring.api.instantiator.InstantiationSettings
+import org.utbot.spring.api.instantiator.ApplicationInstantiatorFacade
 import org.utbot.spring.api.repositoryWrapper.RepositoryInteraction
 import java.security.ProtectionDomain
-import kotlin.random.Random
 
 /**
  * UtExecutionInstrumentation wrapper that is aware of Spring config and initialises Spring context
@@ -25,7 +27,7 @@ class SpringUtExecutionInstrumentation(
     private val instrumentation: UtExecutionInstrumentation,
     private val springConfig: String
 ) : Instrumentation<UtConcreteExecutionResult> by instrumentation {
-    private lateinit var springContext: Any
+    private lateinit var springContext: ContextWrapper
 
     companion object {
         private val logger = getLogger<SpringUtExecutionInstrumentation>()
@@ -52,22 +54,23 @@ class SpringUtExecutionInstrumentation(
         val classLoader = utContext.classLoader
         Thread.currentThread().contextClassLoader = classLoader
 
-        val primarySources = arrayOf(
-            classLoader.loadClass(springConfig),
-            classLoader.loadClass("org.utbot.spring.repositoryWrapper.RepositoryWrapperConfiguration")
+        val instantiationSettings = InstantiationSettings(
+            configurationClasses = arrayOf(
+                classLoader.loadClass(springConfig),
+                classLoader.loadClass("org.utbot.spring.repositoryWrapper.RepositoryWrapperConfiguration")
+            ),
+            profileExpression = null,
         )
 
-        // Setting server.port value to 0 means given Spring to select any appropriate port itself.
-        // See https://stackoverflow.com/questions/21083170/how-to-configure-port-for-a-spring-boot-application
-        val args = arrayOf("--server.port=0")
+        val springFacadeInstance =  classLoader
+            .loadClass("org.utbot.spring.instantiator.SpringApplicationInstantiatorFacade")
+            .getConstructor()
+            .newInstance()
+        springFacadeInstance as ApplicationInstantiatorFacade
 
-        // TODO if we don't have SpringBoot just create ApplicationContext here, reuse code from utbot-spring-analyzer
-        // TODO recreate context/app every time whenever we change method under test
-        val springAppClass =
-            classLoader.loadClass("org.springframework.boot.SpringApplication")
-        springContext = springAppClass
-            .getMethod("run", primarySources::class.java, args::class.java)
-            .invoke(null, primarySources, args)
+        // TODO: recreate context/app every time whenever we change method under test
+        springContext = springFacadeInstance.instantiate(instantiationSettings)
+            ?: error("Failed to initialize Spring context")
     }
 
     override fun invoke(
@@ -79,20 +82,11 @@ class SpringUtExecutionInstrumentation(
         RepositoryInteraction.recordedInteractions.clear()
         // TODO properly detect which beans need to be reset, right now "orderRepository" and "orderService" are hardcoded
         val beanNamesToReset = listOf("orderRepository", "orderService")
+
         beanNamesToReset.forEach { beanNameToReset ->
-            val beanDefToReset = springContext::class.java
-                .getMethod("getBeanDefinition", String::class.java)
-                .invoke(springContext, beanNameToReset)
-            springContext::class.java
-                .getMethod("removeBeanDefinition", String::class.java)
-                .invoke(springContext, beanNameToReset)
-            springContext::class.java
-                .getMethod(
-                    "registerBeanDefinition",
-                    String::class.java,
-                    utContext.classLoader.loadClass("org.springframework.beans.factory.config.BeanDefinition")
-                )
-                .invoke(springContext, beanNameToReset, beanDefToReset)
+            val beanDefToReset = springContext.getBeanDefinition(beanNameToReset)
+            springContext.removeBeanDefinition(beanNameToReset)
+            springContext.registerBeanDefinition(beanNameToReset, beanDefToReset)
         }
 
         val jdbcTemplate = getBean("jdbcTemplate")
@@ -124,10 +118,7 @@ class SpringUtExecutionInstrumentation(
         }
     }
 
-    fun getBean(beanName: String): Any =
-        springContext::class.java
-            .getMethod("getBean", String::class.java)
-            .invoke(springContext, beanName)
+    fun getBean(beanName: String): Any = springContext.getBean(beanName)
 
     fun saveToRepository(repository: Any, entity: Any) {
         // ignore repository interactions done during repository fill up

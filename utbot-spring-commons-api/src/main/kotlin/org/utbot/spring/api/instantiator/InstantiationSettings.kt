@@ -1,6 +1,6 @@
-package org.utbot.spring.context
+package org.utbot.spring.api.instantiator
 
-class InstantiationContext(
+class InstantiationSettings(
     val configurationClasses: Array<Class<*>>,
     val profileExpression: String?,
 )

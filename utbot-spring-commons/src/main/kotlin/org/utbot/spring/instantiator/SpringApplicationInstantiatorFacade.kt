@@ -1,7 +1,6 @@
 package org.utbot.spring.instantiator
 
-import org.springframework.context.ConfigurableApplicationContext
-import org.utbot.spring.context.InstantiationContext
+import org.utbot.spring.api.instantiator.InstantiationSettings
 import org.utbot.spring.environment.EnvironmentFactory
 
 import com.jetbrains.rd.util.error
@@ -9,23 +8,26 @@ import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.springframework.boot.SpringBootVersion
 import org.springframework.core.SpringVersion
+import org.utbot.spring.api.instantiator.ApplicationInstantiatorFacade
+import org.utbot.spring.context.SpringContextWrapper
 
 private val logger = getLogger<SpringApplicationInstantiatorFacade>()
 
-class SpringApplicationInstantiatorFacade(private val instantiationContext: InstantiationContext) {
+class SpringApplicationInstantiatorFacade : ApplicationInstantiatorFacade {
 
-    fun instantiate(): ConfigurableApplicationContext? {
+    override fun instantiate(instantiationSettings: InstantiationSettings): SpringContextWrapper? {
         logger.info { "Current Java version is: " + System.getProperty("java.version") }
         logger.info { "Current Spring version is: " + runCatching { SpringVersion.getVersion() }.getOrNull() }
         logger.info { "Current Spring Boot version is: " + runCatching { SpringBootVersion.getVersion() }.getOrNull() }
 
-        val environment = EnvironmentFactory(instantiationContext).createEnvironment()
+        val environment = EnvironmentFactory(instantiationSettings).createEnvironment()
 
         for (instantiator in listOf(SpringBootApplicationInstantiator(), PureSpringApplicationInstantiator())) {
             if (instantiator.canInstantiate()) {
                 logger.info { "Instantiating with $instantiator" }
                 try {
-                    return instantiator.instantiate(instantiationContext.configurationClasses, environment)
+                    val context = instantiator.instantiate(instantiationSettings.configurationClasses, environment)
+                    return SpringContextWrapper(context)
                 } catch (e: Throwable) {
                     logger.error("Instantiating with $instantiator failed", e)
                 }

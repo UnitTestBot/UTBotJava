@@ -449,7 +449,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }.enabledIf(ComboBoxPredicate(springConfig) {
                 model.projectType != ProjectType.Spring || !isSpringConfigSelected()
             })
-            row { cell(staticsMocking)}
+            row {
+                cell(staticsMocking)
+            }.enabledIf(ComboBoxPredicate(mockStrategies) {
+                mockStrategies.isEnabled && mockStrategies.item != MockStrategyApi.NO_MOCKS
+            })
             row {
                 cell(parametrizedTestSources)
                 contextHelp("Parametrization is not supported in some configurations, e.g. if mocks are used.")
@@ -846,7 +850,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
 
         mockStrategies.isEnabled = true
-        staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
         codegenLanguages.item = model.codegenLanguage
 
@@ -1090,10 +1093,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         mockStrategies.addActionListener { event ->
-            val comboBox = event.source as ComboBox<*>
-            val item = comboBox.item as MockStrategyApi
-
-            staticsMocking.isEnabled = item != MockStrategyApi.NO_MOCKS
             if (!staticsMocking.isEnabled) {
                 staticsMocking.isSelected = false
             }
@@ -1124,15 +1123,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             when (parametrizedTestSource) {
                 ParametrizedTestSource.PARAMETRIZE -> {
                     mockStrategies.item = MockStrategyApi.NO_MOCKS
-                    staticsMocking.isEnabled = false
                     staticsMocking.isSelected = false
                 }
                 ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
                     mockStrategies.isEnabled = true
-                    if (mockStrategies.item != MockStrategyApi.NO_MOCKS) {
-                        staticsMocking.isEnabled = true
-                        staticsMocking.isSelected = true
-                    }
+                    staticsMocking.isSelected = true
                 }
             }
 

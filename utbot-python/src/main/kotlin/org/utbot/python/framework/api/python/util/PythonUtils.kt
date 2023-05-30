@@ -18,6 +18,7 @@ fun String.toSnakeCase(): String {
 
 fun String.toPythonRepr(): String {
     val repr = this
+        .replace(Regex("((?<!\\\\)(\\\\\\\\)*)(\\\\)(?!\\\\)$"), "$1$3$3")
         .replace("\"", "\\\"")
         .replace("\\\\\"", "\\\"")
     return "\"$repr\""

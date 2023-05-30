@@ -305,9 +305,15 @@ object PythonTree {
     }
 
     fun fromFloat(value: Double): PrimitiveNode {
+        val stringValue =
+            when (value) {
+                Double.POSITIVE_INFINITY -> "float('inf')"
+                Double.NEGATIVE_INFINITY -> "-float('inf')"
+                else -> value.toString()
+            }
         return PrimitiveNode(
             pythonFloatClassId,
-            value.toString()
+            stringValue
         )
     }
 

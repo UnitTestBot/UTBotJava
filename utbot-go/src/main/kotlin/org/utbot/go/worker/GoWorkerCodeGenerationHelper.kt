@@ -105,7 +105,7 @@ internal object GoWorkerCodeGenerationHelper {
     }
 
     private fun generateFileWithCoverTabGoCode(goPackage: GoPackage): String = """
-        package ${goPackage.packageName}
+        package ${goPackage.name}
 
         const __CoverSize__ = 64 << 10
 

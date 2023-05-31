@@ -8,6 +8,7 @@ import org.utbot.go.api.GoUtDeclaredVariable
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.util.goSupportedConstantTypes
+import org.utbot.go.api.util.intSize
 import org.utbot.go.api.util.rawValueOfGoPrimitiveTypeToValue
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.util.executeCommandByNewProcessOrFail
@@ -25,24 +26,19 @@ object GoSourceCodeAnalyzer {
         val notFoundFunctionAndMethodNames: List<String>
     )
 
-    data class GoSourceCodeAnalyzerResult(
-        val analysisResults: Map<GoUtFile, GoSourceFileAnalysisResult>,
-        val intSize: Int
-    )
-
     /**
-     * Takes map from absolute paths of Go source files to names of their selected functions.
+     * Takes maps from paths of Go source files to names of their selected functions and methods.
      *
-     * Returns GoSourceFileAnalysisResult-s grouped by their source files.
+     * Returns GoSourceCodeAnalyzerResult.
      */
     fun analyzeGoSourceFilesForFunctions(
         targetFunctionNamesBySourceFiles: Map<Path, List<String>>,
         targetMethodNamesBySourceFiles: Map<Path, List<String>>,
         goExecutableAbsolutePath: Path,
         gopathAbsolutePath: Path
-    ): GoSourceCodeAnalyzerResult {
+    ): Map<GoUtFile, GoSourceFileAnalysisResult> {
         val analysisTargets = AnalysisTargets(
-            (targetFunctionNamesBySourceFiles.keys + targetMethodNamesBySourceFiles.keys).toSet().map { filePath ->
+            (targetFunctionNamesBySourceFiles.keys + targetMethodNamesBySourceFiles.keys).distinct().map { filePath ->
                 val targetFunctionNames = targetFunctionNamesBySourceFiles[filePath] ?: emptyList()
                 val targetMethodNames = targetMethodNamesBySourceFiles[filePath] ?: emptyList()
                 AnalysisTarget(filePath.toAbsolutePath().toString(), targetFunctionNames, targetMethodNames)
@@ -74,8 +70,8 @@ object GoSourceCodeAnalyzer {
                 environment
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
-            val intSize = analysisResults.intSize
-            return GoSourceCodeAnalyzerResult(analysisResults.results.map { analysisResult ->
+            intSize = analysisResults.intSize
+            return analysisResults.results.map { analysisResult ->
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
                 val functions = analysisResult.analyzedFunctions.map { analyzedFunction ->
@@ -105,7 +101,7 @@ object GoSourceCodeAnalyzer {
                             error("Constants extraction: $type is a unsupported constant type")
                         }
                         val values = rawValues.map { rawValue ->
-                            rawValueOfGoPrimitiveTypeToValue(typeId, rawValue, intSize)
+                            rawValueOfGoPrimitiveTypeToValue(typeId, rawValue)
                         }
                         constants.compute(typeId) { _, v -> if (v == null) values else v + values }
                     }
@@ -123,14 +119,12 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notSupportedFunctionNames,
                     analysisResult.notFoundFunctionNames
                 )
-            }, intSize)
+            }
         } catch (exception: KlaxonException) {
             throw GoParsingSourceCodeAnalysisResultException(
                 "An error occurred while parsing the result of the source code analysis.", exception
             )
         } finally {
-            analysisTargetsFile.delete()
-            analysisResultsFile.delete()
             goCodeAnalyzerSourceDir.deleteRecursively()
         }
     }

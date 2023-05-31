@@ -10,6 +10,7 @@ import java.io.File
 import java.nio.file.Path
 
 object GoPackageInstrumentation {
+
     fun instrumentGoPackage(
         testedFunctions: List<String>,
         absoluteDirectoryPath: String,
@@ -69,9 +70,9 @@ object GoPackageInstrumentation {
     private fun getGoPackageInstrumentationFilesNames(): List<String> {
         return listOf(
             "main.go",
+            "instrumentator.go",
             "instrumentation_target.go",
             "instrumentation_result.go",
-            "function_modifier.go",
         )
     }
 

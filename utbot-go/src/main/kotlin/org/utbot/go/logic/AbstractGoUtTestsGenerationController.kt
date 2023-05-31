@@ -3,6 +3,7 @@ package org.utbot.go.logic
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFuzzedFunctionTestCase
+import org.utbot.go.api.util.intSize
 import org.utbot.go.gocodeanalyzer.GoSourceCodeAnalyzer
 import org.utbot.go.gocodeinstrumentation.GoPackageInstrumentation
 import org.utbot.go.gocodeinstrumentation.InstrumentationResult
@@ -18,12 +19,13 @@ abstract class AbstractGoUtTestsGenerationController {
         isCanceled: () -> Boolean = { false }
     ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionNamesBySourceFiles, selectedMethodNamesBySourceFiles)) return
-        val (analysisResults, intSize) = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
+        val analysisResults = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionNamesBySourceFiles,
             selectedMethodNamesBySourceFiles,
             testsGenerationConfig.goExecutableAbsolutePath,
             testsGenerationConfig.gopathAbsolutePath
         )
+
         if (!onSourceCodeAnalysisFinished(analysisResults)) return
 
         if (!onPackageInstrumentationStart()) return
@@ -57,7 +59,6 @@ abstract class AbstractGoUtTestsGenerationController {
                 absolutePathToInstrumentedPackage,
                 absolutePathToInstrumentedModule,
                 needToCoverLines,
-                intSize,
                 testsGenerationConfig
             ) { index -> isCanceled() || System.currentTimeMillis() - (startTimeMillis + (index + 1) * functionTimeoutStepMillis) > 0 }
                 .also {

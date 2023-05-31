@@ -5,7 +5,6 @@ import com.beust.klaxon.TypeFor
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoTypeId
-import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
 import kotlin.reflect.KClass
 
@@ -112,16 +111,16 @@ private object RawValuesCodes {
 class GoWorkerFailedException(s: String) : Exception(s)
 
 fun convertRawExecutionResultToExecutionResult(
-    rawExecutionResult: RawExecutionResult, functionResultTypes: List<GoTypeId>, intSize: Int, timeoutMillis: Long
+    rawExecutionResult: RawExecutionResult, functionResultTypes: List<GoTypeId>, timeoutMillis: Long
 ): GoUtExecutionResult {
     if (rawExecutionResult.timeoutExceeded) {
         return GoUtTimeoutExceeded(timeoutMillis)
     }
     if (rawExecutionResult.panicMessage != null) {
         val (rawResultValue, implementsError) = rawExecutionResult.panicMessage
-        val panicValue = if (goPrimitives.map { it.simpleName }.contains(rawResultValue.type)) {
+        val panicValue = if (goPrimitives.map { it.name }.contains(rawResultValue.type)) {
             createGoUtPrimitiveModelFromRawValue(
-                rawResultValue as PrimitiveValue, GoPrimitiveTypeId(rawResultValue.type), intSize
+                rawResultValue as PrimitiveValue, GoPrimitiveTypeId(rawResultValue.type)
             )
         } else {
             error("Only primitive panic value is currently supported")
@@ -133,7 +132,7 @@ fun convertRawExecutionResultToExecutionResult(
     }
     var executedWithNonNilErrorString = false
     val resultValues = rawExecutionResult.rawResultValues.zip(functionResultTypes).map { (rawResultValue, resultType) ->
-        val model = createGoUtModelFromRawValue(rawResultValue, resultType, intSize)
+        val model = createGoUtModelFromRawValue(rawResultValue, resultType)
         if (resultType.implementsError && (model is GoUtNamedModel && model.value.typeId == goStringTypeId)) {
             executedWithNonNilErrorString = true
         }
@@ -147,35 +146,35 @@ fun convertRawExecutionResultToExecutionResult(
 }
 
 private fun createGoUtModelFromRawValue(
-    rawValue: RawValue, typeId: GoTypeId, intSize: Int
+    rawValue: RawValue, typeId: GoTypeId,
 ): GoUtModel = if (rawValue is NilValue) {
     GoUtNilModel(typeId)
 } else {
     when (typeId) {
-        is GoNamedTypeId -> createGoUtNamedModelFromRawValue(rawValue as NamedValue, typeId, intSize)
+        is GoNamedTypeId -> createGoUtNamedModelFromRawValue(rawValue as NamedValue, typeId)
         // Only for error interface
         is GoInterfaceTypeId -> GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
 
-        is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, intSize)
+        is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId)
 
-        is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
+        is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId)
 
-        is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
+        is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId)
 
-        is GoMapTypeId -> createGoUtMapModelFromRawValue(rawValue as MapValue, typeId, intSize)
+        is GoMapTypeId -> createGoUtMapModelFromRawValue(rawValue as MapValue, typeId)
 
-        is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
+        is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId)
 
-        is GoPointerTypeId -> createGoUtPointerModelFromRawValue(rawValue as PointerValue, typeId, intSize)
+        is GoPointerTypeId -> createGoUtPointerModelFromRawValue(rawValue as PointerValue, typeId)
 
-        is GoChanTypeId -> createGoUtChanModelFromRawValue(rawValue as ChanValue, typeId, intSize)
+        is GoChanTypeId -> createGoUtChanModelFromRawValue(rawValue as ChanValue, typeId)
 
         else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
     }
 }
 
 private fun createGoUtPrimitiveModelFromRawValue(
-    resultValue: PrimitiveValue, typeId: GoPrimitiveTypeId, intSize: Int
+    resultValue: PrimitiveValue, typeId: GoPrimitiveTypeId,
 ): GoUtPrimitiveModel {
     val rawValue = resultValue.value
     if (typeId == goFloat64TypeId || typeId == goFloat32TypeId) {
@@ -188,7 +187,7 @@ private fun createGoUtPrimitiveModelFromRawValue(
         }
         return GoUtComplexModel(realPartModel, imagPartModel, typeId)
     }
-    val value = rawValueOfGoPrimitiveTypeToValue(typeId, rawValue, intSize)
+    val value = rawValueOfGoPrimitiveTypeToValue(typeId, rawValue)
     return GoUtPrimitiveModel(value, typeId)
 }
 
@@ -210,63 +209,52 @@ private fun convertRawFloatValueToGoUtPrimitiveModel(
     }
 }
 
-private fun createGoUtStructModelFromRawValue(
-    resultValue: StructValue, resultTypeId: GoStructTypeId, intSize: Int
-): GoUtStructModel {
-    val value = resultValue.value.zip(resultTypeId.fields).map { (value, fieldId) ->
-        GoUtFieldModel(createGoUtModelFromRawValue(value.value, fieldId.declaringType, intSize), fieldId)
-    }
+private fun createGoUtStructModelFromRawValue(resultValue: StructValue, resultTypeId: GoStructTypeId): GoUtStructModel {
+    val value = linkedMapOf(*resultValue.value.zip(resultTypeId.fields).map { (value, fieldId) ->
+        fieldId to createGoUtModelFromRawValue(value.value, fieldId.declaringType)
+    }.toTypedArray())
     return GoUtStructModel(value, resultTypeId)
 }
 
-private fun createGoUtArrayModelFromRawValue(
-    resultValue: ArrayValue, resultTypeId: GoArrayTypeId, intSize: Int
-): GoUtArrayModel {
+private fun createGoUtArrayModelFromRawValue(resultValue: ArrayValue, resultTypeId: GoArrayTypeId): GoUtArrayModel {
     val value = resultValue.value.map {
-        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!, intSize)
-    }.toTypedArray<GoUtModel?>()
+        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!)
+    }.toTypedArray<GoUtModel>()
     return GoUtArrayModel(value, resultTypeId)
 }
 
-private fun createGoUtSliceModelFromRawValue(
-    resultValue: SliceValue, resultTypeId: GoSliceTypeId, intSize: Int
-): GoUtSliceModel {
+private fun createGoUtSliceModelFromRawValue(resultValue: SliceValue, resultTypeId: GoSliceTypeId): GoUtSliceModel {
     val value = resultValue.value.map {
-        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!, intSize)
+        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!)
     }.toTypedArray<GoUtModel?>()
     return GoUtSliceModel(value, resultTypeId, resultValue.length)
 }
 
-private fun createGoUtMapModelFromRawValue(
-    resultValue: MapValue, resultTypeId: GoMapTypeId, intSize: Int
-): GoUtMapModel {
+private fun createGoUtMapModelFromRawValue(resultValue: MapValue, resultTypeId: GoMapTypeId): GoUtMapModel {
     val value = resultValue.value.associate {
-        val key = createGoUtModelFromRawValue(it.key, resultTypeId.keyTypeId, intSize)
-        val value = createGoUtModelFromRawValue(it.value, resultTypeId.elementTypeId!!, intSize)
+        val key = createGoUtModelFromRawValue(it.key, resultTypeId.keyTypeId)
+        val value = createGoUtModelFromRawValue(it.value, resultTypeId.elementTypeId!!)
         key to value
     }.toMutableMap()
     return GoUtMapModel(value, resultTypeId)
 }
 
-private fun createGoUtNamedModelFromRawValue(
-    resultValue: NamedValue, resultTypeId: GoNamedTypeId, intSize: Int
-): GoUtNamedModel {
-    val value = createGoUtModelFromRawValue(resultValue.value, resultTypeId.underlyingTypeId, intSize)
+private fun createGoUtNamedModelFromRawValue(resultValue: NamedValue, resultTypeId: GoNamedTypeId): GoUtNamedModel {
+    val value = createGoUtModelFromRawValue(resultValue.value, resultTypeId.underlyingTypeId)
     return GoUtNamedModel(value, resultTypeId)
 }
 
 private fun createGoUtPointerModelFromRawValue(
-    resultValue: PointerValue, resultTypeId: GoPointerTypeId, intSize: Int
+    resultValue: PointerValue,
+    resultTypeId: GoPointerTypeId
 ): GoUtPointerModel {
-    val value = createGoUtModelFromRawValue(resultValue.value, resultTypeId.elementTypeId!!, intSize)
+    val value = createGoUtModelFromRawValue(resultValue.value, resultTypeId.elementTypeId!!)
     return GoUtPointerModel(value, resultTypeId)
 }
 
-private fun createGoUtChanModelFromRawValue(
-    resultValue: ChanValue, resultTypeId: GoChanTypeId, intSize: Int
-): GoUtChanModel {
+private fun createGoUtChanModelFromRawValue(resultValue: ChanValue, resultTypeId: GoChanTypeId): GoUtChanModel {
     val value = resultValue.value.map {
-        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!, intSize)
+        createGoUtModelFromRawValue(it, resultTypeId.elementTypeId!!)
     }.toTypedArray<GoUtModel?>()
     return GoUtChanModel(value, resultTypeId)
 }

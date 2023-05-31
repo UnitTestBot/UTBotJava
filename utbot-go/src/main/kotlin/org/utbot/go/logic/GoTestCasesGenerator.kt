@@ -31,7 +31,6 @@ object GoTestCasesGenerator {
         absolutePathToInstrumentedPackage: String,
         absolutePathToInstrumentedModule: String,
         needToCoverLines: Map<String, List<String>>,
-        intSize: Int,
         testsGenerationConfig: GoUtTestsGenerationConfig,
         timeoutExceededOrIsCanceled: (index: Int) -> Boolean = { false },
     ): List<GoUtFuzzedFunctionTestCase> = ServerSocket(0).use { serverSocket ->
@@ -114,7 +113,6 @@ object GoTestCasesGenerator {
                     functionUnderTest = function,
                     needToCoverLines = needToCoverLines[function.name]!!.toSet(),
                     aliases = aliases,
-                    intSize = intSize,
                     functionExecutionTimeoutMillis = testsGenerationConfig.eachFunctionExecutionTimeoutMillis,
                     mode = testsGenerationConfig.mode,
                 ) { timeoutExceededOrIsCanceled(index) }

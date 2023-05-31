@@ -5,7 +5,6 @@ package org.utbot.go.api
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
-import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
 
 // NEVER and DEPENDS difference is useful in code generation of assert.Equals(...).
@@ -13,6 +12,9 @@ enum class ExplicitCastMode {
     REQUIRED, NEVER, DEPENDS
 }
 
+/**
+ * Class for Go primitive model.
+ */
 open class GoUtPrimitiveModel(
     val value: Any,
     typeId: GoPrimitiveTypeId,
@@ -42,23 +44,27 @@ open class GoUtPrimitiveModel(
     override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
+/**
+ * Class for Go struct model.
+ */
 class GoUtStructModel(
-    val value: List<GoUtFieldModel>,
+    val value: LinkedHashMap<GoFieldId, GoUtModel>,
     typeId: GoStructTypeId,
 ) : GoUtModel(typeId) {
     override val typeId: GoStructTypeId
         get() = super.typeId as GoStructTypeId
 
     override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
-        value.fold(emptySet()) { acc, fieldModel ->
+        value.values.fold(emptySet()) { acc, fieldModel ->
             acc + fieldModel.getRequiredPackages(destinationPackage)
         }
 
-    override fun isComparable(): Boolean = value.all { it.isComparable() }
+    override fun isComparable(): Boolean = value.values.all { it.isComparable() }
 
-    override fun toString(): String = value.joinToString(prefix = "struct{", postfix = "}") {
-        "${it.fieldId.name}: ${it.model}"
-    }
+    override fun toString(): String =
+        value.entries.joinToString(prefix = "struct{", postfix = "}") { (fieldId, model) ->
+            "${fieldId.name}: $model"
+        }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -70,8 +76,11 @@ class GoUtStructModel(
     override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
+/**
+ * Class for Go array model.
+ */
 class GoUtArrayModel(
-    val value: Array<GoUtModel?>,
+    val value: Array<GoUtModel>,
     typeId: GoArrayTypeId,
 ) : GoUtModel(typeId) {
     val length: Int = typeId.length
@@ -82,16 +91,14 @@ class GoUtArrayModel(
     override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
         val elementNamedTypeId = typeId.elementTypeId as? GoNamedTypeId
         val imports = elementNamedTypeId?.getRequiredPackages(destinationPackage) ?: emptySet()
-        return value.filterNotNull().fold(imports) { acc, model ->
+        return value.fold(imports) { acc, model ->
             acc + model.getRequiredPackages(destinationPackage)
         }
     }
 
-    override fun isComparable(): Boolean = value.filterNotNull().all { it.isComparable() }
+    override fun isComparable(): Boolean = value.all { it.isComparable() }
 
-    fun getElements(): List<GoUtModel> = value.map {
-        it ?: typeId.elementTypeId!!.goDefaultValueModel()
-    }
+    fun getElements(): List<GoUtModel> = value.toList()
 
     override fun toString(): String = getElements().joinToString(prefix = "$typeId{", postfix = "}") {
         it.toString()
@@ -112,6 +119,9 @@ class GoUtArrayModel(
     }
 }
 
+/**
+ * Class for Go slice model.
+ */
 class GoUtSliceModel(
     val value: Array<GoUtModel?>,
     typeId: GoSliceTypeId,
@@ -153,6 +163,9 @@ class GoUtSliceModel(
     }
 }
 
+/**
+ * Class for Go map model.
+ */
 class GoUtMapModel(
     val value: MutableMap<GoUtModel, GoUtModel>,
     typeId: GoMapTypeId,
@@ -183,6 +196,9 @@ class GoUtMapModel(
     override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
+/**
+ * Class for Go chan model.
+ */
 class GoUtChanModel(
     val value: Array<GoUtModel?>,
     typeId: GoChanTypeId
@@ -212,6 +228,9 @@ class GoUtChanModel(
     override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
+/**
+ * Class for Go model with the IEEE 754 “not-a-number” value.
+ */
 class GoUtFloatNaNModel(
     typeId: GoPrimitiveTypeId
 ) : GoUtPrimitiveModel(
@@ -233,6 +252,9 @@ class GoUtFloatNaNModel(
     override fun toString(): String = "NaN"
 }
 
+/**
+ * Class for Go model with infinity.
+ */
 class GoUtFloatInfModel(
     val sign: Int, typeId: GoPrimitiveTypeId
 ) : GoUtPrimitiveModel(
@@ -261,6 +283,9 @@ class GoUtFloatInfModel(
     }
 }
 
+/**
+ * Class for Go models with complex numbers.
+ */
 class GoUtComplexModel(
     var realValue: GoUtPrimitiveModel,
     var imagValue: GoUtPrimitiveModel,
@@ -285,9 +310,14 @@ class GoUtComplexModel(
     override fun hashCode(): Int = 31 * realValue.hashCode() + imagValue.hashCode()
 }
 
+/**
+ * Class for Go model with nil.
+ */
 class GoUtNilModel(
     typeId: GoTypeId
 ) : GoUtModel(typeId) {
+    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> = emptySet()
+
     override fun isComparable(): Boolean = true
 
     override fun toString() = "nil"
@@ -302,6 +332,9 @@ class GoUtNilModel(
     override fun hashCode(): Int = typeId.hashCode()
 }
 
+/**
+ * Class for Go named model.
+ */
 class GoUtNamedModel(
     var value: GoUtModel,
     typeId: GoNamedTypeId,
@@ -324,6 +357,9 @@ class GoUtNamedModel(
     override fun hashCode(): Int = 31 * value.hashCode() + typeId.hashCode()
 }
 
+/**
+ * Class for Go pointer model.
+ */
 class GoUtPointerModel(
     var value: GoUtModel,
     typeId: GoPointerTypeId

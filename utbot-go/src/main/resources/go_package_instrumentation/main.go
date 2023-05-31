@@ -20,7 +20,7 @@ func failf(str string, args ...any) {
 	os.Exit(1)
 }
 
-func instrument(astFile *ast.File, modifier *FunctionModifier) {
+func instrument(astFile *ast.File, modifier *Instrumentator) {
 	ast.Walk(modifier, astFile)
 }
 
@@ -89,14 +89,11 @@ func main() {
 		failf("failed to create temporary directory: %s", err)
 	}
 
-	testedFunctions := make(map[string]struct{}, len(instrumentationTarget.TestedFunctions))
+	testedFunctions := make(map[string]bool, len(instrumentationTarget.TestedFunctions))
 	for _, f := range instrumentationTarget.TestedFunctions {
-		testedFunctions[f] = struct{}{}
+		testedFunctions[f] = true
 	}
-	modifier := FunctionModifier{
-		testedFunctions:    testedFunctions,
-		functionToCounters: make(map[string][]string),
-	}
+	modifier := NewInstrumentator(testedFunctions)
 	absolutePathToInstrumentedPackage := ""
 	visit := func(pkg *packages.Package) {
 		if pkg.Module == nil || pkg.Module.Path != module.Path {

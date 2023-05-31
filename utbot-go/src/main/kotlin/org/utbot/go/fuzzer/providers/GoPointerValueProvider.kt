@@ -7,6 +7,7 @@ import org.utbot.go.GoDescription
 import org.utbot.go.api.GoPointerTypeId
 import org.utbot.go.api.GoUtNilModel
 import org.utbot.go.api.GoUtPointerModel
+import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 
@@ -20,7 +21,9 @@ object GoPointerValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription
                     construct = Routine.Create(listOf(pointerType.elementTypeId!!)) { values ->
                         GoUtPointerModel(value = values.first(), typeId = pointerType)
                     },
-                    empty = Routine.Empty { GoUtNilModel(pointerType) }
+                    empty = Routine.Empty {
+                        pointerType.goDefaultValueModel()
+                    }
                 )
             )
         }

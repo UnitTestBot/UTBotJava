@@ -64,11 +64,11 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
 
         is GoUtStructModel -> StructValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
-            model.value.map {
+            model.value.map { (fieldId, model) ->
                 StructValue.FieldValue(
-                    it.fieldId.name,
-                    it.model.convertToRawValue(destinationPackage, aliases),
-                    it.fieldId.isExported
+                    fieldId.name,
+                    model.convertToRawValue(destinationPackage, aliases),
+                    fieldId.isExported
                 )
             }
         )

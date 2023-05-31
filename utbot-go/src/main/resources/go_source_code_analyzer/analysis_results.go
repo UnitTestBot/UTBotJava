@@ -3,8 +3,8 @@ package main
 import "go/token"
 
 type Package struct {
-	PackageName string `json:"packageName"`
-	PackagePath string `json:"packagePath"`
+	Name string `json:"name"`
+	Path string `json:"path"`
 }
 
 type AnalyzedType interface {

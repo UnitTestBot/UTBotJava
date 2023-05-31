@@ -7,14 +7,21 @@ import (
 	"strconv"
 )
 
-type FunctionModifier struct {
+type Instrumentator struct {
 	lineCounter        int
 	currFunction       string
-	testedFunctions    map[string]struct{}
+	testedFunctions    map[string]bool
 	functionToCounters map[string][]string
 }
 
-func (f *FunctionModifier) Visit(node ast.Node) ast.Visitor {
+func NewInstrumentator(testedFunctions map[string]bool) Instrumentator {
+	return Instrumentator{
+		testedFunctions:    testedFunctions,
+		functionToCounters: make(map[string][]string),
+	}
+}
+
+func (f *Instrumentator) Visit(node ast.Node) ast.Visitor {
 	switch n := node.(type) {
 	case *ast.FuncDecl:
 		n.Doc = nil
@@ -109,7 +116,7 @@ func (f *FunctionModifier) Visit(node ast.Node) ast.Visitor {
 	return f
 }
 
-func (f *FunctionModifier) addCounter(stmts []ast.Stmt) []ast.Stmt {
+func (f *Instrumentator) addCounter(stmts []ast.Stmt) []ast.Stmt {
 	if len(stmts) == 0 {
 		return []ast.Stmt{f.newCounter()}
 	}
@@ -126,7 +133,7 @@ func (f *FunctionModifier) addCounter(stmts []ast.Stmt) []ast.Stmt {
 	return newList
 }
 
-func (f *FunctionModifier) getNextCounter() int {
+func (f *Instrumentator) getNextCounter() int {
 	f.lineCounter++
 	id := f.lineCounter
 	buf := []byte{byte(id), byte(id >> 8), byte(id >> 16), byte(id >> 24)}
@@ -134,11 +141,11 @@ func (f *FunctionModifier) getNextCounter() int {
 	return int(uint16(hash[0]) | uint16(hash[1])<<8)
 }
 
-func (f *FunctionModifier) newCounter() ast.Stmt {
+func (f *Instrumentator) newCounter() ast.Stmt {
 	cnt := strconv.Itoa(f.getNextCounter())
 
 	funcName := f.currFunction
-	if _, ok := f.testedFunctions[funcName]; ok {
+	if ok := f.testedFunctions[funcName]; ok {
 		f.functionToCounters[funcName] = append(f.functionToCounters[funcName], cnt)
 	}
 

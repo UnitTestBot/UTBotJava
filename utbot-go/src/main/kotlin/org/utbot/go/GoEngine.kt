@@ -25,7 +25,6 @@ class GoEngine(
     private val functionUnderTest: GoUtFunction,
     private val needToCoverLines: Set<String>,
     private val aliases: Map<GoPackage, String?>,
-    private val intSize: Int,
     private val functionExecutionTimeoutMillis: Long,
     private val mode: TestsGenerationMode,
     private val timeoutExceededOrIsCanceled: () -> Boolean
@@ -41,7 +40,6 @@ class GoEngine(
                 convertRawExecutionResultToExecutionResult(
                     rawExecutionResult = rawExecutionResult,
                     functionResultTypes = functionUnderTest.results.map { it.type },
-                    intSize = intSize,
                     timeoutMillis = functionExecutionTimeoutMillis,
                 ) to rawExecutionResult.coverTab
             }
@@ -73,7 +71,7 @@ class GoEngine(
     ) {
         var attempts = 0
         val attemptsLimit = Int.MAX_VALUE
-        runGoFuzzing(functionUnderTest, worker, index, intSize) { description, values ->
+        runGoFuzzing(functionUnderTest, worker, index) { description, values ->
             try {
                 if (needToStop.get() || timeoutExceededOrIsCanceled()) {
                     return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
@@ -87,7 +85,6 @@ class GoEngine(
                     convertRawExecutionResultToExecutionResult(
                         rawExecutionResult = rawExecutionResult,
                         functionResultTypes = functionUnderTest.results.map { it.type },
-                        intSize = intSize,
                         timeoutMillis = functionExecutionTimeoutMillis,
                     ) to rawExecutionResult.coverTab
                 }

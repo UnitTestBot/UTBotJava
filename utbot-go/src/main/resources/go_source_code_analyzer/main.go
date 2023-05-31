@@ -68,16 +68,16 @@ func analyzeTarget(target AnalysisTarget) (*AnalysisResult, error) {
 			target.TargetFunctionNames,
 			target.TargetMethodNames,
 			Package{
-				PackageName: targetPackage.Name,
-				PackagePath: targetPackage.PkgPath,
+				Name: targetPackage.Name,
+				Path: targetPackage.PkgPath,
 			},
 		)
 
 	return &AnalysisResult{
 		AbsoluteFilePath: target.AbsoluteFilePath,
 		SourcePackage: Package{
-			PackageName: targetPackage.Name,
-			PackagePath: targetPackage.PkgPath,
+			Name: targetPackage.Name,
+			Path: targetPackage.PkgPath,
 		},
 		AnalyzedFunctions:         analyzedFunctions,
 		NotSupportedFunctionNames: notSupportedFunctionsNames,

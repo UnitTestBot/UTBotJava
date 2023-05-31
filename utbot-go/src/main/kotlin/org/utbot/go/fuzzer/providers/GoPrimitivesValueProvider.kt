@@ -19,7 +19,6 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescript
 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
-            val intSize = description.intSize
             type.let { it as GoPrimitiveTypeId }.also { primitiveType ->
                 val primitives: List<Seed<GoTypeId, GoUtModel>> = when (primitiveType) {
                     goBoolTypeId -> listOf(

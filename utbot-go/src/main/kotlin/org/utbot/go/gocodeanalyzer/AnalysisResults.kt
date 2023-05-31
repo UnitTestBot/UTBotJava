@@ -4,7 +4,6 @@ import com.beust.klaxon.TypeAdapter
 import com.beust.klaxon.TypeFor
 import org.utbot.go.api.*
 import org.utbot.go.api.util.goPrimitives
-import org.utbot.go.framework.api.go.GoFieldId
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import kotlin.reflect.KClass

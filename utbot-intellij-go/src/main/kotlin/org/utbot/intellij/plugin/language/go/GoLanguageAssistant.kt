@@ -51,7 +51,6 @@ object GoLanguageAssistant : LanguageAssistant() {
             e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
         }
 
-
         val targetFunctions = extractTargetFunctionsOrMethods(file)
         val containingFunctionOrMethod = getContainingFunctionOrMethod(element)
         val containingStruct = getContainingStruct(element)
@@ -69,7 +68,6 @@ object GoLanguageAssistant : LanguageAssistant() {
         return PsiTargets(targetFunctions, focusedTargetFunctions)
     }
 
-    // TODO: logic can be modified. For example, maybe suggest methods of the containing struct if present.
     private fun extractTargetFunctionsOrMethods(file: GoFile): Set<GoFunctionOrMethodDeclaration> {
         return file.functions.toSet() union file.methods.toSet()
     }
@@ -82,17 +80,13 @@ object GoLanguageAssistant : LanguageAssistant() {
         return getContainingFunctionOrMethod(parent)
     }
 
-    // Unused for now, but may be used for more complicated extract logic in the future.
-    @Suppress("unused")
     private fun getContainingStruct(element: PsiElement): GoStructType? =
         PsiTreeUtil.getParentOfType(element, GoStructType::class.java, false)
 
-    // Unused for now, but may be used to access all methods of receiver's struct.
-    @Suppress("unused")
     private fun getMethodReceiverStruct(method: GoMethodDeclaration): GoStructType? {
         val receiverType = method.receiverType?.contextlessUnderlyingType ?: return null
         if (receiverType is GoPointerType) {
-            return receiverType.type as? GoStructType
+            return receiverType.type?.contextlessUnderlyingType as? GoStructType
         }
         return receiverType as? GoStructType
     }

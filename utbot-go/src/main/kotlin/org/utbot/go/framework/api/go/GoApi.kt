@@ -1,7 +1,7 @@
 package org.utbot.go.framework.api.go
 
 /**
- * Parent class for all Go types for compatibility with UTBot framework.
+ * Parent class for all Go types.
  *
  * To see its children check GoTypesApi.kt at org.utbot.go.api.
  */
@@ -11,7 +11,6 @@ abstract class GoTypeId(
     val implementsError: Boolean = false
 ) {
     open val sourcePackage: GoPackage = GoPackage("", "")
-    val simpleName: String = name
     abstract val canonicalName: String
 
     abstract fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String
@@ -26,40 +25,18 @@ abstract class GoTypeId(
 abstract class GoUtModel(
     open val typeId: GoTypeId,
 ) {
-    open fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> = emptySet()
+    abstract fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage>
     abstract fun isComparable(): Boolean
 }
-
-/**
- * Class for Go struct field model.
- */
-class GoUtFieldModel(
-    val model: GoUtModel,
-    val fieldId: GoFieldId,
-) : GoUtModel(fieldId.declaringType) {
-    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
-        model.getRequiredPackages(destinationPackage)
-
-    override fun isComparable(): Boolean = model.isComparable()
-}
-
-/**
- * Class for Go struct field.
- */
-class GoFieldId(
-    val declaringType: GoTypeId,
-    val name: String,
-    val isExported: Boolean
-)
 
 /**
  * Class for Go package.
  */
 data class GoPackage(
-    val packageName: String,
-    val packagePath: String
+    val name: String,
+    val path: String
 ) {
-    val isBuiltin = packageName == "" && packagePath == ""
+    val isBuiltin = name == "" && path == ""
 }
 
 /**
@@ -71,8 +48,8 @@ data class GoImport(
 ) {
     override fun toString(): String {
         if (alias == null) {
-            return "\"${goPackage.packagePath}\""
+            return "\"${goPackage.path}\""
         }
-        return "$alias \"${goPackage.packagePath}\""
+        return "$alias \"${goPackage.path}\""
     }
 }

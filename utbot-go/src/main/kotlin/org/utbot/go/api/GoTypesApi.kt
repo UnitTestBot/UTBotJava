@@ -1,6 +1,5 @@
 package org.utbot.go.api
 
-import org.utbot.go.framework.api.go.GoFieldId
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 
@@ -11,10 +10,10 @@ class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
     override val canonicalName: String = when (name) {
         "byte" -> "uint8"
         "rune" -> "int32"
-        else -> simpleName
+        else -> name
     }
 
-    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = simpleName
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = name
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -26,13 +25,27 @@ class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
     override fun hashCode(): Int = name.hashCode()
 }
 
+/**
+ * Class for Go struct field.
+ */
+data class GoFieldId(
+    val declaringType: GoTypeId,
+    val name: String,
+    val isExported: Boolean
+)
+
+/**
+ * Represents real Go struct type.
+ */
 class GoStructTypeId(
     name: String,
     var fields: List<GoFieldId>,
 ) : GoTypeId(name) {
-    override val canonicalName: String = name
+    override val canonicalName: String = fields.joinToString(separator = ";", prefix = "struct{", postfix = "}") {
+        "${it.name} ${it.declaringType}"
+    }
 
-    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = simpleName
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = name
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -44,10 +57,13 @@ class GoStructTypeId(
     override fun hashCode(): Int = fields.hashCode()
 }
 
+/**
+ * Represents real Go array type.
+ */
 class GoArrayTypeId(
     name: String, elementTypeId: GoTypeId, val length: Int
 ) : GoTypeId(name, elementTypeId = elementTypeId) {
-    override val canonicalName: String = "[$length]${elementTypeId.canonicalName}"
+    override val canonicalName: String = "[$length]${elementTypeId}"
 
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String =
         "[$length]${elementTypeId!!.getRelativeName(destinationPackage, aliases)}"
@@ -62,10 +78,13 @@ class GoArrayTypeId(
     override fun hashCode(): Int = 31 * elementTypeId.hashCode() + length
 }
 
+/**
+ * Represents real Go slice type.
+ */
 class GoSliceTypeId(
     name: String, elementTypeId: GoTypeId,
 ) : GoTypeId(name, elementTypeId = elementTypeId) {
-    override val canonicalName: String = "[]${elementTypeId.canonicalName}"
+    override val canonicalName: String = "[]${elementTypeId}"
 
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String =
         "[]${elementTypeId!!.getRelativeName(destinationPackage, aliases)}"
@@ -80,6 +99,9 @@ class GoSliceTypeId(
     override fun hashCode(): Int = elementTypeId.hashCode()
 }
 
+/**
+ * Represents real Go map type.
+ */
 class GoMapTypeId(
     name: String, val keyTypeId: GoTypeId, elementTypeId: GoTypeId,
 ) : GoTypeId(name, elementTypeId = elementTypeId) {
@@ -101,6 +123,9 @@ class GoMapTypeId(
     override fun hashCode(): Int = 31 * keyTypeId.hashCode() + elementTypeId.hashCode()
 }
 
+/**
+ * Represents real Go chan type.
+ */
 class GoChanTypeId(
     name: String, elementTypeId: GoTypeId, val direction: Direction,
 ) : GoTypeId(name, elementTypeId = elementTypeId) {
@@ -114,7 +139,7 @@ class GoChanTypeId(
         Direction.SENDRECV -> "chan"
     }
 
-    override val canonicalName: String = "$typeWithDirection ${elementTypeId.canonicalName}"
+    override val canonicalName: String = "$typeWithDirection $elementTypeId"
 
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
         val elementType = elementTypeId!!.getRelativeName(destinationPackage, aliases)
@@ -131,10 +156,13 @@ class GoChanTypeId(
     override fun hashCode(): Int = 31 * elementTypeId.hashCode() + direction.hashCode()
 }
 
+/**
+ * Represents real Go interface type.
+ */
 class GoInterfaceTypeId(name: String, val implementations: List<GoTypeId>) : GoTypeId(name) {
     override val canonicalName: String = name
 
-    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = simpleName
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = name
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -146,15 +174,18 @@ class GoInterfaceTypeId(name: String, val implementations: List<GoTypeId>) : GoT
     override fun hashCode(): Int = name.hashCode()
 }
 
+/**
+ * Represents real Go named type.
+ */
 class GoNamedTypeId(
     name: String, override val sourcePackage: GoPackage, implementsError: Boolean, val underlyingTypeId: GoTypeId
 ) : GoTypeId(name, implementsError = implementsError) {
-    val packageName: String = sourcePackage.packageName
-    val packagePath: String = sourcePackage.packagePath
+    private val packageName: String = sourcePackage.name
+    private val packagePath: String = sourcePackage.path
     override val canonicalName: String = if (sourcePackage.isBuiltin) {
         name
     } else {
-        "${sourcePackage.packageName}.$name"
+        "$packagePath/$packageName.$name"
     }
 
     fun exported(): Boolean = name.first().isUpperCase()
@@ -162,11 +193,11 @@ class GoNamedTypeId(
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
         val alias = aliases[sourcePackage]
         return if (sourcePackage.isBuiltin || sourcePackage == destinationPackage || alias == ".") {
-            simpleName
+            name
         } else if (alias == null) {
-            "${packageName}.${simpleName}"
+            "${packageName}.${name}"
         } else {
-            "${alias}.${simpleName}"
+            "${alias}.${name}"
         }
     }
 
@@ -185,12 +216,11 @@ class GoNamedTypeId(
     }
 }
 
+/**
+ * Represents real Go pointer type.
+ */
 class GoPointerTypeId(name: String, elementTypeId: GoTypeId) : GoTypeId(name, elementTypeId = elementTypeId) {
-    override val canonicalName: String = if (sourcePackage.isBuiltin) {
-        name
-    } else {
-        "${sourcePackage.packageName}.$name"
-    }
+    override val canonicalName: String = "*$elementTypeId"
 
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
         val elementType = elementTypeId!!.getRelativeName(destinationPackage, aliases)

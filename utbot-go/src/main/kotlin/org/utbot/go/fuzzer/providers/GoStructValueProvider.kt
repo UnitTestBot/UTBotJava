@@ -6,8 +6,8 @@ import org.utbot.fuzzing.ValueProvider
 import org.utbot.go.GoDescription
 import org.utbot.go.api.GoStructTypeId
 import org.utbot.go.api.GoUtStructModel
+import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoTypeId
-import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
 
 object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
@@ -20,9 +20,7 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
                 yield(Seed.Recursive(
                     construct = Routine.Create(fields.map { it.declaringType }) { values ->
                         GoUtStructModel(
-                            value = fields.zip(values).map { (field, value) ->
-                                GoUtFieldModel(value, field)
-                            },
+                            value = linkedMapOf(*fields.zip(values).toTypedArray()),
                             typeId = structType,
                         )
                     },
@@ -31,15 +29,12 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
                             yield(Routine.Call(listOf(field.declaringType)) { self, values ->
                                 val model = self as GoUtStructModel
                                 val value = values.first()
-                                (model.value as MutableList)[index] = GoUtFieldModel(value, field)
+                                model.value[fields[index]] = value
                             })
                         }
                     },
                     empty = Routine.Empty {
-                        GoUtStructModel(
-                            value = emptyList(),
-                            typeId = structType,
-                        )
+                        structType.goDefaultValueModel()
                     }
                 ))
             }

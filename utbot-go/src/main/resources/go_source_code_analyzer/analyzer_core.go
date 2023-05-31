@@ -63,8 +63,8 @@ func toAnalyzedType(
 
 		var pkg Package
 		if p := t.Obj().Pkg(); p != nil {
-			pkg.PackageName = p.Name()
-			pkg.PackagePath = p.Path()
+			pkg.Name = p.Name()
+			pkg.Path = p.Path()
 		}
 
 		isError := implementsError(t)
@@ -81,6 +81,7 @@ func toAnalyzedType(
 		name := t.Name()
 		result = AnalyzedPrimitiveType{Name: name}
 	case *types.Struct:
+		println(t.String())
 		fields := make([]AnalyzedField, 0, t.NumFields())
 		for i := 0; i < t.NumFields(); i++ {
 			field := t.Field(i)
@@ -98,6 +99,7 @@ func toAnalyzedType(
 			Fields: fields,
 		}
 	case *types.Array:
+		println(t.String())
 		indexOfArrayElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		length := t.Len()
@@ -108,6 +110,7 @@ func toAnalyzedType(
 			Length:      length,
 		}
 	case *types.Slice:
+		println(t.String())
 		indexOfSliceElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		result = AnalyzedSliceType{
@@ -115,6 +118,7 @@ func toAnalyzedType(
 			ElementType: indexOfSliceElemType,
 		}
 	case *types.Map:
+		println(t.String())
 		indexOfKeyType := toAnalyzedType(t.Key(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
@@ -124,6 +128,7 @@ func toAnalyzedType(
 			ElementType: indexOfElemType,
 		}
 	case *types.Chan:
+		println(t.String())
 		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		chanDir, err := ChanDirToString(t.Dir())
@@ -215,8 +220,8 @@ func checkTypeIsSupported(
 	case *types.Named:
 		var pkg Package
 		if p := t.Obj().Pkg(); p != nil {
-			pkg.PackageName = p.Name()
-			pkg.PackagePath = p.Path()
+			pkg.Name = p.Name()
+			pkg.Path = p.Path()
 		}
 		result = checkTypeIsSupported(t.Underlying(), visited, isResultType, sourcePackage, pkg, depth+1)
 	case *types.Basic:

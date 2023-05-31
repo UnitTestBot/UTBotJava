@@ -1,6 +1,7 @@
 package org.utbot.go.simplecodegeneration
 
 import org.utbot.go.api.*
+import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.api.util.goStringTypeId
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
@@ -76,9 +77,10 @@ class GoUtModelToCodeConverter(
         "complex(${toGoCode(model.realValue)}, ${toGoCode(model.imagValue)})"
 
     private fun structModelToGoCodeWithoutStructName(model: GoUtStructModel): String =
-        model.value.joinToString(prefix = "{", postfix = "}") {
-            "${it.fieldId.name}: ${toGoCode(it.model)}"
-        }
+        model.value.entries.filter { (fieldId, model) -> model != fieldId.declaringType.goDefaultValueModel() }
+            .joinToString(prefix = "{", postfix = "}") { (fieldId, model) ->
+                "${fieldId.name}: ${toGoCode(model)}"
+            }
 
     private fun arrayModelToGoCode(model: GoUtArrayModel): String {
         val typeName = model.typeId.getRelativeName(destinationPackage, aliases)

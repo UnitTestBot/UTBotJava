@@ -410,7 +410,14 @@ type I interface {
 	String() string
 }
 
-func Interface(i fmt.Stringer) {
+func Interface(i I) {
+	if i != nil {
+		return
+	}
+	return
+}
+
+func ExternalInterface(i fmt.Stringer) {
 	if i != nil {
 		return
 	}

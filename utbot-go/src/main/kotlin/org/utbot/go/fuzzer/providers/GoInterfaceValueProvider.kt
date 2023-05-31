@@ -6,6 +6,7 @@ import org.utbot.fuzzing.ValueProvider
 import org.utbot.go.GoDescription
 import org.utbot.go.api.GoInterfaceTypeId
 import org.utbot.go.api.GoUtNilModel
+import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 
@@ -20,7 +21,7 @@ object GoInterfaceValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescripti
                         values.first()
                     },
                     empty = Routine.Empty {
-                        GoUtNilModel(interfaceTypeId)
+                        interfaceTypeId.goDefaultValueModel()
                     }
                 ))
             }

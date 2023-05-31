@@ -14,7 +14,8 @@ import org.utbot.go.imports.GoImportsResolver
 object GoTestCasesCodeGenerator {
 
     private val alwaysRequiredImports = setOf(
-        GoImport(GoPackage("assert", "github.com/stretchr/testify/assert")), GoImport(GoPackage("testing", "testing"))
+        GoImport(GoPackage("assert", "github.com/stretchr/testify/assert")),
+        GoImport(GoPackage("testing", "testing"))
     )
 
     private data class Variable(val name: String, val type: GoTypeId, val value: GoUtModel)

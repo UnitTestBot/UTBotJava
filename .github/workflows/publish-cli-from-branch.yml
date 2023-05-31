@@ -1,0 +1,99 @@
+name: "[M] CLI: publish as archive"
+
+on: 
+  workflow_call:
+    inputs:
+        upload-artifact:
+          type: string
+          description: "Upload artifacts or not"
+          required: false
+          default: false
+        commit_sha:
+          required: false
+          type: string
+          description: "(optional) Commit SHA"
+        custom_version:
+          type: string
+          description: "Custom version"
+          required: false
+          default: ""
+
+  workflow_dispatch:
+    inputs:
+        upload-artifact:
+          type: choice
+          description: "Upload artifacts or not"
+          required: false
+          default: true
+          options:
+          - true
+          - false
+        commit_sha:
+          required: false
+          type: string
+          description: "(optional) Commit SHA"
+        custom_version:
+          type: string
+          description: "Custom version"
+          required: false
+          default: ""
+
+jobs:
+  publish_cli:
+    strategy:
+      fail-fast: false  # force to execute all jobs even though some of them have failed
+      matrix:
+        configuration:
+          - plugin_type: IC
+            extra_options: "-PideType=IC"
+            lang: java
+            dir: utbot-cli
+          - plugin_type: IC
+            extra_options: "-PideType=IC"
+            lang: python
+            dir: utbot-cli-python
+          - plugin_type: IU
+            extra_options: "-PideType=IU"
+            lang: go
+            dir: utbot-cli-go
+          - plugin_type: IU
+            extra_options: "-PideType=IU"
+            lang: js
+            dir: utbot-cli-js
+    runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
+    steps:
+    - uses: actions/checkout@v3
+    - name: Check out ${{ github.event.inputs.commit_sha }} commit
+      if: github.event.inputs.commit_sha != ''
+      run: |
+        git config --global --add safe.directory ${GITHUB_WORKSPACE}
+        git fetch
+        git checkout ${{ github.event.inputs.commit_sha }}
+
+    # "You can make an environment variable available to any subsequent steps in a workflow job by
+    # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
+    - name: Setup custom version
+      if: ${{ github.event.inputs.custom_version != '' }}
+      run: |
+        echo "VERSION=${{ github.event.inputs.custom_version }}" >> $GITHUB_ENV
+    - name: Setup version
+      if: ${{ github.event.inputs.custom_version == '' }}
+      shell: bash
+      run: |
+        echo "VERSION=${GITHUB_REF_NAME:0:4}-$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+
+    - name: Print environment variables
+      run: printenv
+
+    - name: Build UTBot CLI
+      run: |
+        cd "${{ matrix.configuration.dir }}"
+        gradle clean build --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
+
+    - name: Archive UTBot CLI
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: utbot-cli-${{ matrix.configuration.lang }}-${{ env.VERSION }}
+        path: ${{ matrix.configuration.dir }}/build/libs/utbot-cli-${{ env.VERSION }}.jar

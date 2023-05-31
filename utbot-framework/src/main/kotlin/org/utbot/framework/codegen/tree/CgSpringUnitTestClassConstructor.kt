@@ -21,23 +21,32 @@ import org.utbot.framework.plugin.api.util.objectClassId
 
 class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTestClassConstructor(context) {
 
+    private var additionalMethodsRequired: Boolean = false
+
     private lateinit var mockitoCloseableVariable: CgValue
 
     override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
         val fields = mutableListOf<CgFieldDeclaration>()
-        val mockedFields = constructFieldsWithAnnotation(testClassModel.thisInstanceDependentMocks, mockClassId)
 
-        if (mockedFields.isNotEmpty()) {
-            fields += constructFieldsWithAnnotation(testClassModel.thisInstanceModels, injectMocksClassId)
+        if (testClassModel.thisInstanceDependentMocks.isNotEmpty()) {
+            val mockedFields = constructFieldsWithAnnotation(testClassModel.thisInstanceDependentMocks, mockClassId)
+            val injectingMocksFields = constructFieldsWithAnnotation(testClassModel.thisInstanceModels, injectMocksClassId)
+
+            fields += injectingMocksFields
             fields += mockedFields
-
             fields += constructMockitoCloseables()
         }
+
+        additionalMethodsRequired = fields.isNotEmpty()
 
         return fields
     }
 
     override fun constructAdditionalMethods(): CgMethodsCluster {
+        if (!additionalMethodsRequired) {
+            return CgMethodsCluster(header = null, content = emptyList(),)
+        }
+
         importIfNeeded(openMocksMethodId)
 
         val openMocksCall = CgMethodCall(

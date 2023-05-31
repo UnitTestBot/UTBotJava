@@ -1145,6 +1145,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.isEnabled = false
                 updateMockStrategyListForConfigGuidedTypeReplacements()
 
+                staticsMocking.isEnabled = false
+                staticsMocking.isSelected = true
+
                 springTestsType.isEnabled = !isXmlSpringConfigUsed()
                 profileNames.isEnabled = true
             } else {
@@ -1154,6 +1157,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 }
                 mockStrategies.isEnabled = true
                 updateMockStrategyList()
+
+                staticsMocking.isEnabled = true
+                staticsMocking.isSelected = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
                 springTestsType.isEnabled = false
                 springTestsType.item = SpringTestsType.defaultItem

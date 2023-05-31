@@ -35,9 +35,9 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
             fields += injectingMocksFields
             fields += mockedFields
             fields += constructMockitoCloseables()
-        }
 
-        additionalMethodsRequired = fields.isNotEmpty()
+            additionalMethodsRequired = true
+        }
 
         return fields
     }

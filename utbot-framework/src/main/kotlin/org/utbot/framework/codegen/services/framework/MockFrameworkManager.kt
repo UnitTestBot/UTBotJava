@@ -220,7 +220,10 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                         }
 
                         val results = values
-                            .map { if (it === model) mockObject else variableConstructor.getOrCreateVariable(it) }
+                            .map { value ->
+                                // Sometimes we need mocks returning itself, e.g. for StringBuilder.append method
+                                if (value != model) variableConstructor.getOrCreateVariable(value) else mockObject
+                            }
                             .toTypedArray()
                         `when`(mockObject[executable](*matchers)).thenReturn(executable.returnType, *results)
                     }

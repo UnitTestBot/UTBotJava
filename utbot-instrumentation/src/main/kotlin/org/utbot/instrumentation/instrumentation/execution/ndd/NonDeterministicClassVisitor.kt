@@ -3,6 +3,7 @@ package org.utbot.instrumentation.instrumentation.execution.ndd
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.commons.Method
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -19,15 +20,15 @@ class NonDeterministicClassVisitor(
     private fun getOwnerClass(owner: String): Class<*> =
         utContext.classLoader.loadClass(owner.replace('/', '.'))
 
-    private fun getMethodId(owner: String?, name: String?, descriptor: String?): MethodId? {
+    private fun getMethodAndOwnerId(owner: String?, name: String?, descriptor: String?): Pair<ClassId, MethodId>? {
         if (owner == null || name == null || descriptor == null) {
             return null
         }
         val clazz = getOwnerClass(owner)
         val method = clazz.methods.find {
             it.name == name && Method.getMethod(it).descriptor == descriptor
-        }
-        return method?.executableId
+        } ?: return null
+        return clazz.id to method.executableId
     }
 
     override fun visit(
@@ -68,8 +69,8 @@ class NonDeterministicClassVisitor(
                     return
                 }
 
-                getMethodId(owner, name, descriptor)?.let { method ->
-                    if (detector.isNonDeterministic(method)) {
+                getMethodAndOwnerId(owner, name, descriptor)?.let { (caller, method) ->
+                    if (detector.isNonDeterministic(caller, method)) {
                         detector.inserter.insertBeforeNDMethod(mv, method)
                         mv.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
                         detector.inserter.insertAfterNDMethod(mv, method)

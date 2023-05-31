@@ -2,12 +2,7 @@ package org.utbot.instrumentation.instrumentation.execution.ndd
 
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.commons.Method
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.utContext
+import org.objectweb.asm.Opcodes
 import org.utbot.instrumentation.Settings
 
 class NonDeterministicClassVisitor(
@@ -15,26 +10,12 @@ class NonDeterministicClassVisitor(
     private val detector: NonDeterministicDetector
 ) : ClassVisitor(Settings.ASM_API, classVisitor) {
 
-    private var currentClass: String? = null
-
-    private fun getOwnerClass(owner: String): Class<*> =
-        utContext.classLoader.loadClass(owner.replace('/', '.'))
-
-    private fun getMethodAndOwnerId(owner: String?, name: String?, descriptor: String?): Pair<ClassId, MethodId>? {
-        if (owner == null || name == null || descriptor == null) {
-            return null
-        }
-        val clazz = getOwnerClass(owner)
-        val method = clazz.methods.find {
-            it.name == name && Method.getMethod(it).descriptor == descriptor
-        } ?: return null
-        return clazz.id to method.executableId
-    }
+    private lateinit var currentClass: String
 
     override fun visit(
         version: Int,
         access: Int,
-        name: String?,
+        name: String,
         signature: String?,
         superName: String?,
         interfaces: Array<out String>?
@@ -45,8 +26,8 @@ class NonDeterministicClassVisitor(
 
     override fun visitMethod(
         access: Int,
-        name: String?,
-        descriptor: String?,
+        name: String,
+        descriptor: String,
         signature: String?,
         exceptions: Array<out String>?
     ): MethodVisitor {
@@ -54,31 +35,33 @@ class NonDeterministicClassVisitor(
         return object : MethodVisitor(Settings.ASM_API, mv) {
             override fun visitMethodInsn(
                 opcodeAndSource: Int,
-                owner: String?,
-                name: String?,
-                descriptor: String?,
+                owner: String,
+                name: String,
+                descriptor: String,
                 isInterface: Boolean
             ) {
                 if (name == "<init>") {
                     mv.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
-                    owner?.let {
-                        if (detector.isNonDeterministic(getOwnerClass(it).id)) {
-                            detector.inserter.insertAfterNDInstanceConstructor(mv, currentClass!!)
-                        }
+                    if (detector.isNonDeterministicClass(owner)) {
+                        detector.inserter.insertAfterNDInstanceConstructor(mv, currentClass)
                     }
                     return
                 }
 
-                getMethodAndOwnerId(owner, name, descriptor)?.let { (caller, method) ->
-                    if (detector.isNonDeterministic(caller, method)) {
-                        detector.inserter.insertBeforeNDMethod(mv, method)
-                        mv.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
-                        detector.inserter.insertAfterNDMethod(mv, method)
-                        return
-                    }
+                val (isND, isStatic) = if (opcodeAndSource == Opcodes.INVOKESTATIC) {
+                    detector.isNonDeterministicStaticFunction(owner, name, descriptor) to true
+                } else {
+                    detector.isNonDeterministicClass(owner) to false
                 }
 
-                mv.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
+                if (isND) {
+                    detector.inserter.insertBeforeNDMethod(mv, descriptor, isStatic)
+                    mv.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
+                    detector.inserter.insertAfterNDMethod(mv, owner, name, descriptor, isStatic)
+                } else {
+                    mv.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
+                }
+
             }
         }
     }

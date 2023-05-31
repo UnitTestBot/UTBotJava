@@ -28,8 +28,8 @@ object NonDeterministicResultStorage {
         nextInstanceNumber = 1
     }
 
-    fun methodToSignature(methodId: MethodId): String {
-        return "${methodId.classId.name} ${methodId.signature}"
+    fun makeSignature(owner: String, name: String, descriptor: String): String {
+        return "$owner $name$descriptor"
     }
 
     fun signatureToMethod(signature: String): MethodId? {

@@ -3,28 +3,48 @@ package org.utbot.instrumentation.instrumentation.execution.ndd
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.*
 
 class NonDeterministicBytecodeInserter {
     private val internalName = Type.getInternalName(NonDeterministicResultStorage::class.java)
 
-    private fun ClassId.descriptor(): String = when (this) {
-        booleanClassId -> "Z"
-        byteClassId -> "B"
-        charClassId -> "C"
-        shortClassId -> "S"
-        intClassId -> "I"
-        longClassId -> "J"
-        floatClassId -> "F"
-        doubleClassId -> "D"
-        else -> "Ljava/lang/Object;"
+    private fun String.getUnifiedParamsTypes(): List<String> {
+        val list = mutableListOf<String>()
+        var readObject = false
+        for (c in this) {
+            if (c == '(') {
+                continue
+            }
+            if (c == ')') {
+                break
+            }
+            if (readObject) {
+                if (c == ';') {
+                    readObject = false
+                    list.add("Ljava/lang/Object;")
+                }
+            } else if (c == 'L') {
+                readObject = true
+            } else {
+                list.add(c.toString())
+            }
+        }
+
+        return list
     }
 
-    private fun MethodId.toStoreDescriptor(): String = buildString {
+    private fun String.unifyTypeDescriptor(): String =
+        if (startsWith('L')) {
+            "Ljava/lang/Object;"
+        } else {
+            this
+        }
+
+    private fun String.getReturnType(): String =
+        substringAfter(')')
+
+    private fun getStoreDescriptor(descriptor: String): String = buildString {
         append('(')
-        append(returnType.descriptor())
+        append(descriptor.getReturnType().unifyTypeDescriptor())
         append("Ljava/lang/String;)V")
     }
 
@@ -32,28 +52,28 @@ class NonDeterministicBytecodeInserter {
         visitMethodInsn(Opcodes.INVOKESTATIC, internalName, name, descriptor, false)
     }
 
-    fun insertAfterNDMethod(mv: MethodVisitor, methodId: MethodId) {
+    fun insertAfterNDMethod(mv: MethodVisitor, owner: String, name: String, descriptor: String, isStatic: Boolean) {
         mv.visitInsn(Opcodes.DUP)
-        mv.visitLdcInsn(NonDeterministicResultStorage.methodToSignature(methodId))
-        mv.invoke(if (methodId.isStatic) "storeStatic" else "storeCall", methodId.toStoreDescriptor())
+        mv.visitLdcInsn(NonDeterministicResultStorage.makeSignature(owner, name, descriptor))
+        mv.invoke(if (isStatic) "storeStatic" else "storeCall", getStoreDescriptor(descriptor))
     }
 
-    fun insertBeforeNDMethod(mv: MethodVisitor, methodId: MethodId) {
-        if (methodId.isStatic) {
+    fun insertBeforeNDMethod(mv: MethodVisitor, descriptor: String, isStatic: Boolean) {
+        if (isStatic) {
             return
         }
 
-        methodId.parameters.asReversed().forEach {
-            val desc = it.descriptor()
-            mv.invoke("putParameter${desc[0]}", "($desc)V")
+        val params = descriptor.getUnifiedParamsTypes()
+
+        params.asReversed().forEach {
+            mv.invoke("putParameter${it[0]}", "($it)V")
         }
 
         mv.visitInsn(Opcodes.DUP)
         mv.invoke("saveInstance", "(Ljava/lang/Object;)V")
 
-        methodId.parameters.forEach {
-            val desc = it.descriptor()
-            mv.invoke("peakParameter${desc[0]}", "()$desc")
+        params.forEach {
+            mv.invoke("peakParameter${it[0]}", "()$it")
         }
     }
 

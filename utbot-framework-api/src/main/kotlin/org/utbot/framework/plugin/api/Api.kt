@@ -846,6 +846,7 @@ open class ClassId @JvmOverloads constructor(
      */
     open val allMethods: Sequence<MethodId>
         get() = generateSequence(jClass) { it.superclass }
+            .flatMap { it.interfaces.toMutableList() + it }
             .mapNotNull { it.declaredMethods }
             .flatMap { it.toList() }
             .map { it.executableId }

@@ -8,7 +8,6 @@ import org.utbot.instrumentation.instrumentation.et.EtInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicResultStorage
-import org.utbot.instrumentation.process.HandlerClassesLoader
 import java.util.*
 
 /**
@@ -20,8 +19,12 @@ class StatisticsCollectionPhase(
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
         val message = this.javaClass.simpleName
-        return when(e) {
-            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
+        return when (e) {
+            is TimeoutException -> ExecutionPhaseStop(
+                message,
+                UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage())
+            )
+
             else -> ExecutionPhaseError(message, e)
         }
     }
@@ -32,31 +35,29 @@ class StatisticsCollectionPhase(
         val calls: IdentityHashMap<Any, Map<MethodId, List<Any?>>>
     )
 
-    fun getNonDeterministicResults() : NDResults {
+    fun getNonDeterministicResults(): NDResults {
         val storage = NonDeterministicResultStorage
 
         val statics = storage.staticStorage
             .groupBy { storage.signatureToMethod(it.signature)!! }
             .mapValues { (_, values) -> values.map { it.result } }
 
-        val news = try {
-            storage.ndInstances.entries
-                .groupBy { it.key.javaClass.id }
-                .mapValues { (_, entries) ->
-                    val values = entries.sortedBy { it.value.instanceNumber }.map { it.key }
-                    val callSites = entries.map {
-                        utContext.classLoader.loadClass(it.value.callSite.replace('/', '.')).id
-                    }.toSet()
-                    values to callSites
-                }
-        } catch (e: Throwable) {
-            throw e
-        }
+        val news = storage.ndInstances.entries
+            .groupBy { it.key.javaClass.id }
+            .mapValues { (_, entries) ->
+                val values = entries.sortedBy { it.value.instanceNumber }.map { it.key }
+                val callSites = entries.map {
+                    utContext.classLoader.loadClass(it.value.callSite.replace('/', '.')).id
+                }.toSet()
+                values to callSites
+            }
 
-        val calls = storage.callStorage.mapValuesTo(IdentityHashMap()) { (_, methodResults) -> methodResults
-            .groupBy { storage.signatureToMethod(it.signature)!! }
-            .mapValues { (_, values) -> values.map { it.result } }
-        }
+        val calls = storage.callStorage
+            .mapValuesTo(IdentityHashMap()) { (_, methodResults) ->
+                methodResults
+                    .groupBy { storage.signatureToMethod(it.signature)!! }
+                    .mapValues { (_, values) -> values.map { it.result } }
+            }
 
         return NDResults(statics, news, calls)
     }

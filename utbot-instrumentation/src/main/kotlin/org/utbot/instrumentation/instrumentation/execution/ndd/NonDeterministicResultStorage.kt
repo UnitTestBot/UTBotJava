@@ -5,10 +5,9 @@ package org.utbot.instrumentation.instrumentation.execution.ndd
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
-import java.util.IdentityHashMap
+import java.util.*
 
-// TODO: refactor using code generation
-// TODO: support all primitives
+
 object NonDeterministicResultStorage {
 
     data class NDMethodResult(val signature: String, val result: Any?)
@@ -51,6 +50,49 @@ object NonDeterministicResultStorage {
         currentInstance = instance
     }
 
+    // putParameter[type](type)
+    // peakParameter[type](): type
+
+    @JvmStatic
+    fun putParameterZ(value: Boolean) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterZ(): Boolean {
+        return parameters.removeLast() as Boolean
+    }
+
+    @JvmStatic
+    fun putParameterB(value: Byte) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterB(): Byte {
+        return parameters.removeLast() as Byte
+    }
+
+    @JvmStatic
+    fun putParameterC(value: Char) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterC(): Char {
+        return parameters.removeLast() as Char
+    }
+
+    @JvmStatic
+    fun putParameterS(value: Short) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterS(): Short {
+        return parameters.removeLast() as Short
+    }
+
     @JvmStatic
     fun putParameterI(value: Int) {
         parameters.add(value)
@@ -72,6 +114,26 @@ object NonDeterministicResultStorage {
     }
 
     @JvmStatic
+    fun putParameterF(value: Float) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterF(): Float {
+        return parameters.removeLast() as Float
+    }
+
+    @JvmStatic
+    fun putParameterD(value: Double) {
+        parameters.add(value)
+    }
+
+    @JvmStatic
+    fun peakParameterD(): Double {
+        return parameters.removeLast() as Double
+    }
+
+    @JvmStatic
     fun putParameterL(value: Any?) {
         parameters.add(value)
     }
@@ -79,6 +141,28 @@ object NonDeterministicResultStorage {
     @JvmStatic
     fun peakParameterL(): Any? {
         return parameters.removeLast()
+    }
+
+    // storeStatic(type, sign)
+
+    @JvmStatic
+    fun storeStatic(result: Boolean, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeStatic(result: Byte, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeStatic(result: Char, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeStatic(result: Short, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
     }
 
     @JvmStatic
@@ -92,8 +176,40 @@ object NonDeterministicResultStorage {
     }
 
     @JvmStatic
+    fun storeStatic(result: Float, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeStatic(result: Double, signature: String) {
+        staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
     fun storeStatic(result: Any?, signature: String) {
         staticStorage.add(NDMethodResult(signature, result))
+    }
+
+    // storeCall(type, sign)
+
+    @JvmStatic
+    fun storeCall(result: Boolean, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeCall(result: Byte, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeCall(result: Char, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeCall(result: Short, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
     }
 
     @JvmStatic
@@ -103,6 +219,16 @@ object NonDeterministicResultStorage {
 
     @JvmStatic
     fun storeCall(result: Long, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeCall(result: Float, signature: String) {
+        callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
+    }
+
+    @JvmStatic
+    fun storeCall(result: Double, signature: String) {
         callStorage.getOrPut(currentInstance) { mutableListOf() }.add(NDMethodResult(signature, result))
     }
 

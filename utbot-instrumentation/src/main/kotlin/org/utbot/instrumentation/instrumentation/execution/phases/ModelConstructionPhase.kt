@@ -51,13 +51,13 @@ class ModelConstructionPhase(
         statics: List<UtStaticMethodInstrumentation>,
         news: List<UtNewInstanceInstrumentation>
     ): List<UtInstrumentation> = mutableListOf<UtInstrumentation>().apply {
-        val st = statics.associateBy { it.methodId }
-        val nw = news.associateBy { it.classId }
+        val method2Static = statics.associateBy { it.methodId }
+        val class2New = news.associateBy { it.classId }
 
         addAll(oldInstrumentations.filterNot {
             when (it) {
-                is UtStaticMethodInstrumentation -> st.contains(it.methodId)
-                is UtNewInstanceInstrumentation -> nw.contains(it.classId)
+                is UtStaticMethodInstrumentation -> method2Static.contains(it.methodId)
+                is UtNewInstanceInstrumentation -> class2New.contains(it.classId)
             }
         })
         addAll(statics)

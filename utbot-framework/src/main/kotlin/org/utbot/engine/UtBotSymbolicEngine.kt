@@ -262,7 +262,7 @@ class UtBotSymbolicEngine(
                                 stateBefore,
                                 concreteExecutionResult.stateAfter,
                                 concreteExecutionResult.result,
-                                instrumentation,
+                                concreteExecutionResult.newInstrumentation ?: instrumentation,
                                 mutableListOf(),
                                 listOf(),
                                 concreteExecutionResult.coverage
@@ -425,7 +425,8 @@ class UtBotSymbolicEngine(
                     result = concreteExecutionResult.result,
                     coverage = concreteExecutionResult.coverage,
                     fuzzingValues = values,
-                    fuzzedMethodDescription = descr.description
+                    fuzzedMethodDescription = descr.description,
+                    instrumentation = concreteExecutionResult.newInstrumentation ?: emptyList()
                 )
             )
 
@@ -552,7 +553,8 @@ class UtBotSymbolicEngine(
                 val concolicUtExecution = symbolicUtExecution.copy(
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
-                    coverage = concreteExecutionResult.coverage
+                    coverage = concreteExecutionResult.coverage,
+                    instrumentation = concreteExecutionResult.newInstrumentation ?: instrumentation
                 )
 
                 emit(concolicUtExecution)

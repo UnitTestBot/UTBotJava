@@ -185,7 +185,12 @@ class UtSymbolicExecution(
         append(")")
     }
 
-    fun copy(stateAfter: EnvironmentModels, result: UtExecutionResult, coverage: Coverage): UtResult {
+    fun copy(
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage,
+        instrumentation: List<UtInstrumentation> = this.instrumentation,
+    ): UtResult {
         return UtSymbolicExecution(
             stateBefore,
             stateAfter,
@@ -841,6 +846,7 @@ open class ClassId @JvmOverloads constructor(
      */
     open val allMethods: Sequence<MethodId>
         get() = generateSequence(jClass) { it.superclass }
+            .flatMap { it.interfaces.toMutableList() + it }
             .mapNotNull { it.declaredMethods }
             .flatMap { it.toList() }
             .map { it.executableId }

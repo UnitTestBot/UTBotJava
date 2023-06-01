@@ -1,40 +1,13 @@
 package org.utbot.instrumentation.instrumentation.execution.constructors
 
-import java.lang.reflect.Modifier
-import java.util.IdentityHashMap
-import java.util.stream.BaseStream
 import org.utbot.common.asPathToFile
 import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtLambdaModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.isMockModel
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.fieldId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
+import java.lang.reflect.Modifier
+import java.util.*
+import java.util.stream.BaseStream
 
 /**
  * Represents common interface for model constructors.
@@ -120,6 +93,7 @@ class UtModelConstructor(
             is Float,
             is Double,
             is Boolean -> if (classId.isPrimitive) UtPrimitiveModel(value) else constructFromAny(value)
+
             is ByteArray -> constructFromByteArray(value)
             is ShortArray -> constructFromShortArray(value)
             is CharArray -> constructFromCharArray(value)
@@ -135,6 +109,20 @@ class UtModelConstructor(
             else -> constructFromAny(value)
         }
     }
+
+    fun constructMock(instance: Any, classId: ClassId, mocks: Map<MethodId, List<Any?>>): UtModel =
+        constructedObjects.getOrElse(instance) {
+            val utModel = UtCompositeModel(
+                handleId(instance),
+                classId,
+                isMock = true,
+                mocks = mocks.mapValuesTo(mutableMapOf()) { (method, values) ->
+                    values.map { construct(it, method.returnType) }
+                }
+            )
+            constructedObjects[instance] = utModel
+            utModel
+        }
 
     // Q: Is there a way to get rid of duplicated code?
 

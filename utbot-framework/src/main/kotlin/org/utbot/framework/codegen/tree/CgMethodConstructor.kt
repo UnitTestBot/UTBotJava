@@ -149,6 +149,7 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
@@ -184,29 +185,30 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private var containsStreamConsumingFailureForParametrizedTests: Boolean = false
 
     protected fun setupInstrumentation() {
-        if (currentExecution is UtSymbolicExecution) {
-            val execution = currentExecution as UtSymbolicExecution
-            val instrumentation = execution.instrumentation
-            if (instrumentation.isEmpty()) return
+        val instrumentation = when (val execution = currentExecution) {
+            is UtSymbolicExecution -> execution.instrumentation
+            is UtFuzzedExecution -> execution.instrumentation
+            else -> return
+        }
+        if (instrumentation.isEmpty()) return
 
-            if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.DO_NOT_FORCE) {
-                // warn user about possible flaky tests
-                multilineComment(forceStaticMocking.warningMessage)
-                return
-            }
+        if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.DO_NOT_FORCE) {
+            // warn user about possible flaky tests
+            multilineComment(forceStaticMocking.warningMessage)
+            return
+        }
 
-            instrumentation
-                .filterIsInstance<UtNewInstanceInstrumentation>()
-                .forEach { mockFrameworkManager.mockNewInstance(it) }
-            instrumentation
-                .filterIsInstance<UtStaticMethodInstrumentation>()
-                .groupBy { it.methodId.classId }
-                .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
+        instrumentation
+            .filterIsInstance<UtNewInstanceInstrumentation>()
+            .forEach { mockFrameworkManager.mockNewInstance(it) }
+        instrumentation
+            .filterIsInstance<UtStaticMethodInstrumentation>()
+            .groupBy { it.methodId.classId }
+            .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
 
-            if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
-                // warn user about forced using static mocks
-                multilineComment(forceStaticMocking.warningMessage)
-            }
+        if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
+            // warn user about forced using static mocks
+            multilineComment(forceStaticMocking.warningMessage)
         }
     }
 

@@ -17,7 +17,6 @@ COPY ${CREATE_GO_MODULE_SCRIPT} .
 # Install Go
 RUN apt-get update && \
 	apt-get install -y wget && \
-	# Install Go
 	wget  https://go.dev/dl/go1.19.linux-amd64.tar.gz && \
 	tar -xvf go1.19.linux-amd64.tar.gz && \
 	mv go /usr/local && \

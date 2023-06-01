@@ -27,11 +27,19 @@
     },
     {
       "PART_NAME": "examples-part3",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.primitives.*\" --tests \"org.utbot.examples.recursion.*\" --tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.strings11.*\" --tests \"org.utbot.examples.strings.*\" --tests \"org.utbot.examples.structures.*\""
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.primitives.*\" --tests \"org.utbot.examples.recursion.*\" --tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.structures.*\""
     },
     {
       "PART_NAME": "examples-part4",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.thirdparty.numbers.*\" --tests \"org.utbot.examples.types.*\" --tests \"org.utbot.examples.unsafe.*\" --tests \"org.utbot.examples.wrappers.*\""
+    },
+    {
+      "PART_NAME": "examples-part5",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.strings.*\""
+    },
+    {
+      "PART_NAME": "examples-part6",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.strings11.*\""
     },
     {
       "PART_NAME": "examples-lists",

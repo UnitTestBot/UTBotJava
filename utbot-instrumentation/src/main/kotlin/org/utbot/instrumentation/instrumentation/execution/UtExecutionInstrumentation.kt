@@ -17,8 +17,8 @@ import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
 import java.security.ProtectionDomain
-import java.util.*
 import kotlin.reflect.jvm.javaMethod
+import java.util.*
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
@@ -34,7 +34,7 @@ data class UtConcreteExecutionData(
     val timeout: Long
 )
 
-class UtConcreteExecutionResult(
+data class UtConcreteExecutionResult(
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
     val coverage: Coverage,
@@ -48,10 +48,11 @@ class UtConcreteExecutionResult(
     }
 }
 
+// TODO if possible make it non singleton
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 
-    private val instrumentationContext = InstrumentationContext()
+    var instrumentationContext = InstrumentationContext()
 
     private val traceHandler = TraceHandler()
     private val ndDetector = NonDeterministicDetector()
@@ -73,6 +74,15 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?
+    ): UtConcreteExecutionResult =
+        invoke(clazz, methodSignature, arguments, parameters, additionalPhases = { it })
+
+    fun invoke(
+        clazz: Class<*>,
+        methodSignature: String,
+        arguments: ArgumentList,
+        parameters: Any?,
+        additionalPhases: PhasesController.(UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
@@ -147,12 +157,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     Triple(executionResult, stateAfter, newInstrumentation)
                 }
 
-                UtConcreteExecutionResult(
+                additionalPhases(UtConcreteExecutionResult(
                     stateAfter,
                     executionResult,
                     coverage,
                     newInstrumentation
-                )
+                ))
             } finally {
                 postprocessingPhase.start {
                     resetStaticFields()
@@ -164,13 +174,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =
         delegateInstrumentation.getStaticField(fieldId).map { value ->
-            val cache = IdentityHashMap<Any, UtModel>()
-            val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
-                pathsToUserClasses, cache
-            )
-            UtModelConstructor(cache, strategy).run {
-                construct(value, fieldId.type)
-            }
+            UtModelConstructor.createOnlyUserClassesConstructor(pathsToUserClasses)
+                .construct(value, fieldId.type)
         }
 
     override fun transform(

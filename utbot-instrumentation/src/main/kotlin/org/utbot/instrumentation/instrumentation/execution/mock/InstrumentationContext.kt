@@ -5,11 +5,11 @@ import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
 
 /**
- * Some information, which is computed after classes instrumentation.
+ * Some information, which is fully computed after classes instrumentation.
  *
- * This information will be used later in `invoke` function.
+ * This information will be used later in `invoke` function to construct values.
  */
-class InstrumentationContext {
+open class InstrumentationContext {
     /**
      * Contains unique id for each method, which is required for this method mocking.
      */

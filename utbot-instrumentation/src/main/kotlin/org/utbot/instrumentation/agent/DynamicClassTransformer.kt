@@ -38,8 +38,9 @@ class DynamicClassTransformer : ClassFileTransformer {
             return if (pathToClassfile in pathsToUserClasses ||
                 packsToAlwaysTransform.any(className::startsWith)
             ) {
-                logger.info { "Transforming: $className" }
-                transformer.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
+                transformer.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)?.also {
+                    logger.info { "Transformed: $className" }
+                }
             } else {
                 null
             }

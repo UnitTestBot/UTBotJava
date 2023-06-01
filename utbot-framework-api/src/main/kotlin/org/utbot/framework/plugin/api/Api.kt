@@ -241,6 +241,12 @@ open class EnvironmentModels(
     operator fun component1(): UtModel? = thisInstance
     operator fun component2(): List<UtModel> = parameters
     operator fun component3(): Map<FieldId, UtModel> = statics
+
+    fun copy(
+        thisInstance: UtModel? = this.thisInstance,
+        parameters: List<UtModel> = this.parameters,
+        statics: Map<FieldId, UtModel> = this.statics
+    ) = EnvironmentModels(thisInstance, parameters, statics)
 }
 
 /**
@@ -636,6 +642,46 @@ class UtLambdaModel(
             UtLambdaModel(id, samType, declaringClass, fakeName)
     }
 }
+
+abstract class UtAutowiredBaseModel(
+    override val id: Int?,
+    override val classId: ClassId,
+    val origin: UtModel,
+    modelName: String
+) : UtReferenceModel(
+    id, classId, modelName
+)
+
+class UtAutowiredStateBeforeModel(
+    id: Int?,
+    classId: ClassId,
+    origin: UtModel,
+    val beanName: String,
+    val repositoriesContent: List<RepositoryContentModel>,
+) : UtAutowiredBaseModel(
+    id, classId, origin, modelName = "@Autowired $beanName#$id"
+)
+
+data class RepositoryContentModel(
+    val repositoryBeanName: String,
+    val entityModels: List<UtModel>,
+)
+
+class UtAutowiredStateAfterModel(
+    id: Int?,
+    classId: ClassId,
+    origin: UtModel,
+    val repositoryInteractions: List<RepositoryInteractionModel>,
+) : UtAutowiredBaseModel(
+    id, classId, origin, modelName = "@Autowired ${classId.name}#$id"
+)
+
+data class RepositoryInteractionModel(
+    val beanName: String,
+    val executableId: ExecutableId,
+    val args: List<UtModel>,
+    val result: UtExecutionResult
+)
 
 /**
  * Model for a step to obtain [UtAssembleModel].
@@ -1259,6 +1305,23 @@ open class ApplicationContext(
     ): Boolean = field.isFinal || !field.isPublic
 }
 
+sealed class TypeReplacementApproach {
+    /**
+     * Do not replace interfaces and abstract classes with concrete implementors.
+     * Use mocking instead of it.
+     */
+    object DoNotReplace : TypeReplacementApproach()
+
+    /**
+     * Try to replace interfaces and abstract classes with concrete implementors
+     * obtained from bean definitions.
+     * If it is impossible, use mocking.
+     *
+     * Currently used in Spring applications only.
+     */
+    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
+}
+
 /**
  * Data we get from Spring application context
  * to manage engine and code generator behaviour.
@@ -1266,11 +1329,22 @@ open class ApplicationContext(
  * @param beanDefinitions describes bean definitions (bean name, type, some optional additional data)
  * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
  */
+// TODO move this class to utbot-framework so we can use it as abstract factory
+//  to get rid of numerous `when`s and polymorphically create things like:
+//    - Instrumentation<UtConcreteExecutionResult>
+//    - FuzzedType (to get rid of thisInstanceFuzzedTypeWrapper)
+//    - JavaValueProvider
+//    - CgVariableConstructor
+//    - CodeGeneratorResult (generateForSpringClass)
+//  Right now this refactoring is blocked because some interfaces need to get extracted and moved to utbot-framework-api
+//  As an alternative we can just move ApplicationContext itself to utbot-framework
 class SpringApplicationContext(
     mockInstalled: Boolean,
     staticsMockingIsConfigured: Boolean,
-    private val beanDefinitions: List<BeanDefinitionData> = emptyList(),
+    val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
+    val typeReplacementApproach: TypeReplacementApproach,
+    val testType: SpringTestsType
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
 
     companion object {

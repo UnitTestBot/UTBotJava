@@ -11,6 +11,5 @@ import org.utbot.spring.postProcessors.UtBotBeanFactoryPostProcessor
 open class TestApplicationConfiguration {
 
     @Bean
-    open fun utBotBeanFactoryPostProcessor(): BeanFactoryPostProcessor =
-        UtBotBeanFactoryPostProcessor
+    open fun utBotBeanFactoryPostProcessor(): BeanFactoryPostProcessor = UtBotBeanFactoryPostProcessor
 }

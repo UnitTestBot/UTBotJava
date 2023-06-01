@@ -41,6 +41,16 @@ class UtModelConstructor(
         .mapNotNull { it.id }
         .toMutableSet()
 
+    companion object {
+        fun createOnlyUserClassesConstructor(pathsToUserClasses: Set<String>): UtModelConstructor {
+            val cache = IdentityHashMap<Any, UtModel>()
+            val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
+                pathsToUserClasses, cache
+            )
+            return UtModelConstructor(cache, strategy)
+        }
+    }
+
     private fun computeUnusedIdAndUpdate(): Int {
         while (unusedId in usedIds) {
             unusedId++

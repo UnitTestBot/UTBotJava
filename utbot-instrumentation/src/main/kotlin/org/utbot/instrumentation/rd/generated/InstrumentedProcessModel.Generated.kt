@@ -24,7 +24,8 @@ class InstrumentedProcessModel private constructor(
     private val _setInstrumentation: RdCall<SetInstrumentationParams, Unit>,
     private val _invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>,
     private val _collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult>,
-    private val _computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>
+    private val _computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>,
+    private val _getSpringBean: RdCall<GetSpringBeanParams, GetSpringBeanResult>
 ) : RdExtBase() {
     //companion
     
@@ -39,6 +40,8 @@ class InstrumentedProcessModel private constructor(
             serializers.register(CollectCoverageResult)
             serializers.register(ComputeStaticFieldParams)
             serializers.register(ComputeStaticFieldResult)
+            serializers.register(GetSpringBeanParams)
+            serializers.register(GetSpringBeanResult)
         }
         
         
@@ -59,7 +62,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 2443784041000581664L
+        const val serializationHash = 821530494958270551L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -100,6 +103,11 @@ class InstrumentedProcessModel private constructor(
     [fieldId]
      */
     val computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult> get() = _computeStaticField
+    
+    /**
+     * Gets Spring bean by name (requires Spring instrumentation)
+     */
+    val getSpringBean: RdCall<GetSpringBeanParams, GetSpringBeanResult> get() = _getSpringBean
     //methods
     //initializer
     init {
@@ -109,6 +117,7 @@ class InstrumentedProcessModel private constructor(
         _invokeMethodCommand.async = true
         _collectCoverage.async = true
         _computeStaticField.async = true
+        _getSpringBean.async = true
     }
     
     init {
@@ -118,6 +127,7 @@ class InstrumentedProcessModel private constructor(
         bindableChildren.add("invokeMethodCommand" to _invokeMethodCommand)
         bindableChildren.add("collectCoverage" to _collectCoverage)
         bindableChildren.add("computeStaticField" to _computeStaticField)
+        bindableChildren.add("getSpringBean" to _getSpringBean)
     }
     
     //secondary constructor
@@ -128,7 +138,8 @@ class InstrumentedProcessModel private constructor(
         RdCall<SetInstrumentationParams, Unit>(SetInstrumentationParams, FrameworkMarshallers.Void),
         RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>(InvokeMethodCommandParams, InvokeMethodCommandResult),
         RdCall<CollectCoverageParams, CollectCoverageResult>(CollectCoverageParams, CollectCoverageResult),
-        RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>(ComputeStaticFieldParams, ComputeStaticFieldResult)
+        RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>(ComputeStaticFieldParams, ComputeStaticFieldResult),
+        RdCall<GetSpringBeanParams, GetSpringBeanResult>(GetSpringBeanParams, GetSpringBeanResult)
     )
     
     //equals trait
@@ -143,6 +154,7 @@ class InstrumentedProcessModel private constructor(
             print("invokeMethodCommand = "); _invokeMethodCommand.print(printer); println()
             print("collectCoverage = "); _collectCoverage.print(printer); println()
             print("computeStaticField = "); _computeStaticField.print(printer); println()
+            print("getSpringBean = "); _getSpringBean.print(printer); println()
         }
         printer.print(")")
     }
@@ -154,7 +166,8 @@ class InstrumentedProcessModel private constructor(
             _setInstrumentation.deepClonePolymorphic(),
             _invokeMethodCommand.deepClonePolymorphic(),
             _collectCoverage.deepClonePolymorphic(),
-            _computeStaticField.deepClonePolymorphic()
+            _computeStaticField.deepClonePolymorphic(),
+            _getSpringBean.deepClonePolymorphic()
         )
     }
     //contexts
@@ -440,6 +453,120 @@ data class ComputeStaticFieldResult (
         printer.println("ComputeStaticFieldResult (")
         printer.indent {
             print("result = "); result.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [InstrumentedProcessModel.kt:44]
+ */
+data class GetSpringBeanParams (
+    val beanName: String
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<GetSpringBeanParams> {
+        override val _type: KClass<GetSpringBeanParams> = GetSpringBeanParams::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanParams  {
+            val beanName = buffer.readString()
+            return GetSpringBeanParams(beanName)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanParams)  {
+            buffer.writeString(value.beanName)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as GetSpringBeanParams
+        
+        if (beanName != other.beanName) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + beanName.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("GetSpringBeanParams (")
+        printer.indent {
+            print("beanName = "); beanName.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [InstrumentedProcessModel.kt:48]
+ */
+data class GetSpringBeanResult (
+    val beanModel: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<GetSpringBeanResult> {
+        override val _type: KClass<GetSpringBeanResult> = GetSpringBeanResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanResult  {
+            val beanModel = buffer.readByteArray()
+            return GetSpringBeanResult(beanModel)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanResult)  {
+            buffer.writeByteArray(value.beanModel)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as GetSpringBeanResult
+        
+        if (!(beanModel contentEquals other.beanModel)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + beanModel.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("GetSpringBeanResult (")
+        printer.indent {
+            print("beanModel = "); beanModel.print(printer); println()
         }
         printer.print(")")
     }

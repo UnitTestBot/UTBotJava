@@ -130,13 +130,7 @@ jobs:
           # hashFiles returns a single hash for the set of files that matches the path pattern
           key: ${{ runner.os }}-gradle-framework-${{ hashFiles('./*.gradle*', './utbot-framework*/*.gradle*') }}
           restore-keys: ${{ runner.os }}-gradle-framework
-      # temporary debug
-      - name: Debug
-        if: ${{ matrix.project.PART_NAME == 'examples-part3' }}
-        uses: mxschmitt/action-tmate@v3
-        with:
-          sudo: false
-          limit-access-to-actor: false
+
       - name: Run tests
         run: |
           gradle --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}

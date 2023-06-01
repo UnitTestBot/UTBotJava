@@ -344,8 +344,7 @@ class UtBotSymbolicEngine(
             classId != Method::class.java.id && // causes the instrumented process crash at invocation
                 classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
         }
-        val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
-        if (!isFuzzable || !hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
+        if (!isFuzzable) {
             // Currently, fuzzer doesn't work with static methods with empty parameters
             return@flow
         }

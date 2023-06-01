@@ -57,7 +57,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
      * Checks whether the fuzzer should stop.
      */
     suspend fun isCancelled(description: DESCRIPTION, stats: Statistic<TYPE, RESULT>): Boolean {
-        return description.parameters.isEmpty()
+        return false
     }
 
     suspend fun beforeIteration(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) { }

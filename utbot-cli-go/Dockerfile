@@ -1,4 +1,4 @@
-FROM azul/zulu-openjdk:11.0.15-11.56.19
+FROM azul/zulu-openjdk:17.0.7-17.42.19
 
 ARG UTBOT_GO_CLI
 

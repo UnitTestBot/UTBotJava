@@ -31,7 +31,7 @@ jobs:
     uses: ./.github/workflows/publish-cli-from-branch.yml
     with:
       # upload artifacts on push action to main only
-      upload-artifact: true  # temporary commented: ${{ github.event_name == 'push' }}
+      upload-artifact: ${{ github.event_name == 'push' }}
     secrets: inherit
 
   publish-cli-image:

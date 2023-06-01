@@ -28,7 +28,7 @@ object GoArrayValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> 
                         modify = sequence {
                             val probShuffle = description.configuration.probCollectionShuffleInsteadResultMutation
                             val numberOfShuffles = if (probShuffle != 100) {
-                                arrayType.length * (probShuffle / (100 - probShuffle))
+                                arrayType.length * probShuffle / (100 - probShuffle)
                             } else {
                                 1
                             }

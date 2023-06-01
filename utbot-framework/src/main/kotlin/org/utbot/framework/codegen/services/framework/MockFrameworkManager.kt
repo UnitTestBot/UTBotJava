@@ -183,8 +183,6 @@ private abstract class StaticMocker(
 
 private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
 
-    private val alreadyMockedModels: MutableSet<UtCompositeModel> = Collections.newSetFromMap(IdentityHashMap())
-
     override fun createMock(model: UtCompositeModel, baseName: String): CgVariable {
         val modelClass = getClassOf(model.classId)
         val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
@@ -195,10 +193,6 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
     }
 
     fun mockForVariable(model: UtCompositeModel, mockObject: CgVariable) {
-        if (!alreadyMockedModels.add(model)) {
-            return
-        }
-
         for ((executable, values) in model.mocks) {
             val matchers = mockitoArgumentMatchersFor(executable)
 
@@ -225,7 +219,12 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                             error("Cannot mock method $executable as it is not accessible from package $testClassPackageName")
                         }
 
-                        val results = values.map { variableConstructor.getOrCreateVariable(it) }.toTypedArray()
+                        val results = values
+                            .map { value ->
+                                // Sometimes we need mocks returning itself, e.g. for StringBuilder.append method
+                                if (value != model) variableConstructor.getOrCreateVariable(value) else mockObject
+                            }
+                            .toTypedArray()
                         `when`(mockObject[executable](*matchers)).thenReturn(executable.returnType, *results)
                     }
                     else -> error("Only MethodId was expected to appear in simple mocker but got $executable")

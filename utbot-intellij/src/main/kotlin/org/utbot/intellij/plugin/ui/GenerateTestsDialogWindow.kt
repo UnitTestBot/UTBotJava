@@ -114,6 +114,7 @@ import org.utbot.intellij.plugin.models.springBootTestLibraryDescriptor
 import org.utbot.intellij.plugin.models.springTestLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgNewLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgOldLibraryDescriptor
+import org.utbot.intellij.plugin.settings.JavaTestFrameworkMapper
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.settings.loadStateFromModel
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
@@ -851,10 +852,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         codegenLanguages.item = model.codegenLanguage
 
         val installedTestFramework = TestFramework.allItems.singleOrNull { it.isInstalled }
+        val testFramework = JavaTestFrameworkMapper.fromString(settings.testFramework)
+//        val testFramework = settings.testFrameworkWithMapper(JavaTestFrameworkMapper)
         currentFrameworkItem = when (parametrizedTestSources.isSelected) {
-            false -> installedTestFramework ?: settings.testFramework
+            false -> installedTestFramework ?: testFramework
             true -> installedTestFramework
-                ?: if (settings.testFramework != Junit4) settings.testFramework else TestFramework.parametrizedDefaultItem
+                ?: if (testFramework != Junit4) testFramework else TestFramework.parametrizedDefaultItem
         }
 
         springTestsType.item = if (isSpringConfigSelected()) settings.springTestsType else SpringTestsType.defaultItem

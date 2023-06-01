@@ -13,7 +13,7 @@ private fun fromGenerateTestsModel(model: GenerateTestsModel): Settings.State {
     return Settings.State(
         sourceRootHistory = model.sourceRootHistory,
         codegenLanguage = model.codegenLanguage,
-        testFramework = model.testFramework,
+        testFramework = JavaTestFrameworkMapper.toString(model.testFramework),
         mockStrategy = model.mockStrategy,
         mockFramework = model.mockFramework ?: MockFramework.defaultItem,
         staticsMocking = model.staticsMocking,

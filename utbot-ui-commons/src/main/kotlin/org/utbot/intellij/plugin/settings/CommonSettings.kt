@@ -47,8 +47,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     data class State(
         var sourceRootHistory: MutableList<String> = mutableListOf(),
         var codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-        @OptionTag(converter = TestFrameworkConverter::class)
-        var testFramework: TestFramework = TestFramework.defaultItem,
+//        @OptionTag(converter = TestFrameworkConverter::class)
+        var testFramework: String = TestFramework.defaultItem.id,
         var mockStrategy: MockStrategyApi = MockStrategyApi.defaultItem,
         var mockFramework: MockFramework = MockFramework.defaultItem,
         @OptionTag(converter = StaticsMockingConverter::class)
@@ -127,7 +127,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     val codegenLanguage: CodegenLanguage get() = state.codegenLanguage
 
-    val testFramework: TestFramework get() = state.testFramework
+    val testFramework: String get() = state.testFramework
+    fun testFrameworkWithMapper(mapper: TestFrameworkMapper): TestFramework = mapper.fromString(state.testFramework)
 
     val mockStrategy: MockStrategyApi get() = state.mockStrategy
 

@@ -16,6 +16,7 @@ import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFunction
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.intellij.plugin.language.python.settings.PythonTestFrameworkMapper
 import org.utbot.intellij.plugin.language.python.settings.loadStateFromModel
 import org.utbot.intellij.plugin.language.python.table.UtPyClassItem
 import org.utbot.intellij.plugin.language.python.table.UtPyFunctionItem
@@ -94,7 +95,9 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         val settings = model.project.service<Settings>()
 
         val installedTestFramework = TestFramework.allItems.singleOrNull { it.isInstalled }
-        currentFrameworkItem = installedTestFramework ?: settings.testFramework
+        val testFramework = PythonTestFrameworkMapper.fromString(settings.testFramework)
+//        val testFramework = settings.testFrameworkWithMapper(PythonTestFrameworkMapper)
+        currentFrameworkItem = installedTestFramework ?: testFramework
 
         updateTestFrameworksList()
     }

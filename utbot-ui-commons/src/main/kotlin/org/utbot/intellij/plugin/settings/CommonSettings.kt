@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
 import org.utbot.common.isWindows
 import org.utbot.framework.SummariesGenerationType
+import org.utbot.framework.codegen.domain.UnknownTestFramework
 import org.utbot.framework.plugin.api.SpringTestsType
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 
@@ -47,8 +48,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     data class State(
         var sourceRootHistory: MutableList<String> = mutableListOf(),
         var codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-//        @OptionTag(converter = TestFrameworkConverter::class)
-        var testFramework: String = TestFramework.defaultItem.id,
+        @OptionTag(converter = TestFrameworkConverter::class)
+        var testFramework: TestFramework = TestFramework.defaultItem,
         var mockStrategy: MockStrategyApi = MockStrategyApi.defaultItem,
         var mockFramework: MockFramework = MockFramework.defaultItem,
         @OptionTag(converter = StaticsMockingConverter::class)
@@ -127,8 +128,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     val codegenLanguage: CodegenLanguage get() = state.codegenLanguage
 
-    val testFramework: String get() = state.testFramework
-    fun testFrameworkWithMapper(mapper: TestFrameworkMapper): TestFramework = mapper.fromString(state.testFramework)
+    val testFramework: TestFramework get() = state.testFramework
 
     val mockStrategy: MockStrategyApi get() = state.mockStrategy
 
@@ -253,13 +253,13 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
 // use it to serialize testFramework in State
 private class TestFrameworkConverter : Converter<TestFramework>() {
-    override fun toString(value: TestFramework): String = "$value"
+    override fun toString(value: TestFramework): String = value.id
 
     override fun fromString(value: String): TestFramework = when (value) {
         Junit4.id -> Junit4
         Junit5.id -> Junit5
         TestNg.id -> TestNg
-        else -> error("Unknown TestFramework $value")
+        else -> UnknownTestFramework(value)
     }
 }
 

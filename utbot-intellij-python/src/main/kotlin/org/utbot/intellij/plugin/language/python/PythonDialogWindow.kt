@@ -94,9 +94,8 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     private fun initDefaultValues() {
         val settings = model.project.service<Settings>()
 
-        val installedTestFramework = TestFramework.allItems.singleOrNull { it.isInstalled }
-        val testFramework = PythonTestFrameworkMapper.fromString(settings.testFramework)
-//        val testFramework = settings.testFrameworkWithMapper(PythonTestFrameworkMapper)
+        val installedTestFramework = PythonTestFrameworkMapper.allItems.singleOrNull { it.isInstalled }
+        val testFramework = PythonTestFrameworkMapper.handleUnknown(settings.testFramework)
         currentFrameworkItem = installedTestFramework ?: testFramework
 
         updateTestFrameworksList()

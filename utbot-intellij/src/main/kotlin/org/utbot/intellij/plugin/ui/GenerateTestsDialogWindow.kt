@@ -852,8 +852,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         codegenLanguages.item = model.codegenLanguage
 
         val installedTestFramework = TestFramework.allItems.singleOrNull { it.isInstalled }
-        val testFramework = JavaTestFrameworkMapper.fromString(settings.testFramework)
-//        val testFramework = settings.testFrameworkWithMapper(JavaTestFrameworkMapper)
+        val testFramework = JavaTestFrameworkMapper.handleUnknown(settings.testFramework)
         currentFrameworkItem = when (parametrizedTestSources.isSelected) {
             false -> installedTestFramework ?: testFramework
             true -> installedTestFramework

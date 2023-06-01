@@ -10,7 +10,7 @@ fun loadStateFromModel(settings: Settings, model: PythonTestsModel) {
 private fun fromGenerateTestsModel(model: PythonTestsModel): Settings.State {
     return Settings.State(
         sourceRootHistory = model.sourceRootHistory,
-        testFramework = PythonTestFrameworkMapper.toString(model.testFramework),
+        testFramework = model.testFramework,
         generationTimeoutInMillis = model.timeout,
         enableExperimentalLanguagesSupport = true,
     )

@@ -96,4 +96,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: utbot-cli-${{ matrix.configuration.lang }}-${{ env.VERSION }}
-        path: ${{ matrix.configuration.dir }}/build/libs/utbot-cli-${{ env.VERSION }}.jar
+        path: ${{ matrix.configuration.dir }}/build/libs/${{ matrix.configuration.dir }}-${{ env.VERSION }}.jar

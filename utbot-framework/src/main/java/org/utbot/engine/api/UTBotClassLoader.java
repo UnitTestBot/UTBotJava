@@ -54,6 +54,11 @@ public final class UTBotClassLoader extends URLClassLoader {
     }
 
     @Override
+    public void addURL(URL url) {
+        super.addURL(url);
+    }
+
+    @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         if (apiClasses.test(name)) {
             return super.loadClass(name, resolve);

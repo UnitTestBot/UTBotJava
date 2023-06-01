@@ -1,56 +1,56 @@
-name: "[M] Plugin and CLI: publish as archives"
+name: "[M] Plugin: publish as archive"
 
-on: 
+on:
   workflow_call:
     inputs:
-        upload-artifact:
-          type: string
-          description: "Upload artifacts or not"
-          required: false
-          default: false
-        commit_sha:
-          required: false
-          type: string
-          description: "(optional) Commit SHA"
-        custom_version:
-          type: string
-          description: "Custom version"
-          required: false
-          default: ""
+      upload-artifact:
+        type: string
+        description: "Upload artifacts or not"
+        required: false
+        default: false
+      commit_sha:
+        required: false
+        type: string
+        description: "(optional) Commit SHA"
+      custom_version:
+        type: string
+        description: "Custom version"
+        required: false
+        default: ""
 
   workflow_dispatch:
     inputs:
-        upload-artifact:
-          type: choice
-          description: "Upload artifacts or not"
-          required: false
-          default: true
-          options:
+      upload-artifact:
+        type: choice
+        description: "Upload artifacts or not"
+        required: false
+        default: true
+        options:
           - true
           - false
-        commit_sha:
-          required: false
-          type: string
-          description: "(optional) Commit SHA"
-        custom_version:
-          type: string
-          description: "Custom version"
-          required: false
-          default: ""
+      commit_sha:
+        required: false
+        type: string
+        description: "(optional) Commit SHA"
+      custom_version:
+        type: string
+        description: "Custom version"
+        required: false
+        default: ""
 
 jobs:
-    publish_plugin_and_cli:
-      strategy:
-        fail-fast: false  # force to execute all jobs even though some of them have failed
-        matrix:
-          configuration:
-            - plugin_type: IC
-              extra_options: "-PideType=IC"
-            - plugin_type: IU
-              extra_options: "-PideType=IU"
-      runs-on: ubuntu-20.04
-      container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
-      steps:
+  publish_plugin_and_cli:
+    strategy:
+      fail-fast: false  # force to execute all jobs even though some of them have failed
+      matrix:
+        configuration:
+          - plugin_type: IC
+            extra_options: "-PideType=IC"
+          - plugin_type: IU
+            extra_options: "-PideType=IU"
+    runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
+    steps:
       - uses: actions/checkout@v3
       - name: Check out ${{ github.event.inputs.commit_sha }} commit
         if: github.event.inputs.commit_sha != ''
@@ -87,15 +87,3 @@ jobs:
         with:
           name: utbot-intellij-${{ matrix.configuration.plugin_type }}-${{ env.VERSION }}
           path: utbot-intellij/build/distributions/*
-
-      - name: Build UTBot CLI
-        run: |
-          cd utbot-cli
-          gradle clean build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
-
-      - name: Archive UTBot CLI
-        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: utbot-cli-${{ env.VERSION }}
-          path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar

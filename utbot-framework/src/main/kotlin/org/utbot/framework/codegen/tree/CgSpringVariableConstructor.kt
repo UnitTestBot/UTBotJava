@@ -13,13 +13,9 @@ import org.utbot.framework.plugin.api.isMockModel
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
     val injectedMocksModelsVariables: MutableSet<UtModelWrapper> = mutableSetOf()
     val mockedModelsVariables: MutableSet<UtModelWrapper> = mutableSetOf()
+    val autowiredVariables: MutableSet<UtModelWrapper> = mutableSetOf()
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        if (model is UtSpringContextModel) {
-            // TODO also, properly render corresponding @Autowired field(s), and make sure name isn't taken
-            return CgVariable(model.modelName, model.classId)
-        }
-
         val alreadyCreatedInjectMocks = findCgValueByModel(model, injectedMocksModelsVariables)
         if (alreadyCreatedInjectMocks != null) {
             val fields: Collection<UtModel> = when (model) {
@@ -43,6 +39,11 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
             }
 
             return alreadyCreatedMock
+        }
+
+        val alreadyCreatedAutowired = findCgValueByModel(model, autowiredVariables)
+        if (alreadyCreatedAutowired != null) {
+            return alreadyCreatedAutowired
         }
 
         return super.getOrCreateVariable(model, name)

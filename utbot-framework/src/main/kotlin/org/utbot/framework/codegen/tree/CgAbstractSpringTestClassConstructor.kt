@@ -85,8 +85,8 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
     abstract fun constructAdditionalMethods(): CgMethodsCluster
 
     protected fun constructFieldsWithAnnotation(
+        annotationClassId: ClassId,
         groupedModelsByClassId: TypedModelWrappers,
-        annotationClassId: ClassId
     ): List<CgFieldDeclaration> {
         require(
             annotationClassId == injectMocksClassId ||
@@ -114,6 +114,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
             when (annotationClassId) {
                 injectMocksClassId -> variableConstructor.injectedMocksModelsVariables += listOfUtModels
                 mockClassId -> variableConstructor.mockedModelsVariables += listOfUtModels
+                autowiredClassId -> variableConstructor.autowiredVariables += listOfUtModels
             }
         }
 
@@ -134,7 +135,8 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
         val whiteListOfModels =
             listOf(
                 variableConstructor.mockedModelsVariables,
-                variableConstructor.injectedMocksModelsVariables
+                variableConstructor.injectedMocksModelsVariables,
+                variableConstructor.autowiredVariables,
             ).flatten()
 
         valueByUtModelWrapper

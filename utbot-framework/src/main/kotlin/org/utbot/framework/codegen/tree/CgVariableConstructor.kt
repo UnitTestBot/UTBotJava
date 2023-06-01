@@ -52,6 +52,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.classClassId
@@ -114,6 +115,7 @@ open class CgVariableConstructor(val context: CgContext) :
         return when (model) {
             is UtCompositeModel -> constructComposite(model, baseName)
             is UtAssembleModel -> constructAssemble(model, baseName)
+            is UtSpringContextModel -> constructSpringContext(model, baseName)
             is UtArrayModel -> constructArray(model, baseName)
             is UtEnumConstantModel -> constructEnumConstant(model, baseName)
             is UtClassRefModel -> constructClassRef(model, baseName)
@@ -230,6 +232,13 @@ open class CgVariableConstructor(val context: CgContext) :
         }
 
         return valueByUtModelWrapper.getValue(model.wrap())
+    }
+
+    private fun constructSpringContext(model: UtSpringContextModel, baseName: String?): CgValue {
+        val obj = newVar(model.classId, baseName) { utilsClassId[createInstance](model.classId.name) }
+
+        valueByUtModelWrapper[model.wrap()] = obj
+        return obj
     }
 
     private fun processInstantiationStatement(

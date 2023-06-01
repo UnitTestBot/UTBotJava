@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.domain.models.builders
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
+import org.utbot.framework.codegen.domain.models.SpringSpecificInformation
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -11,7 +12,6 @@ import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -20,6 +20,7 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.util.SpringModelUtils.applicationContextClassId
 
 typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
 
@@ -27,20 +28,24 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
 
     override fun createTestClassModel(classUnderTest: ClassId, testSets: List<CgMethodTestSet>): SpringTestClassModel {
         val baseModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
-        val (thisInstanceModels, dependentMockModels) = collectThisInstanceAndDependentModels(testSets)
+        val collectedModels = collectModelsForClassVariables(testSets)
 
         return SpringTestClassModel(
             classUnderTest = baseModel.classUnderTest,
             methodTestSets = baseModel.methodTestSets,
             nestedClasses = baseModel.nestedClasses,
-            thisInstanceModels = thisInstanceModels,
-            thisInstanceDependentMocks = dependentMockModels
+            springSpecificInformation = SpringSpecificInformation(
+                thisInstanceModels = collectedModels.thisInstanceModels,
+                thisInstanceDependentMocks = collectedModels.thisInstanceDependentMocks,
+                applicationContextModels = collectedModels.applicationContextModels,
+            )
         )
     }
 
-    private fun collectThisInstanceAndDependentModels(testSets: List<CgMethodTestSet>): Pair<TypedModelWrappers, TypedModelWrappers> {
+    private fun collectModelsForClassVariables(testSets: List<CgMethodTestSet>): SpringSpecificInformation {
         val thisInstanceModels = mutableSetOf<UtModelWrapper>()
         val thisInstancesDependentModels = mutableSetOf<UtModelWrapper>()
+        val stateBeforeDependentModels = mutableSetOf<UtModelWrapper>()
 
         with(context) {
             for ((testSetIndex, testSet) in testSets.withIndex()) {
@@ -51,8 +56,13 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                                 .filterNotNull()
                                 .forEach { model ->
                                     thisInstanceModels += model.wrap()
-                                    thisInstancesDependentModels += collectByThisInstanceModel(model)
+                                    thisInstancesDependentModels += collectByModel(model)
+
                                 }
+
+                            (execution.stateBefore.parameters + setOf(execution.stateBefore.thisInstance))
+                                .filterNotNull()
+                                .forEach { model -> stateBeforeDependentModels += collectByModel(model) }
                         }
                     }
                 }
@@ -65,10 +75,18 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                     cgModel.model.isMockModel() && cgModel !in thisInstanceModels
                 }
 
-        return thisInstanceModels.groupByClassId() to dependentMockModels.groupByClassId()
+        val applicationContextModels = stateBeforeDependentModels
+                .filter { it.model is UtSpringContextModel }
+                .toSet()
+
+        return SpringSpecificInformation(
+            thisInstanceModels.groupByClassId(),
+            dependentMockModels.groupByClassId(),
+            applicationContextModels.groupByClassId(),
+        )
     }
 
-    private fun collectByThisInstanceModel(model: UtModel): Set<UtModelWrapper> {
+    private fun collectByModel(model: UtModel): Set<UtModelWrapper> {
         val dependentModels = mutableSetOf<UtModelWrapper>()
         collectRecursively(model, dependentModels)
 

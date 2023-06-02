@@ -22,7 +22,7 @@
     },
     {
       "PART_NAME": "examples-part1",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.algorithms.*\" --tests \"org.utbot.examples.annotations.*\" --tests \"org.utbot.examples.arrays.*\" --tests \"org.utbot.examples.casts.*\" --tests \"org.utbot.examples.codegen.*\" --tests \"org.utbot.examples.controlflow.*\" --tests \"org.utbot.examples.enums.*\""
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.annotations.*\" --tests \"org.utbot.examples.arrays.*\" --tests \"org.utbot.examples.casts.*\" --tests \"org.utbot.examples.controlflow.*\" --tests \"org.utbot.examples.enums.*\""
     },
     {
       "PART_NAME": "examples-part2",
@@ -43,6 +43,14 @@
     {
       "PART_NAME": "examples-part6",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.strings11.*\""
+    },
+    {
+      "PART_NAME": "examples-part7",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.algorithms.*\""
+    },
+    {
+      "PART_NAME": "examples-part8",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.codegen.*\""
     },
     {
       "PART_NAME": "examples-lists",

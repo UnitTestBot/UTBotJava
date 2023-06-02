@@ -18,6 +18,7 @@ import org.utbot.python.code.PythonCode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
+import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.framework.api.python.RawPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.PythonCodeGenerator
@@ -153,8 +154,13 @@ object PythonTestGenerationProcessor {
 
             val importParamModules = notEmptyTests.flatMap { testSet ->
                 testSet.executions.flatMap { execution ->
-                    (execution.stateBefore.parameters + execution.stateAfter.parameters +
-                            listOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance))
+                    val params = (execution.stateAfter.parameters + execution.stateBefore.parameters).toMutableSet()
+                    val self = mutableListOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
+                    if (execution is PythonUtExecution) {
+                        params.addAll(execution.stateInit.parameters)
+                        self.add(execution.stateInit.thisInstance)
+                    }
+                    (params + self)
                         .filterNotNull()
                         .flatMap { utModel ->
                         (utModel as PythonModel).let {

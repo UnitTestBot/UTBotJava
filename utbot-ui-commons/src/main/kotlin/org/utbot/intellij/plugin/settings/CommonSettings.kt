@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
 import org.utbot.common.isWindows
 import org.utbot.framework.SummariesGenerationType
+import org.utbot.framework.codegen.domain.UnknownTestFramework
 import org.utbot.framework.plugin.api.SpringTestsType
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 
@@ -252,13 +253,13 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
 // use it to serialize testFramework in State
 private class TestFrameworkConverter : Converter<TestFramework>() {
-    override fun toString(value: TestFramework): String = "$value"
+    override fun toString(value: TestFramework): String = value.id
 
     override fun fromString(value: String): TestFramework = when (value) {
         Junit4.id -> Junit4
         Junit5.id -> Junit5
         TestNg.id -> TestNg
-        else -> error("Unknown TestFramework $value")
+        else -> UnknownTestFramework(value)
     }
 }
 

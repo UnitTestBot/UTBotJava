@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicResultStorage
 
 
 /**
@@ -32,6 +33,10 @@ class PreparationPhase(
 
     fun resetTrace() {
         traceHandler.resetTrace()
+    }
+
+    fun resetND() {
+        NonDeterministicResultStorage.clear()
     }
 
 }

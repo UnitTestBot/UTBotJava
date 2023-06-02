@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtAutowiredStateBeforeModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
@@ -41,6 +42,7 @@ import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockCont
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockController
 import org.utbot.instrumentation.instrumentation.execution.mock.MockController
+import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
 import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Modifier
 import java.util.*
@@ -105,8 +107,9 @@ class MockValueConstructor(
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
+            is UtAutowiredStateBeforeModel -> UtConcreteValue(constructFromAutowiredModel(model))
             // PythonModel, JsUtModel may be here
-            else -> throw UnsupportedOperationException()
+            else -> throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
         }
 
     /**
@@ -358,6 +361,19 @@ class MockValueConstructor(
         }
         constructedObjects[lambdaModel] = lambda
         return lambda
+    }
+
+    private fun constructFromAutowiredModel(autowiredModel: UtAutowiredStateBeforeModel): Any {
+        val springInstrumentationContext = instrumentationContext as SpringInstrumentationContext
+        autowiredModel.repositoriesContent.forEach { repositoryContent ->
+            val repository = springInstrumentationContext.getBean(repositoryContent.repositoryBeanName)
+            repositoryContent.entityModels.forEach { entityModel ->
+                construct(entityModel).value?.let { entity ->
+                    springInstrumentationContext.saveToRepository(repository, entity)
+                }
+            }
+        }
+        return springInstrumentationContext.getBean(autowiredModel.beanName)
     }
 
     /**

@@ -32,7 +32,7 @@ open class FuzzedDescription(
         get() = description.concreteValues.asSequence()
 
     override fun fork(type: FuzzedType, scope: ScopeParams): FuzzedDescription? {
-        if (checkParamIsThis()) {
+        if (checkParamIsThis() == true) {
             return FuzzedDescription(
                 description,
                 tracer,
@@ -44,12 +44,10 @@ open class FuzzedDescription(
         return null
     }
 
-    fun checkParamIsThis(): Boolean {
-        return if (scope == null || description.isStatic != false) {
-            false
-        } else {
-            scope.parameterIndex == 0 && scope.recursionDepth == 1
-        }
+    fun checkParamIsThis(): Boolean? = when {
+        scope == null || description.isStatic == null -> null
+        description.isStatic == false -> false
+        else -> scope.parameterIndex == 0 && scope.recursionDepth == 1
     }
 }
 

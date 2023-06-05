@@ -20,7 +20,7 @@ class SpringBeanValueProvider(
         type: FuzzedType
     ) = sequence {
         description as SpringFuzzedDescription // should be only this type
-        val beans = if (description.checkParamIsThis()) description.findBeans(type.classId) else emptyList()
+        val beans = if (description.checkParamIsThis() == true) description.findBeans(type.classId) else emptyList()
         beans.forEach { beanName ->
             yield(
                 Seed.Recursive<FuzzedType, FuzzedValue>(

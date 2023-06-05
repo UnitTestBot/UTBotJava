@@ -42,7 +42,7 @@ class SpringFuzzedDescription(
     ) : this(description, tracer, typeCache, random, scope, { cid -> beanNames.takeIf { cid == beanClassId } ?: emptyList() })
 
     override fun fork(type: FuzzedType, scope: ScopeParams): FuzzedDescription? {
-        if (checkParamIsThis()) {
+        if (checkParamIsThis() == true) {
             val beans = findBeans(type.classId)
             if (beans.isNotEmpty()) {
                 return SpringFuzzedDescription(description, tracer, typeCache, random, scope, type.classId, beans)

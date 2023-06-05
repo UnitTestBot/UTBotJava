@@ -120,14 +120,14 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
         description: FuzzedDescription,
         type: FuzzedType
     ): Sequence<Seed<FuzzedType, FuzzedValue>> {
-        return if (description.checkParamIsThis()) {
-            emptySequence()
-        } else {
-            sequenceOf<Seed<FuzzedType, FuzzedValue>>(
+        if (description.checkParamIsThis() == false) {
+            return sequenceOf<Seed<FuzzedType, FuzzedValue>>(
                 Seed.Simple(UtNullModel(type.classId).fuzzed {
                     summary = "%var% = null"
                 })
             )
+        } else {
+            return emptySequence()
         }
     }
 }

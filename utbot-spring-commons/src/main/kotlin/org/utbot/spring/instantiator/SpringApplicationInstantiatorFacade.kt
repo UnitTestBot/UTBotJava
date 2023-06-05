@@ -19,18 +19,19 @@ class SpringApplicationInstantiatorFacade(private val instantiationContext: Inst
         logger.info { "Current Spring version is: " + runCatching { SpringVersion.getVersion() }.getOrNull() }
         logger.info { "Current Spring Boot version is: " + runCatching { SpringBootVersion.getVersion() }.getOrNull() }
 
-        val environmentFactory = EnvironmentFactory(instantiationContext)
+        val environment = EnvironmentFactory(instantiationContext).createEnvironment()
 
-        val suitableInstantiator =
-            listOf(SpringBootApplicationInstantiator(), PureSpringApplicationInstantiator())
-                .firstOrNull { it.canInstantiate() }
-                ?: null.also { logger.error { "All Spring analyzers failed, using empty bean list" } }
+        for (instantiator in listOf(SpringBootApplicationInstantiator(), PureSpringApplicationInstantiator())) {
+            if (instantiator.canInstantiate()) {
+                logger.info { "Instantiating with $instantiator" }
+                try {
+                    return instantiator.instantiate(instantiationContext.configurationClasses, environment)
+                } catch (e: Throwable) {
+                    logger.error("Instantiating with $instantiator failed", e)
+                }
+            }
+        }
 
-        logger.info { "Instantiating Spring application with $suitableInstantiator" }
-
-        return suitableInstantiator?.instantiate(
-            instantiationContext.configurationClasses,
-            environmentFactory.createEnvironment(),
-        )
+        return null
     }
 }

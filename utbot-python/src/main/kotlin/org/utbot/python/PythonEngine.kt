@@ -339,7 +339,7 @@ class PythonEngine(
                     logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
                 }
             }
-            manager.disconnect()
+            manager.shutdown()
         }
     }
 }

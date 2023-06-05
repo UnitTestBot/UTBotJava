@@ -33,7 +33,7 @@ class PythonWorkerManager(
         connect()
     }
 
-    fun connect() {
+    private fun connect() {
         val processStartTime = System.currentTimeMillis()
         process = startProcess(listOf(
             pythonPath,
@@ -65,12 +65,16 @@ class PythonWorkerManager(
     fun disconnect() {
         workerSocket.close()
         process.destroy()
-        coverageReceiver.kill()
     }
 
-    fun reconnect() {
+    private fun reconnect() {
         disconnect()
         connect()
+    }
+
+    fun shutdown() {
+        disconnect()
+        coverageReceiver.kill()
     }
 
     fun runWithCoverage(

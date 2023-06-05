@@ -206,3 +206,9 @@ def n(x, y):
 
 def list_of_list(x: List[List[InventoryItem]]):
     return x
+
+
+def make_tuple(x: list[int]):
+    if len(x) == 0:
+        return tuple()
+    return tuple(x)

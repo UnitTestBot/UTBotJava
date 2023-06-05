@@ -9,9 +9,9 @@ import fuzzer.JsMethodDescription
 import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.util.isStatic
 import providers.imports.IImportsProvider
 import service.ContextOwner
@@ -286,8 +286,8 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     private fun UtAssembleModel.initModificationsAsString(stringBuilder: StringBuilder, varName: String) {
         with(stringBuilder) {
             this@initModificationsAsString.modificationsChain.forEach {
-                if (it is UtExecutableCallModel) {
-                    val exec = it.executable as JsMethodId
+                if (it is UtStatementCallModel) {
+                    val exec = it.statement as JsMethodId
                     appendLine(
                         it.params.joinToString(
                             prefix = "$varName.${exec.name}(",

@@ -6,9 +6,9 @@ import framework.api.js.util.isClass
 import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 
 
 import org.utbot.fuzzing.Routine
@@ -41,7 +41,7 @@ class ObjectValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescriptio
                     id = id,
                     classId = classId,
                     modelName = "${constructorId.classId.name}${constructorId.parameters}#" + id.hex(),
-                    instantiationCall = UtExecutableCallModel(
+                    instantiationCall = UtStatementCallModel(
                         null,
                         constructorId,
                         values

@@ -17,8 +17,8 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructorInterface
 
 class JsUtModelConstructor : UtModelConstructorInterface {
@@ -57,7 +57,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
                     id = JsIdProvider.createId(),
                     classId = classId,
                     modelName = "",
-                    instantiationCall = UtExecutableCallModel(
+                    instantiationCall = UtStatementCallModel(
                         null,
                         ConstructorId(classId, emptyList()),
                         emptyList()
@@ -65,7 +65,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
                     modificationsChainProvider = { mutableListOf() }
                 ).apply {
                     this.modificationsChain as MutableList += values.map { value ->
-                        UtExecutableCallModel(
+                        UtStatementCallModel(
                             this,
                             JsMethodId(
                                 classId = classId,
@@ -96,7 +96,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
                     id = JsIdProvider.createId(),
                     classId = classId,
                     modelName = "",
-                    instantiationCall = UtExecutableCallModel(
+                    instantiationCall = UtStatementCallModel(
                         null,
                         ConstructorId(classId, emptyList()),
                         emptyList()
@@ -104,7 +104,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
                     modificationsChainProvider = { mutableListOf() }
                 ).apply {
                     this.modificationsChain as MutableList += values.map { value ->
-                        UtExecutableCallModel(
+                        UtStatementCallModel(
                             this,
                             JsMethodId(
                                 classId = classId,
@@ -130,7 +130,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
             construct(it, JsEmptyClassId())
         }
         val id = JsIdProvider.createId()
-        val instantiationCall = UtExecutableCallModel(null, constructor, values)
+        val instantiationCall = UtStatementCallModel(null, constructor, values)
         return UtAssembleModel(
             id = id,
             classId = constructor.classId,

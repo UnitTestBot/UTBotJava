@@ -9,8 +9,8 @@ import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
@@ -30,7 +30,7 @@ object MapValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescription>
                         id = JsIdProvider.createId(),
                         classId = type,
                         modelName = "",
-                        instantiationCall = UtExecutableCallModel(
+                        instantiationCall = UtStatementCallModel(
                             null,
                             ConstructorId(type, emptyList()),
                             emptyList()
@@ -41,7 +41,7 @@ object MapValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescription>
                 modify = Routine.ForEach(listOf(jsUndefinedClassId, jsUndefinedClassId)) { self, _, values ->
                     val model = self as UtAssembleModel
                     model.modificationsChain as MutableList +=
-                        UtExecutableCallModel(
+                        UtStatementCallModel(
                             model,
                             JsMethodId(
                                 classId = type,

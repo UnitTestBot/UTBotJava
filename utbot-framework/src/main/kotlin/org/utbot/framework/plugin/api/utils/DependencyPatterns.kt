@@ -143,11 +143,19 @@ val SPRING_BEANS_TEST_BASIC_MODULE_PATTERN = Regex("spring-test")
 val springBeansTestModulePatterns = listOf(SPRING_BEANS_TEST_BASIC_MODULE_PATTERN)
 
 val SPRING_BOOT_JAR_PATTERN = Regex("spring-boot-([0-9]+)(\\.[0-9]+){1,2}")
+val SPRING_BOOT_STARTER_JAR_PATTERN = Regex("spring-boot-starter*-([0-9]+)(\\.[0-9]+){1,2}")
 val SPRING_BOOT_MVN_PATTERN = Regex("org\\.springframework\\.boot:spring-boot:([0-9]+)(\\.[0-9]+){1,2}")
-val springBootPatterns = listOf(SPRING_BOOT_JAR_PATTERN, SPRING_BOOT_MVN_PATTERN)
+val SPRING_BOOT_STARTER_MVN_PATTERN = Regex("org\\.springframework\\.boot:spring-boot-starter*:([0-9]+)(\\.[0-9]+){1,2}")
+val springBootPatterns = listOf(
+    SPRING_BOOT_JAR_PATTERN,
+    SPRING_BOOT_STARTER_JAR_PATTERN,
+    SPRING_BOOT_MVN_PATTERN,
+    SPRING_BOOT_STARTER_MVN_PATTERN,
+    )
 
 val SPRING_BOOT_BASIC_MODULE_PATTERN = Regex("spring-boot")
-val springBootModulePatterns = listOf(SPRING_BOOT_BASIC_MODULE_PATTERN)
+val SPRING_BOOT_STARTER_BASIC_MODULE_PATTERN = Regex("spring-boot-starter")
+val springBootModulePatterns = listOf(SPRING_BOOT_BASIC_MODULE_PATTERN, SPRING_BOOT_STARTER_BASIC_MODULE_PATTERN)
 
 val SPRING_BOOT_TEST_JAR_PATTERN = Regex("spring-boot-test-([0-9]+)(\\.[0-9]+){1,2}")
 val SPRING_BOOT_TEST_MVN_PATTERN = Regex("org\\.springframework\\.boot:spring-boot-test:([0-9]+)(\\.[0-9]+){1,2}")

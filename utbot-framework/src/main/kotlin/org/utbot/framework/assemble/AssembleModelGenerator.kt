@@ -23,7 +23,7 @@ import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
@@ -346,7 +346,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
      * Assembles internal structure of [UtStatementModel].
      */
     private fun assembleStatementModel(statementModel: UtStatementModel): UtStatementModel = when (statementModel) {
-        is UtExecutableCallModel -> assembleExecutableCallModel(statementModel)
+        is UtStatementCallModel -> assembleExecutableCallModel(statementModel)
         is UtDirectSetFieldModel -> assembleDirectSetFieldModel(statementModel)
     }
 
@@ -356,7 +356,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
             fieldModel = assembleModel(statementModel.fieldModel)
         )
 
-    private fun assembleExecutableCallModel(statementModel: UtExecutableCallModel) =
+    private fun assembleExecutableCallModel(statementModel: UtStatementCallModel) =
         statementModel.copy(
             instance = statementModel.instance?.let { assembleModel(it) as UtReferenceModel },
             params = statementModel.params.map { assembleModel(it) }
@@ -395,7 +395,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
     private fun constructorCall(
         compositeModel: UtCompositeModel,
         constructorInfo: ConstructorAssembleInfo,
-    ): UtExecutableCallModel {
+    ): UtStatementCallModel {
         val constructorParams = constructorInfo.constructorId.parameters.withIndex()
             .map { (index, param) ->
                 val modelOrNull = compositeModel.fields
@@ -406,7 +406,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
                 assembleModel(fieldModel)
             }
 
-        return UtExecutableCallModel(instance = null, constructorInfo.constructorId, constructorParams)
+        return UtStatementCallModel(instance = null, constructorInfo.constructorId, constructorParams)
     }
 
     /**
@@ -464,7 +464,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
             ?: throw AssembleException("No setter for field ${fieldId.name} of class ${declaringClassId.name}")
 
         return when (modifier) {
-            is ExecutableId -> UtExecutableCallModel(instance, modifier, listOf(value))
+            is ExecutableId -> UtStatementCallModel(instance, modifier, listOf(value))
             is DirectFieldAccessId -> UtDirectSetFieldModel(instance, fieldId, value)
         }
     }

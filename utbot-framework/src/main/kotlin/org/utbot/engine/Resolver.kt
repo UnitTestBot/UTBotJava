@@ -40,7 +40,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -613,7 +613,7 @@ class Resolver(
             val baseModelName = primitiveClassId.name
             val constructorId = constructorId(classId, primitiveClassId)
             val valueModel = fields[FieldId(classId, "value")] ?: primitiveClassId.defaultValueModel()
-            val instantiationCall = UtExecutableCallModel(instance = null, constructorId, listOf(valueModel))
+            val instantiationCall = UtStatementCallModel(instance = null, constructorId, listOf(valueModel))
             UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationCall)
         }
     }

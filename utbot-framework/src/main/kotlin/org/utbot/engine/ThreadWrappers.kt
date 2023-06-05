@@ -16,7 +16,7 @@ import org.utbot.engine.types.THREAD_TYPE
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -68,7 +68,7 @@ class ThreadWrapper : BaseOverriddenWrapper(utThreadClass.name) {
                 constructorId(classId, runnableType.id) to listOf(targetModel)
             }
 
-            val instantiationCall = UtExecutableCallModel(
+            val instantiationCall = UtStatementCallModel(
                 instance = null,
                 constructor,
                 params
@@ -101,7 +101,7 @@ class ThreadGroupWrapper : BaseOverriddenWrapper(utThreadGroupClass.name) {
             val values = collectFieldModels(wrapper.addr, overriddenClass.type)
             val nameModel = values[nameFieldId] ?: UtNullModel(stringClassId)
 
-            val instantiationCall = UtExecutableCallModel(
+            val instantiationCall = UtStatementCallModel(
                 instance = null,
                 constructorId(classId, stringClassId),
                 listOf(nameModel)
@@ -161,7 +161,7 @@ class CompletableFutureWrapper : BaseOverriddenWrapper(utCompletableFutureClass.
             val values = collectFieldModels(wrapper.addr, overriddenClass.type)
             val resultModel = values[resultFieldId] ?: UtNullModel(objectClassId)
 
-            val instantiationCall = UtExecutableCallModel(
+            val instantiationCall = UtStatementCallModel(
                 instance = null,
                 constructorId(classId, objectClassId),
                 listOf(resultModel)
@@ -189,7 +189,7 @@ class ExecutorServiceWrapper : BaseOverriddenWrapper(utExecutorServiceClass.name
             val addr = holder.concreteAddr(wrapper.addr)
             val modelName = nextModelName("executorService")
 
-            val instantiationCall = UtExecutableCallModel(
+            val instantiationCall = UtStatementCallModel(
                 instance = null,
                 newSingleThreadExecutorMethod,
                 emptyList()
@@ -220,7 +220,7 @@ class CountDownLatchWrapper : BaseOverriddenWrapper(utCountDownLatchClass.name) 
             val values = collectFieldModels(wrapper.addr, overriddenClass.type)
             val countModel = values[countFieldId] ?: intClassId.defaultValueModel()
 
-            val instantiationCall = UtExecutableCallModel(
+            val instantiationCall = UtStatementCallModel(
                 instance = null,
                 constructorId(classId, intClassId),
                 listOf(countModel)

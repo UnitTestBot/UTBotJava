@@ -20,7 +20,7 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.classId
@@ -108,7 +108,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         val charValues = CharArray(length) { (values.stores[it] as UtPrimitiveModel).value as Char }
         val stringModel = UtPrimitiveModel(String(charValues))
 
-        val instantiationCall = UtExecutableCallModel(
+        val instantiationCall = UtStatementCallModel(
             instance = null,
             constructorId(classId, STRING_TYPE.classId),
             listOf(stringModel)
@@ -240,7 +240,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
         val charValues = CharArray(length) { (values.stores[it] as UtPrimitiveModel).value as Char }
         val stringModel = UtPrimitiveModel(String(charValues))
         val constructorId = constructorId(wrapper.type.classId, STRING_TYPE.classId)
-        val instantiationCall = UtExecutableCallModel(
+        val instantiationCall = UtStatementCallModel(
             instance = null,
             constructorId,
             listOf(stringModel)

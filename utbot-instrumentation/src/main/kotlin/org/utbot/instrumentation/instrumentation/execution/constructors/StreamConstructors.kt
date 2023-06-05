@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -39,7 +39,7 @@ internal abstract class AbstractStreamConstructor(
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         classId: ClassId,
-    ): UtExecutableCallModel {
+    ): UtStatementCallModel {
         value as java.util.stream.BaseStream<*, *>
 
         val valueAsArray = value
@@ -50,9 +50,9 @@ internal abstract class AbstractStreamConstructor(
             .toTypedArray()
 
         if (valueAsArray.isEmpty()) {
-            return UtExecutableCallModel(
+            return UtStatementCallModel(
                 instance = null,
-                executable = emptyMethodId,
+                statement = emptyMethodId,
                 params = emptyList()
             )
         }
@@ -63,9 +63,9 @@ internal abstract class AbstractStreamConstructor(
             .copy(classId = elementsClassId, constModel = elementDefaultValueModel)
             .apply { stores.replaceAll { _, m -> m.wrapperModelToPrimitiveModel() } }
 
-        return UtExecutableCallModel(
+        return UtStatementCallModel(
             instance = null,
-            executable = ofMethodId,
+            statement = ofMethodId,
             params = listOf(arrayModel)
         )
     }

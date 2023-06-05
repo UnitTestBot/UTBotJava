@@ -22,7 +22,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.classId
@@ -126,14 +126,14 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
 
         val classId = chooseClassIdWithConstructor(wrapper.type.sootClass.id)
 
-        val instantiationCall = UtExecutableCallModel(
+        val instantiationCall = UtStatementCallModel(
             instance = null,
-            executable = constructorId(classId),
+            statement = constructorId(classId),
             params = emptyList()
         )
 
         UtAssembleModel(addr, classId, modelName, instantiationCall) {
-            parameterModels.map { UtExecutableCallModel(this, modificationMethodId, it) }
+            parameterModels.map { UtStatementCallModel(this, modificationMethodId, it) }
         }
     }
 

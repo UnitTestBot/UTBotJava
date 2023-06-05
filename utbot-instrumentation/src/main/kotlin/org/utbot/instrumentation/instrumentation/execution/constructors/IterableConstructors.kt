@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
@@ -26,15 +26,15 @@ internal class CollectionConstructor : UtAssembleModelConstructorBase() {
 
         val addMethodId = MethodId(classId, "add", booleanClassId, listOf(objectClassId))
 
-        return models.map { UtExecutableCallModel(this, addMethodId, listOf(it)) }
+        return models.map { UtStatementCallModel(this, addMethodId, listOf(it)) }
     }
 
     override fun provideInstantiationCall(
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         classId: ClassId
-    ): UtExecutableCallModel =
-        UtExecutableCallModel(
+    ): UtStatementCallModel =
+        UtStatementCallModel(
             instance = null,
             ConstructorId(classId, emptyList()),
             emptyList()
@@ -46,8 +46,8 @@ internal class MapConstructor : UtAssembleModelConstructorBase() {
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         classId: ClassId
-    ): UtExecutableCallModel =
-        UtExecutableCallModel(
+    ): UtStatementCallModel =
+        UtStatementCallModel(
             instance = null,
             ConstructorId(classId, emptyList()),
             emptyList()
@@ -66,7 +66,7 @@ internal class MapConstructor : UtAssembleModelConstructorBase() {
         val putMethodId = MethodId(classId, "put", objectClassId, listOf(objectClassId, objectClassId))
 
         return keyToValueModels.map { (key, value) ->
-            UtExecutableCallModel(this, putMethodId, listOf(key, value))
+            UtStatementCallModel(this, putMethodId, listOf(key, value))
         }
     }
 }

@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.util.fieldId
@@ -41,9 +41,9 @@ abstract class CollectionIteratorWrapper(overriddenClass: KClass<*>) : BaseOverr
         val containerFieldId = overriddenClass.enclosingClassField
         val containerFieldModel = fieldModels[containerFieldId] as UtReferenceModel
 
-        val instantiationCall = UtExecutableCallModel(
+        val instantiationCall = UtStatementCallModel(
             instance = containerFieldModel,
-            executable = iteratorMethodId,
+            statement = iteratorMethodId,
             params = emptyList()
         )
 

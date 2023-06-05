@@ -2,7 +2,7 @@ package org.utbot.engine
 
 import org.utbot.engine.overrides.security.UtSecurityManager
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.executableId
@@ -28,7 +28,7 @@ class SecurityManagerWrapper : BaseOverriddenWrapper(utSecurityManagerClass.name
         val addr = holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(baseModelName)
 
-        val instantiationCall = UtExecutableCallModel(
+        val instantiationCall = UtStatementCallModel(
             instance = null,
             System::getSecurityManager.executableId,
             emptyList()

@@ -53,7 +53,7 @@ class EmptyCollectionValueProvider(
                     id = idGenerator.createId(),
                     classId = classId,
                     modelName = "",
-                    instantiationCall = UtExecutableCallModel(null, executableId, value.map { it.model })
+                    instantiationCall = UtStatementCallModel(null, executableId, value.map { it.model })
                 ).fuzzed {
                     summary = "%var% = ${executableId.classId.simpleName}#${executableId.name}"
                 }
@@ -64,7 +64,7 @@ class EmptyCollectionValueProvider(
                         id = idGenerator.createId(),
                         classId = classId,
                         modelName = "",
-                        instantiationCall = UtExecutableCallModel(null, executableId, emptyList())
+                        instantiationCall = UtStatementCallModel(null, executableId, emptyList())
 
                     ).fuzzed{
                         summary = "%var% = ${executableId.classId.simpleName}#${executableId.name}"
@@ -187,7 +187,7 @@ abstract class CollectionValueProvider(
                         id = idGenerator.createId(),
                         classId = resolvedType.classId,
                         modelName = "",
-                        instantiationCall = UtExecutableCallModel(
+                        instantiationCall = UtStatementCallModel(
                             null,
                             ConstructorId(resolvedType.classId, emptyList()),
                             emptyList()
@@ -199,7 +199,7 @@ abstract class CollectionValueProvider(
                 },
                 modify = Routine.ForEach(typeParameter) { self, _, values ->
                     val model = self.model as UtAssembleModel
-                    (model.modificationsChain as MutableList) += UtExecutableCallModel(
+                    (model.modificationsChain as MutableList) += UtStatementCallModel(
                         model,
                         findMethod(resolvedType, values),
                         values.map { it.model }
@@ -235,9 +235,9 @@ class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : ValueProvider<F
                     id = id,
                     classId = type.classId,
                     modelName = "iterator#${id.hex()}",
-                    instantiationCall = UtExecutableCallModel(
+                    instantiationCall = UtStatementCallModel(
                         instance = iterable,
-                        executable = MethodId(iterableClassId, "iterator", type.classId, emptyList()),
+                        statement = MethodId(iterableClassId, "iterator", type.classId, emptyList()),
                         params = emptyList()
                     )
                 ).fuzzed {
@@ -250,9 +250,9 @@ class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : ValueProvider<F
                     id = id,
                     classId = type.classId,
                     modelName = "emptyIterator#${id.hex()}",
-                    instantiationCall = UtExecutableCallModel(
+                    instantiationCall = UtStatementCallModel(
                         instance = null,
-                        executable = MethodId(java.util.Collections::class.id, "emptyIterator", type.classId, emptyList()),
+                        statement = MethodId(java.util.Collections::class.id, "emptyIterator", type.classId, emptyList()),
                         params = emptyList()
                     )
                 ).fuzzed {

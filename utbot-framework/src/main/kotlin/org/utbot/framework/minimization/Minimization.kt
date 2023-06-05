@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
@@ -242,7 +242,7 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
 private fun UtStatementModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): Int =
     when (this) {
         is UtDirectSetFieldModel -> 1 + fieldModel.calculateSize(used)
-        is UtExecutableCallModel -> 1 + params.sumOf { it.calculateSize(used) }
+        is UtStatementCallModel -> 1 + params.sumOf { it.calculateSize(used) }
     }
 
 /**

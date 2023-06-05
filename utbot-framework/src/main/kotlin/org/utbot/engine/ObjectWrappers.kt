@@ -58,7 +58,7 @@ import org.utbot.engine.types.THREAD_GROUP_TYPE
 import org.utbot.engine.types.THREAD_TYPE
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.id
@@ -398,8 +398,8 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
         val modelName = nextModelName(throwable.javaClass.simpleName.decapitalize())
 
         val instantiationCall = when (val message = throwable.message) {
-            null -> UtExecutableCallModel(instance = null, constructorId(classId), emptyList())
-            else -> UtExecutableCallModel(
+            null -> UtStatementCallModel(instance = null, constructorId(classId), emptyList())
+            else -> UtStatementCallModel(
                 instance = null,
                 constructorId(classId, stringClassId),
                 listOf(UtPrimitiveModel(message))

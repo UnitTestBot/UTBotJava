@@ -2,7 +2,7 @@ package org.utbot.instrumentation.instrumentation.execution.constructors
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.constructorId
@@ -15,10 +15,10 @@ internal class PrimitiveWrapperConstructor : UtAssembleModelConstructorBase() {
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         classId: ClassId
-    ): UtExecutableCallModel {
+    ): UtStatementCallModel {
         checkClassCast(classId.jClass, value::class.java)
 
-        return UtExecutableCallModel(
+        return UtStatementCallModel(
             instance = null,
             constructorId(classId, classId.unbox()),
             listOf(UtPrimitiveModel(value))

@@ -39,9 +39,9 @@ class DateValueProvider(
             id = idGenerator.createId(),
             classId = type.classId,
             modelName = "Date::now",
-            instantiationCall = UtExecutableCallModel(
+            instantiationCall = UtStatementCallModel(
                 instance = null,
-                executable = type.classId.allConstructors.firstOrNull { it.parameters.isEmpty() }
+                statement = type.classId.allConstructors.firstOrNull { it.parameters.isEmpty() }
                     ?: error("Cannot find default constructor of ${type.classId}"),
                 params = emptyList())
         ).fuzzed { }
@@ -78,7 +78,7 @@ class DateValueProvider(
                             id = idGenerator.createId(),
                             classId = type.classId,
                             modelName = "Date(${values.map { it.model.classId }})",
-                            instantiationCall = UtExecutableCallModel(null, constructor, values.map { it.model })
+                            instantiationCall = UtStatementCallModel(null, constructor, values.map { it.model })
                         ).fuzzed {  }
                     },
                     empty = Routine.Empty { nowDateModel }
@@ -106,7 +106,7 @@ class DateValueProvider(
         val simpleDateFormatModel = assembleSimpleDateFormat(idGenerator.createId(), formatString)
         val dateFormatParse = simpleDateFormatModel.classId.jClass
             .getMethod("parse", String::class.java).executableId
-        val instantiationCall = UtExecutableCallModel(
+        val instantiationCall = UtStatementCallModel(
             simpleDateFormatModel, dateFormatParse, listOf(UtPrimitiveModel(dateString))
         )
         return UtAssembleModel(
@@ -127,14 +127,14 @@ class DateValueProvider(
         val formatSetLenient = SimpleDateFormat::setLenient.executableId
         val formatModel = UtPrimitiveModel(formatString)
 
-        val instantiationCall = UtExecutableCallModel(instance = null, formatStringConstructor, listOf(formatModel))
+        val instantiationCall = UtStatementCallModel(instance = null, formatStringConstructor, listOf(formatModel))
         return UtAssembleModel(
             id,
             simpleDateFormatId,
             "$simpleDateFormatId[$stringClassId]#" + id.hex(),
             instantiationCall
         ) {
-            listOf(UtExecutableCallModel(instance = this, formatSetLenient, listOf(UtPrimitiveModel(false))))
+            listOf(UtStatementCallModel(instance = this, formatSetLenient, listOf(UtPrimitiveModel(false))))
         }
     }
 }

@@ -7,7 +7,7 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -30,7 +30,7 @@ class AssembleModelDsl internal constructor(
     var id: () -> Int? = { null }
     var name: (Int?) -> String = { "<dsl generated model>" }
 
-    private lateinit var initialization: () -> UtExecutableCallModel
+    private lateinit var initialization: () -> UtStatementCallModel
     private val modChain = mutableListOf<(UtAssembleModel) -> UtStatementModel>()
 
     fun params(vararg params: ClassId) = params.toList()
@@ -51,19 +51,19 @@ class AssembleModelDsl internal constructor(
 
     @Suppress("UNUSED_PARAMETER")
     infix fun KeyWord.Using.empty(ignored: KeyWord.Constructor) {
-        initialization = { UtExecutableCallModel(null, ConstructorId(classId, emptyList()), emptyList()) }
+        initialization = { UtStatementCallModel(null, ConstructorId(classId, emptyList()), emptyList()) }
     }
 
     infix fun ConstructorId.with(models: List<UtModel>) {
-        initialization = { UtExecutableCallModel(null, this, models) }
+        initialization = { UtStatementCallModel(null, this, models) }
     }
 
     infix fun UsingDsl.with(models: List<UtModel>) {
-        initialization = { UtExecutableCallModel(null, executableId, models) }
+        initialization = { UtStatementCallModel(null, executableId, models) }
     }
 
     infix fun CallDsl.with(models: List<UtModel>) {
-        modChain += { UtExecutableCallModel(it, executableId, models.toList()) }
+        modChain += { UtStatementCallModel(it, executableId, models.toList()) }
     }
 
     infix fun FieldDsl.with(model: UtModel) {

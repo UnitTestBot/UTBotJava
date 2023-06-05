@@ -37,6 +37,7 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -44,7 +45,7 @@ import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -215,7 +216,7 @@ open class CgVariableConstructor(val context: CgContext) :
                     // fields here are supposed to be accessible, so we assign them directly without any checks
                     instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
                 }
-                is UtExecutableCallModel -> {
+                is UtStatementCallModel -> {
                     val call = createCgExecutableCallFromUtExecutableCall(statementModel)
                     val equivalentFieldAccess = replaceCgExecutableCallWithFieldAccessIfNeeded(call)
                     if (equivalentFieldAccess != null)
@@ -231,15 +232,16 @@ open class CgVariableConstructor(val context: CgContext) :
 
     private fun processInstantiationStatement(
         model: UtAssembleModel,
-        executableCall: UtExecutableCallModel,
+        executableCall: UtStatementCallModel,
         baseName: String?
     ) {
-        val executable = executableCall.executable
+        val statement = executableCall.statement
         val params = executableCall.params
 
-        val type = when (executable) {
-            is MethodId -> executable.returnType
-            is ConstructorId -> executable.classId
+        val type = when (statement) {
+            is MethodId -> statement.returnType
+            is DirectFieldAccessId -> error("$statement is not an appropriate instantiation statement")
+            is ConstructorId -> statement.classId
         }
         // Don't use redundant constructors for primitives and String
         val initExpr = if (isPrimitiveWrapperOrString(type)) {
@@ -255,14 +257,19 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
 
-    private fun createCgExecutableCallFromUtExecutableCall(statementModel: UtExecutableCallModel): CgExecutableCall {
-        val executable = statementModel.executable
+    private fun createCgExecutableCallFromUtExecutableCall(statementModel: UtStatementCallModel): CgExecutableCall {
+        val executable = statementModel.statement
         val params = statementModel.params
         val cgCall = when (executable) {
             is MethodId -> {
                 val caller = statementModel.instance?.let { declareOrGet(it) }
                 val args = params.map { declareOrGet(it) }
                 caller[executable](*args.toTypedArray())
+            }
+            is DirectFieldAccessId -> {
+                val caller = statementModel.instance?.let { declareOrGet(it) }
+                val args = params.map { declareOrGet(it) }
+                caller[setField](*args.toTypedArray())
             }
             is ConstructorId -> {
                 val args = params.map { declareOrGet(it) }

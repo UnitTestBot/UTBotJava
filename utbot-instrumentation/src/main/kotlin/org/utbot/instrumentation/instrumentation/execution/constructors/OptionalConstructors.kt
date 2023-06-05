@@ -8,7 +8,7 @@ import kotlin.reflect.KFunction1
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -27,19 +27,19 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         classId: ClassId
-    ): UtExecutableCallModel {
+    ): UtStatementCallModel {
         require(classId.jClass.isInstance(value)) {
             "Can't cast $value to ${classId.jClass} in $this assemble constructor."
         }
 
         return if (!isPresent.call(value)) {
-            UtExecutableCallModel(
+            UtStatementCallModel(
                 instance = null,
                 emptyMethodId,
                 emptyList()
             )
         } else {
-            UtExecutableCallModel(
+            UtStatementCallModel(
                 instance = null,
                 ofMethodId,
                 listOf(internalConstructor.construct(getter.call(value), elementClassId))
@@ -53,7 +53,7 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
     final override fun UtAssembleModel.provideModificationChain(
         internalConstructor: UtModelConstructorInterface,
         value: Any
-    ): List<UtExecutableCallModel> = emptyList()
+    ): List<UtStatementCallModel> = emptyList()
 }
 
 internal class OptionalConstructor : OptionalConstructorBase() {

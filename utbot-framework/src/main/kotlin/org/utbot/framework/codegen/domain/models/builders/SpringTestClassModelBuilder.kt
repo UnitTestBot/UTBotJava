@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -119,7 +119,7 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                 currentModel.modificationsChain.forEach { stmt ->
                     stmt.instance?.let { collectRecursively(it, allModels) }
                     when (stmt) {
-                        is UtExecutableCallModel -> stmt.params.forEach { collectRecursively(it, allModels) }
+                        is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it, allModels) }
                         is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel, allModels)
                     }
                 }

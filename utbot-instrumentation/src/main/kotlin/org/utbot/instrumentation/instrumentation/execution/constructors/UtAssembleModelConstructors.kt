@@ -6,7 +6,7 @@ import java.util.stream.IntStream
 import java.util.stream.LongStream
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveWrappers
@@ -116,7 +116,7 @@ internal abstract class UtAssembleModelConstructorBase {
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         classId: ClassId
-    ): UtExecutableCallModel
+    ): UtStatementCallModel
 
     protected abstract fun UtAssembleModel.provideModificationChain(
         internalConstructor: UtModelConstructorInterface,

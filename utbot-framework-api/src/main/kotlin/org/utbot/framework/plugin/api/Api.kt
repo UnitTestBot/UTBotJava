@@ -495,14 +495,14 @@ data class UtArrayModel(
  *
  * The default constructor is made private to enforce using a safe constructor.
  *
- * @param instantiationCall is an [UtExecutableCallModel] to instantiate represented object. It **must** not return `null`.
+ * @param instantiationCall is an [UtStatementCallModel] to instantiate represented object. It **must** not return `null`.
  * @param modificationsChain is a chain of [UtStatementModel] to construct object state.
  */
 data class UtAssembleModel private constructor(
     override val id: Int?,
     override val classId: ClassId,
     override val modelName: String,
-    val instantiationCall: UtExecutableCallModel,
+    val instantiationCall: UtStatementCallModel,
     val modificationsChain: List<UtStatementModel>,
     val origin: UtCompositeModel?
 ) : UtReferenceModel(id, classId, modelName) {
@@ -520,14 +520,14 @@ data class UtAssembleModel private constructor(
      * constructor or a method of another class, which returns the object of the [classId] type.
      *
      * @param modificationsChainProvider used for creating modifying statements. Its receiver corresponds to newly
-     * created [UtAssembleModel], so you can use it for caching and for creating [UtExecutableCallModel]s with it
-     * as [UtExecutableCallModel.instance].
+     * created [UtAssembleModel], so you can use it for caching and for creating [UtStatementCallModel]s with it
+     * as [UtStatementCallModel.instance].
      */
     constructor(
         id: Int?,
         classId: ClassId,
         modelName: String,
-        instantiationCall: UtExecutableCallModel,
+        instantiationCall: UtStatementCallModel,
         origin: UtCompositeModel? = null,
         modificationsChainProvider: UtAssembleModel.() -> List<UtStatementModel> = { emptyList() }
     ) : this(id, classId, modelName, instantiationCall, mutableListOf(), origin) {
@@ -691,23 +691,23 @@ sealed class UtStatementModel(
 )
 
 /**
- * Step of assemble instruction that calls executable.
+ * Step of assemble instruction that calls executable or accesses a field.
  *
- * Contains executable to call, call parameters and an instance model before call.
- *
+ * Contains statement to call, call parameters and an instance model before call.
  * @param [instance] **must be** `null` for static methods and constructors
  */
-data class UtExecutableCallModel(
+data class UtStatementCallModel(
     override val instance: UtReferenceModel?,
-    val executable: ExecutableId,
+    val statement: StatementId,
     val params: List<UtModel>,
 ) : UtStatementModel(instance) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
 
-            val executableName = when (executable) {
-                is ConstructorId -> executable.classId.name
-                is MethodId -> executable.name
+            val executableName = when (statement) {
+                is MethodId -> statement.name
+                is DirectFieldAccessId -> statement.name
+                is ConstructorId -> statement.classId.name
             }
 
             if (instance != null) {

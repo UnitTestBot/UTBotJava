@@ -13,10 +13,9 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.defaultValueModel
@@ -98,7 +97,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 
-    private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue) : UtExecutableCallModel {
+    private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue) : UtStatementCallModel {
         val valueField = FieldId(overriddenClass.id, "value")
         val isPresentFieldId = FieldId(overriddenClass.id, "isPresent")
         val values = collectFieldModels(wrapper.addr, overriddenClass.type)
@@ -109,7 +108,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
             values[isPresentFieldId]?.let { (it as UtPrimitiveModel).value as Boolean } ?: false
         }
         return if (!isPresent) {
-            UtExecutableCallModel(
+            UtStatementCallModel(
                 instance = null,
                 MethodId(
                     classId,
@@ -119,7 +118,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
                 ), emptyList()
             )
         } else {
-            UtExecutableCallModel(
+            UtStatementCallModel(
                 instance = null,
                 MethodId(
                     classId,

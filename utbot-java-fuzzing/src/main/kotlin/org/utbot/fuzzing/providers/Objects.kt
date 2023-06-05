@@ -12,7 +12,6 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
-import java.util.*
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -52,7 +51,7 @@ class ObjectValueProvider(
                     id = id,
                     classId = classId,
                     modelName = "${constructorId.classId.name}${constructorId.parameters}#" + id.hex(),
-                    instantiationCall = UtExecutableCallModel(
+                    instantiationCall = UtStatementCallModel(
                         null,
                         constructorId,
                         values.map { it.model }),
@@ -78,7 +77,7 @@ class ObjectValueProvider(
                         fd.setter != null && fd.getter != null -> {
                             yield(Routine.Call(listOf(fd.type)) { self, values ->
                                 val model = self.model as UtAssembleModel
-                                model.modificationsChain as MutableList += UtExecutableCallModel(
+                                model.modificationsChain as MutableList += UtStatementCallModel(
                                     model,
                                     fd.setter.executableId,
                                     values.map { it.model })

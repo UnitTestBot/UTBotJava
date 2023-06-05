@@ -1,7 +1,7 @@
 package org.utbot.framework.assemble
 
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
@@ -33,9 +33,9 @@ fun assemble(model: UtPrimitiveModel): UtAssembleModel {
         else -> error("Model type $modelType is void or non-primitive")
     }
 
-    val constructorCallModel = UtExecutableCallModel(
+    val constructorCallModel = UtStatementCallModel(
         instance = null,
-        executable = constructorCall.executableId,
+        statement = constructorCall.executableId,
         params = listOf(model),
     )
 

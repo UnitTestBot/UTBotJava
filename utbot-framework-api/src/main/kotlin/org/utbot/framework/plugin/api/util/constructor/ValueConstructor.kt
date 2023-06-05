@@ -5,6 +5,7 @@ import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.FieldMockTarget
@@ -21,7 +22,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
@@ -329,13 +330,13 @@ class ValueConstructor {
         val instantiationExecutableCall = assembleModel.instantiationCall
         val result = updateWithExecutableCallModel(instantiationExecutableCall)
         checkNotNull(result) {
-            "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"
+            "Tracked instance can't be null for call ${instantiationExecutableCall.statement} in model $assembleModel"
         }
         constructedObjects[assembleModel] = result
 
         assembleModel.modificationsChain.forEach { statementModel ->
             when (statementModel) {
-                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel)
+                is UtStatementCallModel -> updateWithExecutableCallModel(statementModel)
                 is UtDirectSetFieldModel -> updateWithDirectSetFieldModel(statementModel)
             }
         }
@@ -375,15 +376,16 @@ class ValueConstructor {
      * @return the result of [callModel] invocation
      */
     private fun updateWithExecutableCallModel(
-        callModel: UtExecutableCallModel,
+        callModel: UtStatementCallModel,
     ): Any? {
-        val executable = callModel.executable
+        val statement = callModel.statement
         val instanceValue = callModel.instance?.let { value(it) }
         val params = callModel.params.map { value(it) }
 
-        val result = when (executable) {
-            is MethodId -> executable.call(params, instanceValue)
-            is ConstructorId -> executable.call(params)
+        val result = when (statement) {
+            is MethodId -> statement.call(params, instanceValue)
+            is DirectFieldAccessId -> statement.call(params, instanceValue)
+            is ConstructorId -> statement.call(params)
         }
 
         return result
@@ -435,10 +437,18 @@ class ValueConstructor {
             method.invokeCatching(obj = instance, args = args).getOrThrow()
         }
 
+    private fun DirectFieldAccessId.call(args: List<Any?>, instance: Any?): Any? {
+        val field = fieldId.jField
+        return field.withAccessibility {
+            field.set(instance, args.single())
+        }
+    }
+
     private fun ConstructorId.call(args: List<Any?>): Any? =
         constructor.withAccessibility {
             newInstance(*args.toTypedArray())
         }
+
 
     /**
      * Fetches primitive value from NutsModel to create array of primitives.

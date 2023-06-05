@@ -12,7 +12,6 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
-import java.util.*
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -121,7 +120,7 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
         description: FuzzedDescription,
         type: FuzzedType
     ): Sequence<Seed<FuzzedType, FuzzedValue>> {
-        return if (description.description.isStatic == false && description.scope?.parameterIndex == 0) {
+        return if (description.checkParamIsThis()) {
             emptySequence()
         } else {
             sequenceOf<Seed<FuzzedType, FuzzedValue>>(

@@ -17,7 +17,7 @@ private val logger = KotlinLogging.logger {}
 
 typealias JavaValueProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>
 
-class FuzzedDescription(
+open class FuzzedDescription(
     val description: FuzzedMethodDescription,
     val tracer: Trie<Instruction, *>,
     val typeCache: MutableMap<Type, FuzzedType>,
@@ -32,7 +32,7 @@ class FuzzedDescription(
         get() = description.concreteValues.asSequence()
 
     override fun fork(type: FuzzedType, scope: ScopeParams): FuzzedDescription? {
-        if (description.isStatic == true && scope.parameterIndex == 0 && scope.recursionDepth == 1) {
+        if (checkParamIsThis()) {
             return FuzzedDescription(
                 description,
                 tracer,
@@ -42,6 +42,14 @@ class FuzzedDescription(
             )
         }
         return null
+    }
+
+    fun checkParamIsThis(): Boolean {
+        return if (scope == null || description.isStatic != false) {
+            false
+        } else {
+            scope.parameterIndex == 0 && scope.recursionDepth == 1
+        }
     }
 }
 
@@ -59,7 +67,6 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     IteratorValueProvider(idGenerator),
     EmptyCollectionValueProvider(idGenerator),
     DateValueProvider(idGenerator),
-//    DelegatingToCustomJavaValueProvider,
     NullValueProvider,
 )
 
@@ -69,6 +76,7 @@ suspend fun runJavaFuzzing(
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
+    adapter: FuzzedDescriptionAdapter = FuzzedDescriptionAdapter { it },
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val random = Random(0)
@@ -119,8 +127,8 @@ suspend fun runJavaFuzzing(
         if (!isStatic && !isConstructor) { classUnderTest } else { null }
     }
     val tracer = Trie(Instruction::id)
-    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, typeCache, random)
-    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, typeCache, random)
+    val descriptionWithOptionalThisInstance = adapter.modify(FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, typeCache, random))
+    val descriptionWithOnlyParameters = adapter.modify(FuzzedDescription(createFuzzedMethodDescription(null), tracer, typeCache, random))
     val start = System.nanoTime()
     try {
         logger.info { "Starting fuzzing for method: $methodUnderTest" }
@@ -233,4 +241,8 @@ private fun toGenerics(t: Type) : Array<out Type> {
         is Class<*> -> t.typeParameters
         else -> emptyArray()
     }
+}
+
+fun interface FuzzedDescriptionAdapter {
+    fun modify(description: FuzzedDescription): FuzzedDescription
 }

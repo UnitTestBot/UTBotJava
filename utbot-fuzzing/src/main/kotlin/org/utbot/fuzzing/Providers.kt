@@ -127,6 +127,10 @@ fun interface ValueProvider<T, R, D : Description<T>> {
         }
     }
 
+    fun letIf(flag: Boolean, block: (ValueProvider<T, R, D>) -> ValueProvider<T, R, D>) : ValueProvider<T, R, D> {
+        return if (flag) block(this) else this
+    }
+
     /**
      * Wrapper class that delegates implementation to the [providers].
      */

@@ -1,20 +1,27 @@
-package org.utbot.fuzzing.providers
+package org.utbot.fuzzing.spring
 
 import org.utbot.framework.plugin.api.*
-import org.utbot.fuzzer.*
-import org.utbot.fuzzing.*
+import org.utbot.fuzzer.FuzzedType
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.IdGenerator
+import org.utbot.fuzzer.fuzzed
+import org.utbot.fuzzing.FuzzedDescription
+import org.utbot.fuzzing.Routine
+import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.ValueProvider
 
-class AutowiredValueProvider(
+class SpringBeanValueProvider(
     private val idGenerator: IdGenerator<Int>,
     private val autowiredModelOriginCreator: (beanName: String) -> UtModel
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
-    override fun accept(type: FuzzedType) = type is AutowiredFuzzedType
 
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
     ) = sequence {
-        (type as AutowiredFuzzedType).beanNames.forEach { beanName ->
+        description as SpringFuzzedDescription // should be only this type
+        val beans = if (description.checkParamIsThis()) description.findBeans(type.classId) else emptyList()
+        beans.forEach { beanName ->
             yield(
                 Seed.Recursive<FuzzedType, FuzzedValue>(
                     construct = Routine.Create(types = emptyList()) {

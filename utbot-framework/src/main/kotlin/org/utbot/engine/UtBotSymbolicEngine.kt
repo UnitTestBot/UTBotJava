@@ -359,28 +359,28 @@ class UtBotSymbolicEngine(
             collectConstantsForFuzzer(graph),
             names,
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator)))),
-            fuzzedTypeFactory = when (applicationContext) {
-                is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
-                    is TypeReplacementApproach.ReplaceIfPossible -> SpringFuzzedTypeFactory(
-                        autowiredValueProvider = AutowiredValueProvider(
-                            defaultIdGenerator,
-                            autowiredModelOriginCreator = { beanName ->
-                                runBlocking {
-                                    logger.info { "Getting bean: $beanName" }
-                                    concreteExecutor.withProcess { getBean(beanName) }
-                                }
-                            }
-                        ),
-                        beanNamesFinder = { classId ->
-                            applicationContext.beanDefinitions
-                                .filter { it.beanTypeFqn == classId.name }
-                                .map { it.beanName }
-                        }
-                    )
-                    is TypeReplacementApproach.DoNotReplace -> SimpleFuzzedTypeFactory()
-                }
-                else -> SimpleFuzzedTypeFactory()
-            },
+//            fuzzedTypeFactory = when (applicationContext) {
+//                is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
+//                    is TypeReplacementApproach.ReplaceIfPossible -> SpringFuzzedTypeFactory(
+//                        autowiredValueProvider = AutowiredValueProvider(
+//                            defaultIdGenerator,
+//                            autowiredModelOriginCreator = { beanName ->
+//                                runBlocking {
+//                                    logger.info { "Getting bean: $beanName" }
+//                                    concreteExecutor.withProcess { getBean(beanName) }
+//                                }
+//                            }
+//                        ),
+//                        beanNamesFinder = { classId ->
+//                            applicationContext.beanDefinitions
+//                                .filter { it.beanTypeFqn == classId.name }
+//                                .map { it.beanName }
+//                        }
+//                    )
+//                    is TypeReplacementApproach.DoNotReplace -> SimpleFuzzedTypeFactory()
+//                }
+//                else -> SimpleFuzzedTypeFactory()
+//            },
         ) { thisInstance, descr, values ->
             if (thisInstance?.model is UtNullModel) {
                 // We should not try to run concretely any models with null-this.

@@ -7,8 +7,6 @@ import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.providers.*
-import org.utbot.fuzzing.type.factories.FuzzedTypeFactory
-import org.utbot.fuzzing.type.factories.SimpleFuzzedTypeFactory
 import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.*
 import java.util.concurrent.CancellationException
@@ -22,15 +20,29 @@ typealias JavaValueProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescr
 class FuzzedDescription(
     val description: FuzzedMethodDescription,
     val tracer: Trie<Instruction, *>,
-    val fuzzedTypeFactory: FuzzedTypeFactory,
+    val typeCache: MutableMap<Type, FuzzedType>,
     val random: Random,
+    val scope: ScopeParams? = null
 ) : Description<FuzzedType>(
     description.parameters.mapIndexed { index, classId ->
         description.fuzzerType(index) ?: FuzzedType(classId)
     }
-) {
+), ScopeSensitive<FuzzedType, FuzzedDescription> {
     val constants: Sequence<FuzzedConcreteValue>
         get() = description.concreteValues.asSequence()
+
+    override fun fork(type: FuzzedType, scope: ScopeParams): FuzzedDescription? {
+        if (description.isStatic == true && scope.parameterIndex == 0 && scope.recursionDepth == 1) {
+            return FuzzedDescription(
+                description,
+                tracer,
+                typeCache,
+                random,
+                scope
+            )
+        }
+        return null
+    }
 }
 
 fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = listOf(
@@ -47,8 +59,8 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     IteratorValueProvider(idGenerator),
     EmptyCollectionValueProvider(idGenerator),
     DateValueProvider(idGenerator),
-    DelegatingToCustomJavaValueProvider,
-//    NullValueProvider,
+//    DelegatingToCustomJavaValueProvider,
+    NullValueProvider,
 )
 
 suspend fun runJavaFuzzing(
@@ -57,7 +69,6 @@ suspend fun runJavaFuzzing(
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
-    fuzzedTypeFactory: FuzzedTypeFactory = SimpleFuzzedTypeFactory(),
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val random = Random(0)
@@ -66,6 +77,10 @@ suspend fun runJavaFuzzing(
     val returnType = methodUnderTest.returnType
     val parameters = methodUnderTest.parameters
 
+    // For a concrete fuzzing run we need to track types we create.
+    // Because of generics can be declared as recursive structures like `<T extends Iterable<T>>`,
+    // we should track them by reference and do not call `equals` and `hashCode` recursively.
+    val typeCache = hashMapOf<Type, FuzzedType>()
     /**
      * To fuzz this instance, the class of it is added into head of parameters list.
      * Done for compatibility with old fuzzer logic and should be reworked more robust way.
@@ -77,6 +92,7 @@ suspend fun runJavaFuzzing(
         className = classUnderTest.simpleName
         canonicalName = classUnderTest.canonicalName
         isNested = classUnderTest.isNested
+        isStatic = methodUnderTest.isStatic
         packageName = classUnderTest.packageName
         parameterNameMap = { index ->
             when {
@@ -88,9 +104,9 @@ suspend fun runJavaFuzzing(
         fuzzerType = {
             try {
                 when {
-                    self != null && it == 0 -> fuzzedTypeFactory.createFuzzedType(methodUnderTest.executable.declaringClass, isThisInstance = true)
-                    self != null -> fuzzedTypeFactory.createFuzzedType(methodUnderTest.executable.genericParameterTypes[it - 1], isThisInstance = false)
-                    else -> fuzzedTypeFactory.createFuzzedType(methodUnderTest.executable.genericParameterTypes[it], isThisInstance = false)
+                    self != null && it == 0 -> toFuzzerType(methodUnderTest.executable.declaringClass, typeCache)
+                    self != null -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it - 1], typeCache)
+                    else -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it], typeCache)
                 }
             } catch (_: Throwable) {
                 null
@@ -103,8 +119,8 @@ suspend fun runJavaFuzzing(
         if (!isStatic && !isConstructor) { classUnderTest } else { null }
     }
     val tracer = Trie(Instruction::id)
-    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, fuzzedTypeFactory, random)
-    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, fuzzedTypeFactory, random)
+    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, typeCache, random)
+    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, typeCache, random)
     val start = System.nanoTime()
     try {
         logger.info { "Starting fuzzing for method: $methodUnderTest" }
@@ -168,7 +184,7 @@ private fun toFuzzerType(
     type: Type,
     classId: (type: Type) -> ClassId,
     generics: (parent: Type) -> Array<out Type>,
-    cache: MutableMap<Type, FuzzedType>
+    cache: MutableMap<Type, FuzzedType>,
 ): FuzzedType {
     val g = mutableListOf<FuzzedType>()
     val t = type.replaceWithUpperBoundUntilNotTypeVariable()

@@ -24,7 +24,7 @@ class ObjectValueProvider(
         NumberValueProvider.classId
     )
 
-    override fun accept(type: FuzzedType) = !isIgnored(type.classId) && type !is CustomJavaValueProviderHolder
+    override fun accept(type: FuzzedType) = !isIgnored(type.classId)
 
     override fun generate(
         description: FuzzedDescription,
@@ -45,7 +45,7 @@ class ObjectValueProvider(
     private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.executable.genericParameterTypes.map {
-                description.fuzzedTypeFactory.createFuzzedType(it, isThisInstance = false)
+                toFuzzerType(it, description.typeCache)
             }) { values ->
                 val id = idGenerator.createId()
                 UtAssembleModel(
@@ -120,11 +120,17 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
-    ) = sequenceOf<Seed<FuzzedType, FuzzedValue>>(
-        Seed.Simple(UtNullModel(type.classId).fuzzed {
-            summary = "%var% = null"
-        })
-    )
+    ): Sequence<Seed<FuzzedType, FuzzedValue>> {
+        return if (description.description.isStatic == false && description.scope?.parameterIndex == 0) {
+            emptySequence()
+        } else {
+            sequenceOf<Seed<FuzzedType, FuzzedValue>>(
+                Seed.Simple(UtNullModel(type.classId).fuzzed {
+                    summary = "%var% = null"
+                })
+            )
+        }
+    }
 }
 
 internal class PublicSetterGetter(
@@ -146,7 +152,7 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
         val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)
         FieldDescription(
             name = field.name,
-            type = description?.fuzzedTypeFactory?.createFuzzedType(field.type, isThisInstance = false) ?: FuzzedType(field.type.id),
+            type = if (description != null) toFuzzerType(field.type, description.typeCache) else FuzzedType(field.type.id),
             canBeSetDirectly = isAccessible(
                 field,
                 packageName

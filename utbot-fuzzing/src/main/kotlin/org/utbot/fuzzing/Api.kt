@@ -73,6 +73,25 @@ open class Description<TYPE>(
     val parameters: List<TYPE> = parameters.toList()
 }
 
+interface ScopeSensitive<TYPE, DESCRIPTION : Description<TYPE>> {
+
+    /**
+     * Scope sensitive description is need to concrete some types depending on a position,
+     * where this type is.
+     * For example, when the type is being generated for "this" value,
+     * probable, provider should generate no null values.
+     * Fuzzing will pass the description which is returned by this method or the origin one if null is returned.
+     *
+     * NB! Seeds which are generated for scope sensitive cases are never cached.
+     */
+    fun fork(type: TYPE, scope: ScopeParams): DESCRIPTION?
+}
+
+class ScopeParams(
+    val parameterIndex: Int,
+    val recursionDepth: Int,
+)
+
 /**
  * Input value that fuzzing knows how to build and use them.
  */
@@ -335,7 +354,8 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     state: State<TYPE, RESULT>,
 ): Node<TYPE, RESULT>  {
     val typeCache = mutableMapOf<TYPE, MutableList<Result<TYPE, RESULT>>>()
-    val result = parameters.map { type ->
+    val result = parameters.mapIndexed { index, type ->
+        state.parameterIndex = index
         val results = typeCache.computeIfAbsent(type) { mutableListOf() }
         if (results.isNotEmpty() && random.flipCoin(configuration.probReuseGeneratedValueForSameType)) {
             // we need to check cases when one value is passed for different arguments
@@ -346,6 +366,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             }
         }
     }
+    state.parameterIndex = -1
     // is not inlined to debug values generated for a concrete type
     return Node(result, parameters, builder)
 }
@@ -358,17 +379,32 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     configuration: Configuration,
     state: State<TYPE, RESULT>,
 ): Result<TYPE, RESULT> {
-    val candidates = state.cache.computeIfAbsent(type) { fuzzing.generate(description, type).toList() }.map {
+    @Suppress("UNCHECKED_CAST")
+    val sensitive = description as ScopeSensitive<TYPE, DESCRIPTION>
+    val fork: DESCRIPTION = (sensitive.fork(type, ScopeParams(state.parameterIndex, state.recursionTreeDepth)) ?: description)
+    if (description::class != fork::class) {
+        error("Forked description and origin description must be same type, but fork has ${fork::class} type")
+    }
+
+    val seeds = when {
+        fork !== description -> {
+            fuzzing.generate(fork, type).toList()
+        }
+        else -> state.cache.computeIfAbsent(type) {
+            fuzzing.generate(fork, it).toList()
+        }
+    }
+    if (seeds.isEmpty()) {
+        throw NoSeedValueException(type)
+    }
+    val candidates = seeds.map {
         @Suppress("UNCHECKED_CAST")
         when (it) {
             is Seed.Simple<TYPE, RESULT> -> Result.Simple(it.value, it.mutation)
             is Seed.Known<TYPE, RESULT, out KnownValue> -> Result.Known(it.value, it.build as KnownValue.() -> RESULT)
-            is Seed.Recursive<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
-            is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
+            is Seed.Recursive<TYPE, RESULT> -> reduce(it, fuzzing, fork, random, configuration, state)
+            is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, fork, random, configuration, state)
         }
-    }
-    if (candidates.isEmpty()) {
-        throw NoSeedValueException(type)
     }
     return candidates.random(random)
 }
@@ -618,6 +654,7 @@ private class State<TYPE, RESULT>(
     val cache: MutableMap<TYPE, List<Seed<TYPE, RESULT>>>,
     val missedTypes: MissedSeed<TYPE, RESULT>,
     val iterations: Int = -1,
+    var parameterIndex: Int = -1,
 )
 
 /**

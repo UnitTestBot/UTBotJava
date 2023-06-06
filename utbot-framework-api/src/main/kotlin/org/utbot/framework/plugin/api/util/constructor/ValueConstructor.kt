@@ -5,6 +5,7 @@ import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.FieldMockTarget
@@ -20,6 +21,7 @@ import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
+import org.utbot.framework.plugin.api.UtDirectFieldAccessModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
@@ -32,6 +34,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.UtValueExecutionState
@@ -327,15 +330,15 @@ class ValueConstructor {
         constructedObjects[assembleModel]?.let { return it }
 
         val instantiationExecutableCall = assembleModel.instantiationCall
-        val result = updateWithExecutableCallModel(instantiationExecutableCall)
+        val result = updateWithStatementCallModel(instantiationExecutableCall)
         checkNotNull(result) {
-            "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"
+            "Tracked instance can't be null for call ${instantiationExecutableCall.statement} in model $assembleModel"
         }
         constructedObjects[assembleModel] = result
 
         assembleModel.modificationsChain.forEach { statementModel ->
             when (statementModel) {
-                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel)
+                is UtStatementCallModel -> updateWithStatementCallModel(statementModel)
                 is UtDirectSetFieldModel -> updateWithDirectSetFieldModel(statementModel)
             }
         }
@@ -374,19 +377,25 @@ class ValueConstructor {
      *
      * @return the result of [callModel] invocation
      */
-    private fun updateWithExecutableCallModel(
-        callModel: UtExecutableCallModel,
-    ): Any? {
-        val executable = callModel.executable
-        val instanceValue = callModel.instance?.let { value(it) }
-        val params = callModel.params.map { value(it) }
+    private fun updateWithStatementCallModel(callModel: UtStatementCallModel, ): Any? {
+        when (callModel) {
+            is UtExecutableCallModel -> {
+                val executable = callModel.executable
+                val instanceValue = callModel.instance?.let { value(it) }
+                val params = callModel.params.map { value(it) }
 
-        val result = when (executable) {
-            is MethodId -> executable.call(params, instanceValue)
-            is ConstructorId -> executable.call(params)
+                return when (executable) {
+                    is MethodId -> executable.call(params, instanceValue)
+                    is ConstructorId -> executable.call(params)
+                }
+            }
+            is UtDirectFieldAccessModel -> {
+                val fieldAccess = callModel.fieldAccess
+                val instanceValue = value(callModel.instance)
+
+               return fieldAccess.get(instanceValue)
+            }
         }
-
-        return result
     }
 
     /**
@@ -439,6 +448,13 @@ class ValueConstructor {
         constructor.withAccessibility {
             newInstance(*args.toTypedArray())
         }
+
+    private fun DirectFieldAccessId.get(instance: Any?): Any {
+        val field = fieldId.jField
+        return field.withAccessibility {
+            field.get(instance)
+        }
+    }
 
     /**
      * Fetches primitive value from NutsModel to create array of primitives.

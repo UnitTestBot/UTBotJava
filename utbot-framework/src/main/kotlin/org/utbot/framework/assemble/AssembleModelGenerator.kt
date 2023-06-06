@@ -21,6 +21,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtDirectFieldAccessModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -30,6 +31,7 @@ import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
@@ -329,12 +331,11 @@ class AssembleModelGenerator(private val basePackageName: String) {
     private fun assembleAssembleModel(modelBefore: UtAssembleModel): UtModel {
         instantiatedModels[modelBefore]?.let { return it }
 
-
         return UtAssembleModel(
             modelBefore.id,
             modelBefore.classId,
             modelBefore.modelName,
-            assembleExecutableCallModel(modelBefore.instantiationCall),
+            assembleStatementCallModel(modelBefore.instantiationCall),
             modelBefore.origin
         ) {
             instantiatedModels[modelBefore] = this
@@ -346,7 +347,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
      * Assembles internal structure of [UtStatementModel].
      */
     private fun assembleStatementModel(statementModel: UtStatementModel): UtStatementModel = when (statementModel) {
-        is UtExecutableCallModel -> assembleExecutableCallModel(statementModel)
+        is UtStatementCallModel -> assembleStatementCallModel(statementModel)
         is UtDirectSetFieldModel -> assembleDirectSetFieldModel(statementModel)
     }
 
@@ -356,11 +357,16 @@ class AssembleModelGenerator(private val basePackageName: String) {
             fieldModel = assembleModel(statementModel.fieldModel)
         )
 
-    private fun assembleExecutableCallModel(statementModel: UtExecutableCallModel) =
-        statementModel.copy(
-            instance = statementModel.instance?.let { assembleModel(it) as UtReferenceModel },
-            params = statementModel.params.map { assembleModel(it) }
-        )
+    private fun assembleStatementCallModel(statementModel: UtStatementCallModel) =
+        when (statementModel) {
+            is UtExecutableCallModel-> statementModel.copy(
+                instance = statementModel.instance?.let { assembleModel(it) as UtReferenceModel },
+                params = statementModel.params.map { assembleModel(it) }
+            )
+            is UtDirectFieldAccessModel -> statementModel.copy(
+                instance = assembleModel(statementModel.instance) as UtReferenceModel
+            )
+        }
 
     /**
      * Assembles internal structure of [UtCompositeModel] if it represents a mock.

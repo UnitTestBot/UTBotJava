@@ -1,0 +1,24 @@
+sources:
+  - org.utbot.examples.taint.TaintSignature.source:
+      signature: [ ]
+      add-to: return
+      marks: bad
+
+passes:
+  - org.utbot.examples.taint.TaintSignature.pass:
+      signature: [ <java.lang.String> ]
+      get-from: arg1
+      add-to: return
+      marks: bad
+
+cleaners:
+  - org.utbot.examples.taint.TaintSignature.cleaner:
+      signature: [ <java.lang.String> ]
+      remove-from: arg1
+      marks: bad
+
+sinks:
+  - org.utbot.examples.taint.TaintSignature.sink:
+      signature: [ <java.lang.String> ]
+      check: arg1
+      marks: bad

@@ -1,0 +1,36 @@
+sources:
+  - org.utbot.examples.taint.TaintSeveralMarks.source1:
+      add-to: return
+      marks: mark1
+  - org.utbot.examples.taint.TaintSeveralMarks.source2:
+      add-to: return
+      marks: mark2
+
+passes:
+  - org.utbot.examples.taint.TaintSeveralMarks.pass1:
+      get-from: arg1
+      add-to: return
+      marks: mark1
+  - org.utbot.examples.taint.TaintSeveralMarks.pass2:
+      get-from: arg1
+      add-to: return
+      marks: mark2
+
+cleaners:
+  - org.utbot.examples.taint.TaintSeveralMarks.cleaner1:
+      remove-from: arg1
+      marks: mark1
+  - org.utbot.examples.taint.TaintSeveralMarks.cleaner2:
+      remove-from: arg1
+      marks: mark2
+
+sinks:
+  - org.utbot.examples.taint.TaintSeveralMarks.sink1:
+      check: arg1
+      marks: mark1
+  - org.utbot.examples.taint.TaintSeveralMarks.sink2:
+      check: arg1
+      marks: mark2
+  - org.utbot.examples.taint.TaintSeveralMarks.sinkAll:
+      check: arg1
+      marks: []

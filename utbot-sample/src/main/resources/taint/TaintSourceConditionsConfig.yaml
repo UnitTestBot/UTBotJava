@@ -1,0 +1,24 @@
+sources:
+  - org.utbot.examples.taint.TaintSourceConditions.sourceArgCondition:
+      add-to: return
+      marks: bad
+      conditions:
+        arg1: true
+  - org.utbot.examples.taint.TaintSourceConditions.sourceReturnCondition:
+      add-to: return
+      marks: bad
+      conditions:
+        return:
+          not: ""
+  - java.lang.String.toLowerCase:
+      add-to: return
+      marks: bad
+      conditions:
+        this:
+          not:
+            ""
+
+sinks:
+  - org.utbot.examples.taint.TaintSourceConditions.sink:
+      check: arg1
+      marks: bad

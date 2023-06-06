@@ -1,12 +1,12 @@
 package org.utbot.examples.taint;
 
 /**
- * Config: ./utbot-sample/src/main/resources/taint/SimpleTaintExampleConfig.yaml
+ * Config: ./utbot-sample/src/main/resources/taint/TaintLongPathConfig.yaml
  */
-public class SimpleTaintExample {
+public class TaintLongPath {
 
     public String source() {
-        return "tainted";
+        return "t";
     }
 
     public void sink(String s) {
@@ -15,11 +15,19 @@ public class SimpleTaintExample {
 
     public void bad() {
         String s = source();
+        bad2(s);
+    }
+
+    public void bad2(String s) {
+        bad3(s);
+    }
+
+    public void bad3(String s) {
         sink(s);
     }
 
     public void good() {
         String s = source();
-        sink("not tainted");
+        sink("n");
     }
 }

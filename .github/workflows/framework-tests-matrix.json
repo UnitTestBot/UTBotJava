@@ -6,7 +6,7 @@
     },
     {
       "PART_NAME": "composite-part2",
-      "TESTS_TO_RUN": "--tests \"org.utbot.engine.*\" --tests \"org.utbot.framework.*\" --tests \"org.utbot.sarif.*\""
+      "TESTS_TO_RUN": "--tests \"org.utbot.engine.*\" --tests \"org.utbot.framework.*\" --tests \"org.utbot.sarif.*\" --tests \"org.utbot.examples.taint.*\""
     },
     {
       "PART_NAME": "composite-part3",

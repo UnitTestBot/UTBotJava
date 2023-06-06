@@ -1,0 +1,34 @@
+sources:
+  - org.utbot.examples.taint.TaintPassConditions.source:
+      add-to: return
+      marks: bad
+  - org.utbot.examples.taint.TaintPassConditions.sourceEmpty:
+      add-to: return
+      marks: bad
+
+passes:
+  - org.utbot.examples.taint.TaintPassConditions.passArgCondition:
+      get-from: arg1
+      add-to: return
+      marks: bad
+      conditions:
+        arg2: true
+  - org.utbot.examples.taint.TaintPassConditions.passReturnCondition:
+      get-from: arg1
+      add-to: return
+      marks: bad
+      conditions:
+        return:
+          not: ""
+  - java.lang.String.concat:
+      get-from: [ this, arg1 ]
+      add-to: return
+      marks: bad
+      conditions:
+        this:
+          not: ""
+
+sinks:
+  - org.utbot.examples.taint.TaintPassConditions.sink:
+      check: arg1
+      marks: bad

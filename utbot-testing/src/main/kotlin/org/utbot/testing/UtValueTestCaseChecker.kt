@@ -2077,18 +2077,19 @@ abstract class UtValueTestCaseChecker(
     ): UtMethodTestSet {
         val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
 
-        val testCaseGenerator = testCaseGeneratorCache
-            .getOrPut(buildInfo) { createTestCaseGenerator(buildInfo) }
+        val testCaseGenerator = createTestCaseGenerator(buildInfo)
         return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
     }
 
     // factory method
     open fun createTestCaseGenerator(buildInfo: CodeGenerationIntegrationTest.Companion.BuildInfo) =
-        TestSpecificTestCaseGenerator(
-            buildInfo.buildDir,
-            buildInfo.dependencyPath,
-            System.getProperty("java.class.path")
-        )
+        testCaseGeneratorCache.getOrPut(buildInfo) {
+            TestSpecificTestCaseGenerator(
+                buildInfo.buildDir,
+                buildInfo.dependencyPath,
+                System.getProperty("java.class.path")
+            )
+        }
 
     fun executionsModel(
         method: ExecutableId,
@@ -2100,8 +2101,7 @@ abstract class UtValueTestCaseChecker(
             computeAdditionalDependenciesClasspathAndBuildDir(method.classId.jClass, additionalDependencies)
         withUtContext(UtContext(method.classId.jClass.classLoader)) {
             val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
-            val testCaseGenerator = testCaseGeneratorCache
-                .getOrPut(buildInfo) { createTestCaseGenerator(buildInfo) }
+            val testCaseGenerator = createTestCaseGenerator(buildInfo)
             return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
         }
     }

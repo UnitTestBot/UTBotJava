@@ -374,18 +374,22 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
 ): Node<TYPE, RESULT>  {
     val typeCache = mutableMapOf<TYPE, MutableList<Result<TYPE, RESULT>>>()
     val result = parameters.mapIndexed { index, type ->
-        state.parameterIndex = index
         val results = typeCache.computeIfAbsent(type) { mutableListOf() }
         if (results.isNotEmpty() && random.flipCoin(configuration.probReuseGeneratedValueForSameType)) {
             // we need to check cases when one value is passed for different arguments
             results.random(random)
         } else {
-            produce(type, fuzzing, description, random, configuration, state).also {
+            produce(type, fuzzing, description, random, configuration, State(
+                state.recursionTreeDepth,
+                state.cache,
+                state.missedTypes,
+                state.iterations,
+                index
+            )).also {
                 results += it
             }
         }
     }
-    state.parameterIndex = -1
     // is not inlined to debug values generated for a concrete type
     return Node(result, parameters, builder)
 }
@@ -670,7 +674,7 @@ private class State<TYPE, RESULT>(
     val cache: MutableMap<TYPE, List<Seed<TYPE, RESULT>>>,
     val missedTypes: MissedSeed<TYPE, RESULT>,
     val iterations: Int = -1,
-    var parameterIndex: Int = -1,
+    val parameterIndex: Int = -1,
 )
 
 /**

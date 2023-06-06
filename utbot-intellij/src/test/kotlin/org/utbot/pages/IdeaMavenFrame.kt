@@ -16,6 +16,7 @@ class IdeaMavenFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         super.waitProjectIsOpened()
         waitForIgnoringError (ofSeconds(60)) {
             projectViewTree.hasText("Main.java").not()
+            projectViewTree.hasText("Main")
         }
     }
 }

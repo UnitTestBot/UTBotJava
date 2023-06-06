@@ -104,7 +104,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
             menuBar.select("File", "Close Project")
         }
         try {
-            remoteRobot.find(WarningDialogFixture::class.java, ofSeconds(2))
+            remoteRobot.find(WarningDialogFixture::class.java, ofSeconds(1))
                 .terminateButton.click()
         } catch (ignore: Throwable) {}
     }
@@ -137,6 +137,22 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
                     hasText("src").and(hasText(".idea"))
                 }
             }
+        }
+    }
+
+    open fun createNewPackage(packageName: String) {
+        with(projectViewTree) {
+            if (hasText("src").not()) {
+                findText(projectName).doubleClick()
+                waitFor { hasText("src") }
+            }
+            findText("src").click(MouseButton.RIGHT_BUTTON)
+        }
+        remoteRobot.actionMenu("New").click()
+        remoteRobot.actionMenuItem("Package").click()
+        keyboard {
+            enterText(packageName);
+            enter()
         }
     }
 

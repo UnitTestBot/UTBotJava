@@ -28,4 +28,9 @@ open class DialogFixture(
 
     val title: String
         get() = callJs("component.getTitle();")
+
+    val closeButton
+        get() = button(
+            byXpath("//div[@class='DialogHeader']//div[@class='JButton']"))
+
 }

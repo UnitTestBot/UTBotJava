@@ -43,7 +43,7 @@ class UnitTestBotActionTest : BaseTest() {
             waitForIgnoringError(ofSeconds(30)) { //Can be changed to 60 for a complex class
                 infoNotification.isShowing
             }
-            assertThat(infoNotification.title.hasText("UnitTestBot: unit tests generated successfully")).isTrue
+            assertThat(infoNotification.title.hasText("UnitTestBot: unit tests generated successfully"))
             assertThat(textEditor().editor.text).contains("class ${newClassName}Test")
             assertThat(textEditor().editor.text).contains("@Test\n")
         }
@@ -65,10 +65,9 @@ class UnitTestBotActionTest : BaseTest() {
             textEditor().additionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             assertThat(unitTestBotDialog.generateTestsButton.isEnabled().not())
-            unitTestBotDialog.generateTestsButton.click()
-            waitForIgnoringError (ofSeconds(3)){
-                inlineProgressTextPanel.isShowing.not()
-            }
+            assertThat(unitTestBotDialog.sdkNotificationLabel.hasText("SDK version 19 is not supported, use JDK_1_8, JDK_11 or JDK_17"))
+            assertThat(unitTestBotDialog.setupSdkLink.isShowing)
+            unitTestBotDialog.closeButton.click()
         }
     }
 }

@@ -42,7 +42,6 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.ObjectValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
-import org.utbot.fuzzing.spring.SpringFuzzedDescription
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -357,33 +356,28 @@ class UtBotSymbolicEngine(
                         && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
             ) { provider ->
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
-                val springBeanValueProvider = SpringBeanValueProvider(defaultIdGenerator) { beanName ->
-                    runBlocking {
-                        logger.info { "Getting bean: $beanName" }
-                        concreteExecutor.withProcess { getBean(beanName) }
-                    }
-                }.withFallback(ObjectValueProvider(defaultIdGenerator))
+                val springBeanValueProvider = SpringBeanValueProvider(
+                    defaultIdGenerator,
+                    beanProvider = { classId ->
+                        (applicationContext as SpringApplicationContext).beanDefinitions
+                            .filter { it.beanTypeFqn == classId.name }
+                            .map { it.beanName }
+                    },
+                    autowiredModelOriginCreator = { beanName ->
+                        runBlocking {
+                            logger.info { "Getting bean: $beanName" }
+                            concreteExecutor.withProcess { getBean(beanName) }
+                        }
+                    }).withFallback(ObjectValueProvider(defaultIdGenerator))
 
                 provider.except { p -> p is ObjectValueProvider }.with(springBeanValueProvider)
             }.let(transform)
-        val descriptionAdapter = FuzzedDescriptionAdapter { descr ->
-            if (applicationContext is SpringApplicationContext) {
-                SpringFuzzedDescription(descr) { classId ->
-                    applicationContext.beanDefinitions
-                        .filter { it.beanTypeFqn == classId.name }
-                        .map { it.beanName }
-                }
-            } else {
-                descr
-            }
-        }
         runJavaFuzzing(
             defaultIdGenerator,
             methodUnderTest,
             constants = collectConstantsForFuzzer(graph),
             names = names,
             providers = listOf(valueProviders),
-            adapter = descriptionAdapter
         ) { thisInstance, descr, values ->
             if (thisInstance?.model is UtNullModel) {
                 // We should not try to run concretely any models with null-this.

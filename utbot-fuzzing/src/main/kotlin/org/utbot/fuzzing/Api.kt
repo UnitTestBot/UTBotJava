@@ -20,6 +20,15 @@ private val logger by lazy { KotlinLogging.logger {} }
  * @see [org.utbot.fuzzing.demo.JsonFuzzingKt]
  */
 interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> {
+
+    /**
+     * Before producing seeds, this method is called to recognize,
+     * whether seeds should be generated especially.
+     *
+     * [Description.clone] method must be overridden, or it throws an exception if the scope is changed.
+     */
+    fun enrich(description: DESCRIPTION, type: TYPE, scope: Scope) {}
+
     /**
      * Generates seeds for a concrete type.
      *
@@ -71,26 +80,36 @@ open class Description<TYPE>(
     parameters: List<TYPE>
 ) {
     val parameters: List<TYPE> = parameters.toList()
+
+    open fun clone(scope: Scope): Description<TYPE> {
+        error("Scope was changed for $this, but method clone is not specified")
+    }
 }
 
-interface ScopeSensitive<TYPE, DESCRIPTION : Description<TYPE>> {
-
-    /**
-     * Scope sensitive description is need to concrete some types depending on a position,
-     * where this type is.
-     * For example, when the type is being generated for "this" value,
-     * probable, provider should generate no null values.
-     * Fuzzing will pass the description which is returned by this method or the origin one if null is returned.
-     *
-     * NB! Seeds which are generated for scope sensitive cases are never cached.
-     */
-    fun fork(type: TYPE, scope: ScopeParams): DESCRIPTION?
-}
-
-class ScopeParams(
+class Scope(
     val parameterIndex: Int,
     val recursionDepth: Int,
-)
+    private val properties: MutableMap<ScopeProperty<*>, Any?> = hashMapOf(),
+) {
+    fun <T> putProperty(param: ScopeProperty<T>, value: T) {
+        properties[param] = value
+    }
+
+    fun <T> getProperty(param: ScopeProperty<T>): T? {
+        @Suppress("UNCHECKED_CAST")
+        return properties[param] as? T
+    }
+
+    fun isNotEmpty(): Boolean = properties.isNotEmpty()
+}
+
+class ScopeProperty<T>(
+    val description: String
+) {
+    fun getValue(scope: Scope): T? {
+        return scope.getProperty(this)
+    }
+}
 
 /**
  * Input value that fuzzing knows how to build and use them.
@@ -379,19 +398,16 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     configuration: Configuration,
     state: State<TYPE, RESULT>,
 ): Result<TYPE, RESULT> {
-    @Suppress("UNCHECKED_CAST")
-    val sensitive = description as ScopeSensitive<TYPE, DESCRIPTION>
-    val fork: DESCRIPTION = (sensitive.fork(type, ScopeParams(state.parameterIndex, state.recursionTreeDepth)) ?: description)
-    if (description::class != fork::class) {
-        error("Forked description and origin description must be same type, but fork has ${fork::class} type")
+    val scope = Scope(state.parameterIndex, state.recursionTreeDepth).apply {
+        fuzzing.enrich(description, type, this)
     }
-
+    @Suppress("UNCHECKED_CAST")
     val seeds = when {
-        fork !== description -> {
-            fuzzing.generate(fork, type).toList()
+        scope.isNotEmpty() -> {
+            fuzzing.generate(description.clone(scope) as DESCRIPTION, type).toList()
         }
         else -> state.cache.computeIfAbsent(type) {
-            fuzzing.generate(fork, it).toList()
+            fuzzing.generate(description, it).toList()
         }
     }
     if (seeds.isEmpty()) {
@@ -402,8 +418,8 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
         when (it) {
             is Seed.Simple<TYPE, RESULT> -> Result.Simple(it.value, it.mutation)
             is Seed.Known<TYPE, RESULT, out KnownValue> -> Result.Known(it.value, it.build as KnownValue.() -> RESULT)
-            is Seed.Recursive<TYPE, RESULT> -> reduce(it, fuzzing, fork, random, configuration, state)
-            is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, fork, random, configuration, state)
+            is Seed.Recursive<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
+            is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
         }
     }
     return candidates.random(random)

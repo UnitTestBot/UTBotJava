@@ -114,20 +114,28 @@ class ObjectValueProvider(
 
 @Suppress("unused")
 object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+
+    override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
+        // any value in static function is ok to fuzz
+        if (description.description.isStatic == true && scope.recursionDepth == 1) {
+            scope.putProperty(NULLABLE_PROP, true)
+        }
+        // any value except this
+        if (description.description.isStatic == false && scope.parameterIndex > 0 && scope.recursionDepth == 1) {
+            scope.putProperty(NULLABLE_PROP, true)
+        }
+    }
+
     override fun accept(type: FuzzedType) = type.classId.isRefType
 
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
-    ): Sequence<Seed<FuzzedType, FuzzedValue>> {
-        if (description.checkParamIsThis() == false) {
-            return sequenceOf<Seed<FuzzedType, FuzzedValue>>(
-                Seed.Simple(UtNullModel(type.classId).fuzzed {
-                    summary = "%var% = null"
-                })
-            )
-        } else {
-            return emptySequence()
+    ) = sequence<Seed<FuzzedType, FuzzedValue>> {
+        if (description.scope?.getProperty(NULLABLE_PROP) == true) {
+            yield(Seed.Simple(UtNullModel(type.classId).fuzzed {
+                summary = "%var% = null"
+            }))
         }
     }
 }

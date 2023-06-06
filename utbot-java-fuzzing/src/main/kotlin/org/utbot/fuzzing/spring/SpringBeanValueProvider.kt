@@ -5,23 +5,29 @@ import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
-import org.utbot.fuzzing.FuzzedDescription
-import org.utbot.fuzzing.Routine
-import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
+import org.utbot.fuzzing.*
+import org.utbot.fuzzing.providers.SPRING_BEAN_PROP
 
 class SpringBeanValueProvider(
     private val idGenerator: IdGenerator<Int>,
+    private val beanProvider: (ClassId) -> List<String>,
     private val autowiredModelOriginCreator: (beanName: String) -> UtModel
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+
+    override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
+        if (description.description.isStatic == false
+            && scope.parameterIndex == 0
+            && scope.recursionDepth == 1) {
+            scope.putProperty(SPRING_BEAN_PROP, beanProvider)
+        }
+    }
 
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
     ) = sequence {
-        description as SpringFuzzedDescription // should be only this type
-        val beans = if (description.checkParamIsThis() == true) description.findBeans(type.classId) else emptyList()
-        beans.forEach { beanName ->
+        val beans = description.scope?.getProperty(SPRING_BEAN_PROP)
+        beans?.invoke(type.classId)?.forEach { beanName ->
             yield(
                 Seed.Recursive<FuzzedType, FuzzedValue>(
                     construct = Routine.Create(types = emptyList()) {

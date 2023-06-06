@@ -6,12 +6,14 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzing.samples.DeepNested
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzing.providers.NullValueProvider
 import org.utbot.fuzzing.samples.AccessibleObjects
 import org.utbot.fuzzing.samples.FailToGenerateListGeneric
 import org.utbot.fuzzing.samples.Stubs
@@ -216,8 +218,10 @@ class JavaFuzzingTest {
                 methodUnderTest = AccessibleObjects::class.java.declaredMethods.first { it.name == "test" }.executableId,
                 constants = emptyList(),
                 names = emptyList(),
-            ) { _, _, _ ->
-                exec += 1
+            ) { _, _, v ->
+                if (v.first().model !is UtNullModel) {
+                    exec += 1
+                }
                 BaseFeedback(Trie.emptyNode(), Control.STOP)
             }
         }
@@ -233,8 +237,10 @@ class JavaFuzzingTest {
                 methodUnderTest = AccessibleObjects::class.java.declaredMethods.first { it.name == "ordinal" }.executableId,
                 constants = emptyList(),
                 names = emptyList(),
-            ) { _, _, _ ->
-                exec += 1
+            ) { _, _, v ->
+                if (v.first().model !is UtNullModel) {
+                    exec += 1
+                }
                 BaseFeedback(Trie.emptyNode(), Control.STOP)
             }
         }
@@ -251,7 +257,8 @@ class JavaFuzzingTest {
                 TestIdentityPreservingIdGenerator,
                 methodUnderTest = FailToGenerateListGeneric::class.java.declaredMethods.first { it.name == "func" }.executableId,
                 constants = emptyList(),
-                names = emptyList()
+                names = emptyList(),
+                providers = defaultValueProviders(TestIdentityPreservingIdGenerator).map { it.except { it is NullValueProvider } }
             ) { _, _, v ->
                 collections.add(v.first().model as? UtAssembleModel)
                 BaseFeedback(Trie.emptyNode(), if (--exec > 0) Control.CONTINUE else Control.STOP)

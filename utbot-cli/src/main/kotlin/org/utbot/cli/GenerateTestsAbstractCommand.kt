@@ -16,13 +16,13 @@ import org.utbot.common.PathUtil.toURL
 import org.utbot.common.toPath
 import org.utbot.engine.Mocker
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.testFrameworkByName
+import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage

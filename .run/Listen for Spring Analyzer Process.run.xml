@@ -1,5 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Listen for Spring Analyzer Process" type="Remote" folderName="Utility Configurations">
+    <log_file alias="utbot-engine-current.log (win)" path="$USER_HOME$/AppData/Local/Temp/UTBot/rdEngineProcessLogs/utbot-engine-current.log" />
+    <log_file alias="utbot-engine-current.log (linux)" path="/tmp/UTBot/rdEngineProcessLogs/utbot-engine-current.log" />
     <option name="USE_SOCKET_TRANSPORT" value="true" />
     <option name="SERVER_MODE" value="true" />
     <option name="SHMEM_ADDRESS" />

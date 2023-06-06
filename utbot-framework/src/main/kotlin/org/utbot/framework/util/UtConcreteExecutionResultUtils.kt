@@ -24,7 +24,8 @@ private fun UtConcreteExecutionResult.updateWithAssembleModels(
     return UtConcreteExecutionResult(
         resolvedStateAfter,
         resolvedResult,
-        coverage
+        coverage,
+        newInstrumentation
     )
 }
 

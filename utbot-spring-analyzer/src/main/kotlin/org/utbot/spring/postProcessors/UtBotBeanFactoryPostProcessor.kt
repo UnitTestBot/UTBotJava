@@ -9,6 +9,7 @@ import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.core.PriorityOrdered
+import org.springframework.core.type.StandardMethodMetadata
 import org.utbot.spring.exception.UtBotSpringShutdownException
 import org.utbot.spring.generated.BeanAdditionalData
 import org.utbot.spring.generated.BeanDefinitionData
@@ -36,7 +37,10 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
     private fun findBeanDefinitions(beanFactory: ConfigurableListableBeanFactory): List<BeanDefinitionData> =
         beanFactory.beanDefinitionNames
             .mapNotNull { getBeanDefinitionData(beanFactory, it) }
-            .filterNot { it.beanTypeFqn.startsWith("org.utbot.spring") }
+            .filterNot {
+                it.beanTypeFqn.startsWith("org.utbot.spring") ||
+                        UtBotBeanFactoryPostProcessor.javaClass.simpleName.equals(it.beanName, ignoreCase = true)
+            }
 
     private fun getBeanDefinitionData(beanFactory: ConfigurableListableBeanFactory, beanName: String): BeanDefinitionData? {
         val beanDefinition = beanFactory.getBeanDefinition(beanName)
@@ -46,20 +50,26 @@ object UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered
             if (beanDefinition.factoryMethodMetadata == null) {
                 // there's no factoryMethod so bean is defined with @Component-like annotation rather than @Bean annotation
                 // same approach isn't applicable for @Bean beans, because for them, it returns name of @Configuration class
-                beanDefinition.metadata.className.also { fqn ->
-                    logger.info { "Got $fqn as metadata.className for @Component-like bean: $beanName" }
-                }
+                beanDefinition.metadata.className
+                    .also { fqn ->
+                        logger.info { "Got $fqn as metadata.className for @Component-like bean: $beanName" }
+                    }
             } else try {
+                val parameterTypes =
+                    (beanDefinition.factoryMethodMetadata as? StandardMethodMetadata)
+                        ?.introspectedMethod
+                        ?.parameterTypes
+                        ?.map { it.name }
+                        ?: emptyList()
+
                 beanAdditionalData = BeanAdditionalData(
-                    beanDefinition.factoryMethodMetadata.methodName,
-                    beanDefinition.factoryMethodMetadata.declaringClassName
+                    factoryMethodName = beanDefinition.factoryMethodMetadata.methodName,
+                    parameterTypes = parameterTypes,
+                    configClassFqn = beanDefinition.factoryMethodMetadata.declaringClassName
                 )
-                // TODO to avoid side effects, determine beanClassName without getting bean by analyzing method
-                //  defining bean, for example, by finding all its return statements and determining their common type
-                //  NOTE: do not simply use return type from method signature because it may be an interface type
-                beanFactory.getBean(beanName)::class.java.name.also { fqn ->
-                    logger.info { "Got $fqn as runtime type for @Bean-like bean: $beanName" }
-                }
+
+                // we determine a real return type later in [UtTestsDialogProcessor.createTests]
+                beanDefinition.factoryMethodMetadata.returnTypeName
             } catch (e: BeanCreationException) {
                 logger.warn { "Failed to get bean: $beanName" }
                 null

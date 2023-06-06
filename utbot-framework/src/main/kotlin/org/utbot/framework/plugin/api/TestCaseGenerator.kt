@@ -36,6 +36,7 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
 import java.io.File
@@ -65,6 +66,19 @@ open class TestCaseGenerator(
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
+    private val executionInstrumentation by lazy {
+        when (applicationContext) {
+            is SpringApplicationContext -> when (val approach = applicationContext.typeReplacementApproach) {
+                is TypeReplacementApproach.ReplaceIfPossible ->
+                    when (applicationContext.testType) {
+                        SpringTestsType.UNIT_TESTS -> UtExecutionInstrumentation
+                        SpringTestsType.INTEGRATION_TESTS -> SpringUtExecutionInstrumentation(UtExecutionInstrumentation, approach.config)
+                    }
+                is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation
+            }
+            else -> UtExecutionInstrumentation
+        }
+    }
 
     private val classpathForEngine: String
         get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
@@ -88,7 +102,7 @@ open class TestCaseGenerator(
             if (warmupConcreteExecution) {
                 // force pool to create an appropriate executor
                 ConcreteExecutor(
-                    UtExecutionInstrumentation,
+                    executionInstrumentation,
                     classpathForEngine,
                 ).apply {
                     warmup()
@@ -269,6 +283,7 @@ open class TestCaseGenerator(
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             applicationContext = applicationContext,
+            executionInstrumentation = executionInstrumentation,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
         )
     }

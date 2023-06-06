@@ -60,6 +60,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("testSetsId", PredefinedType.long)
     }
     val renderParams = structdef {
+        field("springTestsType", PredefinedType.string)
         field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
         field("projectType", PredefinedType.string)
@@ -130,6 +131,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     }
     val beanAdditionalData = structdef {
         field("factoryMethodName", PredefinedType.string)
+        field("parameterTypes", immutableList(PredefinedType.string))
         field("configClassFqn", PredefinedType.string)
     }
     val beanDefinitionData = structdef {

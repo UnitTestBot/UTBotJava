@@ -256,6 +256,29 @@ abstract class TestFramework(
     }
 }
 
+class UnknownTestFramework(id: String) : TestFramework(id = id, displayName = id) {
+    override val mainPackage: String = id
+    override val assertionsClass: ClassId = ClassId(id)
+    override val arraysAssertionsClass: ClassId = ClassId(id)
+    override val kotlinFailureAssertionsClass: ClassId = ClassId(id)
+    override val testAnnotationId: ClassId = ClassId(id)
+    override val beforeMethodId: ClassId = ClassId(id)
+    override val afterMethodId: ClassId = ClassId(id)
+    override val parameterizedTestAnnotationId: ClassId = ClassId(id)
+    override val methodSourceAnnotationId: ClassId = ClassId(id)
+    override val nestedClassesShouldBeStatic: Boolean = false
+    override val argListClassId: ClassId = ClassId(id)
+
+    override fun getRunTestsCommand(
+        executionInvoke: String,
+        classPath: String,
+        classesNames: List<String>,
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> = emptyList()
+
+}
+
 object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
     override val mainPackage: String = TEST_NG_PACKAGE
 
@@ -686,23 +709,6 @@ enum class ProjectType {
      * JavaScript project
      */
     JavaScript,
-}
-
-sealed class TypeReplacementApproach {
-    /**
-     * Do not replace interfaces and abstract classes with concrete implementors.
-     * Use mocking instead of it.
-     */
-    object DoNotReplace : TypeReplacementApproach()
-
-    /**
-     * Try to replace interfaces and abstract classes with concrete implementors
-     * obtained from bean definitions.
-     * If it is impossible, use mocking.
-     *
-     * Currently used in Spring applications only.
-     */
-    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
 }
 
 abstract class DependencyInjectionFramework(

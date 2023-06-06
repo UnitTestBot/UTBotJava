@@ -44,7 +44,7 @@ object PythonLanguageAssistant : LanguageAssistant() {
         PythonDialogProcessor.createDialogAndGenerateTests(
             project,
             targets.pyClasses + targets.pyFunctions,
-            targets.focusedClass ?: targets.focusedFunction,
+            targets.focusedFunction ?: targets.focusedClass,
             targets.editor,
         )
     }
@@ -66,8 +66,8 @@ object PythonLanguageAssistant : LanguageAssistant() {
             val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
             val element = findPsiElement(file, editor) ?: return null
 
-            val allFunctions = file.topLevelFunctions.filter { fineFunction(it) }
-            val allClasses = file.topLevelClasses.filter { fineClass(it) }
+            val rootFunctions = file.topLevelFunctions.filter { fineFunction(it) }
+            val rootClasses = file.topLevelClasses.filter { fineClass(it) }
 
             val containingClass = getContainingElement<PyClass>(element) { fineClass(it) }
             val containingFunction: PyFunction? =
@@ -80,18 +80,18 @@ object PythonLanguageAssistant : LanguageAssistant() {
                                 ancestors.count { it is PyClass } == 1 && fineFunction(func)
                     }
 
-            if (allClasses.isEmpty()) {
-                return if (allFunctions.isEmpty()) {
+            if (rootClasses.isEmpty()) {
+                return if (rootFunctions.isEmpty()) {
                     null
                 } else {
-                    resultFunctions.addAll(allFunctions)
+                    resultFunctions.addAll(rootFunctions)
                     focusedFunction = containingFunction
                     Targets(resultClasses, resultFunctions, null, focusedFunction, editor)
                 }
             } else {
                 if (containingClass == null) {
-                    resultClasses.addAll(allClasses)
-                    resultFunctions.addAll(allFunctions)
+                    resultClasses.addAll(rootClasses)
+                    resultFunctions.addAll(rootFunctions)
                     focusedFunction = containingFunction
                 } else {
                     resultFunctions.addAll(containingClass.methods.filter { fineFunction(it) })

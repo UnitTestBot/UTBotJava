@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.kryo5.Kryo
 import com.esotericsoftware.kryo.kryo5.KryoException
 import com.esotericsoftware.kryo.kryo5.io.Input
 import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
+import org.utbot.framework.plugin.api.util.utContext
 import java.io.InputStream
 import java.io.ObjectInputStream
 import java.io.ObjectStreamClass
@@ -51,7 +52,7 @@ class IgnoringUidWrappingObjectInputStream(iss : InputStream?, private val kryo:
 
         // the class in the local JVM that this descriptor represents.
         val localClass: Class<*> = try {
-            Class.forName(resultClassDescriptor.name)
+            kryo.classLoader.loadClass(resultClassDescriptor.name)
         } catch (e: ClassNotFoundException) {
             return resultClassDescriptor
         }

@@ -10,7 +10,7 @@ import kotlin.io.path.Path
 
 private val logger = getLogger<SourceFinder>()
 
-open class SourceFinder(
+class SourceFinder(
     private val applicationData: ApplicationData
 ) {
     private val classLoader: ClassLoader = this::class.java.classLoader

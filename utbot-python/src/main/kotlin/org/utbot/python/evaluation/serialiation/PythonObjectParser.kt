@@ -5,7 +5,6 @@ import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.pythonStrClassId
 
 object PythonObjectParser {
     private val moshi = Moshi.Builder()
@@ -149,10 +148,7 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump): String {
 
         is PythonTree.ReduceNode -> {
             val stateObjId = PythonTree.DictNode(this.state.entries.associate {
-                PythonTree.PrimitiveNode(
-                    pythonStrClassId,
-                    it.key
-                ) to it.value
+                PythonTree.fromString(it.key) to it.value
             }.toMutableMap())
             val argsIds = PythonTree.ListNode(this.args.withIndex().associate { it.index to it.value }.toMutableMap())
             val listItemsIds =

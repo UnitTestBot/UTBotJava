@@ -536,12 +536,16 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonTuple) {
-        print("(")
-        element.elements.renderSeparated()
-        if (element.elements.size == 1) {
-            print(",")
+        if (element.elements.isEmpty()) {
+            print("tuple()")
+        } else {
+            print("(")
+            element.elements.renderSeparated()
+            if (element.elements.size == 1) {
+                print(",")
+            }
+            print(")")
         }
-        print(")")
     }
 
     override fun visit(element: CgPythonSet) {

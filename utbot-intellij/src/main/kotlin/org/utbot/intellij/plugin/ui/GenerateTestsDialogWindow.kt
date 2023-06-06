@@ -129,6 +129,7 @@ import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
+import org.utbot.intellij.plugin.ui.utils.isCompatibleWith
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
@@ -964,7 +965,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             ?: error("Trying to install Spring test framework, but Spring framework is not found in module ${model.srcModule.name}")
         val frameworkTestVersionInProject = frameworkTestLibrary?.libraryName?.parseVersion()
 
-        if (frameworkTestVersionInProject == null || frameworkTestVersionInProject < frameworkVersionInProject) {
+        if (frameworkTestVersionInProject == null ||
+            !frameworkTestVersionInProject.isCompatibleWith(frameworkVersionInProject)
+) {
             val libraryDescriptor = when (framework) {
                 SpringBoot ->  springBootTestLibraryDescriptor(frameworkVersionInProject)
                 SpringBeans -> springTestLibraryDescriptor(frameworkVersionInProject)

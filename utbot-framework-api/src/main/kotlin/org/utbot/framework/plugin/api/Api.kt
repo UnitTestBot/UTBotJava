@@ -731,7 +731,9 @@ data class UtExecutableCallModel(
     override val instance: UtReferenceModel?,
     val executable: ExecutableId,
     override val params: List<UtModel>,
-) : UtStatementCallModel(instance, executable, params)
+) : UtStatementCallModel(instance, executable, params) {
+    override fun toString(): String = super.toString()
+}
 
 /**
  * Step of assemble instruction that directly accesses a field.
@@ -741,7 +743,9 @@ data class UtExecutableCallModel(
 data class UtDirectFieldAccessModel(
     override val instance: UtReferenceModel,
     val fieldAccess: DirectFieldAccessId,
-) : UtStatementCallModel(instance, fieldAccess, emptyList())
+) : UtStatementCallModel(instance, fieldAccess, emptyList()) {
+    override fun toString(): String = super.toString()
+}
 
 /**
  * Step of assemble instruction that sets public field with direct setter.

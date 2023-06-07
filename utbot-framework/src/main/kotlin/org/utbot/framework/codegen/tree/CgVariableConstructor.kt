@@ -242,7 +242,7 @@ open class CgVariableConstructor(val context: CgContext) :
 
         val type = when (executable) {
             is MethodId -> executable.returnType
-            is DirectFieldAccessId -> executable.fieldId.declaringClass
+            is DirectFieldAccessId -> executable.fieldId.type
             is ConstructorId -> executable.classId
         }
         // Don't use redundant constructors for primitives and String

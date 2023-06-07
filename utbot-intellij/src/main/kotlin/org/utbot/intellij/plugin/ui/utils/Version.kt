@@ -7,7 +7,7 @@ package org.utbot.intellij.plugin.ui.utils
  * Major and minor components are always numbers, while patch
  * may contain a number with some postfix like -RELEASE.
  *
- * Origin is an optional plain text that was used to parse a version.
+ * @param plainText is optional and represents whole version as text.
  */
 data class Version(
     val major: Int,
@@ -18,7 +18,8 @@ data class Version(
 
 fun String.parseVersion(): Version? {
     val lastSemicolon = lastIndexOf(':')
-    val versionComponents = substring(lastSemicolon + 1).split('.')
+    val versionText = substring(lastSemicolon + 1)
+    val versionComponents = versionText.split('.')
 
     if (versionComponents.size != 3) {
         return null
@@ -28,13 +29,10 @@ fun String.parseVersion(): Version? {
     val minor = versionComponents[1].toIntOrNull() ?: return null
     val patch = versionComponents[2]
 
-    return Version(major, minor, patch, plainText = this)
+    return Version(major, minor, patch, versionText)
 }
 
 fun Version.isCompatibleWith(another: Version): Boolean {
-
-    fun Version.hasNumericPatch(): Boolean = patch.toIntOrNull() != null
-
     //Non-numeric versions can't be compared to each other, so we cannot be sure that current is compatible
     if (!hasNumericPatch() || !another.hasNumericPatch()) {
         return false
@@ -44,3 +42,5 @@ fun Version.isCompatibleWith(another: Version): Boolean {
             major == another.major && minor > another.minor ||
             major == another.major && minor == another.minor && patch.toInt() >= another.patch.toInt()
 }
+
+fun Version.hasNumericPatch(): Boolean = patch.toIntOrNull() != null

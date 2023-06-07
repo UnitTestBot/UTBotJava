@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzing.samples.DeepNested
 import org.utbot.fuzzer.FuzzedType
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.providers.NullValueProvider
 import org.utbot.fuzzing.samples.AccessibleObjects
@@ -272,6 +273,59 @@ class JavaFuzzingTest {
         }
     }
 
+    @Test
+    fun `value providers override every function of fuzzing in simple case`() {
+        val provided = MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>("p")
+        `value providers override every function of fuzzing`(provided, provided)
+    }
+
+    @Test
+    fun `value providers override every function of fuzzing when merging`() {
+        val provider1 = MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>("p1")
+        val provider2 = MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>("p2")
+        val provided = provider1.with(provider2)
+        `value providers override every function of fuzzing`(provided, provider1)
+        `value providers override every function of fuzzing`(provided, provider2)
+    }
+
+    @Test
+    fun `value providers override every function of fuzzing when excepting`() {
+        val provider1 = MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>("p1")
+        val provider2 = MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>("p2")
+        val provided = provider1.except(provider2)
+        `value providers override every function of fuzzing`(provided, provider1)
+    }
+
+    @Test
+    fun `value providers override every function of fuzzing when fallback`() {
+        val provider1 = MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>("p1")
+        val provider2 = MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>("p2")
+        val provided = provider1.withFallback(provider2)
+        `value providers override every function of fuzzing`(provided, provider1)
+        `value providers override every function of fuzzing`(provided, provider2)
+    }
+
+    private fun `value providers override every function of fuzzing`(provided: ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>, valueProvider: MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>) {
+        var executions = 0
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = FailToGenerateListGeneric::class.java.declaredMethods.first { it.name == "func" }.executableId,
+                constants = emptyList(),
+                names = emptyList(),
+                providers = listOfNotNull(provided)
+            ) { _, _, _ ->
+                executions++
+                BaseFeedback(Trie.emptyNode(), Control.STOP)
+            }
+        }
+
+        assertNotEquals(0, valueProvider.enrich) { "Enrich is never called for ${valueProvider.name}" }
+        assertNotEquals(0, valueProvider.accept) { "Accept is never called for ${valueProvider.name}" }
+        assertNotEquals(0, valueProvider.generate) { "Generate is never called for ${valueProvider.name}" }
+        assertEquals(0, executions) { "Execution must be never called, because of empty seed supply for ${valueProvider.name}" }
+    }
+
     private fun <T> runBlockingWithContext(block: suspend () -> T) : T {
         return withUtContext(UtContext(this::class.java.classLoader)) {
             runBlocking {
@@ -280,5 +334,27 @@ class JavaFuzzingTest {
                 }
             }
         }
+    }
+}
+
+class MarkerValueProvider<T, R, D : Description<T>>(
+    val name: String
+) : ValueProvider<T, R, D> {
+    var enrich: Int = 0
+    var accept: Int = 0
+    var generate: Int = 0
+
+    override fun enrich(description: D, type: T, scope: Scope) {
+        enrich++
+    }
+
+    override fun accept(type: T): Boolean {
+        accept++
+        return true
+    }
+
+    override fun generate(description: D, type: T): Sequence<Seed<T, R>> {
+        generate++
+        return emptySequence()
     }
 }

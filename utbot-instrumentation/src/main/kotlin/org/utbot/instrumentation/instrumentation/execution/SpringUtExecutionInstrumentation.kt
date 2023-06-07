@@ -70,7 +70,6 @@ class SpringUtExecutionInstrumentation(
 
         // TODO: recreate context/app every time whenever we change method under test
         springContext = springFacadeInstance.instantiate(instantiationSettings)
-            ?: error("Failed to initialize Spring context")
     }
 
     override fun invoke(

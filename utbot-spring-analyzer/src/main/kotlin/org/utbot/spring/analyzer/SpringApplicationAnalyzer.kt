@@ -1,6 +1,5 @@
 package org.utbot.spring.analyzer
 
-import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.spring.api.instantiator.InstantiationSettings
 import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.api.instantiator.ApplicationInstantiatorFacade
@@ -23,9 +22,11 @@ class SpringApplicationAnalyzer {
             .newInstance()
         springFacadeInstance as ApplicationInstantiatorFacade
 
-        return UtBotSpringShutdownException
-            .catch { springFacadeInstance.instantiate(instantiationSettings) }
-            .beanDefinitions
-            .toTypedArray()
+        return springFacadeInstance.instantiate(instantiationSettings) { instantiator ->
+            UtBotSpringShutdownException
+                .catch { instantiator.instantiate() }
+                .beanDefinitions
+                .toTypedArray()
+        }
     }
 }

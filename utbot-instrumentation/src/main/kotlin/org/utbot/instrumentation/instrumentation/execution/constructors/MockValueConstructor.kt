@@ -18,7 +18,7 @@ import org.utbot.framework.plugin.api.UtAutowiredStateBeforeModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
-import org.utbot.framework.plugin.api.UtDirectFieldAccessModel
+import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -397,7 +397,7 @@ class MockValueConstructor(
                     is ConstructorId -> executable.call(params)
                 }
             }
-            is UtDirectFieldAccessModel -> {
+            is UtDirectGetFieldModel -> {
                 val fieldAccess = callModel.fieldAccess
                 val instanceValue = value(callModel.instance)
 

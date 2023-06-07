@@ -740,7 +740,7 @@ data class UtExecutableCallModel(
  *
  * Contains parameter value to set and an instance model before call.
  */
-data class UtDirectFieldAccessModel(
+data class UtDirectGetFieldModel(
     override val instance: UtReferenceModel,
     val fieldAccess: DirectFieldAccessId,
 ) : UtStatementCallModel(instance, fieldAccess, emptyList()) {

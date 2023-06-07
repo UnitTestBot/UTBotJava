@@ -21,7 +21,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtDirectFieldAccessModel
+import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -363,7 +363,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
                 instance = statementModel.instance?.let { assembleModel(it) as UtReferenceModel },
                 params = statementModel.params.map { assembleModel(it) }
             )
-            is UtDirectFieldAccessModel -> statementModel.copy(
+            is UtDirectGetFieldModel -> statementModel.copy(
                 instance = assembleModel(statementModel.instance) as UtReferenceModel
             )
         }

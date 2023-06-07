@@ -43,7 +43,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtDirectFieldAccessModel
+import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -278,7 +278,7 @@ open class CgVariableConstructor(val context: CgContext) :
                     }
                 }
             }
-            is UtDirectFieldAccessModel -> {
+            is UtDirectGetFieldModel -> {
                 val instance = declareOrGet(statementModel.instance)
                 val fieldAccess = statementModel.fieldAccess
                 utilsClassId[getFieldValue](instance, fieldAccess.fieldId.declaringClass.canonicalName, fieldAccess.fieldId.name)

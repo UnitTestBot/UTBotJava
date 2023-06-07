@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
@@ -242,7 +243,7 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
 private fun UtStatementModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): Int =
     when (this) {
         is UtDirectSetFieldModel -> 1 + fieldModel.calculateSize(used)
-        is UtExecutableCallModel -> 1 + params.sumOf { it.calculateSize(used) }
+        is UtStatementCallModel -> 1 + params.sumOf { it.calculateSize(used) }
     }
 
 /**

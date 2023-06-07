@@ -502,7 +502,7 @@ data class UtAssembleModel private constructor(
     override val id: Int?,
     override val classId: ClassId,
     override val modelName: String,
-    val instantiationCall: UtExecutableCallModel,
+    val instantiationCall: UtStatementCallModel,
     val modificationsChain: List<UtStatementModel>,
     val origin: UtCompositeModel?
 ) : UtReferenceModel(id, classId, modelName) {
@@ -527,7 +527,7 @@ data class UtAssembleModel private constructor(
         id: Int?,
         classId: ClassId,
         modelName: String,
-        instantiationCall: UtExecutableCallModel,
+        instantiationCall: UtStatementCallModel,
         origin: UtCompositeModel? = null,
         modificationsChainProvider: UtAssembleModel.() -> List<UtStatementModel> = { emptyList() }
     ) : this(id, classId, modelName, instantiationCall, mutableListOf(), origin) {
@@ -691,28 +691,23 @@ sealed class UtStatementModel(
 )
 
 /**
- * Step of assemble instruction that calls executable.
- *
- * Contains executable to call, call parameters and an instance model before call.
- *
- * @param [instance] **must be** `null` for static methods and constructors
+ * Step of assemble instruction that calls executable or accesses the field.
  */
-data class UtExecutableCallModel(
+sealed class UtStatementCallModel(
     override val instance: UtReferenceModel?,
-    val executable: ExecutableId,
-    val params: List<UtModel>,
-) : UtStatementModel(instance) {
+    open val statement: StatementId,
+    open val params: List<UtModel>,
+): UtStatementModel(instance) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
 
-            val executableName = when (executable) {
-                is ConstructorId -> executable.classId.name
-                is MethodId -> executable.name
+            val executableName = when (statement) {
+                is ConstructorId -> statement.classId.name
+                is DirectFieldAccessId -> statement.name
+                is MethodId -> statement.name
             }
 
-            if (instance != null) {
-                append("${instance.modelName}.")
-            }
+            instance?.let { append("${it.modelName}.") }
 
             append(executableName)
             val paramsRepresentation = params.map { param ->
@@ -724,6 +719,32 @@ data class UtExecutableCallModel(
             append(paramsRepresentation.joinToString(prefix = "(", postfix = ")"))
         }
     }
+}
+
+/**
+ * Step of assemble instruction that calls executable.
+ *
+ * Contains executable to call, call parameters and an instance model before call.
+ * @param [instance] **must be** `null` for static methods and constructors
+ */
+data class UtExecutableCallModel(
+    override val instance: UtReferenceModel?,
+    val executable: ExecutableId,
+    override val params: List<UtModel>,
+) : UtStatementCallModel(instance, executable, params) {
+    override fun toString(): String = super.toString()
+}
+
+/**
+ * Step of assemble instruction that directly accesses a field.
+ *
+ * Contains parameter value to set and an instance model before call.
+ */
+data class UtDirectGetFieldModel(
+    override val instance: UtReferenceModel,
+    val fieldAccess: DirectFieldAccessId,
+) : UtStatementCallModel(instance, fieldAccess, emptyList()) {
+    override fun toString(): String = super.toString()
 }
 
 /**

@@ -25,20 +25,6 @@ fun Module.allLibraries(): List<LibraryOrderEntry> {
     val moduleRootManager = ModuleRootManager.getInstance(this)
     return allLibraries(moduleRootManager.orderEntries())
 }
-
-fun String.parseVersion(): String? {
-    val lastSemicolon = lastIndexOf(':')
-    val version = substring(lastSemicolon + 1)
-
-    if (lastSemicolon == -1 ||
-        version.split('.').any { it.toIntOrNull() == null }
-    ) {
-        return null
-    }
-
-    return version
-}
-
 fun List<LibraryOrderEntry>.matchesAnyOf(patterns: List<Regex>): LibraryOrderEntry? =
     firstOrNull { entry ->
         patterns.any { pattern ->

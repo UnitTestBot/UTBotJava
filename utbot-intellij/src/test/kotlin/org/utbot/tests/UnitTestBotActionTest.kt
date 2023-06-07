@@ -10,7 +10,9 @@ import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import org.utbot.data.NEW_PROJECT_NAME_START
 import org.utbot.pages.*
-import org.utbot.samples.additionFunction
+import org.utbot.samples.typeAdditionFunction
+import org.utbot.samples.typeDivisionFunction
+import java.time.Duration.ofMillis
 import java.time.Duration.ofSeconds
 
 class UnitTestBotActionTest : BaseTest() {
@@ -26,15 +28,15 @@ class UnitTestBotActionTest : BaseTest() {
         }
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         with (ideaFrame) {
-            val newClassName = "Addition"
+            val newClassName = "Arithmetic"
             createNewJavaClass(newClassName, "org.example")
-            textEditor().additionFunction(newClassName)
+            val returnsFromTagBody = textEditor().typeDivisionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             unitTestBotDialog.generateTestsButton.click()
-            waitForIgnoringError (ofSeconds(10)){
+            waitForIgnoringError (ofSeconds(5)){
                 inlineProgressTextPanel.isShowing
             }
-            waitForIgnoringError(ofSeconds(30)) {
+            waitForIgnoringError(ofSeconds(30), ofMillis(100)) {
                 inlineProgressTextPanel.hasText("Generate tests: read classes")
             }
             waitForIgnoringError (ofSeconds(10)){
@@ -46,6 +48,11 @@ class UnitTestBotActionTest : BaseTest() {
             assertThat(infoNotification.title.hasText("UnitTestBot: unit tests generated successfully"))
             assertThat(textEditor().editor.text).contains("class ${newClassName}Test")
             assertThat(textEditor().editor.text).contains("@Test\n")
+            assertThat(textEditor().editor.text).contains("assertEquals(")
+            assertThat(textEditor().editor.text).contains("@utbot.classUnderTest {@link ${newClassName}}")
+            assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${newClassName}#division(int, int)}")
+            assertThat(textEditor().editor.text).contains(returnsFromTagBody)
+            //ToDo verify Problems view and Arithmetic exception on it
         }
     }
 
@@ -60,9 +67,9 @@ class UnitTestBotActionTest : BaseTest() {
         }
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         with (ideaFrame) {
-            val newClassName = "Addition"
+            val newClassName = "Arithmetic"
             createNewJavaClass(newClassName, "org.example")
-            textEditor().additionFunction(newClassName)
+            textEditor().typeAdditionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             assertThat(unitTestBotDialog.generateTestsButton.isEnabled().not())
             assertThat(unitTestBotDialog.sdkNotificationLabel.hasText("SDK version 19 is not supported, use JDK_1_8, JDK_11 or JDK_17"))

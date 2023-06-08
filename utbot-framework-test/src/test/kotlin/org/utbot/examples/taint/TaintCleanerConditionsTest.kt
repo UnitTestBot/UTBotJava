@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.TaintAnalysisError
 import org.utbot.taint.TaintConfigurationProviderResources
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.ge
 import org.utbot.testing.UtValueTestCaseCheckerForTaint
 import org.utbot.testing.isException
 
@@ -16,8 +15,9 @@ internal class TaintCleanerConditionsTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBadArg() {
         checkWithException(
             TaintCleanerConditions::badArg,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
@@ -25,8 +25,9 @@ internal class TaintCleanerConditionsTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBadReturn() {
         checkWithException(
             TaintCleanerConditions::badReturn,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
@@ -34,32 +35,36 @@ internal class TaintCleanerConditionsTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBadThis() {
         checkWithException(
             TaintCleanerConditions::badThis,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodArg() {
-        check(
+        checkWithException(
             TaintCleanerConditions::goodArg,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodReturn() {
-        check(
+        checkWithException(
             TaintCleanerConditions::goodReturn,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodThis() {
-        check(
+        checkWithException(
             TaintCleanerConditions::goodThis,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 }

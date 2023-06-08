@@ -112,8 +112,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         UtFalse,
         UtArraySort(UtAddrSort, UtBoolSort)
     ),
-    // const array here is because even in the situation when MUT is marked as a `PassThrough` we will
-    // process this information in a current state, not initial one
+    // Const array here is because the initial values of all taint bit-vectors are 0.
+    // If you want to mark some symbolic variable, you should do it manually.
     private var taintArray: UtArrayExpressionBase = UtConstArrayExpression(
         mkLong(value = 0L),
         UtArraySort(indexSort = UtAddrSort, itemSort = UtLongSort)
@@ -279,6 +279,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
+        // TODO: Fold inside a fold is not the best choice, it might cause
+        //       significant growth of size of the taint bit-vec values
         val updTaintArray = update.taintArrayUpdate
             .groupBy { (addr, _) ->
                 addr

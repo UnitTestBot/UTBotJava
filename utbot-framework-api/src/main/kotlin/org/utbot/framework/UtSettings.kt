@@ -271,14 +271,22 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var useTaintAnalysis by getBooleanProperty(false)
 
     /**
-     * How deep we should analyze the exceptions.
+     * If true, [Traverser] will call [TraversalContext.implicitlyThrowException] for [TaintMarksAll],
+     * even if [TaintMarksSet] is specified, i.e. each taint mark will not be processed separately.
+     *
+     * @see [org.utbot.engine.Traverser.processTaintSink]
      */
-    val exploreExceptionsDepth: ExploreExceptionsDepth
+    var ThrowTaintErrorOnlyForAllMarks = false
+
+    /**
+     * How deep we should analyze the throwables.
+     */
+    val exploreThrowableDepth: ExploreThrowableDepth
         get() =
             if (useTaintAnalysis)
-                ExploreExceptionsDepth.EXPLORE_ALL_STATEMENTS
+                ExploreThrowableDepth.EXPLORE_ALL_STATEMENTS
             else
-                ExploreExceptionsDepth.SKIP_ALL_STATEMENTS
+                ExploreThrowableDepth.SKIP_ALL_STATEMENTS
 
 // region engine process debug
 
@@ -697,17 +705,17 @@ enum class SummariesGenerationType {
 }
 
 /**
- * Enum to describe how deep we should analyze the exceptions.
+ * Enum to describe how deep we should analyze the throwables.
  */
-enum class ExploreExceptionsDepth {
+enum class ExploreThrowableDepth {
 
     /**
-     * Skip all statements between exception's `new` and `<init>` statements.
+     * Skip all statements between throwable's `new` and `<init>` statements.
      */
     SKIP_ALL_STATEMENTS,
 
     /**
-     * Skip only exception's <init> statement.
+     * Skip only throwable's <init> statement.
      */
     SKIP_INIT_STATEMENT,
 

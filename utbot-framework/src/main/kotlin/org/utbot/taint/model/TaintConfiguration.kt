@@ -61,6 +61,7 @@ data class TaintConfiguration(
         when (argumentType) {
             ArgumentTypeAny -> true
             is ArgumentTypeString -> argumentType.typeFqn == classId.name
+            // TODO: constructing Regex many times can lead to a decrease in performance
             is ArgumentTypeRegex -> classId.name.matches(Regex(argumentType.typeFqnRegex))
         }
 
@@ -70,6 +71,7 @@ data class TaintConfiguration(
                 val executableFqn = executableId.getMethodFqn()?.run {
                     packageNames.plus(className).plus(methodName).joinToString(".")
                 }
+                // TODO: constructing Regex many times can lead to a decrease in performance
                 executableFqn?.matches(Regex(methodFqn.regex)) ?: false
             }
             is MethodFqnValue -> methodFqn == executableId.getMethodFqn()

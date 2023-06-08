@@ -48,7 +48,6 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.taint.*
 import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
@@ -150,14 +149,18 @@ class UtBotSymbolicEngine(
     private val taintConfigurationProvider = if (UtSettings.useTaintAnalysis) {
         TaintConfigurationProviderCombiner(
             listOf(
-                userTaintConfigurationProvider ?: TaintConfigurationProviderEmpty(),
+                userTaintConfigurationProvider ?: TaintConfigurationProviderEmpty,
                 TaintConfigurationProviderCached("resources", TaintConfigurationProviderResources())
             )
         )
     } else {
-        TaintConfigurationProviderEmpty()
+        TaintConfigurationProviderEmpty
     }
-    private val taintConfiguration: TaintConfiguration = taintConfigurationProvider.getConfiguration()
+    private val taintConfiguration: TaintConfiguration = run {
+        val config = taintConfigurationProvider.getConfiguration()
+        logger.debug { "Taint analysis configuration: $config" }
+        config
+    }
 
     private val taintMarkRegistry: TaintMarkRegistry = TaintMarkRegistry()
     private val taintMarkManager: TaintMarkManager = TaintMarkManager(taintMarkRegistry)
@@ -615,7 +618,7 @@ class UtBotSymbolicEngine(
         } catch (e: CancellationException) {
             logger.debug(e) { "Cancellation happened" }
         } catch (e: Throwable) {
-            emit(UtError("Default concrete execution failed", e));
+            emit(UtError("Default concrete execution failed", e))
         }
     }
 
@@ -648,7 +651,19 @@ class UtBotSymbolicEngine(
         }
 
         return if (symbolicResult is SymbolicFailure && symbolicSteps.last().callDepth != 0) {
-            // for exceptions
+            // If we have the following case:
+            // - method m1 calls method m2
+            // - m2 calls m3
+            // - m3 throws exception
+            // then `symbolicSteps` suffix looks like:
+            // - ...
+            // - method = m3, lineNumber = .., callDepth = 2
+            // - method = m3, lineNumber = 30, callDepth = 2 <- line with thrown exception
+            // - method = m2, lineNumber = 20, callDepth = 1
+            // - method = m1, lineNumber = 10, callDepth = 0
+            // So, we want to remove 2 last entries (m1 and m2) because the execution finished at the line 30,
+            // but `state.fullPath()` contains also reverse exits from methods after exception.
+            // So, we need to remove the elements from the end of the list until the depth of the neighbors is the same.
             symbolicSteps
                 .zipWithNext()
                 .dropLastWhile { (cur, next) -> cur.callDepth != next.callDepth }

@@ -93,26 +93,25 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.types.*
 import org.utbot.engine.types.ARRAYS_SOOT_CLASS
 import org.utbot.engine.types.CLASS_REF_SOOT_CLASS
 import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
 import org.utbot.engine.types.EQUALS_SIGNATURE
-import org.utbot.engine.types.NEW_INSTANCE_SIGNATURE
 import org.utbot.engine.types.HASHCODE_SIGNATURE
 import org.utbot.engine.types.METHOD_FILTER_MAP_FIELD_SIGNATURE
+import org.utbot.engine.types.NEW_INSTANCE_SIGNATURE
 import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.SECURITY_FIELD_SIGNATURE
-import org.utbot.engine.types.TypeRegistry
-import org.utbot.engine.types.TypeResolver
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.util.statics.concrete.makeEnumNonStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
-import org.utbot.framework.ExploreExceptionsDepth
+import org.utbot.framework.ExploreThrowableDepth
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
@@ -128,17 +127,9 @@ import org.utbot.framework.plugin.api.TypeReplacementMode.NoImplementors
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.isAbstractType
-import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.fieldId
-import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
-import org.utbot.framework.plugin.api.util.jField
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isConstructor
-import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
-import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.summary.ast.declaredClassName
 import org.utbot.framework.util.sootMethodOrNull
 import org.utbot.taint.TaintContext
@@ -809,11 +800,10 @@ class Traverser(
     private fun TraversalContext.traverseAssignStmt(current: JAssignStmt) {
         val rightValue = current.rightOp
 
-        if (UtSettings.exploreExceptionsDepth == ExploreExceptionsDepth.SKIP_ALL_STATEMENTS) {
+        if (UtSettings.exploreThrowableDepth == ExploreThrowableDepth.SKIP_ALL_STATEMENTS) {
             val rightType = rightValue.type
             if (rightValue is JNewExpr && rightType is RefType) {
-                val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
-                val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
+                val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(THROWABLE_TYPE)
 
                 // skip all the vertices in the CFG between `new` and `<init>` statements
                 if (rightType in throwableInheritors) {
@@ -2715,7 +2705,7 @@ class Traverser(
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
 
         if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(invokeExpr.method.executableId, args = parameters))
+            processTaintSink(SymbolicMethodData(invokeExpr.method.executableId, null, parameters, null))
         }
 
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
@@ -2748,7 +2738,7 @@ class Traverser(
         val resolvedParameters = resolveParameters(parameters, method.parameterTypes)
 
         if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(method.executableId, instance, resolvedParameters))
+            processTaintSink(SymbolicMethodData(method.executableId, instance, resolvedParameters, null))
         }
 
         val invocation = Invocation(instance, method, resolvedParameters) {
@@ -2899,9 +2889,8 @@ class Traverser(
     }
 
     private fun TraversalContext.specialInvoke(invokeExpr: JSpecialInvokeExpr): List<MethodResult> {
-        if (UtSettings.exploreExceptionsDepth == ExploreExceptionsDepth.SKIP_INIT_STATEMENT) {
-            val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
-            val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
+        if (UtSettings.exploreThrowableDepth == ExploreThrowableDepth.SKIP_INIT_STATEMENT) {
+            val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(THROWABLE_TYPE)
             if (invokeExpr.method.isConstructor && invokeExpr.method.declaringClass.type in throwableInheritors) {
                 // skip an exception's init
                 globalGraph.visitEdge(environment.state.lastEdge!!)
@@ -2922,7 +2911,7 @@ class Traverser(
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
 
         if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(method.executableId, instance, parameters))
+            processTaintSink(SymbolicMethodData(method.executableId, instance, parameters, null))
         }
 
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
@@ -2960,8 +2949,8 @@ class Traverser(
         // If we have some method 'foo` and a method `bar(List<Integer>), and inside `foo`
         // there is an invocation `bar(object)`, this object must have information about
         // its `Integer` generic type.
-        invocation.parameters.mapIndexed { index, param ->
-            if (param !is ReferenceValue) return@mapIndexed
+        invocation.parameters.forEachIndexed { index, param ->
+            if (param !is ReferenceValue) return@forEachIndexed
 
             updateGenericTypeInfoFromMethod(method, param, parameterIndex = index + 1)
         }
@@ -4202,7 +4191,9 @@ class Traverser(
         methodResult: MethodResult
     ): SymbolicMethodData {
         val methodId = invokeExpr.method.executableId
-        val sootMethod = methodId.sootMethodOrNull ?: return SymbolicMethodData(methodId)
+        // The method not in soot for some reasons.
+        // For example, it is synthetic and so it should not be processed in taint analysis.
+        val sootMethod = methodId.sootMethodOrNull ?: return SymbolicMethodData.constructInvalid(methodId)
 
         val symbolicBase = invokeExpr.baseOrNull()?.let { resolve(it, sootMethod.declaringClass.type) }
         val symbolicArgs = resolveParameters(invokeExpr.args, sootMethod.parameterTypes)
@@ -4279,38 +4270,33 @@ class Traverser(
     }
 
     private fun TraversalContext.processTaintSink(methodData: SymbolicMethodData) {
-        val methodFqn = "${methodData.methodId.classId.simpleName}.${methodData.methodId.name}"
+        val methodName = methodData.methodId.simpleNameWithClass
         val sinkConfigurations = taintContext.configuration.getSinksBy(methodData.methodId)
 
         for (sink in sinkConfigurations) {
             val condition = sink.condition.toBoolExpr(this@Traverser, methodData)
 
             for (entity in sink.check.entities) {
-                val symbolicEntity = methodData.choose(entity)
-                    ?: continue
-                val entityAddr = symbolicEntity.addrOrNull
-                    ?: continue
+                val symbolicEntity = methodData.choose(entity) ?: continue
+                val entityAddr = symbolicEntity.addrOrNull ?: continue
                 val taintedVarType = symbolicEntity.type.toQuotedString()
 
-                when (sink.marks) {
-                    is TaintMarksAll -> {
-                        val containsAnyMark = taintContext.markManager.containsAnyMark(memory, entityAddr)
-
+                if (sink.marks is TaintMarksAll || UtSettings.ThrowTaintErrorOnlyForAllMarks) {
+                    val containsAnyMark = taintContext.markManager.containsAnyMark(memory, entityAddr)
+                    implicitlyThrowException(
+                        TaintAnalysisError(methodName, taintedVarType, "tainted"),
+                        setOf(mkAnd(containsAnyMark, condition))
+                    )
+                } else if (sink.marks is TaintMarksSet) {
+                    for (mark in sink.marks.marks) {
+                        val containsMark = taintContext.markManager.containsMark(memory, entityAddr, mark)
                         implicitlyThrowException(
-                            TaintAnalysisError(methodFqn, taintedVarType, "tainted"),
-                            setOf(mkAnd(containsAnyMark, condition))
+                            TaintAnalysisError(methodName, taintedVarType, mark.name),
+                            setOf(mkAnd(containsMark, condition))
                         )
                     }
-                    is TaintMarksSet -> {
-                        for (mark in sink.marks.marks) {
-                            val containsMark = taintContext.markManager.containsMark(memory, entityAddr, mark)
-
-                            implicitlyThrowException(
-                                TaintAnalysisError(methodFqn, taintedVarType, mark.name),
-                                setOf(mkAnd(containsMark, condition))
-                            )
-                        }
-                    }
+                } else {
+                    error("${sink.marks::class.java.canonicalName} not is TaintMarksAll and not is TaintMarksSet")
                 }
             }
         }

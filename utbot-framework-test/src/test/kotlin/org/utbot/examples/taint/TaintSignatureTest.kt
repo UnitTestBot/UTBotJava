@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.TaintAnalysisError
 import org.utbot.taint.TaintConfigurationProviderResources
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.ge
 import org.utbot.testing.UtValueTestCaseCheckerForTaint
 import org.utbot.testing.isException
 
@@ -16,40 +15,45 @@ internal class TaintSignatureTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBad() {
         checkWithException(
             TaintSignature::badFakeCleaner,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodCleaner() {
-        check(
+        checkWithException(
             TaintSignature::goodCleaner,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodFakeSources() {
-        check(
+        checkWithException(
             TaintSignature::goodFakeSources,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodFakePass() {
-        check(
+        checkWithException(
             TaintSignature::goodFakePass,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodFakeSink() {
-        check(
+        checkWithException(
             TaintSignature::goodFakeSink,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 }

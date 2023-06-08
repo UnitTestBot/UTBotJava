@@ -5,6 +5,9 @@ sources:
   - org.utbot.examples.taint.TaintSeveralMarks.source2:
       add-to: return
       marks: mark2
+  - org.utbot.examples.taint.TaintSeveralMarks.sourceAll:
+      add-to: return
+      marks: [ mark1, mark2 ]
 
 passes:
   - org.utbot.examples.taint.TaintSeveralMarks.pass1:

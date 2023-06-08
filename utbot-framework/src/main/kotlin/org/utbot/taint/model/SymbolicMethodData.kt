@@ -9,13 +9,18 @@ import org.utbot.taint.TaintUtil.chooseRelatedValue
  */
 data class SymbolicMethodData(
     val methodId: ExecutableId,
-    val base: SymbolicValue? = null,
-    val args: List<SymbolicValue> = listOf(),
-    val result: SymbolicValue? = null
+    val base: SymbolicValue?,
+    val args: List<SymbolicValue>,
+    val result: SymbolicValue?
 ) {
     /**
      * Returns symbolic value (base, argN or result) corresponding to the [entity].
      */
     fun choose(entity: TaintEntity): SymbolicValue? =
         entity.chooseRelatedValue(base, args, result)
+
+    companion object {
+        fun constructInvalid(methodId: ExecutableId): SymbolicMethodData =
+            SymbolicMethodData(methodId, null, listOf(), null)
+    }
 }

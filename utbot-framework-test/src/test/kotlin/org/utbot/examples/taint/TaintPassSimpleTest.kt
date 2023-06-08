@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.TaintAnalysisError
 import org.utbot.taint.TaintConfigurationProviderResources
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.ge
 import org.utbot.testing.UtValueTestCaseCheckerForTaint
 import org.utbot.testing.isException
 
@@ -16,8 +15,9 @@ internal class TaintPassSimpleTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBad() {
         checkWithException(
             TaintPassSimple::bad,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
@@ -25,16 +25,18 @@ internal class TaintPassSimpleTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBadDoublePass() {
         checkWithException(
             TaintPassSimple::badDoublePass,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGood() {
-        check(
+        checkWithException(
             TaintPassSimple::good,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 }

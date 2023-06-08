@@ -122,10 +122,7 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
 fun JimpleBody.graph() = ExceptionalUnitGraph(this)
 
 val ExecutableId.sootMethod: SootMethod
-    get() {
-        val clazz = Scene.v().getSootClass(classId.name)
-        return clazz.methods.single { it.pureJavaSignature == signature }
-    }
+    get() = sootMethodOrNull ?: error("Class contains not only one method with the required signature.")
 
 val ExecutableId.sootMethodOrNull: SootMethod?
     get() {

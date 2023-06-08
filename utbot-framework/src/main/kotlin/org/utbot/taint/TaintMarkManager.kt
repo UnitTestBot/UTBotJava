@@ -22,7 +22,7 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
         val taintVector = memory.taintVector(addr).toLongValue()
         val taintMarkId = markRegistry.idByMark(mark)
         val taintMarkVector = mkLong(taintMarkId).toLongValue()
-        return mkNot(mkEq(And(taintVector, taintMarkVector), mkLong(0L)))
+        return mkNot(mkEq(And(taintVector, taintMarkVector), bvExpr0))
     }
 
     /**
@@ -30,11 +30,12 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
      */
     fun containsAnyMark(memory: Memory, addr: UtAddrExpression): UtBoolExpression {
         val taintVector = memory.taintVector(addr).toLongValue()
-        return mkNot(mkEq(taintVector, mkLong(0L).toLongValue()))
+        return mkNot(mkEq(taintVector, bvExpr0.toLongValue()))
     }
 
     /**
-     * Sets taint [marks] to the taint vector at address [addr] if [condition] is true.
+     * Replaces the taint vector at address [addr] with a new taint vector constructed from [marks].
+     * Replaces only if [condition] is true.
      */
     fun setMarks(
         memory: Memory,
@@ -103,11 +104,10 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
         val taintMarks = constructTaintVector(marks).toLongValue()
         val oldTaintVectorFrom = memory.taintVector(fromAddr).toLongValue()
         val intersection = And(taintMarks, oldTaintVectorFrom)
-        val hasAtLeastOneMark = mkNot(mkEq(intersection, mkLong(0)))
+        val hasAtLeastOneMark = mkNot(mkEq(intersection, bvExpr0))
 
         val oldTaintVectorExprTo = memory.taintVector(toAddr)
-        val taintMarksToAdd = if (marks is TaintMarksAll) intersection.toLongValue() else taintMarks
-        val newTaintVectorExprTo = Or(taintMarksToAdd, oldTaintVectorExprTo.toLongValue())
+        val newTaintVectorExprTo = Or(oldTaintVectorExprTo.toLongValue(), intersection.toLongValue())
 
         val taintUpdateExpr = UtIteExpression(
             mkAnd(condition, hasAtLeastOneMark),
@@ -119,6 +119,8 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
     }
 
     // internal
+
+    private val bvExpr0 = mkLong(0L)
 
     /**
      * Returns taint vector that represents [marks].

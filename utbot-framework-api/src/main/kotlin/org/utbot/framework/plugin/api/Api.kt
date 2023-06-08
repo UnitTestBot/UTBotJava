@@ -102,6 +102,11 @@ data class Step(
     }
 }
 
+/**
+ * One symbolic step.
+ *
+ * @see UtSymbolicExecution.symbolicSteps
+ */
 data class SymbolicStep(
     val method: SootMethod,
     val lineNumber: Int,
@@ -158,7 +163,7 @@ class UtSymbolicExecution(
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
     displayName: String? = null,
-    val symbolicSteps: List<SymbolicStep> = listOf(),
+    /** Convenient view of the full symbolic path */ val symbolicSteps: List<SymbolicStep> = listOf(),
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.

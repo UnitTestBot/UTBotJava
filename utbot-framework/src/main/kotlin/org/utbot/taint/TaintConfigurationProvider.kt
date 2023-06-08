@@ -1,17 +1,25 @@
 package org.utbot.taint
 
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.internal.synchronized
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.utBotTempDirectory
 import org.utbot.taint.model.TaintConfiguration
 import org.utbot.taint.parser.yaml.TaintYamlParser
 import java.io.File
 
+const val MODIFICATION_TIME_INVALID = 0L
 const val TAINT_CONFIGURATION_RESOURCES_PATH = "taint/config.yaml"
 const val TAINT_CONFIGURATION_CACHED_DEFAULT_NAME = "taint-config-cached"
+
+val lockResourcesCachedFile = Object()
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Provide the [TaintConfiguration].
@@ -34,8 +42,8 @@ interface TaintConfigurationProvider {
 /**
  * Provides an empty [TaintConfiguration].
  */
-class TaintConfigurationProviderEmpty : TaintConfigurationProvider {
-    override fun lastModified() = 0L
+object TaintConfigurationProviderEmpty : TaintConfigurationProvider {
+    override fun lastModified() = MODIFICATION_TIME_INVALID
     override fun getConfiguration() = TaintConfiguration() // no rules
 }
 
@@ -61,8 +69,8 @@ class TaintConfigurationProviderResources(
             else -> error("Cannot choose between several taint configurations: $configUrls")
         }
         val yamlInput = configUrl.readText()
-        val dtoConfig = TaintYamlParser.parse(yamlInput)
-        return YamlTaintConfigurationAdapter.convert(dtoConfig)
+        val yamlConfig = TaintYamlParser.parse(yamlInput)
+        return YamlTaintConfigurationAdapter.convert(yamlConfig)
     }
 }
 
@@ -76,7 +84,7 @@ class TaintConfigurationProviderUserRules(private val configPath: String) : Tain
     override fun lastModified(): Long {
         val configFile = configPath.toPath().toFile()
         if (!configFile.exists()) {
-            return 0
+            return MODIFICATION_TIME_INVALID
         }
         return configFile.lastModified()
     }
@@ -84,11 +92,14 @@ class TaintConfigurationProviderUserRules(private val configPath: String) : Tain
     override fun getConfiguration(): TaintConfiguration {
         val configFile = configPath.toPath().toFile()
         if (!configFile.exists()) {
+            logger.warn { "Taint analysis configuration not found: file $configPath doesn't exist." }
             return TaintConfiguration()
+        } else {
+            logger.info { "Used taint analysis configuration from file $configPath." }
         }
         val yamlInput = configFile.readText()
-        val dtoConfig = TaintYamlParser.parse(yamlInput)
-        return YamlTaintConfigurationAdapter.convert(dtoConfig)
+        val yamlConfig = TaintYamlParser.parse(yamlInput)
+        return YamlTaintConfigurationAdapter.convert(yamlConfig)
     }
 }
 
@@ -98,7 +109,7 @@ class TaintConfigurationProviderUserRules(private val configPath: String) : Tain
 class TaintConfigurationProviderCombiner(private val inners: List<TaintConfigurationProvider>) : TaintConfigurationProvider {
 
     override fun lastModified(): Long {
-        return inners.maxOf { it.lastModified() }
+        return inners.maxOfOrNull { it.lastModified() } ?: MODIFICATION_TIME_INVALID
     }
 
     override fun getConfiguration(): TaintConfiguration =
@@ -123,18 +134,25 @@ class TaintConfigurationProviderCached(
     private val cachedConfigFile = utBotTempDirectory.resolve(cachedConfigName).toFile()
 
     override fun lastModified(): Long {
+        if (!cachedConfigFile.exists()) {
+            return MODIFICATION_TIME_INVALID
+        }
         return cachedConfigFile.lastModified()
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
+    @OptIn(InternalCoroutinesApi::class, ExperimentalSerializationApi::class)
     override fun getConfiguration(): TaintConfiguration =
         if (!cachedConfigFile.exists() || cachedConfigFile.lastModified() < inner.lastModified()) {
             val config = inner.getConfiguration()
             val bytes = Cbor.encodeToByteArray(config)
-            cachedConfigFile.writeBytes(bytes)
+            synchronized(lockResourcesCachedFile) {
+                cachedConfigFile.writeBytes(bytes)
+            }
             config
         } else {
-            val bytes = cachedConfigFile.readBytes()
+            val bytes = synchronized(lockResourcesCachedFile) {
+                cachedConfigFile.readBytes()
+            }
             Cbor.decodeFromByteArray(bytes)
         }
 }

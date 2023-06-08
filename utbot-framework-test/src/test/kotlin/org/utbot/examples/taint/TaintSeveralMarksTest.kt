@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.TaintAnalysisError
 import org.utbot.taint.TaintConfigurationProviderResources
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.ge
 import org.utbot.testing.UtValueTestCaseCheckerForTaint
 import org.utbot.testing.isException
 
@@ -16,8 +15,9 @@ internal class TaintSeveralMarksTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBad1() {
         checkWithException(
             TaintSeveralMarks::bad1,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
@@ -25,17 +25,29 @@ internal class TaintSeveralMarksTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBad2() {
         checkWithException(
             TaintSeveralMarks::bad2,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
     @Test
-    fun testTaintBadAll() {
+    fun testTaintBadSourceAll() {
         checkWithException(
-            TaintSeveralMarks::badAll,
-            ge(3), // success & taint error (x2)
+            TaintSeveralMarks::badSourceAll,
+            eq(4), // success & taint error (x3)
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
+        )
+    }
+
+    @Test
+    fun testTaintBadSinkAll() {
+        checkWithException(
+            TaintSeveralMarks::badSinkAll,
+            eq(3), // success & taint error (x2)
+            { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
@@ -43,48 +55,54 @@ internal class TaintSeveralMarksTest : UtValueTestCaseCheckerForTaint(
     fun testTaintBadWrongCleaner() {
         checkWithException(
             TaintSeveralMarks::badWrongCleaner,
-            ge(2), // success & taint error
+            eq(2), // success & taint error
             { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGood1() {
-        check(
+        checkWithException(
             TaintSeveralMarks::good1,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGood2() {
-        check(
+        checkWithException(
             TaintSeveralMarks::good2,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodWrongSource() {
-        check(
+        checkWithException(
             TaintSeveralMarks::goodWrongSource,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 
     @Test
     fun testTaintGoodWrongSink() {
-        check(
+        checkWithException(
             TaintSeveralMarks::goodWrongSink,
             eq(1), // only success
+            { r -> r.isSuccess }
         )
     }
 
     @Test
     fun testTaintGoodWrongPass() {
-        check(
+        checkWithException(
             TaintSeveralMarks::goodWrongPass,
             eq(1), // only success
+            { r -> r.isSuccess },
         )
     }
 }

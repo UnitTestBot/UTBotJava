@@ -20,7 +20,6 @@ import org.utbot.engine.UtMockInfo
 import org.utbot.engine.UtNamedStore
 import org.utbot.engine.pc.Simplificator
 import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.UtExpression
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
@@ -186,9 +185,9 @@ class MemoryUpdateSimplificator(
 
     private fun simplifyTaintArrayUpdate(taintArrayUpdate: TaintArrayUpdateType): TaintArrayUpdateType =
         taintArrayUpdate.mutate { values ->
-            values.replaceAll {
-                val simplifiedAddr = it.first.accept(simplificator) as UtAddrExpression
-                val simplifiedExpr = it.second.accept(simplificator)
+            values.replaceAll { (addr, expr) ->
+                val simplifiedAddr = addr.accept(simplificator) as UtAddrExpression
+                val simplifiedExpr = expr.accept(simplificator)
 
                 simplifiedAddr to simplifiedExpr
             }

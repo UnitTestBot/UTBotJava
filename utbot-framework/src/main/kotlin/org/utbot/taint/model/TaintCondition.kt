@@ -31,8 +31,7 @@ class ConditionEqualValue(
     private val argumentValue: ArgumentValue
 ) : TaintCondition {
     override fun toBoolExpr(traverser: Traverser, methodData: SymbolicMethodData): UtBoolExpression {
-        val symbolicValue = methodData.choose(entity) ?:
-            return UtFalse
+        val symbolicValue = methodData.choose(entity) ?: return UtFalse
         // TODO: support java.lang.Boolean, java.lang.Integer, etc.
         return when (argumentValue) {
             ArgumentValueNull -> {
@@ -77,8 +76,7 @@ class ConditionIsType(
     private val argumentType: ArgumentType
 ) : TaintCondition {
     override fun toBoolExpr(traverser: Traverser, methodData: SymbolicMethodData): UtBoolExpression {
-        val symbolicValue = methodData.choose(entity) ?:
-            return UtFalse
+        val symbolicValue = methodData.choose(entity) ?: return UtFalse
         return when (argumentType) {
             ArgumentTypeAny -> UtTrue
             is ArgumentTypeString -> {
@@ -94,6 +92,7 @@ class ConditionIsType(
                         val argumentRefType = Scene.v().getRefTypeUnsafe(argumentType.typeFqn)
                             ?: return UtFalse
                         val typeStorage = traverser.typeResolver.constructTypeStorage(argumentRefType, useConcreteType = false)
+                        // not `.isConstraintOrNull()` because null objects are not allowed (like java `instanceof`)
                         traverser.typeRegistry.typeConstraint(symbolicValue.addr, typeStorage).isConstraint()
                     }
                 }

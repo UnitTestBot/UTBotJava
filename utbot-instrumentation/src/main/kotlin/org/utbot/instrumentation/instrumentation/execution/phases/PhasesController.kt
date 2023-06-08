@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import java.security.AccessControlException
@@ -66,5 +67,37 @@ class PhasesController(
         currentlyElapsed += blockElapsed
 
         return@start result.getOrThrow() as T
+    }
+
+    fun applyPreprocessing(parameters: UtConcreteExecutionData): ConstructedData {
+
+        val constructedData = executePhaseInTimeout(valueConstructionPhase) {
+            val params = constructParameters(parameters.stateBefore)
+            val statics = constructStatics(parameters.stateBefore)
+
+            // here static methods and instances are mocked
+            mock(parameters.instrumentation)
+
+            ConstructedData(params, statics, getCache())
+        }
+
+        // invariants:
+        // 1. phase must always complete if started as static reset relies on it
+        // 2. phase must be fast as there are no incremental changes
+        postprocessingPhase.setStaticFields(preparationPhase.start {
+            val result = setStaticFields(constructedData.statics)
+            resetTrace()
+            resetND()
+            result
+        })
+
+        return constructedData
+    }
+
+    fun applyPostprocessing() {
+        postprocessingPhase.start {
+            resetStaticFields()
+            valueConstructionPhase.resetMockMethods()
+        }
     }
 }

@@ -438,6 +438,13 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
+            // in case of processed failure in the concrete execution
+            val result = concreteExecutionResult.result
+            if (result is UtConcreteExecutionProcessedFailure) {
+                logger.debug { "Instrumented process failed with exception ${result.exception} before concrete execution started" }
+                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+            }
+
             if (concreteExecutionResult.violatesUtMockAssumption()) {
                 logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
@@ -455,7 +462,6 @@ class UtBotSymbolicEngine(
                 }
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with $values" }
-                val result = concreteExecutionResult.result
                 if (result is UtSandboxFailure) {
                     val stackTraceElements = result.exception.stackTrace.reversed()
                     if (errorStackTraceTracker.add(stackTraceElements).count > 1) {

@@ -29,7 +29,7 @@ data class Version(
                 (another.patch.isEmpty() || patch.isNotEmpty() && patch.toInt() >= another.patch.toInt())
     }
 
-    fun hasNumericOrEmptyPatch(): Boolean = patch.toIntOrNull() != null
+    fun hasNumericOrEmptyPatch(): Boolean = patch.isEmpty() || patch.toIntOrNull() != null
 }
 
 fun String.parseVersion(): Version? {

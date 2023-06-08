@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
+import org.utbot.framework.codegen.domain.builtin.autowiredClassId
 import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
 import org.utbot.framework.codegen.domain.builtin.mockClassId
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -87,7 +88,11 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
         groupedModelsByClassId: TypedModelWrappers,
         annotationClassId: ClassId
     ): List<CgFieldDeclaration> {
-        require(annotationClassId == injectMocksClassId || annotationClassId == mockClassId) {
+        require(
+            annotationClassId == injectMocksClassId ||
+                    annotationClassId == mockClassId ||
+                    annotationClassId == autowiredClassId
+        ) {
             error("Unexpected annotation classId -- $annotationClassId")
         }
 

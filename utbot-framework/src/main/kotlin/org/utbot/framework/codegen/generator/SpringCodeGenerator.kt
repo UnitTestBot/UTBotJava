@@ -61,8 +61,7 @@ class SpringCodeGenerator(
         logger.info { "Code generation phase started at ${now()}" }
         val astConstructor = when (springTestsType) {
             SpringTestsType.UNIT_TESTS -> CgSpringUnitTestClassConstructor(context)
-            // TODO replace with CgSpringIntegrationTestClassConstructor
-            SpringTestsType.INTEGRATION_TESTS -> CgSpringUnitTestClassConstructor(context)
+            SpringTestsType.INTEGRATION_TESTS -> CgSpringIntegrationTestClassConstructor(context)
         }
         val testClassFile = astConstructor.construct(testClassModel)
         logger.info { "Code generation phase finished at ${now()}" }

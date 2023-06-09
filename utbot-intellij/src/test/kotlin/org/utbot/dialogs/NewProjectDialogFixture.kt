@@ -89,7 +89,6 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
                 keyboard{
                     hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
                     enterText(input.replace("\\", "\\\\"))
-                    enter()
                 }
             }
             this.findText(language).click()

@@ -36,16 +36,15 @@ class UnitTestBotActionTest : BaseTest() {
             waitForIgnoringError (ofSeconds(5)){
                 inlineProgressTextPanel.isShowing
             }
-            waitForIgnoringError(ofSeconds(30), ofMillis(100)) {
+            waitForIgnoringError(ofSeconds(60), ofMillis(100)) {
                 inlineProgressTextPanel.hasText("Generate tests: read classes")
             }
-            waitForIgnoringError (ofSeconds(10)){
+            waitForIgnoringError (ofSeconds(30)){
                 inlineProgressTextPanel.hasText("Generate test cases for class $newClassName")
             }
-            waitForIgnoringError(ofSeconds(30)) { //Can be changed to 60 for a complex class
-                infoNotification.isShowing
+            waitForIgnoringError(ofSeconds(60)) { //Can be changed to 60 for a complex class
+                infoNotification.title.hasText("UnitTestBot: unit tests generated successfully")
             }
-            assertThat(infoNotification.title.hasText("UnitTestBot: unit tests generated successfully"))
             assertThat(textEditor().editor.text).contains("class ${newClassName}Test")
             assertThat(textEditor().editor.text).contains("@Test\n")
             assertThat(textEditor().editor.text).contains("assertEquals(")

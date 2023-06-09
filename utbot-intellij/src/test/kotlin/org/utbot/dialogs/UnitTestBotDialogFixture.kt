@@ -13,6 +13,14 @@ class UnitTestBotDialogFixture(
     remoteComponent: RemoteComponent) : DialogFixture(remoteRobot, remoteComponent) {
     val keyboard: Keyboard = Keyboard(remoteRobot)
 
+    val sdkNotificationLabel
+        get() = jLabel(
+            byXpath("//div[@class='SdkNotificationPanel']//div[@defaulticon='fatalError.svg']"))
+
+    val setupSdkLink
+        get() = actionLink(
+            byXpath("//div[@class='SdkNotificationPanel']//div[@class='HyperlinkLabel']"))
+
     val testSourcesRootComboBox
         get() = comboBox(
             byXpath("//div[@class='TestFolderComboWithBrowseButton']/div[1]"))

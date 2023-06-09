@@ -6,7 +6,9 @@ import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.Keyboard
-import com.intellij.remoterobot.utils.waitFor
+import com.intellij.remoterobot.utils.keyboard
+import com.intellij.remoterobot.utils.waitForIgnoringError
+import org.utbot.data.DEFAULT_PROJECT_DIRECTORY
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import java.awt.event.KeyEvent
@@ -60,15 +62,12 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
     fun selectJDK(jdkVersion: String) {
         step("Select JDK: $jdkVersion") {
             jdkComboBox.click()
-            try {
-                waitFor(ofSeconds(10)) {
-                    findAll<ComponentFixture>(byXpath("//*[@text.key='progress.title.detecting.sdks']")).isNotEmpty()
-                }
-            } catch (ignore: Throwable) {}
-            waitFor(ofSeconds(20)) {
+            var jdkMatching = jdkVersion
+            waitForIgnoringError(ofSeconds(20)) {
                 findAll<ComponentFixture>(byXpath("//*[@text.key='progress.title.detecting.sdks']")).isEmpty()
+                jdkMatching = jdkList.collectItems().first { it.contains(jdkVersion) }
+                jdkMatching.isEmpty().not()
             }
-            val jdkMatching = jdkList.collectItems().first { it.contains(jdkVersion) }
             jdkList.clickItem(jdkMatching)
         }
     }
@@ -83,11 +82,15 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
             nameInput.doubleClick()
             keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
             keyboard.enterText(projectName)
+            var input = DEFAULT_PROJECT_DIRECTORY
             if (location != "") {
-                if (locationInput.hasText(location).not()) {
-                    locationInput.doubleClick()
-                    keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
-                    keyboard.enterText(location.replace("\\", "\\\\"))
+                input = location
+            }
+            if (locationInput.hasText(input).not()) {
+                locationInput.click()
+                keyboard{
+                    hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
+                    enterText(input.replace("\\", "\\\\"))
                 }
             }
             this.findText(language).click()

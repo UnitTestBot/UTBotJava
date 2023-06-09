@@ -4292,7 +4292,7 @@ class Traverser(
         val methodName = methodData.methodId.simpleNameWithClass
         val taintedVarType = symbolicEntity.type.toQuotedString()
 
-        if (UtSettings.throwTaintErrorOnlyForAllMarks) {
+        if (!UtSettings.throwTaintErrorForEachMarkSeparately) {
             implicitlyThrowException(
                 TaintAnalysisError(methodName, taintedVarType, "tainted"),
                 setOf(mkAnd(containsAnyMark, condition))

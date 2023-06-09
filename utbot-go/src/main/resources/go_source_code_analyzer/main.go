@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"go/parser"
-	"go/token"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,29 +13,18 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-const MaxTraceLength = 1024
-
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 }
 
-func getPackageName(path string) string {
-	fset := token.NewFileSet()
-
-	astFile, astErr := parser.ParseFile(fset, path, nil, parser.PackageClauseOnly)
-	checkError(astErr)
-
-	return astFile.Name.Name
-}
-
 func analyzeTarget(target AnalysisTarget) (*AnalysisResult, error) {
-	if len(target.TargetFunctionsNames) == 0 {
-		return nil, fmt.Errorf("target must contain target functions")
+	if len(target.TargetFunctionNames) == 0 && len(target.TargetMethodNames) == 0 {
+		return nil, fmt.Errorf("target must contain target functions or methods")
 	}
 
-	packageName := getPackageName(target.AbsoluteFilePath)
+	pkgPath := filepath.Dir(target.AbsoluteFilePath)
 
 	dir, _ := filepath.Split(target.AbsoluteFilePath)
 	cfg := packages.Config{
@@ -45,71 +32,57 @@ func analyzeTarget(target AnalysisTarget) (*AnalysisResult, error) {
 			packages.NeedImports | packages.NeedSyntax | packages.NeedFiles | packages.NeedCompiledGoFiles,
 		Dir: dir,
 	}
-	pkgs, err := packages.Load(&cfg, fmt.Sprintf("file=%s", target.AbsoluteFilePath))
-	if err != nil {
-		return nil, err
+	cfg.Env = os.Environ()
+	pkgs, err := packages.Load(&cfg, pkgPath)
+	checkError(err)
+	if len(pkgs) != 1 {
+		return nil, fmt.Errorf("cannot build multiple packages: %s", err)
+	}
+	if packages.PrintErrors(pkgs) > 0 {
+		return nil, fmt.Errorf("typechecking of %s failed", pkgPath)
 	}
 
-	for _, pkg := range pkgs {
-		if pkg.Name == packageName {
-			if len(pkg.CompiledGoFiles) != len(pkg.Syntax) {
-				return nil, fmt.Errorf("parsing returned nil for some files")
-			}
-			index := 0
-			for ; index < len(pkg.CompiledGoFiles); index++ {
-				p1, err := filepath.Abs(pkg.CompiledGoFiles[index])
-				checkError(err)
-				p2, err := filepath.Abs(target.AbsoluteFilePath)
-				checkError(err)
+	targetPackage := pkgs[0]
+	if len(targetPackage.CompiledGoFiles) != len(targetPackage.Syntax) {
+		return nil, fmt.Errorf("parsing returned nil for some files")
+	}
+	index := 0
+	for ; index < len(targetPackage.CompiledGoFiles); index++ {
+		p1, err := filepath.Abs(targetPackage.CompiledGoFiles[index])
+		checkError(err)
+		p2, err := filepath.Abs(target.AbsoluteFilePath)
+		checkError(err)
 
-				if p1 == p2 {
-					break
-				}
-			}
-			if index == len(pkg.CompiledGoFiles) {
-				return nil, fmt.Errorf("target file not found in compiled go files")
-			}
-
-			allImportsInFile := map[Import]bool{}
-			for _, i := range pkg.Syntax[index].Imports {
-				packagePath := i.Path.Value[1 : len(i.Path.Value)-1]
-				pkgName := pkg.Imports[packagePath].Name
-				p := Package{
-					PackageName: pkgName,
-					PackagePath: packagePath,
-				}
-
-				var alias string
-				if i.Name.String() != "<nil>" {
-					alias = i.Name.String()
-				}
-
-				allImportsInFile[Import{Package: p, Alias: alias}] = true
-			}
-
-			// collect required info about selected functions
-			analyzedFunctions, notSupportedFunctionsNames, notFoundFunctionsNames :=
-				collectTargetAnalyzedFunctions(
-					pkg.Fset,
-					pkg.TypesInfo,
-					target.TargetFunctionsNames,
-					allImportsInFile,
-					Package{
-						PackageName: pkg.Name,
-						PackagePath: pkg.PkgPath,
-					},
-				)
-
-			return &AnalysisResult{
-				AbsoluteFilePath:           target.AbsoluteFilePath,
-				SourcePackage:              Package{PackageName: packageName, PackagePath: pkg.PkgPath},
-				AnalyzedFunctions:          analyzedFunctions,
-				NotSupportedFunctionsNames: notSupportedFunctionsNames,
-				NotFoundFunctionsNames:     notFoundFunctionsNames,
-			}, nil
+		if p1 == p2 {
+			break
 		}
 	}
-	return nil, fmt.Errorf("package %s not found", packageName)
+	if index == len(targetPackage.CompiledGoFiles) {
+		return nil, fmt.Errorf("target file not found in compiled go files")
+	}
+
+	// collect required info about selected functions
+	analyzedFunctions, notSupportedFunctionsNames, notFoundFunctionsNames :=
+		collectTargetAnalyzedFunctions(
+			targetPackage.TypesInfo,
+			target.TargetFunctionNames,
+			target.TargetMethodNames,
+			Package{
+				Name: targetPackage.Name,
+				Path: targetPackage.PkgPath,
+			},
+		)
+
+	return &AnalysisResult{
+		AbsoluteFilePath: target.AbsoluteFilePath,
+		SourcePackage: Package{
+			Name: targetPackage.Name,
+			Path: targetPackage.PkgPath,
+		},
+		AnalyzedFunctions:         analyzedFunctions,
+		NotSupportedFunctionNames: notSupportedFunctionsNames,
+		NotFoundFunctionNames:     notFoundFunctionsNames,
+	}, nil
 }
 
 func main() {
@@ -145,9 +118,8 @@ func main() {
 	wg.Wait()
 
 	analysisResults := AnalysisResults{
-		Results:        results,
-		IntSize:        strconv.IntSize,
-		MaxTraceLength: MaxTraceLength,
+		Results: results,
+		IntSize: strconv.IntSize,
 	}
 
 	// serialize and write results

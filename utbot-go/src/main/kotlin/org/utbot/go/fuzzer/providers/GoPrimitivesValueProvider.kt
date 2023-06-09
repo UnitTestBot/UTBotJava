@@ -5,13 +5,12 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.*
 import org.utbot.go.GoDescription
-import org.utbot.go.api.GoPrimitiveTypeId
-import org.utbot.go.api.GoUtComplexModel
-import org.utbot.go.api.GoUtPrimitiveModel
+import org.utbot.go.api.*
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import java.util.*
+import kotlin.math.sign
 
 object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
     private val random = Random(0)
@@ -20,7 +19,6 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescript
 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
-            val intSize = description.intSize
             type.let { it as GoPrimitiveTypeId }.also { primitiveType ->
                 val primitives: List<Seed<GoTypeId, GoUtModel>> = when (primitiveType) {
                     goBoolTypeId -> listOf(
@@ -156,7 +154,14 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescript
     private fun generateFloat32Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, GoUtModel>> {
         return listOf(
             Seed.Known(IEEE754Value.fromFloat(random.nextFloat())) { obj: IEEE754Value ->
-                GoUtPrimitiveModel(obj.toFloat(), typeId)
+                val d = obj.toFloat()
+                if (d.isInfinite()) {
+                    GoUtFloatInfModel(d.sign.toInt(), typeId)
+                } else if (d.isNaN()) {
+                    GoUtFloatNaNModel(typeId)
+                } else {
+                    GoUtPrimitiveModel(d, typeId)
+                }
             }
         )
     }
@@ -164,7 +169,14 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescript
     private fun generateFloat64Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, GoUtModel>> {
         return listOf(
             Seed.Known(IEEE754Value.fromDouble(random.nextDouble())) { obj: IEEE754Value ->
-                GoUtPrimitiveModel(obj.toDouble(), typeId)
+                val d = obj.toDouble()
+                if (d.isInfinite()) {
+                    GoUtFloatInfModel(d.sign.toInt(), typeId)
+                } else if (d.isNaN()) {
+                    GoUtFloatNaNModel(typeId)
+                } else {
+                    GoUtPrimitiveModel(d, typeId)
+                }
             }
         )
     }

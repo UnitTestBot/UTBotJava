@@ -4,13 +4,16 @@ import org.utbot.go.api.*
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
+import kotlin.properties.Delegates
 import kotlin.reflect.KClass
+
+var intSize by Delegates.notNull<Int>()
 
 val goByteTypeId = GoPrimitiveTypeId("byte")
 val goBoolTypeId = GoPrimitiveTypeId("bool")
 
-val goComplex128TypeId = GoPrimitiveTypeId("complex128")
 val goComplex64TypeId = GoPrimitiveTypeId("complex64")
+val goComplex128TypeId = GoPrimitiveTypeId("complex128")
 
 val goFloat32TypeId = GoPrimitiveTypeId("float32")
 val goFloat64TypeId = GoPrimitiveTypeId("float64")
@@ -72,9 +75,6 @@ val goSupportedConstantTypes = setOf(
     goUintPtrTypeId,
 )
 
-val GoTypeId.isPrimitiveGoType: Boolean
-    get() = this in goPrimitives
-
 private val goTypesNeverRequireExplicitCast = setOf(
     goBoolTypeId,
     goComplex128TypeId,
@@ -90,7 +90,7 @@ val GoPrimitiveTypeId.neverRequiresExplicitCast: Boolean
 /**
  * This method is useful for converting the string representation of a Go value to its more accurate representation.
  */
-private fun GoPrimitiveTypeId.correspondingKClass(intSize: Int): KClass<out Any> = when (this) {
+private fun GoPrimitiveTypeId.correspondingKClass(): KClass<out Any> = when (this) {
     goBoolTypeId -> Boolean::class
     goFloat32TypeId -> Float::class
     goFloat64TypeId -> Double::class
@@ -109,8 +109,8 @@ private fun GoPrimitiveTypeId.correspondingKClass(intSize: Int): KClass<out Any>
     else -> String::class // default way to hold GoUtPrimitiveModel's value is to use String
 }
 
-fun rawValueOfGoPrimitiveTypeToValue(typeId: GoPrimitiveTypeId, rawValue: String, intSize: Int): Any =
-    when (typeId.correspondingKClass(intSize)) {
+fun rawValueOfGoPrimitiveTypeToValue(typeId: GoPrimitiveTypeId, rawValue: String): Any =
+    when (typeId.correspondingKClass()) {
         UByte::class -> rawValue.toUByte()
         Boolean::class -> rawValue.toBoolean()
         Float::class -> rawValue.toFloat()
@@ -125,61 +125,108 @@ fun rawValueOfGoPrimitiveTypeToValue(typeId: GoPrimitiveTypeId, rawValue: String
         else -> rawValue
     }
 
+/**
+ * This method is useful for creating a GoUtModel with a default value.
+ */
 fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     is GoPrimitiveTypeId -> when (this) {
+        goByteTypeId -> GoUtPrimitiveModel("0".toUByte(), this)
         goBoolTypeId -> GoUtPrimitiveModel(false, this)
-        goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> GoUtPrimitiveModel(
-            0,
+        goComplex64TypeId -> GoUtComplexModel(
+            goFloat32TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
+            goFloat32TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
             this
         )
 
-        goByteTypeId, goUintTypeId, goUint8TypeId, goUint16TypeId, goUint32TypeId, goUint64TypeId -> GoUtPrimitiveModel(
-            0,
-            this
-        )
-
-        goFloat32TypeId, goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
-        goComplex64TypeId, goComplex128TypeId -> GoUtComplexModel(
+        goComplex128TypeId -> GoUtComplexModel(
             goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
             goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
             this
         )
 
+        goFloat32TypeId -> GoUtPrimitiveModel(0.0f, this)
+        goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
+        goInt8TypeId -> GoUtPrimitiveModel("0".toByte(), this)
+        goInt16TypeId -> GoUtPrimitiveModel("0".toShort(), this)
+        goInt32TypeId -> GoUtPrimitiveModel("0".toInt(), this)
+        goIntTypeId -> if (intSize == 32) {
+            GoUtPrimitiveModel("0".toInt(), this)
+        } else {
+            GoUtPrimitiveModel("0".toLong(), this)
+        }
+
+        goInt64TypeId -> GoUtPrimitiveModel("0".toLong(), this)
+
+        goRuneTypeId -> GoUtPrimitiveModel("0".toInt(), this)
         goStringTypeId -> GoUtPrimitiveModel("", this)
-        goUintPtrTypeId -> GoUtPrimitiveModel(0, this)
+        goUint8TypeId -> GoUtPrimitiveModel("0".toUByte(), this)
+        goUint16TypeId -> GoUtPrimitiveModel("0".toUShort(), this)
+        goUint32TypeId -> GoUtPrimitiveModel("0".toUInt(), this)
+        goUintTypeId -> if (intSize == 32) {
+            GoUtPrimitiveModel("0".toUInt(), this)
+        } else {
+            GoUtPrimitiveModel("0".toULong(), this)
+        }
+
+        goUint64TypeId -> GoUtPrimitiveModel("0".toULong(), this)
+        goUintPtrTypeId -> GoUtPrimitiveModel("0".toULong(), this)
 
         else -> error("Generating Go default value model for ${this.javaClass} is not supported")
     }
 
-    is GoStructTypeId -> GoUtStructModel(listOf(), this)
-    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
+    is GoArrayTypeId -> GoUtArrayModel(
+        value = (0 until this.length)
+            .map { this.elementTypeId!!.goDefaultValueModel() }
+            .toTypedArray(),
+        typeId = this,
+    )
+
+    is GoStructTypeId -> GoUtStructModel(linkedMapOf(), this)
     is GoSliceTypeId -> GoUtNilModel(this)
     is GoMapTypeId -> GoUtNilModel(this)
+    is GoChanTypeId -> GoUtNilModel(this)
+    is GoPointerTypeId -> GoUtNilModel(this)
     is GoNamedTypeId -> GoUtNamedModel(this.underlyingTypeId.goDefaultValueModel(), this)
+    is GoInterfaceTypeId -> GoUtNilModel(this)
     else -> error("Generating Go default value model for ${this.javaClass} is not supported")
 }
 
-fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> = when (this) {
-    is GoNamedTypeId -> if (this.sourcePackage == goPackage || this.exported()) {
-        setOf(this) + underlyingTypeId.getAllVisibleNamedTypes(goPackage)
-    } else {
-        emptySet()
+fun GoTypeId.getAllVisibleNamedTypes(goPackage: GoPackage, visitedTypes: MutableSet<GoTypeId>): Set<GoNamedTypeId> {
+    if (visitedTypes.contains(this)) {
+        return emptySet()
     }
+    visitedTypes.add(this)
+    return when (this) {
+        is GoNamedTypeId -> if (this.sourcePackage == goPackage || this.sourcePackage.isBuiltin || this.exported()) {
+            setOf(this) + underlyingTypeId.getAllVisibleNamedTypes(goPackage, visitedTypes)
+        } else {
+            emptySet()
+        }
 
-    is GoStructTypeId -> fields.fold(emptySet()) { acc: Set<GoNamedTypeId>, field ->
-        acc + (field.declaringType).getAllVisibleNamedTypes(goPackage)
+        is GoStructTypeId -> fields.fold(emptySet()) { acc: Set<GoNamedTypeId>, field ->
+            acc + (field.declaringType).getAllVisibleNamedTypes(goPackage, visitedTypes)
+        }
+
+        is GoArrayTypeId, is GoSliceTypeId, is GoChanTypeId, is GoPointerTypeId ->
+            elementTypeId!!.getAllVisibleNamedTypes(goPackage, visitedTypes)
+
+        is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage, visitedTypes) +
+                elementTypeId!!.getAllVisibleNamedTypes(goPackage, visitedTypes)
+
+        is GoInterfaceTypeId -> implementations.fold(emptySet()) { acc, type ->
+            acc + type.getAllVisibleNamedTypes(goPackage, visitedTypes)
+        }
+
+        else -> emptySet()
     }
-
-    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllVisibleNamedTypes(goPackage)
-    is GoMapTypeId -> keyTypeId.getAllVisibleNamedTypes(goPackage) + elementTypeId!!.getAllVisibleNamedTypes(goPackage)
-
-    else -> emptySet()
 }
 
-fun List<GoTypeId>.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> =
-    this.fold(emptySet()) { acc, type ->
-        acc + type.getAllVisibleNamedTypes(goPackage)
+fun List<GoTypeId>.getAllVisibleNamedTypes(goPackage: GoPackage): Set<GoNamedTypeId> {
+    val visitedTypes = mutableSetOf<GoTypeId>()
+    return this.fold(emptySet()) { acc, type ->
+        acc + type.getAllVisibleNamedTypes(goPackage, visitedTypes)
     }
+}
 
 fun GoNamedTypeId.getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
     if (!this.sourcePackage.isBuiltin && this.sourcePackage != destinationPackage) {

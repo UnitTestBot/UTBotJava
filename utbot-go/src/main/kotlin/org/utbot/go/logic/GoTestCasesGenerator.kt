@@ -1,20 +1,24 @@
 package org.utbot.go.logic
 
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.utbot.common.isWindows
 import org.utbot.framework.plugin.api.TimeoutException
+import org.utbot.go.CoveredLines
 import org.utbot.go.GoEngine
-import org.utbot.go.api.*
+import org.utbot.go.api.ExecutionResults
+import org.utbot.go.api.GoUtFile
+import org.utbot.go.api.GoUtFunction
+import org.utbot.go.api.GoUtFuzzedFunctionTestCase
 import org.utbot.go.imports.GoImportsResolver
-import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
-import org.utbot.go.worker.*
+import org.utbot.go.util.executeCommandByNewProcessOrFail
+import org.utbot.go.util.modifyEnvironment
+import org.utbot.go.worker.GoWorker
+import org.utbot.go.worker.GoWorkerCodeGenerationHelper
 import java.io.File
-import java.io.InputStreamReader
 import java.net.ServerSocket
-import java.net.SocketException
-import java.net.SocketTimeoutException
-import java.util.concurrent.TimeUnit
+import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
 val logger = KotlinLogging.logger {}
@@ -24,144 +28,132 @@ object GoTestCasesGenerator {
     fun generateTestCasesForGoSourceFileFunctions(
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>,
-        intSize: Int,
-        maxTraceLength: Int,
-        goExecutableAbsolutePath: String,
-        eachExecutionTimeoutMillis: Long,
-        connectionTimeoutMillis: Long = 10000,
-        endOfWorkerExecutionTimeout: Long = 5000,
+        absolutePathToInstrumentedPackage: String,
+        absolutePathToInstrumentedModule: String,
+        needToCoverLines: Map<String, List<String>>,
+        testsGenerationConfig: GoUtTestsGenerationConfig,
         timeoutExceededOrIsCanceled: (index: Int) -> Boolean = { false },
-    ): List<GoUtFuzzedFunctionTestCase> = runBlocking {
-        ServerSocket(0).use { serverSocket ->
-            val allRawExecutionResults = mutableListOf<Pair<GoUtFuzzedFunction, RawExecutionResult>>()
-            var fileToExecute: File? = null
-            var fileWithModifiedFunctions: File? = null
-            try {
-                // creating files for worker
-                val types = functions.flatMap { it.parameters }.map { it.type }
-                val imports = GoImportsResolver.resolveImportsBasedOnTypes(
-                    types,
-                    sourceFile.sourcePackage,
-                    GoWorkerCodeGenerationHelper.alwaysRequiredImports
-                )
-                val aliases = imports.filter { it.alias != null }.associate { it.goPackage to it.alias }
-                fileToExecute = GoWorkerCodeGenerationHelper.createFileToExecute(
-                    sourceFile,
-                    functions,
-                    eachExecutionTimeoutMillis,
-                    serverSocket.localPort,
-                    maxTraceLength,
-                    imports
-                )
-                fileWithModifiedFunctions = GoWorkerCodeGenerationHelper.createFileWithModifiedFunctions(
-                    sourceFile, functions
-                )
+    ): List<GoUtFuzzedFunctionTestCase> = ServerSocket(0).use { serverSocket ->
+        val allTestCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
+        var testFile: File? = null
+        try {
+            // creating files for workers
+            val types = functions.flatMap { it.parameters }.map { it.type }
+            val imports = GoImportsResolver.resolveImportsBasedOnTypes(
+                types, sourceFile.sourcePackage, GoWorkerCodeGenerationHelper.alwaysRequiredImports
+            )
+            val aliases = imports.filter { it.alias != null }.associate { it.goPackage to it.alias }
+            GoWorkerCodeGenerationHelper.createFileToExecute(
+                sourceFile,
+                functions,
+                absolutePathToInstrumentedPackage,
+                testsGenerationConfig.eachFunctionExecutionTimeoutMillis,
+                serverSocket.localPort,
+                imports
+            )
+            GoWorkerCodeGenerationHelper.createFileWithCoverTab(
+                sourceFile, absolutePathToInstrumentedPackage
+            )
 
-                // starting worker process
-                val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
-                val command = listOf(
-                    goExecutableAbsolutePath, "test", "-run", testFunctionName, "-timeout", "0"
-                )
-                val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
-                val processStartTime = System.currentTimeMillis()
-                val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir)
-
-                try {
-                    // connecting to worker
-                    logger.debug { "Trying to connect to worker" }
-                    val workerSocket = try {
-                        serverSocket.soTimeout = connectionTimeoutMillis.toInt()
-                        serverSocket.accept()
-                    } catch (e: SocketTimeoutException) {
-                        val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
-                        if (processHasExited) {
-                            throw GoWorkerFailedException("An error occurred while starting the worker.")
-                        } else {
-                            process.destroy()
-                        }
-                        throw TimeoutException("Timeout exceeded: Worker not connected")
-                    }
-                    val worker = GoWorker(workerSocket, sourceFile.sourcePackage)
-                    logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
-                    functions.forEachIndexed { index, function ->
-                        if (timeoutExceededOrIsCanceled(index)) return@forEachIndexed
-                        val rawExecutionResults = mutableListOf<Pair<GoUtFuzzedFunction, RawExecutionResult>>()
-                        val engine = GoEngine(worker, function, aliases, intSize) { timeoutExceededOrIsCanceled(index) }
-                        logger.info { "Fuzzing for function [${function.name}] - started" }
-                        val totalFuzzingTime = measureTimeMillis {
-                            engine.fuzzing().catch {
-                                logger.error { "Error in flow: ${it.message}" }
-                            }.collect { (fuzzedFunction, executionResult) ->
-                                rawExecutionResults.add(fuzzedFunction to executionResult)
-                            }
-                        }
-                        logger.debug { "Number of function executions - ${engine.numberOfFunctionExecutions}" }
-                        logger.info { "Fuzzing for function [${function.name}] - completed in $totalFuzzingTime ms. Generated ${rawExecutionResults.size} test cases" }
-                        allRawExecutionResults += rawExecutionResults
-                    }
-                    workerSocket.close()
-                    val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
-                    if (!processHasExited) {
-                        process.destroy()
-                        val processOutput = InputStreamReader(process.inputStream).readText()
-                        throw TimeoutException(
-                            buildString {
-                                appendLine("Timeout exceeded: Worker didn't finish. Process output: ")
-                                appendLine(processOutput)
-                            }
-                        )
-                    }
-                    val exitCode = process.exitValue()
-                    if (exitCode != 0) {
-                        val processOutput = InputStreamReader(process.inputStream).readText()
-                        throw RuntimeException(
-                            buildString {
-                                appendLine("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
-                                appendLine(processOutput)
-                            }
-                        )
-                    }
-                } catch (e: TimeoutException) {
-                    logger.error { e.message }
-                } catch (e: RuntimeException) {
-                    logger.error { e.message }
-                } catch (e: SocketException) {
-                    val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
-                    if (!processHasExited) {
-                        process.destroy()
-                        val processOutput = InputStreamReader(process.inputStream).readText()
-                        logger.error {
-                            buildString {
-                                appendLine("Timeout exceeded: Worker didn't finish. Process output: ")
-                                appendLine(processOutput)
-                            }
-                        }
-                    }
-                    val exitCode = process.exitValue()
-                    if (exitCode != 0) {
-                        val processOutput = InputStreamReader(process.inputStream).readText()
-                        logger.error {
-                            buildString {
-                                appendLine("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
-                                appendLine(processOutput)
-                            }
-                        }
-                    }
-
+            // compiling the test binary
+            testFile = run {
+                if (isWindows) {
+                    Path.of(sourceFile.absoluteDirectoryPath, "utbot_go_test.exe")
+                } else {
+                    Path.of(sourceFile.absoluteDirectoryPath, "utbot_go_test")
                 }
-            } finally {
-                fileToExecute?.delete()
-                fileWithModifiedFunctions?.delete()
-            }
-            return@runBlocking allRawExecutionResults.map { (fuzzedFunction, rawExecutionResult) ->
-                val executionResult: GoUtExecutionResult = convertRawExecutionResultToExecutionResult(
-                    rawExecutionResult,
-                    fuzzedFunction.function.resultTypes,
-                    intSize,
-                    eachExecutionTimeoutMillis
+            }.toFile()
+            val buildCommand = listOf(
+                testsGenerationConfig.goExecutableAbsolutePath.toString(), "test", "-c", "-o", testFile.absolutePath
+            )
+            val environment = modifyEnvironment(
+                testsGenerationConfig.goExecutableAbsolutePath,
+                testsGenerationConfig.gopathAbsolutePath
+            )
+            logger.debug { "Compiling the test binary - started" }
+            val compilingTestBinaryTime = measureTimeMillis {
+                executeCommandByNewProcessOrFail(
+                    buildCommand,
+                    File(absolutePathToInstrumentedPackage),
+                    "compiling the test binary to the $testFile file",
+                    environment
                 )
-                GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult)
             }
+            logger.debug { "Compiling the test binary - completed in [$compilingTestBinaryTime] (ms)" }
+
+            // starting worker processes
+            logger.debug { "Creation of workers - started" }
+            val creationOfWorkersStartTime = System.currentTimeMillis()
+            val workers = runBlocking {
+                val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
+                val goPackage = sourceFile.sourcePackage
+                val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
+                return@runBlocking (1..testsGenerationConfig.numberOfFuzzingProcess).map {
+                    async(Dispatchers.IO) {
+                        GoWorker.createWorker(
+                            testFunctionName,
+                            testFile.absolutePath,
+                            goPackage,
+                            testsGenerationConfig.goExecutableAbsolutePath,
+                            testsGenerationConfig.gopathAbsolutePath,
+                            sourceFileDir,
+                            serverSocket
+                        )
+                    }
+                }.awaitAll()
+            }
+            logger.debug { "Creation of workers - completed in [${System.currentTimeMillis() - creationOfWorkersStartTime}] (ms)" }
+
+            // fuzzing
+            functions.forEachIndexed { index, function ->
+                if (timeoutExceededOrIsCanceled(index)) return@forEachIndexed
+                val coveredLinesToExecutionResults = mutableMapOf<CoveredLines, ExecutionResults>()
+                val engine = GoEngine(
+                    workers = workers,
+                    functionUnderTest = function,
+                    needToCoverLines = needToCoverLines[function.name]!!.toSet(),
+                    aliases = aliases,
+                    functionExecutionTimeoutMillis = testsGenerationConfig.eachFunctionExecutionTimeoutMillis,
+                    mode = testsGenerationConfig.mode,
+                ) { timeoutExceededOrIsCanceled(index) }
+                logger.info { "Fuzzing for function [${function.name}] - started" }
+                val totalFuzzingTime = runBlocking {
+                    measureTimeMillis {
+                        engine.fuzzing().catch {
+                            logger.error { "Error in flow: ${it.message}" }
+                        }.collect {
+                            it.entries.forEach { (coveredLines, executionResults) ->
+                                if (coveredLinesToExecutionResults[coveredLines] == null) {
+                                    coveredLinesToExecutionResults[coveredLines] = executionResults
+                                } else {
+                                    coveredLinesToExecutionResults[coveredLines]!!.update(executionResults)
+                                }
+                            }
+                        }
+                    }
+                }
+                val numberOfExecutionsPerSecond = if (totalFuzzingTime / 1000 != 0L) {
+                    (engine.numberOfFunctionExecutions.get() / (totalFuzzingTime / 1000)).toString()
+                } else {
+                    ">${engine.numberOfFunctionExecutions}"
+                }
+                logger.debug { "Number of function executions - [${engine.numberOfFunctionExecutions}] ($numberOfExecutionsPerSecond/sec)" }
+                val testCases = coveredLinesToExecutionResults.values.flatMap { it.getTestCases() }
+                logger.info { "Fuzzing for function [${function.name}] - completed in [$totalFuzzingTime] (ms). Generated [${testCases.size}] test cases" }
+                allTestCases += testCases
+            }
+            runBlocking {
+                workers.map { launch(Dispatchers.IO) { it.close() } }.joinAll()
+            }
+        } catch (e: TimeoutException) {
+            logger.error { e.message }
+        } catch (e: RuntimeException) {
+            logger.error { e.message }
+        } finally {
+            // delete test file and directory with instrumented packages
+            testFile?.delete()
+            File(absolutePathToInstrumentedModule).delete()
         }
+        return allTestCases
     }
 }

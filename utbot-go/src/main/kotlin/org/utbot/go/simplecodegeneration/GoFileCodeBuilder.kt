@@ -7,7 +7,7 @@ class GoFileCodeBuilder(
     sourcePackage: GoPackage,
     imports: Set<GoImport>,
 ) {
-    private val packageLine: String = "package ${sourcePackage.packageName}"
+    private val packageLine: String = "package ${sourcePackage.name}"
     private val importLines: String = importLines(imports)
     private val topLevelElements: MutableList<String> = mutableListOf()
 
@@ -17,7 +17,7 @@ class GoFileCodeBuilder(
             return "import ${imports.first()}"
         }
 
-        return imports.sortedWith(compareBy<GoImport> { it.goPackage.packagePath }.thenBy { it.alias })
+        return imports.sortedWith(compareBy<GoImport> { it.goPackage.path }.thenBy { it.alias })
             .joinToString(separator = "", prefix = "import (\n", postfix = ")") {
                 "\t$it\n"
             }

@@ -1,11 +1,14 @@
 package org.utbot.go
 
 import org.utbot.fuzzing.*
+import org.utbot.fuzzing.utils.IdentityTrie
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.fuzzer.providers.*
+import org.utbot.go.worker.GoWorker
+import kotlin.random.Random
 
 
 fun goDefaultValueProviders() = listOf(
@@ -13,27 +16,46 @@ fun goDefaultValueProviders() = listOf(
     GoArrayValueProvider,
     GoSliceValueProvider,
     GoMapValueProvider,
+    GoChanValueProvider,
     GoStructValueProvider,
     GoConstantValueProvider,
     GoNamedValueProvider,
-    GoNilValueProvider
+    GoNilValueProvider,
+    GoPointerValueProvider,
+    GoInterfaceValueProvider
 )
 
-class GoInstruction(
-    val lineNumber: Int
-)
+data class CoveredLines(val lines: Set<String>)
 
 class GoDescription(
-    val methodUnderTest: GoUtFunction,
-    val tracer: Trie<GoInstruction, *>,
-    val intSize: Int
-) : Description<GoTypeId>(methodUnderTest.parameters.map { it.type }.toList())
+    val worker: GoWorker,
+    val functionUnderTest: GoUtFunction,
+    val coverage: Trie<String, String>,
+    val configuration: Configuration,
+) : Description<GoTypeId>(
+    if (functionUnderTest.isMethod) {
+        listOf(functionUnderTest.receiver!!.type) + functionUnderTest.parameters.map { it.type }.toList()
+    } else {
+        functionUnderTest.parameters.map { it.type }.toList()
+    }
+)
 
 suspend fun runGoFuzzing(
-    methodUnderTest: GoUtFunction,
-    intSize: Int,
+    function: GoUtFunction,
+    worker: GoWorker,
+    index: Int,
     providers: List<ValueProvider<GoTypeId, GoUtModel, GoDescription>> = goDefaultValueProviders(),
-    exec: suspend (description: GoDescription, values: List<GoUtModel>) -> BaseFeedback<Trie.Node<GoInstruction>, GoTypeId, GoUtModel>
+    exec: suspend (description: GoDescription, values: List<GoUtModel>) -> BaseFeedback<Trie.Node<String>, GoTypeId, GoUtModel>
 ) {
-    BaseFuzzing(providers, exec).fuzz(GoDescription(methodUnderTest, Trie(GoInstruction::lineNumber), intSize))
+    val config = Configuration()
+    BaseFuzzing(providers, exec).fuzz(
+        description = GoDescription(
+            worker = worker,
+            functionUnderTest = function,
+            coverage = IdentityTrie(),
+            configuration = config
+        ),
+        random = Random(index),
+        configuration = config,
+    )
 }

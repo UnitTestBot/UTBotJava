@@ -4,44 +4,44 @@ import com.beust.klaxon.KlaxonException
 import org.utbot.common.FileUtil.extractDirectoryFromArchive
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.go.api.GoPrimitiveTypeId
+import org.utbot.go.api.GoUtDeclaredVariable
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
-import org.utbot.go.api.GoUtFunctionParameter
 import org.utbot.go.api.util.goSupportedConstantTypes
+import org.utbot.go.api.util.intSize
 import org.utbot.go.api.util.rawValueOfGoPrimitiveTypeToValue
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.util.executeCommandByNewProcessOrFail
+import org.utbot.go.util.modifyEnvironment
 import org.utbot.go.util.parseFromJsonOrFail
 import org.utbot.go.util.writeJsonToFileOrFail
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.Path
 
 object GoSourceCodeAnalyzer {
 
     data class GoSourceFileAnalysisResult(
         val functions: List<GoUtFunction>,
-        val notSupportedFunctionsNames: List<String>,
-        val notFoundFunctionsNames: List<String>
-    )
-
-    data class GoSourceCodeAnalyzerResult(
-        val analysisResults: Map<GoUtFile, GoSourceFileAnalysisResult>,
-        val intSize: Int,
-        val maxTraceLength: Int,
+        val notSupportedFunctionAndMethodNames: List<String>,
+        val notFoundFunctionAndMethodNames: List<String>
     )
 
     /**
-     * Takes map from absolute paths of Go source files to names of their selected functions.
+     * Takes maps from paths of Go source files to names of their selected functions and methods.
      *
-     * Returns GoSourceFileAnalysisResult-s grouped by their source files.
+     * Returns GoSourceCodeAnalyzerResult.
      */
     fun analyzeGoSourceFilesForFunctions(
-        targetFunctionsNamesBySourceFiles: Map<String, List<String>>,
-        goExecutableAbsolutePath: String
-    ): GoSourceCodeAnalyzerResult {
+        targetFunctionNamesBySourceFiles: Map<Path, List<String>>,
+        targetMethodNamesBySourceFiles: Map<Path, List<String>>,
+        goExecutableAbsolutePath: Path,
+        gopathAbsolutePath: Path
+    ): Map<GoUtFile, GoSourceFileAnalysisResult> {
         val analysisTargets = AnalysisTargets(
-            targetFunctionsNamesBySourceFiles.map { (absoluteFilePath, targetFunctionsNames) ->
-                AnalysisTarget(absoluteFilePath, targetFunctionsNames)
+            (targetFunctionNamesBySourceFiles.keys + targetMethodNamesBySourceFiles.keys).distinct().map { filePath ->
+                val targetFunctionNames = targetFunctionNamesBySourceFiles[filePath] ?: emptyList()
+                val targetMethodNames = targetMethodNamesBySourceFiles[filePath] ?: emptyList()
+                AnalysisTarget(filePath.toAbsolutePath().toString(), targetFunctionNames, targetMethodNames)
             }
         )
         val analysisTargetsFileName = createAnalysisTargetsFileName()
@@ -52,8 +52,7 @@ object GoSourceCodeAnalyzer {
         val analysisResultsFile = goCodeAnalyzerSourceDir.resolve(analysisResultsFileName)
 
         val goCodeAnalyzerRunCommand = listOf(
-            goExecutableAbsolutePath,
-            "run"
+            goExecutableAbsolutePath.toString(), "run"
         ) + getGoCodeAnalyzerSourceFilesNames() + listOf(
             "-targets",
             analysisTargetsFileName,
@@ -63,9 +62,7 @@ object GoSourceCodeAnalyzer {
 
         try {
             writeJsonToFileOrFail(analysisTargets, analysisTargetsFile)
-            val environment = System.getenv().toMutableMap().apply {
-                this["Path"] = (this["Path"] ?: "") + File.pathSeparator + Paths.get(goExecutableAbsolutePath).parent
-            }
+            val environment = modifyEnvironment(goExecutableAbsolutePath, gopathAbsolutePath)
             executeCommandByNewProcessOrFail(
                 goCodeAnalyzerRunCommand,
                 goCodeAnalyzerSourceDir,
@@ -73,19 +70,30 @@ object GoSourceCodeAnalyzer {
                 environment
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
-            val intSize = analysisResults.intSize
-            val maxTraceLength = analysisResults.maxTraceLength
-            return GoSourceCodeAnalyzerResult(analysisResults.results.map { analysisResult ->
+            intSize = analysisResults.intSize
+            return analysisResults.results.map { analysisResult ->
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
                 val functions = analysisResult.analyzedFunctions.map { analyzedFunction ->
-                    val parameters = analyzedFunction.parameters.map { analyzedFunctionParameter ->
-                        GoUtFunctionParameter(
-                            analyzedFunctionParameter.name,
-                            analyzedFunctionParameter.type.toGoTypeId()
+                    val analyzedTypes = mutableMapOf<String, GoTypeId>()
+                    analyzedFunction.types.keys.forEach { index ->
+                        analyzedFunction.types[index]!!.toGoTypeId(index, analyzedTypes, analyzedFunction.types)
+                    }
+                    val receiver = analyzedFunction.receiver?.let { receiver ->
+                        GoUtDeclaredVariable(
+                            receiver.name, analyzedTypes[receiver.type]!!
                         )
                     }
-                    val resultTypes = analyzedFunction.resultTypes.map { analyzedType -> analyzedType.toGoTypeId() }
+                    val parameters = analyzedFunction.parameters.map { parameter ->
+                        GoUtDeclaredVariable(
+                            parameter.name, analyzedTypes[parameter.type]!!
+                        )
+                    }
+                    val resultTypes = analyzedFunction.resultTypes.map { result ->
+                        GoUtDeclaredVariable(
+                            result.name, analyzedTypes[result.type]!!,
+                        )
+                    }
                     val constants = mutableMapOf<GoTypeId, List<Any>>()
                     analyzedFunction.constants.map { (type, rawValues) ->
                         val typeId = GoPrimitiveTypeId(type)
@@ -93,37 +101,30 @@ object GoSourceCodeAnalyzer {
                             error("Constants extraction: $type is a unsupported constant type")
                         }
                         val values = rawValues.map { rawValue ->
-                            rawValueOfGoPrimitiveTypeToValue(typeId, rawValue, intSize)
+                            rawValueOfGoPrimitiveTypeToValue(typeId, rawValue)
                         }
                         constants.compute(typeId) { _, v -> if (v == null) values else v + values }
                     }
                     GoUtFunction(
                         analyzedFunction.name,
-                        analyzedFunction.modifiedName,
+                        receiver,
                         parameters,
                         resultTypes,
-                        analyzedFunction.requiredImports,
                         constants,
-                        analyzedFunction.modifiedFunctionForCollectingTraces,
-                        analyzedFunction.numberOfAllStatements,
                         sourceFile
                     )
                 }
                 GoSourceFileAnalysisResult(
                     functions,
-                    analysisResult.notSupportedFunctionsNames,
-                    analysisResult.notFoundFunctionsNames
+                    analysisResult.notSupportedFunctionNames,
+                    analysisResult.notFoundFunctionNames
                 )
-            }, intSize, maxTraceLength)
+            }
         } catch (exception: KlaxonException) {
             throw GoParsingSourceCodeAnalysisResultException(
-                "An error occurred while parsing the result of the source code analysis.",
-                exception
+                "An error occurred while parsing the result of the source code analysis.", exception
             )
         } finally {
-            // TODO correctly?
-            analysisTargetsFile.delete()
-            analysisResultsFile.delete()
             goCodeAnalyzerSourceDir.deleteRecursively()
         }
     }
@@ -132,8 +133,9 @@ object GoSourceCodeAnalyzer {
         val sourceDirectoryName = "go_source_code_analyzer"
         val classLoader = GoSourceCodeAnalyzer::class.java.classLoader
 
-        val containingResourceFile = classLoader.scanForResourcesContaining(sourceDirectoryName).firstOrNull()
-            ?: error("Can't find resource containing $sourceDirectoryName directory.")
+        val containingResourceFile = classLoader.scanForResourcesContaining(sourceDirectoryName).firstOrNull() ?: error(
+            "Can't find resource containing $sourceDirectoryName directory."
+        )
         if (containingResourceFile.extension != "jar") {
             error("Resource for $sourceDirectoryName directory is expected to be JAR: others are not supported yet.")
         }
@@ -149,8 +151,6 @@ object GoSourceCodeAnalyzer {
             "analyzer_core.go",
             "analysis_targets.go",
             "analysis_results.go",
-            "function_modifier.go",
-            "imports_collector.go",
             "constant_extractor.go"
         )
     }

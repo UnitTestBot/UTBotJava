@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.language.go.generator
 
+import com.goide.project.DefaultGoRootsProvider
 import com.goide.psi.GoFunctionOrMethodDeclaration
 import com.goide.sdk.GoSdk
 import com.goide.sdk.GoSdkService
@@ -19,6 +20,7 @@ import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.language.go.ui.GenerateGoTestsDialogWindow
 import org.utbot.intellij.plugin.language.go.ui.utils.resolveGoExecutablePath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import java.nio.file.Paths
 
 object GoUtTestsDialogProcessor {
 
@@ -71,10 +73,12 @@ object GoUtTestsDialogProcessor {
             return null
         }
 
+        val goPath = DefaultGoRootsProvider().getGoPathRoots(project, module).first().path
         return GenerateGoTestsDialogWindow(
             GenerateGoTestsModel(
                 project,
-                goSdk.resolveGoExecutablePath()!!,
+                goExecutableAbsolutePath = Paths.get(goSdk.resolveGoExecutablePath()!!).toAbsolutePath(),
+                gopathAbsolutePath = Paths.get(goPath).toAbsolutePath(),
                 targetFunctions,
                 focusedTargetFunctions,
             )
@@ -95,18 +99,24 @@ object GoUtTestsDialogProcessor {
         ProgressManager.getInstance().run(object : Task.Backgroundable(model.project, "Generate Go tests") {
             override fun run(indicator: ProgressIndicator) {
                 // readAction is required to read PSI-tree or else "Read access" exception occurs.
-                val selectedFunctionsNamesBySourceFiles = runReadAction {
-                    model.selectedFunctions.groupBy({ it.containingFile.virtualFile.canonicalPath!! }) { it.name!! }
+                val (selectedFunctionNamesBySourceFiles, selectedMethodNamesBySourceFiles) = runReadAction {
+                    model.selectedFunctions.groupBy({ Paths.get(it.containingFile.virtualFile.path) }) { it.name!! } to
+                            model.selectedMethods.groupBy({ Paths.get(it.containingFile.virtualFile.path) }) { it.name!! }
                 }
                 val testsGenerationConfig = GoUtTestsGenerationConfig(
                     model.goExecutableAbsolutePath,
+                    model.gopathAbsolutePath,
+                    model.numberOfFuzzingProcess,
+                    model.mode,
                     model.eachFunctionExecutionTimeoutMillis,
                     model.allFunctionExecutionTimeoutMillis
                 )
 
                 try {
                     IntellijGoUtTestsGenerationController(model, indicator).generateTests(
-                        selectedFunctionsNamesBySourceFiles, testsGenerationConfig
+                        selectedFunctionNamesBySourceFiles,
+                        selectedMethodNamesBySourceFiles,
+                        testsGenerationConfig
                     ) { indicator.isCanceled }
                 } catch (e: GoParsingSourceCodeAnalysisResultException) {
                     val errorMessage = buildErrorMessage(e)

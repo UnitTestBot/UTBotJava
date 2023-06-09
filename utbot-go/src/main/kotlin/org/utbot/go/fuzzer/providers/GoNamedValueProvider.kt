@@ -27,7 +27,7 @@ object GoNamedValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> 
                     model.value = value
                 })
             }, empty = Routine.Empty {
-                GoUtNamedModel(namedType.underlyingTypeId.goDefaultValueModel(), namedType)
+                namedType.goDefaultValueModel()
             }))
         }
     }

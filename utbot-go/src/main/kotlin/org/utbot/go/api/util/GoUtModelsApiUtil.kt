@@ -22,6 +22,16 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
             "${model.realValue}@${model.imagValue}"
         )
 
+        is GoUtFloatInfModel -> PrimitiveValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            this.toString()
+        )
+
+        is GoUtFloatNaNModel -> PrimitiveValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            this.toString()
+        )
+
         is GoUtNamedModel -> NamedValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
             model.value.convertToRawValue(destinationPackage, aliases)
@@ -54,13 +64,27 @@ fun GoUtModel.convertToRawValue(destinationPackage: GoPackage, aliases: Map<GoPa
 
         is GoUtStructModel -> StructValue(
             model.typeId.getRelativeName(destinationPackage, aliases),
-            model.value.map {
+            model.value.map { (fieldId, model) ->
                 StructValue.FieldValue(
-                    it.fieldId.name,
-                    it.model.convertToRawValue(destinationPackage, aliases),
-                    it.fieldId.isExported
+                    fieldId.name,
+                    model.convertToRawValue(destinationPackage, aliases),
+                    fieldId.isExported
                 )
             }
+        )
+
+        is GoUtChanModel -> ChanValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
+            model.typeId.direction.name,
+            model.value.size,
+            model.getElements().map { it.convertToRawValue(destinationPackage, aliases) }
+        )
+
+        is GoUtPointerModel -> PointerValue(
+            model.typeId.getRelativeName(destinationPackage, aliases),
+            model.typeId.elementTypeId!!.getRelativeName(destinationPackage, aliases),
+            model.value.convertToRawValue(destinationPackage, aliases)
         )
 
         is GoUtPrimitiveModel -> PrimitiveValue(model.typeId.name, model.value.toString())

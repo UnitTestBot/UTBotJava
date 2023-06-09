@@ -1,6 +1,5 @@
 package org.utbot.go.api
 
-import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
@@ -13,22 +12,17 @@ data class GoUtFile(val absolutePath: String, val sourcePackage: GoPackage) {
     val absoluteDirectoryPath: String get() = Paths.get(absolutePath).parent.toString()
 }
 
-data class GoUtFunctionParameter(val name: String, val type: GoTypeId)
+data class GoUtDeclaredVariable(val name: String, val type: GoTypeId)
 
 data class GoUtFunction(
     val name: String,
-    val modifiedName: String,
-    val parameters: List<GoUtFunctionParameter>,
-    val resultTypes: List<GoTypeId>,
-    val requiredImports: List<GoImport>,
+    val receiver: GoUtDeclaredVariable?,
+    val parameters: List<GoUtDeclaredVariable>,
+    val results: List<GoUtDeclaredVariable>,
     val constants: Map<GoTypeId, List<Any>>,
-    val modifiedFunctionForCollectingTraces: String,
-    val numberOfAllStatements: Int,
     val sourceFile: GoUtFile
 ) {
-    val sourcePackage: GoPackage = sourceFile.sourcePackage
-
-    fun getPackageName(): String = sourceFile.sourcePackage.packageName
+    val isMethod: Boolean = receiver != null
 }
 
 data class GoUtFuzzedFunction(val function: GoUtFunction, val parametersValues: List<GoUtModel>)

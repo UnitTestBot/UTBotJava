@@ -2,6 +2,7 @@ package simple
 
 import (
 	"errors"
+	"fmt"
 	"github.com/pmezard/go-difflib/difflib"
 	dif "github.com/pmezard/go-difflib/difflib"
 	"go-samples/simple/nested"
@@ -72,10 +73,24 @@ func UintPtr(n uintptr) uintptr {
 }
 
 func Float32(n float32) float32 {
+	if math.IsInf(float64(n), 1) {
+		return n
+	} else if math.IsInf(float64(n), -1) {
+		return n
+	} else if math.IsNaN(float64(n)) {
+		return n
+	}
 	return n
 }
 
 func Float64(n float64) float64 {
+	if math.IsInf(n, 1) {
+		return n
+	} else if math.IsInf(n, -1) {
+		return n
+	} else if math.IsNaN(n) {
+		return n
+	}
 	return n
 }
 
@@ -184,35 +199,59 @@ func ExternalStructWithAlias(match dif.Match) difflib.Match {
 }
 
 func SliceOfInt(slice []int) []int {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
 func SliceOfUintPtr(slice []uintptr) []uintptr {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
 func SliceOfString(slice []string) []string {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
 func SliceOfStructs(slice []Structure) []Structure {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
 func SliceOfStructsWithNan(slice []Structure) []Structure {
+	if slice == nil {
+		return slice
+	}
 	slice[0].float64 = math.NaN()
 	return slice
 }
 
 func SliceOfSliceOfByte(slice [][]byte) [][]byte {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
 func SliceOfSliceOfStructs(slice [][]Structure) [][]Structure {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
 func SliceOfArrayOfInt(slice [][5]int) [][5]int {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
@@ -237,6 +276,9 @@ func ArrayOfArrayOfNamedType(array [5][5]Type) T {
 }
 
 func SliceOfNamedType(slice []Type) []Type {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
@@ -249,6 +291,9 @@ func NamedArray(array NA) NA {
 type NS []int
 
 func NamedSlice(slice NS) NS {
+	if slice == nil {
+		return slice
+	}
 	return slice
 }
 
@@ -287,4 +332,94 @@ type NM map[string]NA
 
 func NamedMap(n NM) NM {
 	return n
+}
+
+func Channel(c chan Structure) {
+	if c == nil {
+		return
+	}
+}
+
+func SendOnlyChannel(c chan<- int) {
+	if c == nil {
+		return
+	}
+}
+
+func RecvOnlyChannel(c <-chan NM) {
+	if c == nil {
+		return
+	}
+}
+
+func PointerToInt(n *int) *int {
+	if n == nil {
+		return n
+	}
+	return n
+}
+
+func PointerToSlice(n *[]int) *[]int {
+	if n == nil {
+		return n
+	}
+	return n
+}
+
+func PointerToArray(n *[3]int) *[3]int {
+	if n == nil {
+		return n
+	}
+	return n
+}
+
+func PointerToMap(n *map[string]int) *map[string]int {
+	if n == nil {
+		return n
+	}
+	return n
+}
+
+func PointerToStructure(n *Structure) *Structure {
+	if n == nil {
+		return n
+	}
+	return n
+}
+
+func PointerToNamedType(n *Type) *Type {
+	if n == nil {
+		return n
+	}
+	return n
+}
+
+type Node struct {
+	prev, next *Node
+	val        int
+}
+
+func PointerToRecursiveStruct(n *Node) *Node {
+	if n == nil {
+		return n
+	}
+	return n
+}
+
+type I interface {
+	String() string
+}
+
+func Interface(i I) {
+	if i != nil {
+		return
+	}
+	return
+}
+
+func ExternalInterface(i fmt.Stringer) {
+	if i != nil {
+		return
+	}
+	return
 }

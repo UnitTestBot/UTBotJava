@@ -1,5 +1,6 @@
 package org.utbot.go.worker
 
+import org.utbot.go.api.GoInterfaceTypeId
 import org.utbot.go.api.GoNamedTypeId
 import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoPackage
@@ -8,13 +9,30 @@ import org.utbot.go.simplecodegeneration.GoUtModelToCodeConverter
 object GoCodeTemplates {
 
     private val errorMessages = """
-        var (
+        const (
         	ErrParsingValue                  = "failed to parse %s value: %s"
         	ErrInvalidTypeName               = "invalid type name: %s"
         	ErrStringToReflectTypeFailure    = "failed to convert '%s' to reflect.Type: %s"
         	ErrRawValueToReflectValueFailure = "failed to convert RawValue to reflect.Value: %s"
         	ErrReflectValueToRawValueFailure = "failed to convert reflect.Value to RawValue: %s"
         )
+    """.trimIndent()
+
+    private val typeOfExecutionResult = """
+        type __TypeOfExecutionResult__ int
+
+        const (
+        	Completed = iota
+        	PanicFailure
+        	TimeoutExceeded
+        )
+    """.trimIndent()
+
+    private val executionResultStruct = """
+        type __ExecutionResult__ struct {
+        	Type         __TypeOfExecutionResult__
+        	ResultValues []reflect.Value
+        }
     """.trimIndent()
 
     private val testInputStruct = """
@@ -37,8 +55,33 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+
+    private val parseFloatFunction = """
+        func __parseFloat__(s string, bitSize int) (float64, error) {
+        	if s == "NaN" {
+        		return math.NaN(), nil
+        	}
+
+        	if s == "+Inf" {
+        		return math.Inf(1), nil
+        	}
+
+        	if s == "-Inf" {
+        		return math.Inf(-1), nil
+        	}
+
+        	value, err := strconv.ParseFloat(s, bitSize)
+        	if err != nil {
+        		return value, fmt.Errorf("failed to parse float: %s", s)
+        	}
+
+        	return value, nil
+        }
+    """.trimIndent()
+
     private val primitiveValueToReflectValueMethod = """
         func (v __PrimitiveValue__) __toReflectValue__() (reflect.Value, error) {
+
         	const complexPartsDelimiter = "@"
 
         	switch v.Type {
@@ -134,14 +177,14 @@ object GoCodeTemplates {
 
         		return reflect.ValueOf(value), nil
         	case "float32":
-        		value, err := strconv.ParseFloat(v.Value, 32)
+        		value, err := __parseFloat__(v.Value, 32)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
 
         		return reflect.ValueOf(float32(value)), nil
         	case "float64":
-        		value, err := strconv.ParseFloat(v.Value, 64)
+        		value, err := __parseFloat__(v.Value, 64)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
@@ -152,12 +195,12 @@ object GoCodeTemplates {
         		if len(splitValue) != 2 {
         			return reflect.Value{}, fmt.Errorf("not correct complex64 value: %s", v.Value)
         		}
-        		realPart, err := strconv.ParseFloat(splitValue[0], 32)
+        		realPart, err := __parseFloat__(splitValue[0], 32)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
 
-        		imaginaryPart, err := strconv.ParseFloat(splitValue[1], 32)
+        		imaginaryPart, err := __parseFloat__(splitValue[1], 32)
         		if err != nil {
         			return reflect.Value{}, fmt.Errorf(ErrParsingValue, v.Type, err)
         		}
@@ -354,6 +397,44 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+    private val chanValueStruct = """
+        type __ChanValue__ struct {
+        	Type        string         `json:"type"`
+        	ElementType string         `json:"elementType"`
+        	Direction   string         `json:"direction"`
+        	Length      int            `json:"length"`
+        	Value       []__RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val chanValueToReflectValueMethod = """
+        func (v __ChanValue__) __toReflectValue__() (reflect.Value, error) {
+        	elementType, err := __convertStringToReflectType__(v.ElementType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.ElementType, err)
+        	}
+
+        	dir := reflect.BothDir
+
+        	chanType := reflect.ChanOf(dir, elementType)
+        	channel := reflect.MakeChan(chanType, v.Length)
+
+        	for i := range v.Value {
+        		reflectValue, err := v.Value[i].__toReflectValue__()
+        		if err != nil {
+        			return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        		}
+
+        		channel.Send(reflectValue)
+        	}
+        	if v.Direction != "SENDONLY" {
+        		channel.Close()
+        	}
+
+        	return channel, nil
+        }
+    """.trimIndent()
+
     private val nilValueStruct = """
         type __NilValue__ struct {
         	Type string `json:"type"`
@@ -380,24 +461,53 @@ object GoCodeTemplates {
 
     private val namedValueToReflectValueMethod = """
         func (v __NamedValue__) __toReflectValue__() (reflect.Value, error) {
-        	value, err := v.Value.__toReflectValue__()
-        	if err != nil {
-        		return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
-        	}
-
         	typ, err := __convertStringToReflectType__(v.Type)
         	if err != nil {
         		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.Type, err)
+        	}
+
+        	if n, ok := v.Value.(__NilValue__); ok && n.Type == "interface{}" {
+        		return reflect.Zero(typ), nil
+        	}
+
+        	value, err := v.Value.__toReflectValue__()
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
         	}
 
         	return value.Convert(typ), nil
         }
     """.trimIndent()
 
-    private fun convertStringToReflectType(
-        namedTypes: Set<GoNamedTypeId>,
-        destinationPackage: GoPackage,
-        aliases: Map<GoPackage, String?>
+    private val pointerValueStruct = """
+        type __PointerValue__ struct {
+        	Type        string       `json:"type"`
+        	ElementType string       `json:"elementType"`
+        	Value       __RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val pointerValueToReflectValueMethod = """
+        func (v __PointerValue__) __toReflectValue__() (reflect.Value, error) {
+        	elementType, err := __convertStringToReflectType__(v.ElementType)
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrStringToReflectTypeFailure, v.Type, err)
+        	}
+
+        	value, err := v.Value.__toReflectValue__()
+        	if err != nil {
+        		return reflect.Value{}, fmt.Errorf(ErrRawValueToReflectValueFailure, err)
+        	}
+
+        	pointer := reflect.New(elementType)
+        	pointer.Elem().Set(value)
+
+        	return pointer, nil
+        }
+    """.trimIndent()
+
+    private fun convertStringToReflectTypeFunction(
+        namedTypes: Set<GoNamedTypeId>, destinationPackage: GoPackage, aliases: Map<GoPackage, String?>
     ): String {
         val converter = GoUtModelToCodeConverter(destinationPackage, aliases)
         return """
@@ -454,6 +564,30 @@ object GoCodeTemplates {
             		}
 
             		result = reflect.ArrayOf(length, res)
+            	case strings.HasPrefix(typeName, "<-chan") || strings.HasPrefix(typeName, "chan"):
+            		dir := reflect.BothDir
+            		index := 5
+            		if strings.HasPrefix(typeName, "<-chan") {
+            			dir = reflect.RecvDir
+            			index = 7
+            		} else if strings.HasPrefix(typeName, "chan<-") {
+            			dir = reflect.SendDir
+            			index = 7
+            		}
+
+            		elemType, err := __convertStringToReflectType__(typeName[index:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, typeName[index:], err)
+            		}
+
+            		result = reflect.ChanOf(dir, elemType)
+            	case strings.HasPrefix(typeName, "*"):
+            		elemType, err := __convertStringToReflectType__(typeName[1:])
+            		if err != nil {
+            			return nil, fmt.Errorf(ErrStringToReflectTypeFailure, typeName[1:], err)
+            		}
+
+            		result = reflect.PointerTo(elemType)
             	default:
             		switch typeName {
             		case "bool":
@@ -494,10 +628,16 @@ object GoCodeTemplates {
             			result = reflect.TypeOf("")
             		case "uintptr":
             			result = reflect.TypeOf(uintptr(0))
+            		case "interface{}":
+			            result = reflect.TypeOf((*interface{})(nil)).Elem()
                 ${
             namedTypes.joinToString(separator = "\n") {
                 val relativeName = it.getRelativeName(destinationPackage, aliases)
-                "case \"${relativeName}\": result = reflect.TypeOf(${converter.toGoCode(it.goDefaultValueModel())})"
+                if (it.underlyingTypeId is GoInterfaceTypeId) {
+                    "case \"${relativeName}\": result = reflect.TypeOf((*$relativeName)(nil)).Elem()"
+                } else {
+                    "case \"${relativeName}\": result = reflect.TypeOf(${converter.toGoCode(it.goDefaultValueModel())})"
+                }
             }
         }
             		default:
@@ -521,7 +661,7 @@ object GoCodeTemplates {
         	TimeoutExceeded bool                 `json:"timeoutExceeded"`
         	RawResultValues []__RawValue__       `json:"rawResultValues"`
         	PanicMessage    *__RawPanicMessage__ `json:"panicMessage"`
-        	Trace           []uint16             `json:"trace"`
+        	CoverTab        map[int]int          `json:"coverTab"`
         }
     """.trimIndent()
 
@@ -692,6 +832,40 @@ object GoCodeTemplates {
         			ElementType: elementType,
         			Value:       mapValues,
         		}, nil
+        	case reflect.Chan:
+        		if v.IsNil() {
+        			return __NilValue__{Type: "nil"}, nil
+        		}
+        		typeName := v.Type().String()
+        		elementType := v.Type().Elem().String()
+        		dir := "SENDRECV"
+        		if v.Type().ChanDir() == reflect.SendDir {
+        			dir = "SENDONLY"
+        		} else if v.Type().ChanDir() == reflect.RecvDir {
+        			dir = "RECVONLY"
+        		}
+        		length := v.Len()
+
+        		chanElementValues := make([]__RawValue__, 0, v.Len())
+        		if dir != "SENDONLY" {
+        			for v.Len() > 0 {
+        				val, _ := v.Recv()
+        				rawValue, err := __convertReflectValueToRawValue__(val)
+        				if err != nil {
+        					return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        				}
+
+        				chanElementValues = append(chanElementValues, rawValue)
+        			}
+        		}
+
+        		return __ChanValue__{
+        			Type:        typeName,
+        			ElementType: elementType,
+        			Direction:   dir,
+        			Length:      length,
+        			Value:       chanElementValues,
+        		}, nil
         	case reflect.Interface:
         		if v.Interface() == nil {
         			return __NilValue__{Type: "nil"}, nil
@@ -707,6 +881,23 @@ object GoCodeTemplates {
         			}, nil
         		}
         		return nil, fmt.Errorf("unsupported result type: %s", v.Type().String())
+        	case reflect.Pointer:
+        		if v.IsNil() {
+        			return __NilValue__{Type: "nil"}, nil
+        		}
+        		typeName := v.Type().String()
+        		elementType := v.Type().Elem().String()
+
+        		value, err := __convertReflectValueToRawValue__(v.Elem())
+        		if err != nil {
+        			return nil, fmt.Errorf(ErrReflectValueToRawValueFailure, err)
+        		}
+
+        		return __PointerValue__{
+        			Type:        typeName,
+        			ElementType: elementType,
+        			Value:       value,
+        		}, nil
         	default:
         		return nil, fmt.Errorf("unsupported result type: %s", v.Type().String())
         	}
@@ -722,73 +913,98 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private fun executeFunctionFunction(maxTraceLength: Int) = """
+    private val executeFunctionFunction = """
         func __executeFunction__(
         	function reflect.Value, arguments []reflect.Value, timeout time.Duration,
         ) __RawExecutionResult__ {
         	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
         	defer cancel()
 
-        	trace := make([]uint16, 0, $maxTraceLength)
+        	__CoverTab__ = make([]int, __CoverSize__)
 
-        	done := make(chan __RawExecutionResult__, 1)
+        	executionResult := make(chan __ExecutionResult__, 1)
         	go func() {
-        		executionResult := __RawExecutionResult__{
-        			TimeoutExceeded: false,
-        			RawResultValues: []__RawValue__{},
-        			PanicMessage:    nil,
-        			Trace:           []uint16{},
-        		}
-
         		panicked := true
         		defer func() {
         			panicMessage := recover()
         			if panicked {
-        				panicAsError, implementsError := panicMessage.(error)
-        				var (
-        					resultValue __RawValue__
-        					err         error
-        				)
-        				if implementsError {
-        					resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicAsError.Error()))
-        				} else {
-        					resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicMessage))
-        				}
-        				if err != nil {
-        					_, _ = fmt.Fprint(os.Stderr, ErrReflectValueToRawValueFailure, err)
-        					os.Exit(1)
-        				}
-
-        				executionResult.PanicMessage = &__RawPanicMessage__{
-        					RawResultValue:  resultValue,
-        					ImplementsError: implementsError,
+        				executionResult <- __ExecutionResult__{
+        					Type:         PanicFailure,
+        					ResultValues: []reflect.Value{reflect.ValueOf(panicMessage)},
         				}
         			}
-        			executionResult.Trace = trace
-        			done <- executionResult
         		}()
 
-        		argumentsWithTrace := append(arguments, reflect.ValueOf(&trace))
-        		resultValues, err := __wrapResultValues__(function.Call(argumentsWithTrace))
+        		executionResult <- __ExecutionResult__{
+        			Type:         Completed,
+        			ResultValues: function.Call(arguments),
+        		}
+        		panicked = false
+        	}()
+
+        	var result __ExecutionResult__
+        	select {
+        	case result = <-executionResult:
+        	case <-ctxWithTimeout.Done():
+        		result = __ExecutionResult__{Type: TimeoutExceeded}
+        	}
+
+        	return __wrapExecutionResult__(result)
+        }
+    """.trimIndent()
+
+    private val wrapExecutionResultFunction = """
+        func __wrapExecutionResult__(executionResult __ExecutionResult__) __RawExecutionResult__ {
+        	var result __RawExecutionResult__
+        	switch executionResult.Type {
+        	case Completed:
+        		resultValues, err := __wrapResultValues__(executionResult.ResultValues)
         		if err != nil {
         			_, _ = fmt.Fprintf(os.Stderr, "Failed to wrap result values: %s", err)
         			os.Exit(1)
         		}
-        		executionResult.RawResultValues = resultValues
-        		panicked = false
-        	}()
 
-        	select {
-        	case timelyExecutionResult := <-done:
-        		return timelyExecutionResult
-        	case <-ctxWithTimeout.Done():
-        		return __RawExecutionResult__{
+        		result = __RawExecutionResult__{RawResultValues: resultValues}
+        	case PanicFailure:
+        		panicMessage := executionResult.ResultValues[0].Interface()
+        		panicAsError, implementsError := panicMessage.(error)
+        		var (
+        			resultValue __RawValue__
+        			err         error
+        		)
+        		if implementsError {
+        			resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicAsError.Error()))
+        		} else {
+        			resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicMessage))
+        		}
+        		if err != nil {
+        			_, _ = fmt.Fprintf(os.Stderr, ErrReflectValueToRawValueFailure, err)
+        			os.Exit(1)
+        		}
+
+        		result = __RawExecutionResult__{
+        			RawResultValues: []__RawValue__{},
+        			PanicMessage: &__RawPanicMessage__{
+        				RawResultValue:  resultValue,
+        				ImplementsError: implementsError,
+        			},
+        		}
+        	case TimeoutExceeded:
+        		result = __RawExecutionResult__{
         			TimeoutExceeded: true,
         			RawResultValues: []__RawValue__{},
-        			PanicMessage:    nil,
-        			Trace:           trace,
         		}
         	}
+
+        	coverTab := make(map[int]int, 256)
+        	for i, v := range __CoverTab__ {
+        		if v != 0 {
+        			coverTab[i] = v
+        		}
+        	}
+        	result.CoverTab = coverTab
+
+        	return result
         }
     """.trimIndent()
 
@@ -972,7 +1188,7 @@ object GoCodeTemplates {
         	case strings.HasPrefix(typeNameStr, "["):
         		elementType, ok := rawValue["elementType"]
         		if !ok {
-        			return nil, fmt.Errorf("ArrayValue must contain field 'elementType")
+        			return nil, fmt.Errorf("ArrayValue must contain field 'elementType'")
         		}
         		elementTypeStr, ok := elementType.(string)
         		if !ok {
@@ -1007,6 +1223,75 @@ object GoCodeTemplates {
         			ElementType: elementTypeStr,
         			Length:      int(length),
         			Value:       values,
+        		}, nil
+        	case strings.HasPrefix(typeNameStr, "<-chan") || strings.HasPrefix(typeNameStr, "chan"):
+        		elementType, ok := rawValue["elementType"]
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue must contain field 'elementType'")
+        		}
+        		elementTypeStr, ok := elementType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue field 'elementType' must be string")
+        		}
+
+        		dir, ok := rawValue["direction"]
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue must contain field 'direction'")
+        		}
+        		direction, ok := dir.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue field 'direction' must be string")
+        		}
+
+        		if _, ok := rawValue["length"]; !ok {
+        			return nil, fmt.Errorf("ChanValue must contain field 'length'")
+        		}
+        		length, ok := rawValue["length"].(float64)
+        		if !ok {
+        			return nil, fmt.Errorf("ChanValue field 'length' must be float64")
+        		}
+
+        		value, ok := v.([]interface{})
+        		if !ok || len(value) != int(length) {
+        			return nil, fmt.Errorf("ChanValue field 'value' must be array of length %d", int(length))
+        		}
+
+        		values := make([]__RawValue__, 0, len(value))
+        		for i, v := range value {
+        			nextValue, err := __parseRawValue__(v.(map[string]interface{}), "")
+        			if err != nil {
+        				return nil, fmt.Errorf("failed to parse %d chan element: %s", i, err)
+        			}
+
+        			values = append(values, nextValue)
+        		}
+
+        		return __ChanValue__{
+        			Type:        typeNameStr,
+        			ElementType: elementTypeStr,
+        			Direction:   direction,
+        			Length:      int(length),
+        			Value:       values,
+        		}, nil
+        	case strings.HasPrefix(typeNameStr, "*"):
+        		elementType, ok := rawValue["elementType"]
+        		if !ok {
+        			return nil, fmt.Errorf("PointerValue must contain field 'elementType'")
+        		}
+        		elementTypeStr, ok := elementType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("PointerValue field 'elementType' must be string")
+        		}
+
+        		value, err := __parseRawValue__(v.(map[string]interface{}), "")
+        		if err != nil {
+        			return nil, fmt.Errorf("failed to parse of PointerValue with type %s: %s", typeNameStr, err)
+        		}
+
+        		return __PointerValue__{
+        			Type:        typeNameStr,
+        			ElementType: elementTypeStr,
+        			Value:       value,
         		}, nil
         	default:
         		switch typeNameStr {
@@ -1100,12 +1385,14 @@ object GoCodeTemplates {
         namedTypes: Set<GoNamedTypeId>,
         destinationPackage: GoPackage,
         aliases: Map<GoPackage, String?>,
-        maxTraceLength: Int,
     ) = listOf(
         errorMessages,
+        typeOfExecutionResult,
+        executionResultStruct,
         testInputStruct,
         rawValueInterface,
         primitiveValueStruct,
+        parseFloatFunction,
         primitiveValueToReflectValueMethod,
         fieldValueStruct,
         structValueStruct,
@@ -1117,18 +1404,23 @@ object GoCodeTemplates {
         arrayValueToReflectValueMethod,
         sliceValueStruct,
         sliceValueToReflectValueMethod,
+        chanValueStruct,
+        chanValueToReflectValueMethod,
         nilValueStruct,
         nilValueToReflectValueMethod,
         namedValueStruct,
         namedValueToReflectValueMethod,
-        convertStringToReflectType(namedTypes, destinationPackage, aliases),
+        pointerValueStruct,
+        pointerValueToReflectValueMethod,
+        convertStringToReflectTypeFunction(namedTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,
         convertReflectValueOfDefinedTypeToRawValueFunction,
         convertFloat64ValueToStringFunction,
         convertReflectValueOfPredeclaredOrNotDefinedTypeToRawValueFunction,
         convertReflectValueToRawValueFunction,
-        executeFunctionFunction(maxTraceLength),
+        executeFunctionFunction,
+        wrapExecutionResultFunction,
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
         parseTestInputFunction,

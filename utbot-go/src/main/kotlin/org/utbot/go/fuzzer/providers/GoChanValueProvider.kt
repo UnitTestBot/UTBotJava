@@ -4,28 +4,27 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.go.GoDescription
-import org.utbot.go.api.GoSliceTypeId
-import org.utbot.go.api.GoUtSliceModel
+import org.utbot.go.api.GoChanTypeId
+import org.utbot.go.api.GoUtChanModel
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 
-object GoSliceValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
-    override fun accept(type: GoTypeId): Boolean = type is GoSliceTypeId
+object GoChanValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
+    override fun accept(type: GoTypeId): Boolean = type is GoChanTypeId
 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
-            type.let { it as GoSliceTypeId }.also { sliceType ->
+            type.let { it as GoChanTypeId }.also { chanType ->
                 yield(
                     Seed.Collection(
                         construct = Routine.Collection {
-                            GoUtSliceModel(
+                            GoUtChanModel(
                                 value = arrayOfNulls(it),
-                                typeId = sliceType,
-                                length = it,
+                                typeId = chanType,
                             )
                         },
-                        modify = Routine.ForEach(listOf(sliceType.elementTypeId!!)) { self, i, values ->
-                            val model = self as GoUtSliceModel
+                        modify = Routine.ForEach(listOf(chanType.elementTypeId!!)) { self, i, values ->
+                            val model = self as GoUtChanModel
                             model.value[i] = values.first()
                         }
                     )

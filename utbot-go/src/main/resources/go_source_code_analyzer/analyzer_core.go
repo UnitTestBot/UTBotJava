@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"go/ast"
-	"go/printer"
 	"go/token"
 	"go/types"
 	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -24,156 +22,292 @@ func implementsError(typ types.Type) bool {
 	return types.Implements(typ, errorInterface)
 }
 
-//goland:noinspection GoPreferNilSlice
-func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
+func ChanDirToString(dir types.ChanDir) (string, error) {
+	switch dir {
+	case types.SendOnly:
+		return "SENDONLY", nil
+	case types.RecvOnly:
+		return "RECVONLY", nil
+	case types.SendRecv:
+		return "SENDRECV", nil
+	}
+	return "", fmt.Errorf("unsupported channel direction: %d", dir)
+}
+
+func toAnalyzedType(
+	typ types.Type,
+	analyzedTypes map[string]AnalyzedType,
+	typeToIndex map[string]string,
+	sourcePackage Package,
+	currentPackage Package,
+	info *types.Info,
+) string {
+	if index, ok := typeToIndex[typ.String()]; ok {
+		return index
+	}
+
+	var result AnalyzedType
+	indexOfResult := strconv.Itoa(len(typeToIndex))
+	typeToIndex[typ.String()] = indexOfResult
+
 	switch t := typ.(type) {
+	case *types.Pointer:
+		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
+
+		result = AnalyzedPointerType{
+			Name:        "*",
+			ElementType: indexOfElemType,
+		}
 	case *types.Named:
 		name := t.Obj().Name()
 
-		pkg := t.Obj().Pkg()
-		packageName, packagePath := "", ""
-		if pkg != nil {
-			packageName = pkg.Name()
-			packagePath = pkg.Path()
+		var pkg Package
+		if p := t.Obj().Pkg(); p != nil {
+			pkg.Name = p.Name()
+			pkg.Path = p.Path()
 		}
 
 		isError := implementsError(t)
 
-		underlyingType, err := toAnalyzedType(t.Underlying())
-		checkError(err)
+		indexOfUnderlyingType := toAnalyzedType(t.Underlying(), analyzedTypes, typeToIndex, sourcePackage, pkg, info)
 
-		return AnalyzedNamedType{
-			Name: name,
-			SourcePackage: GoPackage{
-				PackageName: packageName,
-				PackagePath: packagePath,
-			},
+		result = AnalyzedNamedType{
+			Name:            name,
+			SourcePackage:   pkg,
 			ImplementsError: isError,
-			UnderlyingType:  underlyingType,
-		}, nil
+			UnderlyingType:  indexOfUnderlyingType,
+		}
 	case *types.Basic:
 		name := t.Name()
-		return AnalyzedPrimitiveType{Name: name}, nil
+		result = AnalyzedPrimitiveType{Name: name}
 	case *types.Struct:
-		name := "struct{}"
-
-		fields := []AnalyzedField{}
+		println(t.String())
+		fields := make([]AnalyzedField, 0, t.NumFields())
 		for i := 0; i < t.NumFields(); i++ {
 			field := t.Field(i)
+			if currentPackage != sourcePackage && !field.Exported() {
+				continue
+			}
 
-			fieldType, err := toAnalyzedType(field.Type())
-			checkError(err)
+			fieldType := toAnalyzedType(field.Type(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 			fields = append(fields, AnalyzedField{field.Name(), fieldType, field.Exported()})
 		}
 
-		return AnalyzedStructType{
-			Name:   name,
+		result = AnalyzedStructType{
+			Name:   "struct{}",
 			Fields: fields,
-		}, nil
+		}
 	case *types.Array:
-		arrayElemType, err := toAnalyzedType(t.Elem())
-		checkError(err)
-
-		elemTypeName := arrayElemType.GetName()
+		println(t.String())
+		indexOfArrayElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
 		length := t.Len()
-		name := fmt.Sprintf("[%d]%s", length, elemTypeName)
 
-		return AnalyzedArrayType{
-			Name:        name,
-			ElementType: arrayElemType,
+		result = AnalyzedArrayType{
+			Name:        "[_]",
+			ElementType: indexOfArrayElemType,
 			Length:      length,
-		}, nil
-	case *types.Slice:
-		sliceElemType, err := toAnalyzedType(t.Elem())
-		checkError(err)
-
-		elemTypeName := sliceElemType.GetName()
-		name := fmt.Sprintf("[]%s", elemTypeName)
-
-		return AnalyzedSliceType{
-			Name:        name,
-			ElementType: sliceElemType,
-		}, nil
-	case *types.Map:
-		keyType, err := toAnalyzedType(t.Key())
-		checkError(err)
-
-		elemType, err := toAnalyzedType(t.Elem())
-		checkError(err)
-
-		name := fmt.Sprintf("map[%s]%s", keyType.GetName(), elemType.GetName())
-
-		return AnalyzedMapType{
-			Name:        name,
-			KeyType:     keyType,
-			ElementType: elemType,
-		}, nil
-	case *types.Interface:
-		name := "interface{}"
-		isError := implementsError(t)
-		if !isError {
-			return nil, errors.New("currently only error interface is supported")
 		}
-		return AnalyzedInterfaceType{
-			Name: name,
-		}, nil
-	}
-	return nil, fmt.Errorf("unsupported type: %s", typ)
-}
+	case *types.Slice:
+		println(t.String())
+		indexOfSliceElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
 
-// for now supports only basic and error result types
-func checkTypeIsSupported(typ types.Type, isResultType bool) bool {
-	underlyingType := typ.Underlying() // analyze real type, not alias or defined type
-	if _, ok := underlyingType.(*types.Basic); ok {
-		return true
-	}
-	if structType, ok := underlyingType.(*types.Struct); ok {
-		for i := 0; i < structType.NumFields(); i++ {
-			if !checkTypeIsSupported(structType.Field(i).Type(), isResultType) {
-				return false
+		result = AnalyzedSliceType{
+			Name:        "[]",
+			ElementType: indexOfSliceElemType,
+		}
+	case *types.Map:
+		println(t.String())
+		indexOfKeyType := toAnalyzedType(t.Key(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
+		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
+
+		result = AnalyzedMapType{
+			Name:        "map",
+			KeyType:     indexOfKeyType,
+			ElementType: indexOfElemType,
+		}
+	case *types.Chan:
+		println(t.String())
+		indexOfElemType := toAnalyzedType(t.Elem(), analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
+
+		chanDir, err := ChanDirToString(t.Dir())
+		checkError(err)
+
+		result = AnalyzedChanType{
+			Name:        "chan",
+			ElementType: indexOfElemType,
+			Direction:   chanDir,
+		}
+	case *types.Interface:
+		implementations := make([]string, 0)
+		used := make(map[string]bool)
+		for _, typeAndValue := range info.Types {
+			switch typeAndValue.Type.(type) {
+			case *types.Struct, *types.Signature, *types.Tuple, *types.TypeParam, *types.Union:
+				continue
+			case *types.Basic:
+				b := typeAndValue.Type.(*types.Basic)
+				switch b.Kind() {
+				case types.UntypedBool, types.UntypedInt, types.UntypedRune, types.UntypedFloat, types.UntypedComplex, types.UntypedString, types.UntypedNil:
+					continue
+				}
+			}
+			if !types.IsInterface(typeAndValue.Type) && types.Implements(typeAndValue.Type, t) {
+				analyzedType := toAnalyzedType(typeAndValue.Type, analyzedTypes, typeToIndex, sourcePackage, currentPackage, info)
+				if used[analyzedType] {
+					continue
+				}
+				used[analyzedType] = true
+				implementations = append(implementations, analyzedType)
 			}
 		}
-		return true
+		result = AnalyzedInterfaceType{
+			Name:            "interface{}",
+			Implementations: implementations,
+		}
+	default:
+		err := fmt.Errorf("unsupported type: %s", typ.Underlying())
+		checkError(err)
 	}
-	if arrayType, ok := underlyingType.(*types.Array); ok {
-		return checkTypeIsSupported(arrayType.Elem(), isResultType)
-	}
-	if sliceType, ok := underlyingType.(*types.Slice); ok {
-		return checkTypeIsSupported(sliceType.Elem(), isResultType)
-	}
-	if mapType, ok := underlyingType.(*types.Map); ok {
-		return checkTypeIsSupported(mapType.Key(), isResultType) && checkTypeIsSupported(mapType.Elem(), isResultType)
-	}
-	if interfaceType, ok := underlyingType.(*types.Interface); ok && isResultType {
-		return implementsError(interfaceType)
-	}
-	return false
+	analyzedTypes[indexOfResult] = result
+	return indexOfResult
 }
 
-func checkIsSupported(signature *types.Signature) bool {
-	if signature.Recv() != nil { // is method
-		return false
+type ResultOfChecking int
+
+const (
+	SupportedType = iota
+	Unknown
+	UnsupportedType
+)
+
+func checkTypeIsSupported(
+	typ types.Type,
+	visited map[string]ResultOfChecking,
+	isResultType bool,
+	sourcePackage Package,
+	currentPackage Package,
+	depth int,
+) ResultOfChecking {
+	if res, ok := visited[typ.String()]; ok {
+		return res
 	}
+	var result ResultOfChecking = Unknown
+	visited[typ.String()] = result
+	switch t := typ.(type) {
+	case *types.Pointer:
+		// no support for pointer to pointer and pointer to channel,
+		// support for pointer to primitive only if depth is 0
+		switch t.Elem().Underlying().(type) {
+		case *types.Basic:
+			if depth == 0 {
+				result = SupportedType
+			} else {
+				result = UnsupportedType
+			}
+		case *types.Chan:
+			if depth == 0 && !isResultType {
+				result = SupportedType
+			} else {
+				result = UnsupportedType
+			}
+		case *types.Pointer:
+			result = UnsupportedType
+		default:
+			result = checkTypeIsSupported(t.Elem(), visited, isResultType, sourcePackage, currentPackage, depth+1)
+		}
+	case *types.Named:
+		var pkg Package
+		if p := t.Obj().Pkg(); p != nil {
+			pkg.Name = p.Name()
+			pkg.Path = p.Path()
+		}
+		result = checkTypeIsSupported(t.Underlying(), visited, isResultType, sourcePackage, pkg, depth+1)
+	case *types.Basic:
+		result = SupportedType
+	case *types.Struct:
+		for i := 0; i < t.NumFields(); i++ {
+			field := t.Field(i)
+			if currentPackage != sourcePackage && !field.Exported() {
+				continue
+			}
+
+			if checkTypeIsSupported(field.Type(), visited, isResultType, sourcePackage, currentPackage, depth+1) == UnsupportedType {
+				visited[t.String()] = UnsupportedType
+				return UnsupportedType
+			}
+		}
+		result = SupportedType
+	case *types.Array:
+		result = checkTypeIsSupported(t.Elem(), visited, isResultType, sourcePackage, currentPackage, depth+1)
+	case *types.Slice:
+		result = checkTypeIsSupported(t.Elem(), visited, isResultType, sourcePackage, currentPackage, depth+1)
+	case *types.Map:
+		if checkTypeIsSupported(t.Key(), visited, isResultType, sourcePackage, currentPackage, depth+1) == UnsupportedType ||
+			checkTypeIsSupported(t.Elem(), visited, isResultType, sourcePackage, currentPackage, depth+1) == UnsupportedType {
+			result = UnsupportedType
+		} else {
+			result = SupportedType
+		}
+	case *types.Chan:
+		if !isResultType && depth == 0 {
+			result = checkTypeIsSupported(t.Elem(), visited, isResultType, sourcePackage, currentPackage, depth+1)
+		}
+	case *types.Interface:
+		if isResultType {
+			if implementsError(t) && depth == 0 {
+				result = SupportedType
+			} else {
+				result = UnsupportedType
+			}
+		} else {
+			result = SupportedType
+		}
+	}
+
+	if result == Unknown {
+		result = UnsupportedType
+	}
+	visited[typ.String()] = result
+	return visited[typ.String()]
+}
+
+func checkIsSupported(signature *types.Signature, sourcePackage Package) bool {
 	if signature.TypeParams() != nil { // has type params
 		return false
 	}
 	if signature.Variadic() { // is variadic
 		return false
 	}
+	visited := make(map[string]ResultOfChecking, signature.Results().Len()+signature.Params().Len())
+	if signature.Recv() != nil {
+		receiverType := signature.Recv().Type()
+		checkTypeIsSupported(receiverType, visited, false, sourcePackage, sourcePackage, 0)
+		if visited[receiverType.String()] == UnsupportedType {
+			return false
+		}
+	}
 	if results := signature.Results(); results != nil {
 		for i := 0; i < results.Len(); i++ {
-			result := results.At(i)
-			if !checkTypeIsSupported(result.Type(), true) {
+			resultType := results.At(i).Type().Underlying()
+			if _, ok := visited[resultType.String()]; ok {
+				continue
+			}
+			checkTypeIsSupported(resultType, visited, true, sourcePackage, sourcePackage, 0)
+			if visited[resultType.String()] == UnsupportedType {
 				return false
 			}
 		}
 	}
 	if parameters := signature.Params(); parameters != nil {
 		for i := 0; i < parameters.Len(); i++ {
-			parameter := parameters.At(i)
-			if !checkTypeIsSupported(parameter.Type(), false) {
+			paramType := parameters.At(i).Type().Underlying()
+			if _, ok := visited[paramType.String()]; ok {
+				continue
+			}
+			checkTypeIsSupported(paramType, visited, false, sourcePackage, sourcePackage, 0)
+			if visited[paramType.String()] == UnsupportedType {
 				return false
 			}
 		}
@@ -181,31 +315,34 @@ func checkIsSupported(signature *types.Signature) bool {
 	return true
 }
 
+func extractConstants(info *types.Info, funcDecl *ast.FuncDecl) map[string][]string {
+	constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
+	ast.Walk(&constantExtractor, funcDecl)
+	return constantExtractor.constants
+}
+
 func collectTargetAnalyzedFunctions(
-	fset *token.FileSet,
 	info *types.Info,
-	targetFunctionsNames []string,
-	allImportsInFile map[Import]bool,
+	targetFunctionNames []string,
+	targetMethodNames []string,
 	sourcePackage Package,
 ) (
 	analyzedFunctions []AnalyzedFunction,
-	notSupportedFunctionsNames []string,
-	notFoundFunctionsNames []string,
+	notSupportedFunctionNames []string,
+	notFoundFunctionNames []string,
 ) {
 	analyzedFunctions = []AnalyzedFunction{}
-	notSupportedFunctionsNames = []string{}
-	notFoundFunctionsNames = []string{}
+	notSupportedFunctionNames = []string{}
+	notFoundFunctionNames = []string{}
 
-	foundTargetFunctionsNamesMap := map[string]bool{}
-	for _, functionName := range targetFunctionsNames {
-		foundTargetFunctionsNamesMap[functionName] = false
+	foundTargetFunctionNamesMap := map[string]bool{}
+	for _, functionName := range targetFunctionNames {
+		foundTargetFunctionNamesMap[functionName] = false
 	}
 
-	var blankImports []Import
-	for i := range allImportsInFile {
-		if i.Alias == "_" {
-			blankImports = append(blankImports, i)
-		}
+	foundTargetMethodNamesMap := map[string]bool{}
+	for _, functionName := range targetMethodNames {
+		foundTargetMethodNamesMap[functionName] = false
 	}
 
 	var wg sync.WaitGroup
@@ -219,38 +356,56 @@ func collectTargetAnalyzedFunctions(
 				defer wg.Done()
 
 				analyzedFunction := AnalyzedFunction{
-					Name:            typedObj.Name(),
-					Parameters:      []AnalyzedFunctionParameter{},
-					ResultTypes:     []AnalyzedType{},
-					RequiredImports: []Import{},
-					position:        typedObj.Pos(),
-				}
-
-				mutex.Lock()
-				if isFound, ok := foundTargetFunctionsNamesMap[analyzedFunction.Name]; !ok || isFound {
-					mutex.Unlock()
-					return
-				} else {
-					foundTargetFunctionsNamesMap[analyzedFunction.Name] = true
-					mutex.Unlock()
+					Name:        typedObj.Name(),
+					Parameters:  []AnalyzedVariable{},
+					ResultTypes: []AnalyzedVariable{},
+					Constants:   map[string][]string{},
+					position:    typedObj.Pos(),
 				}
 
 				signature := typedObj.Type().(*types.Signature)
-				if !checkIsSupported(signature) {
+				if signature.Recv() != nil {
 					mutex.Lock()
-					notSupportedFunctionsNames = append(notSupportedFunctionsNames, analyzedFunction.Name)
+					if isFound, ok := foundTargetMethodNamesMap[analyzedFunction.Name]; !ok || isFound {
+						mutex.Unlock()
+						return
+					} else {
+						foundTargetMethodNamesMap[analyzedFunction.Name] = true
+						mutex.Unlock()
+					}
+				} else {
+					mutex.Lock()
+					if isFound, ok := foundTargetFunctionNamesMap[analyzedFunction.Name]; !ok || isFound {
+						mutex.Unlock()
+						return
+					} else {
+						foundTargetFunctionNamesMap[analyzedFunction.Name] = true
+						mutex.Unlock()
+					}
+				}
+
+				if !checkIsSupported(signature, sourcePackage) {
+					mutex.Lock()
+					notSupportedFunctionNames = append(notSupportedFunctionNames, analyzedFunction.Name)
 					mutex.Unlock()
 					return
+				}
+				analyzedTypes := make(map[string]AnalyzedType, signature.Params().Len()+signature.Results().Len())
+				typeToIndex := make(map[string]string, signature.Params().Len()+signature.Results().Len())
+				if receiver := signature.Recv(); receiver != nil {
+					receiverType := toAnalyzedType(receiver.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage, info)
+					analyzedFunction.Receiver = &AnalyzedVariable{
+						Name: receiver.Name(),
+						Type: receiverType,
+					}
 				}
 				if parameters := signature.Params(); parameters != nil {
 					for i := 0; i < parameters.Len(); i++ {
 						parameter := parameters.At(i)
-
-						parameterType, err := toAnalyzedType(parameter.Type())
-						checkError(err)
-
-						analyzedFunction.Parameters = append(analyzedFunction.Parameters,
-							AnalyzedFunctionParameter{
+						parameterType := toAnalyzedType(parameter.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage, info)
+						analyzedFunction.Parameters = append(
+							analyzedFunction.Parameters,
+							AnalyzedVariable{
 								Name: parameter.Name(),
 								Type: parameterType,
 							},
@@ -260,50 +415,22 @@ func collectTargetAnalyzedFunctions(
 				if results := signature.Results(); results != nil {
 					for i := 0; i < results.Len(); i++ {
 						result := results.At(i)
-
-						resultType, err := toAnalyzedType(result.Type())
-						checkError(err)
-
-						analyzedFunction.ResultTypes = append(analyzedFunction.ResultTypes, resultType)
+						resultType := toAnalyzedType(result.Type(), analyzedTypes, typeToIndex, sourcePackage, sourcePackage, info)
+						analyzedFunction.ResultTypes = append(
+							analyzedFunction.ResultTypes,
+							AnalyzedVariable{
+								Name: result.Name(),
+								Type: resultType,
+							},
+						)
 					}
 				}
 
-				funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
-
-				constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
-				ast.Walk(&constantExtractor, funcDecl)
-				analyzedFunction.Constants = constantExtractor.constants
-
-				functionModifier := FunctionModifier{maxTraceLen: MaxTraceLength}
-				functionModifier.ModifyFunctionDeclaration(funcDecl)
-				ast.Walk(&functionModifier, funcDecl)
-
-				importsCollector := ImportsCollector{
-					info:             info,
-					requiredImports:  map[Import]bool{},
-					allImportsInFile: allImportsInFile,
-					sourcePackage:    sourcePackage,
+				if ident.Obj != nil {
+					funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
+					analyzedFunction.Constants = extractConstants(info, funcDecl)
 				}
-				ast.Walk(&importsCollector, funcDecl)
-				for _, i := range blankImports {
-					importsCollector.requiredImports[i] = true
-				}
-
-				var modifiedFunction bytes.Buffer
-				cfg := printer.Config{
-					Mode:     printer.TabIndent,
-					Tabwidth: 4,
-					Indent:   0,
-				}
-				err := cfg.Fprint(&modifiedFunction, fset, funcDecl)
-				checkError(err)
-
-				analyzedFunction.ModifiedName = funcDecl.Name.String()
-				for i := range importsCollector.requiredImports {
-					analyzedFunction.RequiredImports = append(analyzedFunction.RequiredImports, i)
-				}
-				analyzedFunction.ModifiedFunctionForCollectingTraces = modifiedFunction.String()
-				analyzedFunction.NumberOfAllStatements = functionModifier.lineCounter
+				analyzedFunction.Types = analyzedTypes
 
 				mutex.Lock()
 				analyzedFunctions = append(analyzedFunctions, analyzedFunction)
@@ -314,16 +441,20 @@ func collectTargetAnalyzedFunctions(
 
 	wg.Wait()
 
-	for functionName, isFound := range foundTargetFunctionsNamesMap {
+	for functionName, isFound := range foundTargetFunctionNamesMap {
 		if !isFound {
-			notFoundFunctionsNames = append(notFoundFunctionsNames, functionName)
+			notFoundFunctionNames = append(notFoundFunctionNames, functionName)
+		}
+	}
+	for methodName, isFound := range foundTargetMethodNamesMap {
+		if !isFound {
+			notFoundFunctionNames = append(notFoundFunctionNames, methodName)
 		}
 	}
 	sort.Slice(analyzedFunctions, func(i, j int) bool {
 		return analyzedFunctions[i].position < analyzedFunctions[j].position
 	})
-	sort.Strings(notSupportedFunctionsNames)
-	sort.Strings(notFoundFunctionsNames)
-
-	return analyzedFunctions, notSupportedFunctionsNames, notFoundFunctionsNames
+	sort.Strings(notSupportedFunctionNames)
+	sort.Strings(notFoundFunctionNames)
+	return
 }

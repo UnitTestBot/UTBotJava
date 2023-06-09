@@ -10,6 +10,7 @@ import org.utbot.go.logic.AbstractGoUtTestsGenerationController
 import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.showWarningDialogLater
+import java.nio.file.Path
 
 class IntellijGoUtTestsGenerationController(
     private val model: GenerateGoTestsModel,
@@ -37,7 +38,10 @@ class IntellijGoUtTestsGenerationController(
         }
     }
 
-    override fun onSourceCodeAnalysisStart(targetFunctionsNamesBySourceFiles: Map<String, List<String>>): Boolean {
+    override fun onSourceCodeAnalysisStart(
+        targetFunctionNamesBySourceFiles: Map<Path, List<String>>,
+        targetMethodNamesBySourceFiles: Map<Path, List<String>>
+    ): Boolean {
         indicator.isIndeterminate = false
         indicator.text = "Analyze source files"
         indicator.fraction = ProgressIndicatorConstants.START_FRACTION
@@ -56,6 +60,14 @@ class IntellijGoUtTestsGenerationController(
             analysisResults.count { (_, analysisResult) -> analysisResult.functions.isNotEmpty() }
         testCasesGenerationCounter = ProcessedFilesCounter(filesToProcessTotalNumber)
         testCasesCodeGenerationCounter = ProcessedFilesCounter(filesToProcessTotalNumber)
+        return true
+    }
+
+    override fun onPackageInstrumentationStart(): Boolean {
+        return true
+    }
+
+    override fun onPackageInstrumentationFinished(): Boolean {
         return true
     }
 

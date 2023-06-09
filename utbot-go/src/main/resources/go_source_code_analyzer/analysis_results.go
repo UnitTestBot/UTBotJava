@@ -2,9 +2,9 @@ package main
 
 import "go/token"
 
-type GoPackage struct {
-	PackageName string `json:"packageName"`
-	PackagePath string `json:"packagePath"`
+type Package struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
 }
 
 type AnalyzedType interface {
@@ -12,10 +12,10 @@ type AnalyzedType interface {
 }
 
 type AnalyzedNamedType struct {
-	Name            string       `json:"name"`
-	SourcePackage   GoPackage    `json:"sourcePackage"`
-	ImplementsError bool         `json:"implementsError"`
-	UnderlyingType  AnalyzedType `json:"underlyingType"`
+	Name            string  `json:"name"`
+	SourcePackage   Package `json:"sourcePackage"`
+	ImplementsError bool    `json:"implementsError"`
+	UnderlyingType  string  `json:"underlyingType"`
 }
 
 func (t AnalyzedNamedType) GetName() string {
@@ -23,7 +23,8 @@ func (t AnalyzedNamedType) GetName() string {
 }
 
 type AnalyzedInterfaceType struct {
-	Name string `json:"name"`
+	Name            string   `json:"name"`
+	Implementations []string `json:"implementations"`
 }
 
 func (t AnalyzedInterfaceType) GetName() string {
@@ -39,9 +40,9 @@ func (t AnalyzedPrimitiveType) GetName() string {
 }
 
 type AnalyzedField struct {
-	Name       string       `json:"name"`
-	Type       AnalyzedType `json:"type"`
-	IsExported bool         `json:"isExported"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	IsExported bool   `json:"isExported"`
 }
 
 type AnalyzedStructType struct {
@@ -54,9 +55,9 @@ func (t AnalyzedStructType) GetName() string {
 }
 
 type AnalyzedArrayType struct {
-	Name        string       `json:"name"`
-	ElementType AnalyzedType `json:"elementType"`
-	Length      int64        `json:"length"`
+	Name        string `json:"name"`
+	ElementType string `json:"elementType"`
+	Length      int64  `json:"length"`
 }
 
 func (t AnalyzedArrayType) GetName() string {
@@ -64,51 +65,67 @@ func (t AnalyzedArrayType) GetName() string {
 }
 
 type AnalyzedSliceType struct {
-	Name        string       `json:"name"`
-	ElementType AnalyzedType `json:"elementType"`
+	Name        string `json:"name"`
+	ElementType string `json:"elementType"`
 }
 
 func (t AnalyzedSliceType) GetName() string {
 	return t.Name
 }
 
-type AnalyzedFunctionParameter struct {
-	Name string       `json:"name"`
-	Type AnalyzedType `json:"type"`
-}
-
 type AnalyzedMapType struct {
-	Name        string       `json:"name"`
-	KeyType     AnalyzedType `json:"keyType"`
-	ElementType AnalyzedType `json:"elementType"`
+	Name        string `json:"name"`
+	KeyType     string `json:"keyType"`
+	ElementType string `json:"elementType"`
 }
 
 func (t AnalyzedMapType) GetName() string {
 	return t.Name
 }
 
+type AnalyzedChanType struct {
+	Name        string `json:"name"`
+	ElementType string `json:"elementType"`
+	Direction   string `json:"direction"`
+}
+
+func (t AnalyzedChanType) GetName() string {
+	return t.Name
+}
+
+type AnalyzedPointerType struct {
+	Name        string `json:"name"`
+	ElementType string `json:"elementType"`
+}
+
+func (t AnalyzedPointerType) GetName() string {
+	return t.Name
+}
+
+type AnalyzedVariable struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
 type AnalyzedFunction struct {
-	Name                                string                      `json:"name"`
-	ModifiedName                        string                      `json:"modifiedName"`
-	Parameters                          []AnalyzedFunctionParameter `json:"parameters"`
-	ResultTypes                         []AnalyzedType              `json:"resultTypes"`
-	RequiredImports                     []Import                    `json:"requiredImports"`
-	Constants                           map[string][]string         `json:"constants"`
-	ModifiedFunctionForCollectingTraces string                      `json:"modifiedFunctionForCollectingTraces"`
-	NumberOfAllStatements               int                         `json:"numberOfAllStatements"`
-	position                            token.Pos
+	Name        string                  `json:"name"`
+	Types       map[string]AnalyzedType `json:"types"`
+	Receiver    *AnalyzedVariable       `json:"receiver"`
+	Parameters  []AnalyzedVariable      `json:"parameters"`
+	ResultTypes []AnalyzedVariable      `json:"resultTypes"`
+	Constants   map[string][]string     `json:"constants"`
+	position    token.Pos
 }
 
 type AnalysisResult struct {
-	AbsoluteFilePath           string             `json:"absoluteFilePath"`
-	SourcePackage              Package            `json:"sourcePackage"`
-	AnalyzedFunctions          []AnalyzedFunction `json:"analyzedFunctions"`
-	NotSupportedFunctionsNames []string           `json:"notSupportedFunctionsNames"`
-	NotFoundFunctionsNames     []string           `json:"notFoundFunctionsNames"`
+	AbsoluteFilePath          string             `json:"absoluteFilePath"`
+	SourcePackage             Package            `json:"sourcePackage"`
+	AnalyzedFunctions         []AnalyzedFunction `json:"analyzedFunctions"`
+	NotSupportedFunctionNames []string           `json:"notSupportedFunctionNames"`
+	NotFoundFunctionNames     []string           `json:"notFoundFunctionNames"`
 }
 
 type AnalysisResults struct {
-	Results        []AnalysisResult `json:"results"`
-	IntSize        int              `json:"intSize"`
-	MaxTraceLength int              `json:"maxTraceLength"`
+	Results []AnalysisResult `json:"results"`
+	IntSize int              `json:"intSize"`
 }

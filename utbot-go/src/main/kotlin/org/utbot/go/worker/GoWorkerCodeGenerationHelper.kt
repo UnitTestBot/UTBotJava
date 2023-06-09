@@ -16,6 +16,7 @@ internal object GoWorkerCodeGenerationHelper {
         GoPackage("io", "io"),
         GoPackage("os", "os"),
         GoPackage("context", "context"),
+        GoPackage("binary", "encoding/binary"),
         GoPackage("json", "encoding/json"),
         GoPackage("fmt", "fmt"),
         GoPackage("math", "math"),
@@ -31,13 +32,13 @@ internal object GoWorkerCodeGenerationHelper {
     fun createFileToExecute(
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>,
+        absoluteInstrumentedPackagePath: String,
         eachExecutionTimeoutMillis: Long,
         port: Int,
-        maxTraceLength: Int,
         imports: Set<GoImport>
     ): File {
-        val fileToExecuteName = createFileToExecuteName(sourceFile)
-        val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
+        val fileToExecuteName = createFileToExecuteName()
+        val sourceFileDir = File(absoluteInstrumentedPackagePath)
         val fileToExecute = sourceFileDir.resolve(fileToExecuteName)
 
         val fileToExecuteGoCode =
@@ -46,32 +47,31 @@ internal object GoWorkerCodeGenerationHelper {
                 functions,
                 eachExecutionTimeoutMillis,
                 port,
-                maxTraceLength,
                 imports
             )
         fileToExecute.writeText(fileToExecuteGoCode)
         return fileToExecute
     }
 
-    fun createFileWithModifiedFunctions(
+    fun createFileWithCoverTab(
         sourceFile: GoUtFile,
-        functions: List<GoUtFunction>
+        absoluteInstrumentedPackagePath: String,
     ): File {
-        val fileWithModifiedFunctionsName = createFileWithModifiedFunctionsName()
-        val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
-        val fileWithModifiedFunctions = sourceFileDir.resolve(fileWithModifiedFunctionsName)
+        val fileWithCoverTabName = createFileWithCoverTabName()
+        val sourceFileDir = File(absoluteInstrumentedPackagePath)
+        val fileWithCoverTab = sourceFileDir.resolve(fileWithCoverTabName)
 
-        val fileWithModifiedFunctionsGoCode = generateFileWithModifiedFunctionsGoCode(sourceFile, functions)
-        fileWithModifiedFunctions.writeText(fileWithModifiedFunctionsGoCode)
-        return fileWithModifiedFunctions
+        val fileWithCoverTabGoCode = generateFileWithCoverTabGoCode(sourceFile.sourcePackage)
+        fileWithCoverTab.writeText(fileWithCoverTabGoCode)
+        return fileWithCoverTab
     }
 
-    private fun createFileToExecuteName(sourceFile: GoUtFile): String {
-        return "utbot_go_worker_${sourceFile.fileNameWithoutExtension}_test.go"
+    private fun createFileToExecuteName(): String {
+        return "utbot_go_worker_test.go"
     }
 
-    private fun createFileWithModifiedFunctionsName(): String {
-        return "utbot_go_modified_functions.go"
+    private fun createFileWithCoverTabName(): String {
+        return "utbot_go_cover.go"
     }
 
     private fun generateWorkerTestFileGoCode(
@@ -79,45 +79,53 @@ internal object GoWorkerCodeGenerationHelper {
         functions: List<GoUtFunction>,
         eachExecutionTimeoutMillis: Long,
         port: Int,
-        maxTraceLength: Int,
         imports: Set<GoImport>
     ): String {
         val destinationPackage = sourceFile.sourcePackage
         val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
 
-        val workerTestFunctionCode = generateWorkerTestFunctionCode(functions, eachExecutionTimeoutMillis, port)
-
-        val types = functions.flatMap { it.parameters }.map { it.type }
+        val types = functions.flatMap {
+            it.parameters + if (it.isMethod) listOf(it.receiver!!) else emptyList()
+        }.map { it.type }
         val aliases = imports.associate { it.goPackage to it.alias }
         val namedTypes = types.getAllVisibleNamedTypes(destinationPackage)
 
+        val workerTestFunctionCode = generateWorkerTestFunctionCode(
+            functions, destinationPackage, aliases, eachExecutionTimeoutMillis, port
+        )
         fileCodeBuilder.addTopLevelElements(
             GoCodeTemplates.getTopLevelHelperStructsAndFunctionsForWorker(
                 namedTypes,
                 destinationPackage,
                 aliases,
-                maxTraceLength,
             ) + workerTestFunctionCode
         )
 
         return fileCodeBuilder.buildCodeString()
     }
 
-    private fun generateFileWithModifiedFunctionsGoCode(sourceFile: GoUtFile, functions: List<GoUtFunction>): String {
-        val destinationPackage = sourceFile.sourcePackage
-        val imports = functions.fold(emptySet<GoImport>()) { acc, function ->
-            acc + function.requiredImports
-        }
-        val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
-        fileCodeBuilder.addTopLevelElements(
-            functions.map { it.modifiedFunctionForCollectingTraces }
-        )
-        return fileCodeBuilder.buildCodeString()
-    }
+    private fun generateFileWithCoverTabGoCode(goPackage: GoPackage): String = """
+        package ${goPackage.name}
+
+        const __CoverSize__ = 64 << 10
+
+        var __CoverTab__ []int
+    """.trimIndent()
 
     private fun generateWorkerTestFunctionCode(
-        functions: List<GoUtFunction>, eachExecutionTimeoutMillis: Long, port: Int
+        functions: List<GoUtFunction>,
+        destinationPackage: GoPackage,
+        aliases: Map<GoPackage, String?>,
+        eachExecutionTimeoutMillis: Long,
+        port: Int
     ): String {
+        val functionNameToFunctionCall = functions.map { function ->
+            function.name to if (function.isMethod) {
+                "(${function.receiver!!.type.getRelativeName(destinationPackage, aliases)}).${function.name}"
+            } else {
+                function.name
+            }
+        }
         return """
             func $workerTestFunctionName(t *testing.T) {
             	con, err := net.Dial("tcp", ":$port")
@@ -159,8 +167,8 @@ internal object GoWorkerCodeGenerationHelper {
             		var function reflect.Value
             		switch funcName {
             ${
-            functions.joinToString(separator = "\n") { function ->
-                "case \"${function.modifiedName}\": function = reflect.ValueOf(${function.modifiedName})"
+            functionNameToFunctionCall.joinToString(separator = "\n") { (functionName, functionCall) ->
+                "case \"${functionName}\": function = reflect.ValueOf($functionCall)"
             }
         }
             		default:
@@ -177,7 +185,9 @@ internal object GoWorkerCodeGenerationHelper {
             			os.Exit(1)
             		}
 
-            		_, err = con.Write([]byte(strconv.Itoa(len(jsonBytes)) + "\n"))
+            		bs := make([]byte, 4)
+            		binary.BigEndian.PutUint32(bs, uint32(len(jsonBytes)))
+            		_, err = con.Write(bs)
             		if err != nil {
             			_, _ = fmt.Fprintf(os.Stderr, "Failed to send length of execution result: %s", err)
             			os.Exit(1)

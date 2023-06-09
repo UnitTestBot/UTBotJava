@@ -30,12 +30,12 @@ roles.
 - Taint pass — a function that marks the return value taking into account the marks in its arguments.
   Depending on the implementation, marks can be applied not only to the result of the method but also to the object
   `this`, and on the input parameters. For example, it can be set that the concatenation
-  method `concat strings(String a, String b)`
+  method `concat(String a, String b)`
   marks its result with all marks from `a` and from `b`.
 - Taint cleaner — a function that removes a given set of marks from the passed arguments.
   Most often, this is some kind of validation method that verifies that the user has entered data in the expected
   format.
-  For example, the `validate Email(String email)` method removes the XSS mark upon successful completion of the checks,
+  For example, the `validateEmail(String email)` method removes the XSS mark upon successful completion of the checks,
   because now there is no unverified data in the `email` that can lead to vulnerability of cross-site
   scripting.
 - Taint sink — a receiver, some critical section of the application.
@@ -72,8 +72,8 @@ class Example {
 
 For taint analysis, you must set the configuration.
 
-- Taint source is a `java.util.Scanner.nextLine` method that adds a "user—input" mark to the returned value.
-- Taint pass is a `java.lang.String.concat` method that passes the "user—input" marks through itself received
+- Taint source is a `java.util.Scanner.nextLine` method that adds a "user-input" mark to the returned value.
+- Taint pass is a `java.lang.String.concat` method that passes the "user-input" marks through itself received
   either from the first argument or from the object on which this method is called (`this`).
 - Taint sink is a `java.sql.Statement.executeUpdate` method that checks variables marked "user-input".
 
@@ -121,7 +121,7 @@ Each rule has a certain set of characteristics.
 - A set of specific mark management actions that occur when a rule is triggered (`add-to`, `get-from`, `remove-from`, or
   `check`, depending on the semantics of the rule).
 
-Thus, one rule, for example, taint source, may look like
+Thus, one rule, for example, taint source, can look like
 
 ```yaml
 com.abc.ClassName.methodName:
@@ -213,7 +213,7 @@ passes:
 To check the conformity to `conditions`, you can set:
 
 - the specific values of method arguments
-- their runtime types.
+- their runtime types
 
 Values can be set for the following types: `boolean`, `int`, `float` or `string` (and also `null` value for all nullable
 types).

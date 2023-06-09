@@ -4287,31 +4287,34 @@ class Traverser(
     ) {
         val symbolicEntity = methodData.choose(entity) ?: return
         val entityAddr = symbolicEntity.addrOrNull ?: return
-        val containsAnyMark = taintContext.markManager.containsAnyMark(memory, entityAddr)
 
         val methodName = methodData.methodId.simpleNameWithClass
         val taintedVarType = symbolicEntity.type.toQuotedString()
 
-        if (!UtSettings.throwTaintErrorForEachMarkSeparately) {
-            implicitlyThrowException(
-                TaintAnalysisError(methodName, taintedVarType, "tainted"),
-                setOf(mkAnd(containsAnyMark, condition))
-            )
-            return
-        }
-
         when (marks) {
-            is TaintMarksAll ->
+            is TaintMarksAll -> {
+                val containsAnyMark = taintContext.markManager.containsAnyMark(memory, entityAddr)
                 implicitlyThrowException(
                     TaintAnalysisError(methodName, taintedVarType, "tainted"),
                     setOf(mkAnd(containsAnyMark, condition))
                 )
+            }
             is TaintMarksSet -> {
-                marks.marks.forEach { mark ->
-                    val containsMark = taintContext.markManager.containsMark(memory, entityAddr, mark)
+                if (UtSettings.throwTaintErrorForEachMarkSeparately) {
+                    marks.marks.forEach { mark ->
+                        val containsMark = taintContext.markManager.containsMark(memory, entityAddr, mark)
+                        implicitlyThrowException(
+                            TaintAnalysisError(methodName, taintedVarType, mark.name),
+                            setOf(mkAnd(containsMark, condition))
+                        )
+                    }
+                } else {
+                    val containsAnySpecifiedMark = marks.marks.map { mark ->
+                        taintContext.markManager.containsMark(memory, entityAddr, mark)
+                    }
                     implicitlyThrowException(
-                        TaintAnalysisError(methodName, taintedVarType, mark.name),
-                        setOf(mkAnd(containsMark, condition))
+                        TaintAnalysisError(methodName, taintedVarType, "tainted"),
+                        setOf(mkAnd(mkOr(containsAnySpecifiedMark), condition))
                     )
                 }
             }

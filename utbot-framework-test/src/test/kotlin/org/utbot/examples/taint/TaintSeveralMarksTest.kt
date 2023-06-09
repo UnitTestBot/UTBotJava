@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.TaintAnalysisError
 import org.utbot.taint.TaintConfigurationProviderResources
 import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withoutThrowTaintErrorForEachMarkSeparately
 import org.utbot.testing.UtValueTestCaseCheckerForTaint
 import org.utbot.testing.isException
 
@@ -29,6 +30,28 @@ internal class TaintSeveralMarksTest : UtValueTestCaseCheckerForTaint(
             { r -> r.isException<TaintAnalysisError>() },
             { r -> r.isSuccess },
         )
+    }
+
+    @Test
+    fun testTaintBad13() {
+        checkWithException(
+            TaintSeveralMarks::bad13,
+            eq(2), // success & taint error
+            { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
+        )
+    }
+
+    @Test
+    fun testTaintBad13Separately() {
+        withoutThrowTaintErrorForEachMarkSeparately {
+            checkWithException(
+                TaintSeveralMarks::bad13,
+                eq(2), // success & taint error
+                { r -> r.isException<TaintAnalysisError>() },
+                { r -> r.isSuccess },
+            )
+        }
     }
 
     @Test
@@ -77,6 +100,26 @@ internal class TaintSeveralMarksTest : UtValueTestCaseCheckerForTaint(
             eq(1), // only success
             { r -> r.isSuccess },
         )
+    }
+
+    @Test
+    fun testTaintGood13() {
+        checkWithException(
+            TaintSeveralMarks::good13,
+            eq(1), // only success
+            { r -> r.isSuccess },
+        )
+    }
+
+    @Test
+    fun testTaintGood13Separately() {
+        withoutThrowTaintErrorForEachMarkSeparately {
+            checkWithException(
+                TaintSeveralMarks::good13,
+                eq(1), // only success
+                { r -> r.isSuccess },
+            )
+        }
     }
 
     @Test

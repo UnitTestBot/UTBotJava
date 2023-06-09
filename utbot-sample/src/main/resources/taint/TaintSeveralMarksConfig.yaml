@@ -34,6 +34,9 @@ sinks:
   - org.utbot.examples.taint.TaintSeveralMarks.sink2:
       check: arg1
       marks: mark2
+  - org.utbot.examples.taint.TaintSeveralMarks.sink13:
+      check: arg1
+      marks: [ mark1, mark3 ]
   - org.utbot.examples.taint.TaintSeveralMarks.sinkAll:
       check: arg1
       marks: []

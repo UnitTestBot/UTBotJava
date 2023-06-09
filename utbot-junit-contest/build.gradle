@@ -57,8 +57,8 @@ dependencies {
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1'
     // need for tests
-    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
-    implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
+    implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
+    implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     implementation 'junit:junit:4.13.2'
     testImplementation fileTree(dir: 'src/main/resources/projects/', include: '*/*.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-1.2.0.jar')

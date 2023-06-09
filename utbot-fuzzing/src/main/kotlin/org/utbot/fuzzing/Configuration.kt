@@ -37,17 +37,22 @@ data class Configuration(
     /**
      * Probability of creating shifted array values instead of generating new values for modification.
      */
-    var probCollectionMutationInsteadCreateNew: Int = 50,
+    var probCollectionMutationInsteadCreateNew: Int = 75,
+
+    /**
+     * Probability of creating empty collections
+     */
+    var probEmptyCollectionCreation: Int = 1,
 
     /**
      * Probability to prefer change constructor instead of modification.
      */
-    var probConstructorMutationInsteadModificationMutation: Int = 90,
+    var probConstructorMutationInsteadModificationMutation: Int = 30,
 
     /**
-     * Probability to shuffle modification list of the recursive object
+     * Probability to a shuffle modification list of the recursive object
      */
-    var probShuffleAndCutRecursiveObjectModificationMutation: Int = 10,
+    var probShuffleAndCutRecursiveObjectModificationMutation: Int = 30,
 
     /**
      * Probability to prefer create rectangle collections instead of creating saw-like one.

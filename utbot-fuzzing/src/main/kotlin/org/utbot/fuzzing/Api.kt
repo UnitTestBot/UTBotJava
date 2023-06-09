@@ -4,10 +4,10 @@ package org.utbot.fuzzing
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
+import org.utbot.fuzzing.seeds.StringValue
 import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
-import org.utbot.fuzzing.utils.transformIfNotEmpty
 import kotlin.random.Random
 
 private val logger by lazy { KotlinLogging.logger {} }
@@ -324,15 +324,15 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
 
     while (!fuzzing.isCancelled(description, statistic)) {
         beforeIteration(description, statistic)
-        val seed = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+        var values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
             statistic.getRandomSeed(random, configuration)
         } else {
             val actualParameters = description.parameters
             // fuzz one value, seems to be bad, when have only a few and simple values
             fuzzOne(actualParameters)
         }
-        val values = mutate(
-            seed,
+        values = mutate(
+            values,
             fuzzing,
             random,
             configuration,
@@ -445,7 +445,8 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     } else try {
         val iterations = when {
             state.iterations >= 0 && random.flipCoin(configuration.probCreateRectangleCollectionInsteadSawLike) -> state.iterations
-            else -> random.nextInt(0, configuration.collectionIterations + 1)
+            random.flipCoin(configuration.probEmptyCollectionCreation) -> 0
+            else -> random.nextInt(1, configuration.collectionIterations + 1)
         }
         Result.Collection(
             construct = fuzz(
@@ -459,11 +460,13 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             ),
             modify = if (random.flipCoin(configuration.probCollectionMutationInsteadCreateNew)) {
                 val result = fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations))
-                arrayListOf(result).apply {
-                    (1 until iterations).forEach { _ ->
-                        add(mutate(result, fuzzing, random, configuration, state))
+                Array(iterations) {
+                    if (it == 0) {
+                        result
+                    } else {
+                        mutate(result, fuzzing, random, configuration, state)
                     }
-                }
+                }.toList()
             } else {
                 (0 until iterations).map {
                     fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations))
@@ -508,11 +511,11 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)
             ),
             modify = task.modify
-                .toMutableList()
-                .transformIfNotEmpty {
-                    shuffle(random)
-                    take(random.nextInt(size + 1))
-                }
+//                .toMutableList()
+//                .transformIfNotEmpty {
+//                    shuffle(random)
+//                    take(random.nextInt(size + 1))
+//                }
                 .mapTo(arrayListOf()) { routine ->
                     fuzz(
                         routine.types,
@@ -533,6 +536,16 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
         } else {
             throw nsv
         }
+    }
+}
+
+private fun <TYPE, RESULT> canMutate(node: Result<TYPE, RESULT>): Boolean {
+    return when (node) {
+        is Result.Simple<TYPE, RESULT> -> node.mutation === emptyMutation<RESULT>()
+        is Result.Known<TYPE, RESULT, *> -> node.value.mutations().isNotEmpty()
+        is Result.Recursive<TYPE, RESULT> -> node.modify.isNotEmpty()
+        is Result.Collection<TYPE, RESULT> -> node.modify.isNotEmpty() && node.iterations > 0
+        is Result.Empty<TYPE, RESULT> -> false
     }
 }
 
@@ -600,16 +613,24 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     }, node.parameters, node.builder)
 }
 
+private const val ALMOST_ZERO = 1E-7
+
 /**
  * Rates somehow the result.
  *
  * For example, fuzzing should not try to mutate some empty structures, like empty collections or objects.
  */
 private fun <TYPE, RESULT> rate(result: Result<TYPE, RESULT>): Double {
+    if (!canMutate(result)) {
+        return ALMOST_ZERO
+    }
     return when (result) {
-        is Result.Recursive<TYPE, RESULT> -> if (result.construct.parameters.isEmpty() and result.modify.isEmpty()) 1E-7 else 0.5
-        is Result.Collection<TYPE, RESULT> -> if (result.iterations == 0) return 0.01 else 0.7
-        else -> 1.0
+        is Result.Recursive<TYPE, RESULT> -> if (result.construct.parameters.isEmpty() and result.modify.isEmpty()) ALMOST_ZERO else 0.5
+        is Result.Collection<TYPE, RESULT> -> if (result.iterations == 0) return ALMOST_ZERO else 0.7
+        is StringValue -> 2.0
+        is Result.Known<TYPE, RESULT, *> -> 1.2
+        is Result.Simple<TYPE, RESULT> -> 2.0
+        is Result.Empty -> ALMOST_ZERO
     }
 }
 
@@ -672,6 +693,13 @@ private class State<TYPE, RESULT>(
     val parameterIndex: Int = -1,
 )
 
+private val IDENTITY_MUTATION: (Any, random: Random) -> Any = { f, _ -> f }
+
+private fun <RESULT> emptyMutation(): (RESULT, random: Random) -> RESULT {
+    @Suppress("UNCHECKED_CAST")
+    return IDENTITY_MUTATION as (RESULT, random: Random) -> RESULT
+}
+
 /**
  * The result of producing real values for the language.
  */
@@ -680,7 +708,7 @@ private sealed interface Result<TYPE, RESULT> {
     /**
      * Simple result as is.
      */
-    class Simple<TYPE, RESULT>(val result: RESULT, val mutation: (RESULT, random: Random) -> RESULT = { f, _ -> f }) : Result<TYPE, RESULT>
+    class Simple<TYPE, RESULT>(val result: RESULT, val mutation: (RESULT, random: Random) -> RESULT = emptyMutation()) : Result<TYPE, RESULT>
 
     /**
      * Known value.

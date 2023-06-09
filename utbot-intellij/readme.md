@@ -16,8 +16,9 @@ To compile plugin:
 
 * Comment `exclude("/org/utbot/**")` in utbot-intellij/build.gradle.kts
 * run IDEA in sandbox with IntelliJ Robot server plugin installed: `gradle runIdeForUiTests`
-* run **All** the tests in utbot-intellij/src/test/kotlin/org/utbot/tests 
-* each run projects are recreated for tests to be independent
-* and only then other tests can be executed
+* run **All** the tests in utbot-intellij/src/test/kotlin/org/utbot/tests
+
+Note: projects are created first and only on new projects tests are executed. 
+That is done for independency of each autotest run.
 
 

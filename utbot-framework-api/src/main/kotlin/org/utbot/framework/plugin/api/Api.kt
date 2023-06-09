@@ -65,6 +65,7 @@ import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootField
+import soot.SootMethod
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -100,6 +101,17 @@ data class Step(
         return result
     }
 }
+
+/**
+ * One symbolic step.
+ *
+ * @see UtSymbolicExecution.symbolicSteps
+ */
+data class SymbolicStep(
+    val method: SootMethod,
+    val lineNumber: Int,
+    val callDepth: Int,
+)
 
 
 /**
@@ -150,7 +162,8 @@ class UtSymbolicExecution(
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
-    displayName: String? = null
+    displayName: String? = null,
+    /** Convenient view of the full symbolic path */ val symbolicSteps: List<SymbolicStep> = listOf(),
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
@@ -201,7 +214,8 @@ class UtSymbolicExecution(
             coverage,
             summary,
             testMethodName,
-            displayName
+            displayName,
+            symbolicSteps,
         )
     }
 }

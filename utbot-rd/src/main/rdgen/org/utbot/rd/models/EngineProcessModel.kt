@@ -54,6 +54,8 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("fuzzingValue", PredefinedType.double)
         // method filters
         field("searchDirectory", PredefinedType.string)
+        // taint analysis
+        field("taintConfigPath", PredefinedType.string.nullable)
     }
     val generateResult = structdef {
         field("notEmptyCases", PredefinedType.int)

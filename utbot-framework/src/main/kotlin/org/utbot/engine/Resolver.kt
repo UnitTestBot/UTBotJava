@@ -55,6 +55,7 @@ import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
+import org.utbot.framework.plugin.api.UtTaintAnalysisFailure
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
@@ -91,6 +92,7 @@ import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.plugin.api.OverflowDetectionError
+import org.utbot.framework.plugin.api.TaintAnalysisError
 import org.utbot.engine.types.CLASS_REF_CLASSNAME
 import org.utbot.engine.types.CLASS_REF_CLASS_ID
 import org.utbot.engine.types.CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR
@@ -405,6 +407,7 @@ class Resolver(
             when (exception) {
                 is OverflowDetectionError -> UtOverflowFailure(exception)
                 is AccessControlException -> UtSandboxFailure(exception)
+                is TaintAnalysisError -> UtTaintAnalysisFailure(exception)
                 else -> UtImplicitlyThrownException(exception, inNestedMethod)
             }
         }

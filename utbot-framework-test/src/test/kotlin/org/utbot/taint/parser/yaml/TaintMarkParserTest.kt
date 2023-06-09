@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
 class TaintMarkParserTest {
@@ -17,7 +15,7 @@ class TaintMarkParserTest {
         @Test
         fun `should parse yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("sensitive-data")
-            val expectedMarks = DtoTaintMarksSet(setOf(DtoTaintMark("sensitive-data")))
+            val expectedMarks = YamlTaintMarksSet(setOf(YamlTaintMark("sensitive-data")))
 
             val actualMarks = TaintMarkParser.parseTaintMarks(yamlScalar)
             assertEquals(expectedMarks, actualMarks)
@@ -27,7 +25,13 @@ class TaintMarkParserTest {
         fun `should parse yaml list`() {
             val yamlList = Yaml.default.parseToYamlNode("[ xss, sensitive-data, sql-injection ]")
             val expectedMarks =
-                DtoTaintMarksSet(setOf(DtoTaintMark("xss"), DtoTaintMark("sensitive-data"), DtoTaintMark("sql-injection")))
+                YamlTaintMarksSet(
+                    setOf(
+                        YamlTaintMark("xss"),
+                        YamlTaintMark("sensitive-data"),
+                        YamlTaintMark("sql-injection")
+                    )
+                )
 
             val actualMarks = TaintMarkParser.parseTaintMarks(yamlList)
             assertEquals(expectedMarks, actualMarks)
@@ -36,7 +40,7 @@ class TaintMarkParserTest {
         @Test
         fun `should parse empty yaml list`() {
             val yamlListEmpty = Yaml.default.parseToYamlNode("[]")
-            val expectedMarks = DtoTaintMarksAll
+            val expectedMarks = YamlTaintMarksAll
 
             val actualMarks = TaintMarkParser.parseTaintMarks(yamlListEmpty)
             assertEquals(expectedMarks, actualMarks)

@@ -2069,7 +2069,7 @@ abstract class UtValueTestCaseChecker(
         return MethodResult(testSet, methodCoverage)
     }
 
-    fun executions(
+    open fun executions(
         method: ExecutableId,
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String,
@@ -2077,16 +2077,19 @@ abstract class UtValueTestCaseChecker(
     ): UtMethodTestSet {
         val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
 
-        val testCaseGenerator = testCaseGeneratorCache
-            .getOrPut(buildInfo) {
-                TestSpecificTestCaseGenerator(
-                    buildDir,
-                    additionalDependenciesClassPath,
-                    System.getProperty("java.class.path")
-                )
-            }
+        val testCaseGenerator = createTestCaseGenerator(buildInfo)
         return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
     }
+
+    // factory method
+    open fun createTestCaseGenerator(buildInfo: CodeGenerationIntegrationTest.Companion.BuildInfo) =
+        testCaseGeneratorCache.getOrPut(buildInfo) {
+            TestSpecificTestCaseGenerator(
+                buildInfo.buildDir,
+                buildInfo.dependencyPath,
+                System.getProperty("java.class.path")
+            )
+        }
 
     fun executionsModel(
         method: ExecutableId,
@@ -2098,14 +2101,7 @@ abstract class UtValueTestCaseChecker(
             computeAdditionalDependenciesClasspathAndBuildDir(method.classId.jClass, additionalDependencies)
         withUtContext(UtContext(method.classId.jClass.classLoader)) {
             val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
-            val testCaseGenerator = testCaseGeneratorCache
-                .getOrPut(buildInfo) {
-                    TestSpecificTestCaseGenerator(
-                        buildDir,
-                        additionalDependenciesClassPath,
-                        System.getProperty("java.class.path")
-                    )
-                }
+            val testCaseGenerator = createTestCaseGenerator(buildInfo)
             return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
         }
     }

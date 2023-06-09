@@ -265,6 +265,30 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
         DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
+    /**
+     * Enable taint analysis or not.
+     */
+    var useTaintAnalysis by getBooleanProperty(false)
+
+    /**
+     * If it is true, [Traverser] forks the state and creates checks for each taint mark separately,
+     * otherwise, it processes all available taint marks in one [Traverser.implicitlyThrowException] request.
+     *
+     * @see [org.utbot.engine.Traverser.processTaintSink]
+     */
+    var throwTaintErrorForEachMarkSeparately = true
+
+    /**
+     * How deep we should analyze the throwables.
+     */
+    val exploreThrowableDepth: ExploreThrowableDepth
+        get() =
+            if (useTaintAnalysis) {
+                ExploreThrowableDepth.EXPLORE_ALL_STATEMENTS
+            } else {
+                ExploreThrowableDepth.SKIP_ALL_STATEMENTS
+            }
+
 // region engine process debug
 
     /**
@@ -679,4 +703,25 @@ enum class SummariesGenerationType {
      * No summaries are generated
      */
     NONE,
+}
+
+/**
+ * Enum to describe how deep we should analyze the throwables.
+ */
+enum class ExploreThrowableDepth {
+
+    /**
+     * Skip all statements between throwable's `new` and `<init>` statements.
+     */
+    SKIP_ALL_STATEMENTS,
+
+    /**
+     * Skip only throwable's <init> statement.
+     */
+    SKIP_INIT_STATEMENT,
+
+    /**
+     * Do not skip statements.
+     */
+    EXPLORE_ALL_STATEMENTS
 }

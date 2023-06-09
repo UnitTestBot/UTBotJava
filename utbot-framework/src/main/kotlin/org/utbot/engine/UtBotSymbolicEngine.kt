@@ -47,6 +47,8 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.taint.*
+import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -109,7 +111,8 @@ class UtBotSymbolicEngine(
     chosenClassesToMockAlways: Set<ClassId>,
     val applicationContext: ApplicationContext,
     executionInstrumentation: Instrumentation<UtConcreteExecutionResult>,
-    private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
+    userTaintConfigurationProvider: TaintConfigurationProvider? = null,
+    private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
@@ -142,6 +145,26 @@ class UtBotSymbolicEngine(
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
+    private val taintConfigurationProvider = if (UtSettings.useTaintAnalysis) {
+        TaintConfigurationProviderCombiner(
+            listOf(
+                userTaintConfigurationProvider ?: TaintConfigurationProviderEmpty,
+                TaintConfigurationProviderCached("resources", TaintConfigurationProviderResources())
+            )
+        )
+    } else {
+        TaintConfigurationProviderEmpty
+    }
+    private val taintConfiguration: TaintConfiguration = run {
+        val config = taintConfigurationProvider.getConfiguration()
+        logger.debug { "Taint analysis configuration: $config" }
+        config
+    }
+
+    private val taintMarkRegistry: TaintMarkRegistry = TaintMarkRegistry()
+    private val taintMarkManager: TaintMarkManager = TaintMarkManager(taintMarkRegistry)
+    private val taintContext: TaintContext = TaintContext(taintMarkManager, taintConfiguration)
+
     private val traverser = Traverser(
         methodUnderTest,
         typeRegistry,
@@ -150,6 +173,7 @@ class UtBotSymbolicEngine(
         globalGraph,
         mocker,
         applicationContext,
+        taintContext,
     )
 
     //HACK (long strings)
@@ -511,7 +535,8 @@ class UtBotSymbolicEngine(
             result = symbolicExecutionResult,
             instrumentation = instrumentation,
             path = entryMethodPath(state),
-            fullPath = state.fullPath()
+            fullPath = state.fullPath(),
+            symbolicSteps = getSymbolicPath(state, symbolicResult)
         )
 
         globalGraph.traversed(state)
@@ -519,7 +544,9 @@ class UtBotSymbolicEngine(
         if (!UtSettings.useConcreteExecution ||
             // Can't execute concretely because overflows do not cause actual exceptions.
             // Still, we need overflows to act as implicit exceptions.
-            (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure)
+            (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure) ||
+            // the same for taint analysis errors
+            (UtSettings.useTaintAnalysis && symbolicExecutionResult is UtTaintAnalysisFailure)
         ) {
             logger.debug {
                 "processResult<${methodUnderTest}>: no concrete execution allowed, " +
@@ -587,7 +614,7 @@ class UtBotSymbolicEngine(
         } catch (e: CancellationException) {
             logger.debug(e) { "Cancellation happened" }
         } catch (e: Throwable) {
-            emit(UtError("Default concrete execution failed", e));
+            emit(UtError("Default concrete execution failed", e))
         }
     }
 
@@ -605,6 +632,41 @@ class UtBotSymbolicEngine(
             }
         }
         return entryPath
+    }
+
+    private fun getSymbolicPath(state: ExecutionState, symbolicResult: SymbolicResult): List<SymbolicStep> {
+        val pathWithLines = state.fullPath().filter { step ->
+            step.stmt.javaSourceStartLineNumber != -1
+        }
+
+        val symbolicSteps = pathWithLines.map { step ->
+            val method = globalGraph.method(step.stmt)
+            SymbolicStep(method, step.stmt.javaSourceStartLineNumber, step.depth)
+        }.filter { step ->
+            step.method.declaringClass.packageName == methodUnderTest.classId.packageName
+        }
+
+        return if (symbolicResult is SymbolicFailure && symbolicSteps.last().callDepth != 0) {
+            // If we have the following case:
+            // - method m1 calls method m2
+            // - m2 calls m3
+            // - m3 throws exception
+            // then `symbolicSteps` suffix looks like:
+            // - ...
+            // - method = m3, lineNumber = .., callDepth = 2
+            // - method = m3, lineNumber = 30, callDepth = 2 <- line with thrown exception
+            // - method = m2, lineNumber = 20, callDepth = 1
+            // - method = m1, lineNumber = 10, callDepth = 0
+            // So, we want to remove 2 last entries (m1 and m2) because the execution finished at the line 30,
+            // but `state.fullPath()` contains also reverse exits from methods after exception.
+            // So, we need to remove the elements from the end of the list until the depth of the neighbors is the same.
+            symbolicSteps
+                .zipWithNext()
+                .dropLastWhile { (cur, next) -> cur.callDepth != next.callDepth }
+                .map { (cur, _) -> cur }
+        } else {
+            symbolicSteps
+        }
     }
 }
 

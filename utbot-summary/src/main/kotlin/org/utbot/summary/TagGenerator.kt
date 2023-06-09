@@ -13,6 +13,7 @@ import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTimeoutException
+import org.utbot.framework.plugin.api.UtTaintAnalysisFailure
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.fuzzer.UtFuzzedExecution
@@ -206,6 +207,7 @@ enum class ExecutionGroup {
     OVERFLOWS,
     TIMEOUTS,
     CRASH_SUITE,
+    TAINT_ANALYSIS,
     SECURITY;
 
     val displayName: String get() = toString().replace('_', ' ')
@@ -220,6 +222,7 @@ private fun UtExecutionResult.clusterKind() = when (this) {
     is UtTimeoutException -> ExecutionGroup.TIMEOUTS
     is UtConcreteExecutionFailure -> ExecutionGroup.CRASH_SUITE
     is UtSandboxFailure -> ExecutionGroup.SECURITY
+    is UtTaintAnalysisFailure -> ExecutionGroup.TAINT_ANALYSIS
 }
 
 /**

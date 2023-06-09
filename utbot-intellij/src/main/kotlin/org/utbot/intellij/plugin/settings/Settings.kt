@@ -19,6 +19,7 @@ private fun fromGenerateTestsModel(model: GenerateTestsModel): Settings.State {
         staticsMocking = model.staticsMocking,
         runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
         hangingTestsTimeout = model.hangingTestsTimeout,
+        useTaintAnalysis = model.useTaintAnalysis,
         runInspectionAfterTestGeneration = model.runInspectionAfterTestGeneration,
         forceStaticMocking = model.forceStaticMocking,
         parametrizedTestSource = model.parametrizedTestSource,

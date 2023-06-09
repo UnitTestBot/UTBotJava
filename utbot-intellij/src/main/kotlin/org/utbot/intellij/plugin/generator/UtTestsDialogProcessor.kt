@@ -15,6 +15,7 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.project.stateStore
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.util.PsiUtil
@@ -348,6 +349,8 @@ object UtTestsDialogProcessor {
                                     }
                                     .executeSynchronously()
 
+                                val taintConfigPath = getTaintConfigPath(project)
+
                                 withStaticsSubstitutionRequired(true) {
                                     val startTime = System.currentTimeMillis()
                                     val timerHandler =
@@ -390,7 +393,8 @@ object UtTestsDialogProcessor {
                                             isSymbolicEngineEnabled = useEngine,
                                             isFuzzingEnabled = useFuzzing,
                                             fuzzingValue = project.service<Settings>().fuzzingValue,
-                                            searchDirectory = searchDirectory.pathString
+                                            searchDirectory = searchDirectory.pathString,
+                                            taintConfigPath = taintConfigPath?.pathString
                                         )
 
                                         if (rdGenerateResult.notEmptyCases == 0) {
@@ -442,6 +446,14 @@ object UtTestsDialogProcessor {
                 }
             }).queue()
         }
+    }
+
+    /**
+     * Returns "{project}/.idea/utbot-taint-config.yaml" or null if it does not exists
+     */
+    private fun getTaintConfigPath(project: Project): Path? {
+        val path = project.stateStore.directoryStorePath?.resolve("utbot-taint-config.yaml")
+        return if (path != null && path.toFile().exists()) path else null
     }
 
     private val PsiClass.canonicalName: String

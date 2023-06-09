@@ -19,6 +19,7 @@ interface UtExpressionVisitor<TResult> {
     fun visit(expr: UtOrBoolExpression): TResult
     fun visit(expr: UtAndBoolExpression): TResult
     fun visit(expr: UtNegExpression): TResult
+    fun visit(expr: UtBvNotExpression): TResult
     fun visit(expr: UtCastExpression): TResult
     fun visit(expr: UtBoolOpExpression): TResult
     fun visit(expr: UtIsExpression): TResult

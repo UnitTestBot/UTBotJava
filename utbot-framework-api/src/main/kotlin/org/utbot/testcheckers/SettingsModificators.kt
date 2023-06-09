@@ -59,6 +59,16 @@ inline fun <reified T> withTreatingOverflowAsError(block: () -> T): T {
     }
 }
 
+inline fun <reified T> withoutThrowTaintErrorForEachMarkSeparately(block: () -> T): T {
+    val prev = UtSettings.throwTaintErrorForEachMarkSeparately
+    UtSettings.throwTaintErrorForEachMarkSeparately = false
+    try {
+        return block()
+    } finally {
+        UtSettings.throwTaintErrorForEachMarkSeparately = prev
+    }
+}
+
 inline fun <reified T> withPushingStateFromPathSelectorForConcrete(block: () -> T): T {
     val prev = UtSettings.saveRemainingStatesForConcreteExecution
     UtSettings.saveRemainingStatesForConcreteExecution = true

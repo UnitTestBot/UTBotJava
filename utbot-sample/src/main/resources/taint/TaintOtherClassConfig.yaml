@@ -1,0 +1,20 @@
+sources:
+  - org.utbot.examples.taint.Inner.source:
+      add-to: return
+      marks: bad
+
+passes:
+  - org.utbot.examples.taint.Inner.pass:
+      get-from: arg1
+      add-to: return
+      marks: bad
+
+cleaners:
+  - org.utbot.examples.taint.Inner.cleaner:
+      remove-from: arg1
+      marks: bad
+
+sinks:
+  - org.utbot.examples.taint.Inner.sink:
+      check: arg1
+      marks: bad

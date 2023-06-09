@@ -122,10 +122,14 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
 fun JimpleBody.graph() = ExceptionalUnitGraph(this)
 
 val ExecutableId.sootMethod: SootMethod
+    get() = sootMethodOrNull ?: error("Class contains not only one method with the required signature.")
+
+val ExecutableId.sootMethodOrNull: SootMethod?
     get() {
         val clazz = Scene.v().getSootClass(classId.name)
-        return clazz.methods.single { it.pureJavaSignature == signature }
+        return clazz.methods.singleOrNull { it.pureJavaSignature == signature }
     }
+
 
 fun jimpleBody(method: ExecutableId): JimpleBody =
     method.sootMethod.jimpleBody()
@@ -208,6 +212,7 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.LongStream::class,
     org.utbot.engine.overrides.stream.DoubleStream::class,
     org.utbot.framework.plugin.api.OverflowDetectionError::class,
+    org.utbot.framework.plugin.api.TaintAnalysisError::class
 ).map { it.java }.toTypedArray()
 
 private const val UTBOT_PACKAGE_PREFIX = "org.utbot"

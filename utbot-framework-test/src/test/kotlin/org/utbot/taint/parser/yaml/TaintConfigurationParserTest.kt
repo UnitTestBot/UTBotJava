@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
 class TaintConfigurationParserTest {
@@ -16,8 +14,9 @@ class TaintConfigurationParserTest {
     inner class ParseConfigurationTest {
         @Test
         fun `should parse yaml map as Configuration`() {
-            val yamlMap = Yaml.default.parseToYamlNode("{ $k_sources: [], $k_passes: [], $k_cleaners: [], $k_sinks: [] }")
-            val expectedConfiguration = DtoTaintConfiguration(listOf(), listOf(), listOf(), listOf())
+            val yamlMap =
+                Yaml.default.parseToYamlNode("{ $k_sources: [], $k_passes: [], $k_cleaners: [], $k_sinks: [] }")
+            val expectedConfiguration = YamlTaintConfiguration(listOf(), listOf(), listOf(), listOf())
 
             val actualConfiguration = TaintConfigurationParser.parseConfiguration(yamlMap)
             assertEquals(expectedConfiguration, actualConfiguration)
@@ -26,7 +25,7 @@ class TaintConfigurationParserTest {
         @Test
         fun `should not fail if yaml map does not contain some keys`() {
             val yamlMap = Yaml.default.parseToYamlNode("{ $k_sources: [], $k_sinks: [] }")
-            val expectedConfiguration = DtoTaintConfiguration(listOf(), listOf(), listOf(), listOf())
+            val expectedConfiguration = YamlTaintConfiguration(listOf(), listOf(), listOf(), listOf())
 
             val actualConfiguration = TaintConfigurationParser.parseConfiguration(yamlMap)
             assertEquals(expectedConfiguration, actualConfiguration)

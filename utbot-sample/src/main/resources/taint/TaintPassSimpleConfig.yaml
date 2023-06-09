@@ -1,0 +1,15 @@
+sources:
+  - org.utbot.examples.taint.TaintPassSimple.source:
+      add-to: return
+      marks: bad
+
+passes:
+  - org.utbot.examples.taint.TaintPassSimple.pass:
+      get-from: arg1
+      add-to: return
+      marks: bad
+
+sinks:
+  - org.utbot.examples.taint.TaintPassSimple.sink:
+      check: arg1
+      marks: bad

@@ -153,6 +153,13 @@ class UtExpressionStructureCounter(private val input: Iterable<UtExpression>) : 
         return stat
     }
 
+    override fun visit(expr: UtBvNotExpression): NestStat {
+        val stat = buildState(expr.variable.expr)
+        stat.level++
+        stat.nodes++
+        return stat
+    }
+
     override fun visit(expr: UtCastExpression): NestStat {
         val stat = buildState(expr.variable.expr)
         stat.level++

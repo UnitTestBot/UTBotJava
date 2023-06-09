@@ -20,6 +20,7 @@ import org.utbot.engine.UtMockInfo
 import org.utbot.engine.UtNamedStore
 import org.utbot.engine.pc.Simplificator
 import org.utbot.engine.pc.UtAddrExpression
+import org.utbot.engine.pc.UtExpression
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import soot.ArrayType
@@ -43,6 +44,7 @@ typealias ClassIdToClearStaticsType = ClassId?
 typealias InstanceFieldReadsType = PersistentSet<InstanceFieldReadOperation>
 typealias SpeculativelyNotNullAddressesType = PersistentList<UtAddrExpression>
 typealias SymbolicEnumValuesType = PersistentList<ObjectValue>
+typealias TaintArrayUpdateType = PersistentList<Pair<UtAddrExpression, UtExpression>>
 
 class MemoryUpdateSimplificator(
     private val simplificator: Simplificator
@@ -67,6 +69,7 @@ class MemoryUpdateSimplificator(
         val speculativelyNotNullAddresses =
             simplifySpeculativelyNotNullAddresses(speculativelyNotNullAddresses)
         val symbolicEnumValues = simplifyEnumValues(symbolicEnumValues)
+        val taintArrayUpdate = simplifyTaintArrayUpdate(taintArrayUpdate)
         return MemoryUpdate(
             stores,
             touchedChunkDescriptors,
@@ -85,6 +88,7 @@ class MemoryUpdateSimplificator(
             classIdToClearStatics,
             instanceFieldReads,
             speculativelyNotNullAddresses,
+            taintArrayUpdate,
             symbolicEnumValues
         )
     }
@@ -177,5 +181,15 @@ class MemoryUpdateSimplificator(
     private fun simplifyEnumValues(symbolicEnumValues: SymbolicEnumValuesType): SymbolicEnumValuesType =
         symbolicEnumValues.mutate { values ->
             values.replaceAll { with(simplificator) { simplifySymbolicValue(it) as ObjectValue } }
+        }
+
+    private fun simplifyTaintArrayUpdate(taintArrayUpdate: TaintArrayUpdateType): TaintArrayUpdateType =
+        taintArrayUpdate.mutate { values ->
+            values.replaceAll { (addr, expr) ->
+                val simplifiedAddr = addr.accept(simplificator) as UtAddrExpression
+                val simplifiedExpr = expr.accept(simplificator)
+
+                simplifiedAddr to simplifiedExpr
+            }
         }
 }

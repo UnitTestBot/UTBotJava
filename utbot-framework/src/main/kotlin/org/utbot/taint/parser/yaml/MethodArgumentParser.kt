@@ -4,7 +4,6 @@ import com.charleskorn.kaml.YamlNode
 import com.charleskorn.kaml.YamlNull
 import com.charleskorn.kaml.YamlScalar
 import com.charleskorn.kaml.YamlScalarFormatException
-import org.utbot.taint.parser.model.*
 import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_PREFIX
 import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_SUFFIX
 import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_UNDERSCORE
@@ -16,13 +15,13 @@ object MethodArgumentParser {
     /**
      * This method is expected to be called only if the [isArgumentType] method returned `true`.
      */
-    fun parseArgumentType(node: YamlNode): DtoArgumentType {
+    fun parseArgumentType(node: YamlNode): YamlArgumentType {
         validate(node is YamlScalar, "The argument type node should be a scalar", node)
         return when (val typeDescription = node.content) {
-            ARGUMENT_TYPE_UNDERSCORE -> DtoArgumentTypeAny
+            ARGUMENT_TYPE_UNDERSCORE -> YamlArgumentTypeAny
             else -> {
                 val typeFqn = typeDescription.removeSurrounding(ARGUMENT_TYPE_PREFIX, ARGUMENT_TYPE_SUFFIX)
-                DtoArgumentTypeString(typeFqn)
+                YamlArgumentTypeString(typeFqn)
             }
         }
     }
@@ -30,15 +29,15 @@ object MethodArgumentParser {
     /**
      * This method is expected to be called only if the [isArgumentValue] method returned `true`.
      */
-    fun parseArgumentValue(node: YamlNode): DtoArgumentValue {
+    fun parseArgumentValue(node: YamlNode): YamlArgumentValue {
         return when (node) {
-            is YamlNull -> DtoArgumentValueNull
+            is YamlNull -> YamlArgumentValueNull
             is YamlScalar -> {
-                val conversions: List<(YamlScalar) -> DtoArgumentValue> = listOf(
-                    { DtoArgumentValueBoolean(it.toBoolean()) },
-                    { DtoArgumentValueLong(it.toLong()) },
-                    { DtoArgumentValueDouble(it.toDouble()) },
-                    { DtoArgumentValueString(it.content) },
+                val conversions: List<(YamlScalar) -> YamlArgumentValue> = listOf(
+                    { YamlArgumentValueBoolean(it.toBoolean()) },
+                    { YamlArgumentValueLong(it.toLong()) },
+                    { YamlArgumentValueDouble(it.toDouble()) },
+                    { YamlArgumentValueString(it.content) },
                 )
 
                 for (conversion in conversions) {
@@ -50,6 +49,7 @@ object MethodArgumentParser {
                 }
                 throw TaintParseError("All conversions failed for the argument value node", node)
             }
+
             else -> {
                 throw TaintParseError("The argument value node should be a null or a scalar", node)
             }
@@ -57,7 +57,7 @@ object MethodArgumentParser {
     }
 
     /**
-     * Checks that the [node] can be parsed to [DtoArgumentType].
+     * Checks that the [node] can be parsed to [YamlArgumentType].
      */
     fun isArgumentType(node: YamlNode): Boolean {
         val content = (node as? YamlScalar)?.content ?: return false
@@ -69,7 +69,7 @@ object MethodArgumentParser {
     }
 
     /**
-     * Checks that the [node] can be parsed to [DtoArgumentValue].
+     * Checks that the [node] can be parsed to [YamlArgumentValue].
      */
     fun isArgumentValue(node: YamlNode): Boolean =
         (node is YamlNull) || (node is YamlScalar) && !isArgumentType(node)

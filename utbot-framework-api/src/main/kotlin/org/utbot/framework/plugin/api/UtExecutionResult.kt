@@ -23,6 +23,10 @@ data class UtOverflowFailure(
     override val exception: Throwable,
 ) : UtExecutionFailure()
 
+data class UtTaintAnalysisFailure(
+    override val exception: Throwable
+) : UtExecutionFailure()
+
 data class UtSandboxFailure(
     override val exception: Throwable
 ) : UtExecutionFailure()

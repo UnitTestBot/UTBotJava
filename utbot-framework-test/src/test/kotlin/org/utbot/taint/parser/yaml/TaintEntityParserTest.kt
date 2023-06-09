@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
 class TaintEntityParserTest {
@@ -17,28 +15,28 @@ class TaintEntityParserTest {
         @Test
         fun `should return ThisObject on 'this'`() {
             val actualEntity = TaintEntityParser.taintEntityByName(k_this)
-            val expectedEntity = DtoTaintEntityThis
+            val expectedEntity = YamlTaintEntityThis
             assertEquals(expectedEntity, actualEntity)
         }
 
         @Test
         fun `should return ReturnValue on 'return'`() {
             val actualEntity = TaintEntityParser.taintEntityByName(k_return)
-            val expectedEntity = DtoTaintEntityReturn
+            val expectedEntity = YamlTaintEntityReturn
             assertEquals(expectedEntity, actualEntity)
         }
 
         @Test
         fun `should return MethodArgument(1) on 'arg1'`() {
             val actualEntity = TaintEntityParser.taintEntityByName("${k_arg}1")
-            val expectedEntity = DtoTaintEntityArgument(1u)
+            val expectedEntity = YamlTaintEntityArgument(1u)
             assertEquals(expectedEntity, actualEntity)
         }
 
         @Test
         fun `should return MethodArgument(227) on 'arg227'`() {
             val actualEntity = TaintEntityParser.taintEntityByName("${k_arg}227")
-            val expectedEntity = DtoTaintEntityArgument(227u)
+            val expectedEntity = YamlTaintEntityArgument(227u)
             assertEquals(expectedEntity, actualEntity)
         }
 
@@ -63,7 +61,7 @@ class TaintEntityParserTest {
         @Test
         fun `should parse yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode(k_this)
-            val expectedEntities = DtoTaintEntitiesSet(setOf(DtoTaintEntityThis))
+            val expectedEntities = YamlTaintEntitiesSet(setOf(YamlTaintEntityThis))
 
             val actualEntities = TaintEntityParser.parseTaintEntities(yamlScalar)
             assertEquals(expectedEntities, actualEntities)
@@ -72,7 +70,14 @@ class TaintEntityParserTest {
         @Test
         fun `should parse yaml list`() {
             val yamlList = Yaml.default.parseToYamlNode("[ $k_this, ${k_arg}1, ${k_arg}5, $k_return ]")
-            val expectedEntities = DtoTaintEntitiesSet(setOf(DtoTaintEntityThis, DtoTaintEntityArgument(1u), DtoTaintEntityArgument(5u), DtoTaintEntityReturn))
+            val expectedEntities = YamlTaintEntitiesSet(
+                setOf(
+                    YamlTaintEntityThis,
+                    YamlTaintEntityArgument(1u),
+                    YamlTaintEntityArgument(5u),
+                    YamlTaintEntityReturn
+                )
+            )
 
             val actualEntities = TaintEntityParser.parseTaintEntities(yamlList)
             assertEquals(expectedEntities, actualEntities)

@@ -536,6 +536,8 @@ internal val ARRAYS_SOOT_CLASS: SootClass
 
 internal val OBJECT_TYPE: RefType
     get() = Scene.v().getSootClass(Object::class.java.canonicalName).type
+internal val THROWABLE_TYPE: RefType
+    get() = Scene.v().getSootClass(Throwable::class.java.canonicalName).type
 internal val STRING_TYPE: RefType
     get() = Scene.v().getSootClass(String::class.java.canonicalName).type
 internal val STRING_BUILDER_TYPE: RefType

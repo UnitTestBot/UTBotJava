@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
 class MethodArgumentParserTest {
@@ -22,7 +20,7 @@ class MethodArgumentParserTest {
 
         @Test
         fun `should return true on type fqn in brackets`() {
-            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}java.lang.String${k_gt}")
+            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}java.lang.String$k_gt")
             assertTrue(MethodArgumentParser.isArgumentType(yamlScalar))
         }
 
@@ -34,7 +32,7 @@ class MethodArgumentParserTest {
 
         @Test
         fun `should return false on another yaml type`() {
-            val yamlList = Yaml.default.parseToYamlNode("[ ${k_lt}int${k_gt} ]")
+            val yamlList = Yaml.default.parseToYamlNode("[ ${k_lt}int$k_gt ]")
             assertFalse(MethodArgumentParser.isArgumentType(yamlList))
         }
     }
@@ -56,7 +54,7 @@ class MethodArgumentParserTest {
 
         @Test
         fun `should return false on type fqn in brackets`() {
-            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}float${k_gt}")
+            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}float$k_gt")
             assertFalse(MethodArgumentParser.isArgumentValue(yamlScalar))
         }
 
@@ -73,7 +71,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse underscore as ArgumentTypeAny`() {
             val yamlScalar = Yaml.default.parseToYamlNode(k__)
-            val expectedArgumentType = DtoArgumentTypeAny
+            val expectedArgumentType = YamlArgumentTypeAny
 
             val actualArgumentType = MethodArgumentParser.parseArgumentType(yamlScalar)
             assertEquals(expectedArgumentType, actualArgumentType)
@@ -81,8 +79,8 @@ class MethodArgumentParserTest {
 
         @Test
         fun `should parse type fqn in brackets`() {
-            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}double${k_gt}")
-            val expectedArgumentType = DtoArgumentTypeString("double")
+            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}double$k_gt")
+            val expectedArgumentType = YamlArgumentTypeString("double")
 
             val actualArgumentType = MethodArgumentParser.parseArgumentType(yamlScalar)
             assertEquals(expectedArgumentType, actualArgumentType)
@@ -90,7 +88,7 @@ class MethodArgumentParserTest {
 
         @Test
         fun `should fail on another yaml type`() {
-            val yamlMap = Yaml.default.parseToYamlNode("type: ${k_lt}double${k_gt}")
+            val yamlMap = Yaml.default.parseToYamlNode("type: ${k_lt}double$k_gt")
 
             assertThrows<TaintParseError> {
                 MethodArgumentParser.parseArgumentType(yamlMap)
@@ -104,7 +102,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse yaml null as ArgumentValueNull`() {
             val yamlNull = Yaml.default.parseToYamlNode("null")
-            val expectedArgumentValue = DtoArgumentValueNull
+            val expectedArgumentValue = YamlArgumentValueNull
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlNull)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -113,7 +111,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse boolean yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("false")
-            val expectedArgumentValue = DtoArgumentValueBoolean(false)
+            val expectedArgumentValue = YamlArgumentValueBoolean(false)
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -122,7 +120,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse long yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("17")
-            val expectedArgumentValue = DtoArgumentValueLong(17L)
+            val expectedArgumentValue = YamlArgumentValueLong(17L)
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -131,7 +129,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse double yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("1.2")
-            val expectedArgumentValue = DtoArgumentValueDouble(1.2)
+            val expectedArgumentValue = YamlArgumentValueDouble(1.2)
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)
@@ -140,7 +138,7 @@ class MethodArgumentParserTest {
         @Test
         fun `should parse string yaml scalar`() {
             val yamlScalar = Yaml.default.parseToYamlNode("some-string")
-            val expectedArgumentValue = DtoArgumentValueString("some-string")
+            val expectedArgumentValue = YamlArgumentValueString("some-string")
 
             val actualArgumentValue = MethodArgumentParser.parseArgumentValue(yamlScalar)
             assertEquals(expectedArgumentValue, actualArgumentValue)

@@ -1,0 +1,29 @@
+sources:
+  - org.utbot.examples.taint.TaintCleanerConditions.source:
+      add-to: return
+      marks: bad
+  - org.utbot.examples.taint.TaintCleanerConditions.sourceEmpty:
+      add-to: return
+      marks: bad
+
+cleaners:
+  - org.utbot.examples.taint.TaintCleanerConditions.cleanerArgCondition:
+      remove-from: arg1
+      marks: bad
+      conditions:
+        arg1: ""
+  - org.utbot.examples.taint.TaintCleanerConditions.cleanerReturnCondition:
+      remove-from: arg1
+      marks: bad
+      conditions:
+        return: true
+  - java.lang.String.isEmpty:
+      remove-from: this
+      marks: bad
+      conditions:
+        this: ""
+
+sinks:
+  - org.utbot.examples.taint.TaintCleanerConditions.sink:
+      check: arg1
+      marks: bad

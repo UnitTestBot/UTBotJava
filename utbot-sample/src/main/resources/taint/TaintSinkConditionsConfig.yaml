@@ -1,0 +1,21 @@
+sources:
+  - org.utbot.examples.taint.TaintSinkConditions.source:
+      add-to: return
+      marks: bad
+  - org.utbot.examples.taint.TaintSinkConditions.sourceEmpty:
+      add-to: return
+      marks: bad
+
+sinks:
+  - org.utbot.examples.taint.TaintSinkConditions.sink:
+      check: arg1
+      marks: bad
+      conditions:
+        arg2: true
+  - java.lang.String.getBytes:
+      check: this
+      marks: bad
+      conditions:
+        this:
+          not:
+            ""

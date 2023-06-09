@@ -21,6 +21,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.jimpleBody
+import org.utbot.taint.TaintConfigurationProvider
 import java.nio.file.Path
 
 /**
@@ -33,6 +34,7 @@ class TestSpecificTestCaseGenerator(
     dependencyPaths: String,
     engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean = { false },
+    private val taintConfigurationProvider: TaintConfigurationProvider? = null,
 ): TestCaseGenerator(
     listOf(buildDir),
     classpath,
@@ -69,7 +71,14 @@ class TestSpecificTestCaseGenerator(
             val controller = EngineController()
             controller.job = launch {
                 super
-                    .generateAsync(controller, method, mockStrategy, mockAlwaysDefaults, defaultTimeEstimator)
+                    .generateAsync(
+                        controller,
+                        method,
+                        mockStrategy,
+                        mockAlwaysDefaults,
+                        defaultTimeEstimator,
+                        taintConfigurationProvider
+                    )
                     .collect {
                         when (it) {
                             is UtExecution -> {

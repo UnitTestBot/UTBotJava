@@ -545,6 +545,9 @@ val ExecutableId.humanReadableName: String
         return "$executableName($parameters)"
     }
 
+val ExecutableId.simpleNameWithClass: String
+    get() = "${classId.simpleName}.${name}"
+
 val Constructor<*>.displayName: String
     get() = executableId.humanReadableName
 

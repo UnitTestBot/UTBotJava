@@ -2,12 +2,14 @@ package org.utbot.fuzzing.seeds
 
 import org.utbot.fuzzing.Mutation
 
-interface KnownValue {
-    val lastMutation: Mutation<KnownValue>?
+interface KnownValue<T : KnownValue<T>> {
+    val lastMutation: Mutation<out T>?
         get() = null
 
-    val mutatedFrom: KnownValue?
+    val mutatedFrom: T?
         get() = null
 
-    fun mutations(): List<Mutation<KnownValue>>
+    fun mutations(): List<Mutation<out T>> {
+        return emptyList()
+    }
 }

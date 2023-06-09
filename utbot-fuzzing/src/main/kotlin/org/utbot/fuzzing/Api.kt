@@ -48,9 +48,9 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
      * Then it generates values and runs them with this method. This method should provide some feedback,
      * which is the most important part for a good fuzzing result. [emptyFeedback] can be provided only for test
      * or infinite loops. Consider implementing own implementation of [Feedback] to provide more correct data or
-     * use [BaseFeedback] to generate key based feedback. In this case, the key is used to analyse what value should be next.
+     * use [BaseFeedback] to generate key based feedback. In this case, the key is used to analyze what value should be next.
      *
-     * @param description contains user-defined information about current run. Can be used as a state of the run.
+     * @param description contains user-defined information about the current run. Can be used as a state of the run.
      * @param values current values to process.
      */
     suspend fun handle(description: DESCRIPTION, values: List<RESULT>): FEEDBACK
@@ -74,7 +74,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
 }
 
 /**
- * Some description of current fuzzing run. Usually, it contains the name of the target method and its parameter list.
+ * Some description of the current fuzzing run. Usually, it contains the name of the target method and its parameter list.
  */
 open class Description<TYPE>(
     parameters: List<TYPE>
@@ -126,12 +126,12 @@ sealed interface Seed<TYPE, RESULT> {
      * Known value is a typical value that can be manipulated by fuzzing without knowledge about object structure
      * in concrete language. For example, integer can be represented as a bit vector of n-bits.
      *
-     * List of the known to fuzzing values are:
+     * The list of the known to fuzzing values are:
      *
      * 1. BitVectorValue represents a vector of bits.
      * 2. ...
      */
-    class Known<TYPE, RESULT, V : KnownValue>(val value: V, val build: (V) -> RESULT): Seed<TYPE, RESULT>
+    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT): Seed<TYPE, RESULT>
 
     /**
      * Recursive value defines an object with typically has a constructor and list of modifications.
@@ -187,7 +187,7 @@ sealed class Routine<T, R>(val types: List<T>) : Iterable<T> by types {
     }
 
     /**
-     * Creates a collection of concrete size.
+     * Creates a collection of concrete sizes.
      */
     class Collection<T, R>(
         val builder: (size: Int) -> R,
@@ -196,7 +196,7 @@ sealed class Routine<T, R>(val types: List<T>) : Iterable<T> by types {
     }
 
     /**
-     * Is called for collection with index of iterations.
+     * Is called for a collection with index of iterations.
      */
     class ForEach<T, R>(
         types: List<T>,
@@ -240,7 +240,7 @@ interface Feedback<TYPE, RESULT> : AsKey {
  * Base implementation of [Feedback].
  *
  * NB! [VALUE] type must implement [equals] and [hashCode] due to the fact it uses as a key in map.
- * If it doesn't implement those method, [OutOfMemoryError] is possible.
+ * If it doesn't implement those methods, [OutOfMemoryError] is possible.
  */
 data class BaseFeedback<VALUE, TYPE, RESULT>(
     val result: VALUE,
@@ -252,12 +252,12 @@ data class BaseFeedback<VALUE, TYPE, RESULT>(
  */
 enum class Control {
     /**
-     * Analyse feedback and continue.
+     * Analyze feedback and continue.
      */
     CONTINUE,
 
     /**
-     * Do not process this feedback and just start next value generation.
+     * Do not process this feedback and just start the next value generation.
      */
     PASS,
 
@@ -418,10 +418,9 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
         throw NoSeedValueException(type)
     }
     val candidates = seeds.map {
-        @Suppress("UNCHECKED_CAST")
         when (it) {
             is Seed.Simple<TYPE, RESULT> -> Result.Simple(it.value, it.mutation)
-            is Seed.Known<TYPE, RESULT, out KnownValue> -> Result.Known(it.value, it.build as KnownValue.() -> RESULT)
+            is Seed.Known<TYPE, RESULT, *> -> it.asResult()
             is Seed.Recursive<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
             is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
         }
@@ -540,7 +539,6 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
 /**
  *  Starts mutations of some seeds from the object tree.
  */
-@Suppress("UNCHECKED_CAST")
 private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> mutate(
     node: Node<TYPE, RESULT>,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
@@ -552,13 +550,10 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     val indexOfMutatedResult = random.chooseOne(node.result.map(::rate).toDoubleArray())
     val mutated = when (val resultToMutate = node.result[indexOfMutatedResult]) {
         is Result.Simple<TYPE, RESULT> -> Result.Simple(resultToMutate.mutation(resultToMutate.result, random), resultToMutate.mutation)
-        is Result.Known<TYPE, RESULT, out KnownValue> -> {
+        is Result.Known<TYPE, RESULT, *> -> {
             val mutations = resultToMutate.value.mutations()
             if (mutations.isNotEmpty()) {
-                Result.Known(
-                    mutations.random(random).mutate(resultToMutate.value, random, configuration),
-                    resultToMutate.build as KnownValue.() -> RESULT
-                )
+                resultToMutate.mutate(mutations.random(random), random, configuration)
             } else {
                 resultToMutate
             }
@@ -626,7 +621,7 @@ private fun <TYPE, RESULT> rate(result: Result<TYPE, RESULT>): Double {
 @Suppress("UNCHECKED_CAST")
 private fun <TYPE, R> create(result: Result<TYPE, R>): R = when(result) {
     is Result.Simple<TYPE, R> -> result.result
-    is Result.Known<TYPE, R, out KnownValue> -> (result.build as KnownValue.() -> R)(result.value)
+    is Result.Known<TYPE, R, *> -> (result.build as KnownValue<*>.() -> R)(result.value)
     is Result.Recursive<TYPE, R> -> with(result) {
         val obj: R = when (val c = construct.builder) {
             is Routine.Create<TYPE, R> -> c(construct.result.map { create(it) })
@@ -690,7 +685,7 @@ private sealed interface Result<TYPE, RESULT> {
     /**
      * Known value.
      */
-    class Known<TYPE, RESULT, V : KnownValue>(val value: V, val build: (V) -> RESULT) : Result<TYPE, RESULT>
+    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT) : Result<TYPE, RESULT>
     /**
      * A tree of object that has constructor and some modifications.
      */
@@ -768,5 +763,24 @@ private class StatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
     }
 
     fun isNotEmpty() = seeds.isNotEmpty()
+}
+///endregion
+
+
+///region Utilities
+@Suppress("UNCHECKED_CAST")
+private fun <TYPE, RESULT, T : KnownValue<T>> Seed.Known<TYPE, RESULT, *>.asResult(): Result.Known<TYPE, RESULT, T> {
+    val value: T = value as T
+    return Result.Known(value, build as KnownValue<T>.() -> RESULT)
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun <TYPE, RESULT, T : KnownValue<T>> Result.Known<TYPE, RESULT, *>.mutate(mutation: Mutation<T>, random: Random, configuration: Configuration): Result.Known<TYPE, RESULT, T> {
+    val source: T = value as T
+    val mutate = mutation.mutate(source, random, configuration)
+    return Result.Known(
+        mutate,
+        build as (T) -> RESULT
+    )
 }
 ///endregion

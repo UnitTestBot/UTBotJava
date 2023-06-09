@@ -37,7 +37,7 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
         strConstants.forEach { yieldStrings(it) { value } }
     }
 
-    private suspend fun <T : KnownValue> SequenceScope<Seed<Type, PythonFuzzedValue>>.yieldStrings(value: T, block: T.() -> Any) {
+    private suspend fun <T : KnownValue<T>> SequenceScope<Seed<Type, PythonFuzzedValue>>.yieldStrings(value: T, block: T.() -> Any) {
         yield(Seed.Known(value) {
             PythonFuzzedValue(
                 PythonTree.fromString(block(it).toString()),

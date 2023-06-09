@@ -62,17 +62,7 @@ data class Configuration(
     /**
      * When mutating StringValue a new string will not exceed this value.
      */
-    var maxStringLengthWhenMutated: Int = 64,
-
-    /**
-     * Probability of adding a new character when mutating StringValue
-     */
-    var probStringAddCharacter: Int = 50,
-
-    /**
-     * Probability of removing an old character from StringValue when mutating
-     */
-    var probStringRemoveCharacter: Int = 50,
+    var maxStringLengthWhenMutated: Int = 128,
 
     /**
      * Probability of reusing same generated value when 2 or more parameters have the same type.

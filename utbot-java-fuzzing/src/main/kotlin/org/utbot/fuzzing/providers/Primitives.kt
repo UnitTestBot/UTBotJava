@@ -21,7 +21,7 @@ abstract class PrimitiveValueProvider(
 
     final override fun accept(type: FuzzedType) = type.classId in acceptableTypes
 
-    protected suspend fun <T : KnownValue> SequenceScope<Seed<FuzzedType, FuzzedValue>>.yieldKnown(
+    protected suspend fun <T : KnownValue<T>> SequenceScope<Seed<FuzzedType, FuzzedValue>>.yieldKnown(
         value: T,
         toValue: T.() -> Any
     ) {
@@ -37,7 +37,7 @@ abstract class PrimitiveValueProvider(
         })
     }
 
-    private fun <T : KnownValue> T.valueToString(): String {
+    private fun <T : KnownValue<T>> T.valueToString(): String {
         when (this) {
             is BitVectorValue -> {
                 for (defaultBound in Signed.values()) {
@@ -126,7 +126,7 @@ object IntegerValueProvider : PrimitiveValueProvider(
     private val configurationStubWithNoUsage = Configuration()
 
     private fun BitVectorValue.change(func: BitVectorValue.() -> Unit): BitVectorValue {
-        return Mutation<KnownValue> { _, _, _ ->
+        return Mutation<KnownValue<*>> { _, _, _ ->
             BitVectorValue(this).apply { func() }
         }.mutate(this, randomStubWithNoUsage, configurationStubWithNoUsage) as BitVectorValue
     }
@@ -216,7 +216,7 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId) {
         val values = constants
             .mapNotNull { it.value as? String } +
                 sequenceOf("", "abc", "\n\t\r")
-        values.forEach { yieldKnown(StringValue(it)) { value } }
+        values.forEach { yieldKnown(StringValue(it), StringValue::value) }
         constants
             .filter { it.fuzzedContext.isPatterMatchingContext()  }
             .map { it.value as String }
@@ -229,7 +229,7 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId) {
                     false
                 }
             }.forEach {
-                yieldKnown(RegexValue(it, Random(0))) { value }
+                yieldKnown(RegexValue(it, Random(0)), StringValue::value)
             }
     }
 

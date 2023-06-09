@@ -7,18 +7,21 @@ import org.utbot.fuzzing.Mutation
 import kotlin.random.Random
 import kotlin.random.asJavaRandom
 
-class RegexValue(val pattern: String, val random: Random) : KnownValue {
+class RegexValue(val pattern: String, val random: Random) : StringValue(
+    valueProvider = {
+        RgxGen(pattern).apply {
+            setProperties(rgxGenProperties)
+        }.generate(random.asJavaRandom())
+    }
+) {
 
-    val value: String by lazy { RgxGen(pattern).apply {
-        setProperties(rgxGenProperties)
-    }.generate(random.asJavaRandom()) }
-
-    override fun mutations() = listOf(Mutation<KnownValue> { source, random, _ ->
-        require(this === source)
-        RegexValue(pattern, random)
-    })
+    override fun mutations(): List<Mutation<out StringValue>> {
+        return super.mutations() + Mutation<RegexValue> { source, random, _ ->
+            RegexValue(source.pattern, random)
+        }
+    }
 }
 
 private val rgxGenProperties = RgxGenProperties().apply {
-    setProperty(RgxGenOption.INFINITE_PATTERN_REPETITION.key, "5")
+    setProperty(RgxGenOption.INFINITE_PATTERN_REPETITION.key, "100")
 }

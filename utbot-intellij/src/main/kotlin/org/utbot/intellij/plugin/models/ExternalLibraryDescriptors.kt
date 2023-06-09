@@ -36,7 +36,7 @@ fun jUnit5ParametrizedTestsLibraryDescriptor(versionInProject: Version?): Extern
 }
 
 fun mockitoCoreLibraryDescriptor(versionInProject: Version?): ExternalLibraryDescriptor {
-    val preferredVersion = if (versionInProject?.hasNumericOrEmptyPatch() == true) versionInProject?.plainText else "5.2.0"
+    val preferredVersion = if (versionInProject?.hasNumericOrEmptyPatch() == true) versionInProject?.plainText else "4.11.0"
     return ExternalLibraryDescriptor(
         "org.mockito", "mockito-core",
         "3.5.0", null, preferredVersion

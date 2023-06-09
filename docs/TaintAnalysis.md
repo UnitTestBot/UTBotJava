@@ -400,7 +400,7 @@ The implementation mostly affect the `Traverser` and `Memory` classes. Also, the
 and `TaintMarkManager`. The diagram below shows a high-level architecture of the taint module (actually, in the code
 it was written a little differently, but to understand the idea, the diagram is greatly simplified).
 
-[//]: # (TODO: picture)
+<img src="https://github.com/UnitTestBot/UTBotJava/assets/54814796/0a199fc8-ef6c-4fc5-830d-91ed556a8e3f" height="250">
 
 The `TaintMarkRegistry` class stores a mapping between the mark name and its ordinal number from 0 to 63.
 The number of marks is limited to 64. However, firstly, this is enough for almost any reasonable example,
@@ -494,7 +494,7 @@ sinks:
 
 Then we enable taint analysis in settings and run the UnitTestBot using the IntelliJ IDEA plugin.
 
-[//]: # (TODO: picture)
+<img src="https://github.com/UnitTestBot/UTBotJava/assets/54814796/64f12291-5596-4c6e-a1cd-6ad4aab03e47" height="250">
 
 Generated code:
 
@@ -519,9 +519,9 @@ public final class UserTest {
 
 Also, we can see the detected problem on the Problems tab:
 
-[//]: # (TODO: picture)
+<img src="https://github.com/UnitTestBot/UTBotJava/assets/54814796/59cacc9c-7329-4a3f-b496-5a0307c96d06" height="250">
 
-**A Brief explanation**: After executing the `getPassword` method, the symbol corresponding to the password variable
+**A brief explanation**: After executing the `getPassword` method, the symbol corresponding to the password variable
 is marked as "sensitive-data" (a zero bit is set to 1 in its taint vector). After calling `userInfo`, the `info`
 variable is also marked, since `userInfo` is a taint pass that adds to the return value all the marks collected from
 both of its arguments. Before printing `info` to the console, the `processTaintSink` handler function adds a constraint

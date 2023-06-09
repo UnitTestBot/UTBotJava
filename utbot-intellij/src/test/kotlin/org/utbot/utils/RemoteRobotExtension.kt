@@ -6,25 +6,15 @@ import com.intellij.remoterobot.search.locators.byXpath
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
-import org.utbot.data.IdeaBuildSystem
-import org.utbot.pages.IdeaFrame
-import org.utbot.pages.idea
-import org.utbot.pages.IdeaGradleFrame
-import org.utbot.pages.IdeaIntelliJFrame
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.lang.IllegalStateException
 import java.lang.reflect.Method
-import java.time.Duration
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import javax.imageio.ImageIO
 
 class RemoteRobotExtension : AfterTestExecutionCallback, ParameterResolver {
@@ -55,7 +45,7 @@ class RemoteRobotExtension : AfterTestExecutionCallback, ParameterResolver {
         val testMethodName = testMethod.name
         val testFailed: Boolean = context.executionException?.isPresent ?: false
         if (testFailed) {
-//            saveScreenshot(testMethodName)
+            saveScreenshot(testMethodName)
             saveIdeaFrames(testMethodName)
             saveHierarchy(testMethodName)
         }
@@ -142,40 +132,4 @@ class RemoteRobotExtension : AfterTestExecutionCallback, ParameterResolver {
             ImageIO.read(it)
         }
     }
-
-    val PROJECT_PATH = "D:\\\\JavaProjects\\\\"
-    val EXISTING_PROJECT_NAME = "Oct24Maven11"
-    val TEST_RUN_NUMBER = LocalDateTime.now().format(DateTimeFormatter.ofPattern("_yyyyMMdd_HHmmss"))
-    val DEFAULT_TEST_GENERATION_TIMEOUT = 60L
-
-    fun getIdeaFrameForSpecificBuildSystem(remoteRobot: RemoteRobot, ideaBuildSystem: IdeaBuildSystem): IdeaFrame {
-        when (ideaBuildSystem) {
-            IdeaBuildSystem.INTELLIJ -> remoteRobot.find(IdeaIntelliJFrame::class.java, Duration.ofSeconds(10))
-            IdeaBuildSystem.GRADLE -> remoteRobot.find(IdeaGradleFrame::class.java, Duration.ofSeconds(10))
-        }
-        throw IllegalArgumentException("ideaBuildSystem not recognized: $ideaBuildSystem")
-    }
-
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        fun `Close project from previous run if opened`(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
-            StepsLogger.init()
-            `Close project if opened`(remoteRobot)
-        }
-
-        @AfterAll
-        @JvmStatic
-        fun `Close project if opened`(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
-            try {
-                idea {
-                    if (projectViewTree.isShowing) {
-                        closeProject()
-                    }
-                }
-            } catch (ignore: Throwable) {
-            }
-        }
-    }
-
 }

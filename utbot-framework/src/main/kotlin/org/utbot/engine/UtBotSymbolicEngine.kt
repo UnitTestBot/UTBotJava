@@ -40,9 +40,8 @@ import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
-import org.utbot.fuzzing.providers.AutowiredValueProvider
-import org.utbot.fuzzing.type.factories.SimpleFuzzedTypeFactory
-import org.utbot.fuzzing.type.factories.SpringFuzzedTypeFactory
+import org.utbot.fuzzing.providers.ObjectValueProvider
+import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -344,9 +343,7 @@ class UtBotSymbolicEngine(
             classId != Method::class.java.id && // causes the instrumented process crash at invocation
                 classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
         }
-        val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
-        if (!isFuzzable || !hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
-            // Currently, fuzzer doesn't work with static methods with empty parameters
+        if (!isFuzzable) {
             return@flow
         }
         val errorStackTraceTracker = Trie(StackTraceElement::toString)
@@ -354,34 +351,33 @@ class UtBotSymbolicEngine(
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
         var testEmittedByFuzzer = 0
+        val valueProviders = ValueProvider.of(defaultValueProviders(defaultIdGenerator))
+            .letIf(applicationContext is SpringApplicationContext
+                        && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
+            ) { provider ->
+                // spring should try to generate bean values, but if it fails, then object value provider is used for it
+                val springBeanValueProvider = SpringBeanValueProvider(
+                    defaultIdGenerator,
+                    beanProvider = { classId ->
+                        (applicationContext as SpringApplicationContext).beanDefinitions
+                            .filter { it.beanTypeFqn == classId.name }
+                            .map { it.beanName }
+                    },
+                    autowiredModelOriginCreator = { beanName ->
+                        runBlocking {
+                            logger.info { "Getting bean: $beanName" }
+                            concreteExecutor.withProcess { getBean(beanName) }
+                        }
+                    }).withFallback(ObjectValueProvider(defaultIdGenerator))
+
+                provider.except { p -> p is ObjectValueProvider }.with(springBeanValueProvider)
+            }.let(transform)
         runJavaFuzzing(
             defaultIdGenerator,
             methodUnderTest,
-            collectConstantsForFuzzer(graph),
-            names,
-            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator)))),
-            fuzzedTypeFactory = when (applicationContext) {
-                is SpringApplicationContext -> when (applicationContext.typeReplacementApproach) {
-                    is TypeReplacementApproach.ReplaceIfPossible -> SpringFuzzedTypeFactory(
-                        autowiredValueProvider = AutowiredValueProvider(
-                            defaultIdGenerator,
-                            autowiredModelOriginCreator = { beanName ->
-                                runBlocking {
-                                    logger.info { "Getting bean: $beanName" }
-                                    concreteExecutor.withProcess { getBean(beanName) }
-                                }
-                            }
-                        ),
-                        beanNamesFinder = { classId ->
-                            applicationContext.beanDefinitions
-                                .filter { it.beanTypeFqn == classId.name }
-                                .map { it.beanName }
-                        }
-                    )
-                    is TypeReplacementApproach.DoNotReplace -> SimpleFuzzedTypeFactory()
-                }
-                else -> SimpleFuzzedTypeFactory()
-            },
+            constants = collectConstantsForFuzzer(graph),
+            names = names,
+            providers = listOf(valueProviders),
         ) { thisInstance, descr, values ->
             if (thisInstance?.model is UtNullModel) {
                 // We should not try to run concretely any models with null-this.

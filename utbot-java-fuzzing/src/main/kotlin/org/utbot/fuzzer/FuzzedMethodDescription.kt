@@ -45,6 +45,11 @@ open class FuzzedMethodDescription(
     var isNested: Boolean = false
 
     /**
+     * True, if method is static, false if it's not and null if it is not defined.
+     */
+    var isStatic: Boolean? = null
+
+    /**
      * Returns parameter name by its index in the signature
      */
     var parameterNameMap: (Int) -> String? = { null }

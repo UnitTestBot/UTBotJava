@@ -12,7 +12,6 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
-import java.util.*
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -24,7 +23,7 @@ class ObjectValueProvider(
         NumberValueProvider.classId
     )
 
-    override fun accept(type: FuzzedType) = !isIgnored(type.classId) && type !is CustomJavaValueProviderHolder
+    override fun accept(type: FuzzedType) = !isIgnored(type.classId)
 
     override fun generate(
         description: FuzzedDescription,
@@ -45,7 +44,7 @@ class ObjectValueProvider(
     private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.executable.genericParameterTypes.map {
-                description.fuzzedTypeFactory.createFuzzedType(it, isThisInstance = false)
+                toFuzzerType(it, description.typeCache)
             }) { values ->
                 val id = idGenerator.createId()
                 UtAssembleModel(
@@ -115,16 +114,30 @@ class ObjectValueProvider(
 
 @Suppress("unused")
 object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+
+    override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
+        // any value in static function is ok to fuzz
+        if (description.description.isStatic == true && scope.recursionDepth == 1) {
+            scope.putProperty(NULLABLE_PROP, true)
+        }
+        // any value except this
+        if (description.description.isStatic == false && scope.parameterIndex > 0 && scope.recursionDepth == 1) {
+            scope.putProperty(NULLABLE_PROP, true)
+        }
+    }
+
     override fun accept(type: FuzzedType) = type.classId.isRefType
 
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
-    ) = sequenceOf<Seed<FuzzedType, FuzzedValue>>(
-        Seed.Simple(UtNullModel(type.classId).fuzzed {
-            summary = "%var% = null"
-        })
-    )
+    ) = sequence<Seed<FuzzedType, FuzzedValue>> {
+        if (description.scope?.getProperty(NULLABLE_PROP) == true) {
+            yield(Seed.Simple(UtNullModel(type.classId).fuzzed {
+                summary = "%var% = null"
+            }))
+        }
+    }
 }
 
 internal class PublicSetterGetter(
@@ -146,7 +159,7 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
         val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)
         FieldDescription(
             name = field.name,
-            type = description?.fuzzedTypeFactory?.createFuzzedType(field.type, isThisInstance = false) ?: FuzzedType(field.type.id),
+            type = if (description != null) toFuzzerType(field.type, description.typeCache) else FuzzedType(field.type.id),
             canBeSetDirectly = isAccessible(
                 field,
                 packageName

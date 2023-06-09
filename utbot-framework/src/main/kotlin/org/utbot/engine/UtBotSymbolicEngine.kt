@@ -46,9 +46,11 @@ import org.utbot.fuzzing.spring.SavedEntityProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.getSpringRepositories
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.process.generated.GetSpringRepositoriesParams
 import org.utbot.taint.*
 import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
@@ -388,17 +390,11 @@ class UtBotSymbolicEngine(
             .letIf(applicationContext is SpringApplicationContext
                         && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
             ) { provider ->
-                // TODO #2274 properly detect relevant repositories (right now orderRepository is hardcoded)
-                val relevantRepositories = listOf(
-                    SpringRepositoryId(
-                        repositoryBeanName = "orderRepository",
-                        repositoryClassId = ClassId("com.rest.order.repositories.OrderRepository"),
-                        entityClassId = ClassId("com.rest.order.models.Order")
-                    )
-                )
-                val generatedValueFieldIds = listOf(
-                    FieldId(ClassId("com.rest.order.models.Order"), "id")
-                )
+                val relevantRepositories = concreteExecutor.getSpringRepositories(methodUnderTest.classId)
+                val generatedValueFieldIds = relevantRepositories.map {
+                    repository -> FieldId(repository.entityClassId, "id")
+                }
+
                 logger.info { "Relevant repositories: $relevantRepositories" }
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
                 val springBeanValueProvider = SpringBeanValueProvider(

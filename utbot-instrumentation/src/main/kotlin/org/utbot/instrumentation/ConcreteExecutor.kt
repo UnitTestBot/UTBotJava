@@ -1,9 +1,5 @@
 package org.utbot.instrumentation
 
-import com.jetbrains.rd.util.ILoggerFactory
-import com.jetbrains.rd.util.Logger
-import com.jetbrains.rd.util.Statics
-import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
@@ -15,7 +11,6 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
-import kotlin.streams.toList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -23,16 +18,18 @@ import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.common.logException
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.generated.ComputeStaticFieldParams
+import org.utbot.instrumentation.process.generated.GetSpringRepositoriesParams
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.rd.InstrumentedProcess
 import org.utbot.instrumentation.util.InstrumentedProcessError
 import org.utbot.rd.generated.synchronizationModel
-import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.loggers.overrideDefaultRdLoggerFactoryWithKLogger
 
 private val logger = KotlinLogging.logger {}
@@ -282,6 +279,16 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 fun ConcreteExecutor<*,*>.warmup() = runBlocking {
     withProcess {
         instrumentedProcessModel.warmup.start(lifetime, Unit)
+    }
+}
+
+fun ConcreteExecutor<*,*>.getSpringRepositories(classId: ClassId): Set<SpringRepositoryId> = runBlocking {
+    withProcess {
+        val classId = kryoHelper.writeObject(classId)
+        val params = GetSpringRepositoriesParams(classId)
+        val result = instrumentedProcessModel.getSpringRepositories.startSuspending(lifetime, params)
+
+        kryoHelper.readObject(result.repositoryDescriptions)
     }
 }
 

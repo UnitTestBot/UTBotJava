@@ -21,6 +21,6 @@ data class SymbolicMethodData(
 
     companion object {
         fun constructInvalid(methodId: ExecutableId): SymbolicMethodData =
-            SymbolicMethodData(methodId, null, listOf(), null)
+            SymbolicMethodData(methodId, base = null, args = listOf(), result = null)
     }
 }

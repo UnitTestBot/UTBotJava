@@ -2705,7 +2705,7 @@ class Traverser(
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
 
         if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(invokeExpr.method.executableId, null, parameters, null))
+            processTaintSink(SymbolicMethodData(invokeExpr.method.executableId, base = null, args = parameters, result = null))
         }
 
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
@@ -2738,7 +2738,7 @@ class Traverser(
         val resolvedParameters = resolveParameters(parameters, method.parameterTypes)
 
         if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(method.executableId, instance, resolvedParameters, null))
+            processTaintSink(SymbolicMethodData(method.executableId, instance, resolvedParameters, result = null))
         }
 
         val invocation = Invocation(instance, method, resolvedParameters) {
@@ -2911,7 +2911,7 @@ class Traverser(
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
 
         if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(method.executableId, instance, parameters, null))
+            processTaintSink(SymbolicMethodData(method.executableId, instance, parameters, result = null))
         }
 
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
@@ -4270,33 +4270,49 @@ class Traverser(
     }
 
     private fun TraversalContext.processTaintSink(methodData: SymbolicMethodData) {
-        val methodName = methodData.methodId.simpleNameWithClass
         val sinkConfigurations = taintContext.configuration.getSinksBy(methodData.methodId)
-
-        for (sink in sinkConfigurations) {
+        sinkConfigurations.forEach { sink ->
             val condition = sink.condition.toBoolExpr(this@Traverser, methodData)
+            sink.check.entities.forEach { entity ->
+                implicitlyThrowTaintError(methodData, entity, sink.marks, condition)
+            }
+        }
+    }
 
-            for (entity in sink.check.entities) {
-                val symbolicEntity = methodData.choose(entity) ?: continue
-                val entityAddr = symbolicEntity.addrOrNull ?: continue
-                val taintedVarType = symbolicEntity.type.toQuotedString()
+    private fun TraversalContext.implicitlyThrowTaintError(
+        methodData: SymbolicMethodData,
+        entity: TaintEntity,
+        marks: TaintMarks,
+        condition: UtBoolExpression,
+    ) {
+        val symbolicEntity = methodData.choose(entity) ?: return
+        val entityAddr = symbolicEntity.addrOrNull ?: return
+        val containsAnyMark = taintContext.markManager.containsAnyMark(memory, entityAddr)
 
-                if (sink.marks is TaintMarksAll || UtSettings.ThrowTaintErrorOnlyForAllMarks) {
-                    val containsAnyMark = taintContext.markManager.containsAnyMark(memory, entityAddr)
+        val methodName = methodData.methodId.simpleNameWithClass
+        val taintedVarType = symbolicEntity.type.toQuotedString()
+
+        if (UtSettings.throwTaintErrorOnlyForAllMarks) {
+            implicitlyThrowException(
+                TaintAnalysisError(methodName, taintedVarType, "tainted"),
+                setOf(mkAnd(containsAnyMark, condition))
+            )
+            return
+        }
+
+        when (marks) {
+            is TaintMarksAll ->
+                implicitlyThrowException(
+                    TaintAnalysisError(methodName, taintedVarType, "tainted"),
+                    setOf(mkAnd(containsAnyMark, condition))
+                )
+            is TaintMarksSet -> {
+                marks.marks.forEach { mark ->
+                    val containsMark = taintContext.markManager.containsMark(memory, entityAddr, mark)
                     implicitlyThrowException(
-                        TaintAnalysisError(methodName, taintedVarType, "tainted"),
-                        setOf(mkAnd(containsAnyMark, condition))
+                        TaintAnalysisError(methodName, taintedVarType, mark.name),
+                        setOf(mkAnd(containsMark, condition))
                     )
-                } else if (sink.marks is TaintMarksSet) {
-                    for (mark in sink.marks.marks) {
-                        val containsMark = taintContext.markManager.containsMark(memory, entityAddr, mark)
-                        implicitlyThrowException(
-                            TaintAnalysisError(methodName, taintedVarType, mark.name),
-                            setOf(mkAnd(containsMark, condition))
-                        )
-                    }
-                } else {
-                    error("${sink.marks::class.java.canonicalName} not is TaintMarksAll and not is TaintMarksSet")
                 }
             }
         }

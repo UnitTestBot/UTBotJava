@@ -89,7 +89,7 @@ class SettingsWindow(val project: Project) {
         }
         row {
             useTaintAnalysisCheckBox =
-                checkBox("Use taint analysis")
+                checkBox("Enable taint analysis")
                     .onApply {
                         settings.state.useTaintAnalysis = useTaintAnalysisCheckBox.isSelected
                     }

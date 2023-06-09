@@ -22,7 +22,7 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
         val taintVector = memory.taintVector(addr).toLongValue()
         val taintMarkId = markRegistry.idByMark(mark)
         val taintMarkVector = mkLong(taintMarkId).toLongValue()
-        return mkNot(mkEq(And(taintVector, taintMarkVector), bvExpr0))
+        return mkNot(mkEq(And(taintVector, taintMarkVector), emptyTaintVector))
     }
 
     /**
@@ -30,7 +30,7 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
      */
     fun containsAnyMark(memory: Memory, addr: UtAddrExpression): UtBoolExpression {
         val taintVector = memory.taintVector(addr).toLongValue()
-        return mkNot(mkEq(taintVector, bvExpr0.toLongValue()))
+        return mkNot(mkEq(taintVector, emptyTaintVector.toLongValue()))
     }
 
     /**
@@ -104,7 +104,7 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
         val taintMarks = constructTaintVector(marks).toLongValue()
         val oldTaintVectorFrom = memory.taintVector(fromAddr).toLongValue()
         val intersection = And(taintMarks, oldTaintVectorFrom)
-        val hasAtLeastOneMark = mkNot(mkEq(intersection, bvExpr0))
+        val hasAtLeastOneMark = mkNot(mkEq(intersection, emptyTaintVector))
 
         val oldTaintVectorExprTo = memory.taintVector(toAddr)
         val newTaintVectorExprTo = Or(oldTaintVectorExprTo.toLongValue(), intersection.toLongValue())
@@ -120,7 +120,7 @@ class TaintMarkManager(private val markRegistry: TaintMarkRegistry) {
 
     // internal
 
-    private val bvExpr0 = mkLong(0L)
+    private val emptyTaintVector = mkLong(0L)
 
     /**
      * Returns taint vector that represents [marks].

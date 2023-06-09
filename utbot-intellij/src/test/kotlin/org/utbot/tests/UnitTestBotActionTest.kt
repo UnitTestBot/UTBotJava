@@ -43,7 +43,7 @@ class UnitTestBotActionTest : BaseTest() {
                 inlineProgressTextPanel.hasText("Generate test cases for class $newClassName")
             }
             waitForIgnoringError(ofSeconds(60)) { //Can be changed to 60 for a complex class
-                infoNotification.title.hasText("UnitTestBot: unit tests generated successfully")
+                utbotNotification.title.hasText("UnitTestBot: unit tests generated successfully")
             }
             assertThat(textEditor().editor.text).contains("class ${newClassName}Test")
             assertThat(textEditor().editor.text).contains("@Test\n")

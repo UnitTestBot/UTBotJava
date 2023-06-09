@@ -58,8 +58,8 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][.//div[@accessiblename.key='error.new.notification.title']]"),
             ofSeconds(10))
 
-    val infoNotification
-        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@val_icon='balloonInformation.svg']/../div[@class='NotificationCenterPanel']"),
+    val utbotNotification
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][div[contains(.,'UnitTestBot')]]"),
             ofSeconds(10))
 
     val unitTestBotDialog
@@ -151,7 +151,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         remoteRobot.actionMenu("New").click()
         remoteRobot.actionMenuItem("Package").click()
         keyboard {
-            enterText(packageName);
+            enterText(packageName)
             enter()
         }
     }

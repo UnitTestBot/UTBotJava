@@ -62,10 +62,12 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
     fun selectJDK(jdkVersion: String) {
         step("Select JDK: $jdkVersion") {
             jdkComboBox.click()
+            var jdkMatching = jdkVersion
             waitForIgnoringError(ofSeconds(20)) {
                 findAll<ComponentFixture>(byXpath("//*[@text.key='progress.title.detecting.sdks']")).isEmpty()
+                jdkMatching = jdkList.collectItems().first { it.contains(jdkVersion) }
+                jdkMatching.isEmpty().not()
             }
-            val jdkMatching = jdkList.collectItems().first { it.contains(jdkVersion) }
             jdkList.clickItem(jdkMatching)
         }
     }

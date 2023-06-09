@@ -5,6 +5,8 @@ val kryoVersion: String by rootProject
 val kryoSerializersVersion: String by rootProject
 val kotlinLoggingVersion: String by rootProject
 val rdVersion: String by rootProject
+val mockitoVersion: String by rootProject
+val mockitoInlineVersion: String by rootProject
 val springBootVersion: String by rootProject
 
 plugins {
@@ -42,7 +44,8 @@ val fetchSpringCommonsJar: Configuration by configurations.creating {
 dependencies {
     implementation(project(":utbot-framework-api"))
     implementation(project(":utbot-rd"))
-    implementation(project(":utbot-spring-commons"))
+    implementation(project(":utbot-spring-commons-api"))
+
 
     implementation("org.ow2.asm:asm:$asmVersion")
     implementation("org.ow2.asm:asm-commons:$asmVersion")
@@ -56,8 +59,8 @@ dependencies {
     implementation("net.java.dev.jna:jna-platform:5.5.0")
 
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
-    implementation("org.mockito:mockito-core:4.2.0")
-    implementation("org.mockito:mockito-inline:4.2.0")
+    implementation("org.mockito:mockito-core:$mockitoVersion")
+    implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
 
     compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
     fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))

@@ -31,7 +31,10 @@ dependencies {
     implementation(project(":utbot-rd")) { excludeSlf4jApi() }
     implementation(project(":utbot-core")) { excludeSlf4jApi() }
     implementation(project(":utbot-framework-api")) { excludeSlf4jApi() }
-    implementation(project(":utbot-spring-commons")) { excludeSlf4jApi() }
+
+    runtimeOnly(project(":utbot-spring-commons")) { excludeSlf4jApi() }
+    implementation(project(":utbot-spring-commons-api")) { excludeSlf4jApi() }
+
     implementation("com.jetbrains.rd:rd-framework:$rdVersion") { excludeSlf4jApi() }
     implementation("com.jetbrains.rd:rd-core:$rdVersion") { excludeSlf4jApi() }
     implementation("commons-logging:commons-logging:$commonsLoggingVersion") { excludeSlf4jApi() }

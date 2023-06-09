@@ -964,7 +964,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             ?: error("Trying to install Spring test framework, but Spring framework is not found in module ${model.srcModule.name}")
         val frameworkTestVersionInProject = frameworkTestLibrary?.libraryName?.parseVersion()
 
-        if (frameworkTestVersionInProject == null || frameworkTestVersionInProject < frameworkVersionInProject) {
+        if (frameworkTestVersionInProject == null ||
+            !frameworkTestVersionInProject.isCompatibleWith(frameworkVersionInProject)
+) {
             val libraryDescriptor = when (framework) {
                 SpringBoot ->  springBootTestLibraryDescriptor(frameworkVersionInProject)
                 SpringBeans -> springTestLibraryDescriptor(frameworkVersionInProject)

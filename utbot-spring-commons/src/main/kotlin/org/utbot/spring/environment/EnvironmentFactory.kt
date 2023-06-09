@@ -4,27 +4,27 @@ import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.env.StandardEnvironment
-import org.utbot.spring.context.InstantiationContext
+import org.utbot.spring.api.instantiator.InstantiationSettings
 
 
 private val logger = getLogger<EnvironmentFactory>()
 
 class EnvironmentFactory(
-    private val instantiationContext: InstantiationContext
+    private val instantiationSettings: InstantiationSettings
 ) {
     companion object {
         const val DEFAULT_PROFILE_NAME = "default"
     }
 
     fun createEnvironment(): ConfigurableEnvironment {
-        val profilesToActivate = parseProfileExpression(instantiationContext.profileExpression)
+        val profilesToActivate = parseProfileExpression(instantiationSettings.profileExpression)
 
         val environment = StandardEnvironment()
 
         try {
             environment.setActiveProfiles(*profilesToActivate)
         } catch (e: Exception) {
-            logger.info { "Setting ${instantiationContext.profileExpression} as active profiles failed with exception $e" }
+            logger.info { "Setting ${instantiationSettings.profileExpression} as active profiles failed with exception $e" }
         }
 
         return environment

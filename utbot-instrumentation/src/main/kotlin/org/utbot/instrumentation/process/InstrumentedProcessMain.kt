@@ -46,9 +46,7 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
      *  - we want org.utbot.spring to be loaded by [HandlerClassesLoader] so it can use Spring directly
      */
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
-        // TODO extract `utbot-spring-commons-api` into a separate module to not mess around with class loader
-        if (name.startsWith("org.slf4j") ||
-            (name.startsWith("org.utbot.spring") && !name.startsWith("org.utbot.spring.api"))) {
+        if (name.startsWith("org.slf4j")) {
             return (findLoadedClass(name) ?: findClass(name)).apply {
                 if (resolve) resolveClass(this)
             }

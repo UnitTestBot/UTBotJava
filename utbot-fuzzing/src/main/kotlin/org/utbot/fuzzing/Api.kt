@@ -20,6 +20,15 @@ private val logger by lazy { KotlinLogging.logger {} }
  * @see [org.utbot.fuzzing.demo.JsonFuzzingKt]
  */
 interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> {
+
+    /**
+     * Before producing seeds, this method is called to recognize,
+     * whether seeds should be generated especially.
+     *
+     * [Description.clone] method must be overridden, or it throws an exception if the scope is changed.
+     */
+    fun enrich(description: DESCRIPTION, type: TYPE, scope: Scope) {}
+
     /**
      * Generates seeds for a concrete type.
      *
@@ -57,7 +66,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
      * Checks whether the fuzzer should stop.
      */
     suspend fun isCancelled(description: DESCRIPTION, stats: Statistic<TYPE, RESULT>): Boolean {
-        return description.parameters.isEmpty()
+        return false
     }
 
     suspend fun beforeIteration(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) { }
@@ -71,6 +80,35 @@ open class Description<TYPE>(
     parameters: List<TYPE>
 ) {
     val parameters: List<TYPE> = parameters.toList()
+
+    open fun clone(scope: Scope): Description<TYPE> {
+        error("Scope was changed for $this, but method clone is not specified")
+    }
+}
+
+class Scope(
+    val parameterIndex: Int,
+    val recursionDepth: Int,
+    private val properties: MutableMap<ScopeProperty<*>, Any?> = hashMapOf(),
+) {
+    fun <T> putProperty(param: ScopeProperty<T>, value: T) {
+        properties[param] = value
+    }
+
+    fun <T> getProperty(param: ScopeProperty<T>): T? {
+        @Suppress("UNCHECKED_CAST")
+        return properties[param] as? T
+    }
+
+    fun isNotEmpty(): Boolean = properties.isNotEmpty()
+}
+
+class ScopeProperty<T>(
+    val description: String
+) {
+    fun getValue(scope: Scope): T? {
+        return scope.getProperty(this)
+    }
 }
 
 /**
@@ -335,13 +373,19 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     state: State<TYPE, RESULT>,
 ): Node<TYPE, RESULT>  {
     val typeCache = mutableMapOf<TYPE, MutableList<Result<TYPE, RESULT>>>()
-    val result = parameters.map { type ->
+    val result = parameters.mapIndexed { index, type ->
         val results = typeCache.computeIfAbsent(type) { mutableListOf() }
         if (results.isNotEmpty() && random.flipCoin(configuration.probReuseGeneratedValueForSameType)) {
             // we need to check cases when one value is passed for different arguments
             results.random(random)
         } else {
-            produce(type, fuzzing, description, random, configuration, state).also {
+            produce(type, fuzzing, description, random, configuration, State(
+                state.recursionTreeDepth,
+                state.cache,
+                state.missedTypes,
+                state.iterations,
+                index
+            )).also {
                 results += it
             }
         }
@@ -358,7 +402,22 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     configuration: Configuration,
     state: State<TYPE, RESULT>,
 ): Result<TYPE, RESULT> {
-    val candidates = state.cache.computeIfAbsent(type) { fuzzing.generate(description, type).toList() }.map {
+    val scope = Scope(state.parameterIndex, state.recursionTreeDepth).apply {
+        fuzzing.enrich(description, type, this)
+    }
+    @Suppress("UNCHECKED_CAST")
+    val seeds = when {
+        scope.isNotEmpty() -> {
+            fuzzing.generate(description.clone(scope) as DESCRIPTION, type).toList()
+        }
+        else -> state.cache.computeIfAbsent(type) {
+            fuzzing.generate(description, it).toList()
+        }
+    }
+    if (seeds.isEmpty()) {
+        throw NoSeedValueException(type)
+    }
+    val candidates = seeds.map {
         @Suppress("UNCHECKED_CAST")
         when (it) {
             is Seed.Simple<TYPE, RESULT> -> Result.Simple(it.value, it.mutation)
@@ -366,9 +425,6 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             is Seed.Recursive<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
             is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
         }
-    }
-    if (candidates.isEmpty()) {
-        throw NoSeedValueException(type)
     }
     return candidates.random(random)
 }
@@ -618,6 +674,7 @@ private class State<TYPE, RESULT>(
     val cache: MutableMap<TYPE, List<Seed<TYPE, RESULT>>>,
     val missedTypes: MissedSeed<TYPE, RESULT>,
     val iterations: Int = -1,
+    val parameterIndex: Int = -1,
 )
 
 /**

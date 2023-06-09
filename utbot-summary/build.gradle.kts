@@ -15,6 +15,6 @@ dependencies {
     implementation(group = "com.github.haifengl", name = "smile-core", version = "2.6.0")
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation("com.github.javaparser:javaparser-core:3.22.1")
-    testImplementation("org.mockito:mockito-core:4.2.0")
+    testImplementation("org.mockito:mockito-core:$mockitoVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:$junit5Version")
 }

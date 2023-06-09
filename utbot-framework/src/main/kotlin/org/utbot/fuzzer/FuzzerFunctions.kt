@@ -156,16 +156,20 @@ private object ConstantsFromCast: ConstantsFinder {
             val const = next.useBoxes.findFirstInstanceOf<Constant>()
             if (const != null) {
                 val op = (nextDirectUnit(graph, next) as? JIfStmt)?.let(::sootIfToFuzzedOp) ?: FuzzedContext.Unknown
-                val exactValue = const.plainValue as Number
-                return listOfNotNull(
-                    when (value.op.type) {
-                        is ByteType -> FuzzedConcreteValue(byteClassId, exactValue.toByte(), op)
-                        is ShortType -> FuzzedConcreteValue(shortClassId, exactValue.toShort(), op)
-                        is IntType -> FuzzedConcreteValue(intClassId, exactValue.toInt(), op)
-                        is FloatType -> FuzzedConcreteValue(floatClassId, exactValue.toFloat(), op)
-                        else -> null
+                when (val exactValue = const.plainValue) {
+                    is Number -> return listOfNotNull(
+                        when (value.op.type) {
+                            is ByteType -> FuzzedConcreteValue(byteClassId, exactValue.toByte(), op)
+                            is ShortType -> FuzzedConcreteValue(shortClassId, exactValue.toShort(), op)
+                            is IntType -> FuzzedConcreteValue(intClassId, exactValue.toInt(), op)
+                            is FloatType -> FuzzedConcreteValue(floatClassId, exactValue.toFloat(), op)
+                            else -> null
+                        }
+                    )
+                    is String -> {
+                        return listOfNotNull(FuzzedConcreteValue(stringClassId, exactValue, op))
                     }
-                )
+                }
             }
         }
         return emptyList()

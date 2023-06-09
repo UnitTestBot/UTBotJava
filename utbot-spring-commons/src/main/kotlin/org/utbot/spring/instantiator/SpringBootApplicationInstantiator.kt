@@ -18,6 +18,9 @@ class SpringBootApplicationInstantiator : SpringApplicationInstantiator {
             .environment(environment)
             .build()
 
-        return application.run()
+        // This settings means that Spring will use any free port itself
+        val args = arrayOf("--server.port=0")
+
+        return application.run(*args)
     }
 }

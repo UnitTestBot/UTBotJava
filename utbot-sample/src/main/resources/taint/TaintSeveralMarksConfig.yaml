@@ -5,7 +5,7 @@ sources:
   - org.utbot.examples.taint.TaintSeveralMarks.source2:
       add-to: return
       marks: mark2
-  - org.utbot.examples.taint.TaintSeveralMarks.sourceAll:
+  - org.utbot.examples.taint.TaintSeveralMarks.source12:
       add-to: return
       marks: [ mark1, mark2 ]
 
@@ -37,6 +37,9 @@ sinks:
   - org.utbot.examples.taint.TaintSeveralMarks.sink13:
       check: arg1
       marks: [ mark1, mark3 ]
+  - org.utbot.examples.taint.TaintSeveralMarks.sink123:
+      check: arg1
+      marks: [ mark1, mark2, mark3 ]
   - org.utbot.examples.taint.TaintSeveralMarks.sinkAll:
       check: arg1
       marks: []

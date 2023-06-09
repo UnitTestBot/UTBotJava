@@ -13,7 +13,7 @@ public class TaintSeveralMarks {
         return "2";
     }
 
-    public String sourceAll() {
+    public String source12() {
         return "12";
     }
 
@@ -46,6 +46,10 @@ public class TaintSeveralMarks {
         //
     }
 
+    public void sink123(String s) {
+        //
+    }
+
     public void sinkAll(String s) {
         //
     }
@@ -67,8 +71,13 @@ public class TaintSeveralMarks {
         sink13(s);
     }
 
+    public void bad123() {
+        String s12 = source12();
+        sink123(s12);
+    }
+
     public void badSourceAll() {
-        String s = sourceAll();
+        String s = source12();
         sink1(s);
         sink2(s);
         sinkAll(s);

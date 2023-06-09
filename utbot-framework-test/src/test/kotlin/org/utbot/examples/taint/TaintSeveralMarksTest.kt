@@ -43,11 +43,33 @@ internal class TaintSeveralMarksTest : UtValueTestCaseCheckerForTaint(
     }
 
     @Test
-    fun testTaintBad13Separately() {
+    fun testTaintBad13NotSeparately() {
         withoutThrowTaintErrorForEachMarkSeparately {
             checkWithException(
                 TaintSeveralMarks::bad13,
                 eq(2), // success & taint error
+                { r -> r.isException<TaintAnalysisError>() },
+                { r -> r.isSuccess },
+            )
+        }
+    }
+
+    @Test
+    fun testTaintBad123() {
+        checkWithException(
+            TaintSeveralMarks::bad123,
+            eq(3), // success & taint error (x2, for each mark separately)
+            { r -> r.isException<TaintAnalysisError>() },
+            { r -> r.isSuccess },
+        )
+    }
+
+    @Test
+    fun testTaintBad123NotSeparately() {
+        withoutThrowTaintErrorForEachMarkSeparately {
+            checkWithException(
+                TaintSeveralMarks::bad123,
+                eq(2), // success & taint error (one for two marks)
                 { r -> r.isException<TaintAnalysisError>() },
                 { r -> r.isSuccess },
             )
@@ -112,7 +134,7 @@ internal class TaintSeveralMarksTest : UtValueTestCaseCheckerForTaint(
     }
 
     @Test
-    fun testTaintGood13Separately() {
+    fun testTaintGood13NotSeparately() {
         withoutThrowTaintErrorForEachMarkSeparately {
             checkWithException(
                 TaintSeveralMarks::good13,

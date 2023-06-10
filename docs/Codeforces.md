@@ -5,23 +5,22 @@
 Codeforces is a website that hosts competitive programming contests. The site presents several thousand programming and 
 algorithm tasks. The main feature of Codeforces is that if the solution sent to the testing system does not pass some 
 test from a set prepared by the authors of the problem, then this test will be not shown to the user. That is, you have 
-to try to come up with the input data yourself, on which the solution gives an wrong answer (verdict "Wrong answer") or 
+to try to come up with the input data yourself, on which the solution gives a wrong answer (verdict "Wrong answer") or 
 falls with an unhandled exception (verdict "Runtime error"). This is almost always very difficult, especially if the 
 mistake is not obvious.
 
 ## Detecting the mistake with UnitTestBot
 
-In order to find the needed test on which the solution falls, we suggest using UnitTestBot. Consider 
-two cases separately:
+To find the needed test on which the solution falls, we suggest using UnitTestBot. Consider two cases separately:
 
-- "Runtime error". In this case, you just need to run the test generation for written solution, and, perhaps, 
+- "Runtime error". In this case, you just need to run the test generation for a written solution, and, perhaps, 
   UnitTestBot will find the test case on which the program will fail.
-- "Wrong answer". This case is more difficult. You can try to do one of the following (or all in once):
+- "Wrong answer". This case is more difficult. You can try to do one of the following (or all at once):
   - The mistake can be that during the program's execution, some invariants cease to be true, but they are important to
     your solution. Then it is worth writing `assert` instructions in those places where you can check these invariants. 
-    For example, you are sure that the result of the calculation some function is always greater than zero, then you can 
-    add the `assert result > 0;` before returning `result` as an answer. Then UnitTestBot will try to find a test on 
-    which `assert` fails.
+    For example, if you are sure that the result of the calculation of some function is always greater than zero, then 
+    you can add the `assert result > 0;` before returning `result` as an answer. Then UnitTestBot will try to find a 
+    test on which `assert` fails.
   - If the final answer can be easily verified for correctness, you can write the `assert` instructions again. For 
     example, if you are sure that the answer is a non-empty sorted `array`, then you need to write something like:
     ```java
@@ -30,7 +29,7 @@ two cases separately:
     }
     ```
     Now UnitTestBot will again try to find a test where these conditions are not met.
-  - If you have a slow, but definitely the correct solution, then you can try to do something like:
+  - If you have a slow, but the correct solution, then you can try to do something like:
     ```java
     var answer1 = fastButWrongSolve(input);
     var answer2 = slowButCorrectSolve(input);
@@ -46,7 +45,7 @@ now, maybe it is a future plan):
   because UnitTestBot can generate tests for a specific function that has input parameters with specific types and a 
   specific return value.
 - Quite strong restrictions are often imposed on the input data. For example, the number `n` that is in the input,
-  always is in the range from 1 to 100. Another example is the input string is not any, but consists only of small
+  always is in the range from 1 to 100. Another example is the input string is not any but consists only of small
   letters of the English alphabet.
 
 Therefore, it is proposed to transform the solution to a "good" form before starting the test generation:
@@ -81,7 +80,7 @@ Codeforces testing system.
 It is said in the [problem](https://codeforces.com/contest/70/problem/A) that the input is an integer `n` in the range
 from 0 up to 1000. And that the answer should be printed modulo 1e6 + 3, so the answer should be less than 1e6 + 3.
 
-The transformed solution can looks like:
+The transformed solution can look like:
 
 ```java
 import java.util.Scanner;
@@ -123,7 +122,7 @@ Now we can run the test generation for `solve` method.
 Experiments were conducted to understand whether the described approach can be used in practice. During the analysis,
 several dozen incorrect solutions from Codeforces were selected (manually or automatically, using the 
 [Codeforces API](https://codeforces.com/apiHelp )). The solutions were transformed to the "good" form manually, and 
-after that the test generation was run for them.
+after that, the test generation was run for them.
 
 Consider the results for verdicts "Runtime error" and "Wrong answer" separately.
 
@@ -186,15 +185,15 @@ public class Expected_SIOBE {
 ```
 
 **The result**: UniTestBot can detect an unexpected exception `java.lang.StringIndexOutOfBoundsException` 
-at the line `char mem3 = s.charAt(count++);`. The mistake is not obviuos, so UnitTestBot really helps.
+at the line `char mem3 = s.charAt(count++);`. The mistake is not obvious, so UnitTestBot really helps.
 
 #### Testing solutions with Wrong answer
 
-For all solutions that was compared with the principle "slow, but correct" vs "fast, but wrong", UnitTestBot 
-could not find the bug. Most likely, it is because the tool has poor performance. In other words, the it 
-is not applicable in this case yet.
+For all solutions that were compared with the principle "slow, but correct" vs "fast, but wrong", UnitTestBot 
+could not find the bug. Most likely, it is because the tool has poor performance. In other words, it is not
+applicable in this case yet.
 
-Anyway let's look at the example of correct and wrong solutions. The example is quit simple, but UnitTestBot is 
+Anyway, let's look at the example of correct and wrong solutions. The example is quite simple, but UnitTestBot is 
 failed to find a bug.
 
 - [Original submit WA](https://codeforces.com/contest/1718/submission/168870501)

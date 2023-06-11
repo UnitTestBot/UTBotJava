@@ -2,21 +2,11 @@ package org.utbot.instrumentation.instrumentation.execution
 
 import org.utbot.common.JarUtils
 import com.jetbrains.rd.util.getLogger
-import org.utbot.framework.plugin.api.RepositoryInteractionModel
-import org.utbot.framework.plugin.api.UtAutowiredStateAfterModel
-import org.utbot.framework.plugin.api.UtConcreteValue
-import org.utbot.framework.plugin.api.idOrNull
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
-import org.utbot.instrumentation.instrumentation.execution.phases.ModelConstructionPhase
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import org.utbot.spring.api.context.ContextWrapper
-import org.utbot.spring.api.instantiator.InstantiationSettings
-import org.utbot.spring.api.instantiator.ApplicationInstantiatorFacade
 import org.utbot.spring.api.repositoryWrapper.RepositoryInteraction
 import java.security.ProtectionDomain
 
@@ -24,10 +14,11 @@ import java.security.ProtectionDomain
  * UtExecutionInstrumentation wrapper that is aware of Spring config and initialises Spring context
  */
 class SpringUtExecutionInstrumentation(
-    private val instrumentation: UtExecutionInstrumentation,
+    private val delegateInstrumentation: UtExecutionInstrumentation,
     private val springConfig: String
-) : Instrumentation<UtConcreteExecutionResult> by instrumentation {
-    private lateinit var springContext: ContextWrapper
+) : Instrumentation<UtConcreteExecutionResult> by delegateInstrumentation {
+    private lateinit var instrumentationContext: SpringInstrumentationContext
+    private val springContext: ContextWrapper get() = instrumentationContext.springContext
 
     companion object {
         private val logger = getLogger<SpringUtExecutionInstrumentation>()
@@ -40,36 +31,9 @@ class SpringUtExecutionInstrumentation(
             jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
             targetDirectoryName = "spring-commons"
         ).path))
-
-        instrumentation.instrumentationContext = object : SpringInstrumentationContext() {
-            override fun getBean(beanName: String) =
-                this@SpringUtExecutionInstrumentation.getBean(beanName)
-
-            override fun saveToRepository(repository: Any, entity: Any) =
-                this@SpringUtExecutionInstrumentation.saveToRepository(repository, entity)
-        }
-
-        instrumentation.init(pathsToUserClasses)
-
-        val classLoader = utContext.classLoader
-        Thread.currentThread().contextClassLoader = classLoader
-
-        val instantiationSettings = InstantiationSettings(
-            configurationClasses = arrayOf(
-                classLoader.loadClass(springConfig),
-                classLoader.loadClass("org.utbot.spring.repositoryWrapper.RepositoryWrapperConfiguration")
-            ),
-            profileExpression = null,
-        )
-
-        val springFacadeInstance =  classLoader
-            .loadClass("org.utbot.spring.instantiator.SpringApplicationInstantiatorFacade")
-            .getConstructor()
-            .newInstance()
-        springFacadeInstance as ApplicationInstantiatorFacade
-
-        // TODO: recreate context/app every time whenever we change method under test
-        springContext = springFacadeInstance.instantiate(instantiationSettings)
+        instrumentationContext = SpringInstrumentationContext(springConfig)
+        delegateInstrumentation.instrumentationContext = instrumentationContext
+        delegateInstrumentation.init(pathsToUserClasses)
     }
 
     override fun invoke(
@@ -99,22 +63,7 @@ class SpringUtExecutionInstrumentation(
             .getMethod("execute", sql::class.java)
             .invoke(jdbcTemplate, sql2)
 
-        return instrumentation.invoke(clazz, methodSignature, arguments, parameters) { executionResult ->
-            executePhaseInTimeout(modelConstructionPhase) {
-                executionResult.copy(
-                    stateAfter = executionResult.stateAfter.copy(
-                        thisInstance = executionResult.stateAfter.thisInstance?.let { thisInstance ->
-                            UtAutowiredStateAfterModel(
-                                id = thisInstance.idOrNull(),
-                                classId = thisInstance.classId,
-                                origin = thisInstance,
-                                repositoryInteractions = constructRepositoryInteractionModels()
-                            )
-                        }
-                    )
-                )
-            }
-        }
+        return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters)
     }
 
     fun getBean(beanName: String): Any = springContext.getBean(beanName)
@@ -127,19 +76,6 @@ class SpringUtExecutionInstrumentation(
             .invoke(repository, entity)
         RepositoryInteraction.recordedInteractions.clear()
         RepositoryInteraction.recordedInteractions.addAll(savedRecordedRepositoryResponses)
-    }
-
-    private fun ModelConstructionPhase.constructRepositoryInteractionModels(): List<RepositoryInteractionModel> {
-        return RepositoryInteraction.recordedInteractions.map { interaction ->
-            RepositoryInteractionModel(
-                beanName = interaction.beanName,
-                executableId = interaction.method.executableId,
-                args = constructParameters(interaction.args.zip(interaction.method.parameters).map { (arg, param) ->
-                    UtConcreteValue(arg, param.type)
-                }),
-                result = convertToExecutionResult(interaction.result, interaction.method.returnType.id)
-            )
-        }
     }
 
     override fun transform(
@@ -161,6 +97,6 @@ class SpringUtExecutionInstrumentation(
         ) {
             null
         } else {
-            instrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
+            delegateInstrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
         }
 }

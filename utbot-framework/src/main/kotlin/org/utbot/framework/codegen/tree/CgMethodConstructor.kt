@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import mu.KotlinLogging
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
@@ -161,6 +162,10 @@ private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 open class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),
     CgStatementConstructor by getStatementConstructorBy(context) {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     protected val nameGenerator = getNameGeneratorBy(context)
     protected val testFrameworkManager = getTestFrameworkManagerBy(context)
@@ -470,6 +475,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 neededStackTraceLines += TAB + line
             }
         }
+        if (!executableCallFound)
+            logger.warn(exception) { "Failed to find executable call in stack trace" }
 
         +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
     }

@@ -62,7 +62,6 @@ dependencies {
     implementation("org.mockito:mockito-core:$mockitoVersion")
     implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
 
-    compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
     fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
 }
 

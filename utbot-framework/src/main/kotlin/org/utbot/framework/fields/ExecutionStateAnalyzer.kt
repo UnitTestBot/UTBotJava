@@ -8,7 +8,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtAutowiredBaseModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -18,6 +17,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.util.UtModelVisitor
@@ -238,8 +238,8 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
         recordFieldState(data, element)
     }
 
-    override fun visit(element: UtAutowiredBaseModel, data: FieldData) {
-        element.origin.accept(this, data)
+    override fun visit(element: UtSpringContextModel, data: FieldData) {
+        recordFieldState(data, element)
     }
 
     private fun recordFieldState(data: FieldData, model: UtModel) {

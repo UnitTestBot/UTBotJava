@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
@@ -95,7 +96,8 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
             is UtPrimitiveModel,
             is UtClassRefModel,
             is UtVoidModel,
-            is UtEnumConstantModel -> {}
+            is UtEnumConstantModel,
+            is UtSpringContextModel -> {}
             is UtLambdaModel -> {
                 currentModel.capturedValues.forEach { collectRecursively(it, allModels) }
             }

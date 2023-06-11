@@ -379,21 +379,25 @@ class UtBotSymbolicEngine(
             .letIf(applicationContext is SpringApplicationContext
                         && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
             ) { provider ->
+                // TODO #2274 properly detect relevant repositories (right now orderRepository is hardcoded)
+                val relevantRepositories = listOf(
+                    SpringRepositoryId(
+                        repositoryBeanName = "orderRepository",
+                        repositoryClassId = ClassId("com.rest.order.repositories.OrderRepository"),
+                        entityClassId = ClassId("com.rest.order.models.Order")
+                    )
+                )
+                logger.info { "Relevant repositories: $relevantRepositories" }
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
                 val springBeanValueProvider = SpringBeanValueProvider(
                     defaultIdGenerator,
-                    beanProvider = { classId ->
+                    beanNameProvider = { classId ->
                         (applicationContext as SpringApplicationContext).beanDefinitions
                             .filter { it.beanTypeFqn == classId.name }
                             .map { it.beanName }
                     },
-                    autowiredModelOriginCreator = { beanName ->
-                        runBlocking {
-                            logger.info { "Getting bean: $beanName" }
-                            concreteExecutor.withProcess { getBean(beanName) }
-                        }
-                    }).withFallback(ObjectValueProvider(defaultIdGenerator))
-
+                    relevantRepositories = relevantRepositories
+                ).withFallback(ObjectValueProvider(defaultIdGenerator))
                 provider.except { p -> p is ObjectValueProvider }.with(springBeanValueProvider)
             }.let(transform)
         runJavaFuzzing(

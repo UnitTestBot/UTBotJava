@@ -1,7 +1,7 @@
 package org.utbot.spring.api.context
 
 interface ContextWrapper {
-    val context: Any?
+    val context: Any
 
     fun getBeanDefinition(beanName: String): Any
 

@@ -1,6 +1,8 @@
 package org.utbot.fuzzing.spring
 
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
@@ -10,15 +12,15 @@ import org.utbot.fuzzing.providers.SPRING_BEAN_PROP
 
 class SpringBeanValueProvider(
     private val idGenerator: IdGenerator<Int>,
-    private val beanProvider: (ClassId) -> List<String>,
-    private val autowiredModelOriginCreator: (beanName: String) -> UtModel
+    private val beanNameProvider: (ClassId) -> List<String>,
+    private val relevantRepositories: List<SpringRepositoryId>
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
         if (description.description.isStatic == false
             && scope.parameterIndex == 0
             && scope.recursionDepth == 1) {
-            scope.putProperty(SPRING_BEAN_PROP, beanProvider)
+            scope.putProperty(SPRING_BEAN_PROP, beanNameProvider)
         }
     }
 
@@ -31,33 +33,35 @@ class SpringBeanValueProvider(
             yield(
                 Seed.Recursive<FuzzedType, FuzzedValue>(
                     construct = Routine.Create(types = emptyList()) {
-                        UtAutowiredStateBeforeModel(
+                        createBeanModel(
+                            beanName = beanName,
                             id = idGenerator.createId(),
                             classId = type.classId,
-                            beanName = beanName,
-                            origin = autowiredModelOriginCreator(beanName), // TODO think about setting origin id and its fields ids
-                            // TODO properly detect which repositories need to be filled up (right now orderRepository is hardcoded)
-                            repositoriesContent = listOf(
-                                RepositoryContentModel(
-                                    repositoryBeanName = "orderRepository",
-                                    entityModels = mutableListOf()
-                                )
-                            ),
-                        ).fuzzed { "@Autowired ${type.classId.simpleName} $beanName" }
+                        ).fuzzed { summary = "@Autowired ${type.classId.simpleName} $beanName" }
                     },
                     modify = sequence {
                         // TODO mutate model itself (not just repositories)
-                        // TODO properly detect which repositories need to be filled up (right now orderRepository is hardcoded)
-                        yield(Routine.Call(
-                            listOf(FuzzedType(ClassId("com.rest.order.models.Order"))),
-                        ) { self, values ->
-                            val entityValue = values[0]
-                            val model = self.model as UtAutowiredStateBeforeModel
-                            // TODO maybe use `entityValue.summary` to update `model.summary`
-                            model.repositoriesContent
-                                .first { it.repositoryBeanName == "orderRepository" }
-                                .entityModels as MutableList += entityValue.model
-                        })
+                        relevantRepositories.forEach { repositoryId ->
+                            yield(Routine.Call(
+                                listOf(toFuzzerType(repositoryId.entityClassId.jClass, description.typeCache))
+                            ) { self, values ->
+                                val entityValue = values[0]
+                                val model = self.model as UtAssembleModel
+                                val modificationChain: MutableList<UtStatementModel> =
+                                    model.modificationsChain as MutableList<UtStatementModel>
+                                modificationChain.add(
+                                    UtExecutableCallModel(
+                                        instance = createBeanModel(
+                                            beanName = repositoryId.repositoryBeanName,
+                                            id = idGenerator.createId(),
+                                            classId = repositoryId.repositoryClassId,
+                                        ),
+                                        executable = createSaveMethodId,
+                                        params = listOf(entityValue.model)
+                                    )
+                                )
+                            })
+                        }
                     },
                     empty = Routine.Empty {
                         UtNullModel(type.classId).fuzzed {
@@ -67,5 +71,34 @@ class SpringBeanValueProvider(
                 )
             )
         }
+    }
+
+    companion object {
+        private val getBeanMethodId = MethodId(
+            classId = UtSpringContextModel().classId,
+            name = "getBean",
+            returnType = Any::class.id,
+            parameters = listOf(String::class.id),
+            bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+        )
+
+        val createSaveMethodId = MethodId(
+            classId = ClassId("org.springframework.data.repository.CrudRepository"),
+            name = "save",
+            returnType = Any::class.id,
+            parameters = listOf(Any::class.id)
+        )
+
+        fun createBeanModel(beanName: String, id: Int, classId: ClassId) = UtAssembleModel(
+            id = id,
+            classId = classId,
+            modelName = "@Autowired $beanName",
+            instantiationCall = UtExecutableCallModel(
+                instance = UtSpringContextModel(),
+                executable = getBeanMethodId,
+                params = listOf(UtPrimitiveModel(beanName))
+            ),
+            modificationsChainProvider = { mutableListOf() }
+        )
     }
 }

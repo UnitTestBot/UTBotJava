@@ -2,10 +2,109 @@ sources:
   - java.util.Scanner.next:
       add-to: return
       marks: user-input
+  - java.io.BufferedReader.readLine:
+      add-to: return
+      marks: user-input
+  - javax.servlet.http.HttpServletRequest.getParameter:
+      add-to: return
+      marks: user-input
+  - java.util.Properties.getProperty:
+      add-to: return
+      marks: user-input
+  - java.sql.ResultSet.getString:
+      add-to: return
+      marks: user-input
+  - javax.servlet.http.HttpServletRequest.getQueryString:
+      add-to: return
+      marks: user-input
+
+cleaners:
+  - java.lang.String.isEmpty:
+      remove-from: this
+      marks: [ ]
+      conditions:
+        return: true
+
+passes:
+  - java.lang.String.getBytes:
+      get-from: this
+      add-to: return
+      marks: [ ]
+  - java.lang.String.split:
+      get-from: this
+      add-to: return
+      marks: [ ]
+  - java.lang.String.concat:
+      get-from: [ this, arg1 ]
+      add-to: return
+      marks: [ ]
+  - java.lang.StringBuilder.append:
+      get-from: arg1
+      add-to: this
+      marks: [ ]
+  - java.lang.StringBuilder.toString:
+      get-from: this
+      add-to: return
+      marks: [ ]
+
+  - java.sql.Connection.prepareStatement:
+      get-from: arg1
+      add-to: [ this, return ]
+      marks: [ ]
+  - java.sql.PreparedStatement.setString:
+      get-from: arg2
+      add-to: this
+      marks: [ ]
+
+  - java.sql.Statement.addBatch:
+      get-from: arg1
+      add-to: this
+      marks: [ ]
+
+  - java.io.ByteArrayOutputStream.writeData:
+      get-from: arg1
+      add-to: this
+      marks: [ ]
+  - java.io.ByteArrayOutputStream.toByteArray:
+      get-from: this
+      add-to: return
+      marks: [ ]
+  - java.io.ByteArrayInputStream.<init>:
+      get-from: arg1
+      add-to: [ this, return ]
+      marks: [ ]
+  - java.io.ObjectInputStream.<init>:
+      get-from: arg1
+      add-to: [ this, return ]
+      marks: [ ]
+  - java.io.ObjectInputStream.readObject:
+      get-from: this
+      add-to: return
+      marks: [ ]
 
 sinks:
-  - java.lang.RuntimeException.<init>:
+  - java.sql.Statement.execute:
       check: arg1
-      marks: []
-      conditions:
-        arg1: { not: "" }
+      marks: user-input
+  - java.sql.Statement.executeUpdate:
+      check: arg1
+      marks: user-input
+  - java.sql.Statement.executeBatch:
+      check: this
+      marks: user-input
+  - java.sql.Statement.executeQuery:
+      check: arg1
+      marks: user-input
+
+  - java.sql.PreparedStatement.execute:
+      check: this
+      marks: user-input
+  - java.sql.PreparedStatement.executeUpdate:
+      check: this
+      marks: user-input
+  - java.sql.PreparedStatement.executeBatch:
+      check: this
+      marks: user-input
+  - java.sql.PreparedStatement.executeQuery:
+      check: this
+      marks: user-input

@@ -30,18 +30,32 @@ passes:
       get-from: this
       add-to: return
       marks: [ ]
+      conditions:
+        this: { not: "" }
   - java.lang.String.split:
       get-from: this
       add-to: return
       marks: [ ]
+      conditions:
+        this: { not: "" }
   - java.lang.String.concat:
-      get-from: [ this, arg1 ]
+      get-from: this
       add-to: return
       marks: [ ]
+      conditions:
+        this: { not: "" }
+  - java.lang.String.concat:
+      get-from: arg1
+      add-to: return
+      marks: [ ]
+      conditions:
+        arg1: { not: "" }
   - java.lang.StringBuilder.append:
       get-from: arg1
       add-to: this
       marks: [ ]
+      conditions:
+        arg1: { not: "" }
   - java.lang.StringBuilder.toString:
       get-from: this
       add-to: return

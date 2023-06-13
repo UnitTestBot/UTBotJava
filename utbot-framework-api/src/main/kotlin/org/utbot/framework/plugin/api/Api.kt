@@ -1117,6 +1117,13 @@ sealed class ExecutableId : StatementId() {
     abstract override val name: String
     abstract val returnType: ClassId
     abstract val parameters: List<ClassId>
+
+    /**
+     * Normally during concrete execution every executable is executed in a
+     * [sandbox](https://github.com/UnitTestBot/UTBotJava/blob/main/docs/Sandboxing.md).
+     *
+     * However, if this flag is set to `true`, then `this` particular executable is executed without a sandbox.
+     */
     abstract val bypassesSandbox: Boolean
 
     abstract val modifiers: Int

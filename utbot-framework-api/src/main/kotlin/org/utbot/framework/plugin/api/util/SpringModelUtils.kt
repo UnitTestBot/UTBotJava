@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.SpringRepositoryId
@@ -10,8 +11,14 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 
 object SpringModelUtils {
+    val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
+
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
     val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
+
+    val springBootTestClassId = ClassId("org.springframework.boot.test.context.SpringBootTest")
+    val dirtiesContextClassId = ClassId("org.springframework.test.annotation.DirtiesContext")
+    val dirtiesContextClassModeClassId = ClassId("org.springframework.test.annotation.DirtiesContext.ClassMode")
 
     // most likely only one persistent library is on the classpath, but we need to be able to work with either of them
     private val persistentLibraries = listOf("javax.persistence", "jakarta.persistence")

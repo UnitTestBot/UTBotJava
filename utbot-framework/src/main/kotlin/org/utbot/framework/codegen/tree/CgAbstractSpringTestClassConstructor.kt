@@ -1,6 +1,8 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
+import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
+import org.utbot.framework.codegen.domain.builtin.mockClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgDeclaration
@@ -17,6 +19,7 @@ import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception

@@ -1,7 +1,7 @@
 package org.utbot.fuzzing.spring
 
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
@@ -33,7 +33,7 @@ class SpringBeanValueProvider(
             yield(
                 Seed.Recursive<FuzzedType, FuzzedValue>(
                     construct = Routine.Create(types = emptyList()) {
-                        createBeanModel(
+                        SpringModelUtils.createBeanModel(
                             beanName = beanName,
                             id = idGenerator.createId(),
                             classId = type.classId,
@@ -45,19 +45,15 @@ class SpringBeanValueProvider(
                             yield(Routine.Call(
                                 listOf(toFuzzerType(repositoryId.entityClassId.jClass, description.typeCache))
                             ) { self, values ->
-                                val entityValue = values[0]
+                                val entityValue = values.single()
                                 val model = self.model as UtAssembleModel
                                 val modificationChain: MutableList<UtStatementModel> =
                                     model.modificationsChain as MutableList<UtStatementModel>
                                 modificationChain.add(
-                                    UtExecutableCallModel(
-                                        instance = createBeanModel(
-                                            beanName = repositoryId.repositoryBeanName,
-                                            id = idGenerator.createId(),
-                                            classId = repositoryId.repositoryClassId,
-                                        ),
-                                        executable = createSaveMethodId,
-                                        params = listOf(entityValue.model)
+                                    SpringModelUtils.createSaveCallModel(
+                                        repositoryId = repositoryId,
+                                        id = idGenerator.createId(),
+                                        entityModel = entityValue.model
                                     )
                                 )
                             })
@@ -71,34 +67,5 @@ class SpringBeanValueProvider(
                 )
             )
         }
-    }
-
-    companion object {
-        private val getBeanMethodId = MethodId(
-            classId = UtSpringContextModel().classId,
-            name = "getBean",
-            returnType = Any::class.id,
-            parameters = listOf(String::class.id),
-            bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
-        )
-
-        val createSaveMethodId = MethodId(
-            classId = ClassId("org.springframework.data.repository.CrudRepository"),
-            name = "save",
-            returnType = Any::class.id,
-            parameters = listOf(Any::class.id)
-        )
-
-        fun createBeanModel(beanName: String, id: Int, classId: ClassId) = UtAssembleModel(
-            id = id,
-            classId = classId,
-            modelName = "@Autowired $beanName",
-            instantiationCall = UtExecutableCallModel(
-                instance = UtSpringContextModel(),
-                executable = getBeanMethodId,
-                params = listOf(UtPrimitiveModel(beanName))
-            ),
-            modificationsChainProvider = { mutableListOf() }
-        )
     }
 }

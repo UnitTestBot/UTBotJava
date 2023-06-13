@@ -59,6 +59,7 @@ import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
 import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.TypeReplacementMode.*
+import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -659,7 +660,7 @@ class UtLambdaModel(
 
 class UtSpringContextModel : UtReferenceModel(
     id = null,
-    classId = ClassId("org.springframework.context.ApplicationContext"),
+    classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
 )
 

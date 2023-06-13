@@ -280,6 +280,13 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation, UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
 
+                            concreteExecutionResult.processedFailure()?.let { failure ->
+                                emit(UtFailedExecution(stateBefore, failure))
+
+                                logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+                                return@measureTime
+                            }
+
                             if (concreteExecutionResult.violatesUtMockAssumption()) {
                                 logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
                                 return@measureTime
@@ -438,11 +445,18 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
+            // in case of processed failure in the concrete execution
+            concreteExecutionResult.processedFailure()?.let { failure ->
+                logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+            }
+
             if (concreteExecutionResult.violatesUtMockAssumption()) {
                 logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
 
+            val result = concreteExecutionResult.result
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             var trieNode: Trie.Node<Instruction>? = null
             if (coveredInstructions.isNotEmpty()) {
@@ -455,7 +469,6 @@ class UtBotSymbolicEngine(
                 }
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with $values" }
-                val result = concreteExecutionResult.result
                 if (result is UtSandboxFailure) {
                     val stackTraceElements = result.exception.stackTrace.reversed()
                     if (errorStackTraceTracker.add(stackTraceElements).count > 1) {
@@ -593,6 +606,13 @@ class UtBotSymbolicEngine(
                     instrumentation,
                     UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis
                 )
+
+                concreteExecutionResult.processedFailure()?.let { failure ->
+                    emit(UtFailedExecution(stateBefore, failure))
+
+                    logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+                    return
+                }
 
                 if (concreteExecutionResult.violatesUtMockAssumption()) {
                     logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
@@ -748,6 +768,9 @@ private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
     // so we can't cast them to each other.
     return result.exceptionOrNull()?.javaClass?.name == UtMockAssumptionViolatedException::class.java.name
 }
+
+private fun UtConcreteExecutionResult.processedFailure(): UtConcreteExecutionProcessedFailure?
+ = result as? UtConcreteExecutionProcessedFailure
 
 private fun checkStaticMethodsMock(execution: UtSymbolicExecution) =
     execution.instrumentation.any { it is UtStaticMethodInstrumentation}

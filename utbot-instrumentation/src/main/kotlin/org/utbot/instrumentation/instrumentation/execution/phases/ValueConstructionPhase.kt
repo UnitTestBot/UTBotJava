@@ -11,6 +11,12 @@ typealias ConstructedParameters = List<UtConcreteValue<*>>
 typealias ConstructedStatics = Map<FieldId, UtConcreteValue<*>>
 typealias ConstructedCache = IdentityHashMap<Any, UtModel>
 
+data class ConstructedData(
+    val params: ConstructedParameters,
+    val statics: ConstructedStatics,
+    val cache: ConstructedCache,
+)
+
 /**
  * This phase of values instantiation from given models.
  */

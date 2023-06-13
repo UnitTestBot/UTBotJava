@@ -2,6 +2,7 @@ package org.utbot.summary
 
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
+import org.utbot.framework.plugin.api.UtConcreteExecutionProcessedFailure
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -220,6 +221,7 @@ private fun UtExecutionResult.clusterKind() = when (this) {
     is UtStreamConsumingFailure -> ExecutionGroup.ERROR_SUITE
     is UtOverflowFailure -> ExecutionGroup.OVERFLOWS
     is UtTimeoutException -> ExecutionGroup.TIMEOUTS
+    is UtConcreteExecutionProcessedFailure -> ExecutionGroup.CRASH_SUITE
     is UtConcreteExecutionFailure -> ExecutionGroup.CRASH_SUITE
     is UtSandboxFailure -> ExecutionGroup.SECURITY
     is UtTaintAnalysisFailure -> ExecutionGroup.TAINT_ANALYSIS

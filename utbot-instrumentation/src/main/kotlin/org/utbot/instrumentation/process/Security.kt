@@ -32,11 +32,12 @@ internal fun permissions(block: SimplePolicy.() -> Unit) {
 
 /**
  * Make this [AccessibleObject] accessible and run a block inside sandbox.
+ *
+ * If [bypassSandbox] is `true` then block is run without sandbox.
  */
-fun <O: AccessibleObject, R> O.runSandbox(block: O.() -> R): R {
-    return withAccessibility {
-        sandbox { block() }
-    }
+fun <O: AccessibleObject, R> O.runSandbox(bypassSandbox: Boolean = false, block: O.() -> R): R = withAccessibility {
+    if (bypassSandbox) block()
+    else sandbox { block() }
 }
 
 /**

@@ -59,6 +59,7 @@ import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
 import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.TypeReplacementMode.*
+import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -657,44 +658,16 @@ class UtLambdaModel(
     }
 }
 
-abstract class UtAutowiredBaseModel(
-    override val id: Int?,
-    override val classId: ClassId,
-    val origin: UtModel,
-    modelName: String
-) : UtReferenceModel(
-    id, classId, modelName
+class UtSpringContextModel : UtReferenceModel(
+    id = null,
+    classId = SpringModelUtils.applicationContextClassId,
+    modelName = "applicationContext"
 )
 
-class UtAutowiredStateBeforeModel(
-    id: Int?,
-    classId: ClassId,
-    origin: UtModel,
-    val beanName: String,
-    val repositoriesContent: List<RepositoryContentModel>,
-) : UtAutowiredBaseModel(
-    id, classId, origin, modelName = "@Autowired $beanName#$id"
-)
-
-data class RepositoryContentModel(
+data class SpringRepositoryId(
     val repositoryBeanName: String,
-    val entityModels: List<UtModel>,
-)
-
-class UtAutowiredStateAfterModel(
-    id: Int?,
-    classId: ClassId,
-    origin: UtModel,
-    val repositoryInteractions: List<RepositoryInteractionModel>,
-) : UtAutowiredBaseModel(
-    id, classId, origin, modelName = "@Autowired ${classId.name}#$id"
-)
-
-data class RepositoryInteractionModel(
-    val beanName: String,
-    val executableId: ExecutableId,
-    val args: List<UtModel>,
-    val result: UtExecutionResult
+    val repositoryClassId: ClassId,
+    val entityClassId: ClassId,
 )
 
 /**
@@ -1146,6 +1119,14 @@ sealed class ExecutableId : StatementId() {
     abstract val returnType: ClassId
     abstract val parameters: List<ClassId>
 
+    /**
+     * Normally during concrete execution every executable is executed in a
+     * [sandbox](https://github.com/UnitTestBot/UTBotJava/blob/main/docs/Sandboxing.md).
+     *
+     * However, if this flag is set to `true`, then `this` particular executable is executed without a sandbox.
+     */
+    abstract val bypassesSandbox: Boolean
+
     abstract val modifiers: Int
 
     val signature: String
@@ -1186,6 +1167,7 @@ open class MethodId(
     override val name: String,
     override val returnType: ClassId,
     override val parameters: List<ClassId>,
+    override val bypassesSandbox: Boolean = false,
 ) : ExecutableId() {
     override val modifiers: Int
         get() = method.modifiers
@@ -1193,7 +1175,8 @@ open class MethodId(
 
 open class ConstructorId(
     override val classId: ClassId,
-    override val parameters: List<ClassId>
+    override val parameters: List<ClassId>,
+    override val bypassesSandbox: Boolean = false,
 ) : ExecutableId() {
     final override val name: String = "<init>"
     final override val returnType: ClassId = voidClassId
@@ -1208,12 +1191,13 @@ class BuiltinMethodId(
     name: String,
     returnType: ClassId,
     parameters: List<ClassId>,
+    bypassesSandbox: Boolean = false,
     // by default we assume that the builtin method is non-static and public
     isStatic: Boolean = false,
     isPublic: Boolean = true,
     isProtected: Boolean = false,
     isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters) {
+) : MethodId(classId, name, returnType, parameters, bypassesSandbox) {
     override val modifiers: Int = ModifierFactory {
         static = isStatic
         public = isPublic
@@ -1225,11 +1209,12 @@ class BuiltinMethodId(
 class BuiltinConstructorId(
     classId: ClassId,
     parameters: List<ClassId>,
+    bypassesSandbox: Boolean = false,
     // by default, we assume that the builtin constructor is public
     isPublic: Boolean = true,
     isProtected: Boolean = false,
     isPrivate: Boolean = false
-) : ConstructorId(classId, parameters) {
+) : ConstructorId(classId, parameters, bypassesSandbox) {
     override val modifiers: Int = ModifierFactory {
         public = isPublic
         private = isPrivate

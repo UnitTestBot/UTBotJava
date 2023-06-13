@@ -12,13 +12,12 @@ import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelC
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicClassVisitor
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicDetector
+import org.utbot.instrumentation.instrumentation.execution.phases.ConstructedData
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
-import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
 import java.security.ProtectionDomain
 import kotlin.reflect.jvm.javaMethod
-import java.util.*
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
@@ -89,9 +88,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         }
         val (stateBefore, instrumentations, timeout) = parameters // smart cast to UtConcreteExecutionData
 
-        val methodId = clazz.singleExecutableId(methodSignature)
-        val returnClassId = methodId.returnType
-
         return PhasesController(
             instrumentationContext,
             traceHandler,
@@ -99,25 +95,15 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             timeout
         ).computeConcreteExecutionResult {
             try {
-                val (params, statics, cache) = this.executePhaseInTimeout(valueConstructionPhase) {
-                    val params = constructParameters(stateBefore)
-                    val statics = constructStatics(stateBefore)
-
-                    // here static methods and instances are mocked
-                    mock(instrumentations)
-
-                    Triple(params, statics, getCache())
+                // some preparation actions for concrete execution
+                var constructedData: ConstructedData
+                try {
+                    constructedData = applyPreprocessing(parameters)
+                } catch (t: Throwable) {
+                    return UtConcreteExecutionResult(MissingState, UtConcreteExecutionProcessedFailure(t), Coverage())
                 }
 
-                // invariants:
-                // 1. phase must always complete if started as static reset relies on it
-                // 2. phase must be fast as there are no incremental changes
-                postprocessingPhase.setStaticFields(preparationPhase.start {
-                    val result = setStaticFields(statics)
-                    resetTrace()
-                    resetND()
-                    result
-                })
+                val (params, statics, cache) = constructedData
 
                 // invocation
                 val concreteResult = executePhaseInTimeout(invocationPhase) {
@@ -143,7 +129,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     val ndNews = constructNewInstrumentation(ndResults.news, ndResults.calls)
                     val newInstrumentation = mergeInstrumentations(instrumentations, ndStatics, ndNews)
 
-                    val executionResult = convertToExecutionResult(concreteResult, returnClassId)
+                    val returnType = clazz.singleExecutableId(methodSignature).returnType
+                    val executionResult = convertToExecutionResult(concreteResult,returnType)
 
                     val stateAfterParametersWithThis = constructParameters(params)
                     val stateAfterStatics = constructStatics(stateBefore, statics)
@@ -164,10 +151,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     newInstrumentation
                 ))
             } finally {
-                postprocessingPhase.start {
-                    resetStaticFields()
-                    valueConstructionPhase.resetMockMethods()
-                }
+                // restoring data after concrete execution
+                applyPostprocessing()
             }
         }
     }

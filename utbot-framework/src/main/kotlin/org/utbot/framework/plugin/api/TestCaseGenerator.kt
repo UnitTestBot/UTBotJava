@@ -14,6 +14,8 @@ import org.utbot.common.measureTime
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
+import org.utbot.common.PathUtil.toURL
+import org.utbot.common.tryLoadClass
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -27,7 +29,9 @@ import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.minimization.minimizeTestCase
+import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassId
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.util.Conflict
@@ -41,6 +45,7 @@ import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrument
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
 import java.io.File
+import java.net.URLClassLoader
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
@@ -117,11 +122,13 @@ open class TestCaseGenerator(
     }
 
     fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
-        if (UtSettings.testMinimizationStrategyType == TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY) {
-            executions
-        } else {
-            minimizeTestCase(executions) { it.result::class.java }
-        }
+        if (UtSettings.testMinimizationStrategyType == TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY) executions
+        else minimizeTestCase(
+            when (applicationContext) {
+                is SpringApplicationContext -> executions.filterCoveredInstructions()
+                else -> executions
+            }
+        ) { it.result::class.java }
 
     @Throws(CancellationException::class)
     fun generateAsync(
@@ -351,6 +358,79 @@ open class TestCaseGenerator(
         }
     }
 
+    private fun List<UtExecution>.filterCoveredInstructions(): List<UtExecution> {
+        // Do nothing when we launched not from IDEA
+        if (buildDirs.isEmpty()) return this
+
+        val annotationsToIgnore =
+            listOfNotNull(utContext.classLoader.tryLoadClass(entityClassId.name))
+
+        val urls = buildDirs.map { it.toURL() }.toTypedArray()
+
+        // We pass null as a parent here because we do not want to include standard java libs
+        val buildDirsClassLoader = URLClassLoader(urls, null)
+
+        val isClassOnUserClasspathCache = mutableMapOf<String, Boolean>()
+        fun isClassOnUserClasspath(fullyQualifiedName: String): Boolean =
+            isClassOnUserClasspathCache.getOrPut(fullyQualifiedName) {
+                buildDirsClassLoader.tryLoadClass(fullyQualifiedName) != null
+            }
+
+        // Here we filter out instructions from third-party libraries
+        // Also, we filter out instructions that operate
+        // in classes marked with annotation from [annotationsToIgnore]
+        // and in standard java libs
+        return this.map { execution ->
+            val coverage = execution.coverage ?: return@map execution
+
+            val filteredCoveredInstructions =
+                coverage.coveredInstructions
+                    .filter { instruction ->
+                        val instrClassName = instruction.className.replace('/', '.')
+
+                        // We do not want to filter out instructions that are in class under test
+                        if (execution.stateAfter.thisInstance?.classId?.jClass?.canonicalName == instrClassName ||
+                            execution.stateBefore.thisInstance?.classId?.jClass?.canonicalName == instrClassName
+                        ) {
+                            return@filter true
+                        }
+
+                        if (!isClassOnUserClasspath(instrClassName)) return@filter false
+
+                        // We do not want to take instructions in classes marked as @Entity
+                        if (annotationsToIgnore.isNotEmpty()) {
+                            val hasEntityAnnotation =
+                                utContext
+                                    .classLoader
+                                    .loadClass(instrClassName)
+                                    .annotations
+                                    .any { annotation ->
+                                        annotationsToIgnore.any { annotationToIgnore ->
+                                            annotationToIgnore.isInstance(annotation)
+                                        }
+                                    }
+
+                            if (hasEntityAnnotation) return@filter false
+                        }
+
+                        return@filter true
+                    }
+                    .ifEmpty {
+                        coverage.coveredInstructions
+                            .also {
+                                logger.warn("Execution covered instruction list became empty. Proceeding with not filtered instruction list.")
+                            }
+                    }
+
+            execution.copy(
+                coverage = Coverage(
+                    coveredInstructions = filteredCoveredInstructions,
+                    instructionsCount = coverage.instructionsCount,
+                    missedInstructions = coverage.missedInstructions
+                )
+            )
+        }
+    }
 }
 
 

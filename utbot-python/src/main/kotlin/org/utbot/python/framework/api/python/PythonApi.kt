@@ -1,13 +1,6 @@
 package org.utbot.python.framework.api.python
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.DocStatement
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.moduleOfType
 
@@ -104,4 +97,26 @@ class PythonUtExecution(
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
     displayName: String? = null
-) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName)
+) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution {
+        return PythonUtExecution(
+            stateInit = stateInit,
+            stateBefore = stateBefore,
+            stateAfter = stateAfter,
+            diffIds = diffIds,
+            result = result,
+            coverage = coverage,
+            summary = summary,
+            testMethodName = testMethodName,
+            displayName = displayName
+        )
+    }
+}

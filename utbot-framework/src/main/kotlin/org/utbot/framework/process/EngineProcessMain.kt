@@ -106,7 +106,8 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
         val applicationContext: ApplicationContext = kryoHelper.readObject(params.applicationContext)
 
-        testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
+        testGenerator = TestCaseGenerator(
+            buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
             dependencyPaths = params.dependencyPaths,
             jdkInfo = JdkInfo(Paths.get(params.jdkInfo.path), params.jdkInfo.version),
@@ -115,7 +116,8 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 runBlocking {
                     model.isCancelled.startSuspending(Unit)
                 }
-            })
+            }
+        )
     }
     watchdog.measureTimeForActiveCall(generate, "Generating tests") { params ->
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)

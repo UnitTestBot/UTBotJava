@@ -5,7 +5,7 @@ UnitTestBot Go automatically generates ready-to-use unit tests for Go programs.
 With UnitTestBot Go, you can find bugs in your code and fixate the desired program behavior with less effort.
 
 The project is under development,
-so feel free to [contribute](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-go/docs/DEVELOPERS_GUIDE.md).
+so feel free to [contribute](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-go/docs/DEVELOPER_GUIDE.md).
 
 ## Features and details
 
@@ -15,14 +15,14 @@ inserts these values into the user functions, and executes the resulting test ca
 
 ### Supported types for function parameters
 
-Now UnitTestBot Go can generate values for _primitive types_, _arrays_, _slices_ and _structs_.
+Now UnitTestBot Go can generate values for _primitive types_, _arrays_, _slices_, _maps_, _structs_, _channels_, _interfaces_ and _pointers_.
 
 For _floating point types_, UnitTestBot Go supports working with _infinity_ and _NaN_.
 
 ### Supported types for the returned results
 
 For the returned function results,
-UnitTestBot Go supports the `error` type as well as all the types supported for the function parameters.
+UnitTestBot Go supports the `error` type as well as all the types supported for the function parameters except _interfaces_ and _channels_.
 
 It also captures `panic` cases correctly.
 
@@ -85,7 +85,7 @@ Please refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJav
 
 ### Requirements
 
-* Java SDK 11 or later
+* Java SDK 17 or later
 * Go SDK 1.18 or later
 * Properly configured `go.mod` file for the code under test
 * GCC and `github.com/stretchr/testify/assert` installed
@@ -113,15 +113,18 @@ java -jar utbot-cli-2022.8-beta.jar runGo --help
 `generateGo` options:
 
 * `-s, --source TEXT`, _required_: specifies a Go source file to generate tests for.
-* `-f, --function TEXT`, _required_: specifies a function name to generate tests for. Can be used multiple times to select multiple
-  functions.
-* `-go, --go-path TEXT`, _required_: specifies a path to a Go executable. For example, `/usr/local/go/bin/go`.
+* `-f, --function TEXT`: specifies a function name to generate tests for. Can be used multiple times to select multiple functions.
+* `-m, --method TEXT`: specifies a method name to generate tests for. Can be used multiple times to select multiple methods. 
+* `-go TEXT`, _required_: specifies a path to a Go executable. For example, `/usr/local/go/bin/go`.
+* `-gopath TEXT`, _required_: specifies a path the location of your workspace. It defaults to a directory named `go` inside your home directory, so `$HOME/go` on Unix, `$home/go` on Plan 9, and `%USERPROFILE%\go` (usually `C:\Users\YourName\go`) on Windows.
+* `-parallel INT`: specifies the number of fuzzing processes running at once, default 8.
 * `-et, --each-execution-timeout INT`: specifies a timeout in milliseconds for each target function execution.
   The default timeout is 1,000 ms.
 * `-at, --all-execution-timeout INT`: specifies a timeout in milliseconds for all target function executions.
   The default timeout is 60,000 ms.
 * `-p, --print-test`: specifies whether a test should be printed out to `StdOut`. Disabled by default.
 * `-w, --overwrite`: specifies whether to overwrite the output test file if it already exists. Disabled by default.
+* `-fm, --fuzzing-mode`: stops test generation when a panic, error or timeout occurs (only one test will be generated for one of these cases).
 * `-h, --help`: shows a help message and exits.
 
 `runGo` options:

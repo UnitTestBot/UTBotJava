@@ -9,11 +9,12 @@ flowchart TB
     A["Target selection and configuration (IntelliJ IDEA plugin or CLI)"]:::someclass --> B(Go source code analysis)
     classDef someclass fill:#b810
 
-    B --> C(Fuzzing)
-    C --> D(Executing functions)
-    D --> E(Getting results)
-    E --> C
-    C ---> F(Test file generation)
+    B --> C(Code instrumentation)
+    C --> D(Generation of arguments)
+    D --> E(Executing functions)
+    E --> F(Getting results)
+    F --> D
+    D ---> G(Test file generation)
 ```
 
 ### Target selection and configuration
@@ -21,29 +22,33 @@ flowchart TB
 A user manually selects the target source file and functions to generate the tests for.
 Test generation settings are also configured manually.
 
+### Code instrumentation
+
+UnitTestBot Go adds logging about the passage of a given line during the execution 
+after each line in functions.
+
 ### Go source code analysis
 
-UnitTestBot Go collects information about the target functions:
-* signatures and type information (in the basic version);
-* constants in the function bodies (to be implemented).
+UnitTestBot Go collects the size in bits of an int or uint value and information about the target functions:
+* signatures and type information;
+* constants in the function bodies.
 
 As a result, UnitTestBot Go gets an internal
 representation of the target functions.
 
-### Fuzzing
+### Generation of arguments
 
-During the fuzzing stage, UnitTestBot Go generates the input values for the source code.
+At this stage, UnitTestBot Go generates the input values for the target functions.
 
 ### Executing target functions
 
-UnitTestBot Go executes the target functions with the generated values as arguments and analyses the result
-to continue or stop the generation process.
+UnitTestBot Go executes the target functions with the generated values as arguments.
 
 ### Getting results
 
 The result of target function execution is sent to the fuzzer for analysis:
 coverage rate information guides the following value generation process.
-Based on this feedback,
+Based on remaining time, 
 the fuzzer decides whether it should continue or stop generating input values.
 
 ### Test code generation

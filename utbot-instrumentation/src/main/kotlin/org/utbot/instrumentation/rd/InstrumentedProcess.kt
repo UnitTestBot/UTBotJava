@@ -2,19 +2,14 @@ package org.utbot.instrumentation.rd
 
 import com.jetbrains.rd.util.lifetime.Lifetime
 import mu.KotlinLogging
-import org.utbot.common.currentProcessPid
+import org.utbot.common.JarUtils
 import org.utbot.common.debug
-import org.utbot.common.firstOrNullResourceIS
 import org.utbot.common.getPid
 import org.utbot.common.measureTime
-import org.utbot.common.nameOfPackage
-import org.utbot.common.scanForResourcesContaining
-import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
-import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.DISABLE_SANDBOX_OPTION
 import org.utbot.instrumentation.process.generated.AddPathsParams
@@ -27,7 +22,6 @@ import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.LoggerModel
 import org.utbot.rd.generated.loggerModel
-import org.utbot.rd.loggers.UtRdKLogger
 import org.utbot.rd.loggers.setup
 import org.utbot.rd.onSchedulerBlocking
 import org.utbot.rd.startBlocking
@@ -37,43 +31,25 @@ import java.io.File
 
 private val logger = KotlinLogging.logger { }
 
-private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation-shadow"
-private const val INSTRUMENTATION_LIB = "lib"
-
-private fun tryFindInstrumentationJarInResources(): File? {
-    logger.debug("Trying to find jar in the resources.")
-    val tempDir = utBotTempDirectory.toFile()
-    val unzippedJarName = "$UTBOT_INSTRUMENTATION-${currentProcessPid}.jar"
-    val instrumentationJarFile = File(tempDir, unzippedJarName)
-
-    InstrumentedProcess::class.java.classLoader
-        .firstOrNullResourceIS(INSTRUMENTATION_LIB) { resourcePath ->
-            resourcePath.contains(UTBOT_INSTRUMENTATION) && resourcePath.endsWith(".jar")
-        }
-        ?.use { input ->
-            instrumentationJarFile.writeBytes(input.readBytes())
-        } ?: return null
-    return instrumentationJarFile
-}
-
-private fun tryFindInstrumentationJarOnClasspath(): File? {
-    logger.debug("Trying to find it in the classpath.")
-    return InstrumentedProcess::class.java.classLoader
-        .scanForResourcesContaining(DynamicClassTransformer::class.java.nameOfPackage)
-        .firstOrNull {
-            it.absolutePath.contains(UTBOT_INSTRUMENTATION) && it.extension == "jar"
-        }
-}
+private const val UTBOT_INSTRUMENTATION_JAR_FILENAME = "utbot-instrumentation-shadow.jar"
 
 private val instrumentationJarFile: File =
-    logger.debug().measureTime({ "Finding $UTBOT_INSTRUMENTATION jar" } ) {
-        tryFindInstrumentationJarInResources() ?: run {
-            logger.debug("Failed to find jar in the resources.")
-            tryFindInstrumentationJarOnClasspath()
-        } ?: error("""
-                    Can't find file: $UTBOT_INSTRUMENTATION.jar.
-                    Make sure you added $UTBOT_INSTRUMENTATION.jar to the resources folder from gradle.
-                """.trimIndent())
+    logger.debug().measureTime({ "Finding $UTBOT_INSTRUMENTATION_JAR_FILENAME jar" } ) {
+        try {
+            JarUtils.extractJarFileFromResources(
+                jarFileName = UTBOT_INSTRUMENTATION_JAR_FILENAME,
+                jarResourcePath = "lib/$UTBOT_INSTRUMENTATION_JAR_FILENAME",
+                targetDirectoryName = "utbot-instrumentation"
+            )
+        } catch (e: Exception) {
+            throw IllegalStateException(
+                """
+                    Can't find file: $UTBOT_INSTRUMENTATION_JAR_FILENAME.
+                    Make sure you added $UTBOT_INSTRUMENTATION_JAR_FILENAME to the resources folder from gradle.
+                """.trimIndent(),
+                e
+            )
+        }
     }
 
 class InstrumentedProcessInstantDeathException :

@@ -318,15 +318,17 @@ class MockValueConstructor(
     /**
      * Constructs object with [UtAssembleModel].
      */
-    private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any {
+    private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any? {
         constructedObjects[assembleModel]?.let { return it }
 
         val instantiationExecutableCall = assembleModel.instantiationCall
         val result = updateWithStatementCallModel(instantiationExecutableCall)
-        checkNotNull(result) {
-            "Tracked instance can't be null for call ${instantiationExecutableCall.statement} in model $assembleModel"
-        }
-        constructedObjects[assembleModel] = result
+        // TODO figure out the why tracked instance can't be null,
+        //  right now behaviour is incorrect as null producing models can get constructed multiple times
+//        checkNotNull(result) {
+//            "Tracked instance can't be null for call ${instantiationExecutableCall.statement} in model $assembleModel"
+//        }
+        result?.let { constructedObjects[assembleModel] = it }
 
         assembleModel.modificationsChain.forEach { statementModel ->
             when (statementModel) {
@@ -335,7 +337,7 @@ class MockValueConstructor(
             }
         }
 
-        return constructedObjects[assembleModel] ?: error("Can't assemble model: $assembleModel")
+        return constructedObjects[assembleModel] // ?: error("Can't assemble model: $assembleModel")
     }
 
     private fun constructFromLambdaModel(lambdaModel: UtLambdaModel): Any {
@@ -437,7 +439,7 @@ class MockValueConstructor(
             newInstance(*args.toTypedArray())
         }
 
-    private fun DirectFieldAccessId.get(instance: Any?): Any {
+    private fun DirectFieldAccessId.get(instance: Any?): Any? {
         val field = fieldId.jField
         return field.runSandbox {
             field.get(instance)

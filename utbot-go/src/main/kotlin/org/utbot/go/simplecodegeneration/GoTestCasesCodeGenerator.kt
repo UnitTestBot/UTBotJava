@@ -13,6 +13,8 @@ import org.utbot.go.imports.GoImportsResolver
 
 object GoTestCasesCodeGenerator {
 
+    private const val prefixOfVariableNames = "arg"
+
     private val alwaysRequiredImports = setOf(
         GoImport(GoPackage("assert", "github.com/stretchr/testify/assert")),
         GoImport(GoPackage("testing", "testing"))
@@ -300,17 +302,38 @@ object GoTestCasesCodeGenerator {
     }
 
     private fun generateVariables(fuzzedFunction: GoUtFuzzedFunction): List<Variable> {
-        val function = fuzzedFunction.function
-        val parameters = if (function.isMethod) {
-            listOf(function.receiver!!) + function.parameters
-        } else {
-            function.parameters
+        val parameters = fuzzedFunction.function.let { function ->
+            if (function.isMethod) {
+                listOf(function.receiver!!) + function.parameters
+            } else {
+                function.parameters
+            }
         }
-        val parametersValues = fuzzedFunction.parametersValues
-        return parameters.map { it.name }.zip(parameters.map { it.type }).zip(parametersValues)
+        val parameterNames = parameters.map { it.name }
+        val parameterValues = fuzzedFunction.parametersValues
+        val parametersTypes = parameters.map { it.type }
+
+        val busyVariableNames = parameterNames.filter { it != "" && it != "_" }.toMutableSet()
+        val variablesNumber = parameterNames.filter { it == "" || it == "_" }.size
+        var variablesIndex = 1
+
+        return parameterNames.zip(parametersTypes).zip(parameterValues)
             .map { (nameAndType, value) ->
                 val (name, type) = nameAndType
-                Variable(name, type, value)
+                val variableName = if (name == "" || name == "_") {
+                    if (variablesNumber == 1 && prefixOfVariableNames !in busyVariableNames) {
+                        prefixOfVariableNames
+                    } else {
+                        while ("$prefixOfVariableNames$variablesIndex" in busyVariableNames) {
+                            variablesIndex++
+                        }
+                        "$prefixOfVariableNames$variablesIndex"
+                    }
+                } else {
+                    name
+                }
+                busyVariableNames.add(variableName)
+                Variable(variableName, type, value)
             }
     }
 

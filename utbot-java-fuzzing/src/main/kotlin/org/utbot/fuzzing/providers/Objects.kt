@@ -86,11 +86,7 @@ class ObjectValueProvider(
                     }
                 }
             },
-            empty = Routine.Empty {
-                UtNullModel(classId).fuzzed {
-                    summary = "%var% = null"
-                }
-            }
+            empty = nullRoutine(classId)
         )
     }
 
@@ -133,9 +129,7 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
         type: FuzzedType
     ) = sequence<Seed<FuzzedType, FuzzedValue>> {
         if (description.scope?.getProperty(NULLABLE_PROP) == true) {
-            yield(Seed.Simple(UtNullModel(type.classId).fuzzed {
-                summary = "%var% = null"
-            }))
+            yield(Seed.Simple(nullFuzzedValue(classClassId)))
         }
     }
 }

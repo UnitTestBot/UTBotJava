@@ -240,18 +240,13 @@ open class CgVariableConstructor(val context: CgContext) :
         val executable = statementCall.statement
         val params = statementCall.params
 
-        val type = when (executable) {
-            is MethodId -> executable.returnType
-            is DirectFieldAccessId -> executable.fieldId.type
-            is ConstructorId -> executable.classId
-        }
         // Don't use redundant constructors for primitives and String
-        val initExpr = if (isPrimitiveWrapperOrString(type)) {
+        val initExpr = if (executable is ConstructorId && isPrimitiveWrapperOrString(model.classId)) {
             cgLiteralForWrapper(params)
         } else {
             createCgExecutableCallFromUtExecutableCall(statementCall)
         }
-        newVar(type, model, baseName) {
+        newVar(model.classId, model, baseName) {
             initExpr
         }.also {
             valueByUtModelWrapper[model.wrap()] = it

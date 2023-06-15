@@ -323,6 +323,13 @@ class MockValueConstructor(
 
         val instantiationExecutableCall = assembleModel.instantiationCall
         val result = updateWithStatementCallModel(instantiationExecutableCall)
+
+        // Executions that get `null` in a complicated way (e.g. like this: `new Pair(null, null).getFirst()`)
+        // are only produced by fuzzer and are considered undesirable because fuzzer can also produce simpler
+        // executions that just use `null` literal.
+        //
+        // So for such executions we throw `IllegalStateException` that indicates that construction of arguments
+        // has failed and causes execution to terminate with `UtConcreteExecutionProcessedFailure` execution result.
         checkNotNull(result) {
             "Tracked instance can't be null for call ${instantiationExecutableCall.statement} in model $assembleModel"
         }
@@ -437,7 +444,7 @@ class MockValueConstructor(
             newInstance(*args.toTypedArray())
         }
 
-    private fun DirectFieldAccessId.get(instance: Any?): Any {
+    private fun DirectFieldAccessId.get(instance: Any?): Any? {
         val field = fieldId.jField
         return field.runSandbox {
             field.get(instance)

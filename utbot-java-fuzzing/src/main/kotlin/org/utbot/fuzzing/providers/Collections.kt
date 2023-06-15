@@ -70,7 +70,7 @@ class EmptyCollectionValueProvider(
                         summary = "%var% = ${executableId.classId.simpleName}#${executableId.name}"
                     }
                 } else {
-                    UtNullModel(classId).fuzzed { summary = "%var% = null" }
+                    nullFuzzedValue(classId)
                 }
             },
         ))

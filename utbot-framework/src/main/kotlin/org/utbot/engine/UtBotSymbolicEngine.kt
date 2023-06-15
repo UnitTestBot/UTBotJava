@@ -41,6 +41,8 @@ import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.ObjectValueProvider
+import org.utbot.fuzzing.providers.FieldValueProvider
+import org.utbot.fuzzing.spring.SavedEntityProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
@@ -394,6 +396,9 @@ class UtBotSymbolicEngine(
                         entityClassId = ClassId("com.rest.order.models.Order")
                     )
                 )
+                val generatedValueFieldIds = listOf(
+                    FieldId(ClassId("com.rest.order.models.Order"), "id")
+                )
                 logger.info { "Relevant repositories: $relevantRepositories" }
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
                 val springBeanValueProvider = SpringBeanValueProvider(
@@ -405,7 +410,11 @@ class UtBotSymbolicEngine(
                     },
                     relevantRepositories = relevantRepositories
                 ).withFallback(ObjectValueProvider(defaultIdGenerator))
-                provider.except { p -> p is ObjectValueProvider }.with(springBeanValueProvider)
+                provider
+                    .except { p -> p is ObjectValueProvider }
+                    .with(springBeanValueProvider)
+                    .with(ValueProvider.of(relevantRepositories.map { SavedEntityProvider(defaultIdGenerator, it) }))
+                    .with(ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(defaultIdGenerator, it) }))
             }.let(transform)
         runJavaFuzzing(
             defaultIdGenerator,

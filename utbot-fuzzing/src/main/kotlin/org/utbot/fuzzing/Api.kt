@@ -4,7 +4,6 @@ package org.utbot.fuzzing
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
-import org.utbot.fuzzing.seeds.StringValue
 import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
@@ -312,6 +311,7 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
     val configuration = statistic.configuration
     val fuzzing = this
     val typeCache = hashMapOf<T, List<Seed<T, R>>>()
+    val mutationFactory = MutationFactory<T, R>()
     fun fuzzOne(parameters: List<T>): Node<T, R> = fuzz(
         parameters = parameters,
         fuzzing = fuzzing,
@@ -319,7 +319,7 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
         random = random,
         configuration = configuration,
         builder = PassRoutine("Main Routine"),
-        state = State(1, typeCache, statistic.missedTypes),
+        state = State(typeCache, statistic.missedTypes),
     )
 
     while (!fuzzing.isCancelled(description, statistic)) {
@@ -331,12 +331,10 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
             // fuzz one value, seems to be bad, when have only a few and simple values
             fuzzOne(actualParameters)
         }
-        values = mutate(
+        values = mutationFactory.mutate(
             values,
-            fuzzing,
             random,
-            configuration,
-            State(1, typeCache, statistic.missedTypes)
+            configuration
         )
         afterIteration(description, statistic)
 
@@ -379,13 +377,9 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             // we need to check cases when one value is passed for different arguments
             results.random(random)
         } else {
-            produce(type, fuzzing, description, random, configuration, State(
-                state.recursionTreeDepth,
-                state.cache,
-                state.missedTypes,
-                state.iterations,
-                index
-            )).also {
+            produce(type, fuzzing, description, random, configuration, state.copy {
+                parameterIndex = index
+            }).also {
                 results += it
             }
         }
@@ -456,20 +450,23 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 random,
                 configuration,
                 task.construct,
-                State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations)
+                state.copy {
+                    recursionTreeDepth++
+                }
             ),
-            modify = if (random.flipCoin(configuration.probCollectionMutationInsteadCreateNew)) {
-                val result = fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations))
-                Array(iterations) {
-                    if (it == 0) {
-                        result
-                    } else {
-                        mutate(result, fuzzing, random, configuration, state)
-                    }
-                }.toList()
+            modify = if (random.flipCoin(configuration.probCollectionDuplicationInsteadCreateNew)) {
+                val result = fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, state.copy {
+                    recursionTreeDepth++
+                    this.iterations = iterations
+                    parameterIndex = -1
+                })
+                List(iterations) { result }
             } else {
                 (0 until iterations).map {
-                    fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations))
+                    fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, state.copy {
+                        recursionTreeDepth++
+                        this.iterations = iterations
+                    })
                 }
             },
             iterations = iterations
@@ -508,7 +505,11 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 random,
                 configuration,
                 task.construct,
-                State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)
+                state.copy {
+                    recursionTreeDepth++
+                    iterations = -1
+                    parameterIndex = -1
+                }
             ),
             modify = task.modify
 //                .toMutableList()
@@ -524,7 +525,11 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                         random,
                         configuration,
                         routine,
-                        State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)
+                        state.copy {
+                            recursionTreeDepth++
+                            iterations = -1
+                            parameterIndex = -1
+                        }
                     )
                 }
         )
@@ -539,88 +544,6 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     }
 }
 
-private fun <TYPE, RESULT> canMutate(node: Result<TYPE, RESULT>): Boolean {
-    return when (node) {
-        is Result.Simple<TYPE, RESULT> -> node.mutation === emptyMutation<RESULT>()
-        is Result.Known<TYPE, RESULT, *> -> node.value.mutations().isNotEmpty()
-        is Result.Recursive<TYPE, RESULT> -> node.modify.isNotEmpty()
-        is Result.Collection<TYPE, RESULT> -> node.modify.isNotEmpty() && node.iterations > 0
-        is Result.Empty<TYPE, RESULT> -> false
-    }
-}
-
-/**
- *  Starts mutations of some seeds from the object tree.
- */
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> mutate(
-    node: Node<TYPE, RESULT>,
-    fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
-    random: Random,
-    configuration: Configuration,
-    state: State<TYPE, RESULT>,
-): Node<TYPE, RESULT> {
-    if (node.result.isEmpty()) return node
-    val indexOfMutatedResult = random.chooseOne(node.result.map(::rate).toDoubleArray())
-    val recursive: NodeMutation<TYPE, RESULT> = NodeMutation { n, r, c ->
-        mutate(n, fuzzing, r, c, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes))
-    }
-    val mutated = when (val resultToMutate = node.result[indexOfMutatedResult]) {
-        is Result.Simple<TYPE, RESULT> -> Result.Simple(resultToMutate.mutation(resultToMutate.result, random), resultToMutate.mutation)
-        is Result.Known<TYPE, RESULT, *> -> {
-            val mutations = resultToMutate.value.mutations()
-            if (mutations.isNotEmpty()) {
-                resultToMutate.mutate(mutations.random(random), random, configuration)
-            } else {
-                resultToMutate
-            }
-        }
-        is Result.Recursive<TYPE, RESULT> -> {
-            when {
-                resultToMutate.modify.isEmpty() || random.flipCoin(configuration.probConstructorMutationInsteadModificationMutation) ->
-                    RecursiveMutations.Constructor<TYPE, RESULT>()
-                random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation) ->
-                    RecursiveMutations.ShuffleAndCutModifications()
-                else ->
-                    RecursiveMutations.Mutate()
-            }.mutate(resultToMutate, recursive, random, configuration)
-        }
-        is Result.Collection<TYPE, RESULT> -> if (resultToMutate.modify.isNotEmpty()) {
-            when {
-                random.flipCoin(100 - configuration.probCollectionShuffleInsteadResultMutation) ->
-                    CollectionMutations.Mutate()
-                else ->
-                    CollectionMutations.Shuffle<TYPE, RESULT>()
-            }.mutate(resultToMutate, recursive, random, configuration)
-        } else {
-            resultToMutate
-        }
-        is Result.Empty -> resultToMutate
-    }
-    return Node(node.result.toMutableList().apply {
-        set(indexOfMutatedResult, mutated)
-    }, node.parameters, node.builder)
-}
-
-private const val ALMOST_ZERO = 1E-7
-
-/**
- * Rates somehow the result.
- *
- * For example, fuzzing should not try to mutate some empty structures, like empty collections or objects.
- */
-private fun <TYPE, RESULT> rate(result: Result<TYPE, RESULT>): Double {
-    if (!canMutate(result)) {
-        return ALMOST_ZERO
-    }
-    return when (result) {
-        is Result.Recursive<TYPE, RESULT> -> if (result.construct.parameters.isEmpty() and result.modify.isEmpty()) ALMOST_ZERO else 0.5
-        is Result.Collection<TYPE, RESULT> -> if (result.iterations == 0) return ALMOST_ZERO else 0.7
-        is StringValue -> 2.0
-        is Result.Known<TYPE, RESULT, *> -> 1.2
-        is Result.Simple<TYPE, RESULT> -> 2.0
-        is Result.Empty -> ALMOST_ZERO
-    }
-}
 
 /**
  * Creates a real result.
@@ -674,18 +597,36 @@ private data class PassRoutine<T, R>(val description: String) : Routine<T, R>(em
  * Internal state for one fuzzing run.
  */
 private class State<TYPE, RESULT>(
-    val recursionTreeDepth: Int = 1,
     val cache: MutableMap<TYPE, List<Seed<TYPE, RESULT>>>,
     val missedTypes: MissedSeed<TYPE, RESULT>,
+    val recursionTreeDepth: Int = 1,
     val iterations: Int = -1,
     val parameterIndex: Int = -1,
-)
+) {
 
-private val IDENTITY_MUTATION: (Any, random: Random) -> Any = { f, _ -> f }
+    fun copy(block: Builder<TYPE, RESULT>.() -> Unit): State<TYPE, RESULT> {
+        return Builder(this).apply(block).build()
+    }
 
-private fun <RESULT> emptyMutation(): (RESULT, random: Random) -> RESULT {
-    @Suppress("UNCHECKED_CAST")
-    return IDENTITY_MUTATION as (RESULT, random: Random) -> RESULT
+    class Builder<TYPE, RESULT>(
+        state: State<TYPE, RESULT>
+    ) {
+        var recursionTreeDepth: Int = state.recursionTreeDepth
+        var cache: MutableMap<TYPE, List<Seed<TYPE, RESULT>>> = state.cache
+        var missedTypes: MissedSeed<TYPE, RESULT> = state.missedTypes
+        var iterations: Int = state.iterations
+        var parameterIndex: Int = state.parameterIndex
+
+        fun build(): State<TYPE, RESULT> {
+            return State(
+                cache,
+                missedTypes,
+                recursionTreeDepth,
+                iterations,
+                parameterIndex,
+            )
+        }
+    }
 }
 
 /**
@@ -788,15 +729,5 @@ private class StatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
 private fun <TYPE, RESULT, T : KnownValue<T>> Seed.Known<TYPE, RESULT, *>.asResult(): Result.Known<TYPE, RESULT, T> {
     val value: T = value as T
     return Result.Known(value, build as KnownValue<T>.() -> RESULT)
-}
-
-@Suppress("UNCHECKED_CAST")
-private fun <TYPE, RESULT, T : KnownValue<T>> Result.Known<TYPE, RESULT, *>.mutate(mutation: Mutation<T>, random: Random, configuration: Configuration): Result.Known<TYPE, RESULT, T> {
-    val source: T = value as T
-    val mutate = mutation.mutate(source, random, configuration)
-    return Result.Known(
-        mutate,
-        build as (T) -> RESULT
-    )
 }
 ///endregion

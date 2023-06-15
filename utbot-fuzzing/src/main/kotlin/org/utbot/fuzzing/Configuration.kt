@@ -37,7 +37,7 @@ data class Configuration(
     /**
      * Probability of creating shifted array values instead of generating new values for modification.
      */
-    var probCollectionMutationInsteadCreateNew: Int = 75,
+    var probCollectionDuplicationInsteadCreateNew: Int = 10,
 
     /**
      * Probability of creating empty collections

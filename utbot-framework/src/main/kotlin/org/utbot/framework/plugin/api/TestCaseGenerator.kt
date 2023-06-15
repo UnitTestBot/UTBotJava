@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
+import org.utbot.common.PathUtil.toPath
 import org.utbot.common.measureTime
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
@@ -360,20 +361,28 @@ open class TestCaseGenerator(
 
     private fun List<UtExecution>.filterCoveredInstructions(): List<UtExecution> {
         // Do nothing when we launched not from IDEA
-        if (buildDirs.isEmpty()) return this
+        if (buildDirs.isEmpty() || classpath.isNullOrEmpty()) return this
 
         val annotationsToIgnore =
             listOfNotNull(utContext.classLoader.tryLoadClass(entityClassId.name))
 
-        val urls = buildDirs.map { it.toURL() }.toTypedArray()
+        // We do not just use [buildDirs] because we won't be able to load classes that
+        // implement library interfaces or extend library classes
+        val urls =
+            classpath
+                .split(File.pathSeparator)
+                .mapNotNull {
+                    if (it.toPath() in buildDirs) null
+                    else it.toPath().toURL()
+                }
+                .toTypedArray()
 
-        // We pass null as a parent here because we do not want to include standard java libs
-        val buildDirsClassLoader = URLClassLoader(urls, null)
+        val thirdPartyClassLoader = URLClassLoader(urls)
 
         val isClassOnUserClasspathCache = mutableMapOf<String, Boolean>()
         fun isClassOnUserClasspath(fullyQualifiedName: String): Boolean =
             isClassOnUserClasspathCache.getOrPut(fullyQualifiedName) {
-                buildDirsClassLoader.tryLoadClass(fullyQualifiedName) != null
+                thirdPartyClassLoader.tryLoadClass(fullyQualifiedName) == null
             }
 
         // Here we filter out instructions from third-party libraries

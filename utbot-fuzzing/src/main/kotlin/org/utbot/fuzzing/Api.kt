@@ -561,6 +561,9 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
 ): Node<TYPE, RESULT> {
     if (node.result.isEmpty()) return node
     val indexOfMutatedResult = random.chooseOne(node.result.map(::rate).toDoubleArray())
+    val recursive: NodeMutation<TYPE, RESULT> = NodeMutation { n, r, c ->
+        mutate(n, fuzzing, r, c, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes))
+    }
     val mutated = when (val resultToMutate = node.result[indexOfMutatedResult]) {
         is Result.Simple<TYPE, RESULT> -> Result.Simple(resultToMutate.mutation(resultToMutate.result, random), resultToMutate.mutation)
         is Result.Known<TYPE, RESULT, *> -> {
@@ -572,40 +575,25 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             }
         }
         is Result.Recursive<TYPE, RESULT> -> {
-            if (resultToMutate.modify.isEmpty() || random.flipCoin(configuration.probConstructorMutationInsteadModificationMutation)) {
-                Result.Recursive(
-                    construct = mutate(resultToMutate.construct, fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)),
-                    modify = resultToMutate.modify
-                )
-            } else if (random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation)) {
-                Result.Recursive(
-                    construct = resultToMutate.construct,
-                    modify = resultToMutate.modify.shuffled(random).take(random.nextInt(resultToMutate.modify.size + 1).coerceAtLeast(1))
-                )
-            } else {
-                Result.Recursive(
-                    construct = resultToMutate.construct,
-                    modify = resultToMutate.modify.toMutableList().apply {
-                        val i = random.nextInt(0, resultToMutate.modify.size)
-                        set(i, mutate(resultToMutate.modify[i], fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)))
-                    }
-                )
-            }
+            when {
+                resultToMutate.modify.isEmpty() || random.flipCoin(configuration.probConstructorMutationInsteadModificationMutation) ->
+                    RecursiveMutations.Constructor<TYPE, RESULT>()
+                random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation) ->
+                    RecursiveMutations.ShuffleAndCutModifications()
+                else ->
+                    RecursiveMutations.Mutate()
+            }.mutate(resultToMutate, recursive, random, configuration)
         }
-        is Result.Collection<TYPE, RESULT> -> Result.Collection(
-            construct = resultToMutate.construct,
-            modify = resultToMutate.modify.toMutableList().apply {
-                if (isNotEmpty()) {
-                    if (random.flipCoin(100 - configuration.probCollectionShuffleInsteadResultMutation)) {
-                        val i = random.nextInt(0, resultToMutate.modify.size)
-                        set(i, mutate(resultToMutate.modify[i], fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)))
-                    } else {
-                        shuffle(random)
-                    }
-                }
-            },
-            iterations = resultToMutate.iterations
-        )
+        is Result.Collection<TYPE, RESULT> -> if (resultToMutate.modify.isNotEmpty()) {
+            when {
+                random.flipCoin(100 - configuration.probCollectionShuffleInsteadResultMutation) ->
+                    CollectionMutations.Mutate()
+                else ->
+                    CollectionMutations.Shuffle<TYPE, RESULT>()
+            }.mutate(resultToMutate, recursive, random, configuration)
+        } else {
+            resultToMutate
+        }
         is Result.Empty -> resultToMutate
     }
     return Node(node.result.toMutableList().apply {
@@ -703,7 +691,7 @@ private fun <RESULT> emptyMutation(): (RESULT, random: Random) -> RESULT {
 /**
  * The result of producing real values for the language.
  */
-private sealed interface Result<TYPE, RESULT> {
+sealed interface Result<TYPE, RESULT> {
 
     /**
      * Simple result as is.
@@ -742,7 +730,7 @@ private sealed interface Result<TYPE, RESULT> {
 /**
  * Temporary object to storage information about partly calculated values tree.
  */
-private class Node<TYPE, RESULT>(
+class Node<TYPE, RESULT>(
     val result: List<Result<TYPE, RESULT>>,
     val parameters: List<TYPE>,
     val builder: Routine<TYPE, RESULT>,

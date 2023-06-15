@@ -15,12 +15,6 @@ fun interface Mutation<T> {
     fun mutate(source: T, random: Random, configuration: Configuration): T
 }
 
-inline fun <reified T, reified F : T> Mutation<F>.adapt(): Mutation<T> {
-    return Mutation { s, r, c ->
-        if (s is F) return@Mutation mutate(s, r, c) else s
-    }
-}
-
 sealed class BitVectorMutations : Mutation<BitVectorValue> {
 
     abstract fun rangeOfMutation(source: BitVectorValue): IntRange
@@ -45,9 +39,9 @@ sealed class BitVectorMutations : Mutation<BitVectorValue> {
     }
 }
 
-sealed class IEEE754Mutations : Mutation<IEEE754Value> {
+sealed interface IEEE754Mutations : Mutation<IEEE754Value> {
 
-    object ChangeSign : IEEE754Mutations() {
+    object ChangeSign : IEEE754Mutations {
         override fun mutate(source: IEEE754Value, random: Random, configuration: Configuration): IEEE754Value {
             return IEEE754Value(source, this).apply {
                 setRaw(0, !getRaw(0))
@@ -55,7 +49,7 @@ sealed class IEEE754Mutations : Mutation<IEEE754Value> {
         }
     }
 
-    object Mantissa : IEEE754Mutations() {
+    object Mantissa : IEEE754Mutations {
         override fun mutate(source: IEEE754Value, random: Random, configuration: Configuration): IEEE754Value {
             val i = random.nextInt(0, source.mantissaSize)
             return IEEE754Value(source, this).apply {
@@ -64,7 +58,7 @@ sealed class IEEE754Mutations : Mutation<IEEE754Value> {
         }
     }
 
-    object Exponent : IEEE754Mutations() {
+    object Exponent : IEEE754Mutations {
         override fun mutate(source: IEEE754Value, random: Random, configuration: Configuration): IEEE754Value {
             val i = random.nextInt(0, source.exponentSize)
             return IEEE754Value(source, this).apply {
@@ -74,9 +68,9 @@ sealed class IEEE754Mutations : Mutation<IEEE754Value> {
     }
 }
 
-sealed class StringMutations : Mutation<StringValue> {
+sealed interface StringMutations : Mutation<StringValue> {
 
-    object AddCharacter : StringMutations() {
+    object AddCharacter : StringMutations {
         override fun mutate(source: StringValue, random: Random, configuration: Configuration): StringValue {
             val value = source.value
             if (value.length >= configuration.maxStringLengthWhenMutated) {
@@ -104,7 +98,7 @@ sealed class StringMutations : Mutation<StringValue> {
         }
     }
 
-    object RemoveCharacter : StringMutations() {
+    object RemoveCharacter : StringMutations {
         override fun mutate(source: StringValue, random: Random, configuration: Configuration): StringValue {
             val value = source.value
             val position = random.nextInt(value.length + 1)
@@ -117,5 +111,122 @@ sealed class StringMutations : Mutation<StringValue> {
             return StringValue(newString, this)
         }
     }
+}
 
+fun interface NodeMutation<TYPE, RESULT> : Mutation<Node<TYPE, RESULT>>
+
+sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collection<TYPE, RESULT>, NodeMutation<TYPE, RESULT>>> {
+
+    override fun mutate(
+        source: Pair<Result.Collection<TYPE, RESULT>, NodeMutation<TYPE, RESULT>>,
+        random: Random,
+        configuration: Configuration
+    ): Pair<Result.Collection<TYPE, RESULT>, NodeMutation<TYPE, RESULT>> {
+        return mutate(source.first, source.second, random, configuration) to source.second
+    }
+
+    fun mutate(
+        source: Result.Collection<TYPE, RESULT>,
+        recursive: NodeMutation<TYPE, RESULT>,
+        random: Random,
+        configuration: Configuration
+    ) : Result.Collection<TYPE, RESULT>
+
+    class Shuffle<TYPE, RESULT> : CollectionMutations<TYPE, RESULT> {
+        override fun mutate(
+            source: Result.Collection<TYPE, RESULT>,
+            recursive: NodeMutation<TYPE, RESULT>,
+            random: Random,
+            configuration: Configuration
+        ): Result.Collection<TYPE, RESULT> {
+            return Result.Collection(
+                construct = source.construct,
+                modify = source.modify.toMutableList().shuffled(random),
+                iterations = source.iterations
+            )
+        }
+    }
+
+    class Mutate<TYPE, RESULT> : CollectionMutations<TYPE, RESULT> {
+        override fun mutate(
+            source: Result.Collection<TYPE, RESULT>,
+            recursive: NodeMutation<TYPE, RESULT>,
+            random: Random,
+            configuration: Configuration
+        ): Result.Collection<TYPE, RESULT> {
+            return Result.Collection(
+                construct = source.construct,
+                modify = source.modify.toMutableList().apply {
+                    val i = random.nextInt(0, source.modify.size)
+                    set(i, recursive.mutate(source.modify[i], random, configuration))
+                },
+                iterations = source.iterations
+            )
+        }
+    }
+}
+
+sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursive<TYPE, RESULT>, NodeMutation<TYPE, RESULT>>> {
+
+    override fun mutate(
+        source: Pair<Result.Recursive<TYPE, RESULT>, NodeMutation<TYPE, RESULT>>,
+        random: Random,
+        configuration: Configuration
+    ): Pair<Result.Recursive<TYPE, RESULT>, NodeMutation<TYPE, RESULT>> {
+        return mutate(source.first, source.second, random, configuration) to source.second
+    }
+
+    fun mutate(
+        source: Result.Recursive<TYPE, RESULT>,
+        recursive: NodeMutation<TYPE, RESULT>,
+        random: Random,
+        configuration: Configuration
+    ) : Result.Recursive<TYPE, RESULT>
+
+
+    class Constructor<TYPE, RESULT> : RecursiveMutations<TYPE, RESULT> {
+        override fun mutate(
+            source: Result.Recursive<TYPE, RESULT>,
+            recursive: NodeMutation<TYPE, RESULT>,
+            random: Random,
+            configuration: Configuration
+        ): Result.Recursive<TYPE, RESULT> {
+            return Result.Recursive(
+                construct = recursive.mutate(source.construct,random, configuration),
+                modify = source.modify
+            )
+        }
+    }
+
+    class ShuffleAndCutModifications<TYPE, RESULT> : RecursiveMutations<TYPE, RESULT> {
+        override fun mutate(
+            source: Result.Recursive<TYPE, RESULT>,
+            recursive: NodeMutation<TYPE, RESULT>,
+            random: Random,
+            configuration: Configuration
+        ): Result.Recursive<TYPE, RESULT> {
+            return Result.Recursive(
+                construct = source.construct,
+                modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1).coerceAtLeast(1))
+            )
+        }
+    }
+
+    class Mutate<TYPE, RESULT> : RecursiveMutations<TYPE, RESULT> {
+        override fun mutate(
+            source: Result.Recursive<TYPE, RESULT>,
+            recursive: NodeMutation<TYPE, RESULT>,
+            random: Random,
+            configuration: Configuration
+        ): Result.Recursive<TYPE, RESULT> {
+            return Result.Recursive(
+                construct = source.construct,
+                modify = source.modify.toMutableList().apply {
+                    val i = random.nextInt(0, source.modify.size)
+                    set(i, recursive.mutate(source.modify[i], random, configuration))
+                }
+            )
+        }
+
+    }
 }

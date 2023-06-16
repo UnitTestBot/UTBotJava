@@ -206,7 +206,7 @@ object FloatValueProvider : PrimitiveValueProvider(
     }
 }
 
-object StringValueProvider : PrimitiveValueProvider(stringClassId) {
+object StringValueProvider : PrimitiveValueProvider(stringClassId, java.lang.CharSequence::class.java.id) {
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType

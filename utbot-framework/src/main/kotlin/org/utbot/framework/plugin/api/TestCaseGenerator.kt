@@ -122,14 +122,17 @@ open class TestCaseGenerator(
         }
     }
 
-    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
-        if (UtSettings.testMinimizationStrategyType == TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY) executions
-        else minimizeTestCase(
-            when (applicationContext) {
-                is SpringApplicationContext -> executions.filterCoveredInstructions()
-                else -> executions
-            }
-        ) { it.result::class.java }
+    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
+        if (applicationContext is SpringApplicationContext)
+            return minimizeTestCase(executions.filterCoveredInstructions()) { it.result::class.java }
+
+        return when (UtSettings.testMinimizationStrategyType) {
+            TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
+            TestSelectionStrategyType.COVERAGE_STRATEGY -> minimizeTestCase(executions) { it.result::class.java }
+            TestSelectionStrategyType.USER_INSTRUCTION_COVERAGE_ONLY_STRATEGY ->
+                minimizeTestCase(executions.filterCoveredInstructions()) { it.result::class.java }
+        }
+    }
 
     @Throws(CancellationException::class)
     fun generateAsync(

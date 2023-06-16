@@ -632,7 +632,14 @@ enum class TestSelectionStrategyType {
     /**
      * Adds new test only if it increases coverage
      */
-    COVERAGE_STRATEGY
+    COVERAGE_STRATEGY,
+
+    /**
+     * Works like the [COVERAGE_STRATEGY] strategy,
+     * but only user code instruction coverage is considered
+     * Used for Spring as default
+     */
+    USER_INSTRUCTION_COVERAGE_ONLY_STRATEGY
 }
 
 /**

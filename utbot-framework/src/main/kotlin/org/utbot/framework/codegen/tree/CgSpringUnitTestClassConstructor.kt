@@ -27,10 +27,12 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
 
     override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
         val fields = mutableListOf<CgFieldDeclaration>()
+        val thisInstances = testClassModel.springSpecificInformation.thisInstanceModels
+        val mocks = testClassModel.springSpecificInformation.thisInstanceDependentMocks
 
-        if (testClassModel.thisInstanceDependentMocks.isNotEmpty()) {
-            val mockedFields = constructFieldsWithAnnotation(testClassModel.thisInstanceDependentMocks, mockClassId)
-            val injectingMocksFields = constructFieldsWithAnnotation(testClassModel.thisInstanceModels, injectMocksClassId)
+        if (mocks.isNotEmpty()) {
+            val mockedFields = constructFieldsWithAnnotation(mockClassId, mocks)
+            val injectingMocksFields = constructFieldsWithAnnotation(injectMocksClassId, thisInstances)
 
             fields += injectingMocksFields
             fields += mockedFields

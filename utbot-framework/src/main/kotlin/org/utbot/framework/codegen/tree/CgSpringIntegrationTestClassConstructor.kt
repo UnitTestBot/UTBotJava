@@ -9,7 +9,8 @@ import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSpringTestClassConstructor(context) {
 
     override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
-        return constructFieldsWithAnnotation(testClassModel.thisInstanceModels, autowiredClassId)
+        val applicationContextModels = testClassModel.springSpecificInformation.applicationContextModels
+        return constructFieldsWithAnnotation(autowiredClassId, applicationContextModels)
     }
 
     override fun constructAdditionalMethods() = CgMethodsCluster(

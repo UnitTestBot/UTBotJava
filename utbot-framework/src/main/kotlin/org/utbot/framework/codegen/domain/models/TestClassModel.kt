@@ -22,15 +22,17 @@ class SimpleTestClassModel(
 
 /**
  * Extended [SimpleTestClassModel] for Spring analysis reasons
- *
- * @param injectingMocksClass a class to inject other mocks into
- * @param mockedClasses variables of test class to represent mocked instances
  */
 class SpringTestClassModel(
     classUnderTest: ClassId,
     methodTestSets: List<CgMethodTestSet>,
     nestedClasses: List<SimpleTestClassModel>,
-    val thisInstanceModels: TypedModelWrappers = mapOf(),
-    val thisInstanceDependentMocks: TypedModelWrappers = mapOf(),
+    val springSpecificInformation: SpringSpecificInformation,
 ): TestClassModel(classUnderTest, methodTestSets, nestedClasses)
 
+
+class SpringSpecificInformation(
+    val thisInstanceModels: TypedModelWrappers = mapOf(),
+    val thisInstanceDependentMocks: TypedModelWrappers = mapOf(),
+    val applicationContextModels: TypedModelWrappers = mapOf(),
+)

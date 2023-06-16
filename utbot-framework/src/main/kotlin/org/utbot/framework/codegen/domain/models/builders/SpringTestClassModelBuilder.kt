@@ -20,7 +20,6 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
-import org.utbot.framework.plugin.api.util.SpringModelUtils.applicationContextClassId
 
 typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
 
@@ -28,21 +27,17 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
 
     override fun createTestClassModel(classUnderTest: ClassId, testSets: List<CgMethodTestSet>): SpringTestClassModel {
         val baseModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
-        val collectedModels = collectModelsForClassVariables(testSets)
+        val springSpecificInformation = collectSpecificModelsForClassVariables(testSets)
 
         return SpringTestClassModel(
             classUnderTest = baseModel.classUnderTest,
             methodTestSets = baseModel.methodTestSets,
             nestedClasses = baseModel.nestedClasses,
-            springSpecificInformation = SpringSpecificInformation(
-                thisInstanceModels = collectedModels.thisInstanceModels,
-                thisInstanceDependentMocks = collectedModels.thisInstanceDependentMocks,
-                applicationContextModels = collectedModels.applicationContextModels,
-            )
+            springSpecificInformation = springSpecificInformation
         )
     }
 
-    private fun collectModelsForClassVariables(testSets: List<CgMethodTestSet>): SpringSpecificInformation {
+    private fun collectSpecificModelsForClassVariables(testSets: List<CgMethodTestSet>): SpringSpecificInformation {
         val thisInstanceModels = mutableSetOf<UtModelWrapper>()
         val thisInstancesDependentModels = mutableSetOf<UtModelWrapper>()
         val stateBeforeDependentModels = mutableSetOf<UtModelWrapper>()
@@ -60,7 +55,7 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
 
                                 }
 
-                            (execution.stateBefore.parameters + setOf(execution.stateBefore.thisInstance))
+                            (execution.stateBefore.parameters + execution.stateBefore.thisInstance)
                                 .filterNotNull()
                                 .forEach { model -> stateBeforeDependentModels += collectByModel(model) }
                         }

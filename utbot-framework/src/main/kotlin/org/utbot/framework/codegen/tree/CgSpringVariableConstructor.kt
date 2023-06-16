@@ -1,9 +1,13 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.UtModelWrapper
+import org.utbot.framework.codegen.domain.builtin.autowiredClassId
+import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
+import org.utbot.framework.codegen.domain.builtin.mockClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
@@ -11,12 +15,10 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.isMockModel
 
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
-    val injectedMocksModelsVariables: MutableSet<UtModelWrapper> = mutableSetOf()
-    val mockedModelsVariables: MutableSet<UtModelWrapper> = mutableSetOf()
-    val autowiredVariables: MutableSet<UtModelWrapper> = mutableSetOf()
+    val annotatedModelVariables: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        val alreadyCreatedInjectMocks = findCgValueByModel(model, injectedMocksModelsVariables)
+        val alreadyCreatedInjectMocks = findCgValueByModel(model, annotatedModelVariables[injectMocksClassId])
         if (alreadyCreatedInjectMocks != null) {
             val fields: Collection<UtModel> = when (model) {
                 is UtCompositeModel -> model.fields.values
@@ -29,7 +31,7 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
             return alreadyCreatedInjectMocks
         }
 
-        val alreadyCreatedMock = findCgValueByModel(model, mockedModelsVariables)
+        val alreadyCreatedMock = findCgValueByModel(model, annotatedModelVariables[mockClassId])
         if (alreadyCreatedMock != null) {
             if (model.isMockModel()) {
                 mockFrameworkManager.createMockForVariable(
@@ -41,16 +43,26 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
             return alreadyCreatedMock
         }
 
-        val alreadyCreatedAutowired = findCgValueByModel(model, autowiredVariables)
+        val alreadyCreatedAutowired = findCgValueByModel(model, annotatedModelVariables[autowiredClassId])
         if (alreadyCreatedAutowired != null) {
             return alreadyCreatedAutowired
         }
 
-        return super.getOrCreateVariable(model, name)
+        return when (model) {
+            is UtSpringContextModel -> constructSpringContext(model, name)
+            else -> super.getOrCreateVariable(model, name)
+        }
     }
 
-    private fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>): CgValue? {
-        val key = setOfModels.find { it == model.wrap() }
+    private fun constructSpringContext(model: UtSpringContextModel, baseName: String?): CgValue {
+        val obj = newVar(model.classId, baseName) { utilsClassId[createInstance](model.classId.name) }
+
+        valueByUtModelWrapper[model.wrap()] = obj
+        return obj
+    }
+
+    private fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
+        val key = setOfModels?.find { it == model.wrap() } ?: return null
         return valueByUtModelWrapper[key]
     }
 }

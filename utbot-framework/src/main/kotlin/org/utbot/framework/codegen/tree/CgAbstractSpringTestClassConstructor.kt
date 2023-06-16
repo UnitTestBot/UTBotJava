@@ -88,14 +88,6 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
         annotationClassId: ClassId,
         groupedModelsByClassId: TypedModelWrappers,
     ): List<CgFieldDeclaration> {
-        require(
-            annotationClassId == injectMocksClassId ||
-                    annotationClassId == mockClassId ||
-                    annotationClassId == autowiredClassId
-        ) {
-            error("Unexpected annotation classId -- $annotationClassId")
-        }
-
         val annotation = statementConstructor.annotation(annotationClassId)
 
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
@@ -111,11 +103,8 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
                 valueByUtModelWrapper[key] = createdVariable
             }
 
-            when (annotationClassId) {
-                injectMocksClassId -> variableConstructor.injectedMocksModelsVariables += listOfUtModels
-                mockClassId -> variableConstructor.mockedModelsVariables += listOfUtModels
-                autowiredClassId -> variableConstructor.autowiredVariables += listOfUtModels
-            }
+            variableConstructor.annotatedModelVariables
+                .getOrPut(annotationClassId) { mutableSetOf() } += listOfUtModels
         }
 
         return constructedDeclarations
@@ -131,13 +120,8 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
      * related side effects and just creating a variable definition,
      * but it will take very long time to do it now.
      */
-    protected fun clearUnwantedVariableModels() {
-        val whiteListOfModels =
-            listOf(
-                variableConstructor.mockedModelsVariables,
-                variableConstructor.injectedMocksModelsVariables,
-                variableConstructor.autowiredVariables,
-            ).flatten()
+    private fun clearUnwantedVariableModels() {
+        val whiteListOfModels = variableConstructor.annotatedModelVariables.values.flatten()
 
         valueByUtModelWrapper
             .filter { it.key !in whiteListOfModels }

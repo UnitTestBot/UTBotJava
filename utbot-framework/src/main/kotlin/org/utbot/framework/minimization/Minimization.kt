@@ -92,15 +92,15 @@ private fun groupByBranchInstructions(
     executions: List<UtExecution>,
     branchInstructionsNumber: Int
 ): Collection<List<UtExecution>> {
-    val instructionToPossibleNextInstructions = mutableMapOf<Long, MutableSet<Long>>()
+    val instructionToPossibleNextInstructions = mutableMapOf<Long, MutableSet<Long?>>()
 
     for (execution in executions) {
         execution.coverage?.let { coverage ->
             val coveredInstructionIds = coverage.coveredInstructions.map { it.id }
-            for (i in 0 until coveredInstructionIds.size - 1) {
+            for (i in coveredInstructionIds.indices) {
                 instructionToPossibleNextInstructions
                     .getOrPut(coveredInstructionIds[i]) { mutableSetOf() }
-                    .add(coveredInstructionIds[i + 1])
+                    .add(coveredInstructionIds.getOrNull(i + 1))
             }
         }
     }
@@ -153,7 +153,7 @@ private fun <T : Any> groupExecutionsByTestSuite(
  */
 private fun buildMapping(executions: List<UtExecution>): Pair<Map<Int, List<Int>>, Map<Int, Int>> {
     // (inst1, instr2) -> edge id --- edge represents as a pair of instructions, which are connected by this edge
-    val allCoveredEdges = mutableMapOf<Pair<Long, Long>, Int>()
+    val allCoveredEdges = mutableMapOf<Pair<Long, Long?>, Int>()
     val thrownExceptions = mutableMapOf<String, Long>()
     val mapping = mutableMapOf<Int, List<Int>>()
     val executionToPriorityMapping = mutableMapOf<Int, Int>()
@@ -167,14 +167,10 @@ private fun buildMapping(executions: List<UtExecution>): Pair<Map<Int, List<Int>
                 execution.result,
                 thrownExceptions
             ).let { instructions ->
-                for (i in 0 until instructions.size - 1) {
-                    allCoveredEdges.putIfAbsent(instructions[i] to instructions[i + 1], allCoveredEdges.size)
+                val edges = instructions.indices.map { i ->
+                    allCoveredEdges.getOrPut(instructions[i] to instructions.getOrNull(i + 1)) { allCoveredEdges.size }
                 }
 
-                val edges = mutableListOf<Int>()
-                for (i in 0 until instructions.size - 1) {
-                    edges += allCoveredEdges[instructions[i] to instructions[i + 1]]!!
-                }
                 mapping[idx] = edges
                 executionToPriorityMapping[idx] = execution.getExecutionPriority()
             }

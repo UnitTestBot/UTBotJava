@@ -14,24 +14,20 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # !!! temporary commented !!!
-#  build-and-run-tests:
-#    uses: ./.github/workflows/build-and-run-tests-from-branch.yml
-#    secrets: inherit
+  build-and-run-tests:
+    uses: ./.github/workflows/build-and-run-tests-from-branch.yml
+    secrets: inherit
 
   publish_plugin:
-    # !!! temporary commented !!!
-#    needs: build-and-run-tests
+    needs: build-and-run-tests
     uses: ./.github/workflows/publish-plugin-from-branch.yml
     with:
       # upload artifacts on push action to main only
-      # !!! temporary commented !!!
-      upload-artifact: true # ${{ github.event_name == 'push' }}
+      upload-artifact: ${{ github.event_name == 'push' }}
     secrets: inherit
 
   publish_cli:
-    # !!! temporary commented !!!
-#    needs: build-and-run-tests
+    needs: build-and-run-tests
     uses: ./.github/workflows/publish-cli-from-branch.yml
     with:
       # upload artifacts on push action to main only
@@ -39,8 +35,7 @@ jobs:
     secrets: inherit
 
   publish-cli-image:
-    # !!! temporary commented !!!
-#    needs: build-and-run-tests
+    needs: build-and-run-tests
     if: ${{ github.event_name == 'push' }}
     strategy:
       fail-fast: false  # force to execute all jobs even though some of them have failed

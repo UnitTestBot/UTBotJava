@@ -13,7 +13,7 @@ object SpringModelUtils {
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
     val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
 
-    val getBeanMethodId = MethodId(
+    private val getBeanMethodId = MethodId(
         classId = applicationContextClassId,
         name = "getBean",
         returnType = Any::class.id,
@@ -21,7 +21,7 @@ object SpringModelUtils {
         bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
 
-    val saveMethodId = MethodId(
+    private val saveMethodId = MethodId(
         classId = crudRepositoryClassId,
         name = "save",
         returnType = Any::class.id,
@@ -50,4 +50,8 @@ object SpringModelUtils {
         executable = saveMethodId,
         params = listOf(entityModel)
     )
+
+    fun UtModel.isApplicationContext(): Boolean = this is UtSpringContextModel
+    fun UtModel.isAutowiredFromContext(): Boolean =
+        this is UtAssembleModel && this.instantiationCall.instance is UtSpringContextModel
 }

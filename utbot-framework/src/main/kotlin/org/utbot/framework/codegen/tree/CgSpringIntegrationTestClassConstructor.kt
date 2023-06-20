@@ -10,7 +10,15 @@ class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSp
 
     override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
         val applicationContextModels = testClassModel.springSpecificInformation.applicationContextModels
-        return constructFieldsWithAnnotation(autowiredClassId, applicationContextModels)
+        val autowiredFromContextModels = testClassModel.springSpecificInformation.autowiredFromContextModels
+
+        // NOTE that it is important to construct applicationContext variable
+        // before other class variables that will get beans from it.
+        val fields = mutableListOf<CgFieldDeclaration>()
+        fields += constructFieldsWithAnnotation(autowiredClassId, applicationContextModels)
+        fields += constructFieldsWithAnnotation(autowiredClassId, autowiredFromContextModels)
+
+        return fields
     }
 
     override fun constructAdditionalMethods() = CgMethodsCluster(

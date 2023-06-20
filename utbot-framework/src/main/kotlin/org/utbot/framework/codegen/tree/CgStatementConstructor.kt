@@ -72,6 +72,7 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.kotlinFunction
 
 interface CgStatementConstructor {
+
     fun newVar(baseType: ClassId, baseName: String? = null, init: () -> CgExpression): CgVariable =
         newVar(baseType, model = null, baseName, isMutable = false, init)
 

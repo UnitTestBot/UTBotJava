@@ -16,6 +16,11 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
     override fun getBean(beanName: String): Any = context.getBean(beanName)
 
     override fun getDependenciesForBean(beanName: String): Set<String> {
+        analyzedBeanNames.clear()
+        return getDependenciesForBeanInternal(beanName)
+    }
+
+    private fun getDependenciesForBeanInternal(beanName: String): Set<String> {
         if (beanName in analyzedBeanNames) {
             return emptySet()
         }
@@ -58,16 +63,16 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
             val repositoryClass = repositoryBean.bean::class.java
             val repositoryName = repositoryClass
                 .interfaces
-                .filterNot { it.canonicalName.startsWith(springClassPrefix) }
-                .map { it.canonicalName }
+                .filterNot { it.name.startsWith(springClassPrefix) }
+                .map { it.name }
                 .firstOrNull()
 
             val entity = RepositoryUtils.getEntity(repositoryClass)
 
-            if (!repositoryName.isNullOrEmpty() && !entity?.canonicalName.isNullOrEmpty()) {
+            if (!repositoryName.isNullOrEmpty() && !entity?.name.isNullOrEmpty()) {
                 entity?.let {
                     val beanName = repositoryBean.beanName
-                    val entityName = entity.canonicalName
+                    val entityName = entity.name
                     val tableName = getTableName(entity)
                     descriptions += RepositoryDescription(beanName, repositoryName, entityName, tableName)
                 }

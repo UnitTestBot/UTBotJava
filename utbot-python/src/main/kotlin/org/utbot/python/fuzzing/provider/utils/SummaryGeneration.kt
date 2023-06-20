@@ -7,7 +7,7 @@ import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.seeds.Signed
 import org.utbot.fuzzing.seeds.StringValue
 
-fun <T : KnownValue> T.valueToString(): String {
+fun <T : KnownValue<T>> T.valueToString(): String {
     when (this) {
         is BitVectorValue -> {
             for (defaultBound in Signed.values()) {
@@ -43,7 +43,7 @@ fun <T : KnownValue> T.valueToString(): String {
     }
 }
 
-fun <T: KnownValue> T.generateSummary(): String {
+fun <T: KnownValue<T>> T.generateSummary(): String {
     return buildString {
         append("%var% = ${valueToString()}")
         if (mutatedFrom != null) {

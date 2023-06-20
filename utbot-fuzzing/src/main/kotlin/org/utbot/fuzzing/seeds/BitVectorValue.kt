@@ -5,7 +5,7 @@ import org.utbot.fuzzing.utils.Endian
 import java.math.BigInteger
 import java.util.BitSet
 
-class BitVectorValue : KnownValue {
+class BitVectorValue : KnownValue<BitVectorValue> {
 
     /**
      * Vector of value bits.
@@ -15,8 +15,8 @@ class BitVectorValue : KnownValue {
      */
     private val vector: BitSet
     val size: Int
-    override val lastMutation: Mutation<KnownValue>?
-    override val mutatedFrom: KnownValue?
+    override val lastMutation: Mutation<BitVectorValue>?
+    override val mutatedFrom: BitVectorValue?
 
     constructor(bits: Int, bound: Bound) {
         vector = BitSet(bits).also {
@@ -29,7 +29,7 @@ class BitVectorValue : KnownValue {
         mutatedFrom = null
     }
 
-    constructor(other: BitVectorValue, mutation: Mutation<KnownValue>? = null) {
+    constructor(other: BitVectorValue, mutation: Mutation<BitVectorValue>? = null) {
         vector = other.vector.clone() as BitSet
         size = other.size
         lastMutation = mutation
@@ -80,10 +80,10 @@ class BitVectorValue : KnownValue {
         return !carry && shift == size
     }
 
-    override fun mutations() = listOf<Mutation<KnownValue>>(
-        BitVectorMutations.SlightDifferent.adapt(),
-        BitVectorMutations.DifferentWithSameSign.adapt(),
-        BitVectorMutations.ChangeSign.adapt()
+    override fun mutations() = listOf<Mutation<BitVectorValue>>(
+        BitVectorMutations.SlightDifferent,
+        BitVectorMutations.DifferentWithSameSign,
+        BitVectorMutations.ChangeSign
     )
 
     override fun equals(other: Any?): Boolean {
@@ -106,6 +106,7 @@ class BitVectorValue : KnownValue {
 
     override fun toString() = toString(10)
 
+    @Suppress("unused")
     internal fun toBinaryString(endian: Endian) = buildString {
         for (i in endian.range(0, size - 1)) {
             append(if (this@BitVectorValue[i]) '1' else '0')

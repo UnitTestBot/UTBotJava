@@ -28,7 +28,7 @@ object IntValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
     }
 
     private fun BitVectorValue.change(func: BitVectorValue.() -> Unit): BitVectorValue {
-        return Mutation<KnownValue> { _, _, _ ->
+        return Mutation<KnownValue<*>> { _, _, _ ->
             BitVectorValue(this).apply { func() }
         }.mutate(this, randomStubWithNoUsage, configurationStubWithNoUsage) as BitVectorValue
     }

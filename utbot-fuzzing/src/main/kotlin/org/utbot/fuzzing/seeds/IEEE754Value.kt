@@ -12,7 +12,7 @@ import kotlin.math.pow
 //val DOUBLE_POSITIVE_INFINITY = DefaultFloatBound.POSITIVE_INFINITY(52, 11)
 //val DOUBLE_NEGATIVE_INFINITY = DefaultFloatBound.NEGATIVE_INFINITY(52, 11)
 
-class IEEE754Value : KnownValue {
+class IEEE754Value : KnownValue<IEEE754Value> {
 
     val isPositive: Boolean
         get() = !vector[0]
@@ -34,8 +34,8 @@ class IEEE754Value : KnownValue {
 
     val mantissaSize: Int
     val exponentSize: Int
-    override val lastMutation: Mutation<KnownValue>?
-    override val mutatedFrom: KnownValue?
+    override val lastMutation: Mutation<IEEE754Value>?
+    override val mutatedFrom: IEEE754Value?
 
     private val vector: BitVectorValue
 
@@ -56,7 +56,7 @@ class IEEE754Value : KnownValue {
         mutatedFrom = null
     }
 
-    constructor(value: IEEE754Value, mutation: Mutation<KnownValue>? = null) {
+    constructor(value: IEEE754Value, mutation: Mutation<IEEE754Value>? = null) {
         this.vector = BitVectorValue(value.vector)
         this.mantissaSize = value.mantissaSize
         this.exponentSize = value.exponentSize
@@ -127,10 +127,10 @@ class IEEE754Value : KnownValue {
         }
     }
 
-    override fun mutations() = listOf<Mutation<KnownValue>>(
-        IEEE754Mutations.ChangeSign.adapt(),
-        IEEE754Mutations.Mantissa.adapt(),
-        IEEE754Mutations.Exponent.adapt()
+    override fun mutations() = listOf<Mutation<IEEE754Value>>(
+        IEEE754Mutations.ChangeSign,
+        IEEE754Mutations.Mantissa,
+        IEEE754Mutations.Exponent,
     )
 
     override fun equals(other: Any?): Boolean {

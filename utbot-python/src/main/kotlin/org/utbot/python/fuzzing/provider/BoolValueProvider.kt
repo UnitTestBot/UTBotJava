@@ -23,7 +23,7 @@ object BoolValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDe
         yieldBool(Bool.FALSE()) { false }
     }
 
-    private suspend fun <T : KnownValue> SequenceScope<Seed<Type, PythonFuzzedValue>>.yieldBool(value: T, block: T.() -> Boolean) {
+    private suspend fun <T : KnownValue<T>> SequenceScope<Seed<Type, PythonFuzzedValue>>.yieldBool(value: T, block: T.() -> Boolean) {
         yield(Seed.Known(value) {
             PythonFuzzedValue(
                 PythonTree.fromBool(block(it)),

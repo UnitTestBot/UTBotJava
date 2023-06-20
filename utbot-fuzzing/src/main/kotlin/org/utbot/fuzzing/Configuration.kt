@@ -37,17 +37,22 @@ data class Configuration(
     /**
      * Probability of creating shifted array values instead of generating new values for modification.
      */
-    var probCollectionMutationInsteadCreateNew: Int = 50,
+    var probCollectionDuplicationInsteadCreateNew: Int = 10,
+
+    /**
+     * Probability of creating empty collections
+     */
+    var probEmptyCollectionCreation: Int = 1,
 
     /**
      * Probability to prefer change constructor instead of modification.
      */
-    var probConstructorMutationInsteadModificationMutation: Int = 90,
+    var probConstructorMutationInsteadModificationMutation: Int = 30,
 
     /**
-     * Probability to shuffle modification list of the recursive object
+     * Probability to a shuffle modification list of the recursive object
      */
-    var probShuffleAndCutRecursiveObjectModificationMutation: Int = 10,
+    var probShuffleAndCutRecursiveObjectModificationMutation: Int = 30,
 
     /**
      * Probability to prefer create rectangle collections instead of creating saw-like one.
@@ -62,17 +67,7 @@ data class Configuration(
     /**
      * When mutating StringValue a new string will not exceed this value.
      */
-    var maxStringLengthWhenMutated: Int = 64,
-
-    /**
-     * Probability of adding a new character when mutating StringValue
-     */
-    var probStringAddCharacter: Int = 50,
-
-    /**
-     * Probability of removing an old character from StringValue when mutating
-     */
-    var probStringRemoveCharacter: Int = 50,
+    var maxStringLengthWhenMutated: Int = 128,
 
     /**
      * Probability of reusing same generated value when 2 or more parameters have the same type.

@@ -23,8 +23,10 @@ fun String.transformQuotationMarks(): String {
 }
 
 fun String.transformRawString(): String {
-    return if (Pattern.matches("r\".*\"", this) || Pattern.matches("r'.*'", this)) {
-        this.drop(2).dropLast(1)
+    val rawStringWithDoubleQuotationMarks = this.startsWith("r\"") && this.endsWith("\"")
+    val rawStringWithOneQuotationMarks = this.startsWith("r'") && this.endsWith("'")
+    return if (rawStringWithOneQuotationMarks || rawStringWithDoubleQuotationMarks) {
+        this.substring(2, this.length-1)
     } else {
         this
     }

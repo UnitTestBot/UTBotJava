@@ -23,19 +23,28 @@ fun String.transformQuotationMarks(): String {
 }
 
 fun String.transformRawString(): String {
-    val rawStringWithDoubleQuotationMarks = this.startsWith("r\"") && this.endsWith("\"")
-    val rawStringWithOneQuotationMarks = this.startsWith("r'") && this.endsWith("'")
-    return if (rawStringWithOneQuotationMarks || rawStringWithDoubleQuotationMarks) {
+    return if (this.isRawString()) {
         this.substring(2, this.length-1)
     } else {
         this
     }
 }
 
+fun String.isRawString(): Boolean {
+    val rawStringWithDoubleQuotationMarks = this.startsWith("r\"") && this.endsWith("\"")
+    val rawStringWithOneQuotationMarks = this.startsWith("r'") && this.endsWith("'")
+    return rawStringWithOneQuotationMarks || rawStringWithDoubleQuotationMarks
+}
+
 fun String.isPattern(): Boolean {
-    return try {
-        Pattern.compile(this); true
-    } catch (_: PatternSyntaxException) {
-        false
-    }
+    return if (this.isRawString()) {
+        val stringContent = this.transformRawString()
+        if (stringContent.isNotBlank()) {
+            try {
+                Pattern.compile(stringContent); true
+            } catch (_: PatternSyntaxException) {
+                false
+            }
+        } else false
+    } else false
 }

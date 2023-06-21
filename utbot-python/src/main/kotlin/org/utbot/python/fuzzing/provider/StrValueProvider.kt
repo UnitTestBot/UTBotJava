@@ -22,16 +22,22 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
         return type.pythonTypeName() == pythonStrClassId.canonicalName
     }
 
-    private fun getStrConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<String> {
+    private fun getConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<String> {
         return concreteValues
             .filter { accept(it.type) }
-            .map {
-                val value = it.value as String
-                value.transformRawString()
-            }
-            .map {
-                it.transformQuotationMarks()
-            }
+            .map { it.value as String }
+    }
+
+    private fun getStrConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<String> {
+        return getConstants(concreteValues)
+            .filterNot { it.isPattern() }
+            .map { it.transformQuotationMarks() }
+    }
+
+    private fun getRegexConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<String> {
+        return getConstants(concreteValues)
+            .filter { it.isPattern() }
+            .map { it.transformRawString().transformQuotationMarks() }
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
@@ -42,13 +48,10 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
         )
         strConstants.forEach { yieldStrings(StringValue(it)) { value } }
 
-        strConstants
-            .filter {
-                it.isPattern()
-            }
-            .forEach {
-                yieldStrings(RegexValue(it, description.random), StringValue::value)
-            }
+        val regexConstants = getRegexConstants(description.concreteValues)
+        regexConstants.forEach {
+            yieldStrings(RegexValue(it, description.random), StringValue::value)
+        }
     }
 
     private suspend fun <T : KnownValue<T>> SequenceScope<Seed<Type, PythonFuzzedValue>>.yieldStrings(value: T, block: T.() -> Any) {

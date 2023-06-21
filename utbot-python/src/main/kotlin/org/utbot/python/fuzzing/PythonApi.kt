@@ -12,6 +12,7 @@ import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.Type
+import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
@@ -27,6 +28,7 @@ class PythonMethodDescription(
     val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
     val pythonTypeStorage: PythonTypeStorage,
     val tracer: Trie<Instruction, *>,
+    val random: Random,
 ) : Description<Type>(parameters)
 
 sealed interface FuzzingExecutionFeedback

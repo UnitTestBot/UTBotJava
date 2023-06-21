@@ -25,6 +25,7 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
+import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
@@ -290,7 +291,8 @@ class PythonEngine(
                 parameters,
                 fuzzedConcreteValues,
                 pythonTypeStorage,
-                Trie(Instruction::id)
+                Trie(Instruction::id),
+                Random(0),
             )
 
             if (parameters.isEmpty()) {

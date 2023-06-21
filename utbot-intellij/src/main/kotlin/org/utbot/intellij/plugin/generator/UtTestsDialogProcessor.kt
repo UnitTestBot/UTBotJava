@@ -25,6 +25,7 @@ import com.intellij.task.ProjectTaskManager
 import com.intellij.task.impl.ModuleBuildTaskImpl
 import com.intellij.task.impl.ModuleFilesBuildTaskImpl
 import com.intellij.task.impl.ProjectTaskList
+import com.intellij.util.PathsList
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.containers.nullize
@@ -189,8 +190,8 @@ object UtTestsDialogProcessor {
             .all()
             .thenAsync { compile(project, filesToCompile, springConfigClass) }
 
-        compilationPromise.onSuccess {
-            if (it.hasErrors() || it.isAborted)
+        compilationPromise.onSuccess { task ->
+            if (task.hasErrors() || task.isAborted)
                 return@onSuccess
 
             (object : Task.Backgroundable(project, "Generate tests") {
@@ -215,7 +216,15 @@ object UtTestsDialogProcessor {
                         updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
 
                         val buildPaths = ReadAction
-                            .nonBlocking<BuildPaths?> { findPaths(model.srcClasses, springConfigClass) }
+                            .nonBlocking<BuildPaths?> {
+                                findPaths(listOf(findSrcModule(model.srcClasses)) + when (model.projectType) {
+                                    Spring -> listOfNotNull(
+                                        model.testModule, // needed so we can use `TestContextManager` from `spring-test`
+                                        springConfigClass?.let { it.module ?: error("Module for Spring configuration class not found") }
+                                    )
+                                    else -> emptyList()
+                                })
+                            }
                             .executeSynchronously()
                             ?: return
 
@@ -546,22 +555,18 @@ object UtTestsDialogProcessor {
         }
     }
 
-    private fun findPaths(srcClasses: Set<PsiClass>, springConfigPsiClass: PsiClass?): BuildPaths? {
-        val srcModule = findSrcModule(srcClasses)
-        val springConfigModule = springConfigPsiClass?.let { it.module ?: error("Module for spring configuration class not found") }
-
-        val buildDirs = CompilerPaths.getOutputPaths(setOfNotNull(
-            srcModule, springConfigModule
-        ).toTypedArray())
+    private fun findPaths(modules: List<Module>): BuildPaths? {
+        val buildDirs = CompilerPaths.getOutputPaths(modules.distinct().toTypedArray())
             .toList()
             .filter { Paths.get(it).exists() }
             .nullize() ?: return null
 
-        val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
+        val pathsList = PathsList()
 
-        springConfigModule?.takeIf { it != srcModule }?.let { module ->
-            pathsList.addAll(OrderEnumerator.orderEntries(module).recursively().pathsList.pathList)
-        }
+        modules
+            .distinct()
+            .map { module -> OrderEnumerator.orderEntries(module).recursively().pathsList }
+            .forEach { pathsList.addAll(it.pathList) }
 
         val (classpath, classpathList) = if (IntelliJApiHelper.isAndroidStudio()) {
             // Filter out manifests from classpath.

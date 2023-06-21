@@ -17,6 +17,7 @@ import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
+import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utbot.python.utils.*
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
@@ -234,7 +235,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             pythonFilePath = sourceFile.toAbsolutePath(),
             pythonFileContent = sourceFileContent,
             directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() }.toSet(),
-            currentPythonModule = currentPythonModule,
+            currentPythonModule = currentPythonModule.dropInitFile(),
             pythonMethods = pythonMethods,
             containingClassName = pythonClass,
             timeout = timeout,

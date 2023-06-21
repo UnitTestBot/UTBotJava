@@ -38,7 +38,7 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
         val strConstants = getStrConstants(description.concreteValues) + listOf(
             "pythön",
             "foo",
-            "\t\n\r",
+            "",
         )
         strConstants.forEach { yieldStrings(StringValue(it)) { value } }
 

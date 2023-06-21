@@ -16,7 +16,6 @@ import org.utbot.python.fuzzing.provider.utils.transformQuotationMarks
 import org.utbot.python.fuzzing.provider.utils.transformRawString
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
-import kotlin.random.Random
 
 object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
@@ -48,7 +47,7 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
                 it.isPattern()
             }
             .forEach {
-                yieldStrings(RegexValue(it, Random(0)), StringValue::value)
+                yieldStrings(RegexValue(it, description.random), StringValue::value)
             }
     }
 

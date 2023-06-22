@@ -36,7 +36,8 @@ jobs:
 
   publish-cli-image:
     needs: build-and-run-tests
-    if: ${{ github.event_name == 'push' }}
+    # The line is commented for testing.
+    # if: ${{ github.event_name == 'push' }}
     strategy:
       fail-fast: false  # force to execute all jobs even though some of them have failed
       matrix:
@@ -51,6 +52,9 @@ jobs:
           #   ERROR: unexpected status: 403 Forbidden
           - image_name: utbot_py_cli
             directory: utbot-cli-python
+            extra_options: ""
+          - image_name: utbot_go_cli
+            directory: utbot-cli-go
             extra_options: ""
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0

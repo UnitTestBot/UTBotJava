@@ -12,10 +12,6 @@ interface ContextWrapper {
     fun resolveRepositories(beanNames: Set<String>): Set<RepositoryDescription>
 }
 
-data class SimpleBeanDefinition(
-    val beanName: String,
-    val bean: Any,
-)
 data class RepositoryDescription(
     val beanName: String,
     val repositoryName: String,

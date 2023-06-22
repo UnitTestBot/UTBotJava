@@ -98,7 +98,8 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         }
         call("getRelevantSpringRepositories", GetSpringRepositoriesParams, GetSpringRepositoriesResult).apply {
             async
-            documentation = "Get Spring repositories by bean names (requires Spring instrumentation)"
+            documentation = "Gets a list of [SpringRepositoryId]s that class specified by the [ClassId]" +
+                    " (possibly indirectly) depends on (requires Spring instrumentation)"
         }
     }
 }

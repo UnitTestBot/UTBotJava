@@ -1,11 +1,14 @@
 package org.utbot.spring.context
 
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.warn
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.data.repository.CrudRepository
 import org.utbot.spring.api.context.ContextWrapper
 import org.utbot.spring.api.context.RepositoryDescription
-import org.utbot.spring.api.context.SimpleBeanDefinition
+
+private val logger = getLogger<SpringContextWrapper>()
 
 class SpringContextWrapper(override val context: ConfigurableApplicationContext) : ContextWrapper {
 
@@ -60,20 +63,27 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
 
         for (repositoryBean in repositoryBeans) {
             val repositoryClass = repositoryBean.bean::class.java
-            val repositoryName = repositoryClass
+            val repositoryClassName = repositoryClass
                 .interfaces
                 .filterNot { it.name.startsWith(springClassPrefix) }
                 .map { it.name }
                 .firstOrNull()
 
-            val entity = RepositoryUtils.getEntity(repositoryClass)
+            val entity = RepositoryUtils.getEntityClass(repositoryClass)
 
-            if (!repositoryName.isNullOrEmpty() && !entity?.name.isNullOrEmpty()) {
+            if (!repositoryClassName.isNullOrEmpty() && !entity?.name.isNullOrEmpty()) {
                 entity?.let {
-                    val beanName = repositoryBean.beanName
-                    val entityName = entity.name
-                    val tableName = getTableName(entity)
-                    descriptions += RepositoryDescription(beanName, repositoryName, entityName, tableName)
+                    descriptions += RepositoryDescription(
+                        beanName = repositoryBean.beanName,
+                        repositoryName = repositoryClassName,
+                        entityName = entity.name,
+                        tableName = getTableName(entity),
+                    )
+                }
+            } else {
+                logger.warn {
+                    "Bean named ${repositoryBean.beanName} as recognized as repository bean, but " +
+                            "repository class name is $repositoryClassName and entity name is ${entity?.name}"
                 }
             }
         }
@@ -89,4 +99,9 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
         }
 
     private fun getTableName(entity: Class<*>): String = entity.simpleName.decapitalize() + "s"
+
+    data class SimpleBeanDefinition(
+        val beanName: String,
+        val bean: Any,
+    )
 }

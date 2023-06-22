@@ -23,7 +23,7 @@ class AccessibleTypesAnalyzer {
 
         var current: Class<*> = clazz
         while (current.superclass != null) {
-            objects.addAll(current.fields.mapNotNull {
+            objects.addAll(current.declaredFields.mapNotNull {
                 it.get(obj)
             }.flatMap {
                 listOf(it) + collectFromObject(it, analyzedObjects)

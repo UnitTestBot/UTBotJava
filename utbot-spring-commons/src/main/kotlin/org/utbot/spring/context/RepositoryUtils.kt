@@ -11,7 +11,7 @@ import org.springframework.data.repository.CrudRepository
  */
 object RepositoryUtils {
 
-    fun getEntity(repositoryClass: Class<*>): Class<*>? =
+    fun getEntityClass(repositoryClass: Class<*>): Class<*>? =
         getGenericType(repositoryClass, CrudRepository::class.java, 0)
 
     private fun getGenericType(classInstance: Class<*>, classToGetGenerics: Class<*>, genericPosition: Int): Class<*>? {

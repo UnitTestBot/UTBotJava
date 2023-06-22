@@ -14,6 +14,13 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
 
     private val springClassPrefix = "org.springframework"
 
+    private val isCrudRepositoryOnClasspath = try {
+        CrudRepository::class.java.name
+        true
+    } catch (e: ClassNotFoundException) {
+        false
+    }
+
     override fun getBean(beanName: String): Any = context.getBean(beanName)
 
     override fun getDependenciesForBean(beanName: String): Set<String> {
@@ -48,6 +55,7 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
     }
 
     override fun resolveRepositories(beanNames: Set<String>): Set<RepositoryDescription> {
+        if (!isCrudRepositoryOnClasspath) return emptySet()
         val repositoryBeans = beanNames
             .map { beanName -> SimpleBeanDefinition(beanName, getBean(beanName)) }
             .filter { beanDef -> describesRepository(beanDef.bean) }
@@ -60,24 +68,23 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
             val repositoryClassName = repositoryClass
                 .interfaces
                 .filterNot { it.name.startsWith(springClassPrefix) }
+                .filter { CrudRepository::class.java.isAssignableFrom(it) }
                 .map { it.name }
-                .firstOrNull()
+                .firstOrNull() ?: CrudRepository::class.java.name
 
             val entity = RepositoryUtils.getEntityClass(repositoryClass)
 
-            if (!repositoryClassName.isNullOrEmpty() && !entity?.name.isNullOrEmpty()) {
-                entity?.let {
-                    descriptions += RepositoryDescription(
-                        beanName = repositoryBean.beanName,
-                        repositoryName = repositoryClassName,
-                        entityName = entity.name,
-                        tableName = getTableName(entity),
-                    )
-                }
+            if (entity != null) {
+                descriptions += RepositoryDescription(
+                    beanName = repositoryBean.beanName,
+                    repositoryName = repositoryClassName,
+                    entityName = entity.name,
+                    tableName = getTableName(entity),
+                )
             } else {
                 logger.warn {
-                    "Bean named ${repositoryBean.beanName} as recognized as repository bean, but " +
-                            "repository class name is $repositoryClassName and entity name is ${entity?.name}"
+                    "Failed to get entity class for bean ${repositoryBean.beanName} " +
+                            "that was recognised as a repository of type $repositoryClassName"
                 }
             }
         }

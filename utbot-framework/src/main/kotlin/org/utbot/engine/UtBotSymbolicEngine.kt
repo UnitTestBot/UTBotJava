@@ -46,7 +46,7 @@ import org.utbot.fuzzing.spring.SavedEntityProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.getSpringRepositories
+import org.utbot.instrumentation.getRelevantSpringRepositories
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -389,7 +389,7 @@ class UtBotSymbolicEngine(
             .letIf(applicationContext is SpringApplicationContext
                         && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
             ) { provider ->
-                val relevantRepositories = concreteExecutor.getSpringRepositories(methodUnderTest.classId)
+                val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
                 val generatedValueFieldIds = relevantRepositories.map {
                     repository -> FieldId(repository.entityClassId, "id")
                 }

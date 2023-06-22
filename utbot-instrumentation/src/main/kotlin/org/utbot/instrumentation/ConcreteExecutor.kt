@@ -282,7 +282,7 @@ fun ConcreteExecutor<*,*>.warmup() = runBlocking {
     }
 }
 
-fun ConcreteExecutor<*,*>.getSpringRepositories(classId: ClassId): Set<SpringRepositoryId> = runBlocking {
+fun ConcreteExecutor<*, *>.getRelevantSpringRepositories(classId: ClassId): Set<SpringRepositoryId> = runBlocking {
     withProcess {
         val classId = kryoHelper.writeObject(classId)
         val params = GetSpringRepositoriesParams(classId)

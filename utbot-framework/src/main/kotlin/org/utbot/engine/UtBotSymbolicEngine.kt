@@ -50,7 +50,6 @@ import org.utbot.instrumentation.getSpringRepositories
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.instrumentation.process.generated.GetSpringRepositoriesParams
 import org.utbot.taint.*
 import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
@@ -395,7 +394,7 @@ class UtBotSymbolicEngine(
                     repository -> FieldId(repository.entityClassId, "id")
                 }
 
-                logger.info { "Relevant repositories: $relevantRepositories" }
+                logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
                 val springBeanValueProvider = SpringBeanValueProvider(
                     defaultIdGenerator,

@@ -2,6 +2,7 @@ package org.utbot.instrumentation.instrumentation.execution
 
 import org.utbot.common.JarUtils
 import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.info
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringRepositoryId
@@ -60,7 +61,7 @@ class SpringUtExecutionInstrumentation(
     ): UtConcreteExecutionResult {
         RepositoryInteraction.recordedInteractions.clear()
 
-        val beanNamesToReset: Set<String> = relatedBeansCache.getOrPut(clazz) { getRelevantBeanNames(clazz) }
+        val beanNamesToReset: Set<String> = getRelevantBeanNames(clazz)
         val repositoryDefinitions = springContext.resolveRepositories(beanNamesToReset)
 
         beanNamesToReset.forEach { beanName -> springContext.resetBean(beanName) }
@@ -81,11 +82,13 @@ class SpringUtExecutionInstrumentation(
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters)
     }
 
-    private fun getRelevantBeanNames(clazz: Class<*>): Set<String> =
+    private fun getRelevantBeanNames(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
         beanDefinitions
             .filter { it.beanTypeFqn == clazz.name }
             .flatMap { springContext.getDependenciesForBean(it.beanName) }
             .toSet()
+            .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
+    }
 
     fun getBean(beanName: String): Any = springContext.getBean(beanName)
 

@@ -29,20 +29,14 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
             return emptySet()
         }
 
-        val namedBeans = mutableSetOf<String>()
-        namedBeans += beanName
         analyzedBeanNames.add(beanName)
-
 
         val dependencyBeanNames = context.beanFactory
             .getDependenciesForBean(beanName)
-            .filter { it in  context.beanDefinitionNames }
+            .filter { it in context.beanDefinitionNames } // filters out inner beans
             .toSet()
 
-        namedBeans += dependencyBeanNames
-        dependencyBeanNames.flatMap { dependencyBeanName -> getDependenciesForBean(dependencyBeanName) }
-
-        return namedBeans
+        return setOf(beanName) + dependencyBeanNames.flatMap { getDependenciesForBean(it) }
     }
 
     override fun resetBean(beanName: String) {

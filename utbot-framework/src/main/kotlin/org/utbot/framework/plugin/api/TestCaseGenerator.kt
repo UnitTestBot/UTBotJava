@@ -31,7 +31,6 @@ import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.minimization.minimizeTestCase
 import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.util.Conflict
@@ -121,17 +120,18 @@ open class TestCaseGenerator(
         }
     }
 
-    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
-        if (applicationContext is SpringApplicationContext)
-            return minimizeTestCase(executions.filterCoveredInstructions()) { it.result::class.java }
-
-        return when (UtSettings.testMinimizationStrategyType) {
+    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
+        when (UtSettings.testMinimizationStrategyType) {
             TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
-            TestSelectionStrategyType.COVERAGE_STRATEGY -> minimizeTestCase(executions) { it.result::class.java }
-            TestSelectionStrategyType.USER_INSTRUCTION_COVERAGE_ONLY_STRATEGY ->
-                minimizeTestCase(executions.filterCoveredInstructions()) { it.result::class.java }
+            TestSelectionStrategyType.COVERAGE_STRATEGY ->
+                minimizeTestCase(
+                    when (applicationContext) {
+                        is SpringApplicationContext -> executions.filterCoveredInstructions()
+                        else -> executions
+                    }
+                )
+                { it.result::class.java }
         }
-    }
 
     @Throws(CancellationException::class)
     fun generateAsync(
@@ -362,26 +362,22 @@ open class TestCaseGenerator(
     }
 
     private fun List<UtExecution>.filterCoveredInstructions(): List<UtExecution> {
-        // Do nothing when we launched not from IDEA
-        if (buildDirs.isEmpty()) return this
+        // Do nothing when we were launched not from IDEA or when there are no executions
+        if (buildDirs.isEmpty() || this.isEmpty()) return this
 
+        // List of annotations that we want to find in execution instructions
+        // in order to exclude such instructions for some reason
+        // E.g. we exclude instructions (which classes have @Entity) when it is not a class under test
+        // because we are not interested in coverage which was possibly produced by Spring itself
         val annotationsToIgnore =
             listOfNotNull(utContext.classLoader.tryLoadClass(entityClassId.name))
 
-        val urls = buildDirs.map { it.toURL() }.toTypedArray()
-
-        val buildDirsClassLoader = URLClassLoader(urls, null)
-
+        val buildDirsClassLoader = createBuildDirsClassLoader()
         val isClassOnUserClasspathCache = mutableMapOf<String, Boolean>()
-        fun isClassOnUserClasspath(fullyQualifiedName: String): Boolean =
-            isClassOnUserClasspathCache.getOrPut(fullyQualifiedName) {
-                val resName = fullyQualifiedName.replace(".", "/").plus(".class")
-                buildDirsClassLoader.findResource(resName) != null
-            }
 
         // Here we filter out instructions from third-party libraries
         // Also, we filter out instructions that operate
-        // in classes marked with annotation from [annotationsToIgnore]
+        // in classes marked with annotations from [annotationsToIgnore]
         // and in standard java libs
         return this.map { execution ->
             val coverage = execution.coverage ?: return@map execution
@@ -389,34 +385,23 @@ open class TestCaseGenerator(
             val filteredCoveredInstructions =
                 coverage.coveredInstructions
                     .filter { instruction ->
-                        val instrClassName = instruction.className.replace('/', '.')
+                        val instrClassFqn =
+                            instruction.className
+                                .also {
+                                    val isInstrClassOnClassPath =
+                                        isClassOnUserClasspathCache.getOrPut(it) {
+                                            buildDirsClassLoader.findResource(it.plus(".class")) != null
+                                        }
+                                    if (!isInstrClassOnClassPath) return@filter false
+                                }
+                                .replace('/', '.')
 
                         // We do not want to filter out instructions that are in class under test
-                        if (execution.stateAfter.thisInstance?.classId?.jClass?.canonicalName == instrClassName ||
-                            execution.stateBefore.thisInstance?.classId?.jClass?.canonicalName == instrClassName
-                        ) {
-                            return@filter true
-                        }
+                        if (execution.thisInstanceClassNameMatchesWith(instrClassFqn)) return@filter true
 
-                        if (!isClassOnUserClasspath(instrClassName)) return@filter false
-
-                        // We do not want to take instructions in classes marked as @Entity
-                        if (annotationsToIgnore.isNotEmpty()) {
-                            val hasEntityAnnotation =
-                                utContext
-                                    .classLoader
-                                    .loadClass(instrClassName)
-                                    .annotations
-                                    .any { annotation ->
-                                        annotationsToIgnore.any { annotationToIgnore ->
-                                            annotationToIgnore.isInstance(annotation)
-                                        }
-                                    }
-
-                            if (hasEntityAnnotation) return@filter false
-                        }
-
-                        return@filter true
+                        // We do not want to take instructions in classes
+                        // marked with annotations from [annotationsToIgnore]
+                        return@filter !hasAnnotations(instrClassFqn, annotationsToIgnore)
                     }
                     .ifEmpty {
                         coverage.coveredInstructions
@@ -434,6 +419,27 @@ open class TestCaseGenerator(
             )
         }
     }
+
+    private fun UtExecution.thisInstanceClassNameMatchesWith(name: String): Boolean {
+        return this.stateBefore.thisInstance?.classId?.name == name ||
+                this.stateAfter.thisInstance?.classId?.name == name
+    }
+
+    private fun createBuildDirsClassLoader(): URLClassLoader {
+        val urls = buildDirs.map { it.toURL() }.toTypedArray()
+        return URLClassLoader(urls, null)
+    }
+
+    private fun hasAnnotations(className: String, annotations: List<Class<*>>): Boolean =
+        utContext
+            .classLoader
+            .loadClass(className)
+            .annotations
+            .any { existingAnnotation ->
+                annotations.any { annotation ->
+                    annotation.isInstance(existingAnnotation)
+                }
+            }
 }
 
 

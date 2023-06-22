@@ -23,7 +23,7 @@ object RepositoryUtils {
         return null
     }
 
-    private fun getGenericType(classInstance: Class<*>?, classToGetGenerics: Class<*>): Array<Class<*>?>? {
+    private fun getGenericType(classInstance: Class<*>, classToGetGenerics: Class<*>): Array<Class<*>?>? {
         return GenericTypeResolver.resolveTypeArguments(classInstance, classToGetGenerics)
     }
 }

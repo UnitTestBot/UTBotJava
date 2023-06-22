@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.util
 
+import org.utbot.common.withAccessibility
 import java.util.IdentityHashMap
 
 class AccessibleTypesAnalyzer {
@@ -24,7 +25,7 @@ class AccessibleTypesAnalyzer {
         var current: Class<*> = clazz
         while (current.superclass != null) {
             objects.addAll(current.declaredFields.mapNotNull {
-                it.get(obj)
+                it.withAccessibility { get(obj) }
             }.flatMap {
                 listOf(it) + collectFromObject(it, analyzedObjects)
             })

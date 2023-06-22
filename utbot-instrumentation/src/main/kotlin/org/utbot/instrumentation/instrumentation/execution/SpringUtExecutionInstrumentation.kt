@@ -26,7 +26,7 @@ class SpringUtExecutionInstrumentation(
 ) : Instrumentation<UtConcreteExecutionResult> by delegateInstrumentation {
     private lateinit var instrumentationContext: SpringInstrumentationContext
 
-    private lateinit var relatedBeansCache: IdentityHashMap<Class<*>, Set<String>>
+    private val relatedBeansCache = mutableMapOf<Class<*>, Set<String>>()
 
     private val springContext: ContextWrapper get() = instrumentationContext.springContext
 
@@ -49,8 +49,6 @@ class SpringUtExecutionInstrumentation(
         instrumentationContext = SpringInstrumentationContext(springConfig)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
-
-        relatedBeansCache = IdentityHashMap<Class<*>, Set<String>>()
     }
 
     override fun invoke(

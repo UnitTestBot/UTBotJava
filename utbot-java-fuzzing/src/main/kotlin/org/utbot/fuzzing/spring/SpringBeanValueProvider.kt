@@ -14,7 +14,7 @@ import org.utbot.fuzzing.providers.nullRoutine
 class SpringBeanValueProvider(
     private val idGenerator: IdGenerator<Int>,
     private val beanNameProvider: (ClassId) -> List<String>,
-    private val relevantRepositories: List<SpringRepositoryId>
+    private val relevantRepositories: Set<SpringRepositoryId>
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {

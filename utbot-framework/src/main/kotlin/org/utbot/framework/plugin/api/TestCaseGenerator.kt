@@ -73,7 +73,11 @@ open class TestCaseGenerator(
                 is TypeReplacementApproach.ReplaceIfPossible ->
                     when (applicationContext.testType) {
                         SpringTestsType.UNIT_TESTS -> UtExecutionInstrumentation
-                        SpringTestsType.INTEGRATION_TESTS -> SpringUtExecutionInstrumentation(UtExecutionInstrumentation, approach.config)
+                        SpringTestsType.INTEGRATION_TESTS -> SpringUtExecutionInstrumentation(
+                                UtExecutionInstrumentation,
+                                approach.config,
+                                applicationContext.beanDefinitions,
+                                )
                     }
                 is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation
             }

@@ -15,6 +15,7 @@ import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInst
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.process.generated.CollectCoverageResult
 import org.utbot.instrumentation.process.generated.GetSpringBeanResult
+import org.utbot.instrumentation.process.generated.GetSpringRepositoriesResult
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
@@ -166,5 +167,10 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
             bean, ClassId(bean.javaClass.name)
         )
         GetSpringBeanResult(kryoHelper.writeObject(model))
+    }
+    watchdog.measureTimeForActiveCall(getRelevantSpringRepositories, "Getting Spring repositories") { params ->
+        val classId: ClassId = kryoHelper.readObject(params.classId)
+        val repositoryDescriptions = (instrumentation as SpringUtExecutionInstrumentation).getRepositoryDescriptions(classId)
+        GetSpringRepositoriesResult(kryoHelper.writeObject(repositoryDescriptions))
     }
 }

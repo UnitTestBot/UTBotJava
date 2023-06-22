@@ -33,7 +33,6 @@ jobs:
 
   publish-cli-image:
     needs: build-and-run-tests
-    # !!! temporary commented
-#    if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' }}
     uses: ./.github/workflows/publish-cli-image-from-branch.yml
     secrets: inherit

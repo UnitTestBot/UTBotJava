@@ -50,7 +50,7 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
             return when  {
                 model.isApplicationContext() -> alreadyCreatedAutowired
                 model.isAutowiredFromContext() -> {
-                    super.constructAssembleForVariable(model as UtAssembleModel, alreadyCreatedAutowired)
+                    super.constructAssembleForVariable(model as UtAssembleModel)
                 }
                 else -> error("Trying to autowire model $model but it is not appropriate")
             }

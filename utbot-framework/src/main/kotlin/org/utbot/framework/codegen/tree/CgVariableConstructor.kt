@@ -207,11 +207,11 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
-        val modelVariable = instantiateAssembleModel(model, baseName)
-        return constructAssembleForVariable(model, modelVariable)
+        instantiateAssembleModel(model, baseName)
+        return constructAssembleForVariable(model)
     }
 
-    private fun instantiateAssembleModel(model: UtAssembleModel, baseName: String?): CgValue {
+    private fun instantiateAssembleModel(model: UtAssembleModel, baseName: String?) {
         val statementCall = model.instantiationCall
         val executable = statementCall.statement
         val params = statementCall.params
@@ -220,27 +220,23 @@ open class CgVariableConstructor(val context: CgContext) :
         val initExpr = if (executable is ConstructorId && isPrimitiveWrapperOrString(model.classId)) {
             cgLiteralForWrapper(params)
         } else {
-            //TODO: why this model is not in the map?
-            val instance = valueByUtModelWrapper[statementCall.instance?.wrap()]
-            createCgExecutableCallFromUtExecutableCall(statementCall, instance)
+            createCgExecutableCallFromUtExecutableCall(statementCall)
         }
 
-        return newVar(model.classId, model, baseName) {
-            initExpr
-        }.also {
-            valueByUtModelWrapper[model.wrap()] = it
-        }
+        newVar(model.classId, model, baseName) { initExpr }
+            .also { valueByUtModelWrapper[model.wrap()] = it }
     }
 
-    protected fun constructAssembleForVariable(model: UtAssembleModel, instance: CgValue): CgValue {
+    protected fun constructAssembleForVariable(model: UtAssembleModel): CgValue {
         for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
+                    val instance = declareOrGet(statementModel.instance)
                     // fields here are supposed to be accessible, so we assign them directly without any checks
                     instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
                 }
                 is UtStatementCallModel -> {
-                    val call = createCgExecutableCallFromUtExecutableCall(statementModel, instance)
+                    val call = createCgExecutableCallFromUtExecutableCall(statementModel)
                     val equivalentFieldAccess = replaceCgExecutableCallWithFieldAccessIfNeeded(call)
                     if (equivalentFieldAccess != null)
                         +equivalentFieldAccess
@@ -253,11 +249,7 @@ open class CgVariableConstructor(val context: CgContext) :
         return valueByUtModelWrapper.getValue(model.wrap())
     }
 
-
-    private fun createCgExecutableCallFromUtExecutableCall(
-        statementModel: UtStatementCallModel,
-        instance: CgValue?,
-        ): CgExecutableCall =
+    private fun createCgExecutableCallFromUtExecutableCall(statementModel: UtStatementCallModel): CgExecutableCall =
         when (statementModel) {
             is UtExecutableCallModel -> {
                 val executable = statementModel.executable
@@ -265,8 +257,9 @@ open class CgVariableConstructor(val context: CgContext) :
 
                 when (executable) {
                     is MethodId -> {
+                        val caller = statementModel.instance?.let { declareOrGet(it) }
                         val args = params.map { declareOrGet(it) }
-                        instance[executable](*args.toTypedArray())
+                        caller[executable](*args.toTypedArray())
                     }
 
                     is ConstructorId -> {
@@ -276,6 +269,7 @@ open class CgVariableConstructor(val context: CgContext) :
                 }
             }
             is UtDirectGetFieldModel -> {
+                val instance = declareOrGet(statementModel.instance)
                 val fieldAccess = statementModel.fieldAccess
                 utilsClassId[getFieldValue](instance, fieldAccess.fieldId.declaringClass.canonicalName, fieldAccess.fieldId.name)
             }

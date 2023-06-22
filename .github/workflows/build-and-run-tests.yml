@@ -10,9 +10,6 @@ on:
       - 'main'
       - 'unit-test-bot/r**'
 
-env:
-  REGISTRY: ghcr.io
-
 jobs:
   build-and-run-tests:
     uses: ./.github/workflows/build-and-run-tests-from-branch.yml
@@ -36,90 +33,7 @@ jobs:
 
   publish-cli-image:
     needs: build-and-run-tests
-    if: ${{ github.event_name == 'push' }}
-    strategy:
-      fail-fast: false  # force to execute all jobs even though some of them have failed
-      matrix:
-        configuration:
-          - image_name: utbot_java_cli
-            directory: utbot-cli
-            extra_options: ""
-          - image_name: utbot_js_cli
-            directory: utbot-cli-js
-            extra_options: "-PbuildType=ALL"
-          # we can't use utbot_python_cli image name because of the bug while pushing image
-          #   ERROR: unexpected status: 403 Forbidden
-          - image_name: utbot_py_cli
-            directory: utbot-cli-python
-            extra_options: ""
-    runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
-    steps:
-    - uses: actions/checkout@v3
-
-    # "You can make an environment variable available to any subsequent steps in a workflow job by
-    # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
-    - name: Set environment variables
-      run: |
-        echo VERSION="$(date +%Y).$(date +%-m)" >> $GITHUB_ENV
-        echo DOCKER_TAG="$(date +%Y).$(date +%-m).$(date +%-d)-$(echo -n ${GITHUB_SHA} | cut -c 1-7)" >> $GITHUB_ENV
-
-    - name: Print environment variables
-      run: printenv
-
-    - name: Build UTBot CLI
-      run: |
-        cd ${{ matrix.configuration.directory }}
-        gradle build --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -x test -PsemVer=${{ env.VERSION }}
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-      with:
-        # fix of containerd issue, see https://github.com/containerd/containerd/issues/7972
-        # could be removed as soon as new containerd version will be released and included in buildkit
-        driver-opts: |
-          image=moby/buildkit:v0.10.6
-
-    - name: Log in to the Container registry
-      uses: docker/login-action@v2
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Cache Docker layers
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ matrix.configuration.image_name }}-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-${{ matrix.configuration.image_name }}-
-
-    - name: Docker meta
-      id: meta
-      uses: docker/metadata-action@v4
-      with:
-        images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.configuration.image_name }}
-        tags: |
-          type=raw,value=${{ env.DOCKER_TAG }}
-
-    - name: Build and push
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: |
-          ${{ steps.meta.outputs.tags }}
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache-new
-        file: ${{ matrix.configuration.directory }}/Dockerfile
-        build-args: |
-          ARTIFACT_PATH=${{ matrix.configuration.directory }}/build/libs/${{ matrix.configuration.directory }}-${{ env.VERSION }}.jar
-
-    # Temp fix
-    # https://github.com/docker/build-push-action/issues/252
-    # https://github.com/moby/buildkit/issues/1896
-    - name: Move cache
-      run: |
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+    # !!! temporary commented
+#    if: ${{ github.event_name == 'push' }}
+    uses: ./.github/workflows/publish-cli-image-from-branch.yml
+    secrets: inherit

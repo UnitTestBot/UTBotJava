@@ -1,4 +1,4 @@
-FROM azul/zulu-openjdk:11.0.15-11.56.19
+FROM azul/zulu-openjdk:17.0.7-17.42.19
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -7,11 +7,18 @@ WORKDIR /usr/src/
 RUN apt-get update \
     && apt-get install -y -q --no-install-recommends \
       curl \
-      python3.9 \
-      python3.9-distutils \
+      gpg-agent \
+      software-properties-common \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y -q --no-install-recommends \
+      python3.10 \
+      python3-distutils \
+    && rm /usr/bin/python3 \
+    && ln -s /usr/bin/python3.10 /usr/bin/python3 \
     && rm -rf /var/lib/apt/lists/* \
     && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
-    && python3.9 get-pip.py \
+    && python3 get-pip.py \
     && pip install -U \
       pytest
 

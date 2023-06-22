@@ -10,17 +10,18 @@ import org.utbot.spring.api.context.SimpleBeanDefinition
 class SpringContextWrapper(override val context: ConfigurableApplicationContext) : ContextWrapper {
 
     private val springClassPrefix = "org.springframework"
-    private val beanDefinitionNames = context.beanDefinitionNames
-    private val analyzedBeanNames = mutableSetOf<String>()
 
     override fun getBean(beanName: String): Any = context.getBean(beanName)
 
     override fun getDependenciesForBean(beanName: String): Set<String> {
-        analyzedBeanNames.clear()
-        return getDependenciesForBeanInternal(beanName)
+        val analyzedBeanNames = mutableSetOf<String>()
+        return getDependenciesForBeanInternal(beanName, analyzedBeanNames)
     }
 
-    private fun getDependenciesForBeanInternal(beanName: String): Set<String> {
+    private fun getDependenciesForBeanInternal(
+        beanName: String,
+        analyzedBeanNames: MutableSet<String>,
+        ): Set<String> {
         if (beanName in analyzedBeanNames) {
             return emptySet()
         }
@@ -32,13 +33,11 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
 
         val dependencyBeanNames = context.beanFactory
             .getDependenciesForBean(beanName)
-            .filter { it in beanDefinitionNames }
+            .filter { it in  context.beanDefinitionNames }
             .toSet()
 
         namedBeans += dependencyBeanNames
-        for (dependencyBeanName in dependencyBeanNames) {
-            namedBeans += getDependenciesForBean(dependencyBeanName)
-        }
+        dependencyBeanNames.flatMap { dependencyBeanName -> getDependenciesForBean(dependencyBeanName) }
 
         return namedBeans
     }
@@ -82,7 +81,12 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
         return descriptions
     }
 
-    private fun describesRepository(bean: Any): Boolean = bean is CrudRepository<*, *>
+    private fun describesRepository(bean: Any): Boolean =
+        try {
+            bean is CrudRepository<*, *>
+        } catch (e: ClassNotFoundException) {
+            false
+        }
 
     private fun getTableName(entity: Class<*>): String = entity.simpleName.decapitalize() + "s"
 }

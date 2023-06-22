@@ -286,9 +286,9 @@ fun ConcreteExecutor<*,*>.getSpringRepositories(classId: ClassId): Set<SpringRep
     withProcess {
         val classId = kryoHelper.writeObject(classId)
         val params = GetSpringRepositoriesParams(classId)
-        val result = instrumentedProcessModel.getSpringRepositories.startSuspending(lifetime, params)
+        val result = instrumentedProcessModel.getRelevantSpringRepositories.startSuspending(lifetime, params)
 
-        kryoHelper.readObject(result.repositoryDescriptions)
+        kryoHelper.readObject(result.springRepositoryIds)
     }
 }
 

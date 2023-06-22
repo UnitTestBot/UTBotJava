@@ -54,7 +54,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
     }
 
     val GetSpringRepositoriesResult = structdef {
-        field("repositoryDescriptions", array(PredefinedType.byte))
+        field("springRepositoryIds", array(PredefinedType.byte))
     }
 
     init {
@@ -96,7 +96,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
             async
             documentation = "Gets Spring bean by name (requires Spring instrumentation)"
         }
-        call("GetSpringRepositories", GetSpringRepositoriesParams, GetSpringRepositoriesResult).apply {
+        call("getRelevantSpringRepositories", GetSpringRepositoriesParams, GetSpringRepositoriesResult).apply {
             async
             documentation = "Get Spring repositories by bean names (requires Spring instrumentation)"
         }

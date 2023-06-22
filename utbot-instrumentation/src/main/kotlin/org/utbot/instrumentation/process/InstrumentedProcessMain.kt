@@ -168,7 +168,7 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         )
         GetSpringBeanResult(kryoHelper.writeObject(model))
     }
-    watchdog.measureTimeForActiveCall(getSpringRepositories, "Getting Spring repositories") { params ->
+    watchdog.measureTimeForActiveCall(getRelevantSpringRepositories, "Getting Spring repositories") { params ->
         val classId: ClassId = kryoHelper.readObject(params.classId)
         val repositoryDescriptions = (instrumentation as SpringUtExecutionInstrumentation).getRepositoryDescriptions(classId)
         GetSpringRepositoriesResult(kryoHelper.writeObject(repositoryDescriptions))

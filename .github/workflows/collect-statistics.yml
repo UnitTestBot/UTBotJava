@@ -1,4 +1,4 @@
-name: "UTBot Java: collect statistics"
+name: "[M] UTBot Java: collect statistics"
 
 on:
   workflow_call:

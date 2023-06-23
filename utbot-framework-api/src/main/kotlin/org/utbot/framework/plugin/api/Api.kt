@@ -91,7 +91,9 @@ data class Step(
         other as Step
 
         if (stmt != other.stmt) return false
-        return decision == other.decision
+        if (decision != other.decision) return false
+
+        return true
     }
 
     override fun hashCode(): Int {
@@ -495,7 +497,9 @@ data class UtArrayModel(
 
         other as UtArrayModel
 
-        return id == other.id
+        if (id != other.id) return false
+
+        return true
     }
 
     override fun hashCode(): Int = id
@@ -634,7 +638,9 @@ class UtLambdaModel(
 
         other as UtLambdaModel
 
-        return id == other.id
+        if (id != other.id) return false
+
+        return true
     }
 
     override fun hashCode(): Int = id
@@ -656,13 +662,7 @@ object UtSpringContextModel : UtReferenceModel(
     id = null,
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
-) {
-    // NOTE that overriding equals is required just because without it
-    // we will lose equality for objects after deserialization
-    override fun equals(other: Any?): Boolean = other is UtSpringContextModel
-
-    override fun hashCode(): Int = 0
-}
+)
 
 data class SpringRepositoryId(
     val repositoryBeanName: String,
@@ -1058,7 +1058,9 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         other as FieldId
 
         if (declaringClass != other.declaringClass) return false
-        return name == other.name
+        if (name != other.name) return false
+
+        return true
     }
 
     override fun hashCode(): Int {
@@ -1227,7 +1229,9 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList()) {
 
         other as TypeParameters
 
-        return parameters == other.parameters
+        if (parameters != other.parameters) return false
+
+        return true
     }
 
     override fun hashCode(): Int {

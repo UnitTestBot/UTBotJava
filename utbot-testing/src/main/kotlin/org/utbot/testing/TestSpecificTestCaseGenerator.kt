@@ -100,7 +100,7 @@ class TestSpecificTestCaseGenerator(
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 
-        val minimizedExecutions = super.minimizeExecutions(executions)
+        val minimizedExecutions = super.minimizeExecutions(method.classId, executions)
         return UtMethodTestSet(method, minimizedExecutions, jimpleBody(method), errors)
     }
 }

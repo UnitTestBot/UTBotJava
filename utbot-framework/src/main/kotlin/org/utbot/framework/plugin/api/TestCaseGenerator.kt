@@ -120,13 +120,13 @@ open class TestCaseGenerator(
         }
     }
 
-    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
+    fun minimizeExecutions(classUnderTestId: ClassId, executions: List<UtExecution>): List<UtExecution> =
         when (UtSettings.testMinimizationStrategyType) {
             TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
             TestSelectionStrategyType.COVERAGE_STRATEGY ->
                 minimizeTestCase(
                     when (applicationContext) {
-                        is SpringApplicationContext -> executions.filterCoveredInstructions()
+                        is SpringApplicationContext -> executions.filterCoveredInstructions(classUnderTestId)
                         else -> executions
                     }
                 )
@@ -278,7 +278,7 @@ open class TestCaseGenerator(
         return methods.map { method ->
             UtMethodTestSet(
                 method,
-                minimizeExecutions(method2executions.getValue(method)),
+                minimizeExecutions(method.classId, method2executions.getValue(method)),
                 jimpleBody(method),
                 method2errors.getValue(method)
             )
@@ -361,7 +361,7 @@ open class TestCaseGenerator(
         }
     }
 
-    private fun List<UtExecution>.filterCoveredInstructions(): List<UtExecution> {
+    private fun List<UtExecution>.filterCoveredInstructions(classUnderTestId: ClassId): List<UtExecution> {
         // Do nothing when we were launched not from IDEA or when there are no executions
         if (buildDirs.isEmpty() || this.isEmpty()) return this
 
@@ -397,7 +397,7 @@ open class TestCaseGenerator(
                                 .replace('/', '.')
 
                         // We do not want to filter out instructions that are in class under test
-                        if (execution.thisInstanceClassNameMatchesWith(instrClassFqn)) return@filter true
+                        if (instrClassFqn == classUnderTestId.name) return@filter true
 
                         // We do not want to take instructions in classes
                         // marked with annotations from [annotationsToIgnore]
@@ -418,11 +418,6 @@ open class TestCaseGenerator(
                 )
             )
         }
-    }
-
-    private fun UtExecution.thisInstanceClassNameMatchesWith(name: String): Boolean {
-        return this.stateBefore.thisInstance?.classId?.name == name ||
-                this.stateAfter.thisInstance?.classId?.name == name
     }
 
     private fun createBuildDirsClassLoader(): URLClassLoader {

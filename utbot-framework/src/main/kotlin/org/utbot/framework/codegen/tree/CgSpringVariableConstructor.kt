@@ -14,7 +14,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
-import org.utbot.framework.plugin.api.util.SpringModelUtils.isApplicationContext
 
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
     val annotatedModelVariables: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
@@ -48,7 +47,6 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
         val alreadyCreatedAutowired = findCgValueByModel(model, annotatedModelVariables[autowiredClassId])
         if (alreadyCreatedAutowired != null) {
             return when  {
-                model.isApplicationContext() -> alreadyCreatedAutowired
                 model.isAutowiredFromContext() -> {
                     super.constructAssembleForVariable(model as UtAssembleModel)
                 }
@@ -57,17 +55,17 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
         }
 
         return when (model) {
-            is UtSpringContextModel -> createApplicationContextVariable(model, name)
+            is UtSpringContextModel -> createApplicationContextVariable()
             else -> super.getOrCreateVariable(model, name)
         }
     }
 
-    private fun createApplicationContextVariable(model: UtSpringContextModel, baseName: String?): CgValue =
-        newVar(model.classId, baseName) {
+    private fun createApplicationContextVariable(): CgValue =
+        newVar(UtSpringContextModel.classId) {
             //TODO: this init statement is useless, but the refactoring is required to avoid it.
-            utilsClassId[createInstance](model.classId.name)
+            utilsClassId[createInstance](UtSpringContextModel.classId.name)
         }.also {
-            valueByUtModelWrapper[model.wrap()] = it
+            valueByUtModelWrapper[UtSpringContextModel.wrap()] = it
         }
 
     private fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {

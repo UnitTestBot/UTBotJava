@@ -658,7 +658,7 @@ class UtLambdaModel(
     }
 }
 
-class UtSpringContextModel : UtReferenceModel(
+object UtSpringContextModel : UtReferenceModel(
     id = null,
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"

@@ -34,7 +34,7 @@ object SpringModelUtils {
         classId = classId,
         modelName = "@Autowired $beanName",
         instantiationCall = UtExecutableCallModel(
-            instance = UtSpringContextModel(),
+            instance = UtSpringContextModel,
             executable = getBeanMethodId,
             params = listOf(UtPrimitiveModel(beanName))
         ),
@@ -51,7 +51,6 @@ object SpringModelUtils {
         params = listOf(entityModel)
     )
 
-    fun UtModel.isApplicationContext(): Boolean = this is UtSpringContextModel
     fun UtModel.isAutowiredFromContext(): Boolean =
         this is UtAssembleModel && this.instantiationCall.instance is UtSpringContextModel
 }

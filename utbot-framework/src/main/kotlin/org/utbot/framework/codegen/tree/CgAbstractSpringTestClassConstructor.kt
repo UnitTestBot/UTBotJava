@@ -1,9 +1,6 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
-import org.utbot.framework.codegen.domain.builtin.autowiredClassId
-import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
-import org.utbot.framework.codegen.domain.builtin.mockClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgDeclaration
@@ -19,6 +16,7 @@ import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
 
@@ -111,7 +109,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
     }
 
     /**
-     * Clears the results of variable instantiations that occured
+     * Clears the results of variable instantiations that occurred
      * when we create class variables with specific annotations.
      * Actually, only mentioned variables should be stored in `valueByModelId`.
      *
@@ -121,10 +119,11 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
      * but it will take very long time to do it now.
      */
     private fun clearUnwantedVariableModels() {
-        val whiteListOfModels = variableConstructor.annotatedModelVariables.values.flatten()
+        val trustedListOfModels =
+            variableConstructor.annotatedModelVariables.values.flatten() + listOf(UtSpringContextModel.wrap())
 
         valueByUtModelWrapper
-            .filter { it.key !in whiteListOfModels }
+            .filterNot { it.key in trustedListOfModels }
             .forEach { valueByUtModelWrapper.remove(it.key) }
     }
 

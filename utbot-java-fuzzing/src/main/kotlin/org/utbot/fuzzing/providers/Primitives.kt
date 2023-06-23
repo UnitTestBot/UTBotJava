@@ -65,11 +65,11 @@ abstract class PrimitiveValueProvider(
                     else -> toString()
                 }
             }
-            is StringValue -> {
-                return "'${value.substringToLength(10, "...")}'"
-            }
             is RegexValue -> {
                 return "'${value.substringToLength(10, "...")}' from $pattern"
+            }
+            is StringValue -> {
+                return "'${value.substringToLength(10, "...")}'"
             }
             else -> return toString()
         }
@@ -221,14 +221,8 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId, java.lang.Cha
             .filter { it.fuzzedContext.isPatterMatchingContext()  }
             .map { it.value as String }
             .distinct()
-            .filter { it.isNotBlank() }
-            .filter {
-                try {
-                    Pattern.compile(it); true
-                } catch (_: PatternSyntaxException) {
-                    false
-                }
-            }.forEach {
+            .filter(String::isSupportedPattern)
+            .forEach {
                 yieldKnown(RegexValue(it, Random(0)), StringValue::value)
             }
     }

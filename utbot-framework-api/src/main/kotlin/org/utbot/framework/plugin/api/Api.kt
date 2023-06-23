@@ -140,7 +140,17 @@ abstract class UtExecution(
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null
-) : UtResult()
+) : UtResult() {
+    abstract fun copy(
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
+    ): UtExecution
+}
 
 /**
  * Symbolic execution.
@@ -176,6 +186,27 @@ class UtSymbolicExecution(
 
     var containsMocking: Boolean = false
 
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution = UtSymbolicExecution(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        instrumentation = instrumentation,
+        path = path,
+        fullPath = fullPath,
+        coverage = coverage,
+        summary = summary,
+        testMethodName = testMethodName,
+        displayName = displayName
+    )
+
     override fun toString(): String = buildString {
         append("UtSymbolicExecution(")
         appendLine()
@@ -200,25 +231,28 @@ class UtSymbolicExecution(
     }
 
     fun copy(
-        stateAfter: EnvironmentModels,
-        result: UtExecutionResult,
-        coverage: Coverage,
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
         instrumentation: List<UtInstrumentation> = this.instrumentation,
-    ): UtResult {
-        return UtSymbolicExecution(
-            stateBefore,
-            stateAfter,
-            result,
-            instrumentation,
-            path,
-            fullPath,
-            coverage,
-            summary,
-            testMethodName,
-            displayName,
-            symbolicSteps,
-        )
-    }
+        path: MutableList<Step> = this.path,
+        fullPath: List<Step> = this.fullPath
+    ): UtExecution = UtSymbolicExecution(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        instrumentation = instrumentation,
+        path = path,
+        fullPath = fullPath,
+        coverage = coverage,
+        summary = summary,
+        testMethodName = testMethodName,
+        displayName = displayName
+    )
 }
 
 /**
@@ -235,12 +269,31 @@ class UtSymbolicExecution(
  */
 class UtFailedExecution(
     stateBefore: EnvironmentModels,
-    result: UtExecutionFailure,
+    result: UtExecutionResult,
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
     displayName: String? = null
-) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName) {
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution {
+        return UtFailedExecution(
+            stateBefore,
+            result,
+            coverage,
+            summary,
+            testMethodName,
+            displayName
+        )
+    }
+}
 
 open class EnvironmentModels(
     val thisInstance: UtModel?,

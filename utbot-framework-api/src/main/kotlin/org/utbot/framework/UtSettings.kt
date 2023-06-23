@@ -632,7 +632,7 @@ enum class TestSelectionStrategyType {
     /**
      * Adds new test only if it increases coverage
      */
-    COVERAGE_STRATEGY
+    COVERAGE_STRATEGY,
 }
 
 /**

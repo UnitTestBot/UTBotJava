@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 object SpringModelUtils {
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
     val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
+    val entityClassId = ClassId("javax.persistence.Entity")
 
     val getBeanMethodId = MethodId(
         classId = applicationContextClassId,

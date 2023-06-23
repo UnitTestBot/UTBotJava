@@ -548,7 +548,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     val sdkFixed = isEdited && sdkVersion.feature in minSupportedSdkVersion..maxSupportedSdkVersion
                     if (sdkFixed) {
                         this@SdkNotificationPanel.isVisible = false
-                        isOKActionEnabled = true
                         initValidation()
                     }
                 }
@@ -613,32 +612,35 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 "Tick any methods to generate tests for", membersTable
             )
         }
+        if (!isSdkSupported()) {
+            return ValidationInfo("")
+        }
         return null
     }
 
-    class OKOptionAction(val testsModel: GenerateTestsModel, val okAction : Action) : AbstractAction(testsModel.getActionText()), OptionAction {
+    inner class OKOptionAction(val okAction : Action) : AbstractAction(model.getActionText()), OptionAction {
         init {
             putValue(DEFAULT_ACTION, java.lang.Boolean.TRUE)
             putValue(FOCUSED_ACTION, java.lang.Boolean.TRUE)
         }
         private val generateAction = object : AbstractAction(ACTION_GENERATE) {
             override fun actionPerformed(e: ActionEvent?) {
-                testsModel.runGeneratedTestsWithCoverage = false
+                model.runGeneratedTestsWithCoverage = false
                 updateButtonText(e)
             }
         }
         private val generateAndRunAction = object : AbstractAction(ACTION_GENERATE_AND_RUN) {
             override fun actionPerformed(e: ActionEvent?) {
-                testsModel.runGeneratedTestsWithCoverage = true
+                model.runGeneratedTestsWithCoverage = true
                 updateButtonText(e)
             }
         }
 
         private fun updateButtonText(e: ActionEvent?) {
             with(e?.source as JButton) {
-                text = testsModel.getActionText()
-                testsModel.project.service<Settings>().runGeneratedTestsWithCoverage =
-                    testsModel.runGeneratedTestsWithCoverage
+                text = this@GenerateTestsDialogWindow.model.getActionText()
+                this@GenerateTestsDialogWindow.model.project.service<Settings>().runGeneratedTestsWithCoverage =
+                    this@GenerateTestsDialogWindow.model.runGeneratedTestsWithCoverage
                 repaint()
             }
         }
@@ -648,15 +650,19 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         override fun getOptions(): Array<Action> {
-            if (testsModel.runGeneratedTestsWithCoverage) return arrayOf(generateAndRunAction, generateAction)
+            if (model.runGeneratedTestsWithCoverage) return arrayOf(generateAndRunAction, generateAction)
             return arrayOf(generateAction, generateAndRunAction)
+        }
+
+        override fun setEnabled(enabled: Boolean) {
+            super.setEnabled(enabled && isSdkSupported())
         }
     }
 
     private var okOptionAction: OKOptionAction? = null
     override fun getOKAction(): Action {
         if (okOptionAction == null) {
-            okOptionAction = OKOptionAction(model, super.getOKAction())
+            okOptionAction = OKOptionAction(super.getOKAction())
         }
         return okOptionAction!!
     }

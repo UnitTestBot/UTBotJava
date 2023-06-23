@@ -49,6 +49,14 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("beanModel", array(PredefinedType.byte))
     }
 
+    val GetSpringRepositoriesParams = structdef {
+        field("classId", array(PredefinedType.byte))
+    }
+
+    val GetSpringRepositoriesResult = structdef {
+        field("springRepositoryIds", array(PredefinedType.byte))
+    }
+
     init {
         call("AddPaths", AddPathsParams, PredefinedType.void).apply {
             async
@@ -87,6 +95,11 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         call("GetSpringBean", GetSpringBeanParams, GetSpringBeanResult).apply {
             async
             documentation = "Gets Spring bean by name (requires Spring instrumentation)"
+        }
+        call("getRelevantSpringRepositories", GetSpringRepositoriesParams, GetSpringRepositoriesResult).apply {
+            async
+            documentation = "Gets a list of [SpringRepositoryId]s that class specified by the [ClassId]" +
+                    " (possibly indirectly) depends on (requires Spring instrumentation)"
         }
     }
 }

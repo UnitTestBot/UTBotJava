@@ -3,7 +3,7 @@ package org.utbot.framework.plugin.api
 /**
  * Represents a covered bytecode instruction.
  *
- * @param className a fqn of the class.
+ * @param className the fqn in internal form, i.e. com/rest/order/services/OrderService$InnerClass.
  * @param methodSignature the signature of the method.
  * @param lineNumber a number of the line in the source file.
  * @param id a unique identifier among all instructions in all classes.

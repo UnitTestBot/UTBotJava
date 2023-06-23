@@ -20,6 +20,7 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
 
 typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
 
@@ -70,14 +71,13 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                     cgModel.model.isMockModel() && cgModel !in thisInstanceModels
                 }
 
-        val applicationContextModels = stateBeforeDependentModels
-                .filter { it.model is UtSpringContextModel }
-                .toSet()
+        val autowiredFromContextModels =
+            stateBeforeDependentModels.filterTo(HashSet()) { it.model.isAutowiredFromContext() }
 
         return SpringSpecificInformation(
             thisInstanceModels.groupByClassId(),
             dependentMockModels.groupByClassId(),
-            applicationContextModels.groupByClassId(),
+            autowiredFromContextModels.groupByClassId(),
         )
     }
 

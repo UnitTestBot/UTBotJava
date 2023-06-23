@@ -238,8 +238,8 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
 
 private fun UtStatementModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): Int =
     when (this) {
-        is UtDirectSetFieldModel -> 1 + fieldModel.calculateSize(used)
-        is UtStatementCallModel -> 1 + params.sumOf { it.calculateSize(used) }
+        is UtDirectSetFieldModel -> 1 + fieldModel.calculateSize(used) + instance.calculateSize(used)
+        is UtStatementCallModel -> 1 + params.sumOf { it.calculateSize(used) } + (instance?.calculateSize(used) ?: 0)
     }
 
 /**

@@ -18,6 +18,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
     compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
+    compileOnly("org.springframework.data:spring-data-commons:$springBootVersion")
     implementation("com.jetbrains.rd:rd-core:$rdVersion") { exclude(group = "org.slf4j", module = "slf4j-api") }
 }
 

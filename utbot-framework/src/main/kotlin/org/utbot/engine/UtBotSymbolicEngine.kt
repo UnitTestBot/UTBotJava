@@ -46,6 +46,7 @@ import org.utbot.fuzzing.spring.SavedEntityProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.getRelevantSpringRepositories
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -388,18 +389,12 @@ class UtBotSymbolicEngine(
             .letIf(applicationContext is SpringApplicationContext
                         && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
             ) { provider ->
-                // TODO #2274 properly detect relevant repositories (right now orderRepository is hardcoded)
-                val relevantRepositories = listOf(
-                    SpringRepositoryId(
-                        repositoryBeanName = "orderRepository",
-                        repositoryClassId = ClassId("com.rest.order.repositories.OrderRepository"),
-                        entityClassId = ClassId("com.rest.order.models.Order")
-                    )
-                )
-                val generatedValueFieldIds = listOf(
-                    FieldId(ClassId("com.rest.order.models.Order"), "id")
-                )
-                logger.info { "Relevant repositories: $relevantRepositories" }
+                val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
+                val generatedValueFieldIds = relevantRepositories.map {
+                    repository -> FieldId(repository.entityClassId, "id")
+                }
+
+                logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
                 val springBeanValueProvider = SpringBeanValueProvider(
                     defaultIdGenerator,

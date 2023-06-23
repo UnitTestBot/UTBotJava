@@ -81,6 +81,7 @@ open class TestCaseGenerator(
                                 UtExecutionInstrumentation,
                                 approach.config,
                                 applicationContext.beanDefinitions,
+                                buildDirs.map { it.toURL() }.toTypedArray(),
                                 )
                     }
                 is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation

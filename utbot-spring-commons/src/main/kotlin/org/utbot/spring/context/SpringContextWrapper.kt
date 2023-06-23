@@ -5,14 +5,14 @@ import com.jetbrains.rd.util.warn
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.data.repository.CrudRepository
+import org.utbot.common.canLoad
 import org.utbot.spring.api.context.ContextWrapper
 import org.utbot.spring.api.context.RepositoryDescription
+import java.net.URLClassLoader
 
 private val logger = getLogger<SpringContextWrapper>()
 
 class SpringContextWrapper(override val context: ConfigurableApplicationContext) : ContextWrapper {
-
-    private val springClassPrefix = "org.springframework"
 
     private val isCrudRepositoryOnClasspath = try {
         CrudRepository::class.java.name
@@ -23,14 +23,15 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
 
     override fun getBean(beanName: String): Any = context.getBean(beanName)
 
-    override fun getDependenciesForBean(beanName: String): Set<String> {
+    override fun getDependenciesForBean(beanName: String, userSourcesClassLoader: URLClassLoader): Set<String> {
         val analyzedBeanNames = mutableSetOf<String>()
-        return getDependenciesForBeanInternal(beanName, analyzedBeanNames)
+        return getDependenciesForBeanInternal(beanName, analyzedBeanNames, userSourcesClassLoader)
     }
 
     private fun getDependenciesForBeanInternal(
         beanName: String,
         analyzedBeanNames: MutableSet<String>,
+        userSourcesClassLoader: URLClassLoader,
         ): Set<String> {
         if (beanName in analyzedBeanNames) {
             return emptySet()
@@ -40,10 +41,17 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
 
         val dependencyBeanNames = context.beanFactory
             .getDependenciesForBean(beanName)
-            .filter { it in context.beanDefinitionNames } // filters out inner beans
+            // this filtering is applied to avoid inner beans
+            .filter { it in context.beanDefinitionNames }
+            .filter { name ->
+                val clazz = getBean(name)::class.java
+                // here immediate hierarchy is enough because proxies are inherited directly
+                val immediateClazzHierarchy = clazz.interfaces + clazz.superclass + clazz
+                immediateClazzHierarchy.any { clazz -> userSourcesClassLoader.canLoad(clazz.name) }
+            }
             .toSet()
 
-        return setOf(beanName) + dependencyBeanNames.flatMap { getDependenciesForBean(it) }
+        return setOf(beanName) + dependencyBeanNames.flatMap { getDependenciesForBean(it, userSourcesClassLoader) }
     }
 
     override fun resetBean(beanName: String) {
@@ -54,7 +62,7 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
         beanDefinitionRegistry.registerBeanDefinition(beanName, beanDefinition)
     }
 
-    override fun resolveRepositories(beanNames: Set<String>): Set<RepositoryDescription> {
+    override fun resolveRepositories(beanNames: Set<String>, userSourcesClassLoader: URLClassLoader): Set<RepositoryDescription> {
         if (!isCrudRepositoryOnClasspath) return emptySet()
         val repositoryBeans = beanNames
             .map { beanName -> SimpleBeanDefinition(beanName, getBean(beanName)) }
@@ -67,7 +75,7 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
             val repositoryClass = repositoryBean.bean::class.java
             val repositoryClassName = repositoryClass
                 .interfaces
-                .filterNot { it.name.startsWith(springClassPrefix) }
+                .filter { clazz -> userSourcesClassLoader.canLoad(clazz.name) }
                 .filter { CrudRepository::class.java.isAssignableFrom(it) }
                 .map { it.name }
                 .firstOrNull() ?: CrudRepository::class.java.name

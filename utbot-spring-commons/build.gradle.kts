@@ -15,6 +15,7 @@ java {
 
 dependencies {
     implementation(project(":utbot-spring-commons-api"))
+    implementation(project(":utbot-core"))
 
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
     compileOnly("org.springframework.boot:spring-boot:$springBootVersion")

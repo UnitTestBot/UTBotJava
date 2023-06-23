@@ -711,11 +711,17 @@ class UtLambdaModel(
     }
 }
 
-class UtSpringContextModel : UtReferenceModel(
+object UtSpringContextModel : UtReferenceModel(
     id = null,
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
-)
+) {
+    // NOTE that overriding equals is required just because without it
+    // we will lose equality for objects after deserialization
+    override fun equals(other: Any?): Boolean = other is UtSpringContextModel
+
+    override fun hashCode(): Int = 0
+}
 
 data class SpringRepositoryId(
     val repositoryBeanName: String,

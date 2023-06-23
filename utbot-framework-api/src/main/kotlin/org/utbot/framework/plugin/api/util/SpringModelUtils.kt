@@ -14,7 +14,7 @@ object SpringModelUtils {
     val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
     val entityClassId = ClassId("javax.persistence.Entity")
 
-    val getBeanMethodId = MethodId(
+    private val getBeanMethodId = MethodId(
         classId = applicationContextClassId,
         name = "getBean",
         returnType = Any::class.id,
@@ -22,7 +22,7 @@ object SpringModelUtils {
         bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
 
-    val saveMethodId = MethodId(
+    private val saveMethodId = MethodId(
         classId = crudRepositoryClassId,
         name = "save",
         returnType = Any::class.id,
@@ -35,7 +35,7 @@ object SpringModelUtils {
         classId = classId,
         modelName = "@Autowired $beanName",
         instantiationCall = UtExecutableCallModel(
-            instance = UtSpringContextModel(),
+            instance = UtSpringContextModel,
             executable = getBeanMethodId,
             params = listOf(UtPrimitiveModel(beanName))
         ),
@@ -51,4 +51,7 @@ object SpringModelUtils {
         executable = saveMethodId,
         params = listOf(entityModel)
     )
+
+    fun UtModel.isAutowiredFromContext(): Boolean =
+        this is UtAssembleModel && this.instantiationCall.instance is UtSpringContextModel
 }

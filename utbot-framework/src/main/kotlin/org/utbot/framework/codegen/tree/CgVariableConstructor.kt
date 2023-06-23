@@ -37,7 +37,6 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -52,7 +51,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.classClassId
@@ -209,9 +207,27 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
-        val instantiationCall = model.instantiationCall
-        processInstantiationStatement(model, instantiationCall, baseName)
+        instantiateAssembleModel(model, baseName)
+        return constructAssembleForVariable(model)
+    }
 
+    private fun instantiateAssembleModel(model: UtAssembleModel, baseName: String?) {
+        val statementCall = model.instantiationCall
+        val executable = statementCall.statement
+        val params = statementCall.params
+
+        // Don't use redundant constructors for primitives and String
+        val initExpr = if (executable is ConstructorId && isPrimitiveWrapperOrString(model.classId)) {
+            cgLiteralForWrapper(params)
+        } else {
+            createCgExecutableCallFromUtExecutableCall(statementCall)
+        }
+
+        newVar(model.classId, model, baseName) { initExpr }
+            .also { valueByUtModelWrapper[model.wrap()] = it }
+    }
+
+    protected fun constructAssembleForVariable(model: UtAssembleModel): CgValue {
         for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
@@ -232,28 +248,6 @@ open class CgVariableConstructor(val context: CgContext) :
 
         return valueByUtModelWrapper.getValue(model.wrap())
     }
-
-    private fun processInstantiationStatement(
-        model: UtAssembleModel,
-        statementCall: UtStatementCallModel,
-        baseName: String?
-    ) {
-        val executable = statementCall.statement
-        val params = statementCall.params
-
-        // Don't use redundant constructors for primitives and String
-        val initExpr = if (executable is ConstructorId && isPrimitiveWrapperOrString(model.classId)) {
-            cgLiteralForWrapper(params)
-        } else {
-            createCgExecutableCallFromUtExecutableCall(statementCall)
-        }
-        newVar(model.classId, model, baseName) {
-            initExpr
-        }.also {
-            valueByUtModelWrapper[model.wrap()] = it
-        }
-    }
-
 
     private fun createCgExecutableCallFromUtExecutableCall(statementModel: UtStatementCallModel): CgExecutableCall =
         when (statementModel) {

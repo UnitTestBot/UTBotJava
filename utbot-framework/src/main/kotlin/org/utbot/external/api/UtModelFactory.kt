@@ -69,7 +69,7 @@ class UtModelFactory(
     fun produceClassRefModel(clazz: Class<*>) = UtClassRefModel(
         modelIdCounter.incrementAndGet(),
         classIdForType(clazz),
-        clazz
+        clazz.id
     )
 }
 

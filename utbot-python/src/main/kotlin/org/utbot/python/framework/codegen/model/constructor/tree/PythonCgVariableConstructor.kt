@@ -107,8 +107,23 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                     keyObj to valueObj
                 }
 
-                state.forEach { (key, value) ->
-                    obj[FieldId(objectNode.type, key)] `=` value
+                if (objectNode.customState) {
+                    val setstate = state["state"]!!
+                    val methodCall = CgMethodCall(
+                        obj,
+                        PythonMethodId(
+                            obj.type as PythonClassId,
+                            "__setstate__",
+                            NormalizedPythonAnnotation(pythonNoneClassId.name),
+                            listOf(RawPythonAnnotation(setstate.type.name))
+                        ),
+                        listOf(setstate)
+                    )
+                    +methodCall
+                } else {
+                    state.forEach { (key, value) ->
+                        obj[FieldId(objectNode.type, key)] `=` value
+                    }
                 }
                 listitems.forEach {
                     val methodCall = CgMethodCall(

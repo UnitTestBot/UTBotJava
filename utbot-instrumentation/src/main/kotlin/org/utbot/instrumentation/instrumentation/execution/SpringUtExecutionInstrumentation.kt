@@ -13,8 +13,9 @@ import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrument
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import org.utbot.spring.api.context.ContextWrapper
 import org.utbot.spring.api.repositoryWrapper.RepositoryInteraction
+import java.net.URL
+import java.net.URLClassLoader
 import java.security.ProtectionDomain
-import java.util.IdentityHashMap
 
 /**
  * UtExecutionInstrumentation wrapper that is aware of Spring config and initialises Spring context
@@ -23,8 +24,11 @@ class SpringUtExecutionInstrumentation(
     private val delegateInstrumentation: UtExecutionInstrumentation,
     private val springConfig: String,
     private val beanDefinitions: List<BeanDefinitionData>,
+    private val buildDirs: Array<URL>,
 ) : Instrumentation<UtConcreteExecutionResult> by delegateInstrumentation {
+
     private lateinit var instrumentationContext: SpringInstrumentationContext
+    private lateinit var userSourcesClassLoader: URLClassLoader
 
     private val relatedBeansCache = mutableMapOf<Class<*>, Set<String>>()
 
@@ -47,6 +51,7 @@ class SpringUtExecutionInstrumentation(
         )
 
         instrumentationContext = SpringInstrumentationContext(springConfig)
+        userSourcesClassLoader = URLClassLoader(buildDirs, null)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
     }
@@ -60,7 +65,7 @@ class SpringUtExecutionInstrumentation(
         RepositoryInteraction.recordedInteractions.clear()
 
         val beanNamesToReset: Set<String> = getRelevantBeanNames(clazz)
-        val repositoryDefinitions = springContext.resolveRepositories(beanNamesToReset)
+        val repositoryDefinitions = springContext.resolveRepositories(beanNamesToReset, userSourcesClassLoader)
 
         beanNamesToReset.forEach { beanName -> springContext.resetBean(beanName) }
         val jdbcTemplate = getBean("jdbcTemplate")
@@ -83,7 +88,7 @@ class SpringUtExecutionInstrumentation(
     private fun getRelevantBeanNames(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
         beanDefinitions
             .filter { it.beanTypeFqn == clazz.name }
-            .flatMap { springContext.getDependenciesForBean(it.beanName) }
+            .flatMap { springContext.getDependenciesForBean(it.beanName, userSourcesClassLoader) }
             .toSet()
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
     }
@@ -92,7 +97,7 @@ class SpringUtExecutionInstrumentation(
 
     fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
         val relevantBeanNames = getRelevantBeanNames(classId.jClass)
-        val repositoryDescriptions = springContext.resolveRepositories(relevantBeanNames.toSet())
+        val repositoryDescriptions = springContext.resolveRepositories(relevantBeanNames.toSet(), userSourcesClassLoader)
         return repositoryDescriptions.map { repositoryDescription ->
             SpringRepositoryId(
                 repositoryDescription.beanName,

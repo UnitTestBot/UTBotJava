@@ -10,12 +10,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
-import org.utbot.common.measureTime
-import org.utbot.common.runBlockingWithCancellationPredicate
-import org.utbot.common.runIgnoringCancellationException
-import org.utbot.common.trace
+import org.utbot.common.*
 import org.utbot.common.PathUtil.toURL
-import org.utbot.common.tryLoadClass
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -81,6 +77,7 @@ open class TestCaseGenerator(
                                 UtExecutionInstrumentation,
                                 approach.config,
                                 applicationContext.beanDefinitions,
+                                buildDirs.map { it.toURL() }.toTypedArray(),
                                 )
                     }
                 is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation
@@ -385,23 +382,18 @@ open class TestCaseGenerator(
             val filteredCoveredInstructions =
                 coverage.coveredInstructions
                     .filter { instruction ->
-                        val instrClassFqn =
-                            instruction.className
-                                .also {
-                                    val isInstrClassOnClassPath =
-                                        isClassOnUserClasspathCache.getOrPut(it) {
-                                            buildDirsClassLoader.findResource(it.plus(".class")) != null
-                                        }
-                                    if (!isInstrClassOnClassPath) return@filter false
-                                }
-                                .replace('/', '.')
+                        val instrClassName = instruction.className
 
-                        // We do not want to filter out instructions that are in class under test
-                        if (instrClassFqn == classUnderTestId.name) return@filter true
+                        val isInstrClassOnClassPath =
+                            isClassOnUserClasspathCache.getOrPut(instrClassName) {
+                                buildDirsClassLoader.hasOnClasspath(instrClassName)
+                            }
 
-                        // We do not want to take instructions in classes
-                        // marked with annotations from [annotationsToIgnore]
-                        return@filter !hasAnnotations(instrClassFqn, annotationsToIgnoreCoverage)
+                        // We want to
+                        // - always keep instructions that are in class under test
+                        // - ignore instructions in classes marked with annotations from [annotationsToIgnore]
+                        return@filter instrClassName == classUnderTestId.name ||
+                                (isInstrClassOnClassPath && !hasAnnotations(instrClassName, annotationsToIgnoreCoverage))
                     }
                     .ifEmpty {
                         coverage.coveredInstructions

@@ -360,14 +360,14 @@ class SarifReport(
             ?: return listOf()
 
         val executionTrace = coveredInstructions.groupBy { instruction ->
-            instruction.className to instruction.methodSignature // group by method
+            instruction.internalName to instruction.methodSignature // group by method
         }.map { (_, instructionsForOneMethod) ->
             instructionsForOneMethod.last() // we need only last to construct the stack trace
         }
 
         val sarifExecutionTrace = executionTrace.map { instruction ->
             resolveStackTraceElementByNames(
-                classFqn = instruction.className.replace('/', '.'),
+                classFqn = instruction.className,
                 methodName = instruction.methodSignature.substringBefore('('),
                 lineNumber = instruction.lineNumber
             )
@@ -508,7 +508,7 @@ class SarifReport(
         if (lastCoveredInstruction != null) {
             return Pair(
                 lastCoveredInstruction.lineNumber, // .lineNumber is one-based
-                lastCoveredInstruction.className.replace('/', '.')
+                lastCoveredInstruction.className
             )
         }
 

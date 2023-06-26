@@ -384,6 +384,7 @@ class SarifReportTest {
     private fun mockCoverage(mockExecution: UtExecution, lineNumber: Int, className: String) {
         Mockito.`when`(mockExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(1)
         Mockito.`when`(mockExecution.coverage?.coveredInstructions?.lastOrNull()?.internalName).thenReturn("Main")
+        Mockito.`when`(mockExecution.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
         (mockExecution as? UtSymbolicExecution)?.let { mockSymbolicSteps(it, lineNumber, className) }
     }
 

@@ -1,11 +1,9 @@
 package org.utbot.fuzzing.providers
 
+import org.utbot.common.isAbstract
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.fuzzer.FuzzedType
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdGenerator
-import org.utbot.fuzzer.fuzzed
+import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.hex
 import java.lang.reflect.Field
@@ -131,6 +129,69 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
         if (description.scope?.getProperty(NULLABLE_PROP) == true) {
             yield(Seed.Simple(nullFuzzedValue(classClassId)))
         }
+    }
+}
+
+class CreateObjectAnywayValueProvider(
+    val idGenerator: IdGenerator<Int>,
+    val useMock: Boolean = true,
+) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+
+    override fun accept(type: FuzzedType) = type.classId.isRefType
+
+    override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
+        val methodCalls = description.constants.filter {
+            it.value == CreateObjectAnywayValueProvider::class
+        }.mapNotNull {
+            it.fuzzedContext as? FuzzedContext.Call
+        }.map {
+            it.method
+        }.toSet()
+
+        yield(Seed.Recursive(
+            construct = Routine.Create(emptyList()) {
+                UtCompositeModel(idGenerator.createId(), type.classId, useMock).fuzzed {
+                    summary = "some object"
+                }
+            },
+            modify = sequence {
+                // generate all fields
+                generateSequence(type.classId.jClass) {
+                    it.superclass
+                }.flatMap { javaClass ->
+                    javaClass.declaredFields.toList()
+                }.forEach { field ->
+                    yield(Routine.Call(listOf(toFuzzerType(field.type, description.typeCache))) { instance, args ->
+                        (instance.model as UtCompositeModel).fields[field.fieldId] = args.first().model
+                    })
+                }
+
+                generateSequence(listOf(type.classId.jClass)) { classList ->
+                    classList.flatMap { listOf(it.superclass) + it.interfaces }.filterNotNull().takeIf { it.isNotEmpty() }
+                }.flatten().filter {
+                    isAccessible(it, description.description.packageName)
+                }.flatMap { javaClass ->
+                    javaClass.declaredMethods.filter {
+                        javaClass.isInterface || it.isAbstract
+                    }.filter {
+                        isAccessible(it, description.description.packageName)
+                    }
+                    // todo filter by methods seen in code
+                }.forEach { method ->
+                    val executableId = method.executableId
+                    if (methodCalls.contains(executableId)) {
+                        yield(Routine.Call(listOf(toFuzzerType(method.returnType, description.typeCache))) { instance, args ->
+                            (instance.model as UtCompositeModel).mocks[executableId] = args.map(FuzzedValue::model)
+                        })
+                    }
+                }
+            },
+            empty = Routine.Empty {
+                UtCompositeModel(idGenerator.createId(), type.classId, useMock).fuzzed {
+                    summary = "some object"
+                }
+            }
+        ))
     }
 }
 

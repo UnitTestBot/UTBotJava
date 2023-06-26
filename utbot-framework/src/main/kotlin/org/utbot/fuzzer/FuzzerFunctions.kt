@@ -1,17 +1,11 @@
 package org.utbot.fuzzer
 
 import mu.KotlinLogging
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.executableId
+import org.utbot.fuzzing.providers.CreateObjectAnywayValueProvider
 import soot.BooleanType
 import soot.ByteType
 import soot.CharType
@@ -28,23 +22,7 @@ import soot.jimple.Constant
 import soot.jimple.IntConstant
 import soot.jimple.InvokeExpr
 import soot.jimple.NullConstant
-import soot.jimple.internal.AbstractSwitchStmt
-import soot.jimple.internal.ImmediateBox
-import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JCastExpr
-import soot.jimple.internal.JEqExpr
-import soot.jimple.internal.JGeExpr
-import soot.jimple.internal.JGtExpr
-import soot.jimple.internal.JIfStmt
-import soot.jimple.internal.JInvokeStmt
-import soot.jimple.internal.JLeExpr
-import soot.jimple.internal.JLookupSwitchStmt
-import soot.jimple.internal.JLtExpr
-import soot.jimple.internal.JNeExpr
-import soot.jimple.internal.JSpecialInvokeExpr
-import soot.jimple.internal.JStaticInvokeExpr
-import soot.jimple.internal.JTableSwitchStmt
-import soot.jimple.internal.JVirtualInvokeExpr
+import soot.jimple.internal.*
 import soot.toolkits.graph.ExceptionalUnitGraph
 
 private val logger = KotlinLogging.logger {}
@@ -70,6 +48,7 @@ fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteVa
                 StringConstant,
                 RegexByVarStringConstant,
                 DateFormatByVarStringConstant,
+                AbstractMethodIsCalled,
             ).flatMap { finder ->
                 try {
                     finder.find(graph, unit, value)
@@ -265,6 +244,16 @@ private object DateFormatByVarStringConstant: ConstantsFinder {
             if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
                 return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
             }
+        }
+        return emptyList()
+    }
+}
+
+private object AbstractMethodIsCalled: ConstantsFinder {
+    override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
+        if (UtSettings.fuzzObjectWhenTheyCannotBeCreatedClean && value is JInterfaceInvokeExpr) {
+            // todo do a better way to add information about virtual method calls to providers
+            return listOf(FuzzedConcreteValue(value.method.javaClass.id, CreateObjectAnywayValueProvider::class, FuzzedContext.Call(value.method.executableId)))
         }
         return emptyList()
     }

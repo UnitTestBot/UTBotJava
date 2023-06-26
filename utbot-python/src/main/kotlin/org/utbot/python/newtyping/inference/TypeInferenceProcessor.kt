@@ -60,7 +60,7 @@ class TypeInferenceProcessor(
             val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
                 pythonPath,
                 path.toString(),
-                moduleOfSourceFile,
+                moduleOfSourceFile.dropInitFile(),
                 configFile
             )
 

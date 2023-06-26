@@ -42,6 +42,7 @@ import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
+import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.camelToSnakeCase
@@ -174,7 +175,7 @@ object PythonDialogProcessor {
                             realElements.toSet(),
                             model.runtimeExceptionTestsBehaviour,
                             directoriesForSysPath,
-                            moduleToImport,
+                            moduleToImport.dropInitFile(),
                             file,
                             realElements.first().getContainingClass() as PyClass?
                         )

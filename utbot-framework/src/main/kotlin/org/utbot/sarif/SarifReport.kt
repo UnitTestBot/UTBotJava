@@ -367,7 +367,7 @@ class SarifReport(
 
         val sarifExecutionTrace = executionTrace.map { instruction ->
             resolveStackTraceElementByNames(
-                classFqn = instruction.internalName.replace('/', '.'),
+                classFqn = instruction.className,
                 methodName = instruction.methodSignature.substringBefore('('),
                 lineNumber = instruction.lineNumber
             )
@@ -508,7 +508,7 @@ class SarifReport(
         if (lastCoveredInstruction != null) {
             return Pair(
                 lastCoveredInstruction.lineNumber, // .lineNumber is one-based
-                lastCoveredInstruction.internalName.replace('/', '.')
+                lastCoveredInstruction.className
             )
         }
 

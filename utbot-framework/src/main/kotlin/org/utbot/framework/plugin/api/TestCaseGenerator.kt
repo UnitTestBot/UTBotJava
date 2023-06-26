@@ -386,19 +386,20 @@ open class TestCaseGenerator(
             val filteredCoveredInstructions =
                 coverage.coveredInstructions
                     .filter { instruction ->
-                        val instrClassName =
-                            instruction.internalName
-                                .also {
-                                    val isInstrClassOnClassPath =
-                                        isClassOnUserClasspathCache.getOrPut(it) {
-                                            buildDirsClassLoader.findResource(it.plus(".class")) != null
-                                        }
-                                    if (!isInstrClassOnClassPath) return@filter false
-                                }
-                                .replace('/', '.')
+                        val isInstrClassOnClassPath =
+                            isClassOnUserClasspathCache.getOrPut(instruction.internalName) {
+                                buildDirsClassLoader.findResource(instruction.internalName.plus(".class")) != null
+                            }
+
+                        if (!isInstrClassOnClassPath) {
+                            return@filter false
+                        }
+                        val instrClassName = instruction.className
 
                         // We do not want to filter out instructions that are in class under test
-                        if (instrClassName == classUnderTestId.name) return@filter true
+                        if (instrClassName == classUnderTestId.name) {
+                            return@filter true
+                        }
 
                         // We do not want to take instructions in classes
                         // marked with annotations from [annotationsToIgnore]

@@ -15,7 +15,9 @@ data class Instruction(
     val methodSignature: String,
     val lineNumber: Int,
     val id: Long
-)
+) {
+    val className: String get() = internalName.replace('/', '.')
+}
 
 /**
  * Represents coverage information. Some other

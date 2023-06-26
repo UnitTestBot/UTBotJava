@@ -1,6 +1,7 @@
 package org.utbot.intellij.plugin.language.python
 
 import com.intellij.codeInsight.CodeInsightUtil
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.service
@@ -25,6 +26,7 @@ import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.resolve.QualifiedNameFinder
+import mu.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
@@ -53,6 +55,26 @@ import kotlin.io.path.Path
 const val DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS = 2000L
 
 object PythonDialogProcessor {
+    private val logger = KotlinLogging.logger {}
+
+    enum class ProgressRange(val from : Double, val to: Double) {
+        ANALYZE(from = 0.0, to = 0.1),
+        SOLVING(from = 0.1, to = 0.95),
+        CODEGEN(from = 0.95, to = 1.0),
+    }
+
+    fun updateIndicator(indicator: ProgressIndicator, range : ProgressRange, text: String? = null, fraction: Double? = null) {
+        invokeLater {
+            if (indicator.isCanceled) return@invokeLater
+            text?.let { indicator.text = it }
+            fraction?.let {
+                indicator.fraction =
+                    indicator.fraction.coerceAtLeast(range.from + (range.to - range.from) * fraction.coerceIn(0.0, 1.0))
+            }
+            logger.debug("Phase ${indicator.text} with progress ${String.format("%.2f",indicator.fraction)}")
+        }
+    }
+
     fun createDialogAndGenerateTests(
         project: Project,
         elementsToShow: Set<PyElement>,
@@ -120,8 +142,7 @@ object PythonDialogProcessor {
     }
 
     private fun findSelectedPythonMethods(model: PythonTestLocalModel): List<PythonMethodHeader> {
-        return runBlocking {
-            readAction {
+        return ReadAction.nonBlocking<List<PythonMethodHeader>> {
                 model.selectedElements
                     .filter { model.selectedElements.contains(it) }
                     .flatMap {
@@ -144,8 +165,7 @@ object PythonDialogProcessor {
                     }
                     .toSet()
                     .toList()
-            }
-        }
+        }.executeSynchronously() ?: emptyList()
     }
 
     private fun groupPyElementsByModule(model: PythonTestsModel): Set<PythonTestLocalModel> {
@@ -195,6 +215,14 @@ object PythonDialogProcessor {
         }
     }
 
+    private fun getFileContent(file: PyFile): String {
+        return runBlocking {
+            readAction {
+                getContentFromPyFile(file)
+            }
+        }
+    }
+
     private fun createTests(project: Project, baseModel: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
@@ -202,18 +230,27 @@ object PythonDialogProcessor {
                     return
                 }
                 try {
+                    indicator.isIndeterminate = false
+
                     groupPyElementsByModule(baseModel).forEach { model ->
+                        updateIndicator(indicator, ProgressRange.ANALYZE, "Analyze code: read files")
                         val methods = findSelectedPythonMethods(model)
+                        val content = getFileContent(model.file)
+
                         val requirementsList = requirements.toMutableList()
                         if (!model.testFramework.isInstalled) {
                             requirementsList += model.testFramework.mainPackage
                         }
 
-                        val content = runBlocking {
-                            readAction {
-                                getContentFromPyFile(model.file)
-                            }
-                        }
+                        val installer = IntellijRequirementsInstaller(project)
+
+                        updateIndicator(indicator, ProgressRange.ANALYZE, "Analyze file ${model.file.name}")
+
+                        updateIndicator(indicator, ProgressRange.SOLVING, "Generate test cases for file ${model.file.name}")
+
+                        updateIndicator(indicator, ProgressRange.CODEGEN, "Generate code of tests for ${model.file.name}")
+
+//                        val processor =
 
                         processTestGeneration(
                             pythonPath = model.pythonPath,
@@ -234,7 +271,8 @@ object PythonDialogProcessor {
                             checkingRequirementsAction = { indicator.text = "Checking requirements" },
                             installingRequirementsAction = { indicator.text = "Installing requirements..." },
                             requirementsAreNotInstalledAction = {
-                                askAndInstallRequirementsLater(model.project, model.pythonPath, requirementsList)
+                                installer.installRequirements(model.pythonPath, requirementsList)
+//                                askAndInstallRequirementsLater(model.project, model.pythonPath, requirementsList)
                                 PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                             },
                             startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },

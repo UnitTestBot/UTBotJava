@@ -467,7 +467,7 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructClassRef(model: UtClassRefModel, baseName: String?): CgVariable {
-        val classId = model.value.id
+        val classId = model.value
         val init = if (classId.isAccessibleFrom(testClassPackageName)) {
             CgGetJavaClass(classId)
         } else {

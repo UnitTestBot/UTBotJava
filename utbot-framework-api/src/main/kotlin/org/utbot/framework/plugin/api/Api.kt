@@ -456,7 +456,7 @@ data class UtEnumConstantModel(
 data class UtClassRefModel(
     override val id: Int,
     override val classId: ClassId,
-    val value: Class<*>
+    val value: ClassId
 ) : UtReferenceModel(id, classId) {
     // Model id is included for debugging purposes
     override fun toString(): String = "$value@$id"

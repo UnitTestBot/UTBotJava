@@ -267,6 +267,8 @@ val primitiveByWrapper = mapOf(
 
 val wrapperByPrimitive = primitiveByWrapper.entries.associateBy({ it.value }) { it.key }
 
+fun replaceWithWrapperIfPrimitive(classId: ClassId): ClassId = wrapperByPrimitive[classId] ?: classId
+
 // We consider void primitive here
 // It is sometimes useful even if void is not technically a primitive type
 val primitives = setOf(

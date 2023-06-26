@@ -29,7 +29,7 @@ import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.minimization.minimizeTestCase
-import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassIds
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.services.JdkInfo
@@ -369,8 +369,8 @@ open class TestCaseGenerator(
         // in order to exclude such instructions for some reason
         // E.g. we exclude instructions (which classes have @Entity) when it is not a class under test
         // because we are not interested in coverage which was possibly produced by Spring itself
-        val annotationsToIgnore =
-            listOfNotNull(utContext.classLoader.tryLoadClass(entityClassId.name))
+        val annotationsToIgnoreCoverage =
+            entityClassIds.mapNotNull { utContext.classLoader.tryLoadClass(it.name) }
 
         val buildDirsClassLoader = createBuildDirsClassLoader()
         val isClassOnUserClasspathCache = mutableMapOf<String, Boolean>()
@@ -401,7 +401,7 @@ open class TestCaseGenerator(
 
                         // We do not want to take instructions in classes
                         // marked with annotations from [annotationsToIgnore]
-                        return@filter !hasAnnotations(instrClassFqn, annotationsToIgnore)
+                        return@filter !hasAnnotations(instrClassFqn, annotationsToIgnoreCoverage)
                     }
                     .ifEmpty {
                         coverage.coveredInstructions

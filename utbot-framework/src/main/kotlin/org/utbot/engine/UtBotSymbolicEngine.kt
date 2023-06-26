@@ -8,8 +8,9 @@ import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
 import org.utbot.api.exception.UtMockAssumptionViolatedException
-import org.utbot.common.measureTime
 import org.utbot.common.debug
+import org.utbot.common.measureTime
+import org.utbot.common.tryLoadClass
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
@@ -32,17 +33,17 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
-import org.utbot.fuzzing.providers.ObjectValueProvider
 import org.utbot.fuzzing.providers.FieldValueProvider
-import org.utbot.fuzzing.spring.SavedEntityProvider
+import org.utbot.fuzzing.providers.ObjectValueProvider
+import org.utbot.fuzzing.spring.SavedEntityValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
@@ -390,11 +391,22 @@ class UtBotSymbolicEngine(
                         && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
             ) { provider ->
                 val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
-                val generatedValueFieldIds = relevantRepositories.map {
-                    repository -> FieldId(repository.entityClassId, "id")
+                logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
+
+                val generatedValueAnnotationClasses = SpringModelUtils.generatedValueClassIds.mapNotNull {
+                    @Suppress("UNCHECKED_CAST") // type system fails to understand that GeneratedValue is indeed an annotation
+                    utContext.classLoader.tryLoadClass(it.name) as Class<out Annotation>?
                 }
 
-                logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
+                val generatedValueFieldIds =
+                    relevantRepositories
+                        .map { it.entityClassId.jClass }
+                        .flatMap { entityClass -> generateSequence(entityClass) { it.superclass } }
+                        .flatMap { it.declaredFields.toList() }
+                        .filter { field -> generatedValueAnnotationClasses.any { field.isAnnotationPresent(it) } }
+                        .map { it.fieldId }
+                logger.info { "Detected @GeneratedValue fields: $generatedValueFieldIds" }
+
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
                 val springBeanValueProvider = SpringBeanValueProvider(
                     defaultIdGenerator,
@@ -408,7 +420,7 @@ class UtBotSymbolicEngine(
                 provider
                     .except { p -> p is ObjectValueProvider }
                     .with(springBeanValueProvider)
-                    .with(ValueProvider.of(relevantRepositories.map { SavedEntityProvider(defaultIdGenerator, it) }))
+                    .with(ValueProvider.of(relevantRepositories.map { SavedEntityValueProvider(defaultIdGenerator, it) }))
                     .with(ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(defaultIdGenerator, it) }))
             }.let(transform)
         runJavaFuzzing(

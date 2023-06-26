@@ -14,7 +14,6 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.isMockModel
-import org.utbot.framework.plugin.api.util.SpringModelUtils.applicationContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
 import org.utbot.framework.plugin.api.util.stringClassId
 

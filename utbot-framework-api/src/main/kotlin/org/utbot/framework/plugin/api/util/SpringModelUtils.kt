@@ -61,4 +61,13 @@ object SpringModelUtils {
 
     fun UtModel.isAutowiredFromContext(): Boolean =
         this is UtAssembleModel && this.instantiationCall.instance is UtSpringContextModel
+
+    fun UtModel.getBeanNameOrNull(): String? = if (isAutowiredFromContext()) {
+        this as UtAssembleModel
+        val beanNameParam = this.instantiationCall.params.single()
+        val paramValue = (beanNameParam as? UtPrimitiveModel)?.value
+        paramValue.toString()
+    } else {
+        null
+    }
 }

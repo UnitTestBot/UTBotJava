@@ -17,6 +17,7 @@ import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
 
@@ -90,8 +91,11 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
 
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
         for ((classId, listOfUtModels) in groupedModelsByClassId) {
-            val model = listOfUtModels.firstOrNull() ?: continue
-            val createdVariable = variableConstructor.getOrCreateVariable(model.model) as? CgVariable
+            val modelWrapper = listOfUtModels.firstOrNull() ?: continue
+            val model = modelWrapper.model
+            val baseVarName = model.getBeanNameOrNull()
+
+            val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
                 ?: error("`UtCompositeModel` model was expected, but $model was found")
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)

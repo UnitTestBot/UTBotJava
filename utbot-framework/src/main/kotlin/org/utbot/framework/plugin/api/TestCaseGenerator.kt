@@ -10,12 +10,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
-import org.utbot.common.measureTime
-import org.utbot.common.runBlockingWithCancellationPredicate
-import org.utbot.common.runIgnoringCancellationException
-import org.utbot.common.trace
+import org.utbot.common.*
 import org.utbot.common.PathUtil.toURL
-import org.utbot.common.tryLoadClass
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -386,24 +382,18 @@ open class TestCaseGenerator(
             val filteredCoveredInstructions =
                 coverage.coveredInstructions
                     .filter { instruction ->
-                        val isInstrClassOnClassPath =
-                            isClassOnUserClasspathCache.getOrPut(instruction.internalName) {
-                                buildDirsClassLoader.findResource(instruction.internalName.plus(".class")) != null
-                            }
-
-                        if (!isInstrClassOnClassPath) {
-                            return@filter false
-                        }
                         val instrClassName = instruction.className
 
-                        // We do not want to filter out instructions that are in class under test
-                        if (instrClassName == classUnderTestId.name) {
-                            return@filter true
-                        }
+                        val isInstrClassOnClassPath =
+                            isClassOnUserClasspathCache.getOrPut(instrClassName) {
+                                buildDirsClassLoader.hasOnClasspath(instrClassName)
+                            }
 
-                        // We do not want to take instructions in classes
-                        // marked with annotations from [annotationsToIgnore]
-                        return@filter !hasAnnotations(instrClassName, annotationsToIgnoreCoverage)
+                        // We want to
+                        // - always keep instructions that are in class under test
+                        // - ignore instructions in classes marked with annotations from [annotationsToIgnore]
+                        return@filter instrClassName == classUnderTestId.name ||
+                                (isInstrClassOnClassPath && !hasAnnotations(instrClassName, annotationsToIgnoreCoverage))
                     }
                     .ifEmpty {
                         coverage.coveredInstructions

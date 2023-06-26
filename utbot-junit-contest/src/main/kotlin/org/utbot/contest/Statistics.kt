@@ -237,7 +237,7 @@ data class CoverageStatistic(val covered: Int, val total: Int)
 private fun CoverageInstructionsSet?.getCoverageInfo(classNames: Set<String>): CoverageStatistic = this?.run {
     CoverageStatistic(
         coveredInstructions.filter {
-            instr -> classNames.contains(instr.classFqn)
+            instr -> classNames.contains(instr.internalName)
         }.map { it.id }.distinct().size,
         totalInstructions.toInt()
     )

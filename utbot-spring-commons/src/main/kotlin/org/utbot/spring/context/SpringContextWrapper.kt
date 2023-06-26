@@ -5,7 +5,7 @@ import com.jetbrains.rd.util.warn
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.data.repository.CrudRepository
-import org.utbot.common.canLoad
+import org.utbot.common.hasOnClasspath
 import org.utbot.spring.api.context.ContextWrapper
 import org.utbot.spring.api.context.RepositoryDescription
 import java.net.URLClassLoader
@@ -47,7 +47,7 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
                 val clazz = getBean(name)::class.java
                 // here immediate hierarchy is enough because proxies are inherited directly
                 val immediateClazzHierarchy = clazz.interfaces + clazz.superclass + clazz
-                immediateClazzHierarchy.any { clazz -> userSourcesClassLoader.canLoad(clazz.name) }
+                immediateClazzHierarchy.any { clazz -> userSourcesClassLoader.hasOnClasspath(clazz.name) }
             }
             .toSet()
 
@@ -75,7 +75,7 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
             val repositoryClass = repositoryBean.bean::class.java
             val repositoryClassName = repositoryClass
                 .interfaces
-                .filter { clazz -> userSourcesClassLoader.canLoad(clazz.name) }
+                .filter { clazz -> userSourcesClassLoader.hasOnClasspath(clazz.name) }
                 .filter { CrudRepository::class.java.isAssignableFrom(it) }
                 .map { it.name }
                 .firstOrNull() ?: CrudRepository::class.java.name

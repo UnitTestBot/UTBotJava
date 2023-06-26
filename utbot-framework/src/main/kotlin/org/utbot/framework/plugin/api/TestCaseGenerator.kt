@@ -387,7 +387,7 @@ open class TestCaseGenerator(
                 coverage.coveredInstructions
                     .filter { instruction ->
                         val instrClassName =
-                            instruction.classFqn
+                            instruction.internalName
                                 .also {
                                     val isInstrClassOnClassPath =
                                         isClassOnUserClasspathCache.getOrPut(it) {

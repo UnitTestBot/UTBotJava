@@ -26,6 +26,7 @@ class PythonMethod(
     var definition: PythonFunctionDefinition,
     val ast: Block
 ) {
+
     fun methodSignature(): String = "$name(" + arguments.joinToString(", ") {
         "${it.name}: ${it.annotation ?: pythonAnyClassId.name}"
     } + ")"

@@ -21,6 +21,7 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
@@ -33,23 +34,25 @@ import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.jetbrains.kotlin.j2k.getContainingClass
 import org.utbot.common.PathUtil.toPath
-import org.utbot.common.appendHtmlLine
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.python.PythonMethodHeader
-import org.utbot.python.PythonTestGenerationProcessor
-import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.PythonTestGenerationConfig
+import org.utbot.python.RequirementsInstaller
+import org.utbot.python.TestFileInformation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.newtyping.mypy.dropInitFile
+import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.camelToSnakeCase
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 
 const val DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS = 2000L
@@ -63,15 +66,57 @@ object PythonDialogProcessor {
         CODEGEN(from = 0.95, to = 1.0),
     }
 
-    fun updateIndicator(indicator: ProgressIndicator, range : ProgressRange, text: String? = null, fraction: Double? = null) {
+    fun updateIndicator(
+        indicator: ProgressIndicator,
+        range: ProgressRange,
+        text: String,
+        fraction: Double,
+        stepCount: Int,
+        stepNumber: Int = 0,
+    ) {
+        assert(stepCount > stepNumber)
+        val maxValue = 1.0 / stepCount
+        val shift = stepNumber.toDouble()
         invokeLater {
             if (indicator.isCanceled) return@invokeLater
-            text?.let { indicator.text = it }
-            fraction?.let {
-                indicator.fraction =
-                    indicator.fraction.coerceAtLeast(range.from + (range.to - range.from) * fraction.coerceIn(0.0, 1.0))
-            }
+            text.let { indicator.text = it }
+            indicator.fraction = indicator.fraction
+                .coerceAtLeast((shift + range.from + (range.to - range.from) * fraction.coerceIn(0.0, 1.0)) * maxValue)
             logger.debug("Phase ${indicator.text} with progress ${String.format("%.2f",indicator.fraction)}")
+        }
+    }
+
+    private fun runIndicatorWithTimeHandler(indicator: ProgressIndicator, range: ProgressRange, text: String, globalCount: Int, globalShift: Int, timeout: Long): ScheduledFuture<*> {
+        val startTime = System.currentTimeMillis()
+        return AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
+                val innerTimeoutRatio =
+                    ((System.currentTimeMillis() - startTime).toDouble() / timeout)
+                        .coerceIn(0.0, 1.0)
+                updateIndicator(
+                    indicator,
+                    range,
+                    text,
+                    innerTimeoutRatio,
+                    globalCount,
+                    globalShift,
+                )
+            }, 0, 100, TimeUnit.MILLISECONDS)
+    }
+
+    private fun updateIndicatorTemplate(
+        indicator: ProgressIndicator,
+        stepCount: Int,
+        stepNumber: Int
+    ): (ProgressRange, String, Double) -> Unit {
+        return { range: ProgressRange, text: String, fraction: Double ->
+            updateIndicator(
+                indicator,
+                range,
+                text,
+                fraction,
+                stepCount,
+                stepNumber
+            )
         }
     }
 
@@ -197,7 +242,13 @@ object PythonDialogProcessor {
                             directoriesForSysPath,
                             moduleToImport.dropInitFile(),
                             file,
-                            realElements.first().getContainingClass() as PyClass?
+                            realElements.first().let { pyElement ->
+                                if (pyElement is PyFunction) {
+                                    pyElement.containingClass
+                                } else {
+                                    null
+                                }
+                            }
                         )
                     }
                     .toSet()
@@ -232,8 +283,23 @@ object PythonDialogProcessor {
                 try {
                     indicator.isIndeterminate = false
 
-                    groupPyElementsByModule(baseModel).forEach { model ->
-                        updateIndicator(indicator, ProgressRange.ANALYZE, "Analyze code: read files")
+                    val installer = IntellijRequirementsInstaller(project)
+
+                    indicator.text = "Checking requirements"
+                    val requirementsAreInstalled = RequirementsInstaller.checkRequirements(
+                        installer,
+                        baseModel.pythonPath,
+                        if (baseModel.testFramework.isInstalled) emptyList() else listOf(baseModel.testFramework.mainPackage)
+                    )
+                    if (!requirementsAreInstalled) return // TODO: show message about stopping?
+
+                    val modelGroups = groupPyElementsByModule(baseModel)
+                    val totalModules = modelGroups.size
+
+                    modelGroups.forEachIndexed { index, model ->
+                        val localUpdateIndicator = updateIndicatorTemplate(indicator, totalModules, index)
+                        localUpdateIndicator(ProgressRange.ANALYZE, "Analyze code: read files", 0.1)
+
                         val methods = findSelectedPythonMethods(model)
                         val content = getFileContent(model.file)
 
@@ -242,55 +308,52 @@ object PythonDialogProcessor {
                             requirementsList += model.testFramework.mainPackage
                         }
 
-                        val installer = IntellijRequirementsInstaller(project)
-
-                        updateIndicator(indicator, ProgressRange.ANALYZE, "Analyze file ${model.file.name}")
-
-                        updateIndicator(indicator, ProgressRange.SOLVING, "Generate test cases for file ${model.file.name}")
-
-                        updateIndicator(indicator, ProgressRange.CODEGEN, "Generate code of tests for ${model.file.name}")
-
-//                        val processor =
-
-                        processTestGeneration(
+                        val config = PythonTestGenerationConfig(
                             pythonPath = model.pythonPath,
-                            pythonFilePath = model.file.virtualFile.path,
-                            pythonFileContent = content,
-                            directoriesForSysPath = model.directoriesForSysPath,
-                            currentPythonModule = model.currentPythonModule,
-                            pythonMethods = methods,
-                            containingClassName = model.containingClass?.name,
+                            testFileInformation = TestFileInformation(model.file.virtualFile.path, content, model.currentPythonModule),
+                            sysPathDirectories = model.directoriesForSysPath,
+                            testedMethods = methods,
                             timeout = model.timeout,
-                            testFramework = model.testFramework,
                             timeoutForRun = model.timeoutForRun,
-                            writeTestTextToFile = { generatedCode ->
-                                writeGeneratedCodeToPsiDocument(generatedCode, model)
-                            },
-                            pythonRunRoot = Path(model.testSourceRootPath),
+                            testFramework = model.testFramework,
+                            executionPath = Path(model.testSourceRootPath),
+                            withMinimization = true,
                             isCanceled = { indicator.isCanceled },
-                            checkingRequirementsAction = { indicator.text = "Checking requirements" },
-                            installingRequirementsAction = { indicator.text = "Installing requirements..." },
-                            requirementsAreNotInstalledAction = {
-                                installer.installRequirements(model.pythonPath, requirementsList)
-//                                askAndInstallRequirementsLater(model.project, model.pythonPath, requirementsList)
-                                PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
-                            },
-                            startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
-                            startedTestGenerationAction = { indicator.text = "Generating tests" },
-                            notGeneratedTestsAction = {
-                                showErrorDialogLater(
-                                    project,
-                                    message = "Cannot create tests for the following functions: " + it.joinToString(),
-                                    title = "Python test generation error"
-                                )
-                            },
-                            processMypyWarnings = {
-                                val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
-                                WarningTestsReportNotifier.notify(message.toString())
-                            },
-                            runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
-                            startedCleaningAction = { indicator.text = "Cleaning up..." }
                         )
+                        val processor = PythonIntellijProcessor(
+                            config,
+                            project,
+                            model
+                        )
+
+                        localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 0.5)
+
+                        val mypyConfigFile = setConfigFile(config.sysPathDirectories)
+                        val (mypyStorage, _) = processor.sourceCodeAnalyze(mypyConfigFile)
+
+                        localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 1.0)
+
+                        val timerHandler = runIndicatorWithTimeHandler(
+                            indicator,
+                            ProgressRange.SOLVING,
+                            "Generate test cases for module ${model.currentPythonModule}",
+                            totalModules,
+                            index,
+                            model.timeout,
+                        )
+                        try {
+                            val testSets = processor.testGenerate(mypyStorage, mypyConfigFile)
+                            timerHandler.cancel(true)
+                            if (testSets.isEmpty()) return@forEachIndexed
+
+                            localUpdateIndicator(ProgressRange.CODEGEN, "Generate tests code for module ${model.currentPythonModule}", 0.0)
+                            val testCode = processor.testCodeGenerate(testSets)
+
+                            localUpdateIndicator(ProgressRange.CODEGEN, "Saving tests module ${model.currentPythonModule}", 0.9)
+                            processor.saveTests(testCode)
+                        } finally {
+                            timerHandler.cancel(true)
+                        }
                     }
                 } finally {
                     LockFile.unlock()

@@ -68,7 +68,7 @@ import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
 import java.lang.StringBuilder
-import org.utbot.python.framework.codegen.toPythonRawString
+import org.utbot.python.framework.codegen.utils.toPythonRawString
 
 internal class CgPythonRenderer(
     context: CgRendererContext,

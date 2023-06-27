@@ -148,20 +148,24 @@ internal class FieldDescription(
 )
 
 internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
-    val jClass = classId.jClass
-    return jClass.declaredFields.map { field ->
-        val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)
-        FieldDescription(
-            name = field.name,
-            type = if (description != null) toFuzzerType(field.type, description.typeCache) else FuzzedType(field.type.id),
-            canBeSetDirectly = isAccessible(
-                field,
-                packageName
-            ) && !Modifier.isFinal(field.modifiers) && !Modifier.isStatic(field.modifiers),
-            setter = setterAndGetter?.setter,
-            getter = setterAndGetter?.getter,
-        )
-    }
+    return generateSequence(classId.jClass) { it.superclass }.flatMap { jClass ->
+        jClass.declaredFields.map { field ->
+            val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)
+            FieldDescription(
+                name = field.name,
+                type = if (description != null) toFuzzerType(
+                    field.type,
+                    description.typeCache
+                ) else FuzzedType(field.type.id),
+                canBeSetDirectly = isAccessible(
+                    field,
+                    packageName
+                ) && !Modifier.isFinal(field.modifiers) && !Modifier.isStatic(field.modifiers),
+                setter = setterAndGetter?.setter,
+                getter = setterAndGetter?.getter,
+            )
+        }
+    }.toList()
 }
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {

@@ -215,7 +215,7 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId, java.lang.Cha
             .filter { it.classId == stringClassId }
         val values = constants
             .mapNotNull { it.value as? String } +
-                sequenceOf("", "abc", "\n\t\r")
+                sequenceOf("", "abc", "XZ", "#$\\\"'", "\n\t\r", "10", "-3")
         values.forEach { yieldKnown(StringValue(it), StringValue::value) }
         constants
             .filter { it.fuzzedContext.isPatterMatchingContext()  }

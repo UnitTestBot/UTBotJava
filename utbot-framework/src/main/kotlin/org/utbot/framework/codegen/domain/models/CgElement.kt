@@ -357,22 +357,34 @@ enum class CgTestMethodType(val displayName: String, val isThrowing: Boolean) {
 
 // Annotations
 
+enum class AnnotationTarget {
+    Class,
+
+    Method,
+
+    Field,
+}
+
 abstract class CgAnnotation : CgElement {
     abstract val classId: ClassId
+    abstract val target: AnnotationTarget
 }
 
 class CgCommentedAnnotation(val annotation: CgAnnotation) : CgAnnotation() {
     override val classId: ClassId = annotation.classId
+    override val target: AnnotationTarget = annotation.target
 }
 
 class CgSingleArgAnnotation(
     override val classId: ClassId,
-    val argument: CgExpression
+    val argument: CgExpression,
+    override val target: AnnotationTarget,
 ) : CgAnnotation()
 
 class CgMultipleArgsAnnotation(
     override val classId: ClassId,
-    val arguments: MutableList<CgNamedAnnotationArgument>
+    val arguments: MutableList<CgNamedAnnotationArgument>,
+    override val target: AnnotationTarget,
 ) : CgAnnotation()
 
 data class CgArrayAnnotationArgument(

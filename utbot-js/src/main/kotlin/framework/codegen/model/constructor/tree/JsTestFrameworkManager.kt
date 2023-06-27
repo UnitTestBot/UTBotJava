@@ -28,9 +28,7 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
         TODO("Not yet implemented")
     }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> {
-        TODO("Not yet implemented")
-    }
+    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) { }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
         TODO("Not yet implemented")
@@ -42,8 +40,14 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
 
     override val dataProviderMethodsHolder: TestClassContext
         get() = TODO("Not yet implemented")
-    override val annotationForNestedClasses: CgAnnotation
-        get() = TODO("Not yet implemented")
+
+    override fun addAnnotationForNestedClasses() {
+        error("Nested classes annotation does not exists in Mocha")
+    }
+
+    override fun addAnnotationForSpringRunner() {
+        error("Spring runner annotation does not exists in Mocha")
+    }
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {
         +assertions[jsAssertEquals](expected, actual)

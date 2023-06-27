@@ -27,6 +27,7 @@ import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
+import org.utbot.framework.codegen.domain.models.AnnotationTarget
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.CgParameterKind
 import org.utbot.framework.codegen.services.access.Block
@@ -301,12 +302,6 @@ interface CgContextOwner {
 
         if (collectedExceptions.add(exception)) {
             importIfNeeded(exception)
-        }
-    }
-
-    fun addAnnotation(annotation: CgAnnotation) {
-        if (collectedMethodAnnotations.add(annotation)) {
-            importIfNeeded(annotation.classId) // TODO: check how JUnit annotations are loaded
         }
     }
 

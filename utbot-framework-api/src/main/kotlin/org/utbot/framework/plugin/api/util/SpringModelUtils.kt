@@ -21,6 +21,14 @@ object SpringModelUtils {
     val transactionalClassId = ClassId("org.springframework.transaction.annotation.Transactional")
     val autoConfigureTestDbClassId = ClassId("org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase")
 
+    val runWithClassId = ClassId("org.junit.runner.RunWith")
+    val extendWithClassId = ClassId("org.junit.jupiter.api.extension.ExtendWith")
+    val springExtensionClassId = ClassId("org.springframework.test.context.junit.jupiter.SpringExtension")
+
+    val bootstrapWithClassId = ClassId("org.springframework.test.context.BootstrapWith")
+    val springBootTestContextBootstrapper = ClassId("org.springframework.boot.test.context.SpringBootTestContextBootstrapper")
+
+
     // most likely only one persistent library is on the classpath, but we need to be able to work with either of them
     private val persistentLibraries = listOf("javax.persistence", "jakarta.persistence")
     private fun persistentClassIds(simpleName: String) = persistentLibraries.map { ClassId("$it.$simpleName") }

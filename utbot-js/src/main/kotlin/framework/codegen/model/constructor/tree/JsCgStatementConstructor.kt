@@ -227,31 +227,47 @@ class JsCgStatementConstructor(context: CgContext) :
         }
     }
 
-    override fun annotation(classId: ClassId, argument: Any?): CgAnnotation {
+    override fun addAnnotation(classId: ClassId, argument: Any?, target: AnnotationTarget): CgAnnotation {
         val annotation = CgSingleArgAnnotation(classId, argument.resolve())
         addAnnotation(annotation)
         return annotation
     }
 
-    override fun annotation(classId: ClassId, namedArguments: List<Pair<String, CgExpression>>): CgAnnotation {
+    override fun addAnnotation(
+        classId: ClassId,
+        namedArguments: List<Pair<String, CgExpression>>,
+        target: AnnotationTarget,
+        ): CgAnnotation {
         val annotation = CgMultipleArgsAnnotation(
             classId,
-            namedArguments.mapTo(mutableListOf()) { (name, value) -> CgNamedAnnotationArgument(name, value) }
+            namedArguments.mapTo(mutableListOf()) { (name, value) -> CgNamedAnnotationArgument(name, value) },
+            target,
         )
         addAnnotation(annotation)
         return annotation
     }
 
-    override fun annotation(
+    override fun addAnnotation(
         classId: ClassId,
-        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit
+        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit,
+        target: AnnotationTarget,
     ): CgAnnotation {
         val arguments = mutableListOf<Pair<String, CgExpression>>()
             .apply(buildArguments)
             .map { (name, value) -> CgNamedAnnotationArgument(name, value) }
-        val annotation = CgMultipleArgsAnnotation(classId, arguments.toMutableList())
+        val annotation = CgMultipleArgsAnnotation(classId, arguments.toMutableList(), target)
         addAnnotation(annotation)
         return annotation
+    }
+
+    private fun addAnnotation(annotation: CgAnnotation) {
+        when (annotation.target) {
+            AnnotationTarget.Method -> collectedMethodAnnotations.add(annotation)
+            AnnotationTarget.Class,
+            AnnotationTarget.Field -> error("Such annotations are not supported in JavasCRIPT")
+        }
+
+        importIfNeeded(annotation.classId)
     }
 
     override fun returnStatement(expression: () -> CgExpression) {

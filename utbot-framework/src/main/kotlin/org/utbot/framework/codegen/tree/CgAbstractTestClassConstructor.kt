@@ -61,9 +61,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
             if (currentTestClass != outerMostTestClass) {
                 isNested = true
                 isStatic = testFramework.nestedClassesShouldBeStatic
-                testFrameworkManager.annotationForNestedClasses?.let {
-                    currentTestClassContext.collectedTestClassAnnotations += it
-                }
+                testFrameworkManager.addAnnotationForNestedClasses()
             }
 
             body = constructTestClassBody(testClassModel)

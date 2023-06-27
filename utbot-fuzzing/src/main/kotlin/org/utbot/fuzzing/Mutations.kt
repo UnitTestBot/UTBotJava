@@ -303,7 +303,7 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
         ): Result.Recursive<TYPE, RESULT> {
             return Result.Recursive(
                 construct = source.construct,
-                modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1).coerceAtLeast(1))
+                modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1))
             )
         }
     }

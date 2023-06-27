@@ -13,6 +13,11 @@ data class Configuration(
     var probSeedRetrievingInsteadGenerating: Int = 70,
 
     /**
+     * Choose between generation and mutation.
+     */
+    var probMutationRate: Int = 99,
+
+    /**
      * Fuzzer creates a tree of object for generating values. At some point this recursion should be stopped.
      *
      * To stop recursion [Seed.Recursive.empty] is called to create new values.

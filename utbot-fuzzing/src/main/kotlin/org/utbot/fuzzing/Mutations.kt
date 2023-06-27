@@ -2,10 +2,7 @@
 
 package org.utbot.fuzzing
 
-import org.utbot.fuzzing.seeds.BitVectorValue
-import org.utbot.fuzzing.seeds.IEEE754Value
-import org.utbot.fuzzing.seeds.KnownValue
-import org.utbot.fuzzing.seeds.StringValue
+import org.utbot.fuzzing.seeds.*
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import kotlin.random.Random
@@ -190,7 +187,7 @@ sealed interface StringMutations : Mutation<StringValue> {
                 }
                 append(value.substring(position, value.length))
             }
-            return StringValue(newString, lastMutation = this)
+            return StringValue(newString, lastMutation = this, mutatedFrom = source)
         }
     }
 
@@ -205,6 +202,15 @@ sealed interface StringMutations : Mutation<StringValue> {
                 append(value.substring(toRemove + 1, value.length))
             }
             return StringValue(newString, this)
+        }
+    }
+
+    object ShuffleCharacters : StringMutations {
+        override fun mutate(source: StringValue, random: Random, configuration: Configuration): StringValue {
+            return StringValue(
+                value = String(source.value.toCharArray().apply { shuffle(random) }),
+                lastMutation = this
+            )
         }
     }
 }

@@ -228,7 +228,11 @@ abstract class TestFrameworkManager(val context: CgContext)
         if (testAnnotation is CgMultipleArgsAnnotation) {
             testAnnotation.arguments += timeout
         } else {
-            statementConstructor.addAnnotation(testFramework.testAnnotationId, mutableListOf(timeout), Method)
+            statementConstructor.addAnnotation(
+                classId = testFramework.testAnnotationId,
+                namedArguments = listOf(timeout.name to timeout.value),
+                target = Method,
+                )
         }
     }
 
@@ -542,20 +546,16 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     override fun setTestExecutionTimeout(timeoutMs: Long) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
 
-        val timeoutAnnotationArguments = mutableListOf<CgNamedAnnotationArgument>()
-        timeoutAnnotationArguments += CgNamedAnnotationArgument(
-            name = "value",
-            value = timeoutMs.resolve()
-        )
-
-        val milliseconds = TimeUnit.MILLISECONDS
-        timeoutAnnotationArguments += CgNamedAnnotationArgument(
-            name = "unit",
-            value = CgEnumConstantAccess(testFramework.timeunitClassId, milliseconds.name)
-        )
         importIfNeeded(testFramework.timeunitClassId)
 
-        statementConstructor.addAnnotation(Junit5.timeoutClassId, timeoutAnnotationArguments, Method)
+        statementConstructor.addAnnotation(
+            classId = Junit5.timeoutClassId,
+            namedArguments = listOf(
+                "value" to timeoutMs.resolve(),
+                "unit" to CgEnumConstantAccess(testFramework.timeunitClassId, TimeUnit.MILLISECONDS.name)
+            ),
+            target = Method,
+        )
     }
 
     override fun addTestDescription(description: String) = addDisplayName(description)

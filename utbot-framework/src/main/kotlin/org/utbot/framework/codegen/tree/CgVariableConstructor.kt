@@ -12,7 +12,6 @@ import org.utbot.framework.codegen.domain.models.CgEnumConstantAccess
 import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
-import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgStatement
@@ -469,7 +468,7 @@ open class CgVariableConstructor(val context: CgContext) :
     private fun constructClassRef(model: UtClassRefModel, baseName: String?): CgVariable {
         val classId = model.value.id
         val init = if (classId.isAccessibleFrom(testClassPackageName)) {
-            CgGetJavaClass(classId)
+            createGetClassExpression(classId, codegenLanguage)
         } else {
             classClassId[forName](classId.name)
         }

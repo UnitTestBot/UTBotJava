@@ -370,17 +370,29 @@ abstract class CgAnnotation : CgElement {
     abstract val target: AnnotationTarget
 }
 
+/**
+ * NOTE: use `CgContext.addAnnotation`
+ * instead of explicit constructor call.
+ */
 class CgCommentedAnnotation(val annotation: CgAnnotation) : CgAnnotation() {
     override val classId: ClassId = annotation.classId
     override val target: AnnotationTarget = annotation.target
 }
 
+/**
+ * NOTE: use `CgContext.addAnnotation`
+ * instead of explicit constructor call.
+ */
 class CgSingleArgAnnotation(
     override val classId: ClassId,
     val argument: CgExpression,
     override val target: AnnotationTarget,
 ) : CgAnnotation()
 
+/**
+ * NOTE: use `CgContext.addAnnotation`
+ * instead of explicit constructor call.
+ */
 class CgMultipleArgsAnnotation(
     override val classId: ClassId,
     val arguments: MutableList<CgNamedAnnotationArgument>,
@@ -954,8 +966,16 @@ sealed class CgGetClass : CgReferenceExpression {
     override val type: ClassId = Class::class.id
 }
 
+/**
+ * NOTE: use `CgContext.createGetClassExpression`
+ * instead of the explicit constructor call.
+ */
 data class CgGetJavaClass(override val classId: ClassId) : CgGetClass()
 
+/**
+ * NOTE: use `CgContext.createGetClassExpression`
+ * instead of the explicit constructor call.
+ */
 data class CgGetKotlinClass(override val classId: ClassId) : CgGetClass()
 
 // Executable calls

@@ -12,7 +12,7 @@ import kotlin.reflect.KClass
 class FuzzerSmokeTest {
 
     @Test
-    fun `fuzzing doesn't run with empty parameters`() {
+    fun `fuzzing runs with empty parameters`() {
         runBlocking {
             var count = 0
             runFuzzing<Unit, Unit, Description<Unit>, BaseFeedback<Unit, Unit, Unit>>(
@@ -22,7 +22,7 @@ class FuzzerSmokeTest {
                 count += 1
                 BaseFeedback(Unit, Control.STOP)
             }
-            Assertions.assertEquals(0, count)
+            Assertions.assertEquals(1, count)
         }
     }
 

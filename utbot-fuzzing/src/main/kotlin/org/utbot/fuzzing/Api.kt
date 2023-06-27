@@ -324,18 +324,21 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
 
     while (!fuzzing.isCancelled(description, statistic)) {
         beforeIteration(description, statistic)
-        var values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
-            statistic.getRandomSeed(random, configuration)
+        val values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+            statistic.getRandomSeed(random, configuration).let {
+                mutationFactory.mutate(it, random, configuration)
+            }
         } else {
             val actualParameters = description.parameters
             // fuzz one value, seems to be bad, when have only a few and simple values
-            fuzzOne(actualParameters)
+            fuzzOne(actualParameters).let {
+                if (random.flipCoin(configuration.probMutationRate)) {
+                    mutationFactory.mutate(it, random, configuration)
+                } else {
+                    it
+                }
+            }
         }
-        values = mutationFactory.mutate(
-            values,
-            random,
-            configuration
-        )
         afterIteration(description, statistic)
 
         yield()

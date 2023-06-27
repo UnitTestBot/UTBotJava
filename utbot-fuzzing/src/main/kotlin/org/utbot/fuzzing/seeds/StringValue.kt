@@ -21,6 +21,7 @@ open class StringValue(
         return listOf(
             StringMutations.AddCharacter,
             StringMutations.RemoveCharacter,
+            StringMutations.ShuffleCharacters,
         )
     }
 }

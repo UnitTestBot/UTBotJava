@@ -204,6 +204,15 @@ sealed interface StringMutations : Mutation<StringValue> {
             return StringValue(newString, this)
         }
     }
+
+    object ShuffleCharacters : StringMutations {
+        override fun mutate(source: StringValue, random: Random, configuration: Configuration): StringValue {
+            return StringValue(
+                value = String(source.value.toCharArray().apply { shuffle(random) }),
+                lastMutation = this
+            )
+        }
+    }
 }
 
 fun interface NodeMutation<TYPE, RESULT> : Mutation<Node<TYPE, RESULT>>

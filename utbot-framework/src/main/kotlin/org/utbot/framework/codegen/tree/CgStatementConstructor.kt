@@ -435,7 +435,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     private fun addAnnotation(annotation: CgAnnotation) {
         when (annotation.target) {
             AnnotationTarget.Method -> collectedMethodAnnotations.add(annotation)
-            AnnotationTarget.Class -> outerMostTestClassContext.collectedTestClassAnnotations.add(annotation)
+            AnnotationTarget.Class -> currentTestClassContext.collectedTestClassAnnotations.add(annotation)
             // TODO: possibly introduce some scope cache like in methods and constructions processing.
             // It may allow to avoid return type in CgAnnotation method.
             AnnotationTarget.Field -> { }

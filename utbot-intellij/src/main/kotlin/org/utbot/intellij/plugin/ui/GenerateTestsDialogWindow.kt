@@ -867,12 +867,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ?: if (testFramework != Junit4) testFramework else TestFramework.parametrizedDefaultItem
         }
 
-        springTestsType.item = if (isSpringConfigSelected()) settings.springTestsType else SpringTestsType.defaultItem
-
-        updateTestFrameworksList(settings.parametrizedTestSource)
-        updateParametrizationEnabled()
-
-        updateSpringSettings()
+        when (model.projectType) {
+            ProjectType.PureJvm -> {
+                updateTestFrameworksList(settings.parametrizedTestSource)
+                updateParametrizationEnabled()
+            }
+            ProjectType.Spring -> {
+                springTestsType.item =
+                    if (isSpringConfigSelected()) settings.springTestsType else SpringTestsType.defaultItem
+                updateSpringSettings()
+                updateTestFrameworkList(settings.springTestsType)
+            }
+            ProjectType.Python,
+            ProjectType.JavaScript -> { }
+        }
 
         updateMockStrategyList()
 

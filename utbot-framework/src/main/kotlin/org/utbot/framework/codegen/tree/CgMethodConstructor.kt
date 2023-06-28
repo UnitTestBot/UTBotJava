@@ -664,7 +664,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     }
 
                     currentBlock += assertions[assertEquals](
-                        createGetClassExpression(expected.type, codegenLanguage),
+                        createGetClassExpression(expected.type),
                         actualObject[getClass]()
                     ).toStatement()
                 }
@@ -1761,7 +1761,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     arguments += nullLiteral()
                 }
                 if (containsFailureExecution) {
-                    arguments += createGetClassExpression(it::class.id, codegenLanguage)
+                    arguments += createGetClassExpression(it::class.id)
                 }
             }
 

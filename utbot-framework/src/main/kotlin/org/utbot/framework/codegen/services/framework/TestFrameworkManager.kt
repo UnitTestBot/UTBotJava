@@ -252,7 +252,7 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     protected fun ClassId.toExceptionClass(): CgExpression =
             if (isAccessibleFrom(testClassPackageName)) {
-                createGetClassExpression(this, codegenLanguage)
+                createGetClassExpression(this)
             } else {
                 statementConstructor.newVar(classCgClassId) { Class::class.id[forName](name) }
             }

@@ -250,7 +250,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
         } else {
             // TODO: there is a function getClassOf() for these purposes, but it is not accessible from here for now
             val ownerClass = if (owner isAccessibleFrom testClassPackageName) {
-                createGetClassExpression(owner, codegenLanguage)
+                createGetClassExpression(owner)
             } else {
                 newVar(classCgClassId) { Class::class.id[forName](owner.name) }
             }

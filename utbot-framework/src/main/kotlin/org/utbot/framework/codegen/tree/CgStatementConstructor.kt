@@ -293,7 +293,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
      */
     override fun getClassOf(classId: ClassId): CgExpression {
         return if (classId isAccessibleFrom testClassPackageName) {
-            createGetClassExpression(classId, codegenLanguage)
+            createGetClassExpression(classId)
         } else {
             newVar(classCgClassId) { classClassId[forName](classId.name) }
         }
@@ -317,7 +317,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
             }
             newVar(classCgClassId, baseName) {
                 if (parameterType.isPrimitive) {
-                    createGetClassExpression(parameterType, codegenLanguage)
+                    createGetClassExpression(parameterType)
                 } else {
                     classClassId[forName](parameterType.name)
                 }

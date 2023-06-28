@@ -1,5 +1,7 @@
 package org.utbot.python
 
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
@@ -25,10 +27,8 @@ import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.newtyping.pythonName
-import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.utils.RequirementsUtils
-import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
@@ -37,8 +37,8 @@ import kotlin.io.path.pathString
 abstract class PythonTestGenerationProcessorNew {
     abstract val configuration: PythonTestGenerationConfig
 
-    fun sourceCodeAnalyze(mypyConfigFile: File): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
-//        val mypyConfigFile = setConfigFile(configuration.sysPathDirectories)
+    fun sourceCodeAnalyze(): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
+        val mypyConfigFile = setConfigFile(configuration.sysPathDirectories)
         return readMypyAnnotationStorageAndInitialErrors(
             configuration.pythonPath,
             configuration.testFileInformation.testedFilePath,
@@ -47,7 +47,8 @@ abstract class PythonTestGenerationProcessorNew {
         )
     }
 
-    fun testGenerate(mypyStorage: MypyAnnotationStorage, mypyConfigFile: File): List<PythonTestSet> {
+    fun testGenerate(mypyStorage: MypyAnnotationStorage): List<PythonTestSet> {
+        val mypyConfigFile = setConfigFile(configuration.sysPathDirectories)
         val startTime = System.currentTimeMillis()
 
         val testCaseGenerator = PythonTestCaseGenerator(
@@ -140,6 +141,8 @@ abstract class PythonTestGenerationProcessorNew {
 
     abstract fun notGeneratedTestsAction(testedFunctions: List<String>)
 
+    abstract fun processCoverageInfo(testSets: List<PythonTestSet>)
+
     private fun getContainingClassName(testSets: List<PythonTestSet>): String {
         val containingClasses = testSets.map { it.method.containingPythonClass?.pythonName() ?: "TopLevelFunctions" }
         return containingClasses.toSet().first()
@@ -231,4 +234,53 @@ abstract class PythonTestGenerationProcessorNew {
         } else {
             paths
         }
+
+    data class InstructionSet(
+        val start: Int,
+        val end: Int
+    )
+
+    data class CoverageInfo(
+        val covered: List<InstructionSet>,
+        val notCovered: List<InstructionSet>
+    )
+
+    private val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+    private val jsonAdapter = moshi.adapter(CoverageInfo::class.java)
+
+    private fun getInstructionSetList(instructions: Collection<Int>): List<InstructionSet> =
+        instructions.sorted().fold(emptyList()) { acc, lineNumber ->
+            if (acc.isEmpty())
+                return@fold listOf(InstructionSet(lineNumber, lineNumber))
+            val elem = acc.last()
+            if (elem.end + 1 == lineNumber)
+                acc.dropLast(1) + listOf(InstructionSet(elem.start, lineNumber))
+            else
+                acc + listOf(InstructionSet(lineNumber, lineNumber))
+        }
+    protected fun getCoverageInfo(testSets: List<PythonTestSet>): String {
+        val covered = mutableSetOf<Int>()
+        val missed = mutableSetOf<Set<Int>>()
+        testSets.forEach { testSet ->
+            testSet.executions.forEach inner@{ execution ->
+                val coverage = execution.coverage ?: return@inner
+                coverage.coveredInstructions.forEach { covered.add(it.lineNumber) }
+                missed.add(coverage.missedInstructions.map { it.lineNumber }.toSet())
+            }
+        }
+        val coveredInstructionSets = getInstructionSetList(covered)
+        val missedInstructionSets =
+            if (missed.isEmpty())
+                emptyList()
+            else
+                getInstructionSetList(missed.reduce { a, b -> a intersect b })
+
+        return jsonAdapter.toJson(
+            CoverageInfo(
+                coveredInstructionSets,
+                missedInstructionSets
+            )
+        )
+    }
+
 }

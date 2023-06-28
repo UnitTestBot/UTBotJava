@@ -9,6 +9,7 @@ import com.intellij.psi.PsiFileFactory
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestGenerationProcessorNew
+import org.utbot.python.PythonTestSet
 import org.utbot.python.utils.camelToSnakeCase
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -18,7 +19,6 @@ class PythonIntellijProcessor(
     val project: Project,
     val model: PythonTestLocalModel,
 ) : PythonTestGenerationProcessorNew() {
-
     override fun saveTests(testsCode: String) {
         invokeLater {
             runWriteAction {
@@ -68,5 +68,9 @@ class PythonIntellijProcessor(
             message = "Cannot create tests for the following functions: " + testedFunctions.joinToString(),
             title = "Python test generation error"
         )
+    }
+
+    override fun processCoverageInfo(testSets: List<PythonTestSet>) {
+        TODO("Not yet implemented")
     }
 }

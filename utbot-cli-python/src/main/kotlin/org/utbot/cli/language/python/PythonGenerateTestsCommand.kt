@@ -9,8 +9,11 @@ import mu.KotlinLogging
 import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.python.PythonMethodHeader
+import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.RequirementsInstaller
+import org.utbot.python.TestFileInformation
 import org.utbot.python.code.PythonCode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
@@ -18,6 +21,7 @@ import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.newtyping.mypy.dropInitFile
+import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.utils.*
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
@@ -200,29 +204,6 @@ class PythonGenerateTestsCommand : CliktCommand(
         }
     }
 
-    private fun processMissingRequirements(): PythonTestGenerationProcessor.MissingRequirementsActionResult {
-        if (installRequirementsIfMissing) {
-            logger.info("Installing requirements...")
-            val result = installRequirements(pythonPath)
-            if (result.exitValue == 0)
-                return PythonTestGenerationProcessor.MissingRequirementsActionResult.INSTALLED
-            System.err.println(result.stderr)
-            logger.error("Failed to install requirements.")
-        } else {
-            logger.error("Missing some requirements. Please add --install-requirements flag or install them manually.")
-        }
-        logger.info("Requirements: ${requirements.joinToString()}")
-        return PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
-    }
-
-    private fun writeToFileAndSave(filename: String, fileContent: String) {
-        val file = File(filename)
-        file.parentFile?.mkdirs()
-        file.writeText(fileContent)
-        file.createNewFile()
-    }
-
-
     override fun run() {
         val status = calculateValues()
         if (status is Fail) {
@@ -230,48 +211,50 @@ class PythonGenerateTestsCommand : CliktCommand(
             return
         }
 
-        processTestGeneration(
-            pythonPath = pythonPath,
-            pythonFilePath = sourceFile.toAbsolutePath(),
-            pythonFileContent = sourceFileContent,
-            directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() }.toSet(),
-            currentPythonModule = currentPythonModule.dropInitFile(),
-            pythonMethods = pythonMethods,
-            containingClassName = pythonClass,
-            timeout = timeout,
-            testFramework = testFramework,
-            timeoutForRun = timeoutForRun,
-            writeTestTextToFile = { generatedCode ->
-                writeToFileAndSave(output, generatedCode)
-            },
-            pythonRunRoot = Paths.get("").toAbsolutePath(),
-            doNotCheckRequirements = doNotCheckRequirements,
-            withMinimization = !doNotMinimize,
-            checkingRequirementsAction = {
-                logger.info("Checking requirements...")
-            },
-            installingRequirementsAction = {
-                logger.info("Installing requirements...")
-            },
-            requirementsAreNotInstalledAction = ::processMissingRequirements,
-            startedLoadingPythonTypesAction = {
-                logger.info("Loading information about Python types...")
-            },
-            startedTestGenerationAction = {
-                logger.info("Generating tests...")
-            },
-            notGeneratedTestsAction = {
-                logger.error(
-                    "Couldn't generate tests for the following functions: ${it.joinToString()}"
-                )
-            },
-            processMypyWarnings = { messages -> messages.forEach { println(it) } },
-            processCoverageInfo = { coverageReport ->
-                val output = coverageOutput ?: return@processTestGeneration
-                writeToFileAndSave(output, coverageReport)
-            }
-        ) {
-            logger.info("Finished test generation for the following functions: ${it.joinToString()}")
+        logger.info("Checking requirements...")
+        val installer = CliRequirementsInstaller(installRequirementsIfMissing, logger)
+        val requirementsAreInstalled = RequirementsInstaller.checkRequirements(
+            installer,
+            pythonPath,
+            if (testFramework.isInstalled) emptyList() else listOf(testFramework.mainPackage)
+        )
+        if (!requirementsAreInstalled) {
+            return
         }
+
+        val config = PythonTestGenerationConfig(
+            pythonPath = pythonPath,
+            testFileInformation = TestFileInformation(sourceFile.toAbsolutePath(), sourceFileContent, currentPythonModule.dropInitFile()),
+            sysPathDirectories = directoriesForSysPath.toSet(),
+            testedMethods = pythonMethods,
+            timeout = timeout,
+            timeoutForRun = timeoutForRun,
+            testFramework = testFramework,
+            executionPath = Paths.get("").toAbsolutePath(),
+            withMinimization = !doNotMinimize,
+            isCanceled = { false },
+        )
+
+        val processor = PythonCliProcessor(
+            config,
+            output,
+            logger,
+            coverageOutput,
+        )
+
+        logger.info("Loading information about Python types...")
+        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+
+        logger.info("Generating tests...")
+        val testSets = processor.testGenerate(mypyStorage)
+
+        logger.info("Saving coverage report...")
+        processor.processCoverageInfo(testSets)
+
+        logger.info(
+            "Finished test generation for the following functions: ${
+                testSets.joinToString { it.method.name }
+            }"
+        )
     }
 }

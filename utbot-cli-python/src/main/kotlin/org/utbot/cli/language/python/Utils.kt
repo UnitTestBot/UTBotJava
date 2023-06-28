@@ -20,3 +20,10 @@ fun findCurrentPythonModule(
 
 fun String.toAbsolutePath(): String =
     File(this).canonicalPath
+
+fun writeToFileAndSave(filename: String, fileContent: String) {
+    val file = File(filename)
+    file.parentFile?.mkdirs()
+    file.writeText(fileContent)
+    file.createNewFile()
+}

@@ -234,7 +234,12 @@ internal class CgPythonRenderer(
 
     override fun visit(element: CgEqualTo) {
         element.left.accept(this)
-        print(" == ")
+        val isCompareTypes = listOf("builtins.bool", "types.NoneType")
+        if (isCompareTypes.contains(element.right.type.canonicalName)) {
+            print(" is ")
+        } else {
+            print(" == ")
+        }
         element.right.accept(this)
     }
 

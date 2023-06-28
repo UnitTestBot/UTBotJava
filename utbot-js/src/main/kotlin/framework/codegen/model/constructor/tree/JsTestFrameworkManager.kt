@@ -44,11 +44,11 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
         get() = error("Parametrized tests are not supported for JavaScript")
 
     override fun addAnnotationForNestedClasses() {
-        error("Nested classes annotation does not exists in Mocha")
+        error("Nested classes annotation does not exist in Mocha")
     }
 
     override fun addAnnotationForSpringRunner() {
-        error("Spring runner annotation does not exists in Mocha")
+        error("Spring runner annotation does not exist in Mocha")
     }
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {

@@ -218,7 +218,7 @@ abstract class TestFrameworkManager(val context: CgContext)
                 classId = testFramework.testAnnotationId,
                 namedArguments = listOf(timeout),
                 target = Method,
-                )
+            )
         }
     }
 
@@ -258,7 +258,9 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
 
     override fun addAnnotationForNestedClasses() { }
 
-    override fun addAnnotationForSpringRunner() { }
+    override fun addAnnotationForSpringRunner() {
+        error("TestNg does not have the Spring runner annotation")
+    }
 
     override val isExpectedExceptionExecutionBreaking: Boolean = false
 
@@ -463,7 +465,7 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
             classId = testFramework.ignoreAnnotationClassId,
             namedArguments = listOf(reasonArgument),
             target = Method,
-            )
+        )
     }
 }
 

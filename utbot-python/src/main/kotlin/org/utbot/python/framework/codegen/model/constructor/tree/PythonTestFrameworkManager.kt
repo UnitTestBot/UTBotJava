@@ -70,12 +70,13 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
 
     override val dataProviderMethodsHolder: TestClassContext get() =
         error("Parametrized tests are not supported for Python")
+
     override fun addAnnotationForNestedClasses() {
-        error("Nested classes annotation does not exists in PyTest")
+        error("Nested classes annotation does not exist in PyTest")
     }
 
     override fun addAnnotationForSpringRunner() {
-        error("Spring runner annotation does not exists in PyTest")
+        error("Spring runner annotation does not exist in PyTest")
     }
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {
@@ -108,11 +109,11 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
         get() = error("Parametrized tests are not supported for JavaScript")
 
     override fun addAnnotationForNestedClasses() {
-        error("Nested classes annotation does not exists in Unittest")
+        error("Nested classes annotation does not exist in Unittest")
     }
 
     override fun addAnnotationForSpringRunner() {
-        error("Spring runner annotation does not exists in Unittest")
+        error("Spring runner annotation does not exist in Unittest")
     }
 
     override fun expectException(exception: ClassId, block: () -> Unit) {

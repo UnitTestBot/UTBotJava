@@ -227,7 +227,7 @@ class JsCgStatementConstructor(context: CgContext) :
         classId: ClassId,
         namedArguments: List<CgNamedAnnotationArgument>,
         target: AnnotationTarget,
-        ): CgAnnotation {
+    ): CgAnnotation {
         val annotation = CgMultipleArgsAnnotation(classId, namedArguments.toMutableList(), target)
         addAnnotation(annotation)
         return annotation
@@ -250,7 +250,7 @@ class JsCgStatementConstructor(context: CgContext) :
         when (annotation.target) {
             AnnotationTarget.Method -> collectedMethodAnnotations.add(annotation)
             AnnotationTarget.Class,
-            AnnotationTarget.Field -> error("Such annotations are not supported in JavasCRIPT")
+            AnnotationTarget.Field -> error("Annotation ${annotation.target} is not supported in JavaScript")
         }
 
         importIfNeeded(annotation.classId)

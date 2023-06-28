@@ -250,7 +250,7 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
         when (annotation.target) {
             AnnotationTarget.Method -> collectedMethodAnnotations.add(annotation)
             AnnotationTarget.Class,
-            AnnotationTarget.Field -> error("Such annotations are not supported in Python")
+            AnnotationTarget.Field -> error("Annotation ${annotation.target} is not supported in Python")
         }
 
         importIfNeeded(annotation.classId)

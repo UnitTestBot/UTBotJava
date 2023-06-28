@@ -2,7 +2,7 @@ package org.utbot.cli.language.python
 
 import mu.KLogger
 import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.PythonTestGenerationProcessorNew
+import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestSet
 
 class PythonCliProcessor(
@@ -10,7 +10,7 @@ class PythonCliProcessor(
     private val output: String,
     private val logger: KLogger,
     private val coverageOutput: String?,
-) : PythonTestGenerationProcessorNew() {
+) : PythonTestGenerationProcessor() {
 
     override fun saveTests(testsCode: String) {
         writeToFileAndSave(output, testsCode)

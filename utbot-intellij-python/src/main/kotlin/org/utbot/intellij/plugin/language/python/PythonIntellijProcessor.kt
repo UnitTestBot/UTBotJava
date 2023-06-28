@@ -8,7 +8,7 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.PythonTestGenerationProcessorNew
+import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestSet
 import org.utbot.python.utils.camelToSnakeCase
 import java.nio.file.Path
@@ -18,7 +18,7 @@ class PythonIntellijProcessor(
     override val configuration: PythonTestGenerationConfig,
     val project: Project,
     val model: PythonTestLocalModel,
-) : PythonTestGenerationProcessorNew() {
+) : PythonTestGenerationProcessor() {
     override fun saveTests(testsCode: String) {
         invokeLater {
             runWriteAction {

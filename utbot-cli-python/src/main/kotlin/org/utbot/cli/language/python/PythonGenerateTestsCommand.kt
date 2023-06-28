@@ -10,8 +10,6 @@ import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.PythonTestGenerationProcessor
-import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.RequirementsInstaller
 import org.utbot.python.TestFileInformation
 import org.utbot.python.code.PythonCode
@@ -21,10 +19,7 @@ import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.newtyping.mypy.dropInitFile
-import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.utils.*
-import org.utbot.python.utils.RequirementsUtils.installRequirements
-import org.utbot.python.utils.RequirementsUtils.requirements
 import java.io.File
 import java.nio.file.Paths
 

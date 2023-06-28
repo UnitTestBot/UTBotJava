@@ -4,6 +4,7 @@ import fj.data.Either
 import framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.AnnotationTarget
 import org.utbot.framework.codegen.domain.models.CgAnnotation
 import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
 import org.utbot.framework.codegen.domain.models.CgComment
@@ -26,18 +27,7 @@ import org.utbot.framework.codegen.domain.models.CgThrowStatement
 import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
-import org.utbot.framework.codegen.tree.CgComponents
-import org.utbot.framework.codegen.tree.CgForEachLoopBuilder
-import org.utbot.framework.codegen.tree.CgForLoopBuilder
-import org.utbot.framework.codegen.tree.CgStatementConstructor
-import org.utbot.framework.codegen.tree.ExpressionWithType
-import org.utbot.framework.codegen.tree.buildAssignment
-import org.utbot.framework.codegen.tree.buildDeclaration
-import org.utbot.framework.codegen.tree.buildDoWhileLoop
-import org.utbot.framework.codegen.tree.buildExceptionHandler
-import org.utbot.framework.codegen.tree.buildForLoop
-import org.utbot.framework.codegen.tree.buildTryCatch
-import org.utbot.framework.codegen.tree.buildWhileLoop
+import org.utbot.framework.codegen.tree.*
 import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -228,7 +218,7 @@ class JsCgStatementConstructor(context: CgContext) :
     }
 
     override fun addAnnotation(classId: ClassId, argument: Any?, target: AnnotationTarget): CgAnnotation {
-        val annotation = CgSingleArgAnnotation(classId, argument.resolve())
+        val annotation = CgSingleArgAnnotation(classId, argument.resolve(), target)
         addAnnotation(annotation)
         return annotation
     }
@@ -245,8 +235,8 @@ class JsCgStatementConstructor(context: CgContext) :
 
     override fun addAnnotation(
         classId: ClassId,
-        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit,
         target: AnnotationTarget,
+        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit,
     ): CgAnnotation {
         val arguments = mutableListOf<Pair<String, CgExpression>>()
             .apply(buildArguments)

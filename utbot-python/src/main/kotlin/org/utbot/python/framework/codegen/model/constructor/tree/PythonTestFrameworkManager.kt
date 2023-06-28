@@ -36,14 +36,16 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
     override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {
-        TODO("Not yet implemented")
+        error("Parametrized tests are not supported for Python")
     }
 
     override fun createArgList(length: Int): CgVariable {
-        TODO("Not yet implemented")
+        error("Parametrized tests are not supported for Python")
     }
 
-    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) { }
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) {
+        error("Parametrized tests are not supported for Python")
+    }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
         TODO("Not yet implemented")
@@ -66,7 +68,8 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         )
     }
 
-    override val dataProviderMethodsHolder: TestClassContext get() = TODO()
+    override val dataProviderMethodsHolder: TestClassContext get() =
+        error("Parametrized tests are not supported for Python")
     override fun addAnnotationForNestedClasses() {
         error("Nested classes annotation does not exists in PyTest")
     }
@@ -102,7 +105,7 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
     override val dataProviderMethodsHolder: TestClassContext
-        get() = TODO()
+        get() = error("Parametrized tests are not supported for JavaScript")
     override fun addAnnotationForNestedClasses() {
         error("Nested classes annotation does not exists in Unittest")
     }

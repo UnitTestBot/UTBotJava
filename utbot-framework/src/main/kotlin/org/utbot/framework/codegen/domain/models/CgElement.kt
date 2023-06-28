@@ -371,7 +371,7 @@ abstract class CgAnnotation : CgElement {
 }
 
 /**
- * NOTE: use `CgContext.addAnnotation`
+ * NOTE: use `StatementConstructor.addAnnotation`
  * instead of explicit constructor call.
  */
 class CgCommentedAnnotation(val annotation: CgAnnotation) : CgAnnotation() {
@@ -380,7 +380,7 @@ class CgCommentedAnnotation(val annotation: CgAnnotation) : CgAnnotation() {
 }
 
 /**
- * NOTE: use `CgContext.addAnnotation`
+ * NOTE: use `StatementConstructor.addAnnotation`
  * instead of explicit constructor call.
  */
 class CgSingleArgAnnotation(
@@ -390,7 +390,7 @@ class CgSingleArgAnnotation(
 ) : CgAnnotation()
 
 /**
- * NOTE: use `CgContext.addAnnotation`
+ * NOTE: use `StatementConstructor.addAnnotation`
  * instead of explicit constructor call.
  */
 class CgMultipleArgsAnnotation(

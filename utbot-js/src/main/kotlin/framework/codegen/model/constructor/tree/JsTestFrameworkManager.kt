@@ -21,17 +21,19 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
     }
 
     override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {
-        TODO("Not yet implemented")
+        error("Parametrized tests are not supported for JavaScript")
     }
 
     override fun createArgList(length: Int): CgVariable {
-        TODO("Not yet implemented")
+        error("Parametrized tests are not supported for JavaScript")
     }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) { }
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) {
+        error("Parametrized tests are not supported for JavaScript")
+    }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
-        TODO("Not yet implemented")
+        error("Parametrized tests are not supported for JavaScript")
     }
 
     override fun addTestDescription(description: String) {
@@ -39,7 +41,7 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
     }
 
     override val dataProviderMethodsHolder: TestClassContext
-        get() = TODO("Not yet implemented")
+        get() = error("Parametrized tests are not supported for JavaScript")
 
     override fun addAnnotationForNestedClasses() {
         error("Nested classes annotation does not exists in Mocha")

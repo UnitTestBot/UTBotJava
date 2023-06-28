@@ -5,19 +5,7 @@ import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
-import org.utbot.framework.codegen.domain.models.CgAllocateArray
-import org.utbot.framework.codegen.domain.models.CgAssignment
-import org.utbot.framework.codegen.domain.models.CgDeclaration
-import org.utbot.framework.codegen.domain.models.CgEnumConstantAccess
-import org.utbot.framework.codegen.domain.models.CgExecutableCall
-import org.utbot.framework.codegen.domain.models.CgExpression
-import org.utbot.framework.codegen.domain.models.CgFieldAccess
-import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgMethodCall
-import org.utbot.framework.codegen.domain.models.CgStatement
-import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getMockFrameworkManagerBy
@@ -468,7 +456,7 @@ open class CgVariableConstructor(val context: CgContext) :
     private fun constructClassRef(model: UtClassRefModel, baseName: String?): CgVariable {
         val classId = model.value.id
         val init = if (classId.isAccessibleFrom(testClassPackageName)) {
-            createGetClassExpression(classId)
+            CgGetJavaClass(classId)
         } else {
             classClassId[forName](classId.name)
         }

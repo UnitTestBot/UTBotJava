@@ -5,6 +5,7 @@ import org.utbot.framework.codegen.domain.builtin.getArrayElement
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgExpression
+import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
@@ -250,7 +251,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
         } else {
             // TODO: there is a function getClassOf() for these purposes, but it is not accessible from here for now
             val ownerClass = if (owner isAccessibleFrom testClassPackageName) {
-                createGetClassExpression(owner)
+                CgGetJavaClass(owner)
             } else {
                 newVar(classCgClassId) { Class::class.id[forName](owner.name) }
             }

@@ -294,7 +294,7 @@ interface CgContextOwner {
         }
     }
 
-    fun createGetClassExpression(id: ClassId, codegenLanguage: CodegenLanguage = CodegenLanguage.JAVA): CgGetClass =
+    fun createGetClassExpression(id: ClassId, codegenLanguage: CodegenLanguage): CgGetClass =
         when (codegenLanguage) {
             CodegenLanguage.JAVA -> CgGetJavaClass(id)
             CodegenLanguage.KOTLIN -> CgGetKotlinClass(id)

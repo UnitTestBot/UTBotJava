@@ -7,18 +7,8 @@ import org.utbot.framework.codegen.domain.context.TestClassContext
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
-import org.utbot.framework.codegen.domain.models.CgAllocateArray
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgEnumConstantAccess
-import org.utbot.framework.codegen.domain.models.CgExpression
-import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgMethod
-import org.utbot.framework.codegen.domain.models.CgMethodCall
-import org.utbot.framework.codegen.domain.models.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.domain.models.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
@@ -252,7 +242,7 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     protected fun ClassId.toExceptionClass(): CgExpression =
             if (isAccessibleFrom(testClassPackageName)) {
-                createGetClassExpression(this)
+                CgGetJavaClass(this)
             } else {
                 statementConstructor.newVar(classCgClassId) { Class::class.id[forName](name) }
             }
@@ -418,7 +408,11 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
     override fun addAnnotationForNestedClasses() { }
 
     override fun addAnnotationForSpringRunner() {
-        statementConstructor.addAnnotation(runWithClassId, createGetClassExpression(springExtensionClassId), Class)
+        statementConstructor.addAnnotation(
+            runWithClassId,
+            createGetClassExpression(springExtensionClassId, codegenLanguage),
+            Class,
+            )
     }
 
     override val isExpectedExceptionExecutionBreaking: Boolean = true
@@ -483,7 +477,11 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     }
 
     override fun addAnnotationForSpringRunner() {
-        statementConstructor.addAnnotation(extendWithClassId, createGetClassExpression(springExtensionClassId), Class)
+        statementConstructor.addAnnotation(
+            extendWithClassId,
+            createGetClassExpression(springExtensionClassId, codegenLanguage),
+            Class,
+            )
     }
 
     override val isExpectedExceptionExecutionBreaking: Boolean = false

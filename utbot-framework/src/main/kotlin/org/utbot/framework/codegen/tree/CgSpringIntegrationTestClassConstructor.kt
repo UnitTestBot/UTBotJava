@@ -29,7 +29,7 @@ class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSp
 
     private fun collectSpringSpecificAnnotations() {
         testFrameworkManager.addAnnotationForSpringRunner()
-        addAnnotation(bootstrapWithClassId, createGetClassExpression(springBootTestContextBootstrapperClassId), Class)
+        addAnnotation(bootstrapWithClassId, CgGetJavaClass(springBootTestContextBootstrapperClassId), Class)
 
         addAnnotation(
             classId = dirtiesContextClassId,

@@ -28,7 +28,8 @@ object SpringModelUtils {
     val springExtensionClassId = ClassId("org.springframework.test.context.junit.jupiter.SpringExtension")
 
     val bootstrapWithClassId = ClassId("org.springframework.test.context.BootstrapWith")
-    val springBootTestContextBootstrapper = ClassId("org.springframework.boot.test.context.SpringBootTestContextBootstrapper")
+    val springBootTestContextBootstrapperClassId =
+        ClassId("org.springframework.boot.test.context.SpringBootTestContextBootstrapper")
 
 
     // most likely only one persistent library is on the classpath, but we need to be able to work with either of them

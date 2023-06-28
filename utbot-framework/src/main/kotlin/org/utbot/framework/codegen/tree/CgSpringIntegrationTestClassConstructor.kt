@@ -10,7 +10,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.bootstrapWithClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
-import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapper
+import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapperClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.transactionalClassId
 import org.utbot.framework.plugin.api.util.utContext
 
@@ -29,9 +29,7 @@ class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSp
 
     private fun collectSpringSpecificAnnotations() {
         testFrameworkManager.addAnnotationForSpringRunner()
-        if (annotationTypeIsAccessible(bootstrapWithClassId)) {
-            addAnnotation(bootstrapWithClassId, createGetClassExpression(springBootTestContextBootstrapper), Class)
-        }
+        addAnnotation(bootstrapWithClassId, createGetClassExpression(springBootTestContextBootstrapperClassId), Class)
 
         addAnnotation(
             classId = dirtiesContextClassId,

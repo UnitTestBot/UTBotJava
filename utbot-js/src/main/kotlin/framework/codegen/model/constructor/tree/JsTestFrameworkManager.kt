@@ -20,7 +20,7 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
         +assertions[jsAssertThrows](lambda, "Error", exception.name)
     }
 
-    override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {
+    override fun addDataProviderAnnotations(dataProviderMethodName: String) {
         error("Parametrized tests are not supported for JavaScript")
     }
 

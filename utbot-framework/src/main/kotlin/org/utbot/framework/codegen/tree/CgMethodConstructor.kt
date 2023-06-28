@@ -1932,9 +1932,9 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             statements = block(body)
             // Exceptions and annotations assignment must run after the statements block is build,
             // because we collect info about exceptions and required annotations while building the statements
+            testFrameworkManager.addDataProviderAnnotations(dataProviderMethodName)
             exceptions += collectedExceptions
-            // TODO: can we get annotations from scope? This will allow to use `addAnnotation` without return type.
-            annotations += testFrameworkManager.createDataProviderAnnotations(dataProviderMethodName)
+            annotations += collectedMethodAnnotations
         }
     }
 

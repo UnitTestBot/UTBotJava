@@ -194,7 +194,7 @@ abstract class TestFrameworkManager(val context: CgContext)
     /**
      * Creates annotations for data provider method in parameterized tests
      */
-    abstract fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation>
+    abstract fun addDataProviderAnnotations(dataProviderMethodName: String)
 
     /**
      * Creates declaration of argList collection in parameterized tests.
@@ -307,14 +307,13 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
 
-    override fun createDataProviderAnnotations(dataProviderMethodName: String) =
-        mutableListOf(
-            statementConstructor.addAnnotation(
-                testFramework.methodSourceAnnotationId,
-                listOf("name" to stringLiteral(dataProviderMethodName)),
-                Method,
-            ),
+    override fun addDataProviderAnnotations(dataProviderMethodName: String) {
+        statementConstructor.addAnnotation(
+            testFramework.methodSourceAnnotationId,
+            listOf("name" to stringLiteral(dataProviderMethodName)),
+            Method,
         )
+    }
 
     override fun createArgList(length: Int) =
         statementConstructor.newVar(testFramework.argListClassId, "argList") {
@@ -448,7 +447,7 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
         block()
     }
 
-    override fun createDataProviderAnnotations(dataProviderMethodName: String) =
+    override fun addDataProviderAnnotations(dataProviderMethodName: String) =
         parametrizedTestsNotSupportedError
 
     override fun createArgList(length: Int) =
@@ -501,7 +500,7 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
 
-    override fun createDataProviderAnnotations(dataProviderMethodName: String) = mutableListOf<CgAnnotation>()
+    override fun addDataProviderAnnotations(dataProviderMethodName: String) { }
 
     override fun createArgList(length: Int) =
         statementConstructor.newVar(testFramework.argListClassId, "argList") {

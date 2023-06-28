@@ -186,9 +186,94 @@ class PythonEngine(
         )
     }
 
-    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
+    private fun fuzzingResultHandler(
+        description: PythonMethodDescription,
+        arguments: List<PythonFuzzedValue>,
+        parameters: List<Type>,
+        manager: PythonWorkerManager,
+    ): PythonExecutionResult? {
         val additionalModules = parameters.flatMap { it.pythonModules() }
 
+        val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
+        logger.debug(argumentValues.map { it.tree } .toString())
+        val argumentModules = argumentValues
+            .flatMap { it.allContainingClassIds }
+            .map { it.moduleName }
+            .filterNot { it.startsWith(moduleToImport) }
+        val localAdditionalModules = (additionalModules + argumentModules + moduleToImport).toSet()
+
+        val (thisObject, modelList) =
+            if (methodUnderTest.hasThisArgument)
+                Pair(argumentValues[0], argumentValues.drop(1))
+            else
+                Pair(null, argumentValues)
+        val functionArguments = FunctionArguments(
+            thisObject,
+            methodUnderTest.thisObjectName,
+            modelList,
+            methodUnderTest.argumentsNames
+        )
+        try {
+            val coverageId = CoverageIdGenerator.createId()
+            return when (val evaluationResult =
+                manager.runWithCoverage(functionArguments, localAdditionalModules, coverageId)) {
+                is PythonEvaluationError -> {
+                    val utError = UtError(
+                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                        Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                    )
+                    logger.debug(evaluationResult.stackTrace.joinToString("\n"))
+                    PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
+                }
+
+                is PythonEvaluationTimeout -> {
+                    val coveredLines =
+                        manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableSetOf())
+                    val utTimeoutException = handleTimeoutResult(arguments, description, coveredLines)
+                    val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
+                    val trieNode: Trie.Node<Instruction> =
+                        if (coveredInstructions.isEmpty())
+                            Trie.emptyNode()
+                        else
+                            description.tracer.add(coveredInstructions)
+                    PythonExecutionResult(
+                        utTimeoutException,
+                        PythonFeedback(control = Control.PASS, result = trieNode)
+                    )
+                }
+
+                is PythonEvaluationSuccess -> {
+                    val coveredInstructions = evaluationResult.coverage.coveredInstructions
+
+                    when (val result = handleSuccessResult(
+                        arguments,
+                        parameters,
+                        evaluationResult,
+                        description,
+                    )) {
+                        is ValidExecution -> {
+                            val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
+                            PythonExecutionResult(
+                                result,
+                                PythonFeedback(control = Control.CONTINUE, result = trieNode)
+                            )
+                        }
+                        is InvalidExecution -> {
+                            PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
+                        }
+                        else -> {
+                            PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
+                        }
+                    }
+                }
+            }
+        } catch (_: TimeoutException) {
+            logger.info { "Fuzzing process was interrupted by timeout" }
+            return null
+        }
+    }
+
+    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
             val manager = try {
@@ -202,90 +287,6 @@ class PythonEngine(
             }
             logger.info { "Executor manager was created successfully" }
 
-            fun fuzzingResultHandler(
-                description: PythonMethodDescription,
-                arguments: List<PythonFuzzedValue>
-            ): PythonExecutionResult? {
-                val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
-                logger.debug(argumentValues.map { it.tree } .toString())
-                val argumentModules = argumentValues
-                    .flatMap { it.allContainingClassIds }
-                    .map { it.moduleName }
-                    .filterNot { it.startsWith(moduleToImport) }
-                val localAdditionalModules = (additionalModules + argumentModules + moduleToImport).toSet()
-
-                val (thisObject, modelList) =
-                    if (methodUnderTest.hasThisArgument)
-                        Pair(argumentValues[0], argumentValues.drop(1))
-                    else
-                        Pair(null, argumentValues)
-                val functionArguments = FunctionArguments(
-                    thisObject,
-                    methodUnderTest.thisObjectName,
-                    modelList,
-                    methodUnderTest.argumentsNames
-                )
-                try {
-                    val coverageId = CoverageIdGenerator.createId()
-                    return when (val evaluationResult =
-                        manager.runWithCoverage(functionArguments, localAdditionalModules, coverageId)) {
-                        is PythonEvaluationError -> {
-                            val utError = UtError(
-                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
-                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                            )
-                            logger.debug(evaluationResult.stackTrace.joinToString("\n"))
-                            PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
-                        }
-
-                        is PythonEvaluationTimeout -> {
-                            val coveredLines =
-                                manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableSetOf())
-                            val utTimeoutException = handleTimeoutResult(arguments, description, coveredLines)
-                            val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
-                            val trieNode: Trie.Node<Instruction> =
-                                if (coveredInstructions.isEmpty())
-                                    Trie.emptyNode()
-                                else description.tracer.add(
-                                    coveredInstructions
-                                )
-                            PythonExecutionResult(
-                                utTimeoutException,
-                                PythonFeedback(control = Control.PASS, result = trieNode)
-                            )
-                        }
-
-                        is PythonEvaluationSuccess -> {
-                            val coveredInstructions = evaluationResult.coverage.coveredInstructions
-
-                            when (val result = handleSuccessResult(
-                                arguments,
-                                parameters,
-                                evaluationResult,
-                                description,
-                            )) {
-                                is ValidExecution -> {
-                                    val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
-                                    PythonExecutionResult(
-                                        result,
-                                        PythonFeedback(control = Control.CONTINUE, result = trieNode)
-                                    )
-                                }
-                                is InvalidExecution -> {
-                                    PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
-                                }
-                                else -> {
-                                    PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
-                                }
-                            }
-                        }
-                    }
-                } catch (_: TimeoutException) {
-                    logger.info { "Fuzzing process was interrupted by timeout" }
-                    return null
-                }
-            }
-
             val pmd = PythonMethodDescription(
                 methodUnderTest.name,
                 parameters,
@@ -296,7 +297,7 @@ class PythonEngine(
             )
 
             if (parameters.isEmpty()) {
-                val result = fuzzingResultHandler(pmd, emptyList())
+                val result = fuzzingResultHandler(pmd, emptyList(), parameters, manager)
                 result?.let {
                     emit(it.fuzzingExecutionFeedback)
                 }
@@ -327,7 +328,7 @@ class PythonEngine(
                             emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
                             return@PythonFuzzing mem.fuzzingPlatformFeedback
                         }
-                        val result = fuzzingResultHandler(description, arguments)
+                        val result = fuzzingResultHandler(description, arguments, parameters, manager)
                         if (result == null) {  // timeout
                             manager.disconnect()
                             return@PythonFuzzing PythonFeedback(control = Control.STOP)
@@ -337,7 +338,7 @@ class PythonEngine(
                         emit(result.fuzzingExecutionFeedback)
                         return@PythonFuzzing result.fuzzingPlatformFeedback
                     }.fuzz(pmd)
-                } catch (_: NoSeedValueException) { // e.g. NoSeedValueException
+                } catch (_: NoSeedValueException) {
                     logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
                 }
             }

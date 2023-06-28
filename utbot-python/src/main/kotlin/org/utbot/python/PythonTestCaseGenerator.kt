@@ -138,7 +138,7 @@ class PythonTestCaseGenerator(
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
         val constants = constantCollector.result.map { (type, value) ->
-            logger.debug("Collected constant: ${type.pythonTypeRepresentation()}: $value")
+            logger.debug { "Collected constant: ${type.pythonTypeRepresentation()}: $value" }
             PythonFuzzedConcreteValue(type, value)
         }
 
@@ -175,7 +175,7 @@ class PythonTestCaseGenerator(
                     when (it) {
                         is ValidExecution -> {
                             executions += it.utFuzzedExecution
-                            missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
+                            missingLines = updateMissingLines(it.utFuzzedExecution, coveredLines, missingLines)
                             feedback = SuccessFeedback
                             limitManager.addSuccessExecution()
                         }
@@ -233,12 +233,13 @@ class PythonTestCaseGenerator(
                 val firstUntil = (until - now) / 2 + now
                 val originalDef = method.definition
                 val shortType = meta.removeNonPositionalArgs(originalDef.type)
+                val posArgsCount = shortType.arguments.size
                 val shortMeta = PythonFuncItemDescription(
                     originalDef.meta.name,
-                    originalDef.meta.args.take(shortType.arguments.size)
+                    originalDef.meta.args.take(posArgsCount)
                 )
                 val additionalVars = originalDef.meta.args
-                    .drop(shortType.arguments.size)
+                    .drop(posArgsCount)
                     .joinToString(separator = "\n", prefix = "\n") { arg ->
                         "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
                     }
@@ -273,14 +274,16 @@ class PythonTestCaseGenerator(
                         minimizeExecutions(failedExecutions) +
                         emptyCoverageExecutions.take(MAX_EMPTY_COVERAGE_TESTS)
             else
-                executions,
+                coverageExecutions + emptyCoverageExecutions.take(MAX_EMPTY_COVERAGE_TESTS),
             errors,
             storageForMypyMessages
         )
     }
 
-    // returns new missingLines
-    private fun updateCoverage(
+    /**
+     * Calculate a new set of missing lines in tested function
+     */
+    private fun updateMissingLines(
         execution: UtExecution,
         coveredLines: MutableSet<Int>,
         missingLines: Set<Int>?
@@ -338,7 +341,7 @@ class PythonTestCaseGenerator(
 
             val iterationNumber = algo.run(hintCollector.result, typeInferenceCancellation, annotationHandler)
 
-            if (iterationNumber == 1) {
+            if (iterationNumber == 1) {  // Initial annotation can't be substituted
                 limitManager.mode = TimeoutMode
                 val existsAnnotation = method.definition.type
                 annotationHandler(existsAnnotation)

@@ -75,10 +75,6 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         error("Nested classes annotation does not exist in PyTest")
     }
 
-    override fun addAnnotationForSpringRunner() {
-        error("Spring runner annotation does not exist in PyTest")
-    }
-
     override fun assertEquals(expected: CgValue, actual: CgValue) {
         +CgPythonAssertEquals(
             CgEqualTo(actual, expected)
@@ -110,10 +106,6 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
 
     override fun addAnnotationForNestedClasses() {
         error("Nested classes annotation does not exist in Unittest")
-    }
-
-    override fun addAnnotationForSpringRunner() {
-        error("Spring runner annotation does not exist in Unittest")
     }
 
     override fun expectException(exception: ClassId, block: () -> Unit) {

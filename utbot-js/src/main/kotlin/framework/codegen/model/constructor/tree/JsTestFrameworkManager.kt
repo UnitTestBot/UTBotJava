@@ -47,10 +47,6 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
         error("Nested classes annotation does not exist in Mocha")
     }
 
-    override fun addAnnotationForSpringRunner() {
-        error("Spring runner annotation does not exist in Mocha")
-    }
-
     override fun assertEquals(expected: CgValue, actual: CgValue) {
         +assertions[jsAssertEquals](expected, actual)
     }

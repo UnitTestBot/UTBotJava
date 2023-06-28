@@ -1,10 +1,14 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.common.tryLoadClass
+import org.utbot.framework.codegen.domain.Junit4
+import org.utbot.framework.codegen.domain.Junit5
+import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.bootstrapWithClassId
@@ -28,7 +32,14 @@ class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSp
     override fun constructAdditionalMethods() = CgMethodsCluster(header = null, content = emptyList())
 
     private fun collectSpringSpecificAnnotations() {
-        testFrameworkManager.addAnnotationForSpringRunner()
+        val springRunnerType = when (testFramework) {
+            Junit4 -> SpringModelUtils.runWithClassId
+            Junit5 -> SpringModelUtils.extendWithClassId
+            TestNg -> error("Spring extension is not implemented in TestNg")
+            else -> error("Trying to generate tests for Spring project with non-JVM framework")
+        }
+
+        statementConstructor.addAnnotation(springRunnerType, CgGetJavaClass(SpringModelUtils.springExtensionClassId), Class)
         addAnnotation(bootstrapWithClassId, CgGetJavaClass(springBootTestContextBootstrapperClassId), Class)
 
         addAnnotation(

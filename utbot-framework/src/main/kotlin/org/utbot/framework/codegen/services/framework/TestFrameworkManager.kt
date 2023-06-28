@@ -78,8 +78,6 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     abstract fun addAnnotationForNestedClasses()
 
-    abstract fun addAnnotationForSpringRunner()
-
     /**
      * Determines whether appearance of expected exception in test method breaks current test execution or not.
      */
@@ -258,10 +256,6 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
 
     override fun addAnnotationForNestedClasses() { }
 
-    override fun addAnnotationForSpringRunner() {
-        error("TestNg does not have the Spring runner annotation")
-    }
-
     override val isExpectedExceptionExecutionBreaking: Boolean = false
 
     override val timeoutArgumentName: String = "timeOut"
@@ -409,14 +403,6 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
 
     override fun addAnnotationForNestedClasses() { }
 
-    override fun addAnnotationForSpringRunner() {
-        statementConstructor.addAnnotation(
-            runWithClassId,
-            createGetClassExpression(springExtensionClassId, codegenLanguage),
-            Class,
-            )
-    }
-
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
@@ -476,14 +462,6 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     override fun addAnnotationForNestedClasses() {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
         statementConstructor.addAnnotation(testFramework.nestedTestClassAnnotationId, Class)
-    }
-
-    override fun addAnnotationForSpringRunner() {
-        statementConstructor.addAnnotation(
-            extendWithClassId,
-            createGetClassExpression(springExtensionClassId, codegenLanguage),
-            Class,
-            )
     }
 
     override val isExpectedExceptionExecutionBreaking: Boolean = false

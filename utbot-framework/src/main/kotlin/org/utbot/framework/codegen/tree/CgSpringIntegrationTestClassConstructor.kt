@@ -8,6 +8,7 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
@@ -15,6 +16,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.bootstrapWithClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapperClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.springExtensionClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.transactionalClassId
 import org.utbot.framework.plugin.api.util.utContext
 
@@ -39,8 +41,16 @@ class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSp
             else -> error("Trying to generate tests for Spring project with non-JVM framework")
         }
 
-        statementConstructor.addAnnotation(springRunnerType, CgGetJavaClass(SpringModelUtils.springExtensionClassId), Class)
-        addAnnotation(bootstrapWithClassId, CgGetJavaClass(springBootTestContextBootstrapperClassId), Class)
+        statementConstructor.addAnnotation(
+            classId = springRunnerType,
+            argument = createGetClassExpression(springExtensionClassId, codegenLanguage),
+            target = Class,
+        )
+        statementConstructor.addAnnotation(
+            classId = bootstrapWithClassId,
+            argument = createGetClassExpression(springBootTestContextBootstrapperClassId, codegenLanguage),
+            target = Class,
+        )
 
         addAnnotation(
             classId = dirtiesContextClassId,

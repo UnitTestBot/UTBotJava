@@ -548,11 +548,11 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
                 CgNamedAnnotationArgument(
                     name = "value",
                     value = timeoutMs.resolve(),
-                    ),
+                ),
                 CgNamedAnnotationArgument(
                     name = "unit",
                     value = CgEnumConstantAccess(testFramework.timeunitClassId, TimeUnit.MILLISECONDS.name),
-                    ),
+                ),
             ),
             target = Method,
         )

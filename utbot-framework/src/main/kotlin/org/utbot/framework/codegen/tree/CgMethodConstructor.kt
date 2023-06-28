@@ -1871,7 +1871,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         body: () -> Unit,
     ): CgTestMethod {
         if (parameterized) {
-            testFrameworkManager.collectParameterizedTestAnnotations(dataProviderMethodName)
+            testFrameworkManager.addParameterizedTestAnnotations(dataProviderMethodName)
         } else {
             addAnnotation(testFramework.testAnnotationId, AnnotationTarget.Method)
         }

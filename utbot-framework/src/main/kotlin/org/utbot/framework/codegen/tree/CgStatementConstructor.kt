@@ -130,7 +130,7 @@ interface CgStatementConstructor {
 
     fun addAnnotation(
         classId: ClassId,
-        namedArguments: List<Pair<String, CgExpression>>,
+        namedArguments: List<CgNamedAnnotationArgument>,
         target: AnnotationTarget,
         ): CgAnnotation
 
@@ -409,14 +409,10 @@ internal class CgStatementConstructorImpl(context: CgContext) :
 
     override fun addAnnotation(
         classId: ClassId,
-        namedArguments: List<Pair<String, CgExpression>>,
+        namedArguments: List<CgNamedAnnotationArgument>,
         target: AnnotationTarget,
         ): CgAnnotation {
-        val annotation = CgMultipleArgsAnnotation(
-            classId,
-            namedArguments.mapTo(mutableListOf()) { (name, value) -> CgNamedAnnotationArgument(name, value) },
-            target,
-        )
+        val annotation = CgMultipleArgsAnnotation(classId, namedArguments.toMutableList(), target)
 
         addAnnotation(annotation)
         return annotation

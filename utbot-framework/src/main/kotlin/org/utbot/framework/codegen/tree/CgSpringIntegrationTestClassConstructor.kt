@@ -36,10 +36,10 @@ class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSp
         addAnnotation(
             classId = dirtiesContextClassId,
             namedArguments = listOf(
-                "classMode" to CgEnumConstantAccess(
-                    dirtiesContextClassModeClassId,
-                    "BEFORE_EACH_TEST_METHOD"
-                )
+                CgNamedAnnotationArgument(
+                    name = "classMode",
+                    value = CgEnumConstantAccess(dirtiesContextClassModeClassId, "BEFORE_EACH_TEST_METHOD")
+                ),
             ),
             target = Class,
         )

@@ -201,7 +201,7 @@ abstract class TestFrameworkManager(val context: CgContext)
      */
     abstract fun createArgList(length: Int): CgVariable
 
-    abstract fun collectParameterizedTestAnnotations(dataProviderMethodName: String?)
+    abstract fun addParameterizedTestAnnotations(dataProviderMethodName: String?)
 
     abstract fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int)
 
@@ -226,7 +226,7 @@ abstract class TestFrameworkManager(val context: CgContext)
         } else {
             statementConstructor.addAnnotation(
                 classId = testFramework.testAnnotationId,
-                namedArguments = listOf(timeout.name to timeout.value),
+                namedArguments = listOf(timeout),
                 target = Method,
                 )
         }
@@ -321,7 +321,7 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
             CgAllocateArray(testFramework.argListClassId, Array<Any>::class.java.id, length)
         }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) {
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) {
             statementConstructor.addAnnotation(
                 testFramework.parameterizedTestAnnotationId,
                 listOf("dataProvider" to CgLiteral(stringClassId, dataProviderMethodName)),
@@ -348,7 +348,7 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
         } else {
             statementConstructor.addAnnotation(
                 classId = testFramework.testAnnotationId,
-                namedArguments = listOf(descriptionArgument.name to descriptionArgument.value),
+                namedArguments = listOf(descriptionArgument),
                 target = Method,
             )
         }
@@ -402,9 +402,7 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
         } else {
             statementConstructor.addAnnotation(
                 classId = testFramework.testAnnotationId,
-                namedArguments =listOf(
-                    disabledAnnotationArgument.name to disabledAnnotationArgument.value,
-                    descriptionTestAnnotationArgument.name to descriptionTestAnnotationArgument.value),
+                namedArguments =listOf(disabledAnnotationArgument, descriptionTestAnnotationArgument),
                 target = Method,
             )
         }
@@ -443,7 +441,7 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
         } else {
             statementConstructor.addAnnotation(
                 classId = testFramework.testAnnotationId,
-                namedArguments = listOf(expected.name to expected.value),
+                namedArguments = listOf(expected),
                 target = Method,
             )
         }
@@ -456,7 +454,7 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
     override fun createArgList(length: Int) =
         parametrizedTestsNotSupportedError
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) =
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) =
         parametrizedTestsNotSupportedError
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) =
@@ -467,9 +465,10 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
     override fun disableTestMethod(reason: String) {
         require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
 
+        val reasonArgument = CgNamedAnnotationArgument(name = "value", value = reason.resolve())
         statementConstructor.addAnnotation(
             classId = testFramework.ignoreAnnotationClassId,
-            namedArguments = listOf("value" to reason.resolve()),
+            namedArguments = listOf(reasonArgument),
             target = Method,
             )
     }
@@ -510,7 +509,7 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
             constructor.invoke()
         }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) {
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) {
         statementConstructor.addAnnotation(testFramework.parameterizedTestAnnotationId, Method)
         statementConstructor.addAnnotation(
             testFramework.methodSourceAnnotationId,
@@ -547,8 +546,14 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         statementConstructor.addAnnotation(
             classId = Junit5.timeoutClassId,
             namedArguments = listOf(
-                "value" to timeoutMs.resolve(),
-                "unit" to CgEnumConstantAccess(testFramework.timeunitClassId, TimeUnit.MILLISECONDS.name)
+                CgNamedAnnotationArgument(
+                    name = "value",
+                    value = timeoutMs.resolve(),
+                    ),
+                CgNamedAnnotationArgument(
+                    name = "unit",
+                    value = CgEnumConstantAccess(testFramework.timeunitClassId, TimeUnit.MILLISECONDS.name),
+                    ),
             ),
             target = Method,
         )
@@ -559,9 +564,10 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     override fun disableTestMethod(reason: String) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
 
+        val reasonArgument = CgNamedAnnotationArgument(name = "value", value = reason.resolve())
         statementConstructor.addAnnotation(
             classId = testFramework.disabledAnnotationClassId,
-            namedArguments = listOf("value" to reason.resolve()),
+            namedArguments = listOf(reasonArgument),
             target = Method,
         )
     }

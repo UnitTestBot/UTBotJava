@@ -2,12 +2,8 @@ package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.domain.context.TestClassContext
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgEqualTo
-import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.PythonClassId
@@ -47,7 +43,7 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         TODO("Not yet implemented")
     }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) { }
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) { }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
         TODO("Not yet implemented")
@@ -59,10 +55,13 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
 
         context.importIfNeeded(testFramework.skipDecoratorClassId)
+        val reasonArgument = CgNamedAnnotationArgument(
+            name = "reason",
+            value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'"),
+        )
         statementConstructor.addAnnotation(
             classId = testFramework.skipDecoratorClassId,
-            namedArguments =
-            listOf("reason" to CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")),
+            namedArguments = listOf(reasonArgument),
             target = Method
         )
     }
@@ -131,7 +130,7 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
         TODO("Not yet implemented")
     }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) { }
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) { }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
         TODO("Not yet implemented")
@@ -142,9 +141,13 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
     override fun disableTestMethod(reason: String) {
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
 
+        val reasonArgument = CgNamedAnnotationArgument(
+            name = "reason",
+            value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'"),
+        )
         statementConstructor.addAnnotation(
             classId = testFramework.skipDecoratorClassId,
-            namedArguments = listOf("reason" to CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")),
+            namedArguments = listOf(reasonArgument),
             target = Method,
 
             )

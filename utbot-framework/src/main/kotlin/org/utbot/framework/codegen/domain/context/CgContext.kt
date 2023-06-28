@@ -7,14 +7,6 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgExecutableCall
-import org.utbot.framework.codegen.domain.models.CgStatement
-import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
-import org.utbot.framework.codegen.domain.models.CgTestMethod
-import org.utbot.framework.codegen.domain.models.CgThisInstance
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
@@ -23,12 +15,10 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
-import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
-import org.utbot.framework.codegen.domain.models.CgParameterKind
+import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.services.access.Block
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
@@ -304,11 +294,13 @@ interface CgContextOwner {
         }
     }
 
-    fun addAnnotation(annotation: CgAnnotation) {
-        if (collectedMethodAnnotations.add(annotation)) {
-            importIfNeeded(annotation.classId) // TODO: check how JUnit annotations are loaded
+    fun createGetClassExpression(id: ClassId, codegenLanguage: CodegenLanguage): CgGetClass =
+        when (codegenLanguage) {
+            CodegenLanguage.JAVA -> CgGetJavaClass(id)
+            CodegenLanguage.KOTLIN -> CgGetKotlinClass(id)
+        }.also {
+            importIfNeeded(id)
         }
-    }
 
     /**
      * This method sets up context for a new test class file generation and executes the given [block].

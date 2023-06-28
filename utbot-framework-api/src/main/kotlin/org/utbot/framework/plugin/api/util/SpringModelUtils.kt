@@ -10,8 +10,27 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 
 object SpringModelUtils {
+    val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
+
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
     val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
+
+    @Suppress("unused", "may be used instead of ExtendWith + BootstrapWith in future")
+    val springBootTestClassId = ClassId("org.springframework.boot.test.context.SpringBootTest")
+
+    val dirtiesContextClassId = ClassId("org.springframework.test.annotation.DirtiesContext")
+    val dirtiesContextClassModeClassId = ClassId("org.springframework.test.annotation.DirtiesContext\$ClassMode")
+    val transactionalClassId = ClassId("org.springframework.transaction.annotation.Transactional")
+    val autoConfigureTestDbClassId = ClassId("org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase")
+
+    val runWithClassId = ClassId("org.junit.runner.RunWith")
+    val extendWithClassId = ClassId("org.junit.jupiter.api.extension.ExtendWith")
+    val springExtensionClassId = ClassId("org.springframework.test.context.junit.jupiter.SpringExtension")
+
+    val bootstrapWithClassId = ClassId("org.springframework.test.context.BootstrapWith")
+    val springBootTestContextBootstrapperClassId =
+        ClassId("org.springframework.boot.test.context.SpringBootTestContextBootstrapper")
+
 
     // most likely only one persistent library is on the classpath, but we need to be able to work with either of them
     private val persistentLibraries = listOf("javax.persistence", "jakarta.persistence")

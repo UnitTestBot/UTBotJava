@@ -2,13 +2,8 @@ package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.domain.context.TestClassContext
 import org.utbot.framework.codegen.domain.context.CgContext
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgEqualTo
-import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.domain.models.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.domain.models.*
+import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.PythonClassId
@@ -40,16 +35,16 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
 
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
-    override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {
-        TODO("Not yet implemented")
+    override fun addDataProviderAnnotations(dataProviderMethodName: String) {
+        error("Parametrized tests are not supported for Python")
     }
 
     override fun createArgList(length: Int): CgVariable {
-        TODO("Not yet implemented")
+        error("Parametrized tests are not supported for Python")
     }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> {
-        TODO("Not yet implemented")
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) {
+        error("Parametrized tests are not supported for Python")
     }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
@@ -62,20 +57,23 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
 
         context.importIfNeeded(testFramework.skipDecoratorClassId)
-        collectedMethodAnnotations += CgMultipleArgsAnnotation(
-            testFramework.skipDecoratorClassId,
-            mutableListOf(
-                CgNamedAnnotationArgument(
-                    name = "reason",
-                    value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")
-                )
-            )
+        val reasonArgument = CgNamedAnnotationArgument(
+            name = "reason",
+            value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'"),
+        )
+        statementConstructor.addAnnotation(
+            classId = testFramework.skipDecoratorClassId,
+            namedArguments = listOf(reasonArgument),
+            target = Method
         )
     }
 
-    override val dataProviderMethodsHolder: TestClassContext get() = TODO()
-    override val annotationForNestedClasses: CgAnnotation
-        get() = TODO("Not yet implemented")
+    override val dataProviderMethodsHolder: TestClassContext get() =
+        error("Parametrized tests are not supported for Python")
+
+    override fun addAnnotationForNestedClasses() {
+        error("Nested classes annotation does not exist in PyTest")
+    }
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {
         +CgPythonAssertEquals(
@@ -83,7 +81,7 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         )
     }
 
-    fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
+    fun assertIsInstance(types: List<ClassId>, actual: CgVariable) {
         +CgPythonAssertEquals(
             CgPythonFunctionCall(
                 pythonBoolClassId,
@@ -104,9 +102,11 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
     override val dataProviderMethodsHolder: TestClassContext
-        get() = TODO()
-    override val annotationForNestedClasses: CgAnnotation
-        get() = TODO("Not yet implemented")
+        get() = error("Parametrized tests are not supported for JavaScript")
+
+    override fun addAnnotationForNestedClasses() {
+        error("Nested classes annotation does not exist in Unittest")
+    }
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
@@ -119,16 +119,16 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
         +CgPythonWith(withExpression, null, context.block(block))
     }
 
-    override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {
-        TODO("Not yet implemented")
+    override fun addDataProviderAnnotations(dataProviderMethodName: String) {
+        error("Parametrized tests are not supported for Python")
     }
 
     override fun createArgList(length: Int): CgVariable {
-        TODO("Not yet implemented")
+        error("Parametrized tests are not supported for Python")
     }
 
-    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> {
-        TODO("Not yet implemented")
+    override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) {
+        error("Parametrized tests are not supported for Python")
     }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
@@ -140,18 +140,19 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
     override fun disableTestMethod(reason: String) {
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
 
-        collectedMethodAnnotations += CgMultipleArgsAnnotation(
-            testFramework.skipDecoratorClassId,
-            mutableListOf(
-                CgNamedAnnotationArgument(
-                    name = "reason",
-                    value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'")
-                )
-            )
+        val reasonArgument = CgNamedAnnotationArgument(
+            name = "reason",
+            value = CgPythonRepr(pythonStrClassId, "'${reason.replace("\"", "'")}'"),
         )
+        statementConstructor.addAnnotation(
+            classId = testFramework.skipDecoratorClassId,
+            namedArguments = listOf(reasonArgument),
+            target = Method,
+
+            )
     }
 
-    fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
+    fun assertIsInstance(types: List<ClassId>, actual: CgVariable) {
         +assertions[assertTrue](
             CgPythonFunctionCall(
                 pythonBoolClassId,

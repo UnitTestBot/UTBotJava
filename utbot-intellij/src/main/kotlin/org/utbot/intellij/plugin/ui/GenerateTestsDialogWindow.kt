@@ -867,12 +867,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ?: if (testFramework != Junit4) testFramework else TestFramework.parametrizedDefaultItem
         }
 
-        springTestsType.item = if (isSpringConfigSelected()) settings.springTestsType else SpringTestsType.defaultItem
-
-        updateTestFrameworksList(settings.parametrizedTestSource)
-        updateParametrizationEnabled()
-
-        updateSpringSettings()
+        when (model.projectType) {
+            ProjectType.PureJvm -> {
+                updateTestFrameworksList(settings.parametrizedTestSource)
+                updateParametrizationEnabled()
+            }
+            ProjectType.Spring -> {
+                springTestsType.item =
+                    if (isSpringConfigSelected()) settings.springTestsType else SpringTestsType.defaultItem
+                updateSpringSettings()
+                updateTestFrameworkList(settings.springTestsType)
+            }
+            ProjectType.Python,
+            ProjectType.JavaScript -> { }
+        }
 
         updateMockStrategyList()
 
@@ -1181,6 +1189,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
         }
 
+        springTestsType.addActionListener { event ->
+            val comboBox = event.source as ComboBox<*>
+            val item = comboBox.item as SpringTestsType
+
+            updateTestFrameworkList(item)
+        }
+
         cbSpecifyTestPackage.addActionListener {
             val testPackageName = findTestPackageComboValue()
             val packageNameIsNeeded = testPackageField.isEnabled || testPackageName != SAME_PACKAGE_LABEL
@@ -1192,7 +1207,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private lateinit var currentFrameworkItem: TestFramework
 
-    // We would like to remove JUnit4 from framework list in parametrized mode
     private fun updateTestFrameworksList(parametrizedTestSource: ParametrizedTestSource) {
         // We do not support parameterized tests for JUnit4
         val enabledTestFrameworks = when (parametrizedTestSource) {
@@ -1206,6 +1220,23 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
         enabledTestFrameworks.forEach { if (it.isInstalled && !defaultItem.isInstalled) defaultItem = it }
 
+        updateTestFrameworkList(enabledTestFrameworks, defaultItem)
+    }
+
+    private fun updateTestFrameworkList(springTestsType: SpringTestsType) {
+        // We do not support Spring integration tests for TestNg
+        val enabledTestFrameworks = when (springTestsType) {
+            UNIT_TESTS -> TestFramework.allItems
+            INTEGRATION_TESTS -> TestFramework.allItems.filterNot { it == TestNg }
+        }
+
+        updateTestFrameworkList(enabledTestFrameworks)
+    }
+
+    private fun updateTestFrameworkList(
+        enabledTestFrameworks: List<TestFramework>,
+        defaultItem: TestFramework = TestFramework.defaultItem,
+    ) {
         testFrameworks.model = DefaultComboBoxModel(enabledTestFrameworks.toTypedArray())
         testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
         testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)

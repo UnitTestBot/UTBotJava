@@ -3,6 +3,7 @@ package org.utbot.python.framework.codegen.model.constructor.tree
 import fj.data.Either
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.AnnotationTarget
 import org.utbot.framework.codegen.domain.models.CgAnnotation
 import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
 import org.utbot.framework.codegen.domain.models.CgComment
@@ -25,18 +26,7 @@ import org.utbot.framework.codegen.domain.models.CgThrowStatement
 import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
-import org.utbot.framework.codegen.tree.CgForEachLoopBuilder
-import org.utbot.framework.codegen.tree.CgForLoopBuilder
-import org.utbot.framework.codegen.tree.CgStatementConstructor
-import org.utbot.framework.codegen.tree.ExpressionWithType
-import org.utbot.framework.codegen.tree.buildAssignment
-import org.utbot.framework.codegen.tree.buildCgForEachLoop
-import org.utbot.framework.codegen.tree.buildDeclaration
-import org.utbot.framework.codegen.tree.buildDoWhileLoop
-import org.utbot.framework.codegen.tree.buildExceptionHandler
-import org.utbot.framework.codegen.tree.buildForLoop
-import org.utbot.framework.codegen.tree.buildTryCatch
-import org.utbot.framework.codegen.tree.buildWhileLoop
+import org.utbot.framework.codegen.tree.*
 import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.ClassId
@@ -223,31 +213,47 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
         }
     }
 
-    override fun annotation(classId: ClassId, argument: Any?): CgAnnotation {
-        val annotation = CgSingleArgAnnotation(classId, argument.resolve())
+    override fun addAnnotation(classId: ClassId, argument: Any?, target: AnnotationTarget): CgAnnotation {
+        val annotation = CgSingleArgAnnotation(classId, argument.resolve(), target)
         addAnnotation(annotation)
         return annotation
     }
 
-    override fun annotation(classId: ClassId, namedArguments: List<Pair<String, CgExpression>>): CgAnnotation {
+    override fun addAnnotation(
+        classId: ClassId,
+        namedArguments: List<CgNamedAnnotationArgument>,
+        target: AnnotationTarget,
+        ): CgAnnotation {
         val annotation = CgMultipleArgsAnnotation(
             classId,
-            namedArguments.mapTo(mutableListOf()) { (name, value) -> CgNamedAnnotationArgument(name, value) }
+            namedArguments.toMutableList(),
+            target,
         )
         addAnnotation(annotation)
         return annotation
     }
 
-    override fun annotation(
+    override fun addAnnotation(
         classId: ClassId,
-        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit
+        target: AnnotationTarget,
+        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit,
     ): CgAnnotation {
         val arguments = mutableListOf<Pair<String, CgExpression>>()
             .apply(buildArguments)
             .map { (name, value) -> CgNamedAnnotationArgument(name, value) }
-        val annotation = CgMultipleArgsAnnotation(classId, arguments.toMutableList())
+        val annotation = CgMultipleArgsAnnotation(classId, arguments.toMutableList(), target)
         addAnnotation(annotation)
         return annotation
+    }
+
+    private fun addAnnotation(annotation: CgAnnotation) {
+        when (annotation.target) {
+            AnnotationTarget.Method -> collectedMethodAnnotations.add(annotation)
+            AnnotationTarget.Class,
+            AnnotationTarget.Field -> error("Annotation ${annotation.target} is not supported in Python")
+        }
+
+        importIfNeeded(annotation.classId)
     }
 
     override fun returnStatement(expression: () -> CgExpression) {

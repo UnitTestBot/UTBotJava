@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgDeclaration
 import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
@@ -87,7 +88,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
         annotationClassId: ClassId,
         groupedModelsByClassId: TypedModelWrappers,
     ): List<CgFieldDeclaration> {
-        val annotation = statementConstructor.annotation(annotationClassId)
+        val annotation = statementConstructor.addAnnotation(annotationClassId, Field)
 
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
         for ((classId, listOfUtModels) in groupedModelsByClassId) {
@@ -131,17 +132,23 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
             .forEach { valueByUtModelWrapper.remove(it.key) }
     }
 
-    protected fun constructBeforeMethod(statements: List<CgStatement>) = CgFrameworkUtilMethod(
-        name = "setUp",
-        statements = statements,
-        exceptions = emptySet(),
-        annotations = listOf(statementConstructor.annotation(context.testFramework.beforeMethodId)),
-    )
+    protected fun constructBeforeMethod(statements: List<CgStatement>): CgFrameworkUtilMethod {
+        val beforeAnnotation = statementConstructor.addAnnotation(context.testFramework.beforeMethodId, Method)
+        return CgFrameworkUtilMethod(
+            name = "setUp",
+            statements = statements,
+            exceptions = emptySet(),
+            annotations = listOf(beforeAnnotation),
+        )
+    }
 
-    protected fun constructAfterMethod(statements: List<CgStatement>) = CgFrameworkUtilMethod(
-        name = "tearDown",
-        statements = statements,
-        exceptions = setOf(Exception::class.id),
-        annotations = listOf(statementConstructor.annotation(context.testFramework.afterMethodId)),
-    )
+    protected fun constructAfterMethod(statements: List<CgStatement>): CgFrameworkUtilMethod {
+        val afterAnnotation = statementConstructor.addAnnotation(context.testFramework.afterMethodId, Method)
+        return CgFrameworkUtilMethod(
+            name = "tearDown",
+            statements = statements,
+            exceptions = setOf(Exception::class.id),
+            annotations = listOf(afterAnnotation),
+        )
+    }
 }

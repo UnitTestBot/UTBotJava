@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.UtModelWrapper
-import org.utbot.framework.codegen.domain.builtin.autowiredClassId
 import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
 import org.utbot.framework.codegen.domain.builtin.mockClassId
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -14,6 +13,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
 import org.utbot.framework.plugin.api.util.stringClassId
 

@@ -18,6 +18,7 @@ import org.utbot.framework.codegen.domain.builtin.invoke
 import org.utbot.framework.codegen.domain.builtin.newInstance
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.AnnotationTarget
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
 import org.utbot.framework.codegen.domain.models.CgArrayElementAccess
 import org.utbot.framework.codegen.domain.models.CgClassId
@@ -1869,10 +1870,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         dataProviderMethodName: String? = null,
         body: () -> Unit,
     ): CgTestMethod {
-        collectedMethodAnnotations += if (parameterized) {
-            testFrameworkManager.collectParameterizedTestAnnotations(dataProviderMethodName)
+        if (parameterized) {
+            testFrameworkManager.addParameterizedTestAnnotations(dataProviderMethodName)
         } else {
-            setOf(annotation(testFramework.testAnnotationId))
+            addAnnotation(testFramework.testAnnotationId, AnnotationTarget.Method)
         }
 
         displayName?.let {
@@ -1931,8 +1932,9 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             statements = block(body)
             // Exceptions and annotations assignment must run after the statements block is build,
             // because we collect info about exceptions and required annotations while building the statements
+            testFrameworkManager.addDataProviderAnnotations(dataProviderMethodName)
             exceptions += collectedExceptions
-            annotations += testFrameworkManager.createDataProviderAnnotations(dataProviderMethodName)
+            annotations += collectedMethodAnnotations
         }
     }
 

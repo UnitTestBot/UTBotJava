@@ -2,36 +2,82 @@ package org.utbot.instrumentation.util
 
 import com.esotericsoftware.kryo.kryo5.Kryo
 import com.esotericsoftware.kryo.kryo5.KryoException
+import com.esotericsoftware.kryo.kryo5.Serializer
 import com.esotericsoftware.kryo.kryo5.io.Input
-import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
-import org.utbot.framework.plugin.api.util.utContext
+import com.esotericsoftware.kryo.kryo5.io.Output
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.warn
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jClass
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.io.ObjectStreamClass
+import java.lang.RuntimeException
 
-/**
- * This ad-hoc solution for ClassNotFoundException
- */
-class JavaSerializerWrapper : JavaSerializer() {
-    override fun read(kryo: Kryo, input: Input?, type: Class<*>?): Any? {
-        return try {
-            val graphContext = kryo.graphContext
-            var objectStream = graphContext.get<Any>(this) as ObjectInputStream?
-            if (objectStream == null) {
-                objectStream = IgnoringUidWrappingObjectInputStream(input, kryo)
-                graphContext.put(this, objectStream)
+class ThrowableSerializer : Serializer<Throwable>() {
+    companion object {
+        private val loggedUnserializableExceptionClassIds = mutableSetOf<ClassId>()
+        private val logger = getLogger<ThrowableSerializer>()
+    }
+
+    private class ThrowableModel(
+        val classId: ClassId,
+        val message: String?,
+        val stackTrace: Array<StackTraceElement>,
+        val cause: ThrowableModel?,
+        val serializedException: ByteArray,
+    )
+
+    override fun write(kryo: Kryo, output: Output, throwable: Throwable?) {
+        fun Throwable.toModel(): ThrowableModel = ThrowableModel(
+            classId = this::class.java.id,
+            message = message,
+            stackTrace = stackTrace,
+            cause = cause?.toModel(),
+            serializedException = ByteArrayOutputStream().use { byteOutputStream ->
+                val objectOutputStream = ObjectOutputStream(byteOutputStream)
+                objectOutputStream.writeObject(this)
+                objectOutputStream.flush()
+                byteOutputStream.toByteArray()
             }
-            objectStream.readObject()
-        } catch (ex: java.lang.Exception) {
-            throw KryoException("Error during Java deserialization.", ex)
+        )
+        kryo.writeObject(output, throwable?.toModel())
+    }
+
+    override fun read(kryo: Kryo, input: Input, type: Class<out Throwable>): Throwable? {
+        fun ThrowableModel.toThrowable(): Throwable = try {
+            ByteArrayInputStream(this.serializedException).use { byteInputStream ->
+                val objectInputStream = IgnoringUidWrappingObjectInputStream(byteInputStream, kryo.classLoader)
+                objectInputStream.readObject() as Throwable
+            }
+        } catch (e: Throwable) {
+            if (loggedUnserializableExceptionClassIds.add(this.classId)) {
+                logger.warn { "Failed to deserialize ${this.classId} from bytes, cause: $e" }
+                logger.warn { "Falling back to constructing throwable instance from ThrowableModel" }
+            }
+
+            val cause = cause?.toThrowable()
+            when {
+                RuntimeException::class.java.isAssignableFrom(classId.jClass) -> RuntimeException(message, cause)
+                Error::class.java.isAssignableFrom(classId.jClass) -> Error(message, cause)
+                else -> Exception(message, cause)
+            }.also {
+                it.stackTrace = stackTrace
+            }
         }
+
+        return kryo.readObject(input, ThrowableModel::class.java)?.toThrowable()
     }
 }
 
-class IgnoringUidWrappingObjectInputStream(iss : InputStream?, private val kryo: Kryo) : ObjectInputStream(iss) {
+class IgnoringUidWrappingObjectInputStream(iss : InputStream?, private val classLoader: ClassLoader) : ObjectInputStream(iss) {
     override fun resolveClass(type: ObjectStreamClass): Class<*>? {
         return try {
-            Class.forName(type.name, false, kryo.classLoader)
+            Class.forName(type.name, false, classLoader)
         } catch (ex: ClassNotFoundException) {
             try {
                 return Kryo::class.java.classLoader.loadClass(type.name)
@@ -52,7 +98,7 @@ class IgnoringUidWrappingObjectInputStream(iss : InputStream?, private val kryo:
 
         // the class in the local JVM that this descriptor represents.
         val localClass: Class<*> = try {
-            kryo.classLoader.loadClass(resultClassDescriptor.name)
+            classLoader.loadClass(resultClassDescriptor.name)
         } catch (e: ClassNotFoundException) {
             return resultClassDescriptor
         }

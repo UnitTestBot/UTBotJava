@@ -23,6 +23,7 @@ import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.newtyping.mypy.MypyAnnotations
+import org.utbot.python.newtyping.utils.isRequired
 import org.utbot.python.utils.ExecutionWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.PriorityCartesianProduct
@@ -227,18 +228,17 @@ class PythonTestCaseGenerator(
         try {
             val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
             val argKinds = meta.argumentKinds
-            if (argKinds.any { it != PythonCallableTypeDescription.ArgKind.ARG_POS }) {
+            if (argKinds.any { !isRequired(it) }) {
                 val now = System.currentTimeMillis()
                 val firstUntil = (until - now) / 2 + now
                 val originalDef = method.definition
-                val shortType = meta.removeNonPositionalArgs(originalDef.type)
-                val posArgsCount = shortType.arguments.size
+                val shortType = meta.removeNotRequiredArgs(originalDef.type)
                 val shortMeta = PythonFuncItemDescription(
                     originalDef.meta.name,
-                    originalDef.meta.args.take(posArgsCount)
+                    originalDef.meta.args.filterIndexed { index, _ -> isRequired(argKinds[index]) }
                 )
                 val additionalVars = originalDef.meta.args
-                    .drop(posArgsCount)
+                    .filterIndexed { index, _ -> !isRequired(argKinds[index]) }
                     .joinToString(separator = "\n", prefix = "\n") { arg ->
                         "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
                     }

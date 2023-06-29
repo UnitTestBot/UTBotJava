@@ -1168,7 +1168,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 staticsMocking.isEnabled = false
                 staticsMocking.isSelected = true
 
-                springTestsType.isEnabled = !isXmlSpringConfigUsed()
+                springTestsType.let {
+                    it.isEnabled = !isXmlSpringConfigUsed()
+                    if (!it.isEnabled) springTestsType.item = SpringTestsType.defaultItem
+                }
                 profileNames.isEnabled = true
             } else {
                 mockStrategies.item = when (model.projectType) {

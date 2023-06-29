@@ -5,6 +5,9 @@ class Word:
     def __init__(self, translations: Dict[str, str]):
         self.translations = translations
 
+    def __eq__(self, other):
+        return self.translations == other.translations
+
     def keys(self):
         return list(self.translations.keys())
 
@@ -17,6 +20,9 @@ class Dictionary:
     ):
         self.languages = languages
         self.words = [Word(translations) for translations in words]
+
+    def __eq__(self, other):
+        return self.languages == other.languages and self.words == other.words
 
     def translate(self, word: str, language: Optional[str]):
         if language is not None:

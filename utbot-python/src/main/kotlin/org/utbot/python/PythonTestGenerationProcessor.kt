@@ -15,7 +15,9 @@ import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.framework.api.python.RawPythonAnnotation
+import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.model.PythonCodeGenerator
 import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
@@ -147,7 +149,7 @@ abstract class PythonTestGenerationProcessor {
         val containingClasses = testSets.map { it.method.containingPythonClass?.pythonName() ?: "TopLevelFunctions" }
         return containingClasses.toSet().first()
     }
-    
+
     private fun collectImports(notEmptyTests: List<PythonTestSet>): Set<PythonImport> {
         val importParamModules = notEmptyTests.flatMap { testSet ->
             testSet.executions.flatMap { execution ->
@@ -161,9 +163,9 @@ abstract class PythonTestGenerationProcessor {
                     .filterNotNull()
                     .flatMap { utModel ->
                         (utModel as PythonModel).let {
-                            it.allContainingClassIds.map { classId ->
-                                PythonUserImport(importName_ = classId.moduleName)
-                            }
+                            it.allContainingClassIds
+                                .filterNot { classId -> classId == pythonNoneClassId }
+                                .map { classId -> PythonUserImport(importName_ = classId.moduleName) }
                         }
                     }
             }
@@ -173,9 +175,9 @@ abstract class PythonTestGenerationProcessor {
                 if (execution.result is UtExecutionSuccess) {
                     (execution.result as UtExecutionSuccess).let { result ->
                         (result.model as PythonModel).let {
-                            it.allContainingClassIds.map { classId ->
-                                PythonUserImport(importName_ = classId.moduleName)
-                            }
+                            it.allContainingClassIds
+                                .filterNot { classId -> classId == pythonNoneClassId }
+                                .map { classId -> PythonUserImport(importName_ = classId.moduleName) }
                         }
                     }
                 } else null
@@ -184,15 +186,20 @@ abstract class PythonTestGenerationProcessor {
         val rootModule = configuration.testFileInformation.moduleName.split(".").first()
         val testRootModule = PythonUserImport(importName_ = rootModule)
         val sysImport = PythonSystemImport("sys")
-        val sysPathImports = relativizePaths(configuration.executionPath, configuration.sysPathDirectories).map { PythonSysPathImport(it) }
+        val sysPathImports = relativizePaths(
+            configuration.executionPath,
+            configuration.sysPathDirectories
+        ).map { PythonSysPathImport(it) }
 
         val testFrameworkModule =
             configuration.testFramework.testSuperClass?.let { PythonUserImport(importName_ = (it as PythonClassId).rootModuleName) }
 
-        val allImports = (importParamModules + importResultModules + testRootModule + sysPathImports + listOf(
+        return (importParamModules + importResultModules + testRootModule + sysPathImports + listOf(
             testFrameworkModule, sysImport
-        )).filterNotNull().toSet()
-        return allImports
+        ))
+            .filterNotNull()
+            .filterNot { it.rootModuleName == pythonBuiltinsModuleName }
+            .toSet()
     }
 
     private fun findMethodByHeader(

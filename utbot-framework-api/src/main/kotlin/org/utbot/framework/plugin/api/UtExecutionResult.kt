@@ -77,7 +77,7 @@ class InstrumentedProcessDeathException(cause: Throwable) :
         cause
     )
 
-data class UtConcreteExecutionFailure(override val exception: InstrumentedProcessDeathException) : UtExecutionFailure()
+data class UtConcreteExecutionFailure(override val exception: Throwable) : UtExecutionFailure()
 
 /**
  * Represents a failure in instrumented process

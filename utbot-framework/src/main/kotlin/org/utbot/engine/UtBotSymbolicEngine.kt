@@ -285,7 +285,7 @@ class UtBotSymbolicEngine(
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation, UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
 
                             concreteExecutionResult.processedFailure()?.let { failure ->
-                                emit(UtFailedExecution(stateBefore, failure))
+                                emitFailedConcreteExecutionResult(stateBefore, failure.exception)
 
                                 logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
                                 return@measureTime
@@ -516,7 +516,7 @@ class UtBotSymbolicEngine(
 
     private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
         stateBefore: EnvironmentModels,
-        e: InstrumentedProcessDeathException
+        e: Throwable
     ) {
         val failedConcreteExecution = UtFailedExecution(
             stateBefore = stateBefore,
@@ -628,7 +628,7 @@ class UtBotSymbolicEngine(
                 )
 
                 concreteExecutionResult.processedFailure()?.let { failure ->
-                    emit(UtFailedExecution(stateBefore, failure))
+                    emitFailedConcreteExecutionResult(stateBefore, failure.exception)
 
                     logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
                     return

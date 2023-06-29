@@ -22,7 +22,7 @@ import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
-import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.newtyping.mypy.MypyAnnotations
 import org.utbot.python.utils.ExecutionWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.PriorityCartesianProduct
@@ -32,6 +32,7 @@ import java.io.File
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
 private const val MAX_EMPTY_COVERAGE_TESTS = 5
+private const val MAX_SUBSTITUTIONS = 10
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -86,13 +87,11 @@ class PythonTestCaseGenerator(
         }
     }
 
-    private val maxSubstitutions = 10
-
     private fun generateTypesAfterSubstitution(type: Type, typeStorage: PythonTypeStorage): List<Type> {
         val params = type.getBoundedParameters()
         return PriorityCartesianProduct(params.map { getCandidates(it, typeStorage) }).getSequence().map { subst ->
             DefaultSubstitutionProvider.substitute(type, (params zip subst).associate { it })
-        }.take(maxSubstitutions).toList()
+        }.take(MAX_SUBSTITUTIONS).toList()
     }
 
     private fun substituteTypeParameters(method: PythonMethod, typeStorage: PythonTypeStorage): List<PythonMethod> {
@@ -117,7 +116,7 @@ class PythonTestCaseGenerator(
                     method.ast
                 )
             }
-        }.take(maxSubstitutions)
+        }.take(MAX_SUBSTITUTIONS)
     }
 
     private fun methodHandler(

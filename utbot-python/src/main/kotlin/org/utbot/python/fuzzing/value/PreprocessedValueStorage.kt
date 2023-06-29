@@ -1,4 +1,4 @@
-package org.utbot.python.typing
+package org.utbot.python.fuzzing.value
 
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi

@@ -9,7 +9,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.dsl.builder.panel
 import org.utbot.intellij.plugin.ui.Notifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
-import org.utbot.python.RequirementsInstaller
+import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.RequirementsUtils
 import javax.swing.JComponent
 

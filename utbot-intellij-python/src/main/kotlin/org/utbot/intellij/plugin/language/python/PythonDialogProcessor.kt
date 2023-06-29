@@ -34,7 +34,7 @@ import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.RequirementsInstaller
+import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.TestFileInformation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant

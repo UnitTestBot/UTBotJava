@@ -10,7 +10,7 @@ import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.RequirementsInstaller
+import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.TestFileInformation
 import org.utbot.python.code.PythonCode
 import org.utbot.python.framework.api.python.PythonClassId

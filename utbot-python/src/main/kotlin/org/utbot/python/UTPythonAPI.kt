@@ -8,7 +8,7 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.newtyping.mypy.MypyAnnotations
 
 data class PythonArgument(val name: String, val annotation: String?)
 

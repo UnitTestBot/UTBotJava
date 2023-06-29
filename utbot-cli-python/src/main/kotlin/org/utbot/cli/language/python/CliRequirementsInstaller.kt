@@ -1,7 +1,7 @@
 package org.utbot.cli.language.python
 
 import mu.KLogger
-import org.utbot.python.RequirementsInstaller
+import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.RequirementsUtils
 
 class CliRequirementsInstaller(

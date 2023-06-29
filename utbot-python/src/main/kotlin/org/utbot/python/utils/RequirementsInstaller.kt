@@ -1,6 +1,4 @@
-package org.utbot.python
-
-import org.utbot.python.utils.RequirementsUtils
+package org.utbot.python.utils
 
 interface RequirementsInstaller {
     fun checkRequirements(pythonPath: String, requirements: List<String>): Boolean

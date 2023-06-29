@@ -1,9 +1,7 @@
 package org.utbot.intellij.plugin.language.python
 
-import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
@@ -16,12 +14,10 @@ import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiFileFactory
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyElement
@@ -29,10 +25,8 @@ import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.resolve.QualifiedNameFinder
 import mu.KotlinLogging
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
-import org.jetbrains.kotlin.j2k.getContainingClass
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.settings.Settings
@@ -45,7 +39,6 @@ import org.utbot.python.TestFileInformation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.newtyping.mypy.dropInitFile
-import org.utbot.python.newtyping.mypy.setConfigFile
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
@@ -250,11 +243,11 @@ object PythonDialogProcessor {
                     return
                 }
                 try {
+                    indicator.text = "Checking requirements..."
                     indicator.isIndeterminate = false
 
                     val installer = IntellijRequirementsInstaller(project)
 
-                    indicator.text = "Checking requirements"
                     val requirementsAreInstalled = RequirementsInstaller.checkRequirements(
                         installer,
                         baseModel.pythonPath,

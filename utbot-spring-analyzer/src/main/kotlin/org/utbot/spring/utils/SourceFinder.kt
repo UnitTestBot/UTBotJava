@@ -45,9 +45,8 @@ class SourceFinder(
 
     private fun patchImportResourceAnnotation(userXmlFilePath: Path) =
         patchAnnotation(
-            classLoader,
             TestApplicationConfiguration::class.java,
-            ImportResource::class,
+            ImportResource::class.java,
             "value",
             arrayOf(String.format("classpath:%s", "$userXmlFilePath"))
         )

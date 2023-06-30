@@ -75,7 +75,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 2605460374173973135L
+        const val serializationHash = 4955072258757490759L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -182,7 +182,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:132]
+ * #### Generated from [EngineProcessModel.kt:134]
  */
 data class BeanAdditionalData (
     val factoryMethodName: String,
@@ -190,10 +190,10 @@ data class BeanAdditionalData (
     val configClassFqn: String
 ) : IPrintable {
     //companion
-
+    
     companion object : IMarshaller<BeanAdditionalData> {
         override val _type: KClass<BeanAdditionalData> = BeanAdditionalData::class
-
+        
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanAdditionalData  {
             val factoryMethodName = buffer.readString()
@@ -201,14 +201,14 @@ data class BeanAdditionalData (
             val configClassFqn = buffer.readString()
             return BeanAdditionalData(factoryMethodName, parameterTypes, configClassFqn)
         }
-
+        
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanAdditionalData)  {
             buffer.writeString(value.factoryMethodName)
             buffer.writeList(value.parameterTypes) { v -> buffer.writeString(v) }
             buffer.writeString(value.configClassFqn)
         }
-
-
+        
+        
     }
     //fields
     //methods
@@ -218,13 +218,13 @@ data class BeanAdditionalData (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-
+        
         other as BeanAdditionalData
-
+        
         if (factoryMethodName != other.factoryMethodName) return false
         if (parameterTypes != other.parameterTypes) return false
         if (configClassFqn != other.configClassFqn) return false
-
+        
         return true
     }
     //hash code trait
@@ -251,7 +251,7 @@ data class BeanAdditionalData (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:137]
+ * #### Generated from [EngineProcessModel.kt:139]
  */
 data class BeanDefinitionData (
     val beanName: String,
@@ -259,10 +259,10 @@ data class BeanDefinitionData (
     val additionalData: BeanAdditionalData?
 ) : IPrintable {
     //companion
-
+    
     companion object : IMarshaller<BeanDefinitionData> {
         override val _type: KClass<BeanDefinitionData> = BeanDefinitionData::class
-
+        
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanDefinitionData  {
             val beanName = buffer.readString()
@@ -270,14 +270,14 @@ data class BeanDefinitionData (
             val additionalData = buffer.readNullable { BeanAdditionalData.read(ctx, buffer) }
             return BeanDefinitionData(beanName, beanTypeFqn, additionalData)
         }
-
+        
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanDefinitionData)  {
             buffer.writeString(value.beanName)
             buffer.writeString(value.beanTypeFqn)
             buffer.writeNullable(value.additionalData) { BeanAdditionalData.write(ctx, buffer, it) }
         }
-
-
+        
+        
     }
     //fields
     //methods
@@ -287,13 +287,13 @@ data class BeanDefinitionData (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-
+        
         other as BeanDefinitionData
-
+        
         if (beanName != other.beanName) return false
         if (beanTypeFqn != other.beanTypeFqn) return false
         if (additionalData != other.additionalData) return false
-
+        
         return true
     }
     //hash code trait
@@ -320,7 +320,7 @@ data class BeanDefinitionData (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:106]
+ * #### Generated from [EngineProcessModel.kt:108]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -383,7 +383,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:110]
+ * #### Generated from [EngineProcessModel.kt:112]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -440,7 +440,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:99]
+ * #### Generated from [EngineProcessModel.kt:101]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -503,7 +503,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:103]
+ * #### Generated from [EngineProcessModel.kt:105]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -630,7 +630,7 @@ data class GenerateParams (
         if (fuzzingValue != other.fuzzingValue) return false
         if (searchDirectory != other.searchDirectory) return false
         if (taintConfigPath != other.taintConfigPath) return false
-
+        
         return true
     }
     //hash code trait
@@ -734,7 +734,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:118]
+ * #### Generated from [EngineProcessModel.kt:120]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -827,7 +827,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:127]
+ * #### Generated from [EngineProcessModel.kt:129]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -896,7 +896,7 @@ data class GenerateTestReportResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:88]
+ * #### Generated from [EngineProcessModel.kt:90]
  */
 data class GetSpringBeanDefinitions (
     val classpath: Array<String>,
@@ -905,10 +905,10 @@ data class GetSpringBeanDefinitions (
     val profileExpression: String?
 ) : IPrintable {
     //companion
-
+    
     companion object : IMarshaller<GetSpringBeanDefinitions> {
         override val _type: KClass<GetSpringBeanDefinitions> = GetSpringBeanDefinitions::class
-
+        
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanDefinitions  {
             val classpath = buffer.readArray {buffer.readString()}
@@ -917,15 +917,15 @@ data class GetSpringBeanDefinitions (
             val profileExpression = buffer.readNullable { buffer.readString() }
             return GetSpringBeanDefinitions(classpath, config, fileStorage, profileExpression)
         }
-
+        
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanDefinitions)  {
             buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.config)
             buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
             buffer.writeNullable(value.profileExpression) { buffer.writeString(it) }
         }
-
-
+        
+        
     }
     //fields
     //methods
@@ -935,14 +935,14 @@ data class GetSpringBeanDefinitions (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-
+        
         other as GetSpringBeanDefinitions
-
+        
         if (!(classpath contentDeepEquals other.classpath)) return false
         if (config != other.config) return false
         if (!(fileStorage contentDeepEquals other.fileStorage)) return false
         if (profileExpression != other.profileExpression) return false
-
+        
         return true
     }
     //hash code trait
@@ -1034,7 +1034,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:94]
+ * #### Generated from [EngineProcessModel.kt:96]
  */
 data class MethodDescription (
     val name: String,
@@ -1256,7 +1256,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:81]
+ * #### Generated from [EngineProcessModel.kt:83]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1319,7 +1319,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:85]
+ * #### Generated from [EngineProcessModel.kt:87]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1376,27 +1376,27 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:142]
+ * #### Generated from [EngineProcessModel.kt:144]
  */
 data class SpringAnalyzerResult (
     val beanDefinitions: Array<BeanDefinitionData>
 ) : IPrintable {
     //companion
-
+    
     companion object : IMarshaller<SpringAnalyzerResult> {
         override val _type: KClass<SpringAnalyzerResult> = SpringAnalyzerResult::class
-
+        
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerResult  {
             val beanDefinitions = buffer.readArray {BeanDefinitionData.read(ctx, buffer)}
             return SpringAnalyzerResult(beanDefinitions)
         }
-
+        
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerResult)  {
             buffer.writeArray(value.beanDefinitions) { BeanDefinitionData.write(ctx, buffer, it) }
         }
-
-
+        
+        
     }
     //fields
     //methods
@@ -1406,11 +1406,11 @@ data class SpringAnalyzerResult (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-
+        
         other as SpringAnalyzerResult
-
+        
         if (!(beanDefinitions contentDeepEquals other.beanDefinitions)) return false
-
+        
         return true
     }
     //hash code trait
@@ -1514,7 +1514,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:113]
+ * #### Generated from [EngineProcessModel.kt:115]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

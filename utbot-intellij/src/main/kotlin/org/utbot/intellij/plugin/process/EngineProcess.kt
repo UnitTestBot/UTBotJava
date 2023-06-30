@@ -197,9 +197,9 @@ class EngineProcess private constructor(val project: Project, private val classN
         engineModel.createTestGenerator.startBlocking(params)
     }
 
-    fun obtainClassId(canonicalName: String): ClassId {
+    fun obtainClassId(binaryName: String): ClassId {
         assertReadAccessNotAllowed()
-        return kryoHelper.readObject(engineModel.obtainClassId.startBlocking(canonicalName))
+        return kryoHelper.readObject(engineModel.obtainClassId.startBlocking(binaryName))
     }
 
     fun findMethodsInClassMatchingSelected(clazzId: ClassId, srcMethods: List<MemberInfo>): List<ExecutableId> {

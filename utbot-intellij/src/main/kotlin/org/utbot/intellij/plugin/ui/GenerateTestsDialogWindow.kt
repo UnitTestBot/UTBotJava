@@ -136,12 +136,13 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.SpringConfigurationsHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
+import org.utbot.intellij.plugin.util.SpringConfigurationType
+import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.event.ActionEvent
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -160,7 +161,6 @@ import javax.swing.JList
 import javax.swing.JSpinner
 import javax.swing.text.DefaultFormatter
 import kotlin.io.path.notExists
-import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 
 
 private const val RECENTS_KEY = "org.utbot.recents"
@@ -198,8 +198,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
 
-    private val javaConfigurationHelper = SpringConfigurationsHelper(".")
-    private val xmlConfigurationHelper = SpringConfigurationsHelper(File.separator)
+    private val javaConfigurationHelper = SpringConfigurationsHelper(SpringConfigurationType.ClassConfiguration)
+    private val xmlConfigurationHelper = SpringConfigurationsHelper(SpringConfigurationType.FileConfiguration)
 
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")

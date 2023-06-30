@@ -1,5 +1,7 @@
 package org.utbot.intellij.plugin.util
 
+import java.io.File
+
 /**
  * This class is a converter between full Spring configuration names and shortened versions.
  *
@@ -13,7 +15,7 @@ package org.utbot.intellij.plugin.util
  * ->
  * [["web.WebConfig", "web2.WebConfig", "AnotherConfig"]]
  */
-class SpringConfigurationsHelper(val separator: String) {
+class SpringConfigurationsHelper(val configType: SpringConfigurationType) {
 
     private val nameToInfo = mutableMapOf<String, NameInfo>()
 
@@ -21,7 +23,7 @@ class SpringConfigurationsHelper(val separator: String) {
         val shortenedName: String
             get() = innerShortName
 
-        private val pathFragments: MutableList<String> = fullName.split(separator).toMutableList()
+        private val pathFragments: MutableList<String> = fullName.split(*configType.separatorsToSplitBy).toMutableList()
         private var innerShortName = pathFragments.removeLast()
 
         fun enlargeShortName(): Boolean {
@@ -30,7 +32,7 @@ class SpringConfigurationsHelper(val separator: String) {
             }
 
             val lastElement = pathFragments.removeLast()
-            innerShortName = "${lastElement}$separator$innerShortName"
+            innerShortName = "${lastElement}${configType.separatorToConcatenateBy}$innerShortName"
             return true
         }
     }
@@ -51,7 +53,7 @@ class SpringConfigurationsHelper(val separator: String) {
             nameInfoCollection = nameInfoCollection.sortedBy { it.shortenedName }.toMutableList()
 
             var index = 0
-            while(index < nameInfoCollection.size){
+            while (index < nameInfoCollection.size) {
                 val curShortenedPath = nameInfoCollection[index].shortenedName
 
                 // here we search a block of shortened paths that are equivalent
@@ -60,8 +62,7 @@ class SpringConfigurationsHelper(val separator: String) {
                 while (maxIndexWithSamePath < nameInfoCollection.size) {
                     if (nameInfoCollection[maxIndexWithSamePath].shortenedName == curShortenedPath) {
                         maxIndexWithSamePath++
-                    }
-                    else {
+                    } else {
                         break
                     }
                 }
@@ -89,4 +90,19 @@ class SpringConfigurationsHelper(val separator: String) {
 
     private fun collectShortenedNames() = nameToInfo.values.associate { it.fullName to it.shortenedName }
 
+}
+
+enum class SpringConfigurationType(
+    val separatorsToSplitBy: Array<String>,
+    val separatorToConcatenateBy: String,
+) {
+    ClassConfiguration(
+        separatorsToSplitBy = arrayOf(".", "$"),
+        separatorToConcatenateBy = ".",
+    ),
+
+    FileConfiguration(
+        separatorsToSplitBy = arrayOf(File.separator),
+        separatorToConcatenateBy = File.separator,
+    ),
 }

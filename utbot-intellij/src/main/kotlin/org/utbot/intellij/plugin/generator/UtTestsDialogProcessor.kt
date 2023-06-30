@@ -62,7 +62,6 @@ import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
-import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.settings.Settings
@@ -73,6 +72,7 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.PsiClassHelper
 import org.utbot.intellij.plugin.util.isAbstract
+import org.utbot.intellij.plugin.util.binaryName
 import org.utbot.intellij.plugin.util.PluginJdkInfoProvider
 import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
@@ -178,7 +178,9 @@ object UtTestsDialogProcessor {
             DoNotReplace -> null
             is ReplaceIfPossible ->
                 approach.config.takeUnless { it.endsWith(".xml") }?.let {
-                    PsiClassHelper.findClass(it, project) ?: error("Cannot find configuration class $it.")
+                    // Converting binary name to canonical name
+                    val canonicalName = it.replace("$", ".")
+                    PsiClassHelper.findClass(canonicalName, project) ?: error("Cannot find configuration class $it.")
                 }
         }
 
@@ -236,7 +238,7 @@ object UtTestsDialogProcessor {
                         val totalClasses = model.srcClasses.size
                         val classNameToPath = runReadAction {
                             model.srcClasses.associate { psiClass ->
-                                psiClass.canonicalName to psiClass.containingFile.virtualFile.canonicalPath
+                                psiClass.binaryName() to psiClass.containingFile.virtualFile.canonicalPath
                             }
                         }
 
@@ -310,12 +312,12 @@ object UtTestsDialogProcessor {
                                 }
 
                                 val (methods, classNameForLog) = process.executeWithTimeoutSuspended {
-                                    var canonicalName = ""
+                                    var binaryName = ""
                                     var srcMethods: List<MemberInfo> = emptyList()
                                     var srcNameForLog: String? = null
                                     DumbService.getInstance(project)
                                         .runReadActionInSmartMode(Computable {
-                                            canonicalName = srcClass.canonicalName
+                                            binaryName = srcClass.binaryName()
                                             srcNameForLog = srcClass.name
                                             srcMethods = if (model.extractMembersFromSrcClasses) {
                                                 val chosenMethods =
@@ -329,7 +331,7 @@ object UtTestsDialogProcessor {
                                                 srcClass.extractClassMethodsIncludingNested(false)
                                             }
                                         })
-                                    val classId = process.obtainClassId(canonicalName)
+                                    val classId = process.obtainClassId(binaryName)
                                     psi2KClass[srcClass] = classId
                                     process.findMethodsInClassMatchingSelected(
                                         classId,
@@ -465,26 +467,6 @@ object UtTestsDialogProcessor {
         return if (path != null && path.toFile().exists()) path else null
     }
 
-    private val PsiClass.canonicalName: String
-    /*
-    This method calculates exactly name that is used by compiler convention,
-    i.e. result is the exact name of .class file for provided PsiClass.
-    This value is used to provide classes to engine process - follow usages for clarification.
-    Equivalent for Class.getCanonicalName.
-    P.S. We cannot load project class in IDEA jvm
-     */
-        get() {
-            return if (packageName.isEmpty()) {
-                qualifiedName?.replace(".", "$") ?: ""
-            } else {
-                val name = qualifiedName
-                    ?.substringAfter("$packageName.")
-                    ?.replace(".", "$")
-                    ?: error("Unable to get canonical name for $this")
-                "$packageName.$name"
-            }
-        }
-
     private fun clarifyBeanDefinitionReturnTypes(beanDefinitions: List<BeanDefinitionData>, project: Project) =
         beanDefinitions.map { bean ->
             // Here we extract a real return type.
@@ -496,8 +478,10 @@ object UtTestsDialogProcessor {
             val beanType = runReadAction {
                 val additionalData = bean.additionalData ?: return@runReadAction null
 
+                // Converting binary name to canonical name
+                val canonicalName = additionalData.configClassFqn.replace("$", ".")
                 val configPsiClass =
-                    PsiClassHelper.findClass(additionalData.configClassFqn, project) ?: return@runReadAction null
+                    PsiClassHelper.findClass(canonicalName, project) ?: return@runReadAction null
                         .also {
                             logger.warn("Cannot find configuration class ${additionalData.configClassFqn}.")
                         }

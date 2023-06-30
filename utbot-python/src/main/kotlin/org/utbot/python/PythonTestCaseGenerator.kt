@@ -237,11 +237,6 @@ class PythonTestCaseGenerator(
                     originalDef.meta.name,
                     originalDef.meta.args.filterIndexed { index, _ -> isRequired(argKinds[index]) }
                 )
-                val additionalVars = originalDef.meta.args
-                    .filterIndexed { index, _ -> !isRequired(argKinds[index]) }
-                    .joinToString(separator = "\n", prefix = "\n") { arg ->
-                        "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
-                    }
                 method.definition = PythonFunctionDefinition(shortMeta, shortType)
                 val missingLines = methodHandler(
                     method,
@@ -251,7 +246,6 @@ class PythonTestCaseGenerator(
                     executions,
                     null,
                     firstUntil,
-                    additionalVars
                 )
                 method.definition = originalDef
                 methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)

@@ -24,7 +24,7 @@ class SpringApplicationAnalyzer {
 
         return springFacadeInstance.instantiate(instantiationSettings) { instantiator ->
             UtBotSpringShutdownException
-                .catch { instantiator.instantiate() }
+                .catch { instantiator.instantiate().context }
                 .beanDefinitions
                 .toTypedArray()
         }

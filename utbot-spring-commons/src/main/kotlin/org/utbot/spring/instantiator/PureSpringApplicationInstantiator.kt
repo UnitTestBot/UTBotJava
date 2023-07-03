@@ -1,19 +1,13 @@
 package org.utbot.spring.instantiator
 
-import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import org.springframework.core.env.ConfigurableEnvironment
+import org.utbot.spring.api.instantiator.InstantiationSettings
+import org.utbot.spring.context.BaseDummyTestClass
+import org.utbot.spring.context.SpringContextWrapper
 
 class PureSpringApplicationInstantiator : SpringApplicationInstantiator {
 
     override fun canInstantiate() = true
 
-    override fun instantiate(sources: Array<Class<*>>, environment: ConfigurableEnvironment): ConfigurableApplicationContext {
-        val applicationContext = AnnotationConfigApplicationContext()
-        applicationContext.register(*sources)
-        applicationContext.environment = environment
-
-        applicationContext.refresh()
-        return applicationContext
-    }
+    override fun instantiate(instantiationSettings: InstantiationSettings) =
+        SpringContextWrapper(instantiationSettings, BaseDummyTestClass::class.java)
 }

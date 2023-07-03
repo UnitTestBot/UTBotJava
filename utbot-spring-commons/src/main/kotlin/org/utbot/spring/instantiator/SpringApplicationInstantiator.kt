@@ -1,11 +1,11 @@
 package org.utbot.spring.instantiator
 
-import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.core.env.ConfigurableEnvironment
+import org.utbot.spring.api.context.ContextWrapper
+import org.utbot.spring.api.instantiator.InstantiationSettings
 
 interface SpringApplicationInstantiator {
 
     fun canInstantiate(): Boolean
 
-    fun instantiate(sources: Array<Class<*>>, environment: ConfigurableEnvironment): ConfigurableApplicationContext
+    fun instantiate(instantiationSettings: InstantiationSettings): ContextWrapper
 }

@@ -13,6 +13,23 @@ interface ContextWrapper {
     fun resetBean(beanName: String): Any
 
     fun resolveRepositories(beanNames: Set<String>, userSourcesClassLoader: URLClassLoader): Set<RepositoryDescription>
+
+    /**
+     * Should be called once before any invocations of [beforeTestMethod] and [afterTestMethod]
+     */
+    fun beforeTestClass()
+
+    /**
+     * Should be called on one thread with method under test and value constructor,
+     * because transactions are bound to threads
+     */
+    fun beforeTestMethod()
+
+    /**
+     * Should be called on one thread with method under test and value constructor,
+     * because transactions are bound to threads
+     */
+    fun afterTestMethod()
 }
 
 data class RepositoryDescription(

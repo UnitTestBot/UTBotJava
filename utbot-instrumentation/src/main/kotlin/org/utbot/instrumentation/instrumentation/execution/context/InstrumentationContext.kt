@@ -1,5 +1,7 @@
-package org.utbot.instrumentation.instrumentation.execution.mock
+package org.utbot.instrumentation.instrumentation.execution.context
 
+import org.utbot.framework.plugin.api.UtConcreteValue
+import org.utbot.framework.plugin.api.UtModel
 import java.lang.reflect.Method
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
@@ -9,11 +11,13 @@ import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
  *
  * This information will be used later in `invoke` function to construct values.
  */
-open class InstrumentationContext {
+interface InstrumentationContext {
     /**
      * Contains unique id for each method, which is required for this method mocking.
      */
-    val methodSignatureToId = mutableMapOf<String, Int>()
+    val methodSignatureToId: MutableMap<String, Int>
+
+    fun constructContextDependentValue(model: UtModel): UtConcreteValue<*>?
 
     object MockGetter {
         data class MockContainer(private val values: List<*>) {

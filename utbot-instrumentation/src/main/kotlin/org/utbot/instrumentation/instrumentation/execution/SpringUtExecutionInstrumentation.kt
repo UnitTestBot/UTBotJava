@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.context.SpringInstrumentationContext
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import org.utbot.spring.api.context.ContextWrapper
 import org.utbot.spring.api.repositoryWrapper.RepositoryInteraction
@@ -50,8 +50,8 @@ class SpringUtExecutionInstrumentation(
             )
         )
 
-        instrumentationContext = SpringInstrumentationContext(springConfig)
         userSourcesClassLoader = URLClassLoader(buildDirs, null)
+        instrumentationContext = SpringInstrumentationContext(springConfig, delegateInstrumentation.instrumentationContext)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
     }

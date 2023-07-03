@@ -9,7 +9,8 @@ import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.context.SimpleInstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicClassVisitor
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicDetector
 import org.utbot.instrumentation.instrumentation.execution.phases.ConstructedData
@@ -51,7 +52,7 @@ data class UtConcreteExecutionResult(
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 
-    var instrumentationContext = InstrumentationContext()
+    var instrumentationContext: InstrumentationContext = SimpleInstrumentationContext()
 
     private val traceHandler = TraceHandler()
     private val ndDetector = NonDeterministicDetector()

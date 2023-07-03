@@ -3,7 +3,7 @@ package org.utbot.instrumentation.instrumentation.execution.phases
 import org.utbot.framework.plugin.api.*
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.execution.constructors.MockValueConstructor
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 

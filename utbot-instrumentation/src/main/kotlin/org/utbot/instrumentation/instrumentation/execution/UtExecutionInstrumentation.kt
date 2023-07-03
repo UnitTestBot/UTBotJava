@@ -13,7 +13,6 @@ import org.utbot.instrumentation.instrumentation.execution.context.Instrumentati
 import org.utbot.instrumentation.instrumentation.execution.context.SimpleInstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicClassVisitor
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicDetector
-import org.utbot.instrumentation.instrumentation.execution.phases.ConstructedData
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
@@ -75,14 +74,14 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult =
-        invoke(clazz, methodSignature, arguments, parameters, additionalPhases = { it })
+        invoke(clazz, methodSignature, arguments, parameters, phasesWrapper = { it() })
 
     fun invoke(
         clazz: Class<*>,
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?,
-        additionalPhases: PhasesController.(UtConcreteExecutionResult) -> UtConcreteExecutionResult
+        phasesWrapper: PhasesController.(basePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
@@ -95,67 +94,65 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             delegateInstrumentation,
             timeout
         ).computeConcreteExecutionResult {
-            try {
-                // some preparation actions for concrete execution
-                var constructedData: ConstructedData
+            phasesWrapper {
                 try {
-                    constructedData = applyPreprocessing(parameters)
-                } catch (t: Throwable) {
-                    return UtConcreteExecutionResult(MissingState, UtConcreteExecutionProcessedFailure(t), Coverage())
-                }
+                    // some preparation actions for concrete execution
+                    val constructedData = applyPreprocessing(parameters)
 
-                val (params, statics, cache) = constructedData
+                    val (params, statics, cache) = constructedData
 
-                // invocation
-                val concreteResult = executePhaseInTimeout(invocationPhase) {
-                    invoke(clazz, methodSignature, params.map { it.value })
-                }
-
-                // statistics collection
-                val (coverage, ndResults) = executePhaseInTimeout(statisticsCollectionPhase) {
-                    getCoverage(clazz) to getNonDeterministicResults()
-                }
-
-                // model construction
-                val (executionResult, stateAfter, newInstrumentation) = executePhaseInTimeout(modelConstructionPhase) {
-                    configureConstructor {
-                        this.cache = cache
-                        strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
-                            pathsToUserClasses,
-                            cache
-                        )
+                    // invocation
+                    val concreteResult = executePhaseInTimeout(invocationPhase) {
+                        invoke(clazz, methodSignature, params.map { it.value })
                     }
 
-                    val ndStatics = constructStaticInstrumentation(ndResults.statics)
-                    val ndNews = constructNewInstrumentation(ndResults.news, ndResults.calls)
-                    val newInstrumentation = mergeInstrumentations(instrumentations, ndStatics, ndNews)
-
-                    val returnType = clazz.singleExecutableId(methodSignature).returnType
-                    val executionResult = convertToExecutionResult(concreteResult,returnType)
-
-                    val stateAfterParametersWithThis = constructParameters(params)
-                    val stateAfterStatics = constructStatics(stateBefore, statics)
-                    val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
-                        null to stateAfterParametersWithThis
-                    } else {
-                        stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
+                    // statistics collection
+                    val (coverage, ndResults) = executePhaseInTimeout(statisticsCollectionPhase) {
+                        getCoverage(clazz) to getNonDeterministicResults()
                     }
-                    val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
 
-                    Triple(executionResult, stateAfter, newInstrumentation)
+                    // model construction
+                    val (executionResult, stateAfter, newInstrumentation) = executePhaseInTimeout(modelConstructionPhase) {
+                        configureConstructor {
+                            this.cache = cache
+                            strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
+                                pathsToUserClasses,
+                                cache
+                            )
+                        }
+
+                        val ndStatics = constructStaticInstrumentation(ndResults.statics)
+                        val ndNews = constructNewInstrumentation(ndResults.news, ndResults.calls)
+                        val newInstrumentation = mergeInstrumentations(instrumentations, ndStatics, ndNews)
+
+                        val returnType = clazz.singleExecutableId(methodSignature).returnType
+                        val executionResult = convertToExecutionResult(concreteResult, returnType)
+
+                        val stateAfterParametersWithThis = constructParameters(params)
+                        val stateAfterStatics = constructStatics(stateBefore, statics)
+                        val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
+                            null to stateAfterParametersWithThis
+                        } else {
+                            stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
+                        }
+                        val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
+
+                        Triple(executionResult, stateAfter, newInstrumentation)
+                    }
+
+                    UtConcreteExecutionResult(
+                        stateAfter,
+                        executionResult,
+                        coverage,
+                        newInstrumentation
+                    )
+                } finally {
+                    // restoring data after concrete execution
+                    applyPostprocessing()
                 }
-
-                additionalPhases(UtConcreteExecutionResult(
-                    stateAfter,
-                    executionResult,
-                    coverage,
-                    newInstrumentation
-                ))
-            } finally {
-                // restoring data after concrete execution
-                applyPostprocessing()
             }
         }
+        //    .copy(seenUsedMockedExecutables = phasesController.valueConstructionPhase.getSeenUsedMockedExecutables())
     }
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =

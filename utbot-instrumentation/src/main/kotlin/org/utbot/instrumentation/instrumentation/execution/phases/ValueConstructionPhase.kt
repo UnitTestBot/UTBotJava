@@ -24,13 +24,17 @@ class ValueConstructionPhase(
     instrumentationContext: InstrumentationContext
 ) : ExecutionPhase {
 
-    override fun wrapError(e: Throwable): ExecutionPhaseException {
-        val message = this.javaClass.simpleName
-        return when(e) {
-            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
-            else -> ExecutionPhaseError(message, e)
-        }
-    }
+    override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseStop(
+        phase = this.javaClass.simpleName,
+        result = UtConcreteExecutionResult(
+            stateAfter = MissingState,
+            result = when(e) {
+                is TimeoutException -> UtTimeoutException(e)
+                else -> UtConcreteExecutionProcessedFailure(e)
+            },
+            coverage = Coverage()
+        )
+    )
 
     private val constructor = MockValueConstructor(instrumentationContext)
 

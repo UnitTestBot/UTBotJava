@@ -10,6 +10,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.context.SpringInstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import org.utbot.spring.api.context.ContextWrapper
 import org.utbot.spring.api.repositoryWrapper.RepositoryInteraction
@@ -34,6 +35,9 @@ class SpringUtExecutionInstrumentation(
 
     private val springContext: ContextWrapper get() = instrumentationContext.springContext
 
+    private object SpringBeforeTestMethodPhase : ExecutionPhaseFailingOnAnyException()
+    private object SpringAfterTestMethodPhase : ExecutionPhaseFailingOnAnyException()
+
     companion object {
         private val logger = getLogger<SpringUtExecutionInstrumentation>()
         private const val SPRING_COMMONS_JAR_FILENAME = "utbot-spring-commons-shadow.jar"
@@ -54,6 +58,7 @@ class SpringUtExecutionInstrumentation(
         instrumentationContext = SpringInstrumentationContext(springConfig, delegateInstrumentation.instrumentationContext)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
+        springContext.beforeTestClass()
     }
 
     override fun invoke(
@@ -62,32 +67,26 @@ class SpringUtExecutionInstrumentation(
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult {
-        RepositoryInteraction.recordedInteractions.clear()
+        getRelevantBeanNames(clazz).forEach { beanName -> springContext.resetBean(beanName) }
 
-        val beanNamesToReset: Set<String> = getRelevantBeanNames(clazz)
-        val repositoryDefinitions = springContext.resolveRepositories(beanNamesToReset, userSourcesClassLoader)
-
-        beanNamesToReset.forEach { beanName -> springContext.resetBean(beanName) }
-        val jdbcTemplate = getBean("jdbcTemplate")
-
-        for (repositoryDefinition in repositoryDefinitions) {
-            val truncateTableCommand = "TRUNCATE TABLE ${repositoryDefinition.tableName}"
-            jdbcTemplate::class.java
-                .getMethod("execute", truncateTableCommand::class.java)
-                .invoke(jdbcTemplate, truncateTableCommand)
-
-            val restartIdCommand = "ALTER TABLE ${repositoryDefinition.tableName} ALTER COLUMN id RESTART WITH 1"
-            jdbcTemplate::class.java
-                .getMethod("execute", restartIdCommand::class.java)
-                .invoke(jdbcTemplate, restartIdCommand)
+        return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { basePhases ->
+            // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
+            //     so they are executed in one thread with method under test
+            executePhaseInTimeout(SpringBeforeTestMethodPhase) { springContext.beforeTestMethod() }
+            try {
+                basePhases()
+            } finally {
+                executePhaseInTimeout(SpringAfterTestMethodPhase) { springContext.afterTestMethod() }
+            }
         }
-
-        return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters)
     }
 
     private fun getRelevantBeanNames(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
         beanDefinitions
             .filter { it.beanTypeFqn == clazz.name }
+            // TODO move forcing `getBean()` somewhere else (we need to once forcefully get beans under test
+            //  before `executePhaseInTimeout` to force loading and transformation of Spring classes without timeout)
+            .onEach { springContext.getBean(it.beanName) }
             .flatMap { springContext.getDependenciesForBean(it.beanName, userSourcesClassLoader) }
             .toSet()
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }

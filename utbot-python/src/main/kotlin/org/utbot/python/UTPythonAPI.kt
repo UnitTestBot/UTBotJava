@@ -9,8 +9,13 @@ import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeType
 import org.utbot.python.newtyping.mypy.MypyAnnotations
+import org.utbot.python.newtyping.utils.isNamed
 
-data class PythonArgument(val name: String, val annotation: String?)
+data class PythonArgument(
+    val name: String,
+    val annotation: String?,
+    val isNamed: Boolean = false,
+)
 
 class PythonMethodHeader(
     val name: String,
@@ -31,22 +36,7 @@ class PythonMethod(
         "${it.name}: ${it.annotation ?: pythonAnyClassId.name}"
     } + ")"
 
-    fun arguments(): Map<String, PythonVariableDescription> = definition.meta.args.associateBy { it.name }
-
-//    fun methodSignarureWithKeywords(): String {
-//        fun argWithAnnotation(arg: PythonVariableDescription): String = "${arg.name}"
-//        val meta = definition.type.pythonDescription() as PythonCallableTypeDescription
-//        val shortType = meta.removeNonPositionalArgs(definition.type)
-//        val posArgsCount = shortType.arguments.size
-//        val funcName = definition.meta.name
-//        val baseArgs = definition.meta.args.take(posArgsCount)
-//        val additionalVars = definition.meta.args.drop(posArgsCount)
-//
-//        return "$funcName(${}"
-//            .joinToString(separator = "\n", prefix = "\n") { arg ->
-//                "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
-//            }
-//    }
+    val argumentNames: Map<String, PythonVariableDescription> = definition.meta.args.associateBy { it.name }
 
     /*
     Check that the first argument is `self` of `cls`.
@@ -57,9 +47,13 @@ class PythonMethod(
 
     val arguments: List<PythonArgument>
         get() {
-            val paramNames = definition.meta.args.map { it.name }
-            return (definition.type.arguments zip paramNames).map {
-                PythonArgument(it.second, it.first.pythonTypeRepresentation())  // TODO: improve pythonTypeRepresentation
+            val meta = definition.type.pythonDescription() as PythonCallableTypeDescription
+            return (definition.type.arguments).mapIndexed { index, type ->
+                PythonArgument(
+                    meta.argumentNames[index]!!,
+                    type.pythonTypeRepresentation(),  // TODO: improve pythonTypeRepresentation
+                    isNamed(meta.argumentKinds[index])
+                )
             }
         }
 

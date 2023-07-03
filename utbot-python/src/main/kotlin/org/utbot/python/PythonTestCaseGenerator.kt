@@ -242,9 +242,10 @@ class PythonTestCaseGenerator(
                     .joinToString(separator = "\n", prefix = "\n") { arg ->
                         "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
                     }
-                method.definition = PythonFunctionDefinition(shortMeta, shortType)
+                val shortDef = PythonFunctionDefinition(shortMeta, shortType)
+                val shortMethod = PythonMethod(method.name, method.moduleFilename, method.containingPythonClass, method.codeAsString, shortDef, method.ast)
                 val missingLines = methodHandler(
-                    method,
+                    shortMethod,
                     typeStorage,
                     coveredLines,
                     errors,
@@ -253,7 +254,6 @@ class PythonTestCaseGenerator(
                     firstUntil,
                     additionalVars
                 )
-                method.definition = originalDef
                 methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)
             } else {
                 methodHandler(method, typeStorage, coveredLines, errors, executions, null, until)

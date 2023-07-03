@@ -23,6 +23,7 @@ import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
+import org.utbot.python.newtyping.utils.isNamed
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
     private val maxDepth: Int = 5
@@ -33,6 +34,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
     override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
+            val arguments = (executableId as PythonMethodId).arguments
             val constructorState = (execution as PythonUtExecution).stateInit
             val diffIds = execution.diffIds
             (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
@@ -96,12 +98,18 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 stateAssertions[index] = Pair(argument, afterValue)
                             }
                         }
+                        if (arguments?.get(index)?.isNamed == true) {
+                            argument = CgPythonNamedArgument(name, argument)
+                        }
 
                         methodArguments += argument
                     }
                     methodArguments.forEach {
                         if (it is CgPythonTree) {
                             context.currentBlock.addAll(it.arguments)
+                        }
+                        if (it is CgPythonNamedArgument && it.value is CgPythonTree) {
+                            context.currentBlock.addAll(it.value.arguments)
                         }
                     }
 

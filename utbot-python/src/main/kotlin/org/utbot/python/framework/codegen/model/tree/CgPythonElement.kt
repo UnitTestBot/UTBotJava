@@ -36,6 +36,7 @@ interface CgPythonElement : CgElement {
                 is CgPythonTuple -> visitor.visit(element)
                 is CgPythonTree -> visitor.visit(element)
                 is CgPythonWith -> visitor.visit(element)
+                is CgPythonNamedArgument -> visitor.visit(element)
                 else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
             }
         } else {
@@ -123,3 +124,10 @@ data class CgPythonWith(
     val target: CgExpression?,
     val statements: List<CgStatement>,
 ) : CgStatement, CgPythonElement
+
+class CgPythonNamedArgument(
+    val name: String?,
+    val value: CgExpression,
+) : CgValue, CgPythonElement {
+    override val type: ClassId = value.type
+}

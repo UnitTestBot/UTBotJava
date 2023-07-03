@@ -92,16 +92,17 @@ abstract class PythonTestGenerationProcessor {
         val containingClassName = getContainingClassName(testSets)
         val classId = PythonClassId(configuration.testFileInformation.moduleName, containingClassName)
 
-        val methodIds = testSets.associate {
-            it.method to PythonMethodId(
+        val methodIds = testSets.associate { testSet ->
+            testSet.method to PythonMethodId(
                 classId,
-                it.method.name,
+                testSet.method.name,
                 RawPythonAnnotation(pythonAnyClassId.name),
-                it.method.arguments.map { argument ->
+                testSet.method.arguments.map { argument ->
                     argument.annotation?.let { annotation ->
                         RawPythonAnnotation(annotation)
                     } ?: pythonAnyClassId
-                }
+                },
+                arguments = testSet.method.arguments
             )
         }
 

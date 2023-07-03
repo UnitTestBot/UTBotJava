@@ -1,3 +1,12 @@
+
+class A:
+    def __init__(self, x: int):
+        self.x = x
+
+    def __eq__(self, other):
+        return self.x == other.x
+
+
 def f(x, y=1, *, z):
     if y == 0:
         return 100 * x
@@ -10,6 +19,7 @@ def f(x, y=1, *, z):
 
 def g(x):
     return x ** 2
+
 
 
 if __name__ == '__main__':

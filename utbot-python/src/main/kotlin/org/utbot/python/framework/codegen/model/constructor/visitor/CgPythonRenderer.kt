@@ -578,6 +578,11 @@ internal class CgPythonRenderer(
         withIndent { element.statements.forEach { it.accept(this) } }
     }
 
+    override fun visit(element: CgPythonNamedArgument) {
+        element.name?.let { print("$it=") }
+        element.value.accept(this)
+    }
+
     override fun visit(element: CgPythonDict) {
         print("{")
         element.elements.map { (key, value) ->

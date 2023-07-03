@@ -113,7 +113,7 @@ class InstrumentedProcessModel private constructor(
     val getSpringBean: RdCall<GetSpringBeanParams, GetSpringBeanResult> get() = _getSpringBean
     
     /**
-     * Get Spring repositories by bean names (requires Spring instrumentation)
+     * Gets a list of [SpringRepositoryId]s that class specified by the [ClassId] (possibly indirectly) depends on (requires Spring instrumentation)
      */
     val getRelevantSpringRepositories: RdCall<GetSpringRepositoriesParams, GetSpringRepositoriesResult> get() = _getRelevantSpringRepositories
     //methods

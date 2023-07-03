@@ -224,7 +224,7 @@ data class BeanDefinitionData (
         printer.println("BeanDefinitionData (")
         printer.indent {
             print("beanName = "); beanName.print(printer); println()
-            print("beanTypeFqn = "); beanTypeFqn.print(printer); println()
+            print("beanTypeName = "); beanTypeFqn.print(printer); println()
             print("additionalData = "); additionalData.print(printer); println()
         }
         printer.print(")")

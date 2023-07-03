@@ -160,8 +160,8 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             RenderResult(it.generatedCode, it.utilClassKind?.javaClass?.simpleName)
         }
     }
-    watchdog.measureTimeForActiveCall(obtainClassId, "Obtain class id in UtContext") { canonicalName ->
-        kryoHelper.writeObject(UtContext.currentContext()!!.classLoader.loadClass(canonicalName).id)
+    watchdog.measureTimeForActiveCall(obtainClassId, "Obtain class id in UtContext") { binaryName ->
+        kryoHelper.writeObject(UtContext.currentContext()!!.classLoader.loadClass(binaryName).id)
     }
     watchdog.measureTimeForActiveCall(findMethodsInClassMatchingSelected, "Find methods in Class") { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)

@@ -134,7 +134,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val beanAdditionalData = structdef {
         field("factoryMethodName", PredefinedType.string)
         field("parameterTypes", immutableList(PredefinedType.string))
-        field("configClassFqn", PredefinedType.string)
+        field("configClassName", PredefinedType.string)
     }
     val beanDefinitionData = structdef {
         field("beanName", PredefinedType.string)

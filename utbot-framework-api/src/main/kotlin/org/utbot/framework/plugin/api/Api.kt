@@ -1436,10 +1436,10 @@ class SpringApplicationContext(
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                // TODO: use more info from SpringBeanDefinitionData than beanTypeFqn offers here
-                for (beanFqn in beanDefinitions.map { it.beanTypeFqn }) {
+                // TODO: use more info from SpringBeanDefinitionData than beanTypeName offers here
+                for (beanTypeName in beanDefinitions.map { it.beanTypeName }) {
                     try {
-                        val beanClass = utContext.classLoader.loadClass(beanFqn)
+                        val beanClass = utContext.classLoader.loadClass(beanTypeName)
                         if (!beanClass.isAbstract && !beanClass.isInterface &&
                             !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
                             springInjectedClassesStorage += beanClass.id
@@ -1449,7 +1449,7 @@ class SpringApplicationContext(
                         // it is possible to have problems with classes loading.
                         when (e) {
                             is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
-                                logger.warn { "Failed to load bean class for $beanFqn (${e.message})" }
+                                logger.warn { "Failed to load bean class for $beanTypeName (${e.message})" }
 
                             else -> throw e
                         }
@@ -1530,10 +1530,12 @@ enum class SpringTestsType(
  * Describes information about beans obtained from Spring analysis process.
  *
  * Contains the name of the bean, its type (class or interface) and optional additional data.
+ *
+ * @param beanTypeName a name in a form obtained by [java.lang.Class.getName] method.
  */
 data class BeanDefinitionData(
     val beanName: String,
-    val beanTypeFqn: String,
+    val beanTypeName: String,
     val additionalData: BeanAdditionalData?,
 )
 
@@ -1542,11 +1544,13 @@ data class BeanDefinitionData(
  *
  * Sometimes the actual type of the bean can not be obtained from bean definition.
  * Then we try to recover it by method and class defining bean (e.g. using Psi elements).
+ *
+ * @param configClassName a name in a form obtained by [java.lang.Class.getName] method.
  */
 data class BeanAdditionalData(
     val factoryMethodName: String,
     val parameterTypes: List<String>,
-    val configClassFqn: String,
+    val configClassName: String,
 )
 
 val RefType.isAbstractType

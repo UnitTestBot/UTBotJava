@@ -83,7 +83,7 @@ class SpringUtExecutionInstrumentation(
 
     private fun getRelevantBeans(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
         beanDefinitions
-            .filter { it.beanTypeFqn == clazz.name }
+            .filter { it.beanTypeName == clazz.name }
             // forces `getBean()` to load Spring classes,
             // otherwise execution of method under test may fail with timeout
             .onEach { springApi.getBean(it.beanName) }

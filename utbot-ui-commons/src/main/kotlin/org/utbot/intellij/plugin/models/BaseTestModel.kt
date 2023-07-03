@@ -94,7 +94,8 @@ open class BaseTestsModel(
      * @see [getSortedAnnotatedClasses]
      */
     fun getSortedSpringBootApplicationClasses(): Set<String> =
-        getSortedAnnotatedClasses(SPRINGBOOT_CONFIGURATION_FQN) + getSortedAnnotatedClasses(SPRINGBOOT_APPLICATION_FQN)
+        getSortedAnnotatedClasses(SPRINGBOOT_CONFIGURATION_FQN) +
+                getSortedAnnotatedClasses(SPRINGBOOT_APPLICATION_FQN)
 
     /**
      * Finds @TestConfiguration and @Configuration classes in Spring application.
@@ -102,7 +103,8 @@ open class BaseTestsModel(
      * @see [getSortedAnnotatedClasses]
      */
     fun getSortedSpringConfigurationClasses(): Set<String> =
-        getSortedAnnotatedClasses(SPRING_TESTCONFIGURATION_ANNOTATION_FQN) + getSortedAnnotatedClasses(SPRING_CONFIGURATION_ANNOTATION_FQN)
+        getSortedAnnotatedClasses(SPRING_TESTCONFIGURATION_ANNOTATION_FQN) +
+                getSortedAnnotatedClasses(SPRING_CONFIGURATION_ANNOTATION_FQN)
 
     /**
      * Finds classes annotated with given annotation in [srcModule] and [potentialTestModules].
@@ -112,15 +114,21 @@ open class BaseTestsModel(
      *   - classes from production source roots
      */
     private fun getSortedAnnotatedClasses(annotationFqn: String): Set<String> {
-        val searchScope = potentialTestModules.fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
-            accScope.union(GlobalSearchScope.moduleScope(module))
-        }
+        val searchScope =
+            potentialTestModules
+                .fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
+                    accScope.union(GlobalSearchScope.moduleScope(module))
+                }
 
         val annotationClass = JavaPsiFacade
             .getInstance(project)
-            .findClass(annotationFqn, GlobalSearchScope.allScope(project)) ?: return emptySet()
+            .findClass(annotationFqn, GlobalSearchScope.allScope(project))
+            ?: return emptySet()
 
-        val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
+        val testRootToIndex =
+            getSortedTestRoots()
+                .withIndex()
+                .associate { (i, root) -> root.dir to i }
 
         return AnnotatedElementsSearch
             .searchPsiClasses(annotationClass, searchScope)

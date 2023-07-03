@@ -156,9 +156,15 @@ class EngineProcess private constructor(val project: Project, private val classN
             .map { data ->
                 BeanDefinitionData(
                     beanName = data.beanName,
-                    beanTypeFqn = data.beanTypeFqn,
+                    beanTypeName = data.beanTypeFqn,
                     additionalData = data.additionalData
-                        ?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
+                        ?.let {
+                            BeanAdditionalData(
+                                it.factoryMethodName,
+                                it.parameterTypes,
+                                it.configClassName
+                            )
+                        }
                 )
             }
     }

@@ -412,7 +412,7 @@ class UtBotSymbolicEngine(
                     defaultIdGenerator,
                     beanNameProvider = { classId ->
                         (applicationContext as SpringApplicationContext).beanDefinitions
-                            .filter { it.beanTypeFqn == classId.name }
+                            .filter { it.beanTypeName == classId.name }
                             .map { it.beanName }
                     },
                     relevantRepositories = relevantRepositories

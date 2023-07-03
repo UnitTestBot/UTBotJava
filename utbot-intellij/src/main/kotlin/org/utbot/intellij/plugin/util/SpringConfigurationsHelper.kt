@@ -42,7 +42,7 @@ class SpringConfigurationsHelper(val configType: SpringConfigurationType) {
             .values
             .singleOrNull { it.shortenedName == shortenedName }
             ?.fullName
-            ?: error("Full name of configuration file cannot be restored by shortened name $shortenedName")
+            ?: error("Full name of configuration file cannot be restored with shortened name $shortenedName")
 
     fun shortenSpringConfigNames(fullNames: Set<String>): Map<String, String> {
         fullNames.forEach { nameToInfo[it] = NameInfo(it) }

@@ -75,7 +75,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 4955072258757490759L
+        const val serializationHash = -7418312653824196007L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -187,7 +187,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 data class BeanAdditionalData (
     val factoryMethodName: String,
     val parameterTypes: List<String>,
-    val configClassFqn: String
+    val configClassName: String
 ) : IPrintable {
     //companion
     
@@ -198,14 +198,14 @@ data class BeanAdditionalData (
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanAdditionalData  {
             val factoryMethodName = buffer.readString()
             val parameterTypes = buffer.readList { buffer.readString() }
-            val configClassFqn = buffer.readString()
-            return BeanAdditionalData(factoryMethodName, parameterTypes, configClassFqn)
+            val configClassName = buffer.readString()
+            return BeanAdditionalData(factoryMethodName, parameterTypes, configClassName)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanAdditionalData)  {
             buffer.writeString(value.factoryMethodName)
             buffer.writeList(value.parameterTypes) { v -> buffer.writeString(v) }
-            buffer.writeString(value.configClassFqn)
+            buffer.writeString(value.configClassName)
         }
         
         
@@ -223,7 +223,7 @@ data class BeanAdditionalData (
         
         if (factoryMethodName != other.factoryMethodName) return false
         if (parameterTypes != other.parameterTypes) return false
-        if (configClassFqn != other.configClassFqn) return false
+        if (configClassName != other.configClassName) return false
         
         return true
     }
@@ -232,7 +232,7 @@ data class BeanAdditionalData (
         var __r = 0
         __r = __r*31 + factoryMethodName.hashCode()
         __r = __r*31 + parameterTypes.hashCode()
-        __r = __r*31 + configClassFqn.hashCode()
+        __r = __r*31 + configClassName.hashCode()
         return __r
     }
     //pretty print
@@ -241,7 +241,7 @@ data class BeanAdditionalData (
         printer.indent {
             print("factoryMethodName = "); factoryMethodName.print(printer); println()
             print("parameterTypes = "); parameterTypes.print(printer); println()
-            print("configClassFqn = "); configClassFqn.print(printer); println()
+            print("configClassName = "); configClassName.print(printer); println()
         }
         printer.print(")")
     }

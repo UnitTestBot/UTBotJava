@@ -178,9 +178,11 @@ object UtTestsDialogProcessor {
             DoNotReplace -> null
             is ReplaceIfPossible ->
                 approach.config.takeUnless { it.endsWith(".xml") }?.let {
-                    // Converting binary name to canonical name
-                    val canonicalName = it.replace("$", ".")
-                    PsiClassHelper.findClass(canonicalName, project) ?: error("Cannot find configuration class $it.")
+                    // Converting binary name to fqn name
+                    val fqnName = it.replace("$", ".")
+                    PsiClassHelper
+                        .findClass(fqnName, project)
+                        ?: error("Cannot find configuration class $it with $fqnName name.")
                 }
         }
 
@@ -478,13 +480,15 @@ object UtTestsDialogProcessor {
             val beanType = runReadAction {
                 val additionalData = bean.additionalData ?: return@runReadAction null
 
-                // Converting binary name to canonical name
-                val canonicalName = additionalData.configClassFqn.replace("$", ".")
+                // Converting binary name to fqn name
+                val fqnName = additionalData.configClassName.replace("$", ".")
                 val configPsiClass =
-                    PsiClassHelper.findClass(canonicalName, project) ?: return@runReadAction null
-                        .also {
-                            logger.warn("Cannot find configuration class ${additionalData.configClassFqn}.")
-                        }
+                    PsiClassHelper
+                        .findClass(fqnName, project)
+                        ?: return@runReadAction null
+                            .also {
+                                logger.warn("Cannot find configuration class ${additionalData.configClassName} with $fqnName name.")
+                            }
 
                 val beanPsiMethod =
                     configPsiClass
@@ -504,7 +508,7 @@ object UtTestsDialogProcessor {
                             .also {
                                 logger.warn(
                                     "Several similar methods named ${bean.beanName} " +
-                                            "were found in ${additionalData.configClassFqn} configuration class."
+                                            "were found in ${additionalData.configClassName} configuration class."
                                 )
                             }
 
@@ -513,12 +517,12 @@ object UtTestsDialogProcessor {
                         .findReturnStatements(beanPsiMethod)
                         .mapNotNullTo(mutableSetOf()) { stmt -> stmt.returnValue?.type?.canonicalText }
 
-                beanTypes.singleOrNull() ?: bean.beanTypeFqn
+                beanTypes.singleOrNull() ?: bean.beanTypeName
             } ?: return@map bean
 
             BeanDefinitionData(
                 beanName = bean.beanName,
-                beanTypeFqn = beanType,
+                beanTypeName = beanType,
                 additionalData = bean.additionalData
             )
         }

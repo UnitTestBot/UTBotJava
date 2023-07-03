@@ -152,7 +152,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 }
             }
         }
-        //    .copy(seenUsedMockedExecutables = phasesController.valueConstructionPhase.getSeenUsedMockedExecutables())
     }
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =

@@ -149,12 +149,13 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
-import org.utbot.summary.SummarySentenceConstants.TAB
+//import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
 import java.security.AccessControlException
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
+private const val TAB = "    "
 
 open class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),

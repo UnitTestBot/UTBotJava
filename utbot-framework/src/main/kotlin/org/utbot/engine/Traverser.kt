@@ -137,7 +137,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
-import org.utbot.summary.ast.declaredClassName
+//import org.utbot.summary.ast.declaredClassName
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -4168,3 +4168,13 @@ class Traverser(
         return environment.state.pop(methodResultWithUpdates)
     }
 }
+
+const val OUTER_INNER_CLASSES_DELIMITER = '$'
+
+val SootMethod.declaredClassName: String
+    get() = if (this.declaringClass.isInnerClass) {
+        // an inner class name declaration follows pattern: OuterClass_Delimiter_InnerClass
+        this.declaringClass.javaStyleName.substringAfterLast(OUTER_INNER_CLASSES_DELIMITER)
+    } else {
+        this.declaringClass.javaStyleName
+    }

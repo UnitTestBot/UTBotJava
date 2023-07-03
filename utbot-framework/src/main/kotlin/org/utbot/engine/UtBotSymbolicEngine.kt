@@ -41,9 +41,9 @@ import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
-import org.utbot.fuzzer.*
-import org.utbot.fuzzing.*
-import org.utbot.fuzzing.utils.Trie
+//import org.utbot.fuzzer.*
+//import org.utbot.fuzzing.*
+//import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -68,7 +68,7 @@ class EngineController {
 //for debugging purpose only
 private var stateSelectedCount = 0
 
-private val defaultIdGenerator = ReferencePreservingIntIdGenerator()
+//private val defaultIdGenerator = ReferencePreservingIntIdGenerator()
 
 private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry) =
     when (pathSelectorType) {
@@ -404,104 +404,104 @@ class UtBotSymbolicEngine(
      * @param until is used by fuzzer to cancel all tasks if the current time is over this value
      * @param transform provides model values for a method
      */
-    fun fuzzing(until: Long = Long.MAX_VALUE, transform: (JavaValueProvider) -> JavaValueProvider = { it }) = flow {
-        val isFuzzable = methodUnderTest.parameters.all { classId ->
-            classId != Method::class.java.id && // causes the instrumented process crash at invocation
-                classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
-        }
-        val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
-        if (!isFuzzable || !hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
-            // Currently, fuzzer doesn't work with static methods with empty parameters
-            return@flow
-        }
-        val errorStackTraceTracker = Trie(StackTraceElement::toString)
-        var attempts = 0
-        val attemptsLimit = UtSettings.fuzzingMaxAttempts
-        val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
-        var testEmittedByFuzzer = 0
-        runJavaFuzzing(
-            defaultIdGenerator,
-            methodUnderTest,
-            collectConstantsForFuzzer(graph),
-            names,
-            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
-        ) { thisInstance, descr, values ->
-            if (thisInstance?.model is UtNullModel) {
-                // We should not try to run concretely any models with null-this.
-                // But fuzzer does generate such values, because it can fail to generate any "good" values.
-                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
-            }
-
-            val diff = until - System.currentTimeMillis()
-            val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
-            // to concretely execute that values because request to instrumentation process involves
-            // 1. serializing/deserializing it with kryo
-            // 2. sending over rd
-            // 3. concrete execution itself
-            // 4. analyzing concrete result
-            if (controller.job?.isActive == false || diff <= thresholdMillisForFuzzingOperation) {
-                logger.info { "Fuzzing overtime: $methodUnderTest" }
-                logger.info { "Test created by fuzzer: $testEmittedByFuzzer" }
-                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-            }
-
-            val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
-
-            val concreteExecutionResult: UtConcreteExecutionResult? = try {
-                val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)
-                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf(), timeoutMillis)
-            } catch (e: CancellationException) {
-                logger.debug { "Cancelled by timeout" }; null
-            } catch (e: InstrumentedProcessDeathException) {
-                emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
-            } catch (e: Throwable) {
-                emit(UtError("Default concrete execution failed", e)); null
-            }
-
-            // in case an exception occurred from the concrete execution
-            concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-
-            if (concreteExecutionResult.violatesUtMockAssumption()) {
-                logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
-                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-            }
-
-            val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
-            var trieNode: Trie.Node<Instruction>? = null
-            if (coveredInstructions.isNotEmpty()) {
-                trieNode = descr.tracer.add(coveredInstructions)
-                if (trieNode.count > 1) {
-                    if (++attempts >= attemptsLimit) {
-                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                    }
-                    return@runJavaFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
-                }
-            } else {
-                logger.error { "Coverage is empty for $methodUnderTest with $values" }
-                val result = concreteExecutionResult.result
-                if (result is UtSandboxFailure) {
-                    val stackTraceElements = result.exception.stackTrace.reversed()
-                    if (errorStackTraceTracker.add(stackTraceElements).count > 1) {
-                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-                    }
-                }
-            }
-
-            emit(
-                UtFuzzedExecution(
-                    stateBefore = initialEnvironmentModels,
-                    stateAfter = concreteExecutionResult.stateAfter,
-                    result = concreteExecutionResult.result,
-                    coverage = concreteExecutionResult.coverage,
-                    fuzzingValues = values,
-                    fuzzedMethodDescription = descr.description
-                )
-            )
-
-            testEmittedByFuzzer++
-            BaseFeedback(result = trieNode ?: Trie.emptyNode(), control = Control.CONTINUE)
-        }
-    }
+//    fun fuzzing(until: Long = Long.MAX_VALUE, transform: (JavaValueProvider) -> JavaValueProvider = { it }) = flow {
+//        val isFuzzable = methodUnderTest.parameters.all { classId ->
+//            classId != Method::class.java.id && // causes the instrumented process crash at invocation
+//                classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
+//        }
+//        val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
+//        if (!isFuzzable || !hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
+//            // Currently, fuzzer doesn't work with static methods with empty parameters
+//            return@flow
+//        }
+//        val errorStackTraceTracker = Trie(StackTraceElement::toString)
+//        var attempts = 0
+//        val attemptsLimit = UtSettings.fuzzingMaxAttempts
+//        val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
+//        var testEmittedByFuzzer = 0
+//        runJavaFuzzing(
+//            defaultIdGenerator,
+//            methodUnderTest,
+//            collectConstantsForFuzzer(graph),
+//            names,
+//            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
+//        ) { thisInstance, descr, values ->
+//            if (thisInstance?.model is UtNullModel) {
+//                // We should not try to run concretely any models with null-this.
+//                // But fuzzer does generate such values, because it can fail to generate any "good" values.
+//                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
+//            }
+//
+//            val diff = until - System.currentTimeMillis()
+//            val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
+//            // to concretely execute that values because request to instrumentation process involves
+//            // 1. serializing/deserializing it with kryo
+//            // 2. sending over rd
+//            // 3. concrete execution itself
+//            // 4. analyzing concrete result
+//            if (controller.job?.isActive == false || diff <= thresholdMillisForFuzzingOperation) {
+//                logger.info { "Fuzzing overtime: $methodUnderTest" }
+//                logger.info { "Test created by fuzzer: $testEmittedByFuzzer" }
+//                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+//            }
+//
+//            val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
+//
+//            val concreteExecutionResult: UtConcreteExecutionResult? = try {
+//                val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)
+//                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf(), timeoutMillis)
+//            } catch (e: CancellationException) {
+//                logger.debug { "Cancelled by timeout" }; null
+//            } catch (e: InstrumentedProcessDeathException) {
+//                emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
+//            } catch (e: Throwable) {
+//                emit(UtError("Default concrete execution failed", e)); null
+//            }
+//
+//            // in case an exception occurred from the concrete execution
+//            concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+//
+//            if (concreteExecutionResult.violatesUtMockAssumption()) {
+//                logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
+//                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+//            }
+//
+//            val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
+//            var trieNode: Trie.Node<Instruction>? = null
+//            if (coveredInstructions.isNotEmpty()) {
+//                trieNode = descr.tracer.add(coveredInstructions)
+//                if (trieNode.count > 1) {
+//                    if (++attempts >= attemptsLimit) {
+//                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+//                    }
+//                    return@runJavaFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+//                }
+//            } else {
+//                logger.error { "Coverage is empty for $methodUnderTest with $values" }
+//                val result = concreteExecutionResult.result
+//                if (result is UtSandboxFailure) {
+//                    val stackTraceElements = result.exception.stackTrace.reversed()
+//                    if (errorStackTraceTracker.add(stackTraceElements).count > 1) {
+//                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+//                    }
+//                }
+//            }
+//
+//            emit(
+//                UtFuzzedExecution(
+//                    stateBefore = initialEnvironmentModels,
+//                    stateAfter = concreteExecutionResult.stateAfter,
+//                    result = concreteExecutionResult.result,
+//                    coverage = concreteExecutionResult.coverage,
+//                    fuzzingValues = values,
+//                    fuzzedMethodDescription = descr.description
+//                )
+//            )
+//
+//            testEmittedByFuzzer++
+//            BaseFeedback(result = trieNode ?: Trie.emptyNode(), control = Control.CONTINUE)
+//        }
+//    }
 
     private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
         stateBefore: EnvironmentModels,

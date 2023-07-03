@@ -68,20 +68,21 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit, val engine: UtBo
         3. If both (fuzzer and symbolic execution) are off then do nothing.
      */
     fun build(engine: UtBotSymbolicEngine): Flow<UtResult>  {
-        return when {
-            generationTimeout == 0L -> emptyFlow()
-            isFuzzingEnabled -> {
-                when (val value = if (isSymbolicEngineEnabled) (fuzzingValue * generationTimeout).toLong() else generationTimeout) {
-                    0L -> engine.traverse()
-                    generationTimeout -> engine.fuzzing(System.currentTimeMillis() + value)
-                    else -> flowOf(
-                        engine.fuzzing(System.currentTimeMillis() + value),
-                        engine.traverse()
-                    ).flattenConcat()
-                }
-            }
-            isSymbolicEngineEnabled -> engine.traverse()
-            else -> emptyFlow()
-        }
+        return engine.traverse()
+//        return when {
+//            generationTimeout == 0L -> emptyFlow()
+//            isFuzzingEnabled -> {
+//                when (val value = if (isSymbolicEngineEnabled) (fuzzingValue * generationTimeout).toLong() else generationTimeout) {
+//                    0L -> engine.traverse()
+//                    generationTimeout -> engine.fuzzing(System.currentTimeMillis() + value)
+//                    else -> flowOf(
+//                        engine.fuzzing(System.currentTimeMillis() + value),
+//                        engine.traverse()
+//                    ).flattenConcat()
+//                }
+//            }
+//            isSymbolicEngineEnabled -> engine.traverse()
+//            else -> emptyFlow()
+//        }
     }
 }

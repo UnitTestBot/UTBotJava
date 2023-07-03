@@ -258,51 +258,51 @@ task generateCommonModels(type: RdGenTask) {
     }
 }
 
-task generateSpringModels(type: RdGenTask) {
-    def currentProjectDir = project.projectDir
-    def ideaPluginProjectDir = project.rootProject.childProjects["utbot-spring-analyzer"].projectDir
-    def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/spring/generated")
-    def hashDir = generatedOutputDir
-    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
-    def rdParams = extensions.getByName("params") as RdGenExtension
+//task generateSpringModels(type: RdGenTask) {
+//    def currentProjectDir = project.projectDir
+//    def ideaPluginProjectDir = project.rootProject.childProjects["utbot-spring-analyzer"].projectDir
+//    def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/spring/generated")
+//    def hashDir = generatedOutputDir
+//    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+//    def rdParams = extensions.getByName("params") as RdGenExtension
+//
+//    group = "rdgen"
+//    rdParams.verbose = true
+//    rdParams.sources(sourcesDir)
+//    rdParams.hashFolder = hashDir.canonicalPath
+//    // where to search roots
+//    rdParams.packages = "org.utbot.rd.models"
+//
+//    rdParams.generator {
+//        language = "kotlin"
+//        transform = "symmetric"
+//        root = "org.utbot.rd.models.SpringAnalyzerRoot"
+//
+//        directory = generatedOutputDir.canonicalPath
+//        namespace = "org.utbot.spring.generated"
+//    }
+//}
 
-    group = "rdgen"
-    rdParams.verbose = true
-    rdParams.sources(sourcesDir)
-    rdParams.hashFolder = hashDir.canonicalPath
-    // where to search roots
-    rdParams.packages = "org.utbot.rd.models"
-
-    rdParams.generator {
-        language = "kotlin"
-        transform = "symmetric"
-        root = "org.utbot.rd.models.SpringAnalyzerRoot"
-
-        directory = generatedOutputDir.canonicalPath
-        namespace = "org.utbot.spring.generated"
-    }
-}
-
-task generateCSharpModels(type: RdGenTask) {
-    def currentProjectDir = project.projectDir
-    def riderPluginProjectDir = project.rootProject.projectDir.toPath().resolve("utbot-rider").toFile()
-    def generatedOutputDir = new File (riderPluginProjectDir, "src/dotnet/UtBot/UtBot.Rd/Generated")
-    def hashDir = generatedOutputDir
-    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
-    def rdParams = extensions.getByName("params") as RdGenExtension
-
-    group = "rdgen"
-    rdParams.verbose = true
-    rdParams.sources(sourcesDir)
-    rdParams.hashFolder = hashDir.canonicalPath
-    rdParams.packages = "org.utbot.rd.models"
-
-    rdParams.generator {
-        language = "csharp"
-        transform = "symmetric"
-        root = "org.utbot.rd.models.CSharpRoot"
-
-        directory = generatedOutputDir.canonicalPath
-        namespace = "UtBot.Rd.Generated"
-    }
-}
+//task generateCSharpModels(type: RdGenTask) {
+//    def currentProjectDir = project.projectDir
+//    def riderPluginProjectDir = project.rootProject.projectDir.toPath().resolve("utbot-rider").toFile()
+//    def generatedOutputDir = new File (riderPluginProjectDir, "src/dotnet/UtBot/UtBot.Rd/Generated")
+//    def hashDir = generatedOutputDir
+//    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+//    def rdParams = extensions.getByName("params") as RdGenExtension
+//
+//    group = "rdgen"
+//    rdParams.verbose = true
+//    rdParams.sources(sourcesDir)
+//    rdParams.hashFolder = hashDir.canonicalPath
+//    rdParams.packages = "org.utbot.rd.models"
+//
+//    rdParams.generator {
+//        language = "csharp"
+//        transform = "symmetric"
+//        root = "org.utbot.rd.models.CSharpRoot"
+//
+//        directory = generatedOutputDir.canonicalPath
+//        namespace = "UtBot.Rd.Generated"
+//    }
+//}

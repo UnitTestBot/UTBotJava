@@ -38,8 +38,8 @@ import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
-import org.utbot.spring.process.SpringAnalyzerProcess
-import org.utbot.summary.summarizeAll
+//import org.utbot.spring.process.SpringAnalyzerProcess
+//import org.utbot.summary.summarizeAll
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Paths
@@ -77,29 +77,29 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             File(it).toURI().toURL()
         }.toTypedArray())))
     }
-    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
-        try {
-            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
-            val result = springAnalyzerProcess.terminateOnException { _ ->
-                springAnalyzerProcess.getBeanDefinitions(
-                    params.config,
-                    params.fileStorage,
-                    params.profileExpression,
-                )
-            }
-            springAnalyzerProcess.terminate()
-            val beanDefinitions = result.beanDefinitions
-                .map { data ->
-                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
-                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
-                }
-                .toTypedArray()
-            SpringAnalyzerResult(beanDefinitions)
-        } catch (e: Exception) {
-            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
-            SpringAnalyzerResult(emptyArray())
-        }
-    }
+//    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
+//        try {
+//            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
+//            val result = springAnalyzerProcess.terminateOnException { _ ->
+//                springAnalyzerProcess.getBeanDefinitions(
+//                    params.config,
+//                    params.fileStorage,
+//                    params.profileExpression,
+//                )
+//            }
+//            springAnalyzerProcess.terminate()
+//            val beanDefinitions = result.beanDefinitions
+//                .map { data ->
+//                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
+//                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
+//                }
+//                .toTypedArray()
+//            SpringAnalyzerResult(beanDefinitions)
+//        } catch (e: Exception) {
+//            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
+//            SpringAnalyzerResult(emptyArray())
+//        }
+//    }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
         Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
@@ -139,7 +139,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                     params.timeout,
                     generate = generateFlow,
                 )
-                    .summarizeAll(Paths.get(params.searchDirectory), null)
+//                    .summarizeAll(Paths.get(params.searchDirectory), null)
                     .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
 
                 val id = ++idCounter

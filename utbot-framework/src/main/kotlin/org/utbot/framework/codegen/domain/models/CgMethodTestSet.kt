@@ -10,7 +10,7 @@ import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.fuzzer.UtFuzzedExecution
+//import org.utbot.fuzzer.UtFuzzedExecution
 
 data class CgMethodTestSet constructor(
     val executableId: ExecutableId,

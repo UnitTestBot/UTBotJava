@@ -19,7 +19,7 @@ import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.humanReadableName
-import org.utbot.fuzzer.UtFuzzedExecution
+//import org.utbot.fuzzer.UtFuzzedExecution
 
 /**
  * This test class constructor is used for pure Java/Kotlin applications.
@@ -146,30 +146,30 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
             collectAdditionalSymbolicTestsForParametrizedMode(testSet),
         )
 
-        regions += CgSimpleRegion(
-            "FUZZER: Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
-            collectFuzzerTestsForParameterizedMode(testSet),
-        )
+//        regions += CgSimpleRegion(
+//            "FUZZER: Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
+//            collectFuzzerTestsForParameterizedMode(testSet),
+//        )
     }
 
     /**
      * Collects standard tests for fuzzer executions in parametrized mode.
      * This is a requirement from [https://github.com/UnitTestBot/UTBotJava/issues/1137].
      */
-    private fun collectFuzzerTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
-        val testMethods = mutableListOf<CgTestMethod>()
-
-        testSet.executions
-            .filterIsInstance<UtFuzzedExecution>()
-            .withIndex()
-            .forEach { (index, execution) ->
-                withExecutionIdScope(index) {
-                    testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
-                }
-            }
-
-        return testMethods
-    }
+//    private fun collectFuzzerTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
+//        val testMethods = mutableListOf<CgTestMethod>()
+//
+//        testSet.executions
+//            .filterIsInstance<UtFuzzedExecution>()
+//            .withIndex()
+//            .forEach { (index, execution) ->
+//                withExecutionIdScope(index) {
+//                    testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
+//                }
+//            }
+//
+//        return testMethods
+//    }
 
     /**
      * Collects standard tests for symbolic executions that can't be included into parametrized tests.

@@ -17,9 +17,9 @@ dependencies {
 }
 
 processResources {
-    from(configurations.fetchInstrumentationJar) {
-        into "lib"
-    }
+//    from(configurations.fetchInstrumentationJar) {
+//        into "lib"
+//    }
 }
 
 jar {

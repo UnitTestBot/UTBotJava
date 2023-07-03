@@ -33,11 +33,11 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
-import org.utbot.fuzzer.FuzzedType
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzing.FuzzedDescription
-import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
+//import org.utbot.fuzzer.FuzzedType
+//import org.utbot.fuzzer.FuzzedValue
+//import org.utbot.fuzzing.FuzzedDescription
+//import org.utbot.fuzzing.Seed
+//import org.utbot.fuzzing.ValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import kotlin.reflect.jvm.kotlinFunction
@@ -139,59 +139,59 @@ object UtBotJavaApi {
      *
      * @see [generateTestSets]
      */
-    @JvmStatic
-    @JvmOverloads
-    fun fuzzingTestSets(
-        methodsForAutomaticGeneration: List<TestMethodInfo>,
-        classUnderTest: Class<*>,
-        classpath: String,
-        dependencyClassPath: String,
-        mockStrategyApi: MockStrategyApi = MockStrategyApi.OTHER_PACKAGES,
-        generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
-        primitiveValuesSupplier: CustomFuzzerValueSupplier = CustomFuzzerValueSupplier { null }
-    ): MutableList<UtMethodTestSet> {
-        fun createPrimitiveModels(supplier: CustomFuzzerValueSupplier, classId: ClassId): Sequence<UtPrimitiveModel> =
-            supplier
-                .takeIf { classId.isPrimitive || classId.isPrimitiveWrapper || classId == stringClassId }
-                ?.get(classId.jClass)
-                ?.asSequence()
-                ?.filter {
-                    val valueClassId = it.javaClass.id
-                    when {
-                        classId == valueClassId -> true
-                        classId.isPrimitive -> wrapperByPrimitive[classId] == valueClassId
-                        classId.isPrimitiveWrapper -> primitiveByWrapper[classId] == valueClassId
-                        else -> false
-                    }
-                }
-                ?.map { UtPrimitiveModel(it) } ?: emptySequence()
-
-        val customModelProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> { _, type ->
-            sequence {
-                createPrimitiveModels(primitiveValuesSupplier, type.classId).forEach { model ->
-                    yield(Seed.Simple(FuzzedValue(model)))
-                }
-            }
-        }
-
-        return withUtContext(UtContext(classUnderTest.classLoader)) {
-            val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(listOf(buildPath), classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
-                .generate(
-                    methodsForAutomaticGeneration.map {
-                        it.methodToBeTestedFromUserInput.executableId
-                    },
-                    mockStrategyApi,
-                    chosenClassesToMockAlways = emptySet(),
-                    generationTimeoutInMillis,
-                    generate = { symbolicEngine ->
-                        symbolicEngine.fuzzing { defaultModelProvider ->
-                            customModelProvider.withFallback(defaultModelProvider)
-                        }
-                    }
-                )
-        }.toMutableList()
-    }
+//    @JvmStatic
+//    @JvmOverloads
+//    fun fuzzingTestSets(
+//        methodsForAutomaticGeneration: List<TestMethodInfo>,
+//        classUnderTest: Class<*>,
+//        classpath: String,
+//        dependencyClassPath: String,
+//        mockStrategyApi: MockStrategyApi = MockStrategyApi.OTHER_PACKAGES,
+//        generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
+//        primitiveValuesSupplier: CustomFuzzerValueSupplier = CustomFuzzerValueSupplier { null }
+//    ): MutableList<UtMethodTestSet> {
+//        fun createPrimitiveModels(supplier: CustomFuzzerValueSupplier, classId: ClassId): Sequence<UtPrimitiveModel> =
+//            supplier
+//                .takeIf { classId.isPrimitive || classId.isPrimitiveWrapper || classId == stringClassId }
+//                ?.get(classId.jClass)
+//                ?.asSequence()
+//                ?.filter {
+//                    val valueClassId = it.javaClass.id
+//                    when {
+//                        classId == valueClassId -> true
+//                        classId.isPrimitive -> wrapperByPrimitive[classId] == valueClassId
+//                        classId.isPrimitiveWrapper -> primitiveByWrapper[classId] == valueClassId
+//                        else -> false
+//                    }
+//                }
+//                ?.map { UtPrimitiveModel(it) } ?: emptySequence()
+//
+//        val customModelProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> { _, type ->
+//            sequence {
+//                createPrimitiveModels(primitiveValuesSupplier, type.classId).forEach { model ->
+//                    yield(Seed.Simple(FuzzedValue(model)))
+//                }
+//            }
+//        }
+//
+//        return withUtContext(UtContext(classUnderTest.classLoader)) {
+//            val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
+//            TestCaseGenerator(listOf(buildPath), classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
+//                .generate(
+//                    methodsForAutomaticGeneration.map {
+//                        it.methodToBeTestedFromUserInput.executableId
+//                    },
+//                    mockStrategyApi,
+//                    chosenClassesToMockAlways = emptySet(),
+//                    generationTimeoutInMillis,
+//                    generate = { symbolicEngine ->
+//                        symbolicEngine.fuzzing { defaultModelProvider ->
+//                            customModelProvider.withFallback(defaultModelProvider)
+//                        }
+//                    }
+//                )
+//        }.toMutableList()
+//    }
 
     private fun generateUnitTests(
         concreteExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,

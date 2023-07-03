@@ -30,7 +30,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.hasThisInstance
-import org.utbot.fuzzer.UtFuzzedExecution
+//import org.utbot.fuzzer.UtFuzzedExecution
 import java.lang.reflect.Array
 
 interface CgFieldStateManager {
@@ -76,9 +76,9 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
                 // by now this instance variable must have already been created
                 saveFieldsState(thisInstance, modifiedFields, statesCache.thisInstance, state)
             }
-            is UtFuzzedExecution -> {
-                return
-            }
+//            is UtFuzzedExecution -> {
+//                return
+//            }
             else -> {
                 return
             }

@@ -185,10 +185,10 @@ configure(
         project(":utbot-core"),
         project(":utbot-framework"),
         project(":utbot-framework-api"),
-        project(":utbot-java-fuzzing"),
+//        project(":utbot-java-fuzzing"),
         project(":utbot-instrumentation"),
         project(":utbot-rd"),
-        project(":utbot-summary")
+//        project(":utbot-summary")
     )
 ) {
     publishing {

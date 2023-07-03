@@ -21,7 +21,7 @@ import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
-import org.utbot.fuzzer.UtFuzzedExecution
+//import org.utbot.fuzzer.UtFuzzedExecution
 
 class ExecutionStateAnalyzer(val execution: UtExecution) {
     fun findModifiedFields(): StateModificationInfo {
@@ -43,9 +43,9 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
                 val modifiedFields = getModifiedFields(info)
                 return this.copy(thisInstance = modifiedFields)
             }
-            is UtFuzzedExecution -> {
-                return this
-            }
+//            is UtFuzzedExecution -> {
+//                return this
+//            }
             else -> {
                 return this
             }
@@ -87,9 +87,9 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
                 }
                 return this.copy(staticFields = modificationsByClass)
             }
-            is UtFuzzedExecution -> {
-                return this
-            }
+//            is UtFuzzedExecution -> {
+//                return this
+//            }
             else -> {
                 return this
             }

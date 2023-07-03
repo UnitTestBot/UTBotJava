@@ -23,9 +23,9 @@ include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
 //include("utbot-intellij")
-include("utbot-sample")
-include("utbot-java-fuzzing")
-include("utbot-fuzzing")
+//include("utbot-sample")
+//include("utbot-java-fuzzing")
+//include("utbot-fuzzing")
 //include("utbot-junit-contest")
 //include("utbot-analytics")
 //include("utbot-analytics-torch")
@@ -34,20 +34,20 @@ include("utbot-fuzzing")
 
 include("utbot-api")
 include("utbot-instrumentation")
-include("utbot-instrumentation-tests")
+//include("utbot-instrumentation-tests")
 
-include("utbot-summary")
+//include("utbot-summary")
 //include("utbot-gradle")
 //include("utbot-maven")
 //include("utbot-summary-tests")
-include("utbot-framework-test")
-include("utbot-testing")
+//include("utbot-framework-test")
+//include("utbot-testing")
 include("utbot-rd")
 //include("utbot-android-studio")
 
-if (includeRiderInBuild.toBoolean()) {
-    include("utbot-rider")
-}
+//if (includeRiderInBuild.toBoolean()) {
+//    include("utbot-rider")
+//}
 
 //include("utbot-ui-commons")
 
@@ -70,5 +70,5 @@ if (includeRiderInBuild.toBoolean()) {
 //    include("utbot-intellij-go")
 //}
 
-include("utbot-spring-analyzer")
+//include("utbot-spring-analyzer")
 include("utbot-uber-jar")

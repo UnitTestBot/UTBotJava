@@ -1,8 +1,9 @@
 package org.utbot.instrumentation.instrumentation.execution
 
-import org.utbot.common.JarUtils
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
+import org.utbot.common.JarUtils
+import org.utbot.common.hasOnClasspath
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringRepositoryId
@@ -112,19 +113,11 @@ class SpringUtExecutionInstrumentation(
         protectionDomain: ProtectionDomain,
         classfileBuffer: ByteArray
     ): ByteArray? =
-        // TODO: automatically detect which libraries we don't want to transform (by total transformation time)
-        if (listOf(
-                "org/springframework",
-                "com/fasterxml",
-                "org/hibernate",
-                "org/apache",
-                "org/h2",
-                "javax/",
-                "ch/qos",
-            ).any { className.startsWith(it) }
-        ) {
-            null
-        } else {
+        // transforming Spring takes too long
+        // maybe we should also transform classes in "javax/persistence" and "jakarta/persistence" to give fuzzer more feedback
+        if (userSourcesClassLoader.hasOnClasspath(className.replace("/", "."))) {
             delegateInstrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
+        } else {
+            null
         }
 }

@@ -31,20 +31,22 @@ class PythonMethod(
         "${it.name}: ${it.annotation ?: pythonAnyClassId.name}"
     } + ")"
 
-    fun methodSignarureWithKeywords(): String {
-        fun argWithAnnotation(arg: PythonVariableDescription): String = "${arg.name}"
-        val meta = definition.type.pythonDescription() as PythonCallableTypeDescription
-        val shortType = meta.removeNonPositionalArgs(definition.type)
-        val posArgsCount = shortType.arguments.size
-        val funcName = definition.meta.name
-        val baseArgs = definition.meta.args.take(posArgsCount)
-        val additionalVars = definition.meta.args.drop(posArgsCount)
+    fun arguments(): Map<String, PythonVariableDescription> = definition.meta.args.associateBy { it.name }
 
-        return "$funcName(${}"
-            .joinToString(separator = "\n", prefix = "\n") { arg ->
-                "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
-            }
-    }
+//    fun methodSignarureWithKeywords(): String {
+//        fun argWithAnnotation(arg: PythonVariableDescription): String = "${arg.name}"
+//        val meta = definition.type.pythonDescription() as PythonCallableTypeDescription
+//        val shortType = meta.removeNonPositionalArgs(definition.type)
+//        val posArgsCount = shortType.arguments.size
+//        val funcName = definition.meta.name
+//        val baseArgs = definition.meta.args.take(posArgsCount)
+//        val additionalVars = definition.meta.args.drop(posArgsCount)
+//
+//        return "$funcName(${}"
+//            .joinToString(separator = "\n", prefix = "\n") { arg ->
+//                "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
+//            }
+//    }
 
     /*
     Check that the first argument is `self` of `cls`.

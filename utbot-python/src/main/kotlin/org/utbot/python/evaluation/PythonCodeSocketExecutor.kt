@@ -14,8 +14,12 @@ import org.utbot.python.evaluation.serialiation.SuccessExecution
 import org.utbot.python.evaluation.serialiation.serializeObjects
 import org.utbot.python.evaluation.utils.CoverageIdGenerator
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.newtyping.PythonCallableTypeDescription
+import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.newtyping.utils.isNamed
+import org.utbot.python.newtyping.utils.isRequired
 import java.net.SocketException
 
 private val logger = KotlinLogging.logger {}
@@ -61,6 +65,17 @@ class PythonCodeSocketExecutor(
     ): PythonEvaluationResult {
         val (arguments, memory) = serializeObjects(fuzzedValues.allArguments.map { it.tree })
 
+        val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
+        val argKinds = meta.argumentKinds
+        val namedArgs = meta.argumentNames
+            .filterIndexed { index, _ -> !isNamed(argKinds[index]) }
+
+        val (positionalArguments, namedArguments) = arguments
+            .zip(fuzzedValues.names)
+            .partition { (_, name) ->
+                 namedArgs.contains(name)
+            }
+
         val containingClass = method.containingPythonClass
         val functionTextName =
             if (containingClass == null)
@@ -75,8 +90,8 @@ class PythonCodeSocketExecutor(
             moduleToImport,
             additionalModulesToImport.toList(),
             syspathDirectories.toList(),
-            arguments,
-            emptyMap(),  // here can be only-kwargs arguments
+            positionalArguments.map { it.first },
+            namedArguments.associate { it.second!! to it.first },  // here can be only-kwargs arguments
             memory,
             method.moduleFilename,
             coverageId,

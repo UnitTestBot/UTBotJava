@@ -1,12 +1,20 @@
 package org.utbot.python.framework.codegen.model.tree
 
+import org.utbot.framework.codegen.domain.models.CgAnnotation
+import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgElement
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMethod
+import org.utbot.framework.codegen.domain.models.CgMethodCall
+import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgStatement
+import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.renderer.CgVisitor
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree

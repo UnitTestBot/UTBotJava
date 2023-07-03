@@ -118,6 +118,6 @@ class PythonCodeGenerator(
             "",
             functionName,
         ) + method.codeAsString.split("\n").map { "    $it" }
-        return mypyCheckCode.joinToString("\n")
+       return mypyCheckCode.joinToString("\n")
     }
 }

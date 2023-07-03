@@ -15,3 +15,6 @@ fun <T> weightedRandom(elems: List<T>, weights: List<Double>, random: Random): T
 
 fun isRequired(kind: PythonCallableTypeDescription.ArgKind) =
     listOf(PythonCallableTypeDescription.ArgKind.ARG_POS, PythonCallableTypeDescription.ArgKind.ARG_NAMED).contains(kind)
+
+fun isNamed(kind: PythonCallableTypeDescription.ArgKind) =
+    listOf(PythonCallableTypeDescription.ArgKind.ARG_NAMED_OPT, PythonCallableTypeDescription.ArgKind.ARG_NAMED).contains(kind)

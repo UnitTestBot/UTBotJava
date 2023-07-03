@@ -16,7 +16,6 @@ import java.io.InputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.ObjectStreamClass
-import java.lang.RuntimeException
 
 class ThrowableSerializer : Serializer<Throwable>() {
     companion object {
@@ -29,7 +28,7 @@ class ThrowableSerializer : Serializer<Throwable>() {
         val message: String?,
         val stackTrace: Array<StackTraceElement>,
         val cause: ThrowableModel?,
-        val serializedException: ByteArray,
+        val serializedExceptionBytes: ByteArray?,
     )
 
     override fun write(kryo: Kryo, output: Output, throwable: Throwable?) {
@@ -38,33 +37,44 @@ class ThrowableSerializer : Serializer<Throwable>() {
             message = message,
             stackTrace = stackTrace,
             cause = cause?.toModel(),
-            serializedException = ByteArrayOutputStream().use { byteOutputStream ->
-                val objectOutputStream = ObjectOutputStream(byteOutputStream)
-                objectOutputStream.writeObject(this)
-                objectOutputStream.flush()
-                byteOutputStream.toByteArray()
+            serializedExceptionBytes = try {
+                ByteArrayOutputStream().use { byteOutputStream ->
+                    val objectOutputStream = ObjectOutputStream(byteOutputStream)
+                    objectOutputStream.writeObject(this)
+                    objectOutputStream.flush()
+                    byteOutputStream.toByteArray()
+                }
+            } catch (e: Throwable) {
+                if (loggedUnserializableExceptionClassIds.add(this::class.java.id)) {
+                    logger.warn { "Failed to serialize ${this::class.java.id} to bytes, cause: $e" }
+                    logger.warn { "Constructing ThrowableModel with serializedExceptionBytes = null" }
+                }
+                null
             }
         )
         kryo.writeObject(output, throwable?.toModel())
     }
 
     override fun read(kryo: Kryo, input: Input, type: Class<out Throwable>): Throwable? {
-        fun ThrowableModel.toThrowable(): Throwable = try {
-            ByteArrayInputStream(this.serializedException).use { byteInputStream ->
-                val objectInputStream = IgnoringUidWrappingObjectInputStream(byteInputStream, kryo.classLoader)
-                objectInputStream.readObject() as Throwable
+        fun ThrowableModel.toThrowable(): Throwable {
+            val throwableFromBytes = this.serializedExceptionBytes?.let { bytes ->
+                try {
+                    ByteArrayInputStream(bytes).use { byteInputStream ->
+                        val objectInputStream = IgnoringUidWrappingObjectInputStream(byteInputStream, kryo.classLoader)
+                        objectInputStream.readObject() as Throwable
+                    }
+                } catch (e: Throwable) {
+                    if (loggedUnserializableExceptionClassIds.add(this.classId)) {
+                        logger.warn { "Failed to deserialize ${this.classId} from bytes, cause: $e" }
+                        logger.warn { "Falling back to constructing throwable instance from ThrowableModel" }
+                    }
+                    null
+                }
             }
-        } catch (e: Throwable) {
-            if (loggedUnserializableExceptionClassIds.add(this.classId)) {
-                logger.warn { "Failed to deserialize ${this.classId} from bytes, cause: $e" }
-                logger.warn { "Falling back to constructing throwable instance from ThrowableModel" }
-            }
-
-            val cause = cause?.toThrowable()
-            when {
-                RuntimeException::class.java.isAssignableFrom(classId.jClass) -> RuntimeException(message, cause)
-                Error::class.java.isAssignableFrom(classId.jClass) -> Error(message, cause)
-                else -> Exception(message, cause)
+            return throwableFromBytes ?: when {
+                RuntimeException::class.java.isAssignableFrom(classId.jClass) -> RuntimeException(message, cause?.toThrowable())
+                Error::class.java.isAssignableFrom(classId.jClass) -> Error(message, cause?.toThrowable())
+                else -> Exception(message, cause?.toThrowable())
             }.also {
                 it.stackTrace = stackTrace
             }

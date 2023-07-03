@@ -13,7 +13,6 @@ import org.utbot.instrumentation.instrumentation.execution.context.SpringInstrum
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import org.utbot.spring.api.context.ContextWrapper
-import org.utbot.spring.api.repositoryWrapper.RepositoryInteraction
 import java.net.URL
 import java.net.URLClassLoader
 import java.security.ProtectionDomain

@@ -38,10 +38,10 @@ class PythonMethod(
 
     /*
     Check that the first argument is `self` of `cls`.
-    TODO: Now we think that all class methods has `self` argument! We should support `@property` decorator
+    TODO: We should support `@property` decorator
      */
     val hasThisArgument: Boolean
-        get() = containingPythonClass != null
+        get() = containingPythonClass != null && definition.meta.args.any { it.isSelf }
 
     val arguments: List<PythonArgument>
         get() {

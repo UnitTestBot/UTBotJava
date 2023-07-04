@@ -85,9 +85,7 @@ private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.
 
 private val pluginClasspath: String
     get() = (EngineProcess::class.java.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
-        separator = File.pathSeparator,
-        prefix = "\"",
-        postfix = "\""
+        separator = File.pathSeparator
     )
 
 private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"

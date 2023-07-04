@@ -94,6 +94,31 @@ tasks.shadowJar {
     archiveFileName.set("utbot-instrumentation-shadow.jar")
 }
 
+// TODO get rid of this quick fix of ClassNotFoundException: kotlinx.collections.immutable.ExtensionsKt
+//  probably by fixing dependency versions in some gradle files
+val compileClasspath = configurations.compileClasspath.get()
+
+tasks.jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes(
+            "Main-Class" to "org.utbot.instrumentation.process.InstrumentedProcessMainKt",
+            "Premain-Class" to "org.utbot.instrumentation.agent.Agent",
+        )
+    }
+
+    // we need only classes from implementation and utbot to execute instrumented process
+    dependsOn(compileClasspath)
+
+    from(
+        compileClasspath
+            .filter { it.isDirectory() || it.name.endsWith("jar") }
+            .map { if(it.isDirectory()) it else zipTree(it) }
+    )
+}
+// end of quick fix of ClassNotFoundException: kotlinx.collections.immutable.ExtensionsKt
+
 val instrumentationArchive: Configuration by configurations.creating {
     isCanBeResolved = false
     isCanBeConsumed = true

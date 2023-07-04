@@ -3,7 +3,7 @@ name: Move issues to In progress status when it is linked to a branch
 on:
   issues:
     types:
-      - opened
+      - branches_url
 
 jobs:
   move-issue-when-linked:

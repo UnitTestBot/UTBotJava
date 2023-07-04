@@ -1,0 +1,19 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    implementation(project(":utbot-api"))
+
+    implementation 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa', version: springBootVersion
+}
+
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+}

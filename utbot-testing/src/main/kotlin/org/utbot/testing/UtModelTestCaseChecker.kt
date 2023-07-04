@@ -42,7 +42,7 @@ import kotlin.reflect.KFunction3
 abstract class UtModelTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    configurations: List<Configuration> = standardTestingConfigurations,
+    configurations: List<AbstractConfiguration> = standardTestingConfigurations,
 ) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, configurations) {
     protected fun check(
         method: KFunction2<*, *, *>,

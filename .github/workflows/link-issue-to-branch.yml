@@ -3,12 +3,13 @@ name: Move issues to In progress status when it is linked to a branch
 on:
   issues:
     types:
-      - linked
+      - edited
 
 jobs:
   move-issue-when-linked:
     name: Move issues to In progress status when a branch/PR is linked
     runs-on: ubuntu-latest
+    if:  ${{ !github.event.issue.pull_request && contains(github.event.issue.)}}
     steps:
       - uses: alex-page/github-project-automation-plus@v0.8.3
         with:

@@ -2,8 +2,8 @@ name: Move issues to In progress status when it is linked to a branch
 
 on:
   issues:
-    types:
-      - linked
+    linked:
+      - pr
 
 jobs:
   move-issue-when-linked:

@@ -102,7 +102,6 @@ abstract class PythonTestGenerationProcessor {
                         RawPythonAnnotation(annotation)
                     } ?: pythonAnyClassId
                 },
-                arguments = testSet.method.arguments
             )
         }
 

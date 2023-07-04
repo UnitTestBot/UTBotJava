@@ -47,7 +47,6 @@ class PythonMethodId(
     override val name: String,
     override val returnType: RawPythonAnnotation,
     override val parameters: List<RawPythonAnnotation>,
-    val arguments: List<PythonArgument>? = null,
 ) : MethodId(classId, name, returnType, parameters) {
     val moduleName: String = classId.moduleName
     val rootModuleName: String = this.toString().split(".")[0]
@@ -95,10 +94,11 @@ class PythonUtExecution(
     stateAfter: EnvironmentModels,
     val diffIds: List<Long>,
     result: UtExecutionResult,
+    val arguments: List<PythonArgument>,
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
-    displayName: String? = null
+    displayName: String? = null,
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     override fun copy(
         stateBefore: EnvironmentModels,
@@ -118,7 +118,8 @@ class PythonUtExecution(
             coverage = coverage,
             summary = summary,
             testMethodName = testMethodName,
-            displayName = displayName
+            displayName = displayName,
+            arguments = arguments
         )
     }
 }

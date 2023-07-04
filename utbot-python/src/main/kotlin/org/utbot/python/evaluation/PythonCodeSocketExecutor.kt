@@ -71,7 +71,7 @@ class PythonCodeSocketExecutor(
             .filterIndexed { index, _ -> !isNamed(argKinds[index]) }
 
         val (positionalArguments, namedArguments) = arguments
-            .zip(fuzzedValues.names)
+            .zip(meta.argumentNames)
             .partition { (_, name) ->
                  namedArgs.contains(name)
             }

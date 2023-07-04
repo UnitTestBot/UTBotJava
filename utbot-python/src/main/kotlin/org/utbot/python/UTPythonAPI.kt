@@ -36,8 +36,6 @@ class PythonMethod(
         "${it.name}: ${it.annotation ?: pythonAnyClassId.name}"
     } + ")"
 
-    val argumentNames: Map<String, PythonVariableDescription> = definition.meta.args.associateBy { it.name }
-
     /*
     Check that the first argument is `self` of `cls`.
     TODO: Now we think that all class methods has `self` argument! We should support `@property` decorator
@@ -56,6 +54,9 @@ class PythonMethod(
                 )
             }
         }
+
+    val argumentsWithoutSelf: List<PythonArgument>
+        get() = if (hasThisArgument) arguments.drop(1) else arguments
 
     val thisObjectName: String?
         get() = if (hasThisArgument) arguments[0].name else null

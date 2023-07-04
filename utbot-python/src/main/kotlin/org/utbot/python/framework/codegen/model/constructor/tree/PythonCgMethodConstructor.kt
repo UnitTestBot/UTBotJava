@@ -23,7 +23,6 @@ import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
-import org.utbot.python.newtyping.utils.isNamed
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
     private val maxDepth: Int = 5
@@ -34,7 +33,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
     override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            val arguments = (executableId as PythonMethodId).arguments
             val constructorState = (execution as PythonUtExecution).stateInit
             val diffIds = execution.diffIds
             (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
@@ -85,7 +83,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     // build arguments
                     val stateAssertions = emptyMap<Int, Pair<CgVariable, UtModel>>().toMutableMap()
                     for ((index, param) in constructorState.parameters.withIndex()) {
-                        val name = paramNames[executableId]?.get(index)
+                        val name = execution.arguments[index].name
                         var argument = variableConstructor.getOrCreateVariable(param, name)
 
                         val beforeValue = execution.stateBefore.parameters[index]
@@ -98,7 +96,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 stateAssertions[index] = Pair(argument, afterValue)
                             }
                         }
-                        if (arguments?.get(index)?.isNamed == true) {
+                        if (execution.arguments[index].isNamed) {
                             argument = CgPythonNamedArgument(name, argument)
                         }
 

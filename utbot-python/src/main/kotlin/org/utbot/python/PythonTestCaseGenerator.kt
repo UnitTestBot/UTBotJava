@@ -95,13 +95,13 @@ class PythonTestCaseGenerator(
         }.take(MAX_SUBSTITUTIONS).toList()
     }
 
-    private fun substituteTypeParameters(method: PythonMethod, typeStorage: PythonTypeStorage): List<PythonMethod> {
-        val newClasses =
-            if (method.containingPythonClass != null) {
-                generateTypesAfterSubstitution(method.containingPythonClass, typeStorage)
-            } else {
-                listOf(null)
-            }
+    private fun substituteTypeParameters(
+        method: PythonMethod,
+        typeStorage: PythonTypeStorage,
+        ): List<PythonMethod> {
+        val newClasses = method.containingPythonClass?.let {
+            generateTypesAfterSubstitution(it, typeStorage)
+        } ?: listOf(null)
         return newClasses.flatMap { newClass ->
             val funcType = newClass?.getPythonAttributeByName(typeStorage, method.name)?.type as? FunctionType
                 ?: method.definition.type
@@ -128,7 +128,7 @@ class PythonTestCaseGenerator(
         executions: MutableList<PythonUtExecution>,
         initMissingLines: Set<Int>?,
         until: Long,
-        additionalVars: String = ""
+        additionalVars: String = "",
     ): Set<Int>? {  // returns missing lines
         val limitManager = TestGenerationLimitManager(
             ExecutionWithTimeoutMode,
@@ -142,75 +142,73 @@ class PythonTestCaseGenerator(
             PythonFuzzedConcreteValue(type, value)
         }
 
-        substituteTypeParameters(method, typeStorage).forEach { newMethod ->
-            inferAnnotations(
-                newMethod,
-                mypyStorage,
-                typeStorage,
-                hintCollector,
-                mypyReportLine,
-                mypyConfigFile,
-                limitManager,
-                additionalVars
-            ) { functionType ->
-                val args = (functionType as FunctionType).arguments
+        inferAnnotations(
+            method,
+            mypyStorage,
+            typeStorage,
+            hintCollector,
+            mypyReportLine,
+            mypyConfigFile,
+            limitManager,
+            additionalVars
+        ) { functionType ->
+            val args = (functionType as FunctionType).arguments
 
-                logger.info { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
+            logger.info { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
 
-                val engine = PythonEngine(
-                    newMethod,
-                    directoriesForSysPath,
-                    curModule,
-                    pythonPath,
-                    constants,
-                    timeoutForRun,
-                    PythonTypeStorage.get(mypyStorage)
-                )
+            val engine = PythonEngine(
+                method,
+                directoriesForSysPath,
+                curModule,
+                pythonPath,
+                constants,
+                timeoutForRun,
+                PythonTypeStorage.get(mypyStorage)
+            )
 
-                var feedback: InferredTypeFeedback = SuccessFeedback
+            var feedback: InferredTypeFeedback = SuccessFeedback
 
-                val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
+            val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
 
-                engine.fuzzing(args, fuzzerCancellation, until).collect {
-                    when (it) {
-                        is ValidExecution -> {
-                            executions += it.utFuzzedExecution
-                            missingLines = updateMissingLines(it.utFuzzedExecution, coveredLines, missingLines)
-                            feedback = SuccessFeedback
-                            limitManager.addSuccessExecution()
-                        }
-                        is InvalidExecution -> {
-                            errors += it.utError
-                            feedback = InvalidTypeFeedback
-                            limitManager.addInvalidExecution()
-                        }
-                        is ArgumentsTypeErrorFeedback -> {
-                            feedback = InvalidTypeFeedback
-                            limitManager.addInvalidExecution()
-                        }
-                        is TypeErrorFeedback -> {
-                            feedback = InvalidTypeFeedback
-                            limitManager.addInvalidExecution()
-                        }
-                        is CachedExecutionFeedback -> {
-                            when (it.cachedFeedback) {
-                                is ValidExecution -> {
-                                    limitManager.addSuccessExecution()
-                                }
-                                else -> {
-                                    limitManager.addInvalidExecution()
-                                }
+            engine.fuzzing(args, fuzzerCancellation, until).collect {
+                when (it) {
+                    is ValidExecution -> {
+                        executions += it.utFuzzedExecution
+                        missingLines = updateMissingLines(it.utFuzzedExecution, coveredLines, missingLines)
+                        feedback = SuccessFeedback
+                        limitManager.addSuccessExecution()
+                    }
+                    is InvalidExecution -> {
+                        errors += it.utError
+                        feedback = InvalidTypeFeedback
+                        limitManager.addInvalidExecution()
+                    }
+                    is ArgumentsTypeErrorFeedback -> {
+                        feedback = InvalidTypeFeedback
+                        limitManager.addInvalidExecution()
+                    }
+                    is TypeErrorFeedback -> {
+                        feedback = InvalidTypeFeedback
+                        limitManager.addInvalidExecution()
+                    }
+                    is CachedExecutionFeedback -> {
+                        when (it.cachedFeedback) {
+                            is ValidExecution -> {
+                                limitManager.addSuccessExecution()
+                            }
+                            else -> {
+                                limitManager.addInvalidExecution()
                             }
                         }
-                        is FakeNodeFeedback -> {
-                           limitManager.addFakeNodeExecutions()
-                        }
                     }
-                    limitManager.missedLines = missingLines?.size
+                    is FakeNodeFeedback -> {
+                       limitManager.addFakeNodeExecutions()
+                    }
                 }
-                limitManager.restart()
-                feedback
+                limitManager.missedLines = missingLines?.size
             }
+            limitManager.restart()
+            feedback
         }
         return missingLines
     }
@@ -226,37 +224,27 @@ class PythonTestCaseGenerator(
 
         logger.info("Start test generation for ${method.name}")
         try {
-            val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
-            val argKinds = meta.argumentKinds
-            if (argKinds.any { !isRequired(it) }) {
-                val now = System.currentTimeMillis()
-                val firstUntil = (until - now) / 2 + now
-                val originalDef = method.definition
-                val shortType = meta.removeNotRequiredArgs(originalDef.type)
-                val shortMeta = PythonFuncItemDescription(
-                    originalDef.meta.name,
-                    originalDef.meta.args.filterIndexed { index, _ -> isRequired(argKinds[index]) }
-                )
-                val additionalVars = originalDef.meta.args
-                    .filterIndexed { index, _ -> !isRequired(argKinds[index]) }
-                    .joinToString(separator = "\n", prefix = "\n") { arg ->
-                        "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
-                    }
-                val shortDef = PythonFunctionDefinition(shortMeta, shortType)
-                val shortMethod = PythonMethod(method.name, method.moduleFilename, method.containingPythonClass, method.codeAsString, shortDef, method.ast)
-                val missingLines = methodHandler(
-                    shortMethod,
+            val methodModifications = mutableSetOf<Pair<PythonMethod, String>>()  // Set of pairs <PythonMethod, additionalVars>
+
+            substituteTypeParameters(method, typeStorage).forEach { newMethod ->
+                createShortForm(newMethod)?.let { methodModifications.add(it) }
+                methodModifications.add(newMethod to "")
+            }
+
+            val now = System.currentTimeMillis()
+            val timeout = (until - now) / methodModifications.size
+            var missingLines: Set<Int>? = null
+            methodModifications.forEach { (method, additionalVars) ->
+                missingLines = methodHandler(
+                    method,
                     typeStorage,
                     coveredLines,
                     errors,
                     executions,
-                    null,
-                    firstUntil,
-                    additionalVars
+                    missingLines,
+                    minOf(until, System.currentTimeMillis() + timeout),
+                    additionalVars,
                 )
-                methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)
-            } else {
-                methodHandler(method, typeStorage, coveredLines, errors, executions, null, until)
             }
         } catch (_: OutOfMemoryError) {
             logger.info { "Out of memory error. Stop test generation process" }
@@ -345,6 +333,38 @@ class PythonTestCaseGenerator(
                 val existsAnnotation = method.definition.type
                 annotationHandler(existsAnnotation)
             }
+        }
+    }
+
+    companion object {
+        fun createShortForm(method: PythonMethod): Pair<PythonMethod, String>? {
+            val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
+            val argKinds = meta.argumentKinds
+            if (argKinds.any { !isRequired(it) }) {
+                val originalDef = method.definition
+                val shortType = meta.removeNotRequiredArgs(originalDef.type)
+                val shortMeta = PythonFuncItemDescription(
+                    originalDef.meta.name,
+                    originalDef.meta.args.filterIndexed { index, _ -> isRequired(argKinds[index]) }
+                )
+                val additionalVars = originalDef.meta.args
+                    .filterIndexed { index, _ -> !isRequired(argKinds[index]) }
+                    .mapIndexed { index, arg ->
+                        "${arg.name}: ${method.argumentsWithoutSelf[index].annotation ?: pythonAnyType.pythonTypeRepresentation()}"
+                    }
+                    .joinToString(separator = "\n", prefix = "\n")
+                val shortDef = PythonFunctionDefinition(shortMeta, shortType)
+                val shortMethod = PythonMethod(
+                    method.name,
+                    method.moduleFilename,
+                    method.containingPythonClass,
+                    method.codeAsString,
+                    shortDef,
+                    method.ast
+                )
+                return Pair(shortMethod, additionalVars)
+            }
+            return null
         }
     }
 }

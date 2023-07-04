@@ -106,7 +106,6 @@ class PythonEngine(
 
         val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
         val coverage = Coverage(coveredInstructions)
-
         val utFuzzedExecution = PythonUtExecution(
             stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
             stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
@@ -116,7 +115,8 @@ class PythonEngine(
             coverage = coverage,
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
             displayName = testMethodName.displayName,
-            summary = summary.map { DocRegularStmt(it) }
+            summary = summary.map { DocRegularStmt(it) },
+            arguments = methodUnderTest.argumentsWithoutSelf
         )
         return ValidExecution(utFuzzedExecution)
     }
@@ -170,7 +170,8 @@ class PythonEngine(
             coverage = evaluationResult.coverage,
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
             displayName = testMethodName.displayName,
-            summary = summary.map { DocRegularStmt(it) }
+            summary = summary.map { DocRegularStmt(it) },
+            arguments = methodUnderTest.argumentsWithoutSelf,
         )
         return ValidExecution(utFuzzedExecution)
     }

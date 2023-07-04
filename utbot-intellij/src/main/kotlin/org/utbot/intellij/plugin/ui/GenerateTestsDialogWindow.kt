@@ -454,7 +454,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             row {
                 cell(parametrizedTestSources)
                 contextHelp("Parametrization is not supported in some configurations, e.g. if mocks are used.")
-            }
+            }.enabledIf(ComboBoxPredicate(springConfig) {
+                model.projectType != ProjectType.Spring
+            })
             row("Test generation timeout:") {
                 cell(BorderLayoutPanel().apply {
                     addToLeft(timeoutSpinner)
@@ -852,7 +854,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             else ->    settings.mockStrategy
         }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
-        parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
+        parametrizedTestSources.isSelected = (settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
+                && model.projectType != ProjectType.Spring)
 
         mockStrategies.isEnabled = true
         staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
@@ -1197,6 +1200,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val item = comboBox.item as SpringTestsType
 
             updateTestFrameworkList(item)
+
+            if(item == INTEGRATION_TESTS) {
+                mockStrategies.item = MockStrategyApi.springIntegrationTestItem
+                updateMockStrategyList()
+            }
         }
 
         cbSpecifyTestPackage.addActionListener {

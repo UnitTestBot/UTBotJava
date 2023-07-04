@@ -12,6 +12,6 @@ jobs:
     steps:
       - uses: alex-page/github-project-automation-plus@v0.8.3
         with:
-          project-url: https://github.com/orgs/UnitTestBot/projects/2
+          project-url: https://github.com/orgs/AleLise/projects/2
           column: In Progress
           github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -20,7 +20,7 @@ jobs:
         copy-issues-labels: true # optional
         include-closed-issues: true # optional
     
-    # Use the output from the `find-linked-issues` step
+    # Use the output from the `find-linked-issues` step   
     - name: Use the output
       run: |
         echo "is-pull-request-linked-to-issues: ${{ steps.find-linked-issues.outputs.is-pull-request-linked-to-issues }}"

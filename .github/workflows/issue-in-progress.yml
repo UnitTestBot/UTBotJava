@@ -1,0 +1,37 @@
+name: Move issues to In progress status when it is linked to a branch
+
+on:
+  pull_request_target:
+    types: [ edited, synchronize, opened, reopened ]
+
+jobs:
+  checker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Find linked issues
+        id: find-linked-issues
+        uses: Ismoh-Games/find-linked-issues@v0.0.12
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          pull-request-body: ${{ github.event.pull_request.body }}
+          copy-issues-labels: true # optional
+          include-closed-issues: true # optional
+
+      - name: Output results
+        run: |
+          echo "is-pull-request-linked-to-issues: ${{ steps.find-linked-issues.outputs.is-pull-request-linked-to-issues }}"
+          echo "linked-issues: ${{ steps.find-linked-issues.outputs.linked-issues }}"
+          echo "pull-request-labels: ${{ steps.find-linked-issues.outputs.pull-request-labels }}"
+
+      - name: Move linked issues to In Progress
+        if: ${{ steps.find-linked-issues.outputs.is-pull-request-linked-to-issues == 'True' }}
+        uses: alex-page/github-project-automation-plus@v0.8.3
+        env:
+          ISSUENUM: ${{ steps.find-linked-issues.outputs.linked-issues[0] }}
+        with:
+          project-url: https://github.com/orgs/UnitTestBot/projects/2
+          column: In Progress
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

@@ -54,13 +54,13 @@ import kotlin.reflect.KClass
  *
  * Uses model->constructed object reference-equality cache.
  *
- * This class is based on `ValueConstructor.kt`. The main difference is the ability to create mocked objects and mock
- * static methods.
+ * This class is based on `ValueConstructor.kt`. The main difference is the ability to create mocked objects, mock
+ * static methods, and [construct context dependent values][InstrumentationContext.constructContextDependentValue].
  *
  * Note that `clearState` was deleted!
  */
 // TODO: JIRA:1379 -- Refactor ValueConstructor and MockValueConstructor
-class MockValueConstructor(
+class ContextAwareValueConstructor(
     private val instrumentationContext: InstrumentationContext
 ) {
     private val classLoader: ClassLoader

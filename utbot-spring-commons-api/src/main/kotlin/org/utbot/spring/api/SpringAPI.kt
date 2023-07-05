@@ -1,32 +1,35 @@
-package org.utbot.spring.api.context
+package org.utbot.spring.api
 
 import java.net.URLClassLoader
 
 //TODO: `userSourcesClassLoader` must not be passed as a method argument, requires refactoring
-interface ContextWrapper {
-    val context: Any
+interface SpringAPI {
+    /**
+     * NOTE! [Any] return type is used here because Spring itself may not be on the classpath of the API user
+     */
+    fun getOrLoadSpringApplicationContext(): Any
 
     fun getBean(beanName: String): Any
 
     fun getDependenciesForBean(beanName: String, userSourcesClassLoader: URLClassLoader): Set<String>
 
-    fun resetBean(beanName: String): Any
+    fun resetBean(beanName: String)
 
     fun resolveRepositories(beanNames: Set<String>, userSourcesClassLoader: URLClassLoader): Set<RepositoryDescription>
 
     /**
-     * Should be called once before any invocations of [beforeTestMethod] and [afterTestMethod]
+     * NOTE! Should be called once before any invocations of [beforeTestMethod] and [afterTestMethod]
      */
     fun beforeTestClass()
 
     /**
-     * Should be called on one thread with method under test and value constructor,
+     * NOTE! Should be called on one thread with method under test and value constructor,
      * because transactions are bound to threads
      */
     fun beforeTestMethod()
 
     /**
-     * Should be called on one thread with method under test and value constructor,
+     * NOTE! Should be called on one thread with method under test and value constructor,
      * because transactions are bound to threads
      */
     fun afterTestMethod()

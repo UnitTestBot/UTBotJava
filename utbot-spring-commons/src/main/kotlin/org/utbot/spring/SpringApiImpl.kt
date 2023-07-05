@@ -1,4 +1,4 @@
-package org.utbot.spring.context
+package org.utbot.spring
 
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.warn
@@ -10,29 +10,40 @@ import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestContextManager
 import org.utbot.common.hasOnClasspath
 import org.utbot.common.patchAnnotation
-import org.utbot.spring.api.context.ContextWrapper
-import org.utbot.spring.api.context.RepositoryDescription
+import org.utbot.spring.api.SpringAPI
+import org.utbot.spring.api.RepositoryDescription
 import org.utbot.spring.api.instantiator.InstantiationSettings
+import org.utbot.spring.dummy.DummySpringIntegrationTestClass
+import org.utbot.spring.utils.RepositoryUtils
 import java.lang.reflect.Method
 import java.net.URLClassLoader
 import kotlin.reflect.jvm.javaMethod
 
-private val logger = getLogger<SpringContextWrapper>()
+private val logger = getLogger<SpringApiImpl>()
 
-class SpringContextWrapper(
+class SpringApiImpl(
     instantiationSettings: InstantiationSettings,
-    dummyTestClass: Class<out BaseDummyTestClass>,
-) : ContextWrapper {
-    private lateinit var dummyTestInstance: BaseDummyTestClass
+    dummyTestClass: Class<out DummySpringIntegrationTestClass>,
+) : SpringAPI {
+    private lateinit var dummyTestClassInstance: DummySpringIntegrationTestClass
     private val dummyTestClass = dummyTestClass.also {
-        patchAnnotation(it, ActiveProfiles::class.java, "value", parseProfileExpression(instantiationSettings.profileExpression))
-        patchAnnotation(it, ContextConfiguration::class.java, "classes", instantiationSettings.configurationClasses)
+        patchAnnotation(
+            annotation = it.getAnnotation(ActiveProfiles::class.java),
+            property = "value",
+            newValue = parseProfileExpression(instantiationSettings.profileExpression)
+        )
+        patchAnnotation(
+            annotation = it.getAnnotation(ContextConfiguration::class.java),
+            property = "classes",
+            newValue = instantiationSettings.configurationClasses
+        )
     }
-    private val dummyTestMethod: Method = BaseDummyTestClass::dummyTestMethod.javaMethod!!
+    private val dummyTestMethod: Method = DummySpringIntegrationTestClass::dummyTestMethod.javaMethod!!
     private val testContextManager: TestContextManager = TestContextManager(this.dummyTestClass)
 
-    override val context: ConfigurableApplicationContext
-        get() = testContextManager.testContext.applicationContext as ConfigurableApplicationContext
+    private val context get() = testContextManager.testContext.applicationContext as ConfigurableApplicationContext
+
+    override fun getOrLoadSpringApplicationContext() = context
 
     private val isCrudRepositoryOnClasspath = try {
         CrudRepository::class.java.name
@@ -122,18 +133,18 @@ class SpringContextWrapper(
 
     override fun beforeTestClass() {
         testContextManager.beforeTestClass()
-        dummyTestInstance = dummyTestClass.getConstructor().newInstance()
-        testContextManager.prepareTestInstance(dummyTestInstance)
+        dummyTestClassInstance = dummyTestClass.getConstructor().newInstance()
+        testContextManager.prepareTestInstance(dummyTestClassInstance)
     }
 
     override fun beforeTestMethod() {
-        testContextManager.beforeTestMethod(dummyTestInstance, dummyTestMethod)
-        testContextManager.beforeTestExecution(dummyTestInstance, dummyTestMethod)
+        testContextManager.beforeTestMethod(dummyTestClassInstance, dummyTestMethod)
+        testContextManager.beforeTestExecution(dummyTestClassInstance, dummyTestMethod)
     }
 
     override fun afterTestMethod() {
-        testContextManager.afterTestExecution(dummyTestInstance, dummyTestMethod, null)
-        testContextManager.afterTestMethod(dummyTestInstance, dummyTestMethod, null)
+        testContextManager.afterTestExecution(dummyTestClassInstance, dummyTestMethod, null)
+        testContextManager.afterTestMethod(dummyTestClassInstance, dummyTestMethod, null)
     }
 
     private fun describesRepository(bean: Any): Boolean =

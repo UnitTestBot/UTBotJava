@@ -17,6 +17,13 @@ interface InstrumentationContext {
      */
     val methodSignatureToId: MutableMap<String, Int>
 
+    /**
+     * Constructs value that is dependent on the context provided by supported frameworks used in project (e.g. Spring).
+     * Returns `null` if no context dependent value can be constructed for specified [model].
+     *
+     * NOTE! Doesn't attempt to construct context independent values,
+     * constructing such values is a responsibility of the user of this method.
+     */
     fun constructContextDependentValue(model: UtModel): UtConcreteValue<*>?
 
     object MockGetter {

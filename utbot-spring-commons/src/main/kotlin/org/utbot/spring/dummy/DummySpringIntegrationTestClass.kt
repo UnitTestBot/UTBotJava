@@ -1,4 +1,4 @@
-package org.utbot.spring.context
+package org.utbot.spring.dummy
 
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.test.context.ActiveProfiles
@@ -10,6 +10,6 @@ import org.springframework.transaction.annotation.Transactional
 @ContextConfiguration(/* fills dynamically */)
 @Transactional(isolation = Isolation.SERIALIZABLE)
 @AutoConfigureTestDatabase
-open class BaseDummyTestClass {
+abstract class DummySpringIntegrationTestClass {
     fun dummyTestMethod() {}
 }

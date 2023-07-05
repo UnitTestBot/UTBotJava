@@ -4,8 +4,8 @@ import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.spring.api.context.ContextWrapper
-import org.utbot.spring.api.instantiator.ApplicationInstantiatorFacade
+import org.utbot.spring.api.SpringAPI
+import org.utbot.spring.api.instantiator.SpringApiProviderFacade
 import org.utbot.spring.api.instantiator.InstantiationSettings
 
 class SpringInstrumentationContext(
@@ -13,7 +13,7 @@ class SpringInstrumentationContext(
     private val delegateInstrumentationContext: InstrumentationContext,
 ) : InstrumentationContext by delegateInstrumentationContext {
     // TODO: recreate context/app every time whenever we change method under test
-    val springContext: ContextWrapper by lazy {
+    val springAPI: SpringAPI by lazy {
         val classLoader = utContext.classLoader
         Thread.currentThread().contextClassLoader = classLoader
 
@@ -24,16 +24,13 @@ class SpringInstrumentationContext(
             profileExpression = null, // TODO pass profile expression here
         )
 
-        val springFacadeInstance =  classLoader
-            .loadClass("org.utbot.spring.instantiator.SpringApplicationInstantiatorFacade")
-            .getConstructor()
-            .newInstance() as ApplicationInstantiatorFacade
-
-        springFacadeInstance.instantiate(instantiationSettings)
+        SpringApiProviderFacade
+            .getInstance(classLoader)
+            .provideMostSpecificAvailableAPI(instantiationSettings)
     }
 
     override fun constructContextDependentValue(model: UtModel): UtConcreteValue<*>? = when (model) {
-        is UtSpringContextModel -> UtConcreteValue(springContext.context)
+        is UtSpringContextModel -> UtConcreteValue(springAPI.getOrLoadSpringApplicationContext())
         else -> delegateInstrumentationContext.constructContextDependentValue(model)
     }
 }

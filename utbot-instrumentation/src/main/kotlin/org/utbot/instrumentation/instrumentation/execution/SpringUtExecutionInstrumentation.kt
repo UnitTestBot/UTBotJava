@@ -13,7 +13,7 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.context.SpringInstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.process.HandlerClassesLoader
-import org.utbot.spring.api.context.ContextWrapper
+import org.utbot.spring.api.SpringAPI
 import java.net.URL
 import java.net.URLClassLoader
 import java.security.ProtectionDomain
@@ -33,7 +33,7 @@ class SpringUtExecutionInstrumentation(
 
     private val relatedBeansCache = mutableMapOf<Class<*>, Set<String>>()
 
-    private val springContext: ContextWrapper get() = instrumentationContext.springContext
+    private val springAPI: SpringAPI get() = instrumentationContext.springAPI
 
     private object SpringBeforeTestMethodPhase : ExecutionPhaseFailingOnAnyException()
     private object SpringAfterTestMethodPhase : ExecutionPhaseFailingOnAnyException()
@@ -58,7 +58,7 @@ class SpringUtExecutionInstrumentation(
         instrumentationContext = SpringInstrumentationContext(springConfig, delegateInstrumentation.instrumentationContext)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
-        springContext.beforeTestClass()
+        springAPI.beforeTestClass()
     }
 
     override fun invoke(
@@ -67,36 +67,36 @@ class SpringUtExecutionInstrumentation(
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult {
-        getRelevantBeanNames(clazz).forEach { beanName -> springContext.resetBean(beanName) }
+        getRelevantBeans(clazz).forEach { beanName -> springAPI.resetBean(beanName) }
 
-        return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { basePhases ->
+        return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
             //     so they are executed in one thread with method under test
-            executePhaseInTimeout(SpringBeforeTestMethodPhase) { springContext.beforeTestMethod() }
+            executePhaseInTimeout(SpringBeforeTestMethodPhase) { springAPI.beforeTestMethod() }
             try {
-                basePhases()
+                invokeBasePhases()
             } finally {
-                executePhaseInTimeout(SpringAfterTestMethodPhase) { springContext.afterTestMethod() }
+                executePhaseInTimeout(SpringAfterTestMethodPhase) { springAPI.afterTestMethod() }
             }
         }
     }
 
-    private fun getRelevantBeanNames(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
+    private fun getRelevantBeans(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
         beanDefinitions
             .filter { it.beanTypeFqn == clazz.name }
-            // TODO move forcing `getBean()` somewhere else (we need to once forcefully get beans under test
-            //  before `executePhaseInTimeout` to force loading and transformation of Spring classes without timeout)
-            .onEach { springContext.getBean(it.beanName) }
-            .flatMap { springContext.getDependenciesForBean(it.beanName, userSourcesClassLoader) }
+            // forces `getBean()` to load Spring classes,
+            // otherwise execution of method under test may fail with timeout
+            .onEach { springAPI.getBean(it.beanName) }
+            .flatMap { springAPI.getDependenciesForBean(it.beanName, userSourcesClassLoader) }
             .toSet()
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
     }
 
-    fun getBean(beanName: String): Any = springContext.getBean(beanName)
+    fun getBean(beanName: String): Any = springAPI.getBean(beanName)
 
     fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
-        val relevantBeanNames = getRelevantBeanNames(classId.jClass)
-        val repositoryDescriptions = springContext.resolveRepositories(relevantBeanNames.toSet(), userSourcesClassLoader)
+        val relevantBeanNames = getRelevantBeans(classId.jClass)
+        val repositoryDescriptions = springAPI.resolveRepositories(relevantBeanNames.toSet(), userSourcesClassLoader)
         return repositoryDescriptions.map { repositoryDescription ->
             SpringRepositoryId(
                 repositoryDescription.beanName,
@@ -113,8 +113,11 @@ class SpringUtExecutionInstrumentation(
         protectionDomain: ProtectionDomain,
         classfileBuffer: ByteArray
     ): ByteArray? =
-        // transforming Spring takes too long
-        // maybe we should also transform classes in "javax/persistence" and "jakarta/persistence" to give fuzzer more feedback
+        // we do not transform Spring classes as it takes too much time
+
+        // maybe we should still transform classes related to data validation
+        // (e.g. from packages "javax/persistence" and "jakarta/persistence"),
+        // since traces from such classes can be particularly useful for feedback to fuzzer
         if (userSourcesClassLoader.hasOnClasspath(className.replace("/", "."))) {
             delegateInstrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
         } else {

@@ -81,7 +81,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?,
-        phasesWrapper: PhasesController.(basePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
+        phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")

@@ -8,6 +8,7 @@ import org.mockito.Mockito
 import org.utbot.common.*
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
@@ -19,7 +20,6 @@ import org.utbot.instrumentation.process.generated.GetSpringRepositoriesResult
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
-import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory

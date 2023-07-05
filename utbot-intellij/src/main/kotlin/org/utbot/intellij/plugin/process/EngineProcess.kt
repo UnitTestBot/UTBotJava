@@ -25,9 +25,9 @@ import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.MethodDescription
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
-import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.intellij.plugin.UtbotBundle
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener

@@ -29,8 +29,8 @@ import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.BeanAdditionalData
 import org.utbot.framework.process.generated.BeanDefinitionData
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
-import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory

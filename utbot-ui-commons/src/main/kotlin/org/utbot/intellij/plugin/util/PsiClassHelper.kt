@@ -109,8 +109,16 @@ val PsiClass.isVisible: Boolean
     get() = generateSequence(this) { it.containingClass }.none { it.isPrivateOrProtected }
 
 object PsiClassHelper {
-    fun findClass(name: String, project: Project): PsiClass? =
-        JavaPsiFacade
+    /**
+     * Finds [PsiClass].
+     *
+     * @param name binary name which is converted to canonical name.
+     */
+    fun findClass(name: String, project: Project): PsiClass? {
+        // Converting name to canonical name
+        val canonicalName = name.replace("$", ".")
+        return JavaPsiFacade
             .getInstance(project)
-            .findClass(name, GlobalSearchScope.projectScope(project))
+            .findClass(canonicalName, GlobalSearchScope.projectScope(project))
+    }
 }

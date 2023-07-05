@@ -42,7 +42,7 @@ class SpringConfigurationsHelper(val configType: SpringConfigurationType) {
             .values
             .singleOrNull { it.shortenedName == shortenedName }
             ?.fullName
-            ?: error("Full name of configuration file cannot be restored with shortened name $shortenedName")
+            ?: error("Full name of configuration file cannot be restored from shortened name $shortenedName")
 
     fun shortenSpringConfigNames(fullNames: Set<String>): Map<String, String> {
         fullNames.forEach { nameToInfo[it] = NameInfo(it) }
@@ -92,12 +92,13 @@ class SpringConfigurationsHelper(val configType: SpringConfigurationType) {
 
 }
 
+@Deprecated("To be deleted")
 enum class SpringConfigurationType(
     val separatorsToSplitBy: Array<String>,
     val separatorToConcatenateBy: String,
 ) {
     ClassConfiguration(
-        separatorsToSplitBy = arrayOf(".", "$"),
+        separatorsToSplitBy = arrayOf("."),
         separatorToConcatenateBy = ".",
     ),
 

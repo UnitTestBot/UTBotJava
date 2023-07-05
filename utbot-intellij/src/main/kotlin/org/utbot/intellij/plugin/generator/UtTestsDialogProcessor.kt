@@ -177,11 +177,9 @@ object UtTestsDialogProcessor {
         val springConfigClass =
             when (val config = model.springSettings?.configuration) {
                 is JavaConfiguration -> {
-                    // Converting binary name to fqn name
-                    val fqnName = config.classBinaryName.replace("$", ".")
                     PsiClassHelper
-                        .findClass(fqnName, project)
-                        ?: error("Cannot find configuration class $fqnName.")
+                        .findClass(config.classBinaryName, project)
+                        ?: error("Cannot find configuration class ${config.classBinaryName}.")
                 }
 
                 else -> null
@@ -479,14 +477,12 @@ object UtTestsDialogProcessor {
             val beanType = runReadAction {
                 val additionalData = bean.additionalData ?: return@runReadAction null
 
-                // Converting binary name to fqn name
-                val fqnName = additionalData.configClassName.replace("$", ".")
                 val configPsiClass =
                     PsiClassHelper
-                        .findClass(fqnName, project)
+                        .findClass(additionalData.configClassName, project)
                         ?: return@runReadAction null
                             .also {
-                                logger.warn("Cannot find configuration class ${additionalData.configClassName} with $fqnName name.")
+                                logger.warn("Cannot find configuration class ${additionalData.configClassName}.")
                             }
 
                 val beanPsiMethod =

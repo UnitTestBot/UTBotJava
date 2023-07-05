@@ -1,17 +1,33 @@
 name: Move issues to In progress status when it is linked to a branch
 
 on:
-  issues:
-    linked:
-      - pr
+  pull_request_target:
+    types: [ edited, synchronize, opened, reopened ]
 
 jobs:
-  move-issue-when-linked:
-    name: Move issues to In Progress status when a branch/PR is linked
+  checker:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: alex-page/github-project-automation-plus@7ffb872c64bd809d23563a130a0a97d01dfa8f43
+      - uses: actions/checkout@v2
+
+      - name: Issue Validator
+        uses: HarshCasper/validate-issues-over-pull-requests@v0.1.1
+        id: validator
         with:
-          project-url: https://github.com/orgs/AleLise/projects/2
+          prbody: ${{ github.event.pull_request.body }}
+          prurl: ${{ github.event.pull_request.url }}
+
+      - name: PR has a valid Issue
+        uses: alex-page/github-project-automation-plus@v0.8.3
+        if: ${{ steps.validator.outputs.valid == 1 }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRNUM: ${{ github.event.pull_request.number }}
+        with:
+          project-url: https://github.com/orgs/UnitTestBot/projects/2
           column: In Progress
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+        run: |
+          gh pr edit $PRNUM --add-label "wontfix"

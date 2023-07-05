@@ -118,7 +118,6 @@ class SpringApiImpl(
                     beanName = repositoryBean.beanName,
                     repositoryName = repositoryClassName,
                     entityName = entity.name,
-                    tableName = getTableName(entity),
                 )
             } else {
                 logger.warn {
@@ -153,8 +152,6 @@ class SpringApiImpl(
         } catch (e: ClassNotFoundException) {
             false
         }
-
-    private fun getTableName(entity: Class<*>): String = entity.simpleName.decapitalize() + "s"
 
     companion object {
         private const val DEFAULT_PROFILE_NAME = "default"

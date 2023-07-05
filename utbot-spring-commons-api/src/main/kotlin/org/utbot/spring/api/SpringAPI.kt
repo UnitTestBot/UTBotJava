@@ -39,5 +39,4 @@ data class RepositoryDescription(
     val beanName: String,
     val repositoryName: String,
     val entityName: String,
-    val tableName: String,
 )

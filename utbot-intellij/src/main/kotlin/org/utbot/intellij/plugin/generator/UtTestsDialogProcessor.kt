@@ -49,13 +49,13 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.plugin.api.TypeReplacementApproach.*
 import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.SpringConfiguration.*
+import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.SpringApplicationContext
-import org.utbot.framework.plugin.api.SpringTestsType
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -174,17 +174,18 @@ object UtTestsDialogProcessor {
     }
 
     private fun createTests(project: Project, model: GenerateTestsModel) {
-        val springConfigClass = when (val approach = model.typeReplacementApproach) {
-            DoNotReplace -> null
-            is ReplaceIfPossible ->
-                approach.config.takeUnless { it.endsWith(".xml") }?.let {
+        val springConfigClass =
+            when (val config = model.springSettings?.configuration) {
+                is JavaConfiguration -> {
                     // Converting binary name to fqn name
-                    val fqnName = it.replace("$", ".")
+                    val fqnName = config.classBinaryName.replace("$", ".")
                     PsiClassHelper
                         .findClass(fqnName, project)
-                        ?: error("Cannot find configuration class $it with $fqnName name.")
+                        ?: error("Cannot find configuration class $fqnName.")
                 }
-        }
+
+                else -> null
+            }
 
         val filesToCompile = (model.srcClasses + listOfNotNull(springConfigClass))
             .map { it.containingFile.virtualFile }
@@ -255,9 +256,9 @@ object UtTestsDialogProcessor {
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanDefinitions =
-                                        when (val approach = model.typeReplacementApproach) {
-                                            DoNotReplace -> emptyList()
-                                            is ReplaceIfPossible -> {
+                                        when (val approach = model.springSettings) {
+                                            null -> emptyList()
+                                            else -> {
                                                 val contentRoots = runReadAction {
                                                     listOfNotNull(
                                                         model.srcModule,
@@ -270,9 +271,9 @@ object UtTestsDialogProcessor {
                                                 val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
                                                 process.getSpringBeanDefinitions(
                                                     classpathForClassLoader,
-                                                    approach.config,
+                                                    approach.configuration,
+                                                    approach.profileExpression,
                                                     fileStorage,
-                                                    model.profileNames,
                                                 )
                                             }
                                         }
@@ -286,8 +287,8 @@ object UtTestsDialogProcessor {
                                         staticMockingConfigured,
                                         clarifiedBeanDefinitions,
                                         shouldUseImplementors,
-                                        model.typeReplacementApproach,
-                                        model.springTestsType
+                                        model.springTestType,
+                                        model.springSettings,
                                     )
                                 }
                                 else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
@@ -380,20 +381,18 @@ object UtTestsDialogProcessor {
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
                                         val useEngine = when (model.projectType) {
-                                            Spring -> when (model.springTestsType) {
-                                                SpringTestsType.UNIT_TESTS -> true
-                                                SpringTestsType.INTEGRATION_TESTS -> false
+                                            Spring -> when (model.springTestType) {
+                                                UNIT_TEST -> true
+                                                INTEGRATION_TEST -> false
                                             }
                                             else -> true
                                         }
                                         val useFuzzing = when (model.projectType) {
-                                            Spring -> when (model.springTestsType) {
-                                                SpringTestsType.UNIT_TESTS -> when (model.typeReplacementApproach) {
-                                                    DoNotReplace -> true
-                                                    is ReplaceIfPossible -> false
-                                                }
-                                                SpringTestsType.INTEGRATION_TESTS -> true
+                                            Spring -> when (model.springTestType) {
+                                                UNIT_TEST -> model.springSettings == null
+                                                INTEGRATION_TEST -> true
                                             }
+
                                             else -> UtSettings.useFuzzing
                                         }
                                         val rdGenerateResult = process.generate(
@@ -449,7 +448,7 @@ object UtTestsDialogProcessor {
                             // indicator.checkCanceled()
 
                             invokeLater {
-                                generateTests(model, testSetsByClass, psi2KClass, process, indicator)
+                                generateTests(model, applicationContext, testSetsByClass, psi2KClass, process, indicator)
                                 logger.info { "Generation complete" }
                             }
                         }

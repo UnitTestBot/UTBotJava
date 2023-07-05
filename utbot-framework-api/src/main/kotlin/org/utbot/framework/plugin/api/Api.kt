@@ -1323,6 +1323,13 @@ enum class TypeReplacementMode {
     NoImplementors,
 }
 
+interface CodeGenerationContext
+
+interface SpringCodeGenerationContext : CodeGenerationContext {
+    val springTestType: SpringTestType
+    val springSettings: SpringSettings?
+}
+
 /**
  * A context to use when no specific data is required.
  *
@@ -1332,7 +1339,7 @@ enum class TypeReplacementMode {
 open class ApplicationContext(
     val mockFrameworkInstalled: Boolean = true,
     staticsMockingIsConfigured: Boolean = true,
-) {
+) : CodeGenerationContext {
     var staticsMockingIsConfigured = staticsMockingIsConfigured
         private set
 
@@ -1384,22 +1391,15 @@ open class ApplicationContext(
     ): Boolean = field.isFinal || !field.isPublic
 }
 
-sealed class TypeReplacementApproach {
-    /**
-     * Do not replace interfaces and abstract classes with concrete implementors.
-     * Use mocking instead of it.
-     */
-    object DoNotReplace : TypeReplacementApproach()
-
-    /**
-     * Try to replace interfaces and abstract classes with concrete implementors
-     * obtained from bean definitions.
-     * If it is impossible, use mocking.
-     *
-     * Currently used in Spring applications only.
-     */
-    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
+sealed interface SpringConfiguration {
+    class JavaConfiguration(val classBinaryName: String) : SpringConfiguration
+    class XMLConfiguration(val absolutePath: String) : SpringConfiguration
 }
+
+class SpringSettings(
+    val configuration: SpringConfiguration,
+    val profileExpression: String
+)
 
 /**
  * Data we get from Spring application context
@@ -1422,9 +1422,9 @@ class SpringApplicationContext(
     staticsMockingIsConfigured: Boolean,
     val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
-    val typeReplacementApproach: TypeReplacementApproach,
-    val testType: SpringTestsType
-): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+    override val springTestType: SpringTestType,
+    override val springSettings: SpringSettings?,
+): ApplicationContext(mockInstalled, staticsMockingIsConfigured), SpringCodeGenerationContext {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -1500,19 +1500,19 @@ class SpringApplicationContext(
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
 
-enum class SpringTestsType(
+enum class SpringTestType(
     override val id: String,
     override val displayName: String,
     override val description: String,
     // Integration tests generation requires spring test framework being installed
     var frameworkInstalled: Boolean = false,
 ) : CodeGenerationSettingItem {
-    UNIT_TESTS(
+    UNIT_TEST(
         "Unit tests",
         "Unit tests",
         "Generate unit tests mocking other classes"
     ),
-    INTEGRATION_TESTS(
+    INTEGRATION_TEST(
         "Integration tests",
         "Integration tests",
         "Generate integration tests autowiring real instance"
@@ -1521,8 +1521,8 @@ enum class SpringTestsType(
     override fun toString() = id
 
     companion object : CodeGenerationSettingBox {
-        override val defaultItem = UNIT_TESTS
-        override val allItems: List<SpringTestsType> = values().toList()
+        override val defaultItem = UNIT_TEST
+        override val allItems: List<SpringTestType> = values().toList()
     }
 }
 

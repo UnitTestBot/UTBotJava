@@ -83,7 +83,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
             val result = springAnalyzerProcess.terminateOnException { _ ->
                 springAnalyzerProcess.getBeanDefinitions(
-                    params.config,
+                    params.configuration,
                     params.fileStorage,
                     params.profileExpression,
                 )
@@ -152,8 +152,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             }
     }
     watchdog.measureTimeForActiveCall(render, "Rendering tests") { params ->
-        val projectType = ProjectType.valueOf(params.projectType)
-        val codeGenerator = projectType.createCodeGenerator(kryoHelper, params)
+        val codeGenerator = createCodeGenerator(kryoHelper, params)
 
         codeGenerator.generateAsStringWithTestReport(testSets[params.testSetsId]!!).let {
             testGenerationReports.add(it.testsGenerationReport)
@@ -292,56 +291,71 @@ private fun destinationWarningMessage(testPackageName: String?, classUnderTestPa
     }
 }
 
-private fun ProjectType.createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams): AbstractCodeGenerator {
+private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams): AbstractCodeGenerator {
     with(params) {
         val classUnderTest: ClassId = kryoHelper.readObject(classUnderTest)
         val paramNames: MutableMap<ExecutableId, List<String>> = kryoHelper.readObject(paramNames)
         val testFramework = testFrameworkByName(testFramework)
         val staticMocking = if (staticsMocking.startsWith("No")) NoStaticMocking else MockitoStaticMocking
         val forceStaticMocking: ForceStaticMocking = kryoHelper.readObject(forceStaticMocking)
+        val projectType = ProjectType.valueOf(projectType)
+        val codeGenerationContext: CodeGenerationContext = kryoHelper.readObject(codeGenerationContext)
 
-        return when (this@createCodeGenerator) {
-            ProjectType.PureJvm -> CodeGenerator(
-                classUnderTest = classUnderTest,
-                projectType = ProjectType.valueOf(projectType),
-                generateUtilClassFile = generateUtilClassFile,
-                paramNames = paramNames,
-                testFramework = testFramework,
-                mockFramework = MockFramework.valueOf(mockFramework),
-                codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
-                cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.valueOf(codegenLanguage)),
-                parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
-                staticsMocking = staticMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-                runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
-                hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
-                enableTestsTimeout = enableTestsTimeout,
-                testClassPackageName = testClassPackageName,
-            )
+        return when (codeGenerationContext) {
+            is SpringCodeGenerationContext -> {
+                SpringCodeGenerator(
+                    classUnderTest = classUnderTest,
+                    projectType = projectType,
+                    codeGenerationContext = codeGenerationContext,
+                    generateUtilClassFile = generateUtilClassFile,
+                    paramNames = paramNames,
+                    testFramework = testFramework,
+                    mockFramework = MockFramework.valueOf(mockFramework),
+                    codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
+                    cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(
+                        CodegenLanguage.valueOf(
+                            codegenLanguage
+                        )
+                    ),
+                    parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
+                    staticsMocking = staticMocking,
+                    forceStaticMocking = forceStaticMocking,
+                    generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+                    runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(
+                        runtimeExceptionTestsBehaviour
+                    ),
+                    hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
+                    enableTestsTimeout = enableTestsTimeout,
+                    testClassPackageName = testClassPackageName,
+                )
+            }
 
-            ProjectType.Spring -> SpringCodeGenerator(
-                springTestsType = SpringTestsType.valueOf(springTestsType),
-                classUnderTest = classUnderTest,
-                projectType = ProjectType.valueOf(projectType),
-                generateUtilClassFile = generateUtilClassFile,
-                paramNames = paramNames,
-                testFramework = testFramework,
-                mockFramework = MockFramework.valueOf(mockFramework),
-                codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
-                cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.valueOf(codegenLanguage)),
-                parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
-                staticsMocking = staticMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-                runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
-                hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
-                enableTestsTimeout = enableTestsTimeout,
-                testClassPackageName = testClassPackageName,
-            )
-
-            ProjectType.Python -> error("Python code generator can not be created in Engine process")
-            ProjectType.JavaScript -> error("JavaScript code generator can not be created in Engine process")
+            else -> {
+                CodeGenerator(
+                    classUnderTest = classUnderTest,
+                    projectType = projectType,
+                    generateUtilClassFile = generateUtilClassFile,
+                    paramNames = paramNames,
+                    testFramework = testFramework,
+                    mockFramework = MockFramework.valueOf(mockFramework),
+                    codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
+                    cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(
+                        CodegenLanguage.valueOf(
+                            codegenLanguage
+                        )
+                    ),
+                    parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
+                    staticsMocking = staticMocking,
+                    forceStaticMocking = forceStaticMocking,
+                    generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+                    runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(
+                        runtimeExceptionTestsBehaviour
+                    ),
+                    hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
+                    enableTestsTimeout = enableTestsTimeout,
+                    testClassPackageName = testClassPackageName,
+                )
+            }
         }
     }
 }

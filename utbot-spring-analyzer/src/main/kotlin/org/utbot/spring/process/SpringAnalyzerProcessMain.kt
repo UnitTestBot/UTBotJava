@@ -7,6 +7,7 @@ import com.jetbrains.rd.util.info
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.reactive.adviseOnce
 import org.utbot.common.AbstractSettings
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.RdSettingsContainerFactory
@@ -40,9 +41,11 @@ suspend fun main(args: Array<String>) =
     }
 
 private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtocol: IProtocol) {
+    val kryoHelper = KryoHelper(realProtocol.lifetime)
+
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->
         val applicationData = ApplicationData(
-            params.configuration,
+            kryoHelper.readObject(params.configuration),
             params.fileStorage.map { File(it).toURI().toURL() },
             params.profileExpression,
         )

@@ -50,7 +50,7 @@ class SpringAnalyzerProcessModel private constructor(
         }
         
         
-        const val serializationHash = 8934866731594302609L
+        const val serializationHash = -6862945874536334699L
         
     }
     override val serializersOwner: ISerializersOwner get() = SpringAnalyzerProcessModel
@@ -224,7 +224,7 @@ data class BeanDefinitionData (
         printer.println("BeanDefinitionData (")
         printer.indent {
             print("beanName = "); beanName.print(printer); println()
-            print("beanTypeName = "); beanTypeFqn.print(printer); println()
+            print("beanTypeFqn = "); beanTypeFqn.print(printer); println()
             print("additionalData = "); additionalData.print(printer); println()
         }
         printer.print(")")
@@ -238,7 +238,7 @@ data class BeanDefinitionData (
  * #### Generated from [SpringAnalyzerModel.kt:9]
  */
 data class SpringAnalyzerParams (
-    val configuration: String,
+    val configuration: ByteArray,
     val fileStorage: Array<String>,
     val profileExpression: String?
 ) : IPrintable {
@@ -249,14 +249,14 @@ data class SpringAnalyzerParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerParams  {
-            val configuration = buffer.readString()
+            val configuration = buffer.readByteArray()
             val fileStorage = buffer.readArray {buffer.readString()}
             val profileExpression = buffer.readNullable { buffer.readString() }
             return SpringAnalyzerParams(configuration, fileStorage, profileExpression)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerParams)  {
-            buffer.writeString(value.configuration)
+            buffer.writeByteArray(value.configuration)
             buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
             buffer.writeNullable(value.profileExpression) { buffer.writeString(it) }
         }
@@ -274,7 +274,7 @@ data class SpringAnalyzerParams (
         
         other as SpringAnalyzerParams
         
-        if (configuration != other.configuration) return false
+        if (!(configuration contentEquals other.configuration)) return false
         if (!(fileStorage contentDeepEquals other.fileStorage)) return false
         if (profileExpression != other.profileExpression) return false
         
@@ -283,7 +283,7 @@ data class SpringAnalyzerParams (
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + configuration.hashCode()
+        __r = __r*31 + configuration.contentHashCode()
         __r = __r*31 + fileStorage.contentDeepHashCode()
         __r = __r*31 + if (profileExpression != null) profileExpression.hashCode() else 0
         return __r

@@ -388,7 +388,7 @@ class UtBotSymbolicEngine(
         var testEmittedByFuzzer = 0
         val valueProviders = ValueProvider.of(defaultValueProviders(defaultIdGenerator))
             .letIf(applicationContext is SpringApplicationContext
-                        && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
+                        && applicationContext.springSettings != null
             ) { provider ->
                 val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
                 logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }

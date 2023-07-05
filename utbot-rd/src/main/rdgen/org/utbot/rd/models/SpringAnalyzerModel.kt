@@ -7,7 +7,7 @@ object SpringAnalyzerRoot : Root()
 
 object SpringAnalyzerProcessModel : Ext(SpringAnalyzerRoot) {
     val springAnalyzerParams = structdef {
-        field("configuration", PredefinedType.string)
+        field("configuration", array(PredefinedType.byte))
         field("fileStorage", array(PredefinedType.string))
         field("profileExpression", PredefinedType.string.nullable)
     }

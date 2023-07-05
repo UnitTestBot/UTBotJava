@@ -7,6 +7,7 @@ import org.utbot.common.hasOnClasspath
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringRepositoryId
+import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -19,11 +20,11 @@ import java.net.URLClassLoader
 import java.security.ProtectionDomain
 
 /**
- * UtExecutionInstrumentation wrapper that is aware of Spring config and initialises Spring context
+ * UtExecutionInstrumentation wrapper that is aware of Spring configuration and profiles and initialises Spring context
  */
 class SpringUtExecutionInstrumentation(
     private val delegateInstrumentation: UtExecutionInstrumentation,
-    private val springConfig: String,
+    private val springSettings: SpringSettings,
     private val beanDefinitions: List<BeanDefinitionData>,
     private val buildDirs: Array<URL>,
 ) : Instrumentation<UtConcreteExecutionResult> by delegateInstrumentation {

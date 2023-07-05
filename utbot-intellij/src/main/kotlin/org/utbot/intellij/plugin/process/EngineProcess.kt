@@ -15,7 +15,6 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.BeanAdditionalData
@@ -145,12 +144,18 @@ class EngineProcess private constructor(val project: Project, private val classN
 
     fun getSpringBeanDefinitions(
         classpathList: List<String>,
-        config: String,
+        configuration: SpringConfiguration,
+        profileExpression: String?,
         fileStorage: Array<String>,
-        profileExpression: String?): List<BeanDefinitionData> {
+    ): List<BeanDefinitionData> {
         assertReadAccessNotAllowed()
         val result = engineModel.getSpringBeanDefinitions.startBlocking(
-            GetSpringBeanDefinitions(classpathList.toTypedArray(), config, fileStorage, profileExpression)
+            GetSpringBeanDefinitions(
+                classpathList.toTypedArray(),
+                kryoHelper.writeObject(configuration),
+                fileStorage,
+                profileExpression
+            )
         )
         return result.beanDefinitions
             .map { data ->
@@ -280,54 +285,66 @@ class EngineProcess private constructor(val project: Project, private val classN
     }
 
     fun render(
-        springTestsType: SpringTestsType,
+        model: GenerateTestsModel,
         testSetsId: Long,
         classUnderTest: ClassId,
-        projectType: ProjectType,
         paramNames: MutableMap<ExecutableId, List<String>>,
         generateUtilClassFile: Boolean,
-        testFramework: TestFramework,
-        mockFramework: MockFramework,
-        staticsMocking: StaticsMocking,
-        forceStaticMocking: ForceStaticMocking,
-        generateWarningsForStaticsMocking: Boolean,
-        codegenLanguage: CodegenLanguage,
-        parameterizedTestSource: ParametrizedTestSource,
-        runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour,
-        hangingTestSource: HangingTestsTimeout,
         enableTestsTimeout: Boolean,
-        testClassPackageName: String
+        testClassPackageName: String,
+        codeGenerationContext: CodeGenerationContext,
     ): Pair<String, UtilClassKind?> {
         assertReadAccessNotAllowed()
-        val params = RenderParams(
-            springTestsType.name,
+        val params = makeParams(
+            model,
             testSetsId,
-            kryoHelper.writeObject(classUnderTest),
-            projectType.toString(),
-            kryoHelper.writeObject(paramNames),
+            classUnderTest,
+            paramNames,
             generateUtilClassFile,
-            testFramework.id.lowercase(),
-            mockFramework.name,
-            codegenLanguage.name,
-            parameterizedTestSource.name,
-            staticsMocking.id,
-            kryoHelper.writeObject(forceStaticMocking),
-            generateWarningsForStaticsMocking,
-            runtimeExceptionTestsBehaviour.name,
-            hangingTestSource.timeoutMs,
             enableTestsTimeout,
-            testClassPackageName
+            testClassPackageName,
+            codeGenerationContext,
         )
         val result = engineModel.render.startBlocking(params)
         val realUtilClassKind = result.utilClassKind?.let {
-            if (UtilClassKind.RegularUtUtils(codegenLanguage).javaClass.simpleName == it)
-                UtilClassKind.RegularUtUtils(codegenLanguage)
+            if (UtilClassKind.RegularUtUtils(model.codegenLanguage).javaClass.simpleName == it)
+                UtilClassKind.RegularUtUtils(model.codegenLanguage)
             else
-                UtilClassKind.UtUtilsWithMockito(codegenLanguage)
+                UtilClassKind.UtUtilsWithMockito(model.codegenLanguage)
         }
 
         return result.generatedCode to realUtilClassKind
     }
+
+    private fun makeParams(
+        model: GenerateTestsModel,
+        testSetsId: Long,
+        classUnderTest: ClassId,
+        paramNames: MutableMap<ExecutableId, List<String>>,
+        generateUtilClassFile: Boolean,
+        enableTestsTimeout: Boolean,
+        testClassPackageName: String,
+        codeGenerationContext: CodeGenerationContext,
+    ): RenderParams =
+        RenderParams(
+            testSetsId,
+            kryoHelper.writeObject(classUnderTest),
+            model.projectType.toString(),
+            kryoHelper.writeObject(paramNames),
+            generateUtilClassFile,
+            model.testFramework.id.lowercase(),
+            model.mockFramework.name,
+            model.codegenLanguage.name,
+            model.parametrizedTestSource.name,
+            model.staticsMocking.id,
+            kryoHelper.writeObject(model.forceStaticMocking),
+            model.generateWarningsForStaticMocking,
+            model.runtimeExceptionTestsBehaviour.name,
+            model.hangingTestsTimeout.timeoutMs,
+            enableTestsTimeout,
+            testClassPackageName,
+            kryoHelper.writeObject(codeGenerationContext),
+        )
 
     private fun getSourceFile(params: SourceStrategyMethodArgs): String? =
         DumbService.getInstance(project).runReadActionInSmartMode<String?> {

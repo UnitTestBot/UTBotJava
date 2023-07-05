@@ -75,7 +75,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = -7418312653824196007L
+        const val serializationHash = -1921561018844578859L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -182,7 +182,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:134]
+ * #### Generated from [EngineProcessModel.kt:133]
  */
 data class BeanAdditionalData (
     val factoryMethodName: String,
@@ -251,7 +251,7 @@ data class BeanAdditionalData (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:139]
+ * #### Generated from [EngineProcessModel.kt:138]
  */
 data class BeanDefinitionData (
     val beanName: String,
@@ -320,7 +320,7 @@ data class BeanDefinitionData (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:108]
+ * #### Generated from [EngineProcessModel.kt:107]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -383,7 +383,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:112]
+ * #### Generated from [EngineProcessModel.kt:111]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -440,7 +440,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:101]
+ * #### Generated from [EngineProcessModel.kt:100]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -503,7 +503,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:105]
+ * #### Generated from [EngineProcessModel.kt:104]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -560,7 +560,7 @@ data class FindMethodsInClassMatchingSelectedResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:44]
+ * #### Generated from [EngineProcessModel.kt:43]
  */
 data class GenerateParams (
     val methods: ByteArray,
@@ -671,7 +671,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:60]
+ * #### Generated from [EngineProcessModel.kt:59]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -734,7 +734,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:120]
+ * #### Generated from [EngineProcessModel.kt:119]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -827,7 +827,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:129]
+ * #### Generated from [EngineProcessModel.kt:128]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -896,11 +896,11 @@ data class GenerateTestReportResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:90]
+ * #### Generated from [EngineProcessModel.kt:89]
  */
 data class GetSpringBeanDefinitions (
     val classpath: Array<String>,
-    val config: String,
+    val configuration: ByteArray,
     val fileStorage: Array<String>,
     val profileExpression: String?
 ) : IPrintable {
@@ -912,15 +912,15 @@ data class GetSpringBeanDefinitions (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanDefinitions  {
             val classpath = buffer.readArray {buffer.readString()}
-            val config = buffer.readString()
+            val configuration = buffer.readByteArray()
             val fileStorage = buffer.readArray {buffer.readString()}
             val profileExpression = buffer.readNullable { buffer.readString() }
-            return GetSpringBeanDefinitions(classpath, config, fileStorage, profileExpression)
+            return GetSpringBeanDefinitions(classpath, configuration, fileStorage, profileExpression)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanDefinitions)  {
             buffer.writeArray(value.classpath) { buffer.writeString(it) }
-            buffer.writeString(value.config)
+            buffer.writeByteArray(value.configuration)
             buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
             buffer.writeNullable(value.profileExpression) { buffer.writeString(it) }
         }
@@ -939,7 +939,7 @@ data class GetSpringBeanDefinitions (
         other as GetSpringBeanDefinitions
         
         if (!(classpath contentDeepEquals other.classpath)) return false
-        if (config != other.config) return false
+        if (!(configuration contentEquals other.configuration)) return false
         if (!(fileStorage contentDeepEquals other.fileStorage)) return false
         if (profileExpression != other.profileExpression) return false
         
@@ -949,7 +949,7 @@ data class GetSpringBeanDefinitions (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + classpath.contentDeepHashCode()
-        __r = __r*31 + config.hashCode()
+        __r = __r*31 + configuration.contentHashCode()
         __r = __r*31 + fileStorage.contentDeepHashCode()
         __r = __r*31 + if (profileExpression != null) profileExpression.hashCode() else 0
         return __r
@@ -959,7 +959,7 @@ data class GetSpringBeanDefinitions (
         printer.println("GetSpringBeanDefinitions (")
         printer.indent {
             print("classpath = "); classpath.print(printer); println()
-            print("config = "); config.print(printer); println()
+            print("configuration = "); configuration.print(printer); println()
             print("fileStorage = "); fileStorage.print(printer); println()
             print("profileExpression = "); profileExpression.print(printer); println()
         }
@@ -1034,7 +1034,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:96]
+ * #### Generated from [EngineProcessModel.kt:95]
  */
 data class MethodDescription (
     val name: String,
@@ -1103,10 +1103,9 @@ data class MethodDescription (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:64]
+ * #### Generated from [EngineProcessModel.kt:63]
  */
 data class RenderParams (
-    val springTestsType: String,
     val testSetsId: Long,
     val classUnderTest: ByteArray,
     val projectType: String,
@@ -1122,7 +1121,8 @@ data class RenderParams (
     val runtimeExceptionTestsBehaviour: String,
     val hangingTestsTimeout: Long,
     val enableTestsTimeout: Boolean,
-    val testClassPackageName: String
+    val testClassPackageName: String,
+    val codeGenerationContext: ByteArray
 ) : IPrintable {
     //companion
     
@@ -1131,7 +1131,6 @@ data class RenderParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): RenderParams  {
-            val springTestsType = buffer.readString()
             val testSetsId = buffer.readLong()
             val classUnderTest = buffer.readByteArray()
             val projectType = buffer.readString()
@@ -1148,11 +1147,11 @@ data class RenderParams (
             val hangingTestsTimeout = buffer.readLong()
             val enableTestsTimeout = buffer.readBool()
             val testClassPackageName = buffer.readString()
-            return RenderParams(springTestsType, testSetsId, classUnderTest, projectType, paramNames, generateUtilClassFile, testFramework, mockFramework, codegenLanguage, parameterizedTestSource, staticsMocking, forceStaticMocking, generateWarningsForStaticMocking, runtimeExceptionTestsBehaviour, hangingTestsTimeout, enableTestsTimeout, testClassPackageName)
+            val codeGenerationContext = buffer.readByteArray()
+            return RenderParams(testSetsId, classUnderTest, projectType, paramNames, generateUtilClassFile, testFramework, mockFramework, codegenLanguage, parameterizedTestSource, staticsMocking, forceStaticMocking, generateWarningsForStaticMocking, runtimeExceptionTestsBehaviour, hangingTestsTimeout, enableTestsTimeout, testClassPackageName, codeGenerationContext)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: RenderParams)  {
-            buffer.writeString(value.springTestsType)
             buffer.writeLong(value.testSetsId)
             buffer.writeByteArray(value.classUnderTest)
             buffer.writeString(value.projectType)
@@ -1169,6 +1168,7 @@ data class RenderParams (
             buffer.writeLong(value.hangingTestsTimeout)
             buffer.writeBool(value.enableTestsTimeout)
             buffer.writeString(value.testClassPackageName)
+            buffer.writeByteArray(value.codeGenerationContext)
         }
         
         
@@ -1184,7 +1184,6 @@ data class RenderParams (
         
         other as RenderParams
         
-        if (springTestsType != other.springTestsType) return false
         if (testSetsId != other.testSetsId) return false
         if (!(classUnderTest contentEquals other.classUnderTest)) return false
         if (projectType != other.projectType) return false
@@ -1201,13 +1200,13 @@ data class RenderParams (
         if (hangingTestsTimeout != other.hangingTestsTimeout) return false
         if (enableTestsTimeout != other.enableTestsTimeout) return false
         if (testClassPackageName != other.testClassPackageName) return false
+        if (!(codeGenerationContext contentEquals other.codeGenerationContext)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + springTestsType.hashCode()
         __r = __r*31 + testSetsId.hashCode()
         __r = __r*31 + classUnderTest.contentHashCode()
         __r = __r*31 + projectType.hashCode()
@@ -1224,13 +1223,13 @@ data class RenderParams (
         __r = __r*31 + hangingTestsTimeout.hashCode()
         __r = __r*31 + enableTestsTimeout.hashCode()
         __r = __r*31 + testClassPackageName.hashCode()
+        __r = __r*31 + codeGenerationContext.contentHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("RenderParams (")
         printer.indent {
-            print("springTestsType = "); springTestsType.print(printer); println()
             print("testSetsId = "); testSetsId.print(printer); println()
             print("classUnderTest = "); classUnderTest.print(printer); println()
             print("projectType = "); projectType.print(printer); println()
@@ -1247,6 +1246,7 @@ data class RenderParams (
             print("hangingTestsTimeout = "); hangingTestsTimeout.print(printer); println()
             print("enableTestsTimeout = "); enableTestsTimeout.print(printer); println()
             print("testClassPackageName = "); testClassPackageName.print(printer); println()
+            print("codeGenerationContext = "); codeGenerationContext.print(printer); println()
         }
         printer.print(")")
     }
@@ -1256,7 +1256,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:83]
+ * #### Generated from [EngineProcessModel.kt:82]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1319,7 +1319,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:87]
+ * #### Generated from [EngineProcessModel.kt:86]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1376,7 +1376,7 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:144]
+ * #### Generated from [EngineProcessModel.kt:143]
  */
 data class SpringAnalyzerResult (
     val beanDefinitions: Array<BeanDefinitionData>
@@ -1433,7 +1433,7 @@ data class SpringAnalyzerResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:37]
+ * #### Generated from [EngineProcessModel.kt:36]
  */
 data class TestGeneratorParams (
     val buildDir: Array<String>,
@@ -1514,7 +1514,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:115]
+ * #### Generated from [EngineProcessModel.kt:114]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

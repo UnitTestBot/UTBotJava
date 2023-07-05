@@ -69,19 +69,19 @@ open class TestCaseGenerator(
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
     private val executionInstrumentation by lazy {
         when (applicationContext) {
-            is SpringApplicationContext -> when (val approach = applicationContext.typeReplacementApproach) {
-                is TypeReplacementApproach.ReplaceIfPossible ->
-                    when (applicationContext.testType) {
-                        SpringTestsType.UNIT_TESTS -> UtExecutionInstrumentation
-                        SpringTestsType.INTEGRATION_TESTS -> SpringUtExecutionInstrumentation(
-                                UtExecutionInstrumentation,
-                                approach.config,
-                                applicationContext.beanDefinitions,
-                                buildDirs.map { it.toURL() }.toTypedArray(),
-                                )
-                    }
-                is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation
+            is SpringApplicationContext -> when (val springSettings = applicationContext.springSettings) {
+                null -> UtExecutionInstrumentation
+                else -> when (applicationContext.springTestType) {
+                    SpringTestType.UNIT_TEST -> UtExecutionInstrumentation
+                    SpringTestType.INTEGRATION_TEST -> SpringUtExecutionInstrumentation(
+                        UtExecutionInstrumentation,
+                        springSettings,
+                        applicationContext.beanDefinitions,
+                        buildDirs.map { it.toURL() }.toTypedArray(),
+                    )
+                }
             }
+
             else -> UtExecutionInstrumentation
         }
     }

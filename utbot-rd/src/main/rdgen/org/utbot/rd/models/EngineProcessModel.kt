@@ -33,7 +33,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("path", PredefinedType.string)
         field("version", PredefinedType.int)
     }
-
     val testGeneratorParams = structdef {
         field("buildDir", array(PredefinedType.string))
         field("classpath", PredefinedType.string.nullable)
@@ -62,7 +61,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("testSetsId", PredefinedType.long)
     }
     val renderParams = structdef {
-        field("springTestsType", PredefinedType.string)
         field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
         field("projectType", PredefinedType.string)
@@ -79,6 +77,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("hangingTestsTimeout", PredefinedType.long)
         field("enableTestsTimeout", PredefinedType.bool)
         field("testClassPackageName", PredefinedType.string)
+        field("codeGenerationContext", array(PredefinedType.byte))
     }
     val renderResult = structdef {
         field("generatedCode", PredefinedType.string)
@@ -89,9 +88,9 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     }
     val getSpringBeanDefinitions = structdef {
         field("classpath", array(PredefinedType.string))
-        field("config", PredefinedType.string)
+        field("configuration", array(PredefinedType.byte))
         field("fileStorage", array(PredefinedType.string))
-        field("profileExpression", PredefinedType.string.nullable)
+        field("profileExpression", PredefinedType.string.nullable) // TODO: why nullable?
     }
     val methodDescription = structdef {
         field("name", PredefinedType.string)

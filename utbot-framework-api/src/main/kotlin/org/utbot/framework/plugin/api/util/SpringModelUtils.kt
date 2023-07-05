@@ -31,6 +31,9 @@ object SpringModelUtils {
     val springBootTestContextBootstrapperClassId =
         ClassId("org.springframework.boot.test.context.SpringBootTestContextBootstrapper")
 
+    val activeProfilesClassId = ClassId("org.springframework.test.context.ActiveProfiles")
+    val contextConfigurationClassId = ClassId("org.springframework.test.context.ContextConfiguration")
+
 
     // most likely only one persistent library is on the classpath, but we need to be able to work with either of them
     private val persistentLibraries = listOf("javax.persistence", "jakarta.persistence")

@@ -134,7 +134,7 @@ open class BaseTestsModel(
             .searchPsiClasses(annotationClass, searchScope)
             .findAll()
             .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-            .mapNotNullTo(mutableSetOf()) { it.binaryName() }
+            .mapNotNullTo(mutableSetOf()) { it.binaryName }
     }
 
     fun getSpringXMLConfigurationFiles(): Set<String> {

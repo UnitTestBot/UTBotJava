@@ -241,7 +241,7 @@ object UtTestsDialogProcessor {
                         val totalClasses = model.srcClasses.size
                         val classNameToPath = runReadAction {
                             model.srcClasses.associate { psiClass ->
-                                psiClass.binaryName() to psiClass.containingFile.virtualFile.canonicalPath
+                                psiClass.binaryName to psiClass.containingFile.virtualFile.canonicalPath
                             }
                         }
 
@@ -320,7 +320,7 @@ object UtTestsDialogProcessor {
                                     var srcNameForLog: String? = null
                                     DumbService.getInstance(project)
                                         .runReadActionInSmartMode(Computable {
-                                            binaryName = srcClass.binaryName()
+                                            binaryName = srcClass.binaryName
                                             srcNameForLog = srcClass.name
                                             srcMethods = if (model.extractMembersFromSrcClasses) {
                                                 val chosenMethods =

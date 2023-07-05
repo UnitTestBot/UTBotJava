@@ -25,9 +25,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PRNUM: ${{ github.event.pull_request.number }}
         with:
-          project-url: https://github.com/orgs/UnitTestBot/projects/2
+          project-url: https://github.com/orgs/AleLise/projects/2
           column: In Progress
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
         run: |
           gh pr edit $PRNUM --add-label "wontfix"
+          echo Link to 

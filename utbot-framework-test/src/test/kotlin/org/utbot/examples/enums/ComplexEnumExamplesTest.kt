@@ -1,24 +1,18 @@
 package org.utbot.examples.enums
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.enums.ComplexEnumExamples.Color
 import org.utbot.examples.enums.ComplexEnumExamples.Color.BLUE
 import org.utbot.examples.enums.ComplexEnumExamples.Color.GREEN
 import org.utbot.examples.enums.ComplexEnumExamples.Color.RED
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.ignoreExecutionsNumber
 
 class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     testClass = ComplexEnumExamples::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testEnumToEnumMapCountValues() {

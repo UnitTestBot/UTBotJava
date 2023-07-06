@@ -15,10 +15,6 @@ import org.utbot.testing.value
 
 internal class FieldMockTest : UtValueTestCaseChecker(
     testClass = ServiceWithField::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
 ) {
     @Test
     fun testMockForField_callMultipleMethods() {

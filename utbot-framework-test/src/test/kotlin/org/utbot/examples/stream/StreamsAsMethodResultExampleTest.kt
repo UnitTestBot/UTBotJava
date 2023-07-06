@@ -1,10 +1,8 @@
 package org.utbot.examples.stream
 
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isException
@@ -16,10 +14,7 @@ import org.utbot.testing.asList
 class StreamsAsMethodResultExampleTest : UtValueTestCaseChecker(
     testClass = StreamsAsMethodResultExample::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    ),
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testReturningStreamExample() {

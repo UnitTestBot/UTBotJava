@@ -14,10 +14,7 @@ import org.utbot.testing.isException
 internal class ListWrapperReturnsVoidTest : UtValueTestCaseChecker(
     testClass = ListWrapperReturnsVoidExample::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testRunForEach() {

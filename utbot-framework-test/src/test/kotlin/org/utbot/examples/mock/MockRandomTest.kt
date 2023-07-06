@@ -4,11 +4,8 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import java.util.Random
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
-import org.utbot.testing.TestExecution
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isParameter
 import org.utbot.testing.mockValues
@@ -20,10 +17,7 @@ import org.utbot.testing.value
 internal class MockRandomTest : UtValueTestCaseChecker(
     testClass = MockRandomExamples::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution),
-        TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testRandomAsParameter() {

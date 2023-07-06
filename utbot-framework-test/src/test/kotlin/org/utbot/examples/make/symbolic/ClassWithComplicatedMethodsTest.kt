@@ -1,6 +1,5 @@
 package org.utbot.examples.make.symbolic
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockStrategyApi
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -8,7 +7,6 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.testing.Compilation
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 
@@ -18,10 +16,7 @@ import org.utbot.testing.UtValueTestCaseChecker
 internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
     testClass = ClassWithComplicatedMethods::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA, Compilation),
-        TestLastStage(CodegenLanguage.KOTLIN, Compilation)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     @Disabled("[SAT-1419]")

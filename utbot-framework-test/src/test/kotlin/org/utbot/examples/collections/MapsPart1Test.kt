@@ -1,7 +1,6 @@
 package org.utbot.examples.collections
 
 import org.junit.jupiter.api.Tag
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
@@ -10,7 +9,6 @@ import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testcheckers.withoutMinimization
 import org.utbot.testing.AtLeast
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.between
@@ -20,10 +18,7 @@ import org.utbot.testing.ignoreExecutionsNumber
 internal class MapsPart1Test : UtValueTestCaseChecker(
     testClass = Maps::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testPutElementIfAbsent() {

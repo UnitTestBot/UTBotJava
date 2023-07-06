@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
+import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
@@ -61,12 +62,39 @@ class CgSpringIntegrationTestClassConstructor(
         )
         addAnnotation(
             classId = activeProfilesClassId,
-            argument = springSettings.profiles.first(), // TODO: andrey
+            namedArguments =
+            listOf(
+                CgNamedAnnotationArgument(
+                    name = "profiles",
+                    value =
+                    CgArrayAnnotationArgument(
+                        springSettings.profiles.map { profile ->
+                            profile.resolve()
+                        }
+                    )
+                )
+            ),
             target = Class,
         )
         addAnnotation(
             classId = contextConfigurationClassId,
-            argument = (springSettings.configuration as JavaConfiguration).classBinaryName, // TODO: andrey
+            namedArguments =
+            listOf(
+                CgNamedAnnotationArgument(
+                    name = "classes",
+                    value = CgArrayAnnotationArgument(
+                        listOf(
+                            createGetClassExpression(
+                                // TODO:
+                                //  For now we support only JavaConfigurations in integration tests.
+                                //  Adapt for XMLConfigurations when supported.
+                                ClassId((springSettings.configuration as JavaConfiguration).classBinaryName),
+                                codegenLanguage
+                            )
+                        )
+                    )
+                )
+            ),
             target = Class,
         )
         addAnnotation(

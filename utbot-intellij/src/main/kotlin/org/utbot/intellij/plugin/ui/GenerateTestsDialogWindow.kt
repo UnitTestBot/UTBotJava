@@ -448,13 +448,15 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                             "Otherwise, mock nothing. Mockito will be installed, if you don't have one."
                 )
             }.enabledIf(ComboBoxPredicate(springConfig) {
-                model.projectType != ProjectType.Spring || !isSpringConfigSelected()
+                model.projectType == ProjectType.PureJvm || !isSpringConfigSelected()
             })
             row { cell(staticsMocking)}
             row {
                 cell(parametrizedTestSources)
                 contextHelp("Parametrization is not supported in some configurations, e.g. if mocks are used.")
-            }
+            }.enabledIf(ComboBoxPredicate(springConfig) {
+                model.projectType == ProjectType.PureJvm
+            })
             row("Test generation timeout:") {
                 cell(BorderLayoutPanel().apply {
                     addToLeft(timeoutSpinner)
@@ -852,7 +854,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             else ->    settings.mockStrategy
         }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
-        parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
+        parametrizedTestSources.isSelected = (settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
+                && model.projectType == ProjectType.PureJvm)
 
         mockStrategies.isEnabled = true
         staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
@@ -1102,23 +1105,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             with((event.source as JComboBox<*>).selectedItem) {
                 if (this is VirtualFile) {
                     model.setSourceRootAndFindTestModule(this@with)
-                }
-                else {
+                } else {
                     model.setSourceRootAndFindTestModule(null)
                 }
             }
         }
 
-        mockStrategies.addActionListener { event ->
-            val comboBox = event.source as ComboBox<*>
-            val item = comboBox.item as MockStrategyApi
-
-            staticsMocking.isEnabled = item != MockStrategyApi.NO_MOCKS
-            if (!staticsMocking.isEnabled) {
-                staticsMocking.isSelected = false
-            }
-
-            updateParametrizationEnabled()
+        mockStrategies.addActionListener { _ ->
+            updateControlsEnabledStatus()
         }
 
         testFrameworks.addActionListener { event ->
@@ -1127,11 +1121,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
             currentFrameworkItem = item
 
-            updateParametrizationEnabled()
+            updateControlsEnabledStatus()
         }
 
         codegenLanguages.addActionListener { _ ->
-            updateParametrizationEnabled()
+            updateControlsEnabledStatus()
         }
 
         parametrizedTestSources.addActionListener { _ ->
@@ -1141,55 +1135,31 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ParametrizedTestSource.DO_NOT_PARAMETRIZE
             }
 
-            when (parametrizedTestSource) {
-                ParametrizedTestSource.PARAMETRIZE -> {
-                    mockStrategies.item = MockStrategyApi.NO_MOCKS
-                    staticsMocking.isEnabled = false
-                    staticsMocking.isSelected = false
-                }
-                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
-                    mockStrategies.isEnabled = true
-                    if (mockStrategies.item != MockStrategyApi.NO_MOCKS) {
-                        staticsMocking.isEnabled = true
-                        staticsMocking.isSelected = true
-                    }
-                }
-            }
-
             updateTestFrameworksList(parametrizedTestSource)
+            updateControlsEnabledStatus()
         }
 
         springConfig.addActionListener { _ ->
             if (isSpringConfigSelected()) {
-                mockStrategies.item = MockStrategyApi.springDefaultItem
-                mockStrategies.isEnabled = false
-                updateMockStrategyListForConfigGuidedTypeReplacements()
-
-                staticsMocking.isEnabled = false
-                staticsMocking.isSelected = true
-
-                springTestsType.let {
-                    it.isEnabled = !isXmlSpringConfigUsed()
-                    if (!it.isEnabled) springTestsType.item = SpringTestsType.defaultItem
+                if (isXmlSpringConfigUsed()) {
+                    springTestsType.item = SpringTestsType.defaultItem
                 }
-                profileNames.isEnabled = true
+
+                if (springTestsType.item == UNIT_TESTS) {
+                    mockStrategies.item = MockStrategyApi.springDefaultItem
+                }
             } else {
                 mockStrategies.item = when (model.projectType) {
                     ProjectType.Spring -> MockStrategyApi.springDefaultItem
                     else -> MockStrategyApi.defaultItem
                 }
-                mockStrategies.isEnabled = true
-                updateMockStrategyList()
 
-                staticsMocking.isEnabled = true
-                staticsMocking.isSelected = mockStrategies.item != MockStrategyApi.NO_MOCKS
-
-                springTestsType.isEnabled = false
                 springTestsType.item = SpringTestsType.defaultItem
 
-                profileNames.isEnabled = false
                 profileNames.text = ""
             }
+            updateMockStrategyList()
+            updateControlsEnabledStatus()
         }
 
         springTestsType.addActionListener { event ->
@@ -1197,6 +1167,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val item = comboBox.item as SpringTestsType
 
             updateTestFrameworkList(item)
+
+            when (item) {
+                UNIT_TESTS -> {
+                    mockStrategies.item = MockStrategyApi.springDefaultItem
+                }
+                INTEGRATION_TESTS -> {
+                    mockStrategies.item = MockStrategyApi.springIntegrationTestItem
+                }
+            }
+            updateMockStrategyList()
+            updateControlsEnabledStatus()
         }
 
         cbSpecifyTestPackage.addActionListener {
@@ -1263,27 +1244,28 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
+    private fun updateStaticMockEnabled() {
+        val mockStrategyIsSupported = mockStrategies.item != MockStrategyApi.NO_MOCKS
+
+        staticsMocking.isEnabled = mockStrategyIsSupported && !isSpringConfigSelected()
+        staticsMocking.isSelected = mockStrategyIsSupported
+    }
+
     private fun updateMockStrategyList() {
         mockStrategies.renderer = object : ColoredListCellRenderer<MockStrategyApi>() {
             override fun customizeCellRenderer(
                 list: JList<out MockStrategyApi>, value: MockStrategyApi,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
-                this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (value != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled) {
-                    this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
+                if(mockStrategies.item == MockStrategyApi.springDefaultItem && isSpringConfigSelected()) {
+                    this.append("Mock using Spring configuration", SimpleTextAttributes.REGULAR_ATTRIBUTES)
                 }
-            }
-        }
-    }
-
-    private fun updateMockStrategyListForConfigGuidedTypeReplacements() {
-        mockStrategies.renderer = object : ColoredListCellRenderer<MockStrategyApi>() {
-            override fun customizeCellRenderer(
-                list: JList<out MockStrategyApi>, value: MockStrategyApi,
-                index: Int, selected: Boolean, hasFocus: Boolean
-            ) {
-                this.append("Mock using Spring configuration", SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                else{
+                    this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                    if (value != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled) {
+                        this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
+                    }
+                }
             }
         }
     }
@@ -1342,6 +1324,31 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 }
 
             }
+    }
+
+    private fun updateControlsEnabledStatus() {
+        mockStrategies.isEnabled = true
+
+        updateParametrizationEnabled()
+        updateStaticMockEnabled()
+
+        if (model.projectType == ProjectType.Spring) {
+            updateSpringControlsEnabledStatus()
+        }
+    }
+
+    private fun updateSpringControlsEnabledStatus() {
+        // Parametrized tests are not supported for Spring
+        parametrizedTestSources.isEnabled = false
+
+        if (isSpringConfigSelected()) {
+            mockStrategies.isEnabled = false
+            profileNames.isEnabled = true
+            springTestsType.isEnabled = !isXmlSpringConfigUsed()
+        } else {
+            profileNames.isEnabled = false
+            springTestsType.isEnabled = false
+        }
     }
 }
 

@@ -134,7 +134,7 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
 
 class CreateObjectAnywayValueProvider(
     val idGenerator: IdGenerator<Int>,
-    val useMock: Boolean = true,
+    val useMock: Boolean = false,
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
     override fun accept(type: FuzzedType) = type.classId.isRefType

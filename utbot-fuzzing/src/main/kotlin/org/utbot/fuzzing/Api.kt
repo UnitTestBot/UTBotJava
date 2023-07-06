@@ -7,6 +7,7 @@ import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
+import org.utbot.fuzzing.utils.transformIfNotEmpty
 import kotlin.random.Random
 
 private val logger by lazy { KotlinLogging.logger {} }
@@ -515,11 +516,11 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 }
             ),
             modify = task.modify
-//                .toMutableList()
-//                .transformIfNotEmpty {
-//                    shuffle(random)
-//                    take(random.nextInt(size + 1))
-//                }
+                .toMutableList()
+                .transformIfNotEmpty {
+                    shuffle(random)
+                    take(configuration.maxNumberOfRecursiveSeedModifications)
+                }
                 .mapTo(arrayListOf()) { routine ->
                     fuzz(
                         routine.types,

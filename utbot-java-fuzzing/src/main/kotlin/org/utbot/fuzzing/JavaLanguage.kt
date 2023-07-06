@@ -44,7 +44,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     StringValueProvider,
     NumberValueProvider,
     ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzObjectWhenTheyCannotBeCreatedClean) { ovp ->
-        ovp.withFallback(CreateObjectAnywayValueProvider(idGenerator, useMock = true))
+        ovp.withFallback(CreateObjectAnywayValueProvider(idGenerator, useMock = false))
     },
     ArrayValueProvider(idGenerator),
     EnumValueProvider(idGenerator),

@@ -151,7 +151,7 @@ class CreateObjectAnywayValueProvider(
         yield(Seed.Recursive(
             construct = Routine.Create(emptyList()) {
                 UtCompositeModel(idGenerator.createId(), type.classId, useMock).fuzzed {
-                    summary = "some object"
+                    summary = "Unsafe object"
                 }
             },
             modify = sequence {
@@ -188,7 +188,7 @@ class CreateObjectAnywayValueProvider(
             },
             empty = Routine.Empty {
                 UtCompositeModel(idGenerator.createId(), type.classId, useMock).fuzzed {
-                    summary = "some object"
+                    summary = "Unsafe object"
                 }
             }
         ))

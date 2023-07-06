@@ -17,12 +17,14 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.SpringTestsType
+import org.utbot.framework.plugin.api.SpringTestType
+import org.utbot.framework.plugin.api.SpringCodeGenerationContext
+import org.utbot.framework.plugin.api.SpringSettings.*
 
 class SpringCodeGenerator(
-    private val springTestsType: SpringTestsType = SpringTestsType.defaultItem,
     val classUnderTest: ClassId,
     val projectType: ProjectType,
+    val codeGenerationContext: SpringCodeGenerationContext,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     generateUtilClassFile: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
@@ -59,9 +61,13 @@ class SpringCodeGenerator(
         val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
-        val astConstructor = when (springTestsType) {
-            SpringTestsType.UNIT_TESTS -> CgSpringUnitTestClassConstructor(context)
-            SpringTestsType.INTEGRATION_TESTS -> CgSpringIntegrationTestClassConstructor(context)
+        val astConstructor = when (codeGenerationContext.springTestType) {
+            SpringTestType.UNIT_TEST -> CgSpringUnitTestClassConstructor(context)
+            SpringTestType.INTEGRATION_TEST ->
+                when (val settings = codeGenerationContext.springSettings) {
+                    is PresentSpringSettings -> CgSpringIntegrationTestClassConstructor(context, settings)
+                    is AbsentSpringSettings -> error("No Spring settings were provided for Spring integration test generation.")
+                }
         }
         val testClassFile = astConstructor.construct(testClassModel)
         logger.info { "Code generation phase finished at ${now()}" }

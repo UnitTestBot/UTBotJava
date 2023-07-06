@@ -49,20 +49,16 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.plugin.api.TypeReplacementApproach.*
-import org.utbot.framework.plugin.api.ApplicationContext
-import org.utbot.framework.plugin.api.BeanDefinitionData
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.SpringApplicationContext
-import org.utbot.framework.plugin.api.SpringTestsType
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.SpringConfiguration.*
+import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
-import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.settings.Settings
@@ -73,6 +69,7 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.PsiClassHelper
 import org.utbot.intellij.plugin.util.isAbstract
+import org.utbot.intellij.plugin.util.binaryName
 import org.utbot.intellij.plugin.util.PluginJdkInfoProvider
 import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
@@ -174,13 +171,21 @@ object UtTestsDialogProcessor {
     }
 
     private fun createTests(project: Project, model: GenerateTestsModel) {
-        val springConfigClass = when (val approach = model.typeReplacementApproach) {
-            DoNotReplace -> null
-            is ReplaceIfPossible ->
-                approach.config.takeUnless { it.endsWith(".xml") }?.let {
-                    PsiClassHelper.findClass(it, project) ?: error("Cannot find configuration class $it.")
-                }
-        }
+        val springConfigClass =
+            when (val settings = model.springSettings) {
+                is AbsentSpringSettings -> null
+                is PresentSpringSettings ->
+                    when (val config = settings.configuration) {
+                        is JavaConfiguration -> {
+                            PsiClassHelper
+                                .findClass(config.classBinaryName, project)
+                                ?: error("Cannot find configuration class ${config.classBinaryName}.")
+                        }
+                        // TODO: for XML config we also need to compile module containing,
+                        //  since it may reference classes from that module
+                        is XMLConfiguration -> null
+                    }
+            }
 
         val filesToCompile = (model.srcClasses + listOfNotNull(springConfigClass))
             .map { it.containingFile.virtualFile }
@@ -236,7 +241,7 @@ object UtTestsDialogProcessor {
                         val totalClasses = model.srcClasses.size
                         val classNameToPath = runReadAction {
                             model.srcClasses.associate { psiClass ->
-                                psiClass.canonicalName to psiClass.containingFile.virtualFile.canonicalPath
+                                psiClass.binaryName to psiClass.containingFile.virtualFile.canonicalPath
                             }
                         }
 
@@ -251,27 +256,16 @@ object UtTestsDialogProcessor {
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanDefinitions =
-                                        when (val approach = model.typeReplacementApproach) {
-                                            DoNotReplace -> emptyList()
-                                            is ReplaceIfPossible -> {
-                                                val contentRoots = runReadAction {
-                                                    listOfNotNull(
-                                                        model.srcModule,
-                                                        springConfigClass?.module
-                                                    ).distinct().flatMap { module ->
-                                                        ModuleRootManager.getInstance(module).contentRoots.toList()
-                                                    }
-                                                }
-
-                                                val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
+                                        when (val settings = model.springSettings) {
+                                            is AbsentSpringSettings -> emptyList()
+                                            is PresentSpringSettings -> {
                                                 process.getSpringBeanDefinitions(
                                                     classpathForClassLoader,
-                                                    approach.config,
-                                                    fileStorage,
-                                                    model.profileNames,
+                                                    settings
                                                 )
                                             }
                                         }
+
                                     val shouldUseImplementors = beanDefinitions.isNotEmpty()
 
                                     val clarifiedBeanDefinitions =
@@ -282,8 +276,8 @@ object UtTestsDialogProcessor {
                                         staticMockingConfigured,
                                         clarifiedBeanDefinitions,
                                         shouldUseImplementors,
-                                        model.typeReplacementApproach,
-                                        model.springTestsType
+                                        model.springTestType,
+                                        model.springSettings,
                                     )
                                 }
                                 else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
@@ -310,12 +304,12 @@ object UtTestsDialogProcessor {
                                 }
 
                                 val (methods, classNameForLog) = process.executeWithTimeoutSuspended {
-                                    var canonicalName = ""
+                                    var binaryName = ""
                                     var srcMethods: List<MemberInfo> = emptyList()
                                     var srcNameForLog: String? = null
                                     DumbService.getInstance(project)
                                         .runReadActionInSmartMode(Computable {
-                                            canonicalName = srcClass.canonicalName
+                                            binaryName = srcClass.binaryName
                                             srcNameForLog = srcClass.name
                                             srcMethods = if (model.extractMembersFromSrcClasses) {
                                                 val chosenMethods =
@@ -329,7 +323,7 @@ object UtTestsDialogProcessor {
                                                 srcClass.extractClassMethodsIncludingNested(false)
                                             }
                                         })
-                                    val classId = process.obtainClassId(canonicalName)
+                                    val classId = process.obtainClassId(binaryName)
                                     psi2KClass[srcClass] = classId
                                     process.findMethodsInClassMatchingSelected(
                                         classId,
@@ -376,20 +370,18 @@ object UtTestsDialogProcessor {
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
                                         val useEngine = when (model.projectType) {
-                                            Spring -> when (model.springTestsType) {
-                                                SpringTestsType.UNIT_TESTS -> true
-                                                SpringTestsType.INTEGRATION_TESTS -> false
+                                            Spring -> when (model.springTestType) {
+                                                UNIT_TEST -> true
+                                                INTEGRATION_TEST -> false
                                             }
                                             else -> true
                                         }
                                         val useFuzzing = when (model.projectType) {
-                                            Spring -> when (model.springTestsType) {
-                                                SpringTestsType.UNIT_TESTS -> when (model.typeReplacementApproach) {
-                                                    DoNotReplace -> true
-                                                    is ReplaceIfPossible -> false
-                                                }
-                                                SpringTestsType.INTEGRATION_TESTS -> true
+                                            Spring -> when (model.springTestType) {
+                                                UNIT_TEST -> model.springSettings is AbsentSpringSettings
+                                                INTEGRATION_TEST -> true
                                             }
+
                                             else -> UtSettings.useFuzzing
                                         }
                                         val rdGenerateResult = process.generate(
@@ -445,7 +437,7 @@ object UtTestsDialogProcessor {
                             // indicator.checkCanceled()
 
                             invokeLater {
-                                generateTests(model, testSetsByClass, psi2KClass, process, indicator)
+                                generateTests(model, applicationContext, testSetsByClass, psi2KClass, process, indicator)
                                 logger.info { "Generation complete" }
                             }
                         }
@@ -465,26 +457,6 @@ object UtTestsDialogProcessor {
         return if (path != null && path.toFile().exists()) path else null
     }
 
-    private val PsiClass.canonicalName: String
-    /*
-    This method calculates exactly name that is used by compiler convention,
-    i.e. result is the exact name of .class file for provided PsiClass.
-    This value is used to provide classes to engine process - follow usages for clarification.
-    Equivalent for Class.getCanonicalName.
-    P.S. We cannot load project class in IDEA jvm
-     */
-        get() {
-            return if (packageName.isEmpty()) {
-                qualifiedName?.replace(".", "$") ?: ""
-            } else {
-                val name = qualifiedName
-                    ?.substringAfter("$packageName.")
-                    ?.replace(".", "$")
-                    ?: error("Unable to get canonical name for $this")
-                "$packageName.$name"
-            }
-        }
-
     private fun clarifyBeanDefinitionReturnTypes(beanDefinitions: List<BeanDefinitionData>, project: Project) =
         beanDefinitions.map { bean ->
             // Here we extract a real return type.
@@ -497,10 +469,12 @@ object UtTestsDialogProcessor {
                 val additionalData = bean.additionalData ?: return@runReadAction null
 
                 val configPsiClass =
-                    PsiClassHelper.findClass(additionalData.configClassFqn, project) ?: return@runReadAction null
-                        .also {
-                            logger.warn("Cannot find configuration class ${additionalData.configClassFqn}.")
-                        }
+                    PsiClassHelper
+                        .findClass(additionalData.configClassName, project)
+                        ?: return@runReadAction null
+                            .also {
+                                logger.warn("Cannot find configuration class ${additionalData.configClassName}.")
+                            }
 
                 val beanPsiMethod =
                     configPsiClass
@@ -520,7 +494,7 @@ object UtTestsDialogProcessor {
                             .also {
                                 logger.warn(
                                     "Several similar methods named ${bean.beanName} " +
-                                            "were found in ${additionalData.configClassFqn} configuration class."
+                                            "were found in ${additionalData.configClassName} configuration class."
                                 )
                             }
 
@@ -529,12 +503,12 @@ object UtTestsDialogProcessor {
                         .findReturnStatements(beanPsiMethod)
                         .mapNotNullTo(mutableSetOf()) { stmt -> stmt.returnValue?.type?.canonicalText }
 
-                beanTypes.singleOrNull() ?: bean.beanTypeFqn
+                beanTypes.singleOrNull() ?: bean.beanTypeName
             } ?: return@map bean
 
             BeanDefinitionData(
                 beanName = bean.beanName,
-                beanTypeFqn = beanType,
+                beanTypeName = beanType,
                 additionalData = bean.additionalData
             )
         }

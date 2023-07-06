@@ -1,5 +1,7 @@
 package org.utbot.instrumentation.instrumentation.execution.context
 
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
@@ -9,7 +11,7 @@ import org.utbot.spring.api.instantiator.SpringApiProviderFacade
 import org.utbot.spring.api.instantiator.InstantiationSettings
 
 class SpringInstrumentationContext(
-    private val springConfig: String,
+    private val springSettings: PresentSpringSettings,
     private val delegateInstrumentationContext: InstrumentationContext,
 ) : InstrumentationContext by delegateInstrumentationContext {
     // TODO: recreate context/app every time whenever we change method under test
@@ -19,9 +21,15 @@ class SpringInstrumentationContext(
 
         val instantiationSettings = InstantiationSettings(
             configurationClasses = arrayOf(
-                classLoader.loadClass(springConfig),
+                // TODO: for now we prohibit generating integration tests with XML configuration supplied,
+                //  so we expect JavaConfigurations only.
+                //  After fix rewrite the following.
+                classLoader.loadClass(
+                    (springSettings.configuration as? JavaConfiguration)?.classBinaryName
+                        ?: error("JavaConfiguration was expected, but ${springSettings.configuration.javaClass.name} was provided.")
+                )
             ),
-            profileExpression = null, // TODO pass profile expression here
+            profiles = springSettings.profiles,
         )
 
         SpringApiProviderFacade

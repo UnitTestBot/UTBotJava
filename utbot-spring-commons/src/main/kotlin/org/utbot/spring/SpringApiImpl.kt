@@ -30,7 +30,7 @@ class SpringApiImpl(
         patchAnnotation(
             annotation = it.getAnnotation(ActiveProfiles::class.java),
             property = "value",
-            newValue = parseProfileExpression(instantiationSettings.profileExpression)
+            newValue = instantiationSettings.profiles
         )
         patchAnnotation(
             annotation = it.getAnnotation(ContextConfiguration::class.java),
@@ -152,23 +152,6 @@ class SpringApiImpl(
         } catch (e: ClassNotFoundException) {
             false
         }
-
-    companion object {
-        private const val DEFAULT_PROFILE_NAME = "default"
-
-        /**
-         * Transforms active profile information
-         * from the form of user input to a list of active profiles.
-         *
-         * Current user input form is comma-separated values, but it may be changed later.
-         */
-        private fun parseProfileExpression(profileExpression: String?): Array<String> =
-            if (profileExpression.isNullOrEmpty()) arrayOf(DEFAULT_PROFILE_NAME)
-            else profileExpression
-                .filter { !it.isWhitespace() }
-                .split(',')
-                .toTypedArray()
-    }
 
     data class SimpleBeanDefinition(
         val beanName: String,

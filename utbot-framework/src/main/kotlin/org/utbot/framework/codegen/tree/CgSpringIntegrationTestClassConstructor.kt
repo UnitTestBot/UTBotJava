@@ -7,12 +7,16 @@ import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
+import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.util.SpringModelUtils
+import org.utbot.framework.plugin.api.util.SpringModelUtils.activeProfilesClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.bootstrapWithClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.contextConfigurationClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapperClassId
@@ -20,20 +24,25 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.springExtensionClass
 import org.utbot.framework.plugin.api.util.SpringModelUtils.transactionalClassId
 import org.utbot.framework.plugin.api.util.utContext
 
-class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSpringTestClassConstructor(context) {
+class CgSpringIntegrationTestClassConstructor(
+    context: CgContext,
+    private val springSettings: PresentSpringSettings
+) : CgAbstractSpringTestClassConstructor(context) {
     override fun constructTestClass(testClassModel: SpringTestClassModel): CgClass {
-        collectSpringSpecificAnnotations()
+        addNecessarySpringSpecificAnnotations()
         return super.constructTestClass(testClassModel)
     }
 
     override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
-        val autowiredFromContextModels = testClassModel.springSpecificInformation.autowiredFromContextModels
+        val autowiredFromContextModels =
+            testClassModel.springSpecificInformation.autowiredFromContextModels
         return constructFieldsWithAnnotation(autowiredClassId, autowiredFromContextModels)
     }
 
-    override fun constructAdditionalMethods() = CgMethodsCluster(header = null, content = emptyList())
+    override fun constructAdditionalMethods() =
+        CgMethodsCluster(header = null, content = emptyList())
 
-    private fun collectSpringSpecificAnnotations() {
+    private fun addNecessarySpringSpecificAnnotations() {
         val springRunnerType = when (testFramework) {
             Junit4 -> SpringModelUtils.runWithClassId
             Junit5 -> SpringModelUtils.extendWithClassId
@@ -41,17 +50,53 @@ class CgSpringIntegrationTestClassConstructor(context: CgContext) : CgAbstractSp
             else -> error("Trying to generate tests for Spring project with non-JVM framework")
         }
 
-        statementConstructor.addAnnotation(
+        addAnnotation(
             classId = springRunnerType,
             argument = createGetClassExpression(springExtensionClassId, codegenLanguage),
             target = Class,
         )
-        statementConstructor.addAnnotation(
+        addAnnotation(
             classId = bootstrapWithClassId,
             argument = createGetClassExpression(springBootTestContextBootstrapperClassId, codegenLanguage),
             target = Class,
         )
-
+        addAnnotation(
+            classId = activeProfilesClassId,
+            namedArguments =
+            listOf(
+                CgNamedAnnotationArgument(
+                    name = "profiles",
+                    value =
+                    CgArrayAnnotationArgument(
+                        springSettings.profiles.map { profile ->
+                            profile.resolve()
+                        }
+                    )
+                )
+            ),
+            target = Class,
+        )
+        addAnnotation(
+            classId = contextConfigurationClassId,
+            namedArguments =
+            listOf(
+                CgNamedAnnotationArgument(
+                    name = "classes",
+                    value = CgArrayAnnotationArgument(
+                        listOf(
+                            createGetClassExpression(
+                                // TODO:
+                                //  For now we support only JavaConfigurations in integration tests.
+                                //  Adapt for XMLConfigurations when supported.
+                                ClassId((springSettings.configuration as JavaConfiguration).classBinaryName),
+                                codegenLanguage
+                            )
+                        )
+                    )
+                )
+            ),
+            target = Class,
+        )
         addAnnotation(
             classId = dirtiesContextClassId,
             namedArguments = listOf(

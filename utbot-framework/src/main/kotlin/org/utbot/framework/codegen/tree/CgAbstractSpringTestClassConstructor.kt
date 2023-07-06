@@ -27,7 +27,6 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
 
     protected val variableConstructor: CgSpringVariableConstructor =
         CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
-    protected val statementConstructor: CgStatementConstructor = CgComponents.getStatementConstructorBy(context)
 
     override fun constructTestClassBody(testClassModel: SpringTestClassModel): CgClassBody {
         return buildClassBody(currentTestClass) {
@@ -88,7 +87,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
         annotationClassId: ClassId,
         groupedModelsByClassId: TypedModelWrappers,
     ): List<CgFieldDeclaration> {
-        val annotation = statementConstructor.addAnnotation(annotationClassId, Field)
+        val annotation = addAnnotation(annotationClassId, Field)
 
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
         for ((classId, listOfUtModels) in groupedModelsByClassId) {
@@ -133,7 +132,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
     }
 
     protected fun constructBeforeMethod(statements: List<CgStatement>): CgFrameworkUtilMethod {
-        val beforeAnnotation = statementConstructor.addAnnotation(context.testFramework.beforeMethodId, Method)
+        val beforeAnnotation = addAnnotation(context.testFramework.beforeMethodId, Method)
         return CgFrameworkUtilMethod(
             name = "setUp",
             statements = statements,
@@ -143,7 +142,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
     }
 
     protected fun constructAfterMethod(statements: List<CgStatement>): CgFrameworkUtilMethod {
-        val afterAnnotation = statementConstructor.addAnnotation(context.testFramework.afterMethodId, Method)
+        val afterAnnotation = addAnnotation(context.testFramework.afterMethodId, Method)
         return CgFrameworkUtilMethod(
             name = "tearDown",
             statements = statements,

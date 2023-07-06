@@ -17,6 +17,26 @@ import org.jetbrains.kotlin.asJava.elements.isSetter
 import org.jetbrains.kotlin.psi.KtClass
 import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
+import org.utbot.intellij.plugin.models.packageName
+
+/**
+ * Used to build binary name from canonical name
+ * in a similar form which could be obtained by [java.lang.Class.getName] method.
+ *
+ * E.g. ```org.example.OuterClass.InnerClass.InnerInnerClass``` -> ```org.example.OuterClass$InnerClass$InnerInnerClass```
+ */
+val PsiClass.binaryName: String
+    get() =
+        if (packageName.isEmpty()) {
+            qualifiedName?.replace(".", "$") ?: ""
+        } else {
+            val name =
+                qualifiedName
+                    ?.substringAfter("$packageName.")
+                    ?.replace(".", "$")
+                    ?: error("Binary name construction failed: unable to get qualified name of $this")
+            "$packageName.$name"
+        }
 
 val PsiMember.isAbstract: Boolean
     get() = modifierList?.hasModifierProperty(PsiModifier.ABSTRACT)?: false
@@ -89,8 +109,16 @@ val PsiClass.isVisible: Boolean
     get() = generateSequence(this) { it.containingClass }.none { it.isPrivateOrProtected }
 
 object PsiClassHelper {
-    fun findClass(name: String, project: Project): PsiClass? =
-        JavaPsiFacade
+    /**
+     * Finds [PsiClass].
+     *
+     * @param name binary name which is converted to canonical name.
+     */
+    fun findClass(name: String, project: Project): PsiClass? {
+        // Converting name to canonical name
+        val canonicalName = name.replace("$", ".")
+        return JavaPsiFacade
             .getInstance(project)
-            .findClass(name, GlobalSearchScope.projectScope(project))
+            .findClass(canonicalName, GlobalSearchScope.projectScope(project))
+    }
 }

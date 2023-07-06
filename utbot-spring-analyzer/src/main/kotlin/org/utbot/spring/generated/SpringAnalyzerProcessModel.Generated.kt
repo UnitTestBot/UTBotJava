@@ -50,7 +50,7 @@ class SpringAnalyzerProcessModel private constructor(
         }
         
         
-        const val serializationHash = 8934866731594302609L
+        const val serializationHash = 8094902537230457267L
         
     }
     override val serializersOwner: ISerializersOwner get() = SpringAnalyzerProcessModel
@@ -97,7 +97,7 @@ val IProtocol.springAnalyzerProcessModel get() = getOrCreateExtension(SpringAnal
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:15]
+ * #### Generated from [SpringAnalyzerModel.kt:13]
  */
 data class BeanAdditionalData (
     val factoryMethodName: String,
@@ -166,7 +166,7 @@ data class BeanAdditionalData (
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:21]
+ * #### Generated from [SpringAnalyzerModel.kt:19]
  */
 data class BeanDefinitionData (
     val beanName: String,
@@ -238,9 +238,7 @@ data class BeanDefinitionData (
  * #### Generated from [SpringAnalyzerModel.kt:9]
  */
 data class SpringAnalyzerParams (
-    val configuration: String,
-    val fileStorage: Array<String>,
-    val profileExpression: String?
+    val springSettings: ByteArray
 ) : IPrintable {
     //companion
     
@@ -249,16 +247,12 @@ data class SpringAnalyzerParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerParams  {
-            val configuration = buffer.readString()
-            val fileStorage = buffer.readArray {buffer.readString()}
-            val profileExpression = buffer.readNullable { buffer.readString() }
-            return SpringAnalyzerParams(configuration, fileStorage, profileExpression)
+            val springSettings = buffer.readByteArray()
+            return SpringAnalyzerParams(springSettings)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerParams)  {
-            buffer.writeString(value.configuration)
-            buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
-            buffer.writeNullable(value.profileExpression) { buffer.writeString(it) }
+            buffer.writeByteArray(value.springSettings)
         }
         
         
@@ -274,27 +268,21 @@ data class SpringAnalyzerParams (
         
         other as SpringAnalyzerParams
         
-        if (configuration != other.configuration) return false
-        if (!(fileStorage contentDeepEquals other.fileStorage)) return false
-        if (profileExpression != other.profileExpression) return false
+        if (!(springSettings contentEquals other.springSettings)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + configuration.hashCode()
-        __r = __r*31 + fileStorage.contentDeepHashCode()
-        __r = __r*31 + if (profileExpression != null) profileExpression.hashCode() else 0
+        __r = __r*31 + springSettings.contentHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("SpringAnalyzerParams (")
         printer.indent {
-            print("configuration = "); configuration.print(printer); println()
-            print("fileStorage = "); fileStorage.print(printer); println()
-            print("profileExpression = "); profileExpression.print(printer); println()
+            print("springSettings = "); springSettings.print(printer); println()
         }
         printer.print(")")
     }
@@ -304,7 +292,7 @@ data class SpringAnalyzerParams (
 
 
 /**
- * #### Generated from [SpringAnalyzerModel.kt:27]
+ * #### Generated from [SpringAnalyzerModel.kt:25]
  */
 data class SpringAnalyzerResult (
     val beanDefinitions: Array<BeanDefinitionData>

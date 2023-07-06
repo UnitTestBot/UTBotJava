@@ -1323,6 +1323,13 @@ enum class TypeReplacementMode {
     NoImplementors,
 }
 
+interface CodeGenerationContext
+
+interface SpringCodeGenerationContext : CodeGenerationContext {
+    val springTestType: SpringTestType
+    val springSettings: SpringSettings
+}
+
 /**
  * A context to use when no specific data is required.
  *
@@ -1332,7 +1339,7 @@ enum class TypeReplacementMode {
 open class ApplicationContext(
     val mockFrameworkInstalled: Boolean = true,
     staticsMockingIsConfigured: Boolean = true,
-) {
+) : CodeGenerationContext {
     var staticsMockingIsConfigured = staticsMockingIsConfigured
         private set
 
@@ -1384,21 +1391,26 @@ open class ApplicationContext(
     ): Boolean = field.isFinal || !field.isPublic
 }
 
-sealed class TypeReplacementApproach {
-    /**
-     * Do not replace interfaces and abstract classes with concrete implementors.
-     * Use mocking instead of it.
-     */
-    object DoNotReplace : TypeReplacementApproach()
+sealed interface SpringConfiguration {
+    class JavaConfiguration(val classBinaryName: String) : SpringConfiguration
+    class XMLConfiguration(val absolutePath: String) : SpringConfiguration
+}
 
-    /**
-     * Try to replace interfaces and abstract classes with concrete implementors
-     * obtained from bean definitions.
-     * If it is impossible, use mocking.
-     *
-     * Currently used in Spring applications only.
-     */
-    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
+sealed interface SpringSettings {
+    class AbsentSpringSettings : SpringSettings {
+        // Denotes no configuration and no profile setting
+
+        // NOTICE:
+        // `class` should not be replaced with `object`
+        // in order to avoid issues caused by Kryo deserialization
+        // that creates new instances breaking `when` expressions
+        // that check reference equality instead of type equality
+    }
+
+    class PresentSpringSettings(
+        val configuration: SpringConfiguration,
+        val profiles: Array<String>
+    ) : SpringSettings
 }
 
 /**
@@ -1422,9 +1434,9 @@ class SpringApplicationContext(
     staticsMockingIsConfigured: Boolean,
     val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
-    val typeReplacementApproach: TypeReplacementApproach,
-    val testType: SpringTestsType
-): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+    override val springTestType: SpringTestType,
+    override val springSettings: SpringSettings,
+): ApplicationContext(mockInstalled, staticsMockingIsConfigured), SpringCodeGenerationContext {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -1436,10 +1448,9 @@ class SpringApplicationContext(
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                // TODO: use more info from SpringBeanDefinitionData than beanTypeFqn offers here
-                for (beanFqn in beanDefinitions.map { it.beanTypeFqn }) {
+                for (beanTypeName in beanDefinitions.map { it.beanTypeName }) {
                     try {
-                        val beanClass = utContext.classLoader.loadClass(beanFqn)
+                        val beanClass = utContext.classLoader.loadClass(beanTypeName)
                         if (!beanClass.isAbstract && !beanClass.isInterface &&
                             !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
                             springInjectedClassesStorage += beanClass.id
@@ -1449,7 +1460,7 @@ class SpringApplicationContext(
                         // it is possible to have problems with classes loading.
                         when (e) {
                             is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
-                                logger.warn { "Failed to load bean class for $beanFqn (${e.message})" }
+                                logger.warn { "Failed to load bean class for $beanTypeName (${e.message})" }
 
                             else -> throw e
                         }
@@ -1500,19 +1511,19 @@ class SpringApplicationContext(
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
 
-enum class SpringTestsType(
+enum class SpringTestType(
     override val id: String,
     override val displayName: String,
     override val description: String,
     // Integration tests generation requires spring test framework being installed
-    var frameworkInstalled: Boolean = false,
+    var testFrameworkInstalled: Boolean = false,
 ) : CodeGenerationSettingItem {
-    UNIT_TESTS(
+    UNIT_TEST(
         "Unit tests",
         "Unit tests",
         "Generate unit tests mocking other classes"
     ),
-    INTEGRATION_TESTS(
+    INTEGRATION_TEST(
         "Integration tests",
         "Integration tests",
         "Generate integration tests autowiring real instance"
@@ -1521,8 +1532,8 @@ enum class SpringTestsType(
     override fun toString() = id
 
     companion object : CodeGenerationSettingBox {
-        override val defaultItem = UNIT_TESTS
-        override val allItems: List<SpringTestsType> = values().toList()
+        override val defaultItem = UNIT_TEST
+        override val allItems: List<SpringTestType> = values().toList()
     }
 }
 
@@ -1530,10 +1541,12 @@ enum class SpringTestsType(
  * Describes information about beans obtained from Spring analysis process.
  *
  * Contains the name of the bean, its type (class or interface) and optional additional data.
+ *
+ * @param beanTypeName a name in a form obtained by [java.lang.Class.getName] method.
  */
 data class BeanDefinitionData(
     val beanName: String,
-    val beanTypeFqn: String,
+    val beanTypeName: String,
     val additionalData: BeanAdditionalData?,
 )
 
@@ -1542,11 +1555,13 @@ data class BeanDefinitionData(
  *
  * Sometimes the actual type of the bean can not be obtained from bean definition.
  * Then we try to recover it by method and class defining bean (e.g. using Psi elements).
+ *
+ * @param configClassName a name in a form obtained by [java.lang.Class.getName] method.
  */
 data class BeanAdditionalData(
     val factoryMethodName: String,
     val parameterTypes: List<String>,
-    val configClassFqn: String,
+    val configClassName: String,
 )
 
 val RefType.isAbstractType

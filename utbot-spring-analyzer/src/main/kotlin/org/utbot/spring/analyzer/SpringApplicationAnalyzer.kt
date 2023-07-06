@@ -10,10 +10,11 @@ import org.utbot.spring.utils.SourceFinder
 class SpringApplicationAnalyzer {
 
     fun getBeanDefinitions(applicationData: ApplicationData): Array<BeanDefinitionData> {
+        // TODO: get rid of SourceFinder
         val configurationClasses = SourceFinder(applicationData).findSources()
         val instantiationSettings = InstantiationSettings(
             configurationClasses,
-            applicationData.profileExpression,
+            applicationData.springSettings.profiles,
         )
 
         return SpringApiProviderFacade.getInstance(this::class.java.classLoader)

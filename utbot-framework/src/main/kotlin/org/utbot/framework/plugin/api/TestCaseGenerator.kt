@@ -34,6 +34,8 @@ import org.utbot.framework.util.ConflictTriggers
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
@@ -69,19 +71,19 @@ open class TestCaseGenerator(
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
     private val executionInstrumentation by lazy {
         when (applicationContext) {
-            is SpringApplicationContext -> when (val approach = applicationContext.typeReplacementApproach) {
-                is TypeReplacementApproach.ReplaceIfPossible ->
-                    when (applicationContext.testType) {
-                        SpringTestsType.UNIT_TESTS -> UtExecutionInstrumentation
-                        SpringTestsType.INTEGRATION_TESTS -> SpringUtExecutionInstrumentation(
-                                UtExecutionInstrumentation,
-                                approach.config,
-                                applicationContext.beanDefinitions,
-                                buildDirs.map { it.toURL() }.toTypedArray(),
-                                )
-                    }
-                is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation
+            is SpringApplicationContext -> when (val settings = applicationContext.springSettings) {
+                is AbsentSpringSettings -> UtExecutionInstrumentation
+                is PresentSpringSettings -> when (applicationContext.springTestType) {
+                    UNIT_TEST -> UtExecutionInstrumentation
+                    INTEGRATION_TEST -> SpringUtExecutionInstrumentation(
+                        UtExecutionInstrumentation,
+                        settings,
+                        applicationContext.beanDefinitions,
+                        buildDirs.map { it.toURL() }.toTypedArray(),
+                    )
+                }
             }
+
             else -> UtExecutionInstrumentation
         }
     }

@@ -7,9 +7,6 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.MockStrategyApi
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
@@ -19,9 +16,12 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.TypeReplacementApproach
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.SpringTestsType
+import org.utbot.framework.plugin.api.SpringTestType
+import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
 
@@ -44,8 +44,6 @@ class GenerateTestsModel(
     override var sourceRootHistory = project.service<Settings>().sourceRootHistory
     override var codegenLanguage = project.service<Settings>().codegenLanguage
 
-    lateinit var springTestsType: SpringTestsType
-
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     lateinit var mockFramework: MockFramework
@@ -59,8 +57,8 @@ class GenerateTestsModel(
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle
 
-    lateinit var typeReplacementApproach: TypeReplacementApproach
-    lateinit var profileNames: String
+    lateinit var springSettings: SpringSettings
+    lateinit var springTestType: SpringTestType
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
     val preCompilePromises: MutableList<Promise<*>> = mutableListOf()

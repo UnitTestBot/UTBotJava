@@ -1,4 +1,4 @@
-package org.utbot.spring.context
+package org.utbot.spring.utils
 
 import org.springframework.core.GenericTypeResolver
 import org.springframework.data.repository.CrudRepository

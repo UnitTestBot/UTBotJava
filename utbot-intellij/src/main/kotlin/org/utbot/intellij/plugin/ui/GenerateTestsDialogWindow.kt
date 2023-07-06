@@ -370,7 +370,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             else -> null
         }
         installedDiFramework?.let {
-            INTEGRATION_TEST.frameworkInstalled = findDependencyInjectionTestLibrary(model.testModule, it) != null
+            INTEGRATION_TEST.testFrameworkInstalled = findDependencyInjectionTestLibrary(model.testModule, it) != null
         }
         model.projectType = if (installedDiFramework != null) ProjectType.Spring else ProjectType.PureJvm
 
@@ -996,7 +996,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             model.preCompilePromises += addDependency(model.testModule, libraryDescriptor)
         }
 
-        INTEGRATION_TEST.frameworkInstalled = true
+        INTEGRATION_TEST.testFrameworkInstalled = true
     }
 
     private fun configureMockFramework() {
@@ -1281,7 +1281,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
                 this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (value == INTEGRATION_TEST && !INTEGRATION_TEST.frameworkInstalled) {
+                if (value == INTEGRATION_TEST && !INTEGRATION_TEST.testFrameworkInstalled) {
                     val additionalText = when {
                         SpringBoot.isInstalled -> " (spring-boot-test will be installed)"
                         SpringBeans.isInstalled -> " (spring-test will be installed)"

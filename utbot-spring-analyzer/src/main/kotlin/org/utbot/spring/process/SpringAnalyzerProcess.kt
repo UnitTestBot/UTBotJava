@@ -22,6 +22,8 @@ import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.SpringAnalyzerResult
 import org.utbot.spring.generated.springAnalyzerProcessModel
 import java.io.File
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.process.kryo.KryoHelper
 
 class SpringAnalyzerProcessInstantDeathException :
     InstantProcessDeathException(
@@ -86,11 +88,12 @@ class SpringAnalyzerProcess private constructor(
 
     private val springAnalyzerModel: SpringAnalyzerProcessModel = onSchedulerBlocking { protocol.springAnalyzerProcessModel }
     private val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
+    private val kryoHelper = KryoHelper(lifetime)
 
     fun getBeanDefinitions(
-        springSettings: ByteArray
+        springSettings: PresentSpringSettings
     ): SpringAnalyzerResult {
-        val params = SpringAnalyzerParams(springSettings)
+        val params = SpringAnalyzerParams(kryoHelper.writeObject(springSettings))
         return springAnalyzerModel.analyze.startBlocking(params)
     }
 }

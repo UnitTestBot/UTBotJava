@@ -44,8 +44,6 @@ class GenerateTestsModel(
     override var sourceRootHistory = project.service<Settings>().sourceRootHistory
     override var codegenLanguage = project.service<Settings>().codegenLanguage
 
-    lateinit var springTestType: SpringTestType
-
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     lateinit var mockFramework: MockFramework
@@ -60,6 +58,7 @@ class GenerateTestsModel(
     lateinit var commentStyle: JavaDocCommentStyle
 
     lateinit var springSettings: SpringSettings
+    lateinit var springTestType: SpringTestType
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
     val preCompilePromises: MutableList<Promise<*>> = mutableListOf()

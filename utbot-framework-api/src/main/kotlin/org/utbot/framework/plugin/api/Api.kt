@@ -1399,6 +1399,12 @@ sealed interface SpringConfiguration {
 sealed interface SpringSettings {
     class AbsentSpringSettings : SpringSettings {
         // Denotes no configuration and no profile setting
+
+        // NOTICE:
+        // `class` should not be replaced with `object`
+        // in order to avoid issues caused by Kryo deserialization
+        // that creates new instances breaking `when` expressions
+        // that check reference equality instead of type equality
     }
 
     class PresentSpringSettings(
@@ -1442,7 +1448,6 @@ class SpringApplicationContext(
     private val springInjectedClasses: Set<ClassId>
         get() {
             if (!areInjectedClassesInitialized) {
-                // TODO: use more info from SpringBeanDefinitionData than beanTypeName offers here
                 for (beanTypeName in beanDefinitions.map { it.beanTypeName }) {
                     try {
                         val beanClass = utContext.classLoader.loadClass(beanTypeName)
@@ -1511,7 +1516,7 @@ enum class SpringTestType(
     override val displayName: String,
     override val description: String,
     // Integration tests generation requires spring test framework being installed
-    var frameworkInstalled: Boolean = false,
+    var testFrameworkInstalled: Boolean = false,
 ) : CodeGenerationSettingItem {
     UNIT_TEST(
         "Unit tests",

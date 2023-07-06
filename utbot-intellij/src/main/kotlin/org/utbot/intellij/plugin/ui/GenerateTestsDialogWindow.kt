@@ -1252,10 +1252,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val mockStrategyIsSupported = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
         staticsMocking.isEnabled = mockStrategyIsSupported && !isSpringConfigSelected()
-
-        if (!staticsMocking.isEnabled) {
-            staticsMocking.isSelected = mockStrategyIsSupported && isSpringConfigSelected()
-        }
+        staticsMocking.isSelected = mockStrategyIsSupported
     }
 
     private fun updateMockStrategyList() {

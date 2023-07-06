@@ -11,15 +11,20 @@ import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
+private fun isIgnored(type: ClassId): Boolean {
+    return type == stringClassId
+            || type == dateClassId
+            || type == NumberValueProvider.classId
+            || type.isCollectionOrMap
+            || type.isPrimitiveWrapper
+            || type.isEnum
+            || type.isAbstract
+            || (type.isInner && !type.isStatic)
+}
+
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
-
-    private val unwantedConstructorsClasses = listOf(
-        stringClassId,
-        dateClassId,
-        NumberValueProvider.classId
-    )
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
 
@@ -88,15 +93,6 @@ class ObjectValueProvider(
         )
     }
 
-    private fun isIgnored(type: ClassId): Boolean {
-        return unwantedConstructorsClasses.contains(type)
-                || type.isCollectionOrMap
-                || type.isPrimitiveWrapper
-                || type.isEnum
-                || type.isAbstract
-                || (type.isInner && !type.isStatic)
-    }
-
     private fun findTypesOfNonRecursiveConstructor(type: FuzzedType, packageName: String?): List<ConstructorId> {
         return type.classId.allConstructors
             .filter { isAccessible(it.constructor, packageName) }
@@ -137,7 +133,7 @@ class CreateObjectAnywayValueProvider(
     val useMock: Boolean = false,
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
-    override fun accept(type: FuzzedType) = type.classId.isRefType
+    override fun accept(type: FuzzedType) = type.classId.isRefType && !isIgnored(type.classId)
 
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
         val methodCalls = description.constants.filter {

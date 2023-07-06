@@ -34,22 +34,26 @@ assignees: ''
 
 - [ ] Use default plugin settings
 - [ ] Open the utbot-sample/src/main/java/org/utbot/examples/mock/CommonMocksExample.java file
-- [ ] Generate tests with different Mocking options combinations
+- [ ] Generate and Run tests with different Mocking options
+- [ ] Check tests consistency, layout, naming, how mocking is done
  
 **Manual scenario #3**
 
-- [ ] Create a new Gradle project with JDK 8
-- [ ] Add a simple java file to test
+- [ ] Create a new Gradle project with JDK 17
+- [ ] Add a sample java file to test
 - [ ] Generate a test in the existing test root
+- [ ] Check tests consistency, layout, naming
  
 **Manual scenario #4**
 
 - [ ] Create a new Maven project with JDK 8
-- [ ] Add a simple java file to test
+- [ ] Add a sample java file to test
 - [ ] Generate a test with a new test root
+- [ ] Check tests consistency, layout, naming
 
 **Manual scenario #5**
 
 - [ ] Create a new Idea project with JDK 11
-- [ ] Add a simple java file to test
+- [ ] Add a sample java file to test
 - [ ] Generate tests for several classes
+- [ ] Check tests consistency, layout, naming

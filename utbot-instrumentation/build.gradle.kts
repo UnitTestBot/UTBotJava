@@ -7,7 +7,6 @@ val kotlinLoggingVersion: String by rootProject
 val rdVersion: String by rootProject
 val mockitoVersion: String by rootProject
 val mockitoInlineVersion: String by rootProject
-val springBootVersion: String by rootProject
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"

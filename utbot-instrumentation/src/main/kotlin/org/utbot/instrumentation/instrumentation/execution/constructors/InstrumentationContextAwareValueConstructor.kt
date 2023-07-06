@@ -5,7 +5,6 @@ import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
 import org.utbot.common.Reflection
 import org.utbot.common.invokeCatching
-import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
@@ -27,7 +26,6 @@ import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
@@ -43,10 +41,9 @@ import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockController
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockController
 import org.utbot.instrumentation.instrumentation.execution.mock.MockController
-import org.utbot.instrumentation.instrumentation.execution.mock.SpringInstrumentationContext
 import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Modifier
 import java.util.*
@@ -57,13 +54,13 @@ import kotlin.reflect.KClass
  *
  * Uses model->constructed object reference-equality cache.
  *
- * This class is based on `ValueConstructor.kt`. The main difference is the ability to create mocked objects and mock
- * static methods.
+ * This class is based on `ValueConstructor.kt`. The main difference is the ability to create mocked objects, mock
+ * static methods, and [construct context dependent values][InstrumentationContext.constructContextDependentValue].
  *
  * Note that `clearState` was deleted!
  */
-// TODO: JIRA:1379 -- Refactor ValueConstructor and MockValueConstructor
-class MockValueConstructor(
+// TODO: JIRA:1379 -- Refactor ValueConstructor and InstrumentationContextAwareValueConstructor
+class InstrumentationContextAwareValueConstructor(
     private val instrumentationContext: InstrumentationContext
 ) {
     private val classLoader: ClassLoader
@@ -111,9 +108,11 @@ class MockValueConstructor(
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
-            is UtSpringContextModel -> UtConcreteValue((instrumentationContext as SpringInstrumentationContext).springContext.context)
-            // PythonModel, JsUtModel may be here
-            else -> throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
+            else -> {
+                instrumentationContext.constructContextDependentValue(model) ?:
+                // PythonModel, JsUtModel may be here
+                throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
+            }
         }
 
     /**

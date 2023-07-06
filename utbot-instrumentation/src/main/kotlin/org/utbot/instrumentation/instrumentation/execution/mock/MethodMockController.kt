@@ -4,6 +4,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import org.utbot.common.withAccessibility
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.mock.MockConfig
 import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
 

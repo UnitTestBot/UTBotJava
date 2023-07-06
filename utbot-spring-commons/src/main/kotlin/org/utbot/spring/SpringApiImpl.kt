@@ -1,18 +1,49 @@
-package org.utbot.spring.context
+package org.utbot.spring
 
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.warn
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.data.repository.CrudRepository
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.TestContextManager
 import org.utbot.common.hasOnClasspath
-import org.utbot.spring.api.context.ContextWrapper
-import org.utbot.spring.api.context.RepositoryDescription
+import org.utbot.common.patchAnnotation
+import org.utbot.spring.api.SpringApi
+import org.utbot.spring.api.RepositoryDescription
+import org.utbot.spring.api.instantiator.InstantiationSettings
+import org.utbot.spring.dummy.DummySpringIntegrationTestClass
+import org.utbot.spring.utils.RepositoryUtils
+import java.lang.reflect.Method
 import java.net.URLClassLoader
+import kotlin.reflect.jvm.javaMethod
 
-private val logger = getLogger<SpringContextWrapper>()
+private val logger = getLogger<SpringApiImpl>()
 
-class SpringContextWrapper(override val context: ConfigurableApplicationContext) : ContextWrapper {
+class SpringApiImpl(
+    instantiationSettings: InstantiationSettings,
+    dummyTestClass: Class<out DummySpringIntegrationTestClass>,
+) : SpringApi {
+    private lateinit var dummyTestClassInstance: DummySpringIntegrationTestClass
+    private val dummyTestClass = dummyTestClass.also {
+        patchAnnotation(
+            annotation = it.getAnnotation(ActiveProfiles::class.java),
+            property = "value",
+            newValue = parseProfileExpression(instantiationSettings.profileExpression)
+        )
+        patchAnnotation(
+            annotation = it.getAnnotation(ContextConfiguration::class.java),
+            property = "classes",
+            newValue = instantiationSettings.configurationClasses
+        )
+    }
+    private val dummyTestMethod: Method = DummySpringIntegrationTestClass::dummyTestMethod.javaMethod!!
+    private val testContextManager: TestContextManager = TestContextManager(this.dummyTestClass)
+
+    private val context get() = testContextManager.testContext.applicationContext as ConfigurableApplicationContext
+
+    override fun getOrLoadSpringApplicationContext() = context
 
     private val isCrudRepositoryOnClasspath = try {
         CrudRepository::class.java.name
@@ -87,7 +118,6 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
                     beanName = repositoryBean.beanName,
                     repositoryName = repositoryClassName,
                     entityName = entity.name,
-                    tableName = getTableName(entity),
                 )
             } else {
                 logger.warn {
@@ -100,6 +130,22 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
         return descriptions
     }
 
+    override fun beforeTestClass() {
+        testContextManager.beforeTestClass()
+        dummyTestClassInstance = dummyTestClass.getConstructor().newInstance()
+        testContextManager.prepareTestInstance(dummyTestClassInstance)
+    }
+
+    override fun beforeTestMethod() {
+        testContextManager.beforeTestMethod(dummyTestClassInstance, dummyTestMethod)
+        testContextManager.beforeTestExecution(dummyTestClassInstance, dummyTestMethod)
+    }
+
+    override fun afterTestMethod() {
+        testContextManager.afterTestExecution(dummyTestClassInstance, dummyTestMethod, null)
+        testContextManager.afterTestMethod(dummyTestClassInstance, dummyTestMethod, null)
+    }
+
     private fun describesRepository(bean: Any): Boolean =
         try {
             bean is CrudRepository<*, *>
@@ -107,7 +153,22 @@ class SpringContextWrapper(override val context: ConfigurableApplicationContext)
             false
         }
 
-    private fun getTableName(entity: Class<*>): String = entity.simpleName.decapitalize() + "s"
+    companion object {
+        private const val DEFAULT_PROFILE_NAME = "default"
+
+        /**
+         * Transforms active profile information
+         * from the form of user input to a list of active profiles.
+         *
+         * Current user input form is comma-separated values, but it may be changed later.
+         */
+        private fun parseProfileExpression(profileExpression: String?): Array<String> =
+            if (profileExpression.isNullOrEmpty()) arrayOf(DEFAULT_PROFILE_NAME)
+            else profileExpression
+                .filter { !it.isWhitespace() }
+                .split(',')
+                .toTypedArray()
+    }
 
     data class SimpleBeanDefinition(
         val beanName: String,

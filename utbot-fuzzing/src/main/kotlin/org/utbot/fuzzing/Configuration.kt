@@ -90,4 +90,9 @@ data class Configuration(
      * to generate a recursive object, but will use [Seed.Recursive.empty] instead.
      */
     var generateEmptyRecursiveForMissedTypes: Boolean = true,
+
+    /**
+     * Limits maximum number of recursive seed modifications
+     */
+    var maxNumberOfRecursiveSeedModifications: Int = 10,
 )

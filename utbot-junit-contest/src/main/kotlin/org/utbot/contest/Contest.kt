@@ -10,9 +10,6 @@ import org.utbot.common.isAbstract
 import org.utbot.engine.EngineController
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.junitByVersion
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -51,7 +48,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.framework.SummariesGenerationType
-import org.utbot.framework.codegen.domain.ProjectType
+import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.minimization.minimizeExecutions
@@ -228,6 +225,7 @@ fun runGeneration(
             forceStaticMocking = forceStaticMocking,
             generateWarningsForStaticMocking = false,
             cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
+            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.PASS,
         )
 
     logger.info().measureTime({ "class ${cut.fqn}" }, { statsForClass }) {

@@ -92,6 +92,23 @@ class SpringConfigurationsHelper(val configType: SpringConfigurationType) {
 
 }
 
+/*
+ * Transforms active profile information
+ * from the form of user input to a list of active profiles.
+ *
+ * NOTICE: Current user input form is comma-separated values, but it may be changed later.
+ */
+fun parseProfileExpression(profileExpression: String?, default: String): Array<String> {
+    if (profileExpression.isNullOrEmpty()) {
+        return arrayOf(default)
+    }
+
+    return profileExpression
+        .filter { !it.isWhitespace() }
+        .split(',')
+        .toTypedArray()
+}
+
 @Deprecated("To be deleted")
 enum class SpringConfigurationType(
     val separatorsToSplitBy: Array<String>,

@@ -54,6 +54,7 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.SideBorder
 import com.intellij.ui.SimpleTextAttributes
+import org.utbot.framework.plugin.api.SpringSettings.*
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -94,7 +95,6 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.SpringTestType
-import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
@@ -133,12 +133,7 @@ import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
-import org.utbot.intellij.plugin.util.IntelliJApiHelper
-import org.utbot.intellij.plugin.util.SpringConfigurationsHelper
-import org.utbot.intellij.plugin.util.extractFirstLevelMembers
-import org.utbot.intellij.plugin.util.findSdkVersion
-import org.utbot.intellij.plugin.util.SpringConfigurationType
-import org.utbot.intellij.plugin.util.findSdkVersionOrNull
+import org.utbot.intellij.plugin.util.*
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -700,26 +695,26 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
         model.testSourceRoot?.apply { model.updateSourceRootHistory(this.toNioPath().toString()) }
 
-        when (springConfig.item) {
-            NO_SPRING_CONFIGURATION_OPTION -> null
-            else -> {
-                val shortConfigName = springConfig.item.toString()
-                //TODO: avoid this check on xml here, merge two helpers into one
-                if (isXmlSpringConfigUsed()) {
-                    val absolutePath = xmlConfigurationHelper.restoreFullName(shortConfigName)
-                    SpringConfiguration.XMLConfiguration(absolutePath)
-                } else {
-                    val classBinaryName = javaConfigurationHelper.restoreFullName(shortConfigName)
-                    SpringConfiguration.JavaConfiguration(classBinaryName)
+        model.springSettings =
+            when (springConfig.item) {
+                NO_SPRING_CONFIGURATION_OPTION -> AbsentSpringSettings()
+                else -> {
+                    val shortConfigName = springConfig.item.toString()
+                    val config =
+                        if (isXmlSpringConfigUsed()) {
+                            val absolutePath = xmlConfigurationHelper.restoreFullName(shortConfigName)
+                            SpringConfiguration.XMLConfiguration(absolutePath)
+                        } else {
+                            val classBinaryName = javaConfigurationHelper.restoreFullName(shortConfigName)
+                            SpringConfiguration.JavaConfiguration(classBinaryName)
+                        }
+
+                    PresentSpringSettings(
+                        configuration = config,
+                        profiles = parseProfileExpression(profileNames.text, DEFAULT_SPRING_PROFILE_NAME)
+                    )
                 }
             }
-        }?.let {
-            model.springSettings =
-                SpringSettings(
-                    configuration = it,
-                    profileExpression = profileNames.text.let { text -> text.ifEmpty { DEFAULT_SPRING_PROFILE_NAME } }
-                )
-        }
 
         model.springTestType = springTestType.item
 
@@ -1148,10 +1143,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         springConfig.addActionListener { _ ->
             if (isSpringConfigSelected()) {
                 if (isXmlSpringConfigUsed()) {
-                    springTestsType.item = SpringTestsType.defaultItem
+                    springTestType.item = SpringTestType.defaultItem
                 }
 
-                if (springTestsType.item == UNIT_TEST) {
+                if (springTestType.item == UNIT_TEST) {
                     mockStrategies.item = MockStrategyApi.springDefaultItem
                 }
             } else {
@@ -1160,7 +1155,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     else -> MockStrategyApi.defaultItem
                 }
 
-                springTestsType.item = SpringTestsType.defaultItem
+                springTestType.item = SpringTestType.defaultItem
 
                 profileNames.text = ""
             }
@@ -1350,10 +1345,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (isSpringConfigSelected()) {
             mockStrategies.isEnabled = false
             profileNames.isEnabled = true
-            springTestsType.isEnabled = !isXmlSpringConfigUsed()
+            springTestType.isEnabled = !isXmlSpringConfigUsed()
         } else {
             profileNames.isEnabled = false
-            springTestsType.isEnabled = false
+            springTestType.isEnabled = false
         }
     }
 }

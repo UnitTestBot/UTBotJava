@@ -695,7 +695,6 @@ object CodeGenerationController {
                     generateUtilClassFile = true,
                     enableTestsTimeout = true,
                     testPackageName,
-                    codeGenerationContext
                 )
             } catch (e: Exception) {
                 logger.warn(e) { "Cannot render test class ${testClass.name}" }

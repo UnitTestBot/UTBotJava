@@ -45,9 +45,7 @@ private fun SpringAnalyzerProcessModel.setup(watchdog: IdleWatchdog, realProtoco
 
     watchdog.measureTimeForActiveCall(analyze, "Analyzing Spring Application") { params ->
         val applicationData = ApplicationData(
-            kryoHelper.readObject(params.configuration),
-            params.fileStorage.map { File(it).toURI().toURL() },
-            params.profileExpression,
+            kryoHelper.readObject(params.springSettings)
         )
 
         SpringAnalyzerResult(

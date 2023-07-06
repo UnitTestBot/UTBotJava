@@ -77,7 +77,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("hangingTestsTimeout", PredefinedType.long)
         field("enableTestsTimeout", PredefinedType.bool)
         field("testClassPackageName", PredefinedType.string)
-        field("codeGenerationContext", array(PredefinedType.byte))
     }
     val renderResult = structdef {
         field("generatedCode", PredefinedType.string)
@@ -88,9 +87,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     }
     val getSpringBeanDefinitions = structdef {
         field("classpath", array(PredefinedType.string))
-        field("configuration", array(PredefinedType.byte))
-        field("fileStorage", array(PredefinedType.string))
-        field("profileExpression", PredefinedType.string.nullable) // TODO: why nullable?
+        field("springSettings", array(PredefinedType.byte))
     }
     val methodDescription = structdef {
         field("name", PredefinedType.string)

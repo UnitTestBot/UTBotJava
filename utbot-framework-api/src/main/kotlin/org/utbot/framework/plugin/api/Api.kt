@@ -1327,7 +1327,7 @@ interface CodeGenerationContext
 
 interface SpringCodeGenerationContext : CodeGenerationContext {
     val springTestType: SpringTestType
-    val springSettings: SpringSettings?
+    val springSettings: SpringSettings
 }
 
 /**
@@ -1396,10 +1396,16 @@ sealed interface SpringConfiguration {
     class XMLConfiguration(val absolutePath: String) : SpringConfiguration
 }
 
-class SpringSettings(
-    val configuration: SpringConfiguration,
-    val profileExpression: String
-)
+sealed interface SpringSettings {
+    class AbsentSpringSettings : SpringSettings {
+        // Denotes no configuration and no profile setting
+    }
+
+    class PresentSpringSettings(
+        val configuration: SpringConfiguration,
+        val profiles: Array<String>
+    ) : SpringSettings
+}
 
 /**
  * Data we get from Spring application context
@@ -1423,7 +1429,7 @@ class SpringApplicationContext(
     val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
     override val springTestType: SpringTestType,
-    override val springSettings: SpringSettings?,
+    override val springSettings: SpringSettings,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured), SpringCodeGenerationContext {
 
     companion object {

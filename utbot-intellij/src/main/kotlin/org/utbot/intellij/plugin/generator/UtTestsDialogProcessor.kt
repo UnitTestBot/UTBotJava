@@ -49,13 +49,10 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.SpringTestType.*
-import org.utbot.framework.plugin.api.BeanDefinitionData
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -175,14 +172,19 @@ object UtTestsDialogProcessor {
 
     private fun createTests(project: Project, model: GenerateTestsModel) {
         val springConfigClass =
-            when (val config = model.springSettings?.configuration) {
-                is JavaConfiguration -> {
-                    PsiClassHelper
-                        .findClass(config.classBinaryName, project)
-                        ?: error("Cannot find configuration class ${config.classBinaryName}.")
-                }
-
-                else -> null
+            when (val settings = model.springSettings) {
+                is AbsentSpringSettings -> null
+                is PresentSpringSettings ->
+                    when (val config = settings.configuration) {
+                        is JavaConfiguration -> {
+                            PsiClassHelper
+                                .findClass(config.classBinaryName, project)
+                                ?: error("Cannot find configuration class ${config.classBinaryName}.")
+                        }
+                        // TODO: for XML config we also need to compile module containing,
+                        //  since it may reference classes from that module
+                        is XMLConfiguration -> null
+                    }
             }
 
         val filesToCompile = (model.srcClasses + listOfNotNull(springConfigClass))
@@ -254,27 +256,16 @@ object UtTestsDialogProcessor {
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanDefinitions =
-                                        when (val approach = model.springSettings) {
-                                            null -> emptyList()
-                                            else -> {
-                                                val contentRoots = runReadAction {
-                                                    listOfNotNull(
-                                                        model.srcModule,
-                                                        springConfigClass?.module
-                                                    ).distinct().flatMap { module ->
-                                                        ModuleRootManager.getInstance(module).contentRoots.toList()
-                                                    }
-                                                }
-
-                                                val fileStorage =  contentRoots.map { root -> root.url }.toTypedArray()
+                                        when (val settings = model.springSettings) {
+                                            is AbsentSpringSettings -> emptyList()
+                                            is PresentSpringSettings -> {
                                                 process.getSpringBeanDefinitions(
                                                     classpathForClassLoader,
-                                                    approach.configuration,
-                                                    approach.profileExpression,
-                                                    fileStorage,
+                                                    settings
                                                 )
                                             }
                                         }
+
                                     val shouldUseImplementors = beanDefinitions.isNotEmpty()
 
                                     val clarifiedBeanDefinitions =
@@ -387,7 +378,7 @@ object UtTestsDialogProcessor {
                                         }
                                         val useFuzzing = when (model.projectType) {
                                             Spring -> when (model.springTestType) {
-                                                UNIT_TEST -> model.springSettings == null
+                                                UNIT_TEST -> model.springSettings is AbsentSpringSettings
                                                 INTEGRATION_TEST -> true
                                             }
 

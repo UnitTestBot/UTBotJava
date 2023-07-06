@@ -7,7 +7,7 @@ import org.utbot.common.hasOnClasspath
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringRepositoryId
-import org.utbot.framework.plugin.api.SpringSettings
+import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -24,7 +24,7 @@ import java.security.ProtectionDomain
  */
 class SpringUtExecutionInstrumentation(
     private val delegateInstrumentation: UtExecutionInstrumentation,
-    private val springSettings: SpringSettings,
+    private val springSettings: PresentSpringSettings,
     private val beanDefinitions: List<BeanDefinitionData>,
     private val buildDirs: Array<URL>,
 ) : Instrumentation<UtConcreteExecutionResult> by delegateInstrumentation {
@@ -56,7 +56,7 @@ class SpringUtExecutionInstrumentation(
         )
 
         userSourcesClassLoader = URLClassLoader(buildDirs, null)
-        instrumentationContext = SpringInstrumentationContext(springConfig, delegateInstrumentation.instrumentationContext)
+        instrumentationContext = SpringInstrumentationContext(springSettings, delegateInstrumentation.instrumentationContext)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
         springApi.beforeTestClass()

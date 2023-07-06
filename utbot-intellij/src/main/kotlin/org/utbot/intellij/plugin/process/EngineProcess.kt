@@ -13,6 +13,7 @@ import com.jetbrains.rd.util.ConcurrentHashMap
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
@@ -144,17 +145,13 @@ class EngineProcess private constructor(val project: Project, private val classN
 
     fun getSpringBeanDefinitions(
         classpathList: List<String>,
-        configuration: SpringConfiguration,
-        profileExpression: String?,
-        fileStorage: Array<String>,
+        springSettings: PresentSpringSettings
     ): List<BeanDefinitionData> {
         assertReadAccessNotAllowed()
         val result = engineModel.getSpringBeanDefinitions.startBlocking(
             GetSpringBeanDefinitions(
                 classpathList.toTypedArray(),
-                kryoHelper.writeObject(configuration),
-                fileStorage,
-                profileExpression
+                kryoHelper.writeObject(springSettings)
             )
         )
         return result.beanDefinitions
@@ -292,7 +289,6 @@ class EngineProcess private constructor(val project: Project, private val classN
         generateUtilClassFile: Boolean,
         enableTestsTimeout: Boolean,
         testClassPackageName: String,
-        codeGenerationContext: CodeGenerationContext,
     ): Pair<String, UtilClassKind?> {
         assertReadAccessNotAllowed()
         val params = makeParams(
@@ -303,7 +299,6 @@ class EngineProcess private constructor(val project: Project, private val classN
             generateUtilClassFile,
             enableTestsTimeout,
             testClassPackageName,
-            codeGenerationContext,
         )
         val result = engineModel.render.startBlocking(params)
         val realUtilClassKind = result.utilClassKind?.let {
@@ -324,7 +319,6 @@ class EngineProcess private constructor(val project: Project, private val classN
         generateUtilClassFile: Boolean,
         enableTestsTimeout: Boolean,
         testClassPackageName: String,
-        codeGenerationContext: CodeGenerationContext,
     ): RenderParams =
         RenderParams(
             testSetsId,
@@ -343,7 +337,6 @@ class EngineProcess private constructor(val project: Project, private val classN
             model.hangingTestsTimeout.timeoutMs,
             enableTestsTimeout,
             testClassPackageName,
-            kryoHelper.writeObject(codeGenerationContext),
         )
 
     private fun getSourceFile(params: SourceStrategyMethodArgs): String? =

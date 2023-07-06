@@ -83,9 +83,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
             val result = springAnalyzerProcess.terminateOnException { _ ->
                 springAnalyzerProcess.getBeanDefinitions(
-                    params.configuration,
-                    params.fileStorage,
-                    params.profileExpression,
+                    params.springSettings
                 )
             }
             springAnalyzerProcess.terminate()
@@ -152,7 +150,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             }
     }
     watchdog.measureTimeForActiveCall(render, "Rendering tests") { params ->
-        val codeGenerator = createCodeGenerator(kryoHelper, params)
+        val codeGenerator = createCodeGenerator(kryoHelper, params, testGenerator.applicationContext)
 
         codeGenerator.generateAsStringWithTestReport(testSets[params.testSetsId]!!).let {
             testGenerationReports.add(it.testsGenerationReport)
@@ -291,7 +289,7 @@ private fun destinationWarningMessage(testPackageName: String?, classUnderTestPa
     }
 }
 
-private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams): AbstractCodeGenerator {
+private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, codeGenerationContext: CodeGenerationContext): AbstractCodeGenerator {
     with(params) {
         val classUnderTest: ClassId = kryoHelper.readObject(classUnderTest)
         val paramNames: MutableMap<ExecutableId, List<String>> = kryoHelper.readObject(paramNames)
@@ -299,7 +297,6 @@ private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams): A
         val staticMocking = if (staticsMocking.startsWith("No")) NoStaticMocking else MockitoStaticMocking
         val forceStaticMocking: ForceStaticMocking = kryoHelper.readObject(forceStaticMocking)
         val projectType = ProjectType.valueOf(projectType)
-        val codeGenerationContext: CodeGenerationContext = kryoHelper.readObject(codeGenerationContext)
 
         return when (codeGenerationContext) {
             is SpringCodeGenerationContext -> {

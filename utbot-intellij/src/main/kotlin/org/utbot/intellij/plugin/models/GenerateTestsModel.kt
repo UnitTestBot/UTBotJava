@@ -59,10 +59,7 @@ class GenerateTestsModel(
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle
 
-    /**
-     * TODO: Null when there is no configuration provided.
-     */
-    var springSettings: SpringSettings? = null
+    lateinit var springSettings: SpringSettings
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
     val preCompilePromises: MutableList<Promise<*>> = mutableListOf()

@@ -34,6 +34,8 @@ import org.utbot.framework.util.ConflictTriggers
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
@@ -69,13 +71,13 @@ open class TestCaseGenerator(
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
     private val executionInstrumentation by lazy {
         when (applicationContext) {
-            is SpringApplicationContext -> when (val springSettings = applicationContext.springSettings) {
-                null -> UtExecutionInstrumentation
-                else -> when (applicationContext.springTestType) {
-                    SpringTestType.UNIT_TEST -> UtExecutionInstrumentation
-                    SpringTestType.INTEGRATION_TEST -> SpringUtExecutionInstrumentation(
+            is SpringApplicationContext -> when (val settings = applicationContext.springSettings) {
+                is AbsentSpringSettings -> UtExecutionInstrumentation
+                is PresentSpringSettings -> when (applicationContext.springTestType) {
+                    UNIT_TEST -> UtExecutionInstrumentation
+                    INTEGRATION_TEST -> SpringUtExecutionInstrumentation(
                         UtExecutionInstrumentation,
-                        springSettings,
+                        settings,
                         applicationContext.beanDefinitions,
                         buildDirs.map { it.toURL() }.toTypedArray(),
                     )

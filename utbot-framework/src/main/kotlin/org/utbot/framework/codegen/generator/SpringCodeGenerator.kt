@@ -19,6 +19,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.SpringCodeGenerationContext
+import org.utbot.framework.plugin.api.SpringSettings.*
 
 class SpringCodeGenerator(
     val classUnderTest: ClassId,
@@ -63,9 +64,10 @@ class SpringCodeGenerator(
         val astConstructor = when (codeGenerationContext.springTestType) {
             SpringTestType.UNIT_TEST -> CgSpringUnitTestClassConstructor(context)
             SpringTestType.INTEGRATION_TEST ->
-                codeGenerationContext.springSettings
-                    ?.let { CgSpringIntegrationTestClassConstructor(context, it) }
-                    ?: error("Error text.")
+                when (val settings = codeGenerationContext.springSettings) {
+                    is PresentSpringSettings -> CgSpringIntegrationTestClassConstructor(context, settings)
+                    is AbsentSpringSettings -> error("No Spring settings were provided for Spring integration test generation.")
+                }
         }
         val testClassFile = astConstructor.construct(testClassModel)
         logger.info { "Code generation phase finished at ${now()}" }

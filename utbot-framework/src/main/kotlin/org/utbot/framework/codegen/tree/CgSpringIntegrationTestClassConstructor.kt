@@ -8,8 +8,8 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.SpringConfiguration
-import org.utbot.framework.plugin.api.SpringSettings
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.activeProfilesClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbClassId
@@ -25,7 +25,7 @@ import org.utbot.framework.plugin.api.util.utContext
 
 class CgSpringIntegrationTestClassConstructor(
     context: CgContext,
-    private val springSettings: SpringSettings
+    private val springSettings: PresentSpringSettings
 ) : CgAbstractSpringTestClassConstructor(context) {
     override fun constructTestClass(testClassModel: SpringTestClassModel): CgClass {
         addNecessarySpringSpecificAnnotations()
@@ -61,12 +61,12 @@ class CgSpringIntegrationTestClassConstructor(
         )
         addAnnotation(
             classId = activeProfilesClassId,
-            argument = springSettings.profileExpression, // TODO: separate by comma
+            argument = springSettings.profiles.first(), // TODO: andrey
             target = Class,
         )
         addAnnotation(
             classId = contextConfigurationClassId,
-            argument = (springSettings.configuration as SpringConfiguration.JavaConfiguration).classBinaryName, // TODO: unpacking
+            argument = (springSettings.configuration as JavaConfiguration).classBinaryName, // TODO: andrey
             target = Class,
         )
         addAnnotation(

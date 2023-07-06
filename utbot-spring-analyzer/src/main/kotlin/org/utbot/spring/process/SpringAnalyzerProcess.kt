@@ -88,11 +88,9 @@ class SpringAnalyzerProcess private constructor(
     private val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
 
     fun getBeanDefinitions(
-        configuration: ByteArray,
-        fileStorage: Array<String>,
-        profileExpression: String?,
+        springSettings: ByteArray
     ): SpringAnalyzerResult {
-        val params = SpringAnalyzerParams(configuration, fileStorage, profileExpression)
+        val params = SpringAnalyzerParams(springSettings)
         return springAnalyzerModel.analyze.startBlocking(params)
     }
 }

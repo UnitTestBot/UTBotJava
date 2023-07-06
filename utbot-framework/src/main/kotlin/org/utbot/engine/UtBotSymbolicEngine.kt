@@ -39,6 +39,7 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
+import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.FieldValueProvider
@@ -388,7 +389,7 @@ class UtBotSymbolicEngine(
         var testEmittedByFuzzer = 0
         val valueProviders = ValueProvider.of(defaultValueProviders(defaultIdGenerator))
             .letIf(applicationContext is SpringApplicationContext
-                        && applicationContext.springSettings != null
+                        && applicationContext.springSettings is PresentSpringSettings
             ) { provider ->
                 val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
                 logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }

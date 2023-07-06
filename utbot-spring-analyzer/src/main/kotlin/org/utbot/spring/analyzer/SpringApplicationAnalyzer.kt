@@ -17,9 +17,9 @@ class SpringApplicationAnalyzer {
         )
 
         return SpringApiProviderFacade.getInstance(this::class.java.classLoader)
-            .useMostSpecificNonFailingAPI(instantiationSettings) { springAPI ->
+            .useMostSpecificNonFailingApi(instantiationSettings) { springApi ->
                 UtBotSpringShutdownException
-                    .catch { springAPI.getOrLoadSpringApplicationContext() }
+                    .catch { springApi.getOrLoadSpringApplicationContext() }
                     .beanDefinitions
                     .toTypedArray()
             }

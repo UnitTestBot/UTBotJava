@@ -2,7 +2,7 @@ package org.utbot.instrumentation.instrumentation.execution.phases
 
 import org.utbot.framework.plugin.api.*
 import java.util.IdentityHashMap
-import org.utbot.instrumentation.instrumentation.execution.constructors.ContextAwareValueConstructor
+import org.utbot.instrumentation.instrumentation.execution.constructors.InstrumentationContextAwareValueConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -36,7 +36,7 @@ class ValueConstructionPhase(
         )
     )
 
-    private val constructor = ContextAwareValueConstructor(instrumentationContext)
+    private val constructor = InstrumentationContextAwareValueConstructor(instrumentationContext)
 
     fun getCache(): ConstructedCache {
         return constructor.objectToModelCache

@@ -7,22 +7,22 @@ import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.springframework.boot.SpringBootVersion
 import org.springframework.core.SpringVersion
-import org.utbot.spring.api.SpringAPI
+import org.utbot.spring.api.SpringApi
 import org.utbot.spring.api.instantiator.SpringApiProviderFacade
 
 private val logger = getLogger<SpringApiProviderFacadeImpl>()
 
 class SpringApiProviderFacadeImpl : SpringApiProviderFacade {
 
-    override fun provideMostSpecificAvailableAPI(instantiationSettings: InstantiationSettings): SpringAPI =
-        useMostSpecificNonFailingAPI(instantiationSettings) { api ->
+    override fun provideMostSpecificAvailableApi(instantiationSettings: InstantiationSettings): SpringApi =
+        useMostSpecificNonFailingApi(instantiationSettings) { api ->
             api.getOrLoadSpringApplicationContext()
             api
         }
 
-    override fun <T> useMostSpecificNonFailingAPI(
+    override fun <T> useMostSpecificNonFailingApi(
         instantiationSettings: InstantiationSettings,
-        apiUser: (SpringAPI) -> T
+        apiUser: (SpringApi) -> T
     ): T {
         logger.info { "Current Java version is: " + System.getProperty("java.version") }
         logger.info { "Current Spring version is: " + runCatching { SpringVersion.getVersion() }.getOrNull() }

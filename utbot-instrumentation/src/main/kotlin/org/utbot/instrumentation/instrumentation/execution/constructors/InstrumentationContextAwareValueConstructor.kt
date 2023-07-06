@@ -59,8 +59,8 @@ import kotlin.reflect.KClass
  *
  * Note that `clearState` was deleted!
  */
-// TODO: JIRA:1379 -- Refactor ValueConstructor and MockValueConstructor
-class ContextAwareValueConstructor(
+// TODO: JIRA:1379 -- Refactor ValueConstructor and InstrumentationContextAwareValueConstructor
+class InstrumentationContextAwareValueConstructor(
     private val instrumentationContext: InstrumentationContext
 ) {
     private val classLoader: ClassLoader

@@ -10,7 +10,7 @@ import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestContextManager
 import org.utbot.common.hasOnClasspath
 import org.utbot.common.patchAnnotation
-import org.utbot.spring.api.SpringAPI
+import org.utbot.spring.api.SpringApi
 import org.utbot.spring.api.RepositoryDescription
 import org.utbot.spring.api.instantiator.InstantiationSettings
 import org.utbot.spring.dummy.DummySpringIntegrationTestClass
@@ -24,7 +24,7 @@ private val logger = getLogger<SpringApiImpl>()
 class SpringApiImpl(
     instantiationSettings: InstantiationSettings,
     dummyTestClass: Class<out DummySpringIntegrationTestClass>,
-) : SpringAPI {
+) : SpringApi {
     private lateinit var dummyTestClassInstance: DummySpringIntegrationTestClass
     private val dummyTestClass = dummyTestClass.also {
         patchAnnotation(

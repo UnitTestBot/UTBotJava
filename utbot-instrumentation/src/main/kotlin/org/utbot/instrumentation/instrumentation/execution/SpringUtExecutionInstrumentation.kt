@@ -13,7 +13,7 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.context.SpringInstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.process.HandlerClassesLoader
-import org.utbot.spring.api.SpringAPI
+import org.utbot.spring.api.SpringApi
 import java.net.URL
 import java.net.URLClassLoader
 import java.security.ProtectionDomain
@@ -33,7 +33,7 @@ class SpringUtExecutionInstrumentation(
 
     private val relatedBeansCache = mutableMapOf<Class<*>, Set<String>>()
 
-    private val springAPI: SpringAPI get() = instrumentationContext.springAPI
+    private val springApi: SpringApi get() = instrumentationContext.springApi
 
     private object SpringBeforeTestMethodPhase : ExecutionPhaseFailingOnAnyException()
     private object SpringAfterTestMethodPhase : ExecutionPhaseFailingOnAnyException()
@@ -58,7 +58,7 @@ class SpringUtExecutionInstrumentation(
         instrumentationContext = SpringInstrumentationContext(springConfig, delegateInstrumentation.instrumentationContext)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
-        springAPI.beforeTestClass()
+        springApi.beforeTestClass()
     }
 
     override fun invoke(
@@ -67,16 +67,16 @@ class SpringUtExecutionInstrumentation(
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult {
-        getRelevantBeans(clazz).forEach { beanName -> springAPI.resetBean(beanName) }
+        getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
 
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
             //     so they are executed in one thread with method under test
-            executePhaseInTimeout(SpringBeforeTestMethodPhase) { springAPI.beforeTestMethod() }
+            executePhaseInTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
             try {
                 invokeBasePhases()
             } finally {
-                executePhaseInTimeout(SpringAfterTestMethodPhase) { springAPI.afterTestMethod() }
+                executePhaseInTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
             }
         }
     }
@@ -86,17 +86,17 @@ class SpringUtExecutionInstrumentation(
             .filter { it.beanTypeFqn == clazz.name }
             // forces `getBean()` to load Spring classes,
             // otherwise execution of method under test may fail with timeout
-            .onEach { springAPI.getBean(it.beanName) }
-            .flatMap { springAPI.getDependenciesForBean(it.beanName, userSourcesClassLoader) }
+            .onEach { springApi.getBean(it.beanName) }
+            .flatMap { springApi.getDependenciesForBean(it.beanName, userSourcesClassLoader) }
             .toSet()
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
     }
 
-    fun getBean(beanName: String): Any = springAPI.getBean(beanName)
+    fun getBean(beanName: String): Any = springApi.getBean(beanName)
 
     fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
         val relevantBeanNames = getRelevantBeans(classId.jClass)
-        val repositoryDescriptions = springAPI.resolveRepositories(relevantBeanNames.toSet(), userSourcesClassLoader)
+        val repositoryDescriptions = springApi.resolveRepositories(relevantBeanNames.toSet(), userSourcesClassLoader)
         return repositoryDescriptions.map { repositoryDescription ->
             SpringRepositoryId(
                 repositoryDescription.beanName,

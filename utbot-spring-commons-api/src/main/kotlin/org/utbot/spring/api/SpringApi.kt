@@ -3,7 +3,7 @@ package org.utbot.spring.api
 import java.net.URLClassLoader
 
 //TODO: `userSourcesClassLoader` must not be passed as a method argument, requires refactoring
-interface SpringAPI {
+interface SpringApi {
     /**
      * NOTE! [Any] return type is used here because Spring itself may not be on the classpath of the API user
      */

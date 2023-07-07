@@ -5,8 +5,12 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testing.Compilation
+import org.utbot.testing.Configuration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 
@@ -16,7 +20,11 @@ import org.utbot.testing.UtValueTestCaseChecker
 internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
     testClass = ClassWithComplicatedMethods::class,
     testCodeGeneration = true,
-    configurations = ignoreKotlinCompilationConfigurations,
+    configurations =  listOf(
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.KOTLIN, ParametrizedTestSource.DO_NOT_PARAMETRIZE, Compilation),
+    ),
 ) {
     @Test
     @Disabled("[SAT-1419]")

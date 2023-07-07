@@ -880,7 +880,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 springTestType.item =
                     if (isSpringConfigSelected()) settings.springTestType else SpringTestType.defaultItem
                 updateSpringSettings()
-                updateTestFrameworkList(settings.springTestType)
+                updateTestFrameworkList(springTestType.item)
             }
             ProjectType.Python,
             ProjectType.JavaScript -> { }

@@ -1,12 +1,10 @@
 package org.utbot.examples.collections
 
 import org.junit.jupiter.api.Disabled
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutMinimization
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isException
@@ -15,10 +13,7 @@ import org.utbot.testing.isException
 internal class MapsPart2Test : UtValueTestCaseChecker(
     testClass = Maps::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testReplaceEntryWithValue() {

@@ -11,11 +11,6 @@ import java.io.File
 
 internal class StaticsPathDiversionTest : UtValueTestCaseChecker(
     testClass = StaticsPathDiversion::class,
-    testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
 ) {
     @Test
     @Disabled("See https://github.com/UnitTestBot/UTBotJava/issues/716")

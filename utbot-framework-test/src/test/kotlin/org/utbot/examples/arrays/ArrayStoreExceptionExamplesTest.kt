@@ -2,20 +2,15 @@ package org.utbot.examples.arrays
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testing.AtLeast
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isException
 
 class ArrayStoreExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ArrayStoreExceptionExamples::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        // Type inference errors in generated Kotlin code
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    // Type inference errors in generated Kotlin code
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testCorrectAssignmentSamePrimitiveType() {

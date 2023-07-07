@@ -2,22 +2,21 @@ package org.utbot.examples.objects
 
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.testing.CodeGeneration
-import org.utbot.testing.Compilation
-import org.utbot.testing.DoNotCalculate
-import org.utbot.testing.UtValueTestCaseChecker
-import org.utbot.testing.isException
+import org.utbot.testing.*
 
 // TODO Kotlin compilation SAT-1332
 // Code generation executions fail due we cannot analyze strings properly for now
 internal class ClassWithClassRefTest : UtValueTestCaseChecker(
     testClass = ClassWithClassRef::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA, Compilation), // TODO JIRA:1479
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    // TODO JIRA:1479
+    configurations = listOf(
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.KOTLIN, ParametrizedTestSource.DO_NOT_PARAMETRIZE, CodeGeneration),
     )
 ) {
     @Test

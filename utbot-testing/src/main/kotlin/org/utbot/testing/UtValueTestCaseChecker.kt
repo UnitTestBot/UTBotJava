@@ -16,7 +16,6 @@ import org.utbot.framework.coverage.counters
 import org.utbot.framework.coverage.methodCoverage
 import org.utbot.framework.coverage.toAtLeast
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.FieldMockTarget
@@ -62,11 +61,8 @@ import kotlin.reflect.KFunction5
 abstract class UtValueTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    pipelines: List<TestLastStage> = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
-) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, pipelines) {
+    configurations: List<Configuration> = standardTestingConfigurations,
+) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, configurations) {
     // contains already analyzed by the engine methods
     private val analyzedMethods: MutableMap<MethodWithMockStrategy, MethodResult> = mutableMapOf()
 
@@ -1872,10 +1868,10 @@ abstract class UtValueTestCaseChecker(
         generateWithNested: Boolean = false,
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
-        val failed = mutableListOf<TestFrameworkConfiguration>()
-        val succeeded = mutableListOf<TestFrameworkConfiguration>()
+        val failed = mutableListOf<TestInfrastructureConfiguration>()
+        val succeeded = mutableListOf<TestInfrastructureConfiguration>()
 
-        allTestFrameworkConfigurations
+        allTestInfrastructureConfigurations
             .filterNot { it.isDisabled }
             .forEach { config ->
                 runCatching {
@@ -1901,12 +1897,12 @@ abstract class UtValueTestCaseChecker(
     @Suppress("ControlFlowWithEmptyBody", "UNUSED_VARIABLE")
     private fun internalCheckForCodeGeneration(
         method: KFunction<*>,
-        testFrameworkConfiguration: TestFrameworkConfiguration,
+        testInfrastructureConfiguration: TestInfrastructureConfiguration,
         generateWithNested: Boolean,
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
-        withSettingsFromTestFrameworkConfiguration(testFrameworkConfiguration) {
-            with(testFrameworkConfiguration) {
+        withSettingsFromTestFrameworkConfiguration(testInfrastructureConfiguration) {
+            with(testInfrastructureConfiguration) {
 
                 val executableId = method.executableId
                 computeAdditionalDependenciesClasspathAndBuildDir(method.declaringClazz, emptyArray())
@@ -1924,7 +1920,7 @@ abstract class UtValueTestCaseChecker(
 
                     // if force mocking took place in parametrized test generation,
                     // we do not need to process this [testSet]
-                    if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+                    if (TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration.isParametrizedAndMocked) {
                         conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                         return
                     }
@@ -1941,9 +1937,9 @@ abstract class UtValueTestCaseChecker(
                         lastStage = TestExecution,
                         status = ExecutionStatus.SUCCESS
                     )
-                    val classStages = listOf(ClassStages(classUnderTest, stageStatusCheck, listOf(testSet)))
+                    val classStages = ClassStages(classUnderTest, stageStatusCheck, listOf(testSet))
 
-                    TestCodeGeneratorPipeline(testFrameworkConfiguration).runClassesCodeGenerationTests(classStages)
+                    TestCodeGeneratorPipeline(testInfrastructureConfiguration).runClassesCodeGenerationTests(classStages)
                 }
             }
         }
@@ -1993,7 +1989,7 @@ abstract class UtValueTestCaseChecker(
 
             // if force mocking took place in parametrized test generation,
             // we do not need to process this [testSet]
-            if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+            if (TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration.isParametrizedAndMocked) {
                 conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                 return
             }
@@ -2010,7 +2006,7 @@ abstract class UtValueTestCaseChecker(
                 "Coverage matcher '$coverageMatcher' fails for $coverage (at least: ${coverage.toAtLeast()})"
             }
 
-            processTestCase(testSet)
+            processTestSet(testSet)
         }
     }
 
@@ -2277,19 +2273,19 @@ private typealias Mocks = List<MockInfo>
 private typealias Instrumentation = List<UtInstrumentation>
 
 inline fun <reified T> withSettingsFromTestFrameworkConfiguration(
-    config: TestFrameworkConfiguration,
+    config: TestInfrastructureConfiguration,
     block: () -> T
 ): T {
     val substituteStaticsWithSymbolicVariable = UtSettings.substituteStaticsWithSymbolicVariable
     UtSettings.substituteStaticsWithSymbolicVariable = config.resetNonFinalFieldsAfterClinit
 
-    val previousConfig = TestCodeGeneratorPipeline.currentTestFrameworkConfiguration
-    TestCodeGeneratorPipeline.currentTestFrameworkConfiguration = config
+    val previousConfig = TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration
+    TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration = config
     try {
         return block()
     } finally {
         UtSettings.substituteStaticsWithSymbolicVariable = substituteStaticsWithSymbolicVariable
-        TestCodeGeneratorPipeline.currentTestFrameworkConfiguration = previousConfig
+        TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration = previousConfig
     }
 }
 

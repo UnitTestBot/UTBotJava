@@ -1,12 +1,10 @@
 package org.utbot.examples.collections
 
 import org.junit.jupiter.api.Disabled
-import org.utbot.framework.plugin.api.CodegenLanguage
 import kotlin.math.min
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
@@ -16,10 +14,7 @@ import org.utbot.testing.ignoreExecutionsNumber
 internal class ListIteratorsTest : UtValueTestCaseChecker(
     testClass = ListIterators::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testReturnIterator() {

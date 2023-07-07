@@ -12,11 +12,7 @@ import org.utbot.testing.*
 internal class SortTest : UtValueTestCaseChecker(
     testClass = Sort::class,
     testCodeGeneration = true,
-    configurations = listOf(
-        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, TestExecution),
-        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.PARAMETRIZE, TestExecution),
-        Configuration(CodegenLanguage.KOTLIN, ParametrizedTestSource.DO_NOT_PARAMETRIZE, CodeGeneration),
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testQuickSort() {

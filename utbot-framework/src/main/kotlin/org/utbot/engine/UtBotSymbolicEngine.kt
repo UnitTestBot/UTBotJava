@@ -424,7 +424,7 @@ class UtBotSymbolicEngine(
                     .with(ValueProvider.of(relevantRepositories.map { SavedEntityValueProvider(defaultIdGenerator, it) }))
                     .with(ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(defaultIdGenerator, it) }))
             }.let(transform)
-        val coverageToMinStateBeforeSize = mutableMapOf<Coverage, Int>()
+        val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
         runJavaFuzzing(
             defaultIdGenerator,
             methodUnderTest,
@@ -485,11 +485,11 @@ class UtBotSymbolicEngine(
             if (coveredInstructions.isNotEmpty()) {
                 trieNode = descr.tracer.add(coveredInstructions)
 
-                val earlierStateBeforeSize = coverageToMinStateBeforeSize[concreteExecutionResult.coverage]
+                val earlierStateBeforeSize = coverageToMinStateBeforeSize[trieNode]
                 val curStateBeforeSize = stateBefore.calculateSize()
 
                 if (earlierStateBeforeSize == null || curStateBeforeSize < earlierStateBeforeSize)
-                    coverageToMinStateBeforeSize[concreteExecutionResult.coverage] = curStateBeforeSize
+                    coverageToMinStateBeforeSize[trieNode] = curStateBeforeSize
                 else {
                     if (++attempts >= attemptsLimit) {
                         return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)

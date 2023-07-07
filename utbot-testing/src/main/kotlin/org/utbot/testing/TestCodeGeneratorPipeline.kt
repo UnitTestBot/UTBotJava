@@ -40,14 +40,14 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
 
     private fun runPipelinesStages(classPipeline: ClassPipeline): CodeGenerationResult {
         val classUnderTest = classPipeline.stageContext.classUnderTest
-        val classPipelineName =
-            classUnderTest.qualifiedName ?: error("${classUnderTest.simpleName} doesn't have a fqn name")
+        val classPipelineName = classUnderTest.qualifiedName
+            ?: error("${classUnderTest.simpleName} doesn't have a fqn name")
 
         logger
             .info()
             .measureTime({ "Executing code generation tests for [$classPipelineName]" }) {
                 CodeGeneration.verifyPipeline(classPipeline)?.let {
-                    withUtContext(UtContext(it.stageContext.classUnderTest.java.classLoader)) {
+                    withUtContext(UtContext(classUnderTest.java.classLoader)) {
                         processCodeGenerationStage(it)
                     }
                 }
@@ -86,13 +86,13 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
                     val prefix = when (codegenLanguage) {
                         CodegenLanguage.JAVA ->
                             when (parametrizedTestSource) {
-                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "public void "
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "@Test"
                                 ParametrizedTestSource.PARAMETRIZE -> "public void parameterizedTestsFor"
                             }
 
                         CodegenLanguage.KOTLIN ->
                             when (parametrizedTestSource) {
-                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "fun "
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "@Test"
                                 ParametrizedTestSource.PARAMETRIZE -> "fun parameterizedTestsFor"
                             }
                     }

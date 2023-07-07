@@ -21,7 +21,7 @@ internal class OrderServiceTests : UtValueTestCaseChecker(
             branches = eq(1),
             { mocks, r ->
                 val orderRepository = mocks.singleMock("orderRepository", findAllRepositoryCall)
-                orderRepository.value<List<Order>?>(0) == r
+                orderRepository.value<List<Order>?>() == r
             },
             coverage = DoNotCalculate,
             mockStrategy = MockStrategyApi.OTHER_CLASSES,
@@ -37,7 +37,7 @@ internal class OrderServiceTests : UtValueTestCaseChecker(
             branches = ignoreExecutionsNumber,
             { _: Order?, mocks, r: Result<Order?> ->
                 val orderRepository = mocks.singleMock("orderRepository", saveRepositoryCall)
-                orderRepository.value<Order?>(0) == r.getOrNull()
+                orderRepository.value<Order?>() == r.getOrNull()
             },
             coverage = DoNotCalculate,
             mockStrategy = MockStrategyApi.OTHER_CLASSES,

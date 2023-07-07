@@ -1,11 +1,7 @@
 dependencies {
-    api project(':utbot-framework-api')
-    implementation(project(":utbot-framework"))
-
+    testImplementation(project(":utbot-framework"))
     testImplementation project(':utbot-testing')
     testImplementation project(':utbot-spring-sample')
-    testImplementation project(":utbot-framework").sourceSets.test.output
-    testImplementation project(":utbot-core").sourceSets.test.output
 
     // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
     // testImplementation group: 'junit', name: 'junit', version: '4.13.1'

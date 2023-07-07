@@ -880,7 +880,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 springTestType.item =
                     if (isSpringConfigSelected()) settings.springTestType else SpringTestType.defaultItem
                 updateSpringSettings()
-                updateTestFrameworkList(settings.springTestType)
+                updateTestFrameworksList(springTestType.item)
             }
             ProjectType.Python,
             ProjectType.JavaScript -> { }
@@ -1167,7 +1167,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val comboBox = event.source as ComboBox<*>
             val item = comboBox.item as SpringTestType
 
-            updateTestFrameworkList(item)
+            updateTestFrameworksList(item)
 
             when (item) {
                 UNIT_TEST -> {
@@ -1205,20 +1205,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
         enabledTestFrameworks.forEach { if (it.isInstalled && !defaultItem.isInstalled) defaultItem = it }
 
-        updateTestFrameworkList(enabledTestFrameworks, defaultItem)
+        updateTestFrameworksList(enabledTestFrameworks, defaultItem)
     }
 
-    private fun updateTestFrameworkList(springTestType: SpringTestType) {
+    private fun updateTestFrameworksList(springTestType: SpringTestType) {
         // We do not support Spring integration tests for TestNg
         val enabledTestFrameworks = when (springTestType) {
             UNIT_TEST -> TestFramework.allItems
             INTEGRATION_TEST -> TestFramework.allItems.filterNot { it == TestNg }
         }
 
-        updateTestFrameworkList(enabledTestFrameworks)
+        updateTestFrameworksList(enabledTestFrameworks)
     }
 
-    private fun updateTestFrameworkList(
+    private fun updateTestFrameworksList(
         enabledTestFrameworks: List<TestFramework>,
         defaultItem: TestFramework = TestFramework.defaultItem,
     ) {

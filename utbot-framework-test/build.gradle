@@ -9,7 +9,6 @@ dependencies {
     implementation(project(":utbot-framework"))
     testImplementation project(':utbot-sample')
     testImplementation project(':utbot-spring-sample')
-    testImplementation project(':utbot-spring-test')
     testImplementation project(":utbot-framework").sourceSets.test.output
     testImplementation project(":utbot-core").sourceSets.test.output
 
@@ -46,6 +45,15 @@ dependencies {
 
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
+    testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
+
+    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa', version: springBootVersion
+}
+
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
 }
 
 // This is required to avoid conflict between SpringBoot standard logger and the logger of our project.

@@ -173,7 +173,7 @@ class CgFieldDeclaration(
     val ownerClassId: ClassId,
     val declaration: CgDeclaration,
     val annotation: CgAnnotation? = null,
-    val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
+    val visibility: VisibilityModifier = VisibilityModifier.PRIVATE,
 ) : CgElement
 
 /**

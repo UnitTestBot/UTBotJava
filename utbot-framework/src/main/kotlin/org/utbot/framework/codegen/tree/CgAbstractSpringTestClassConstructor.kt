@@ -36,8 +36,6 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
             fields += constructClassFields(testClassModel)
             clearUnwantedVariableModels()
 
-            methodRegions += constructAdditionalMethods()
-
             for ((testSetIndex, testSet) in testClassModel.methodTestSets.withIndex()) {
                 updateCurrentExecutable(testSet.executableId)
                 withTestSetIdScope(testSetIndex) {
@@ -49,6 +47,8 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
                     methodRegions += executableUnderTestCluster
                 }
             }
+
+            methodRegions += constructAdditionalMethods()
 
             if (currentTestClass == outerMostTestClass) {
                 val utilEntities = collectUtilEntities()

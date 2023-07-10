@@ -294,10 +294,11 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
     }
 
     override fun addDataProviderAnnotations(dataProviderMethodName: String) {
+        val nameArgument = CgNamedAnnotationArgument("name", stringLiteral(dataProviderMethodName))
         statementConstructor.addAnnotation(
-            testFramework.methodSourceAnnotationId,
-            listOf("name" to stringLiteral(dataProviderMethodName)),
-            Method,
+            classId = testFramework.methodSourceAnnotationId,
+            namedArguments = listOf(nameArgument),
+            target = Method,
         )
     }
 
@@ -307,11 +308,13 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
         }
 
     override fun addParameterizedTestAnnotations(dataProviderMethodName: String?) {
-            statementConstructor.addAnnotation(
-                testFramework.parameterizedTestAnnotationId,
-                listOf("dataProvider" to CgLiteral(stringClassId, dataProviderMethodName)),
-                Method,
-            )
+        val dataProviderArgument =
+            CgNamedAnnotationArgument("dataProvider", CgLiteral(stringClassId, dataProviderMethodName))
+        statementConstructor.addAnnotation(
+            classId = testFramework.parameterizedTestAnnotationId,
+            namedArguments = listOf(dataProviderArgument),
+            target = Method,
+        )
     }
 
     override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) =

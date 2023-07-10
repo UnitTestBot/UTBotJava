@@ -1,6 +1,6 @@
 package org.utbot.spring.provider
 
-import org.utbot.spring.api.instantiator.InstantiationSettings
+import org.utbot.spring.api.provider.InstantiationSettings
 import org.utbot.spring.dummy.DummySpringBootIntegrationTestClass
 import org.utbot.spring.SpringApiImpl
 import org.utbot.spring.dummy.DummySpringBootIntegrationTestClassAutoconfigTestDB

@@ -8,8 +8,6 @@ dependencies {
 
     implementation(project(":utbot-framework"))
     testImplementation project(':utbot-sample')
-    testImplementation project(':utbot-spring-sample')
-    testImplementation project(':utbot-spring-test')
     testImplementation project(":utbot-framework").sourceSets.test.output
     testImplementation project(":utbot-core").sourceSets.test.output
 

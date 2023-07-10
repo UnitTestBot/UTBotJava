@@ -36,6 +36,7 @@ import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.util.calculateSize
 import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
@@ -424,6 +425,7 @@ class UtBotSymbolicEngine(
                     .with(ValueProvider.of(relevantRepositories.map { SavedEntityValueProvider(defaultIdGenerator, it) }))
                     .with(ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(defaultIdGenerator, it) }))
             }.let(transform)
+        val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
         runJavaFuzzing(
             defaultIdGenerator,
             methodUnderTest,
@@ -450,15 +452,15 @@ class UtBotSymbolicEngine(
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
             }
 
-            val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
+            val stateBefore = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
                 val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)
-                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf(), timeoutMillis)
+                concreteExecutor.executeConcretely(methodUnderTest, stateBefore, listOf(), timeoutMillis)
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }; null
             } catch (e: InstrumentedProcessDeathException) {
-                emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
+                emitFailedConcreteExecutionResult(stateBefore, e); null
             } catch (e: Throwable) {
                 emit(UtError("Default concrete execution failed", e)); null
             }
@@ -480,9 +482,16 @@ class UtBotSymbolicEngine(
             val result = concreteExecutionResult.result
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             var trieNode: Trie.Node<Instruction>? = null
+
             if (coveredInstructions.isNotEmpty()) {
                 trieNode = descr.tracer.add(coveredInstructions)
-                if (trieNode.count > 1) {
+
+                val earlierStateBeforeSize = coverageToMinStateBeforeSize[trieNode]
+                val curStateBeforeSize = stateBefore.calculateSize()
+
+                if (earlierStateBeforeSize == null || curStateBeforeSize < earlierStateBeforeSize)
+                    coverageToMinStateBeforeSize[trieNode] = curStateBeforeSize
+                else {
                     if (++attempts >= attemptsLimit) {
                         return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                     }
@@ -500,7 +509,7 @@ class UtBotSymbolicEngine(
 
             emit(
                 UtFuzzedExecution(
-                    stateBefore = initialEnvironmentModels,
+                    stateBefore = stateBefore,
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
                     coverage = concreteExecutionResult.coverage,

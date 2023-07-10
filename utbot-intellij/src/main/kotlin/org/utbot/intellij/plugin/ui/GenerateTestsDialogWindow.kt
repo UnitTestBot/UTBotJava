@@ -986,7 +986,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 else -> error("Unsupported DI framework type $framework")
             }
 
-            model.preCompilePromises += addDependency(model.testModule, libraryDescriptor)
+            model.preClasspathCollectionPromises += addDependency(model.testModule, libraryDescriptor)
         }
 
         framework.testFrameworkInstalled = true

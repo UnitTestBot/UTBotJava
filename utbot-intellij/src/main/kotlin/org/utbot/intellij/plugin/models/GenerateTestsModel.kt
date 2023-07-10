@@ -61,7 +61,7 @@ class GenerateTestsModel(
     lateinit var springTestType: SpringTestType
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
-    val preCompilePromises: MutableList<Promise<*>> = mutableListOf()
+    val preClasspathCollectionPromises: MutableList<Promise<*>> = mutableListOf()
 
     var runGeneratedTestsWithCoverage : Boolean = false
     var summariesGenerationType : SummariesGenerationType = UtSettings.summaryGenerationType

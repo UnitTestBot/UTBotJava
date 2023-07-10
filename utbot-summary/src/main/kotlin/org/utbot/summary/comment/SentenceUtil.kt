@@ -91,15 +91,26 @@ val nextSynonyms = arrayOf(
     "then"
 )
 
-val skipInvokes = arrayOf(
+val forbiddenMethodInvokes = arrayOf(
     "<init>",
     "<clinit>",
     "valueOf",
-    "getClass"
+    "getClass",
 )
 
-// TODO: SAT-1589
-fun shouldSkipInvoke(invoke: String) = (invoke in skipInvokes) || (invoke.endsWith('$'))
+val forbiddenClassInvokes = arrayOf(
+    "soot.dummy.InvokeDynamic"
+)
+
+/**
+ * Filters out
+ * ```soot.dummy.InvokeDynamic#makeConcat```,
+ * ```soot.dummy.InvokeDynamic#makeConcatWithConstants```,
+ * constructor calls (```<init>```), ```bootstrap$```
+ * and other unwanted things from name and comment text.
+ */
+fun shouldSkipInvoke(className: String, methodName: String) =
+    className in forbiddenClassInvokes || methodName in forbiddenMethodInvokes || methodName.endsWith("$")
 
 fun squashDocRegularStatements(sentences: List<DocStatement>): List<DocStatement> {
     val newStatements = mutableListOf<DocStatement>()

@@ -385,11 +385,12 @@ class SimpleNameBuilder(
                     prefix = "Return"
                     name = name ?: ""
                 } else if (statementTag.basicTypeTag == BasicTypeTag.Invoke && statementTag.uniquenessTag == UniquenessTag.Unique) {
+                    val declaringClass = stmt.invokeExpr.methodRef.declaringClass
                     val methodName = stmt.invokeExpr.method.name.capitalize()
-                    if (!shouldSkipInvoke(methodName)) {
+                    if (!shouldSkipInvoke(declaringClass.name, methodName)) {
                         if (stmt is JAssignStmt || stmt is JInvokeStmt) {
                             type = NameType.Invoke
-                            prefix += stmt.invokeExpr.methodRef.declaringClass.javaStyleName.substringBefore('$') //class name
+                            prefix += declaringClass.javaStyleName.substringBefore('$')
                             prefix += methodName
                             name =
                                 "" //todo change var name to val name, everything should be mapped through .convertNodeToString

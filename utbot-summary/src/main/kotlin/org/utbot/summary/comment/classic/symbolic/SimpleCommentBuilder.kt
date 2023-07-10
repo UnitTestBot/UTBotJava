@@ -301,8 +301,9 @@ open class SimpleCommentBuilder(
      */
     protected fun addTextRecursion(sentenceBlock: SimpleSentenceBlock, stmt: Stmt, frequency: Int) {
         if (stmt is JAssignStmt || stmt is JInvokeStmt) {
+            val className = stmt.invokeExpr.methodRef.declaringClass.name
             val methodName = stmt.invokeExpr.method.name
-            addTextRecursion(sentenceBlock, methodName, frequency)
+            addTextRecursion(sentenceBlock, className, methodName, frequency)
         }
     }
 
@@ -337,7 +338,7 @@ open class SimpleCommentBuilder(
         isPrivate: Boolean,
         frequency: Int
     ) {
-        if (!shouldSkipInvoke(methodName))
+        if (!shouldSkipInvoke(className, methodName))
             sentenceBlock.stmtTexts.add(
                 StmtDescription(
                     StmtType.Invoke,
@@ -352,10 +353,11 @@ open class SimpleCommentBuilder(
      */
     protected fun addTextRecursion(
         sentenceBlock: SimpleSentenceBlock,
+        className: String,
         methodName: String,
         frequency: Int
     ) {
-        if (!shouldSkipInvoke(methodName))
+        if (!shouldSkipInvoke(className, methodName))
             sentenceBlock.stmtTexts.add(
                 StmtDescription(
                     StmtType.RecursionAssignment,

@@ -62,9 +62,11 @@ import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
+import org.utbot.framework.codegen.util.TAB
 import org.utbot.framework.codegen.util.canBeReadFrom
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.equalTo
+import org.utbot.framework.codegen.util.escapeControlChars
 import org.utbot.framework.codegen.util.inc
 import org.utbot.framework.codegen.util.length
 import org.utbot.framework.codegen.util.lessThan
@@ -153,7 +155,6 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
 import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
 import java.security.AccessControlException
@@ -338,7 +339,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $expectedException")
             PASSED_EXCEPTION -> {
                 // TODO consider rendering message in a comment
-                //  expectedException.message?.let { +comment(it) }
+                //  expectedException.message?.let { +comment(it.escapeControlChars()) }
                 testFrameworkManager.expectException(expectedException::class.id) {
                     methodInvocationBlock()
                 }
@@ -461,9 +462,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         require(currentExecutable is ExecutableId)
         val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
 
-        val warningLine = mutableListOf(
-            "This test fails because method [$executableName] produces [$exception]".escapeControlChars()
-        )
+        val warningLine = "This test fails because method [$executableName] produces [$exception]"
+            .lines()
+            .map { it.escapeControlChars() }
+            .toMutableList()
 
         val neededStackTraceLines = mutableListOf<String>()
         var executableCallFound = false
@@ -480,10 +482,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             logger.warn(exception) { "Failed to find executable call in stack trace" }
 
         +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
-    }
-
-    private fun String.escapeControlChars() : String {
-        return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\\u","\\\\u")
     }
 
     protected fun writeWarningAboutCrash() {

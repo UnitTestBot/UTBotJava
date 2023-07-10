@@ -303,7 +303,7 @@ private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, co
                 SpringCodeGenerator(
                     classUnderTest = classUnderTest,
                     projectType = projectType,
-                    codeGenerationContext = codeGenerationContext,
+                    springCodeGenerationContext = codeGenerationContext,
                     generateUtilClassFile = generateUtilClassFile,
                     paramNames = paramNames,
                     testFramework = testFramework,

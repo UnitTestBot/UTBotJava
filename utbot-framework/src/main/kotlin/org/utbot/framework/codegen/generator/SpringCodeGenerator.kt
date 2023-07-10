@@ -24,7 +24,7 @@ import org.utbot.framework.plugin.api.SpringSettings.*
 class SpringCodeGenerator(
     val classUnderTest: ClassId,
     val projectType: ProjectType,
-    val codeGenerationContext: SpringCodeGenerationContext,
+    val springCodeGenerationContext: SpringCodeGenerationContext,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     generateUtilClassFile: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
@@ -61,11 +61,11 @@ class SpringCodeGenerator(
         val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
-        val astConstructor = when (codeGenerationContext.springTestType) {
+        val astConstructor = when (springCodeGenerationContext.springTestType) {
             SpringTestType.UNIT_TEST -> CgSpringUnitTestClassConstructor(context)
             SpringTestType.INTEGRATION_TEST ->
-                when (val settings = codeGenerationContext.springSettings) {
-                    is PresentSpringSettings -> CgSpringIntegrationTestClassConstructor(context, settings)
+                when (val settings = springCodeGenerationContext.springSettings) {
+                    is PresentSpringSettings -> CgSpringIntegrationTestClassConstructor(context, springCodeGenerationContext, settings)
                     is AbsentSpringSettings -> error("No Spring settings were provided for Spring integration test generation.")
                 }
         }

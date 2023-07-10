@@ -37,7 +37,7 @@ import org.utbot.framework.util.toModel
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider

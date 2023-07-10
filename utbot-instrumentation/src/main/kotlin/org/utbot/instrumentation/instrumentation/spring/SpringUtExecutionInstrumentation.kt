@@ -73,11 +73,11 @@ class SpringUtExecutionInstrumentation(
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
             //     so they are executed in one thread with method under test
-            executePhaseInTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
+            executePhaseWithoutTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
             try {
                 invokeBasePhases()
             } finally {
-                executePhaseInTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
+                executePhaseWithoutTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
             }
         }
     }

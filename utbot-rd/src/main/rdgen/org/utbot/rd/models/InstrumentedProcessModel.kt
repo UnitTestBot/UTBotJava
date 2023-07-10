@@ -57,6 +57,10 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("springRepositoryIds", array(PredefinedType.byte))
     }
 
+    val TryLoadingSpringContextResult = structdef {
+        field("springContextLoadingResult", array(PredefinedType.byte))
+    }
+
     init {
         call("AddPaths", AddPathsParams, PredefinedType.void).apply {
             async
@@ -100,6 +104,11 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
             async
             documentation = "Gets a list of [SpringRepositoryId]s that class specified by the [ClassId]" +
                     " (possibly indirectly) depends on (requires Spring instrumentation)"
+        }
+        call("tryLoadingSpringContext", PredefinedType.void, TryLoadingSpringContextResult).apply {
+            async
+            documentation = "This command is sent to the instrumented process from the [ConcreteExecutor]\n" +
+                    "if the user wants to determine whether or not Spring application context can load"
         }
     }
 }

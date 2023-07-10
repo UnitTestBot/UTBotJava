@@ -6,6 +6,7 @@ import org.utbot.common.JarUtils
 import org.utbot.common.hasOnClasspath
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.SpringContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.util.jClass
@@ -60,7 +61,14 @@ class SpringUtExecutionInstrumentation(
         instrumentationContext = SpringInstrumentationContext(springSettings, delegateInstrumentation.instrumentationContext)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
-        springApi.beforeTestClass()
+    }
+
+    fun tryLoadingSpringContext(): SpringContextLoadingResult {
+        val apiProviderResult = instrumentationContext.springApiProviderResult
+        return SpringContextLoadingResult(
+            contextLoaded = apiProviderResult.result.isSuccess,
+            exceptions = apiProviderResult.exceptions
+        )
     }
 
     override fun invoke(

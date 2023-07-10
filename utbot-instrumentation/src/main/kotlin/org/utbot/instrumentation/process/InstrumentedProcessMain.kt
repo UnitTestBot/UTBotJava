@@ -12,13 +12,14 @@ import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
-import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.process.generated.CollectCoverageResult
 import org.utbot.instrumentation.process.generated.GetSpringBeanResult
 import org.utbot.instrumentation.process.generated.GetSpringRepositoriesResult
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
+import org.utbot.instrumentation.process.generated.TryLoadingSpringContextResult
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
@@ -172,5 +173,9 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         val classId: ClassId = kryoHelper.readObject(params.classId)
         val repositoryDescriptions = (instrumentation as SpringUtExecutionInstrumentation).getRepositoryDescriptions(classId)
         GetSpringRepositoriesResult(kryoHelper.writeObject(repositoryDescriptions))
+    }
+    watchdog.measureTimeForActiveCall(tryLoadingSpringContext, "Trying to load Spring application context") { params ->
+        val contextLoadingResult = (instrumentation as SpringUtExecutionInstrumentation).tryLoadingSpringContext()
+        TryLoadingSpringContextResult(kryoHelper.writeObject(contextLoadingResult))
     }
 }

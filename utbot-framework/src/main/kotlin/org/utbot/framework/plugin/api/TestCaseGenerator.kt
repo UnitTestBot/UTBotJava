@@ -5,6 +5,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -39,6 +41,7 @@ import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.instrumentation.tryLoadingSpringContext
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
 import java.io.File
@@ -109,6 +112,7 @@ open class TestCaseGenerator(
             //warmup
             if (warmupConcreteExecution) {
                 // force pool to create an appropriate executor
+                // TODO ensure that instrumented process that starts here is properly terminated
                 ConcreteExecutor(
                     executionInstrumentation,
                     classpathForEngine,
@@ -140,7 +144,15 @@ open class TestCaseGenerator(
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
         userTaintConfigurationProvider: TaintConfigurationProvider? = null,
-    ): Flow<UtResult> {
+    ): Flow<UtResult> = flow {
+        if (isCanceled())
+            return@flow
+
+        doContextDependentPreparationForTestGeneration()
+        applicationContext.getErrors().forEach { emit(it) }
+        if (applicationContext.preventsFurtherTestGeneration())
+            return@flow
+
         try {
             val engine = createSymbolicEngine(
                 controller,
@@ -153,7 +165,7 @@ open class TestCaseGenerator(
             )
             engineActions.map { engine.apply(it) }
             engineActions.clear()
-            return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
+            emitAll(defaultTestFlow(engine, executionTimeEstimator.userTimeout))
         } catch (e: Exception) {
             logger.error(e) {"Generate async failed"}
             throw e
@@ -167,8 +179,17 @@ open class TestCaseGenerator(
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
         userTaintConfigurationProvider: TaintConfigurationProvider? = null,
         generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
-    ): List<UtMethodTestSet> {
-        if (isCanceled()) return methods.map { UtMethodTestSet(it) }
+    ): List<UtMethodTestSet> = ConcreteExecutor.defaultPool.use { _ -> // TODO: think on appropriate way to close instrumented processes
+        if (isCanceled()) return@use methods.map { UtMethodTestSet(it) }
+
+        doContextDependentPreparationForTestGeneration()
+
+        val method2errors: Map<ExecutableId, MutableMap<String, Int>> = methods.associateWith {
+            applicationContext.getErrors().associateTo(mutableMapOf()) { it.description to 1 }
+        }
+
+        if (applicationContext.preventsFurtherTestGeneration())
+            return@use methods.map { method -> UtMethodTestSet(method, errors = method2errors.getValue(method)) }
 
         val executionStartInMillis = System.currentTimeMillis()
         val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
@@ -177,7 +198,6 @@ open class TestCaseGenerator(
 
         val method2controller = methods.associateWith { EngineController() }
         val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
-        val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
         val conflictTriggers = ConflictTriggers()
         val forceMockListener = ForceMockListener.create(this, conflictTriggers)
@@ -269,12 +289,11 @@ open class TestCaseGenerator(
                 }
             }
         }
-        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close instrumented processes
 
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 
-        return methods.map { method ->
+        return@use methods.map { method ->
             UtMethodTestSet(
                 method,
                 minimizeExecutions(method.classId, method2executions.getValue(method)),
@@ -429,6 +448,22 @@ open class TestCaseGenerator(
                     annotation.isInstance(existingAnnotation)
                 }
             }
+
+    private fun doContextDependentPreparationForTestGeneration() {
+        when (applicationContext) {
+            is SpringApplicationContext -> when (applicationContext.springTestType) {
+                UNIT_TEST -> Unit
+                INTEGRATION_TEST ->
+                    if (applicationContext.springContextLoadingResult == null)
+                        // force pool to create an appropriate executor
+                        applicationContext.springContextLoadingResult = ConcreteExecutor(
+                            executionInstrumentation,
+                            classpathForEngine
+                        ).tryLoadingSpringContext()
+            }
+            else -> Unit
+        }
+    }
 }
 
 

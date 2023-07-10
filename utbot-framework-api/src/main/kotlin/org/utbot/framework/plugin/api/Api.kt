@@ -1396,9 +1396,9 @@ open class ApplicationContext(
     open fun getErrors(): List<UtError> = emptyList()
 }
 
-sealed interface SpringConfiguration {
-    class JavaConfiguration(val classBinaryName: String) : SpringConfiguration
-    class XMLConfiguration(val absolutePath: String) : SpringConfiguration
+sealed class SpringConfiguration(val fullDisplayName: String) {
+    class JavaConfiguration(val classBinaryName: String) : SpringConfiguration(classBinaryName)
+    class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)
 }
 
 sealed interface SpringSettings {

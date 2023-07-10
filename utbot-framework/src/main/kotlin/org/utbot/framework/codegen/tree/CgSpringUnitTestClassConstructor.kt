@@ -44,7 +44,7 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         return fields
     }
 
-    override fun constructAdditionalMethods(): CgMethodsCluster {
+    override fun constructAdditionalUtilMethods(): CgMethodsCluster {
         if (!additionalMethodsRequired) {
             return CgMethodsCluster(header = null, content = emptyList(),)
         }

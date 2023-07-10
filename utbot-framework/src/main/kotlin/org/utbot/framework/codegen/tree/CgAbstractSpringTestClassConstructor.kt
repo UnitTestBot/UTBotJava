@@ -36,6 +36,8 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
             fields += constructClassFields(testClassModel)
             clearUnwantedVariableModels()
 
+            constructAdditionalTestMethods()?.let { methodRegions += it }
+
             for ((testSetIndex, testSet) in testClassModel.methodTestSets.withIndex()) {
                 updateCurrentExecutable(testSet.executableId)
                 withTestSetIdScope(testSetIndex) {
@@ -48,7 +50,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
                 }
             }
 
-            methodRegions += constructAdditionalMethods()
+            constructAdditionalUtilMethods()?.let { methodRegions += it }
 
             if (currentTestClass == outerMostTestClass) {
                 val utilEntities = collectUtilEntities()
@@ -81,7 +83,9 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
 
     abstract fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration>
 
-    abstract fun constructAdditionalMethods(): CgMethodsCluster
+    open fun constructAdditionalTestMethods(): CgMethodsCluster? = null
+
+    open fun constructAdditionalUtilMethods(): CgMethodsCluster? = null
 
     protected fun constructFieldsWithAnnotation(
         annotationClassId: ClassId,

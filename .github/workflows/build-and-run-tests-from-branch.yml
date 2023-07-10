@@ -134,7 +134,6 @@ jobs:
       - name: Run tests
         run: |
           gradle --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
-          gradle --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-spring-test:test
 
       - name: Upload logs
         if: ${{ always() }}
@@ -244,7 +243,7 @@ jobs:
       # The option forces to execute all jobs even though some of them have failed.
       fail-fast: false
       matrix:
-        project: [utbot-core, utbot-java-fuzzing, utbot-gradle, utbot-junit-contest, utbot-sample]
+        project: [utbot-core, utbot-java-fuzzing, utbot-gradle, utbot-junit-contest, utbot-sample, utbot-spring-test]
     runs-on: ubuntu-20.04
     container:
       image: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0

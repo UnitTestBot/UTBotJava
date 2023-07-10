@@ -57,9 +57,9 @@ class ThrowableSerializer : Serializer<Throwable>() {
 
     override fun read(kryo: Kryo, input: Input, type: Class<out Throwable>): Throwable? {
         fun ThrowableModel.toThrowable(): Throwable {
-            val throwableFromBytes = this.serializedExceptionBytes?.let { bytes ->
+            this.serializedExceptionBytes?.let { bytes ->
                 try {
-                    ByteArrayInputStream(bytes).use { byteInputStream ->
+                    return@toThrowable ByteArrayInputStream(bytes).use { byteInputStream ->
                         val objectInputStream = IgnoringUidWrappingObjectInputStream(byteInputStream, kryo.classLoader)
                         objectInputStream.readObject() as Throwable
                     }
@@ -68,14 +68,31 @@ class ThrowableSerializer : Serializer<Throwable>() {
                         logger.warn { "Failed to deserialize ${this.classId} from bytes, cause: $e" }
                         logger.warn { "Falling back to constructing throwable instance from ThrowableModel" }
                     }
-                    null
                 }
             }
-            return throwableFromBytes ?: when {
-                RuntimeException::class.java.isAssignableFrom(classId.jClass) -> RuntimeException(message, cause?.toThrowable())
-                Error::class.java.isAssignableFrom(classId.jClass) -> Error(message, cause?.toThrowable())
-                else -> Exception(message, cause?.toThrowable())
-            }.also {
+
+            val cause = cause?.toThrowable()
+
+            val messageCauseConstructor = runCatching { classId.jClass.getConstructor(String::class.java, Throwable::class.java) }.getOrNull()
+            val causeOnlyConstructor = runCatching { classId.jClass.getConstructor(Throwable::class.java) }.getOrNull()
+            val messageOnlyConstructor = runCatching { classId.jClass.getConstructor(String::class.java) }.getOrNull()
+
+            val throwableFromConstructor = runCatching {
+                when {
+                    messageCauseConstructor != null && message != null && cause != null ->
+                        messageCauseConstructor.newInstance(message, cause)
+
+                    causeOnlyConstructor != null && cause != null -> causeOnlyConstructor.newInstance(cause)
+                    messageOnlyConstructor != null && message != null -> messageOnlyConstructor.newInstance(message)
+                    else -> null
+                }
+            }.getOrNull() as Throwable?
+
+            return (throwableFromConstructor ?: when {
+                RuntimeException::class.java.isAssignableFrom(classId.jClass) -> RuntimeException(message, cause)
+                Error::class.java.isAssignableFrom(classId.jClass) -> Error(message, cause)
+                else -> Exception(message, cause)
+            }).also {
                 it.stackTrace = stackTrace
             }
         }

@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbC
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.bootstrapWithClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.contextConfigurationClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.crudRepositoryClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapperClassId
@@ -108,11 +109,15 @@ class CgSpringIntegrationTestClassConstructor(
             target = Class,
         )
 
-        listOf(transactionalClassId, autoConfigureTestDbClassId)
-            .filter { annotationTypeIsAccessible(it) }
-            .forEach { annType -> addAnnotation(annType, Class) }
-    }
+        if (utContext.classLoader.tryLoadClass(transactionalClassId.name) != null)
+            addAnnotation(transactionalClassId, Class)
 
-    private fun annotationTypeIsAccessible(annotationType: ClassId): Boolean =
-        utContext.classLoader.tryLoadClass(annotationType.name) != null
+        // `@AutoConfigureTestDatabase` can itself be on the classpath, while spring-data
+        // (i.e. module containing `CrudRepository`) is not.
+        //
+        // If we add `@AutoConfigureTestDatabase` without having spring-data,
+        // generated tests will fail with `ClassNotFoundException: org.springframework.dao.DataAccessException`.
+        if (utContext.classLoader.tryLoadClass(crudRepositoryClassId.name) != null)
+            addAnnotation(autoConfigureTestDbClassId, Class)
+    }
 }

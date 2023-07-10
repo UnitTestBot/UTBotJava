@@ -1,3 +1,8 @@
 package org.utbot.spring.dummy
 
-class DummyPureSpringIntegrationTestClass : DummySpringIntegrationTestClass()
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
+
+open class DummyPureSpringIntegrationTestClass : DummySpringIntegrationTestClass()
+
+@AutoConfigureTestDatabase
+class DummyPureSpringIntegrationTestClassAutoconfigTestDB : DummyPureSpringIntegrationTestClass()

@@ -14,6 +14,7 @@ import org.utbot.spring.api.SpringApi
 import org.utbot.spring.api.RepositoryDescription
 import org.utbot.spring.api.instantiator.InstantiationSettings
 import org.utbot.spring.dummy.DummySpringIntegrationTestClass
+import org.utbot.spring.utils.DependencyUtils.isSpringDataOnClasspath
 import org.utbot.spring.utils.RepositoryUtils
 import java.lang.reflect.Method
 import java.net.URLClassLoader
@@ -44,13 +45,6 @@ class SpringApiImpl(
     private val context get() = testContextManager.testContext.applicationContext as ConfigurableApplicationContext
 
     override fun getOrLoadSpringApplicationContext() = context
-
-    private val isCrudRepositoryOnClasspath = try {
-        CrudRepository::class.java.name
-        true
-    } catch (e: ClassNotFoundException) {
-        false
-    }
 
     override fun getBean(beanName: String): Any = context.getBean(beanName)
 
@@ -94,7 +88,7 @@ class SpringApiImpl(
     }
 
     override fun resolveRepositories(beanNames: Set<String>, userSourcesClassLoader: URLClassLoader): Set<RepositoryDescription> {
-        if (!isCrudRepositoryOnClasspath) return emptySet()
+        if (!isSpringDataOnClasspath) return emptySet()
         val repositoryBeans = beanNames
             .map { beanName -> SimpleBeanDefinition(beanName, getBean(beanName)) }
             .filter { beanDef -> describesRepository(beanDef.bean) }

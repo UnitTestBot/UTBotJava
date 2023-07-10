@@ -200,7 +200,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
 
-    private val springTestType = createComboBox(SpringTestType.values())
+    private val springTestType = createComboBox(SpringTestType.values()).also { it.setMinimumAndPreferredWidth(300) }
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
     private val profileNames = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
 
@@ -364,15 +364,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         DependencyInjectionFramework.allItems.forEach {
             it.isInstalled = findDependencyInjectionLibrary(model.srcModule, it) != null
         }
-        val installedDiFramework = when {
-            SpringBoot.isInstalled -> SpringBoot
-            SpringBeans.isInstalled -> SpringBeans
-            else -> null
+        DependencyInjectionFramework.installedItems.forEach {
+            it.testFrameworkInstalled = findDependencyInjectionTestLibrary(model.testModule, it) != null
         }
-        installedDiFramework?.let {
-            INTEGRATION_TEST.testFrameworkInstalled = findDependencyInjectionTestLibrary(model.testModule, it) != null
-        }
-        model.projectType = if (installedDiFramework != null) ProjectType.Spring else ProjectType.PureJvm
+        model.projectType =
+            if (DependencyInjectionFramework.installedItems.isNotEmpty()) ProjectType.Spring
+            else ProjectType.PureJvm
 
         // Configure notification urls callbacks
         TestsReportNotifier.urlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoSuffix]?.plusAssign {
@@ -939,15 +936,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun configureSpringTestFrameworkIfRequired() {
-        if (springTestType.item == INTEGRATION_TEST) {
+        if (springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
 
-            val framework = when {
-                SpringBoot.isInstalled -> SpringBoot
-                SpringBeans.isInstalled -> SpringBeans
-                else -> error("Both Spring and Spring Boot are not installed")
-            }
-
-            configureSpringTestDependency(framework)
+            DependencyInjectionFramework.installedItems
+                .filter { it.isInstalled }
+                .forEach { configureSpringTestDependency(it) }
         }
     }
 
@@ -988,15 +981,15 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             !frameworkTestVersionInProject.isCompatibleWith(frameworkVersionInProject)
 ) {
             val libraryDescriptor = when (framework) {
-                SpringBoot ->  springBootTestLibraryDescriptor(frameworkVersionInProject)
+                SpringBoot -> springBootTestLibraryDescriptor(frameworkVersionInProject)
                 SpringBeans -> springTestLibraryDescriptor(frameworkVersionInProject)
                 else -> error("Unsupported DI framework type $framework")
             }
 
-            model.preCompilePromises += addDependency(model.testModule, libraryDescriptor)
+            model.preClasspathCollectionPromises += addDependency(model.testModule, libraryDescriptor)
         }
 
-        INTEGRATION_TEST.testFrameworkInstalled = true
+        framework.testFrameworkInstalled = true
     }
 
     private fun configureMockFramework() {
@@ -1281,14 +1274,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
                 this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (value == INTEGRATION_TEST && !INTEGRATION_TEST.testFrameworkInstalled) {
-                    val additionalText = when {
-                        SpringBoot.isInstalled -> " (spring-boot-test will be installed)"
-                        SpringBeans.isInstalled -> " (spring-test will be installed)"
-                        else -> error("Both Spring and Spring Boot are not installed")
-                    }
-
-                    this.append(additionalText, SimpleTextAttributes.ERROR_ATTRIBUTES)
+                if (springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
+                    DependencyInjectionFramework.installedItems
+                        // only first missing test framework is shown to avoid overflowing ComboBox
+                        .firstOrNull { !it.testFrameworkInstalled }
+                        ?.let { diFramework ->
+                            val additionalText = " (${diFramework.testFrameworkDisplayName} will be installed)"
+                            this.append(additionalText, SimpleTextAttributes.ERROR_ATTRIBUTES)
+                        }
                 }
             }
         }

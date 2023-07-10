@@ -8,7 +8,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
@@ -148,23 +147,25 @@ object UtTestsDialogProcessor {
         files: Array<VirtualFile>,
         springConfigClass: PsiClass?,
     ): Promise<ProjectTaskManager.Result> {
-        // For Maven project narrow compile scope may not work, see https://github.com/UnitTestBot/UTBotJava/issues/2021.
-        // For Spring project classes may contain `@ComponentScan` annotations, so we need to compile the whole module.
-        val isMavenProject = MavenProjectsManager.getInstance(project)?.hasProjects() ?: false
-        val isSpringProject = springConfigClass != null
-        val wholeModules = isMavenProject || isSpringProject
+        val buildTasks = runReadAction {
+            // For Maven project narrow compile scope may not work, see https://github.com/UnitTestBot/UTBotJava/issues/2021.
+            // For Spring project classes may contain `@ComponentScan` annotations, so we need to compile the whole module.
+            val isMavenProject = MavenProjectsManager.getInstance(project)?.hasProjects() ?: false
+            val isSpringProject = springConfigClass != null
+            val wholeModules = isMavenProject || isSpringProject
 
-        val buildTasks = ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
-            Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
-                ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
-            }).entries
-        ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
-            if (wholeModules) {
-                // This is a specific case, we have to compile the whole module
-                ModuleBuildTaskImpl(key!!, false)
-            } else {
-                // Compile only chosen classes and their dependencies before generation.
-                ModuleFilesBuildTaskImpl(key, false, value)
+            ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
+                Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
+                    ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
+                }).entries
+            ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
+                if (wholeModules) {
+                    // This is a specific case, we have to compile the whole module
+                    ModuleBuildTaskImpl(key!!, false)
+                } else {
+                    // Compile only chosen classes and their dependencies before generation.
+                    ModuleFilesBuildTaskImpl(key, false, value)
+                }
             }
         }
         return ProjectTaskManager.getInstance(project).run(ProjectTaskList(buildTasks))
@@ -191,11 +192,7 @@ object UtTestsDialogProcessor {
             .map { it.containingFile.virtualFile }
             .toTypedArray()
 
-        val compilationPromise = model.preCompilePromises
-            .all()
-            .thenAsync { compile(project, filesToCompile, springConfigClass) }
-
-        compilationPromise.onSuccess { task ->
+        compile(project, filesToCompile, springConfigClass).onSuccess { task ->
             if (task.hasErrors() || task.isAborted)
                 return@onSuccess
 
@@ -219,6 +216,16 @@ object UtTestsDialogProcessor {
 
                         indicator.isIndeterminate = false
                         updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
+
+                        // TODO sometimes preClasspathCollectionPromises get stuck, even though all
+                        //  needed dependencies get installed, we need to figure out why that happens
+                        try {
+                            model.preClasspathCollectionPromises
+                                .all()
+                                .blockingGet(10, TimeUnit.SECONDS)
+                        } catch (e: java.util.concurrent.TimeoutException) {
+                            logger.warn { "preClasspathCollectionPromises are stuck over 10 seconds, ignoring them" }
+                        }
 
                         val buildPaths = ReadAction
                             .nonBlocking<BuildPaths?> {

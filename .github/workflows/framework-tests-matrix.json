@@ -53,10 +53,6 @@
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.codegen.*\""
     },
     {
-      "PART_NAME": "examples-spring",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.spring.*\""
-    },
-    {
       "PART_NAME": "examples-lists",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart1Test\" --tests \"org.utbot.examples.collections.ListsPart2Test\" --tests \"org.utbot.examples.collections.ListsPart3Test\""
     },

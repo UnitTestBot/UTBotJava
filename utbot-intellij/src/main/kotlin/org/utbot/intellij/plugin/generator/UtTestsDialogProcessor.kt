@@ -385,7 +385,7 @@ object UtTestsDialogProcessor {
                                         }
                                         val useFuzzing = when (model.projectType) {
                                             Spring -> when (model.springTestType) {
-                                                UNIT_TEST -> model.springSettings is AbsentSpringSettings
+                                                UNIT_TEST -> false
                                                 INTEGRATION_TEST -> true
                                             }
 

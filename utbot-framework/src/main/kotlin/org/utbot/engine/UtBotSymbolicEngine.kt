@@ -433,12 +433,6 @@ class UtBotSymbolicEngine(
             names = names,
             providers = listOf(valueProviders),
         ) { thisInstance, descr, values ->
-            if (thisInstance?.model is UtNullModel) {
-                // We should not try to run concretely any models with null-this.
-                // But fuzzer does generate such values, because it can fail to generate any "good" values.
-                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
-            }
-
             val diff = until - System.currentTimeMillis()
             val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
             // to concretely execute that values because request to instrumentation process involves
@@ -450,6 +444,12 @@ class UtBotSymbolicEngine(
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 logger.info { "Test created by fuzzer: $testEmittedByFuzzer" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+            }
+
+            if (thisInstance?.model is UtNullModel) {
+                // We should not try to run concretely any models with null-this.
+                // But fuzzer does generate such values, because it can fail to generate any "good" values.
+                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
             }
 
             val stateBefore = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())

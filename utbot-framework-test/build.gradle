@@ -46,8 +46,6 @@ dependencies {
 
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
-
-    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa', version: springBootVersion
 }
 
 // This is required to avoid conflict between SpringBoot standard logger and the logger of our project.

@@ -1515,8 +1515,6 @@ enum class SpringTestType(
     override val id: String,
     override val displayName: String,
     override val description: String,
-    // Integration tests generation requires spring test framework being installed
-    var testFrameworkInstalled: Boolean = false,
 ) : CodeGenerationSettingItem {
     UNIT_TEST(
         "Unit tests",

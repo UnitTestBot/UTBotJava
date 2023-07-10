@@ -148,23 +148,25 @@ object UtTestsDialogProcessor {
         files: Array<VirtualFile>,
         springConfigClass: PsiClass?,
     ): Promise<ProjectTaskManager.Result> {
-        // For Maven project narrow compile scope may not work, see https://github.com/UnitTestBot/UTBotJava/issues/2021.
-        // For Spring project classes may contain `@ComponentScan` annotations, so we need to compile the whole module.
-        val isMavenProject = MavenProjectsManager.getInstance(project)?.hasProjects() ?: false
-        val isSpringProject = springConfigClass != null
-        val wholeModules = isMavenProject || isSpringProject
+        val buildTasks = runReadAction {
+            // For Maven project narrow compile scope may not work, see https://github.com/UnitTestBot/UTBotJava/issues/2021.
+            // For Spring project classes may contain `@ComponentScan` annotations, so we need to compile the whole module.
+            val isMavenProject = MavenProjectsManager.getInstance(project)?.hasProjects() ?: false
+            val isSpringProject = springConfigClass != null
+            val wholeModules = isMavenProject || isSpringProject
 
-        val buildTasks = ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
-            Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
-                ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
-            }).entries
-        ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
-            if (wholeModules) {
-                // This is a specific case, we have to compile the whole module
-                ModuleBuildTaskImpl(key!!, false)
-            } else {
-                // Compile only chosen classes and their dependencies before generation.
-                ModuleFilesBuildTaskImpl(key, false, value)
+            ContainerUtil.map<Map.Entry<Module?, List<VirtualFile>>, ProjectTask>(
+                Arrays.stream(files).collect(Collectors.groupingBy { file: VirtualFile ->
+                    ProjectFileIndex.getInstance(project).getModuleForFile(file, false)
+                }).entries
+            ) { (key, value): Map.Entry<Module?, List<VirtualFile>?> ->
+                if (wholeModules) {
+                    // This is a specific case, we have to compile the whole module
+                    ModuleBuildTaskImpl(key!!, false)
+                } else {
+                    // Compile only chosen classes and their dependencies before generation.
+                    ModuleFilesBuildTaskImpl(key, false, value)
+                }
             }
         }
         return ProjectTaskManager.getInstance(project).run(ProjectTaskList(buildTasks))

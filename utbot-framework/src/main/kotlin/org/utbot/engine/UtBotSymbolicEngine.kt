@@ -40,7 +40,6 @@ import org.utbot.framework.util.calculateSize
 import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
-import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.FieldValueProvider
@@ -388,9 +387,24 @@ class UtBotSymbolicEngine(
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
         var testEmittedByFuzzer = 0
+
+        if (applicationContext is SpringApplicationContext &&
+            applicationContext.springTestType == SpringTestType.INTEGRATION_TEST &&
+            applicationContext.getBeansAssignableTo(methodUnderTest.classId).isEmpty()) {
+            val fullConfigDisplayName = (applicationContext.springSettings as? SpringSettings.PresentSpringSettings)
+                ?.configuration?.fullDisplayName
+            val errorDescription = "No beans of type ${methodUnderTest.classId.name} are found. " +
+                    "Try choosing different Spring configuration or adding beans to $fullConfigDisplayName"
+            emit(UtError(
+                errorDescription,
+                IllegalStateException(errorDescription)
+            ))
+            return@flow
+        }
+
         val valueProviders = ValueProvider.of(defaultValueProviders(defaultIdGenerator))
             .letIf(applicationContext is SpringApplicationContext
-                        && applicationContext.springSettings is PresentSpringSettings
+                        && applicationContext.springTestType == SpringTestType.INTEGRATION_TEST
             ) { provider ->
                 val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
                 logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
@@ -413,8 +427,7 @@ class UtBotSymbolicEngine(
                 val springBeanValueProvider = SpringBeanValueProvider(
                     defaultIdGenerator,
                     beanNameProvider = { classId ->
-                        (applicationContext as SpringApplicationContext).beanDefinitions
-                            .filter { it.beanTypeName == classId.name }
+                        (applicationContext as SpringApplicationContext).getBeansAssignableTo(classId)
                             .map { it.beanName }
                     },
                     relevantRepositories = relevantRepositories

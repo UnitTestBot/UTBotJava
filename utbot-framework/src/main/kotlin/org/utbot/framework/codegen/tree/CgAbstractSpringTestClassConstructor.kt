@@ -14,7 +14,7 @@ import org.utbot.framework.codegen.domain.models.CgRegion
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.domain.models.SpringTestClassModel
+import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtSpringContextModel
@@ -23,17 +23,21 @@ import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
 
 abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
-    CgAbstractTestClassConstructor<SpringTestClassModel>(context) {
+    CgAbstractTestClassConstructor<TestClassModel>(context) {
 
     protected val variableConstructor: CgSpringVariableConstructor =
         CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
 
-    override fun constructTestClassBody(testClassModel: SpringTestClassModel): CgClassBody {
+    protected abstract val fieldManagers: Set<CgFieldManager>
+
+    override fun constructTestClassBody(testClassModel: TestClassModel): CgClassBody {
         return buildClassBody(currentTestClass) {
 
             // TODO: support inner classes here
 
-            fields += constructClassFields(testClassModel)
+            context.cgFieldManagers = fieldManagers
+
+            fields += fieldManagers.flatMap { it.collectFields(testClassModel.methodTestSets) }
             clearUnwantedVariableModels()
 
             for ((testSetIndex, testSet) in testClassModel.methodTestSets.withIndex()) {
@@ -79,7 +83,8 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
         return if (regions.any()) regions else null
     }
 
-    abstract fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration>
+// TODO move logic from here to CgFieldManagers
+//    abstract fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration>
 
     abstract fun constructAdditionalMethods(): CgMethodsCluster
 

@@ -8,7 +8,7 @@ import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
-import org.utbot.framework.codegen.domain.models.builders.SpringTestClassModelBuilder
+import org.utbot.framework.codegen.domain.models.builders.SimpleTestClassModelBuilder
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.CgSpringIntegrationTestClassConstructor
 import org.utbot.framework.codegen.tree.CgSpringUnitTestClassConstructor
@@ -58,7 +58,7 @@ class SpringCodeGenerator(
     testClassPackageName,
 ) {
     override fun generate(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
-        val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
+        val testClassModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
         val astConstructor = when (codeGenerationContext.springTestType) {

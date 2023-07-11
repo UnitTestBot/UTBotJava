@@ -236,6 +236,8 @@ interface CgContextOwner {
      */
     var successfulExecutionsModels: List<UtModel>
 
+    val dynamicProperties: CgDynamicProperties
+
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
         return try {
@@ -498,6 +500,7 @@ class CgContext(
     override val hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
     override val enableTestsTimeout: Boolean = true,
     override var containsReflectiveCall: Boolean = false,
+    override val dynamicProperties: CgDynamicProperties = CgDynamicProperties(),
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable

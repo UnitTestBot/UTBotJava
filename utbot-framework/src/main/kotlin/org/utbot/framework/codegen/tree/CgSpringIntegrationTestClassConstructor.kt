@@ -29,16 +29,20 @@ class CgSpringIntegrationTestClassConstructor(
     context: CgContext,
     private val springSettings: PresentSpringSettings
 ) : CgAbstractSpringTestClassConstructor(context) {
-    override fun constructTestClass(testClassModel: SpringTestClassModel): CgClass {
+    override fun constructTestClass(testClassModel: TestClassModel): CgClass {
         addNecessarySpringSpecificAnnotations()
         return super.constructTestClass(testClassModel)
     }
 
-    override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
-        val autowiredFromContextModels =
-            testClassModel.springSpecificInformation.autowiredFromContextModels
-        return constructFieldsWithAnnotation(autowiredClassId, autowiredFromContextModels)
-    }
+    override val fieldManagers: Set<CgFieldManager>
+        get() = TODO("Not yet implemented")
+
+// TODO move logic from here to CgFieldManagers
+//    override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
+//        val autowiredFromContextModels =
+//            testClassModel.springSpecificInformation.autowiredFromContextModels
+//        return constructFieldsWithAnnotation(autowiredClassId, autowiredFromContextModels)
+//    }
 
     override fun constructAdditionalMethods() =
         CgMethodsCluster(header = null, content = emptyList())

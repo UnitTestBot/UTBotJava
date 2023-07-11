@@ -15,6 +15,7 @@ import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
+import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -24,25 +25,28 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
     private var additionalMethodsRequired: Boolean = false
 
     private lateinit var mockitoCloseableVariable: CgValue
+    override val fieldManagers: Set<CgFieldManager>
+        get() = TODO("Not yet implemented")
 
-    override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
-        val fields = mutableListOf<CgFieldDeclaration>()
-        val thisInstances = testClassModel.springSpecificInformation.thisInstanceModels
-        val mocks = testClassModel.springSpecificInformation.thisInstanceDependentMocks
-
-        if (mocks.isNotEmpty()) {
-            val mockedFields = constructFieldsWithAnnotation(mockClassId, mocks)
-            val injectingMocksFields = constructFieldsWithAnnotation(injectMocksClassId, thisInstances)
-
-            fields += injectingMocksFields
-            fields += mockedFields
-            fields += constructMockitoCloseables()
-
-            additionalMethodsRequired = true
-        }
-
-        return fields
-    }
+// TODO move logic from here to CgFieldManagers
+//    override fun constructClassFields(testClassModel: TestClassModel): List<CgFieldDeclaration> {
+//        val fields = mutableListOf<CgFieldDeclaration>()
+//        val thisInstances = testClassModel.springSpecificInformation.thisInstanceModels
+//        val mocks = testClassModel.springSpecificInformation.thisInstanceDependentMocks
+//
+//        if (mocks.isNotEmpty()) {
+//            val mockedFields = constructFieldsWithAnnotation(mockClassId, mocks)
+//            val injectingMocksFields = constructFieldsWithAnnotation(injectMocksClassId, thisInstances)
+//
+//            fields += injectingMocksFields
+//            fields += mockedFields
+//            fields += constructMockitoCloseables()
+//
+//            additionalMethodsRequired = true
+//        }
+//
+//        return fields
+//    }
 
     override fun constructAdditionalMethods(): CgMethodsCluster {
         if (!additionalMethodsRequired) {

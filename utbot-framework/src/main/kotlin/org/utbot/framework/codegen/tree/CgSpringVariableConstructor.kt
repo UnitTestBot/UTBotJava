@@ -21,6 +21,8 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
     val annotatedModelVariables: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
+        context.cgFieldManagers // TODO use it
+
         val alreadyCreatedInjectMocks = findCgValueByModel(model, annotatedModelVariables[injectMocksClassId])
         if (alreadyCreatedInjectMocks != null) {
             val fields: Collection<UtModel> = when (model) {

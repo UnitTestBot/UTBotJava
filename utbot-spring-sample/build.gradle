@@ -3,8 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":utbot-api"))
-
     implementation 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
 

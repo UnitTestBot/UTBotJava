@@ -32,7 +32,7 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
             modelFields?.forEach{ (fieldId, fieldModel) ->
                 val variableForField = getOrCreateVariable(fieldModel)
                 if(!fieldModel.isMockModel()) {
-                    +utilsClassId[setField](alreadyCreatedInjectMocks, fieldId.declaringClass.name, fieldId.name, variableForField)
+                    setFieldValue(alreadyCreatedInjectMocks, fieldId, variableForField)
                 }
             }
 

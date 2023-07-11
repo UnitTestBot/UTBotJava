@@ -1537,6 +1537,14 @@ class SpringApplicationContext(
                 exception
             )
         }.orEmpty() + super.getErrors()
+
+    fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData> = beanDefinitions.filter { beanDef ->
+        // some bean classes may fail to load
+        runCatching {
+            val beanClass = ClassId(beanDef.beanTypeName).jClass
+            classId.jClass.isAssignableFrom(beanClass)
+        }.getOrElse { false }
+    }
 }
 
 enum class SpringTestType(

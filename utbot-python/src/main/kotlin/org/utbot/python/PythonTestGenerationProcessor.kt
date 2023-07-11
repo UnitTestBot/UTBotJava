@@ -186,6 +186,7 @@ abstract class PythonTestGenerationProcessor {
         val rootModule = configuration.testFileInformation.moduleName.split(".").first()
         val testRootModule = PythonUserImport(importName_ = rootModule)
         val sysImport = PythonSystemImport("sys")
+        val osImport = PythonSystemImport("os")
         val sysPathImports = relativizePaths(
             configuration.executionPath,
             configuration.sysPathDirectories
@@ -195,7 +196,7 @@ abstract class PythonTestGenerationProcessor {
             configuration.testFramework.testSuperClass?.let { PythonUserImport(importName_ = (it as PythonClassId).rootModuleName) }
 
         return (importParamModules + importResultModules + testRootModule + sysPathImports + listOf(
-            testFrameworkModule, sysImport
+            testFrameworkModule, osImport, sysImport
         ))
             .filterNotNull()
             .filterNot { it.rootModuleName == pythonBuiltinsModuleName }

@@ -68,7 +68,7 @@ import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
 import java.lang.StringBuilder
-import org.utbot.python.framework.codegen.utils.toPythonRawString
+import org.utbot.python.framework.codegen.utils.toRelativeRawPath
 
 internal class CgPythonRenderer(
     context: CgRendererContext,
@@ -323,7 +323,7 @@ internal class CgPythonRenderer(
     fun renderPythonImport(pythonImport: PythonImport) {
         val importBuilder = StringBuilder()
         if (pythonImport is PythonSysPathImport) {
-            importBuilder.append("sys.path.append(${pythonImport.sysPath.toPythonRawString()})")
+            importBuilder.append("sys.path.append(${pythonImport.sysPath.toRelativeRawPath()})")
         } else if (pythonImport.moduleName == null) {
             importBuilder.append("import ${pythonImport.importName}")
         } else {

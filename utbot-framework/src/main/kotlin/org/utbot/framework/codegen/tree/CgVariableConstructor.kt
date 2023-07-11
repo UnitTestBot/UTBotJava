@@ -22,6 +22,7 @@ import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
@@ -169,28 +170,32 @@ open class CgVariableConstructor(val context: CgContext) :
         }
 
         for ((fieldId, fieldModel) in model.fields) {
-            val field = fieldId.jField
             val variableForField = getOrCreateVariable(fieldModel)
-            val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
-
-            // we cannot set field directly if variable declared type does not have such field
-            // or we cannot directly create variable for field with the specified type (it is private, for example)
-            // Example:
-            // Object heapByteBuffer = createInstance("java.nio.HeapByteBuffer");
-            // branchRegisterRequest.byteBuffer = heapByteBuffer;
-            // byteBuffer is field of type ByteBuffer and upper line is incorrect
-            val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
-                fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
-            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context, obj.type)) {
-                // TODO: check if it is correct to use declaringClass of a field here
-                val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
-                fieldAccess `=` variableForField
-            } else {
-                // composite models must not have info about static fields, hence only non-static fields are set here
-                +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, variableForField)
-            }
+            setFieldValue(obj, fieldId, variableForField)
         }
         return obj
+    }
+
+    protected fun setFieldValue(obj: CgValue, fieldId: FieldId, variableForField: CgValue){
+        val field = fieldId.jField
+        val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
+
+        // we cannot set field directly if variable declared type does not have such field
+        // or we cannot directly create variable for field with the specified type (it is private, for example)
+        // Example:
+        // Object heapByteBuffer = createInstance("java.nio.HeapByteBuffer");
+        // branchRegisterRequest.byteBuffer = heapByteBuffer;
+        // byteBuffer is field of type ByteBuffer and upper line is incorrect
+        val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
+            fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
+        if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context, obj.type)) {
+            // TODO: check if it is correct to use declaringClass of a field here
+            val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
+            fieldAccess `=` variableForField
+        } else {
+            // composite models must not have info about static fields, hence only non-static fields are set here
+            +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, variableForField)
+        }
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {

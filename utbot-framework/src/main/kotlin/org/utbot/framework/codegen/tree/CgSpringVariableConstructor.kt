@@ -23,13 +23,21 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val alreadyCreatedInjectMocks = findCgValueByModel(model, annotatedModelVariables[injectMocksClassId])
         if (alreadyCreatedInjectMocks != null) {
-            val fields: Collection<UtModel> = when (model) {
-                is UtCompositeModel -> model.fields.values
-                is UtAssembleModel -> model.origin?.fields?.values ?: emptyList()
-                else -> emptyList()
+            val modelFields = when (model) {
+                is UtCompositeModel -> model.fields
+                is UtAssembleModel -> model.origin?.fields
+                else -> null
             }
 
-            fields.forEach { getOrCreateVariable(it) }
+            modelFields?.forEach{ (fieldId, fieldModel) ->
+                val variableForField = getOrCreateVariable(fieldModel)
+
+                // If field model is a mock, it is set in the connected with instance under test automatically via @InjectMocks;
+                // Otherwise we need to set this field manually.
+                if(!fieldModel.isMockModel()) {
+                    setFieldValue(alreadyCreatedInjectMocks, fieldId, variableForField)
+                }
+            }
 
             return alreadyCreatedInjectMocks
         }

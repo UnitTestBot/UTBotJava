@@ -234,7 +234,19 @@ data class CgTestMethodCluster(
 data class CgMethodsCluster(
     override val header: String?,
     override val content: List<CgRegion<CgMethod>>
-) : CgRegion<CgRegion<CgMethod>>()
+) : CgRegion<CgRegion<CgMethod>>() {
+    companion object {
+        fun withoutDocs(methodsList: List<CgMethod>) = CgMethodsCluster(
+            header = null,
+            content = listOf(
+                CgSimpleRegion(
+                    header = null,
+                    content = methodsList
+                )
+            )
+        )
+    }
+}
 
 /**
  * Util entity is either an instance of [CgAuxiliaryClass] or [CgUtilMethod].

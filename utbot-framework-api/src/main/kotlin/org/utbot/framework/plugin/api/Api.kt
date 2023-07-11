@@ -327,7 +327,7 @@ object MissingState : EnvironmentModels(
 )
 
 /**
- * Error happened during test generation.
+ * Error happened during test cases generation.
  */
 data class UtError(
     val description: String,
@@ -1528,7 +1528,7 @@ class SpringApplicationContext(
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 
     override fun preventsFurtherTestGeneration(): Boolean =
-        super.preventsFurtherTestGeneration() || (springContextLoadingResult?.contextLoaded == false)
+        super.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false
 
     override fun getErrors(): List<UtError> =
         springContextLoadingResult?.exceptions?.map { exception ->

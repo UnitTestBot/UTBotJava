@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringCodeGenerationContext
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
+import org.utbot.framework.plugin.api.util.IndentUtil.TAB
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.activeProfilesClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbClassId
@@ -30,7 +31,6 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.springExtensionClass
 import org.utbot.framework.plugin.api.util.SpringModelUtils.transactionalClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.spring.api.UTSpringContextLoadingException
-import org.utbot.summary.SummarySentenceConstants.TAB
 
 class CgSpringIntegrationTestClassConstructor(
     context: CgContext,
@@ -53,33 +53,26 @@ class CgSpringIntegrationTestClassConstructor(
     }
 
     override fun constructAdditionalTestMethods() =
-        CgMethodsCluster(
-            header = null,
-            content = listOf(
-                CgSimpleRegion(
-                    header = null,
-                    content = listOfNotNull(constructContextLoadsMethod())
-                )
-            )
+        CgMethodsCluster.withoutDocs(
+            listOfNotNull(constructContextLoadsMethod())
         )
 
-    private fun constructContextLoadsMethod() : CgTestMethod? {
+    private fun constructContextLoadsMethod() : CgTestMethod {
         val contextLoadingResult = springCodeGenerationContext.springContextLoadingResult
-        if (contextLoadingResult == null) {
-            logger.warn { "Missing contextLoadingResult" }
-            return null
-        }
-        val exception = contextLoadingResult.exceptions.firstOrNull()
+        if (contextLoadingResult == null)
+            logger.error { "Missing contextLoadingResult" }
+        val exception = contextLoadingResult?.exceptions?.firstOrNull()
         return CgTestMethod(
             name = "contextLoads",
-            statements = listOfNotNull(exception?.let { e ->
-                constructFailedContextLoadingTraceComment(e)
-            }),
+            statements = listOfNotNull(
+                exception?.let { e -> constructFailedContextLoadingTraceComment(e) },
+                if (contextLoadingResult == null) CgSingleLineComment("Error: context loading result from concrete execution is missing") else null
+            ),
             annotations = listOf(addAnnotation(context.testFramework.testAnnotationId, Method)),
             documentation = CgDocumentationComment(listOf(
                 CgDocRegularLineStmt("This sanity check test fails if the application context cannot start.")
             ) + exception?.let { constructFailedContextLoadingDocComment() }.orEmpty()),
-            type = if (exception == null) SUCCESSFUL else FAILING
+            type = if (contextLoadingResult != null && exception == null) SUCCESSFUL else FAILING
         )
     }
 

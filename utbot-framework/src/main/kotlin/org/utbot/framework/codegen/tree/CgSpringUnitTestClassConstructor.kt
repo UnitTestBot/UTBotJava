@@ -44,10 +44,8 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         return fields
     }
 
-    override fun constructAdditionalUtilMethods(): CgMethodsCluster {
-        if (!additionalMethodsRequired) {
-            return CgMethodsCluster(header = null, content = emptyList(),)
-        }
+    override fun constructAdditionalUtilMethods(): CgMethodsCluster? {
+        if (!additionalMethodsRequired) return null
 
         importIfNeeded(openMocksMethodId)
 
@@ -67,16 +65,10 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         val openMocksStatement = CgAssignment(mockitoCloseableVariable, openMocksCall)
         val closeStatement = CgStatementExecutableCall(closeCall)
 
-        return CgMethodsCluster(
-            header = null,
+        return CgMethodsCluster.withoutDocs(
             listOf(
-                CgSimpleRegion(
-                    header = null,
-                    listOf(
-                        constructBeforeMethod(listOf(openMocksStatement)),
-                        constructAfterMethod(listOf(closeStatement)),
-                    )
-                )
+                constructBeforeMethod(listOf(openMocksStatement)),
+                constructAfterMethod(listOf(closeStatement)),
             )
         )
     }

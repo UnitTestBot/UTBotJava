@@ -1,6 +1,6 @@
 package org.utbot.framework.codegen.util
 
-const val TAB = "    "
+import org.utbot.framework.plugin.api.util.IndentUtil.TAB
 
 fun String.escapeControlChars() =
     replace("\b", "\\b")

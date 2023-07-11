@@ -62,7 +62,6 @@ import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
-import org.utbot.framework.codegen.util.TAB
 import org.utbot.framework.codegen.util.canBeReadFrom
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.equalTo
@@ -115,6 +114,7 @@ import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.util.IndentUtil.TAB
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.baseStreamClassId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId

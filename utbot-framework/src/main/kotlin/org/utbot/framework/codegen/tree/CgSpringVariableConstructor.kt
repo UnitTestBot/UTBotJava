@@ -31,6 +31,9 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
 
             modelFields?.forEach{ (fieldId, fieldModel) ->
                 val variableForField = getOrCreateVariable(fieldModel)
+
+                // If field model is a mock, it is set in the connected with instance under test automatically via @InjectMocks;
+                // Otherwise we need to set this field manually.
                 if(!fieldModel.isMockModel()) {
                     setFieldValue(alreadyCreatedInjectMocks, fieldId, variableForField)
                 }

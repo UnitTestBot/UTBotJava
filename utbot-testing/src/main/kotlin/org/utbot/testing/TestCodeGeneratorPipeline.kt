@@ -268,7 +268,7 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
                         parameterizedTestSource = parametrizedTestSource,
                         runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
                         enableTestsTimeout = enableTestsTimeout,
-                        codeGenerationContext = SpringApplicationContext(
+                        springCodeGenerationContext = SpringApplicationContext(
                             mockInstalled = true,
                             staticsMockingIsConfigured = true,
                             shouldUseImplementors = false,

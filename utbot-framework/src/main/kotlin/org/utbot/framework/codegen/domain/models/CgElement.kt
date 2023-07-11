@@ -234,7 +234,19 @@ data class CgTestMethodCluster(
 data class CgMethodsCluster(
     override val header: String?,
     override val content: List<CgRegion<CgMethod>>
-) : CgRegion<CgRegion<CgMethod>>()
+) : CgRegion<CgRegion<CgMethod>>() {
+    companion object {
+        fun withoutDocs(methodsList: List<CgMethod>) = CgMethodsCluster(
+            header = null,
+            content = listOf(
+                CgSimpleRegion(
+                    header = null,
+                    content = methodsList
+                )
+            )
+        )
+    }
+}
 
 /**
  * Util entity is either an instance of [CgAuxiliaryClass] or [CgUtilMethod].
@@ -293,10 +305,10 @@ sealed class CgMethod(open val isStatic: Boolean) : CgElement {
 
 class CgTestMethod(
     override val name: String,
-    override val returnType: ClassId,
-    override val parameters: List<CgParameterDeclaration>,
+    override val returnType: ClassId = voidClassId,
+    override val parameters: List<CgParameterDeclaration> = emptyList(),
     override val statements: List<CgStatement>,
-    override val exceptions: Set<ClassId>,
+    override val exceptions: Set<ClassId> = emptySet(),
     override val annotations: List<CgAnnotation>,
     override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
     val type: CgTestMethodType,

@@ -12,7 +12,8 @@ import org.utbot.common.hasOnClasspath
 import org.utbot.common.patchAnnotation
 import org.utbot.spring.api.SpringApi
 import org.utbot.spring.api.RepositoryDescription
-import org.utbot.spring.api.instantiator.InstantiationSettings
+import org.utbot.spring.api.UTSpringContextLoadingException
+import org.utbot.spring.api.provider.InstantiationSettings
 import org.utbot.spring.dummy.DummySpringIntegrationTestClass
 import org.utbot.spring.utils.DependencyUtils.isSpringDataOnClasspath
 import org.utbot.spring.utils.RepositoryUtils
@@ -42,9 +43,13 @@ class SpringApiImpl(
     private val dummyTestMethod: Method = DummySpringIntegrationTestClass::dummyTestMethod.javaMethod!!
     private val testContextManager: TestContextManager = TestContextManager(this.dummyTestClass)
 
-    private val context get() = testContextManager.testContext.applicationContext as ConfigurableApplicationContext
+    private val context get() = getOrLoadSpringApplicationContext()
 
-    override fun getOrLoadSpringApplicationContext() = context
+    override fun getOrLoadSpringApplicationContext() = try {
+        testContextManager.testContext.applicationContext as ConfigurableApplicationContext
+    } catch (e: Throwable) {
+        throw UTSpringContextLoadingException(e)
+    }
 
     override fun getBean(beanName: String): Any = context.getBean(beanName)
 
@@ -124,20 +129,32 @@ class SpringApiImpl(
         return descriptions
     }
 
-    override fun beforeTestClass() {
+    private var beforeTestClassCalled = false
+    private var isInsideTestMethod = false
+
+    private fun beforeTestClass() {
+        beforeTestClassCalled = true
         testContextManager.beforeTestClass()
         dummyTestClassInstance = dummyTestClass.getConstructor().newInstance()
         testContextManager.prepareTestInstance(dummyTestClassInstance)
     }
 
     override fun beforeTestMethod() {
+        if (!beforeTestClassCalled)
+            beforeTestClass()
+        if (isInsideTestMethod) {
+            logger.warn { "afterTestMethod() wasn't called for previous test method, calling it from beforeTestMethod()" }
+            afterTestMethod()
+        }
         testContextManager.beforeTestMethod(dummyTestClassInstance, dummyTestMethod)
         testContextManager.beforeTestExecution(dummyTestClassInstance, dummyTestMethod)
+        isInsideTestMethod = true
     }
 
     override fun afterTestMethod() {
         testContextManager.afterTestExecution(dummyTestClassInstance, dummyTestMethod, null)
         testContextManager.afterTestMethod(dummyTestClassInstance, dummyTestMethod, null)
+        isInsideTestMethod = false
     }
 
     private fun describesRepository(bean: Any): Boolean =

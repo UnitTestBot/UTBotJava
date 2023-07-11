@@ -69,6 +69,12 @@ class PhasesController(
         return@start result.getOrThrow() as T
     }
 
+    fun <T, R : ExecutionPhase> executePhaseWithoutTimeout(phase: R, block: R.() -> T): T = phase.start {
+        return@start ThreadBasedExecutor.threadLocal.invokeWithoutTimeout {
+            phase.block()
+        }.getOrThrow() as T
+    }
+
     fun applyPreprocessing(parameters: UtConcreteExecutionData): ConstructedData {
 
         val constructedData = executePhaseInTimeout(valueConstructionPhase) {

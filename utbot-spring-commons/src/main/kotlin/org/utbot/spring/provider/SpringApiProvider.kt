@@ -1,7 +1,7 @@
 package org.utbot.spring.provider
 
 import org.utbot.spring.api.SpringApi
-import org.utbot.spring.api.instantiator.InstantiationSettings
+import org.utbot.spring.api.provider.InstantiationSettings
 
 interface SpringApiProvider {
 

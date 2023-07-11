@@ -1,4 +1,4 @@
-package org.utbot.instrumentation.instrumentation.execution
+package org.utbot.instrumentation.instrumentation.spring
 
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
@@ -6,12 +6,14 @@ import org.utbot.common.JarUtils
 import org.utbot.common.hasOnClasspath
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.SpringContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.instrumentation.execution.context.SpringInstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import org.utbot.spring.api.SpringApi
@@ -59,7 +61,14 @@ class SpringUtExecutionInstrumentation(
         instrumentationContext = SpringInstrumentationContext(springSettings, delegateInstrumentation.instrumentationContext)
         delegateInstrumentation.instrumentationContext = instrumentationContext
         delegateInstrumentation.init(pathsToUserClasses)
-        springApi.beforeTestClass()
+    }
+
+    fun tryLoadingSpringContext(): SpringContextLoadingResult {
+        val apiProviderResult = instrumentationContext.springApiProviderResult
+        return SpringContextLoadingResult(
+            contextLoaded = apiProviderResult.result.isSuccess,
+            exceptions = apiProviderResult.exceptions
+        )
     }
 
     override fun invoke(
@@ -73,11 +82,14 @@ class SpringUtExecutionInstrumentation(
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
             //     so they are executed in one thread with method under test
-            executePhaseInTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
+            // NB! beforeTestMethod() and afterTestMethod() are executed without timeout, because:
+            //     - if the invokeBasePhases() times out, we still want to execute afterTestMethod()
+            //     - first call to beforeTestMethod() can take significant amount of time due to class loading & transformation
+            executePhaseWithoutTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
             try {
                 invokeBasePhases()
             } finally {
-                executePhaseInTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
+                executePhaseWithoutTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
             }
         }
     }

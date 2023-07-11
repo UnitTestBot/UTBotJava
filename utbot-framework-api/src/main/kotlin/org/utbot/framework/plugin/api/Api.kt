@@ -327,7 +327,7 @@ object MissingState : EnvironmentModels(
 )
 
 /**
- * Error happened in traverse.
+ * Error happened during test cases generation.
  */
 data class UtError(
     val description: String,
@@ -1328,6 +1328,7 @@ interface CodeGenerationContext
 interface SpringCodeGenerationContext : CodeGenerationContext {
     val springTestType: SpringTestType
     val springSettings: SpringSettings
+    val springContextLoadingResult: SpringContextLoadingResult?
 }
 
 /**
@@ -1389,11 +1390,15 @@ open class ApplicationContext(
         field: SootField,
         classUnderTest: ClassId,
     ): Boolean = field.isFinal || !field.isPublic
+
+    open fun preventsFurtherTestGeneration(): Boolean = false
+
+    open fun getErrors(): List<UtError> = emptyList()
 }
 
-sealed interface SpringConfiguration {
-    class JavaConfiguration(val classBinaryName: String) : SpringConfiguration
-    class XMLConfiguration(val absolutePath: String) : SpringConfiguration
+sealed class SpringConfiguration(val fullDisplayName: String) {
+    class JavaConfiguration(val classBinaryName: String) : SpringConfiguration(classBinaryName)
+    class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)
 }
 
 sealed interface SpringSettings {
@@ -1412,6 +1417,16 @@ sealed interface SpringSettings {
         val profiles: Array<String>
     ) : SpringSettings
 }
+
+/**
+ * [contextLoaded] can be `true` while [exceptions] is not empty,
+ * if we failed to use most specific SpringApi available (e.g. SpringBoot), but
+ * were able to successfully fall back to less specific SpringApi (e.g. PureSpring).
+ */
+class SpringContextLoadingResult(
+    val contextLoaded: Boolean,
+    val exceptions: List<Throwable>
+)
 
 /**
  * Data we get from Spring application context
@@ -1437,6 +1452,8 @@ class SpringApplicationContext(
     override val springTestType: SpringTestType,
     override val springSettings: SpringSettings,
 ): ApplicationContext(mockInstalled, staticsMockingIsConfigured), SpringCodeGenerationContext {
+
+    override var springContextLoadingResult: SpringContextLoadingResult? = null
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -1509,6 +1526,17 @@ class SpringApplicationContext(
         field: SootField,
         classUnderTest: ClassId,
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
+
+    override fun preventsFurtherTestGeneration(): Boolean =
+        super.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false
+
+    override fun getErrors(): List<UtError> =
+        springContextLoadingResult?.exceptions?.map { exception ->
+            UtError(
+                "Failed to load Spring application context",
+                exception
+            )
+        }.orEmpty() + super.getErrors()
 }
 
 enum class SpringTestType(

@@ -20,6 +20,7 @@ import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.common.logException
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.SpringContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -289,6 +290,13 @@ fun ConcreteExecutor<*, *>.getRelevantSpringRepositories(classId: ClassId): Set<
         val result = instrumentedProcessModel.getRelevantSpringRepositories.startSuspending(lifetime, params)
 
         kryoHelper.readObject(result.springRepositoryIds)
+    }
+}
+
+fun ConcreteExecutor<*, *>.tryLoadingSpringContext(): SpringContextLoadingResult = runBlocking {
+    withProcess {
+        val result = instrumentedProcessModel.tryLoadingSpringContext.startSuspending(lifetime, Unit)
+        kryoHelper.readObject(result.springContextLoadingResult)
     }
 }
 

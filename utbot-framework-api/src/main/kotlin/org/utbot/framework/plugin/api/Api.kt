@@ -61,6 +61,7 @@ import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.TypeReplacementMode.*
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
+import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
@@ -1492,6 +1493,10 @@ class SpringApplicationContext(
             return springInjectedClassesStorage
         }
 
+    private val allInjectedTypes: Set<ClassId> by lazy {
+        springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+    }
+
     // This is a service field to model the lazy behavior of [springInjectedClasses].
     // Do not call it outside the getter.
     //
@@ -1525,7 +1530,7 @@ class SpringApplicationContext(
     override fun speculativelyCannotProduceNullPointerException(
         field: SootField,
         classUnderTest: ClassId,
-    ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
+    ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.type.classId !in allInjectedTypes
 
     override fun preventsFurtherTestGeneration(): Boolean =
         super.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false

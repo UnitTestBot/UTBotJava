@@ -53,7 +53,7 @@
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.codegen.*\""
     },
     {
-      "PART_NAME": "examples-part8",
+      "PART_NAME": "examples-part9",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\" --tests \"org.utbot.examples.reflection.*\" --tests \"org.utbot.examples.threads.*\""
     },
     {

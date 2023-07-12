@@ -1494,16 +1494,18 @@ class SpringApplicationContext(
             return springInjectedClassesStorage
         }
 
-    // imitates `by lazy` (we can't use actual `by lazy` because communication via RD breaks it)
-    private var allInjectedTypesStorage: Set<ClassId> = emptySet()
-    private val allInjectedTypes: Set<ClassId> get() {
-        if (!areAllInjectedTypesInitialized) {
-            allInjectedTypesStorage = springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
-            areAllInjectedTypesInitialized = true
+    private val allInjectedTypes: Set<ClassId>
+        get() {
+            if (!areAllInjectedTypesInitialized) {
+                allInjectedTypesStorage = springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+                areAllInjectedTypesInitialized = true
+            }
+
+            return allInjectedTypesStorage
         }
 
-        return allInjectedTypesStorage
-    }
+    // imitates `by lazy` (we can't use actual `by lazy` because communication via RD breaks it)
+    private var allInjectedTypesStorage: Set<ClassId> = emptySet()
 
     // This is a service field to model the lazy behavior of [springInjectedClasses].
     // Do not call it outside the getter.

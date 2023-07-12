@@ -849,7 +849,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         mockStrategies.item = when (model.projectType) {
             ProjectType.Spring -> MockStrategyApi.springDefaultItem
-            else ->    settings.mockStrategy
+            else -> settings.mockStrategy
         }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = (settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
@@ -1173,9 +1173,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             when (item) {
                 UNIT_TEST -> {
                     mockStrategies.item = MockStrategyApi.springDefaultItem
+                    staticsMocking.isSelected = true
                 }
                 INTEGRATION_TEST -> {
                     mockStrategies.item = MockStrategyApi.springIntegrationTestItem
+                    staticsMocking.isSelected = false
                 }
             }
             updateMockStrategyList()

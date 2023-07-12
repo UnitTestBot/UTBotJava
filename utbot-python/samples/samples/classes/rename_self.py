@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import sample_classes as s
 
 
 @dataclass

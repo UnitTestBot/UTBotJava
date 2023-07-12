@@ -18,7 +18,7 @@ class Node:
             return False
 
 
-def bfs(nodes):
+def bfs(nodes: List[Node]):
     if len(nodes) == 0:
         return []
 

@@ -1,5 +1,4 @@
 import collections
-import numpy
 from typing import *
 
 
@@ -51,5 +50,3 @@ T = TypeVar('T')
 def func_abs(x: SupportsAbs[T]):
     return abs(x)
 
-
-b: int = 10

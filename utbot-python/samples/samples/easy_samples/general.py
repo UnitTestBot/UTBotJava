@@ -4,9 +4,6 @@ import typing
 from socket import socket
 from typing import List, Dict, Set, Optional, AbstractSet
 from dataclasses import dataclass
-import logging
-import datetime
-import sample_classes
 
 
 class Dummy:

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import *
 import collections
 from enum import Enum
@@ -10,7 +11,7 @@ XXX = TypeVar("XXX", "A", int)
 class A(Generic[XXX]):
     self_: XXX
 
-    def f(self, a, b: 'A'[int]):
+    def f(self, a, b: A[int]):
         self.y = b
         self.self_.x = b
         pass
@@ -70,9 +71,3 @@ def supports_abs(x: SupportsAbs):
 
 def tuple_(x: Tuple[int, str]):
     return x[1] + str(x[0])
-
-
-if __name__ == "__main__":
-    # print(square(collections.defaultdict(int)))
-    # enum_literal(Color.BLUE)
-    pass

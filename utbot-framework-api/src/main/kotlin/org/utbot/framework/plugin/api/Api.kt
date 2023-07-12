@@ -1493,8 +1493,9 @@ class SpringApplicationContext(
             return springInjectedClassesStorage
         }
 
-    private val allInjectedTypes: Set<ClassId>
-        get() = springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+    private val allInjectedTypes: Set<ClassId> by lazy {
+        springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+    }
 
     // This is a service field to model the lazy behavior of [springInjectedClasses].
     // Do not call it outside the getter.

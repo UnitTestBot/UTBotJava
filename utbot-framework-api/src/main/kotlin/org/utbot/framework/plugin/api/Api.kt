@@ -1461,6 +1461,7 @@ class SpringApplicationContext(
     }
 
     private var areInjectedClassesInitialized : Boolean = false
+    private var areAllInjectedTypesInitialized: Boolean = false
 
     // Classes representing concrete types that are actually used in Spring application
     private val springInjectedClasses: Set<ClassId>
@@ -1493,8 +1494,15 @@ class SpringApplicationContext(
             return springInjectedClassesStorage
         }
 
-    private val allInjectedTypes: Set<ClassId> by lazy {
-        springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+    // imitates `by lazy` (we can't use actual `by lazy` because communication via RD breaks it)
+    private var allInjectedTypesStorage: Set<ClassId> = emptySet()
+    private val allInjectedTypes: Set<ClassId> get() {
+        if (!areAllInjectedTypesInitialized) {
+            allInjectedTypesStorage = springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+            areAllInjectedTypesInitialized = true
+        }
+
+        return allInjectedTypesStorage
     }
 
     // This is a service field to model the lazy behavior of [springInjectedClasses].

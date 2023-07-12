@@ -105,7 +105,7 @@ class FunctionNode(
     val returnType: MypyAnnotation,
     val typeVars: List<String>,
     val argKinds: List<PythonCallableTypeDescription.ArgKind>,
-    val argNames: List<String?>,
+    var argNames: List<String?>,
 ): MypyAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + argTypes + listOf(returnType)

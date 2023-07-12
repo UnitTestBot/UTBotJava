@@ -1155,6 +1155,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
                 profileNames.text = ""
             }
+
+            if (!staticsMocking.isSelected && isSpringConfigSelected()) {
+                staticsMocking.isSelected = true
+            }
+
             updateMockStrategyList()
             updateControlsEnabledStatus()
         }

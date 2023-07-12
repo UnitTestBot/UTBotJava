@@ -1,6 +1,3 @@
-from typing import Any
-
-
 class Graph:
     def __init__(self, num_of_nodes: int) -> None:
         """

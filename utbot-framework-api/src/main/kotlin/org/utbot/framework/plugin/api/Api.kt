@@ -1493,6 +1493,8 @@ class SpringApplicationContext(
             return springInjectedClassesStorage
         }
 
+    private val allInjectedTypes: Set<ClassId> = springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+
     // This is a service field to model the lazy behavior of [springInjectedClasses].
     // Do not call it outside the getter.
     //
@@ -1526,10 +1528,7 @@ class SpringApplicationContext(
     override fun speculativelyCannotProduceNullPointerException(
         field: SootField,
         classUnderTest: ClassId,
-    ): Boolean {
-        val injectedTypes = springInjectedClasses.flatMap { it.allSuperTypes() }
-        return field.fieldId in classUnderTest.allDeclaredFieldIds && field.type.classId !in injectedTypes
-    }
+    ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.type.classId !in allInjectedTypes
 
     override fun preventsFurtherTestGeneration(): Boolean =
         super.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false

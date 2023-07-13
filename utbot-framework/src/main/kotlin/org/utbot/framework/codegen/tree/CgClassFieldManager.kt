@@ -26,8 +26,9 @@ abstract class CgClassFieldManagerImpl(context: CgContext) :
     CgClassFieldManager,
     CgContextOwner by context {
 
-    val variableConstructor: CgSpringVariableConstructor =
+    val variableConstructor: CgSpringVariableConstructor by lazy {
         CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
+    }
 }
 
 class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManagerImpl(context) {

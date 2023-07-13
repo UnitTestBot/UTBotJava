@@ -1,5 +1,6 @@
 package org.utbot.framework.context
 
+import org.utbot.framework.context.mocker.MockerContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationContext
 import org.utbot.framework.plugin.api.TypeReplacementMode
@@ -8,8 +9,7 @@ import soot.RefType
 import soot.SootField
 
 interface ApplicationContext : CodeGenerationContext {
-    val mockFrameworkInstalled: Boolean
-    val staticsMockingIsConfigured: Boolean
+    val mockerContext: MockerContext
 
     /**
      * Shows if there are any restrictions on type implementors.

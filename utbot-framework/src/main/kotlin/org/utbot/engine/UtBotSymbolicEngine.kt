@@ -143,7 +143,7 @@ class UtBotSymbolicEngine(
         hierarchy,
         chosenClassesToMockAlways,
         MockListenerController(controller),
-        applicationContext = applicationContext,
+        mockerContext = applicationContext.mockerContext,
     )
 
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)

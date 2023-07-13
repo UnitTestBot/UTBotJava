@@ -51,6 +51,7 @@ import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.SimpleApplicationContext
 import org.utbot.framework.context.SpringApplicationContext
+import org.utbot.framework.context.mocker.SimpleMockerContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
@@ -263,7 +264,9 @@ object UtTestsDialogProcessor {
                         process.terminateOnException { _ ->
                             val classpathForClassLoader = buildDirs + classpathList
                             process.setupUtContext(classpathForClassLoader)
-                            val simpleApplicationContext = SimpleApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
+                            val simpleApplicationContext = SimpleApplicationContext(
+                                SimpleMockerContext(mockFrameworkInstalled, staticMockingConfigured)
+                            )
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanDefinitions =

@@ -16,6 +16,7 @@ import org.utbot.framework.codegen.generator.SpringCodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
+import org.utbot.framework.context.SimpleApplicationContext
 import org.utbot.framework.context.SpringApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
@@ -269,8 +270,7 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
                         runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
                         enableTestsTimeout = enableTestsTimeout,
                         springCodeGenerationContext = SpringApplicationContext(
-                            mockInstalled = true,
-                            staticsMockingIsConfigured = true,
+                            SimpleApplicationContext(mockFrameworkInstalled = true, staticsMockingIsConfigured = true),
                             shouldUseImplementors = false,
                             springTestType = SpringTestType.UNIT_TEST,
                             springSettings = SpringSettings.AbsentSpringSettings(),

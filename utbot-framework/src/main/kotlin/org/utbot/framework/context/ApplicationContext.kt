@@ -1,7 +1,5 @@
 package org.utbot.framework.context
 
-import org.utbot.framework.UtSettings
-import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationContext
 import org.utbot.framework.plugin.api.TypeReplacementMode
@@ -9,45 +7,20 @@ import org.utbot.framework.plugin.api.UtError
 import soot.RefType
 import soot.SootField
 
-/**
- * A context to use when no specific data is required.
- *
- * @param mockFrameworkInstalled shows if we have installed framework dependencies
- * @param staticsMockingIsConfigured shows if we have installed static mocking tools
- */
-open class ApplicationContext(
-    val mockFrameworkInstalled: Boolean = true,
-    staticsMockingIsConfigured: Boolean = true,
-) : CodeGenerationContext {
-    var staticsMockingIsConfigured = staticsMockingIsConfigured
-        private set
-
-    init {
-        /**
-         * Situation when mock framework is not installed but static mocking is configured is semantically incorrect.
-         *
-         * However, it may be obtained in real application after this actions:
-         * - fully configure mocking (dependency installed + resource file created)
-         * - remove mockito-core dependency from project
-         * - forget to remove mock-maker file from resource directory
-         *
-         * Here we transform this configuration to semantically correct.
-         */
-        if (!mockFrameworkInstalled && staticsMockingIsConfigured) {
-            this.staticsMockingIsConfigured = false
-        }
-    }
+interface ApplicationContext : CodeGenerationContext {
+    val mockFrameworkInstalled: Boolean
+    val staticsMockingIsConfigured: Boolean
 
     /**
      * Shows if there are any restrictions on type implementors.
      */
-    open val typeReplacementMode: TypeReplacementMode = TypeReplacementMode.AnyImplementor
+    val typeReplacementMode: TypeReplacementMode
 
     /**
      * Finds a type to replace the original abstract type
      * if it is guided with some additional information.
      */
-    open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
+    fun replaceTypeIfNeeded(type: RefType): ClassId?
 
     /**
      * Checks whether accessing [field] (with a method invocation or field access) speculatively
@@ -55,15 +28,12 @@ open class ApplicationContext(
      *
      * @see docs/SpeculativeFieldNonNullability.md for more information.
      */
-    open fun speculativelyCannotProduceNullPointerException(
+    fun speculativelyCannotProduceNullPointerException(
         field: SootField,
         classUnderTest: ClassId,
-    ): Boolean =
-        !UtSettings.maximizeCoverageUsingReflection &&
-                field.declaringClass.isFromTrustedLibrary() &&
-                (field.isFinal || !field.isPublic)
+    ): Boolean
 
-    open fun preventsFurtherTestGeneration(): Boolean = false
+    fun preventsFurtherTestGeneration(): Boolean
 
-    open fun getErrors(): List<UtError> = emptyList()
+    fun getErrors(): List<UtError>
 }

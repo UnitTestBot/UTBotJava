@@ -19,7 +19,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.nameOfPackage
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.util.mockListeners.MockListenerController
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType

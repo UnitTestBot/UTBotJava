@@ -116,7 +116,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.isFromTrustedLibrary
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId

@@ -48,6 +48,8 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.SpringApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*

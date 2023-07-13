@@ -1107,7 +1107,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         mockStrategies.addActionListener { _ ->
             updateControlsEnabledStatus()
-            if (staticsMocking.isSelected && mockStrategies.item == MockStrategyApi.NO_MOCKS) {
+            if (mockStrategies.item == MockStrategyApi.NO_MOCKS) {
                 staticsMocking.isSelected = false
             }
         }
@@ -1156,7 +1156,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 profileNames.text = ""
             }
 
-            if (!staticsMocking.isSelected && isSpringConfigSelected()) {
+            if (isSpringConfigSelected() && springTestType.item == UNIT_TEST) {
                 staticsMocking.isSelected = true
             }
 

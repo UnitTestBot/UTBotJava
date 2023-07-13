@@ -2,7 +2,6 @@ package org.utbot.testing
 
 import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.FileUtil
 import org.utbot.common.measureTime
 import org.utbot.common.info
@@ -17,6 +16,7 @@ import org.utbot.framework.codegen.generator.SpringCodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
+import org.utbot.framework.context.SpringApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description

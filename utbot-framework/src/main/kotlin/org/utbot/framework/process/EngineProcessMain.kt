@@ -18,6 +18,7 @@ import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.generator.SpringCodeGenerator
 import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MethodDescription
 import org.utbot.framework.plugin.api.util.UtContext

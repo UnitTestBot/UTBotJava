@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.BeanAdditionalData
 import org.utbot.framework.plugin.api.BeanDefinitionData

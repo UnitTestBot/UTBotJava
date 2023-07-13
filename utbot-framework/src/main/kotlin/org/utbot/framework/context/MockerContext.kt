@@ -1,4 +1,4 @@
-package org.utbot.framework.context.mocker
+package org.utbot.framework.context
 
 interface MockerContext {
     /**

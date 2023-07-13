@@ -1,8 +1,9 @@
-package org.utbot.framework.context
+package org.utbot.framework.context.spring
 
 import mu.KotlinLogging
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringCodeGenerationContext

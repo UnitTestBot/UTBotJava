@@ -1,7 +1,8 @@
-package org.utbot.framework.context
+package org.utbot.framework.context.simple
 
 import org.utbot.framework.UtSettings
-import org.utbot.framework.context.mocker.MockerContext
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.MockerContext
 import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeReplacementMode

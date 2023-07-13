@@ -16,9 +16,9 @@ import org.utbot.framework.codegen.generator.SpringCodeGenerator
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
-import org.utbot.framework.context.SimpleApplicationContext
-import org.utbot.framework.context.SpringApplicationContext
-import org.utbot.framework.context.mocker.SimpleMockerContext
+import org.utbot.framework.context.simple.SimpleApplicationContext
+import org.utbot.framework.context.spring.SpringApplicationContext
+import org.utbot.framework.context.simple.SimpleMockerContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description

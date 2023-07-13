@@ -1,4 +1,6 @@
-package org.utbot.framework.context.mocker
+package org.utbot.framework.context.simple
+
+import org.utbot.framework.context.MockerContext
 
 class SimpleMockerContext(
     override val mockFrameworkInstalled: Boolean,

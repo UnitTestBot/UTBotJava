@@ -34,7 +34,7 @@ import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.context.ApplicationContext
-import org.utbot.framework.context.SpringApplicationContext
+import org.utbot.framework.context.spring.SpringApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*

@@ -1,6 +1,5 @@
 package org.utbot.framework.context
 
-import org.utbot.framework.context.mocker.MockerContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationContext
 import org.utbot.framework.plugin.api.TypeReplacementMode

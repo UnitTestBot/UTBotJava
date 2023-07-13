@@ -26,8 +26,9 @@ import org.utbot.framework.UtSettings.disableCoroutinesDebug
 import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.context.ApplicationContext
-import org.utbot.framework.context.SimpleApplicationContext
-import org.utbot.framework.context.SpringApplicationContext
+import org.utbot.framework.context.simple.SimpleApplicationContext
+import org.utbot.framework.context.simple.SimpleMockerContext
+import org.utbot.framework.context.spring.SpringApplicationContext
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.minimization.minimizeTestCase
 import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassIds

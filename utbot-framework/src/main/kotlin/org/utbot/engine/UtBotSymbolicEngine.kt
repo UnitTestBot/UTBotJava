@@ -179,7 +179,8 @@ class UtBotSymbolicEngine(
         typeResolver,
         globalGraph,
         mocker,
-        applicationContext,
+        applicationContext.typeReplacer,
+        applicationContext.nonNullSpeculator,
         taintContext,
     )
 

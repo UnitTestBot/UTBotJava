@@ -49,8 +49,8 @@ import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.context.simple.SimpleApplicationContext
-import org.utbot.framework.context.spring.SpringApplicationContext
 import org.utbot.framework.context.simple.SimpleMockerContext
+import org.utbot.framework.context.spring.SpringApplicationContextImpl
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
@@ -279,15 +279,12 @@ object UtTestsDialogProcessor {
                                             }
                                         }
 
-                                    val shouldUseImplementors = beanDefinitions.isNotEmpty()
-
                                     val clarifiedBeanDefinitions =
                                         clarifyBeanDefinitionReturnTypes(beanDefinitions, project)
 
-                                    SpringApplicationContext(
+                                    SpringApplicationContextImpl(
                                         simpleApplicationContext,
                                         clarifiedBeanDefinitions,
-                                        shouldUseImplementors,
                                         model.springTestType,
                                         model.springSettings,
                                     )

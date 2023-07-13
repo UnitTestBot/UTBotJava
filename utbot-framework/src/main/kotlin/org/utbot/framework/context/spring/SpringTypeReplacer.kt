@@ -21,6 +21,6 @@ class SpringTypeReplacer(
     override fun replaceTypeIfNeeded(type: RefType): ClassId? =
         // TODO add `delegateTypeReplacer.replaceTypeIfNeeded(type) ?: `
         //  (TODO is added as a part of only equivalent transformations refactoring PR and should be completed in the follow up PR)
-        if (type.isAbstractType) springApplicationContext.springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
+        if (type.isAbstractType) springApplicationContext.injectedTypes.singleOrNull { it.isSubtypeOf(type.id) }
         else null
 }

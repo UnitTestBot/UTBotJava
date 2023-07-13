@@ -12,7 +12,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringContextLoadingResult
 import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.plugin.api.SpringTestType
-import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -50,7 +49,7 @@ class SpringApplicationContextImpl(
     }
 
     // Classes representing concrete types that are actually used in Spring application
-    override val springInjectedClasses: Set<ClassId>
+    override val injectedTypes: Set<ClassId>
         get() {
             if (!areAllInjectedSuperTypesInitialized) {
                 for (beanTypeName in beanDefinitions.map { it.beanTypeName }) {
@@ -80,10 +79,10 @@ class SpringApplicationContextImpl(
             return _injectedTypes
         }
 
-    override val allInjectedTypes: Set<ClassId>
+    override val allInjectedSuperTypes: Set<ClassId>
         get() {
             if (!areInjectedTypesInitialized) {
-                _allInjectedSuperTypes = springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
+                _allInjectedSuperTypes = injectedTypes.flatMap { it.allSuperTypes() }.toSet()
                 areInjectedTypesInitialized = true
             }
 

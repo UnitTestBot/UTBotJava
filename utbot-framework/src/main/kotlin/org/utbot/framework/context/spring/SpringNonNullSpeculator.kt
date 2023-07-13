@@ -14,6 +14,6 @@ class SpringNonNullSpeculator(
     override fun speculativelyCannotProduceNullPointerException(field: SootField, classUnderTest: ClassId): Boolean =
         // TODO add ` || delegateNonNullSpeculator.speculativelyCannotProduceNullPointerException(field, classUnderTest)`
         //  (TODO is added as a part of only equivalent transformations refactoring PR and should be completed in the follow up PR)
-        field.fieldId in classUnderTest.allDeclaredFieldIds && field.type.classId !in springApplicationContext.allInjectedTypes
+        field.fieldId in classUnderTest.allDeclaredFieldIds && field.type.classId !in springApplicationContext.allInjectedSuperTypes
 
 }

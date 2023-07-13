@@ -16,8 +16,8 @@ interface SpringApplicationContext : ApplicationContext, SpringCodeGenerationCon
      * Describes bean definitions (bean name, type, some optional additional data)
      */
     val beanDefinitions: List<BeanDefinitionData>
-    val springInjectedClasses: Set<ClassId>
-    val allInjectedTypes: Set<ClassId>
+    val injectedTypes: Set<ClassId>
+    val allInjectedSuperTypes: Set<ClassId>
 
     override var springContextLoadingResult: SpringContextLoadingResult?
     fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData>

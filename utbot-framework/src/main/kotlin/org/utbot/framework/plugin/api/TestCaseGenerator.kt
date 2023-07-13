@@ -71,7 +71,12 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
-    val applicationContext: ApplicationContext = SimpleApplicationContext(),
+    val applicationContext: ApplicationContext = SimpleApplicationContext(
+        SimpleMockerContext(
+            mockFrameworkInstalled = true,
+            staticsMockingIsConfigured = true
+        )
+    ),
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")

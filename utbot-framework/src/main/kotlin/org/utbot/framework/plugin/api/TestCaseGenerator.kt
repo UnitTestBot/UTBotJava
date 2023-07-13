@@ -81,6 +81,11 @@ open class TestCaseGenerator(
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
+    private val concreteExecutionContext = applicationContext.createConcreteExecutionContext(
+        fullClasspath = classpathForEngine,
+        classpathWithoutDependencies = buildDirs.joinToString(File.pathSeparator)
+    )
+
     private val executionInstrumentation by lazy {
         when (applicationContext) {
             is SpringApplicationContext -> when (val settings = applicationContext.springSettings) {
@@ -158,8 +163,8 @@ open class TestCaseGenerator(
             return@flow
 
         doContextDependentPreparationForTestGeneration()
-        applicationContext.getErrors().forEach { emit(it) }
-        if (applicationContext.preventsFurtherTestGeneration())
+        concreteExecutionContext.getErrors().forEach { emit(it) }
+        if (concreteExecutionContext.preventsFurtherTestGeneration())
             return@flow
 
         try {
@@ -194,10 +199,10 @@ open class TestCaseGenerator(
         doContextDependentPreparationForTestGeneration()
 
         val method2errors: Map<ExecutableId, MutableMap<String, Int>> = methods.associateWith {
-            applicationContext.getErrors().associateTo(mutableMapOf()) { it.description to 1 }
+            concreteExecutionContext.getErrors().associateTo(mutableMapOf()) { it.description to 1 }
         }
 
-        if (applicationContext.preventsFurtherTestGeneration())
+        if (concreteExecutionContext.preventsFurtherTestGeneration())
             return@use methods.map { method -> UtMethodTestSet(method, errors = method2errors.getValue(method)) }
 
         val executionStartInMillis = System.currentTimeMillis()

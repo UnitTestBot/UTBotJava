@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
 import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.plugin.api.BeanDefinitionData
@@ -32,16 +33,13 @@ class SpringApplicationContextImpl(
 
     override var springContextLoadingResult: SpringContextLoadingResult? = null
 
-    override fun preventsFurtherTestGeneration(): Boolean =
-        delegateContext.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false
-
-    override fun getErrors(): List<UtError> =
-        springContextLoadingResult?.exceptions?.map { exception ->
-            UtError(
-                "Failed to load Spring application context",
-                exception
-            )
-        }.orEmpty() + delegateContext.getErrors()
+    override fun createConcreteExecutionContext(
+        fullClasspath: String,
+        classpathWithoutDependencies: String
+    ): ConcreteExecutionContext = SpringConcreteExecutionContext(
+        delegateContext.createConcreteExecutionContext(fullClasspath, classpathWithoutDependencies),
+        this
+    )
 
     override fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData> = beanDefinitions.filter { beanDef ->
         // some bean classes may fail to load

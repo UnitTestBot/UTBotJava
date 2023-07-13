@@ -19,7 +19,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.nameOfPackage
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.util.mockListeners.MockListenerController
-import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.mocker.MockerContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType
@@ -168,7 +168,7 @@ class Mocker(
     private val hierarchy: Hierarchy,
     chosenClassesToMockAlways: Set<ClassId>,
     internal val mockListenerController: MockListenerController? = null,
-    private val applicationContext: ApplicationContext,
+    private val mockerContext: MockerContext,
 ) {
     private val mocksAreDesired: Boolean = strategy != MockStrategy.NO_MOCKS
 
@@ -227,10 +227,10 @@ class Mocker(
 
         val mockingIsPossible = when (mockInfo) {
             is UtFieldMockInfo,
-            is UtObjectMockInfo -> applicationContext.mockFrameworkInstalled
+            is UtObjectMockInfo -> mockerContext.mockFrameworkInstalled
             is UtNewInstanceMockInfo,
             is UtStaticMethodMockInfo,
-            is UtStaticObjectMockInfo -> applicationContext.staticsMockingIsConfigured
+            is UtStaticObjectMockInfo -> mockerContext.staticsMockingIsConfigured
         }
         val mockingIsForcedAndPossible = mockAlways(mockedValue.type) && mockingIsPossible
 

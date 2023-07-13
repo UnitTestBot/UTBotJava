@@ -49,6 +49,7 @@ import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
 import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.SimpleApplicationContext
 import org.utbot.framework.context.SpringApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.SpringSettings.*
@@ -262,6 +263,7 @@ object UtTestsDialogProcessor {
                         process.terminateOnException { _ ->
                             val classpathForClassLoader = buildDirs + classpathList
                             process.setupUtContext(classpathForClassLoader)
+                            val simpleApplicationContext = SimpleApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanDefinitions =
@@ -281,15 +283,14 @@ object UtTestsDialogProcessor {
                                         clarifyBeanDefinitionReturnTypes(beanDefinitions, project)
 
                                     SpringApplicationContext(
-                                        mockFrameworkInstalled,
-                                        staticMockingConfigured,
+                                        simpleApplicationContext,
                                         clarifiedBeanDefinitions,
                                         shouldUseImplementors,
                                         model.springTestType,
                                         model.springSettings,
                                     )
                                 }
-                                else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
+                                else -> simpleApplicationContext
                             }
                             process.createTestGenerator(
                                 buildDirs,

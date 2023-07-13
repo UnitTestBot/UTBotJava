@@ -41,13 +41,12 @@ import soot.SootField
 //  Right now this refactoring is blocked because some interfaces need to get extracted and moved to utbot-framework-api
 //  As an alternative we can just move ApplicationContext itself to utbot-framework
 class SpringApplicationContext(
-    mockInstalled: Boolean,
-    staticsMockingIsConfigured: Boolean,
+    private val delegateContext: ApplicationContext,
     val beanDefinitions: List<BeanDefinitionData> = emptyList(),
     private val shouldUseImplementors: Boolean,
     override val springTestType: SpringTestType,
     override val springSettings: SpringSettings,
-): ApplicationContext(mockInstalled, staticsMockingIsConfigured), SpringCodeGenerationContext {
+): ApplicationContext by delegateContext, SpringCodeGenerationContext {
 
     override var springContextLoadingResult: SpringContextLoadingResult? = null
 
@@ -136,7 +135,7 @@ class SpringApplicationContext(
     ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.type.classId !in allInjectedTypes
 
     override fun preventsFurtherTestGeneration(): Boolean =
-        super.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false
+        delegateContext.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false
 
     override fun getErrors(): List<UtError> =
         springContextLoadingResult?.exceptions?.map { exception ->
@@ -144,7 +143,7 @@ class SpringApplicationContext(
                 "Failed to load Spring application context",
                 exception
             )
-        }.orEmpty() + super.getErrors()
+        }.orEmpty() + delegateContext.getErrors()
 
     fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData> = beanDefinitions.filter { beanDef ->
         // some bean classes may fail to load

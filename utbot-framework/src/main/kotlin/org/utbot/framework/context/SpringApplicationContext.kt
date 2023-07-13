@@ -123,8 +123,6 @@ class SpringApplicationContext(
             null
         }
 
-    override fun avoidSpeculativeNotNullChecks(field: SootField): Boolean = false
-
     /**
      * In Spring applications we can mark as speculatively not null
      * fields if they are mocked and injecting into class under test so on.

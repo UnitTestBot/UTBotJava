@@ -6,6 +6,7 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
+import com.jetbrains.python.psi.PyClass
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestGenerationProcessor
@@ -54,7 +55,10 @@ class PythonIntellijProcessor(
 
     private fun getOutputFileName(model: PythonTestLocalModel): String {
         val moduleName = model.currentPythonModule.camelToSnakeCase().replace('.', '_')
-        return if (model.containingClass == null) {
+        return if (model.selectedElements.size == 1 && model.selectedElements.first() is PyClass) {
+            val className = model.selectedElements.first().name?.camelToSnakeCase()?.replace('.', '_')
+            "test_${moduleName}_$className.py"
+        } else if (model.containingClass == null) {
             "test_$moduleName.py"
         } else {
             val className = model.containingClass.name?.camelToSnakeCase()?.replace('.', '_')

@@ -186,9 +186,9 @@ class PythonCallableTypeDescription(
             argumentKinds,
             argumentNames
         ) { self ->
-            val oldToNewParameters = (like.parameters zip self.parameters).associate {
-                (it.first as TypeParameter) to it.second
-            }
+            val oldToNewParameters = (self.parameters zip like.parameters).mapNotNull {
+                if (it.second is TypeParameter) it else null
+            }.toMap()
             val newArgs = args.map {
                 DefaultSubstitutionProvider.substitute(it, oldToNewParameters)
             }

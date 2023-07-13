@@ -184,7 +184,7 @@ object PythonDialogProcessor {
                         val functionName = it.name ?: return@mapNotNull null
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
                         val containingClassId = it.containingClass?.name?.let{ cls -> PythonClassId(cls) }
-                        return@mapNotNull PythonMethodHeader(
+                        PythonMethodHeader(
                                 functionName,
                                 moduleFilename,
                                 containingClassId,
@@ -202,6 +202,12 @@ object PythonDialogProcessor {
                 .flatMap { fileGroup ->
                     fileGroup.value
                         .groupBy { it is PyClass }.values
+                }
+                .flatMap { fileGroup ->
+                    val classes = fileGroup.filterIsInstance<PyClass>()
+                    val functions = fileGroup.filterIsInstance<PyFunction>()
+                    val groups: List<List<PyElement>> = classes.map { listOf(it) } + listOf(functions)
+                    groups
                 }
                 .filter { it.isNotEmpty() }
                 .map {

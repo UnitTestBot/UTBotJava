@@ -15,28 +15,24 @@ import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
 
-interface CgFieldManager : CgContextOwner {
-    val annotation: ClassId
+sealed interface CgClassFieldManager : CgContextOwner {
 
-    val variableConstructor: CgSpringVariableConstructor
+    val annotationType: ClassId
 
     fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue
-
-    fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
-        val key = setOfModels?.find { it == model.wrap() } ?: return null
-        return valueByUtModelWrapper[key]
-    }
 }
 
-class CgInjectingMocksFieldsManager(context: CgContext) :
-    CgFieldManager,
-    CgContextOwner by context
-{
-    override val annotation = injectMocksClassId
+abstract class CgClassFieldManagerImpl(context: CgContext) :
+    CgClassFieldManager,
+    CgContextOwner by context {
 
-    override val variableConstructor: CgSpringVariableConstructor =
+    val variableConstructor: CgSpringVariableConstructor =
         CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
+}
 
+class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManagerImpl(context) {
+
+    override val annotationType = injectMocksClassId
 
     override fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue {
         val modelFields = when (model) {
@@ -61,14 +57,9 @@ class CgInjectingMocksFieldsManager(context: CgContext) :
 
 }
 
-class CgMockedFieldsManager(context: CgContext) :
-    CgFieldManager,
-    CgContextOwner by context
-{
-    override val annotation = mockClassId
+class CgMockedFieldsManager(context: CgContext) : CgClassFieldManagerImpl(context) {
 
-    override val variableConstructor: CgSpringVariableConstructor =
-        CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
+    override val annotationType = mockClassId
 
     override fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue {
         if (model.isMockModel()) {
@@ -82,45 +73,46 @@ class CgMockedFieldsManager(context: CgContext) :
 
 }
 
-class CgAutowiredFieldsManager(context: CgContext) :
-    CgFieldManager,
-    CgContextOwner by context
-{
-    override val annotation = autowiredClassId
+class CgAutowiredFieldsManager(context: CgContext) : CgClassFieldManagerImpl(context) {
 
-    override val variableConstructor: CgSpringVariableConstructor =
-        CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
-
+    override val annotationType = autowiredClassId
 
     override fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue {
         return when {
             model.isAutowiredFromContext() -> {
                 variableConstructor.constructAssembleForVariable(model as UtAssembleModel)
             }
+
             else -> error("Trying to autowire model $model but it is not appropriate")
         }
     }
-
 }
 
-class FieldManagerFacade(
-    context: CgContext,
-    private val annotatedModelVariables: MutableMap<ClassId, MutableSet<UtModelWrapper>>
-) :
-    CgContextOwner by context
-{
+class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
+
     private val injectingMocksFieldsManager = CgInjectingMocksFieldsManager(context)
     private val mockedFieldsManager = CgMockedFieldsManager(context)
     private val autowiredFieldsManager = CgAutowiredFieldsManager(context)
 
-    fun constructVariableForField(model: UtModel): CgValue? {
-        listOf(injectingMocksFieldsManager, mockedFieldsManager, autowiredFieldsManager).forEach { manager ->
-            val alreadyCreatedVariable = manager.findCgValueByModel(model, annotatedModelVariables[manager.annotation])
+    fun constructVariableForField(
+        model: UtModel,
+        annotatedModelGroups: Map<ClassId, Set<UtModelWrapper>>,
+    ): CgValue? {
+        val annotationManagers = listOf(injectingMocksFieldsManager, mockedFieldsManager, autowiredFieldsManager)
+
+        annotationManagers.forEach { manager ->
+            val alreadyCreatedVariable = findCgValueByModel(model, annotatedModelGroups[manager.annotationType])
 
             if (alreadyCreatedVariable != null) {
                 return manager.constructVariableForField(model, alreadyCreatedVariable)
             }
         }
+
         return null
+    }
+
+    private fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
+        val key = setOfModels?.find { it == model.wrap() } ?: return null
+        return valueByUtModelWrapper[key]
     }
 }

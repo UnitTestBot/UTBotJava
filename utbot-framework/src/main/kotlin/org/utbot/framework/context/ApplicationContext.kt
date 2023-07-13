@@ -50,15 +50,6 @@ open class ApplicationContext(
     open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
 
     /**
-     * Sets the restrictions on speculative not null
-     * constraints in current application context.
-     *
-     * @see docs/SpeculativeFieldNonNullability.md for more information.
-     */
-    open fun avoidSpeculativeNotNullChecks(field: SootField): Boolean =
-        UtSettings.maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()
-
-    /**
      * Checks whether accessing [field] (with a method invocation or field access) speculatively
      * cannot produce [NullPointerException] (according to its finality or accessibility).
      *
@@ -67,7 +58,10 @@ open class ApplicationContext(
     open fun speculativelyCannotProduceNullPointerException(
         field: SootField,
         classUnderTest: ClassId,
-    ): Boolean = field.isFinal || !field.isPublic
+    ): Boolean =
+        !UtSettings.maximizeCoverageUsingReflection &&
+                field.declaringClass.isFromTrustedLibrary() &&
+                (field.isFinal || !field.isPublic)
 
     open fun preventsFurtherTestGeneration(): Boolean = false
 

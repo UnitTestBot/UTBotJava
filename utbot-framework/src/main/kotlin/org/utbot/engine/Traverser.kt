@@ -2336,12 +2336,8 @@ class Traverser(
      * See more detailed documentation in [ApplicationContext] mentioned methods.
      */
     private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
-        if (applicationContext.avoidSpeculativeNotNullChecks(field) ||
-                !applicationContext.speculativelyCannotProduceNullPointerException(field, methodUnderTest.classId)) {
-            return
-        }
-
-        markAsSpeculativelyNotNull(createdField.addr)
+        if (applicationContext.speculativelyCannotProduceNullPointerException(field, methodUnderTest.classId))
+            markAsSpeculativelyNotNull(createdField.addr)
     }
 
     private fun createArray(pName: String, type: ArrayType): ArrayValue {

@@ -23,6 +23,8 @@ object SpringModelUtils {
     val autoConfigureTestDbClassId = ClassId("org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase")
 
     val runWithClassId = ClassId("org.junit.runner.RunWith")
+    val springRunnerClassId = ClassId("org.springframework.test.context.junit4.SpringRunner")
+
     val extendWithClassId = ClassId("org.junit.jupiter.api.extension.ExtendWith")
     val springExtensionClassId = ClassId("org.springframework.test.context.junit.jupiter.SpringExtension")
 

@@ -15,7 +15,6 @@ object SpringModelUtils {
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
     val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
 
-    @Suppress("unused", "may be used instead of ExtendWith + BootstrapWith in future")
     val springBootTestClassId = ClassId("org.springframework.boot.test.context.SpringBootTest")
 
     val dirtiesContextClassId = ClassId("org.springframework.test.annotation.DirtiesContext")

@@ -26,6 +26,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.contextConfiguration
 import org.utbot.framework.plugin.api.util.SpringModelUtils.crudRepositoryClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapperClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springExtensionClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.transactionalClassId
@@ -111,11 +112,21 @@ class CgSpringIntegrationTestClassConstructor(
             argument = createGetClassExpression(springExtensionClassId, codegenLanguage),
             target = Class,
         )
-        addAnnotation(
-            classId = bootstrapWithClassId,
-            argument = createGetClassExpression(springBootTestContextBootstrapperClassId, codegenLanguage),
-            target = Class,
-        )
+
+        if (utContext.classLoader.tryLoadClass(springBootTestContextBootstrapperClassId.name) != null)
+            // TODO in somewhat new versions of Spring Boot, @SpringBootTest
+            //  already includes @BootstrapWith(SpringBootTestContextBootstrapper.class),
+            //  so we should avoid adding it manually to reduce number of annotations
+            addAnnotation(
+                classId = bootstrapWithClassId,
+                argument = createGetClassExpression(springBootTestContextBootstrapperClassId, codegenLanguage),
+                target = Class,
+            )
+
+        if (utContext.classLoader.tryLoadClass(springBootTestClassId.name) != null)
+            addAnnotation(springBootTestClassId, Class)
+
+        // TODO avoid adding @ActiveProfiles(profiles = {"default"}) to reduce number of annotations
         addAnnotation(
             classId = activeProfilesClassId,
             namedArguments =
@@ -132,6 +143,8 @@ class CgSpringIntegrationTestClassConstructor(
             ),
             target = Class,
         )
+
+        // TODO avoid adding @ContextConfiguration(classes = {$defaultBootConfigClass}) to reduce number of annotations
         addAnnotation(
             classId = contextConfigurationClassId,
             namedArguments =

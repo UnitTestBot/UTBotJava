@@ -17,7 +17,6 @@ import org.utbot.framework.plugin.api.SpringCodeGenerationContext
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.util.IndentUtil.TAB
-import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.activeProfilesClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
@@ -26,8 +25,12 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.contextConfiguration
 import org.utbot.framework.plugin.api.util.SpringModelUtils.crudRepositoryClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.extendWithClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.runWithClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapperClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springExtensionClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.springRunnerClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.transactionalClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.spring.api.UTSpringContextLoadingException
@@ -99,23 +102,33 @@ class CgSpringIntegrationTestClassConstructor(
     )
 
     private fun addNecessarySpringSpecificAnnotations() {
-        val springRunnerType = when (testFramework) {
-            Junit4 -> SpringModelUtils.runWithClassId
-            Junit5 -> SpringModelUtils.extendWithClassId
+        val (testFrameworkExtension, springExtension) = when (testFramework) {
+            Junit4 -> runWithClassId to springRunnerClassId
+            Junit5 -> extendWithClassId to springExtensionClassId
             TestNg -> error("Spring extension is not implemented in TestNg")
             else -> error("Trying to generate tests for Spring project with non-JVM framework")
         }
 
         addAnnotation(
-            classId = springRunnerType,
-            argument = createGetClassExpression(springExtensionClassId, codegenLanguage),
+            classId = testFrameworkExtension,
+            argument = createGetClassExpression(springExtension, codegenLanguage),
             target = Class,
         )
-        addAnnotation(
-            classId = bootstrapWithClassId,
-            argument = createGetClassExpression(springBootTestContextBootstrapperClassId, codegenLanguage),
-            target = Class,
-        )
+
+        if (utContext.classLoader.tryLoadClass(springBootTestContextBootstrapperClassId.name) != null)
+            // TODO in somewhat new versions of Spring Boot, @SpringBootTest
+            //  already includes @BootstrapWith(SpringBootTestContextBootstrapper.class),
+            //  so we should avoid adding it manually to reduce number of annotations
+            addAnnotation(
+                classId = bootstrapWithClassId,
+                argument = createGetClassExpression(springBootTestContextBootstrapperClassId, codegenLanguage),
+                target = Class,
+            )
+
+        if (utContext.classLoader.tryLoadClass(springBootTestClassId.name) != null)
+            addAnnotation(springBootTestClassId, Class)
+
+        // TODO avoid adding @ActiveProfiles(profiles = {"default"}) to reduce number of annotations
         addAnnotation(
             classId = activeProfilesClassId,
             namedArguments =
@@ -132,6 +145,8 @@ class CgSpringIntegrationTestClassConstructor(
             ),
             target = Class,
         )
+
+        // TODO avoid adding @ContextConfiguration(classes = {$defaultBootConfigClass}) to reduce number of annotations
         addAnnotation(
             classId = contextConfigurationClassId,
             namedArguments =

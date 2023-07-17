@@ -54,6 +54,7 @@ import org.utbot.instrumentation.getRelevantSpringRepositories
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.taint.*
 import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
@@ -117,10 +118,11 @@ class UtBotSymbolicEngine(
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     val applicationContext: ApplicationContext,
-    executionInstrumentation: Instrumentation<UtConcreteExecutionResult>,
+    executionInstrumentationFactory: UtExecutionInstrumentation.Factory<*>,
     userTaintConfigurationProvider: TaintConfigurationProvider? = null,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
 ) : UtContextInitializer() {
+    
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
     }.graph()
@@ -189,7 +191,7 @@ class UtBotSymbolicEngine(
 
     private val concreteExecutor =
         ConcreteExecutor(
-            executionInstrumentation,
+            executionInstrumentationFactory,
             classpath,
         ).apply { this.classLoader = utContext.classLoader }
 

@@ -21,7 +21,7 @@ class TestInvokeInstrumentation {
     @Test
     fun testCatchTargetException() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
 
@@ -36,7 +36,7 @@ class TestInvokeInstrumentation {
     @Test
     fun testWrongArgumentsException() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -57,7 +57,7 @@ class TestInvokeInstrumentation {
     @Test
     fun testSameResult() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -73,7 +73,7 @@ class TestInvokeInstrumentation {
     @Test
     fun testEmptyMethod() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -87,7 +87,7 @@ class TestInvokeInstrumentation {
     @Test
     fun testStaticMethodCall() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(StaticExampleClass::inc, arrayOf())
@@ -105,7 +105,7 @@ class TestInvokeInstrumentation {
     @Test
     fun testNullableMethod() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(
@@ -136,7 +136,7 @@ class TestInvokeInstrumentation {
     @Test
     fun testDifferentSignaturesButSameMethodNames() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             ClassWithSameMethodNames::class.java.protectionDomain.codeSource.location.path
         ).use {
             val clazz = ClassWithSameMethodNames::class

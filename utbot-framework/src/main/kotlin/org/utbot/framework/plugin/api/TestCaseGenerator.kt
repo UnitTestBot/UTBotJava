@@ -43,8 +43,9 @@ import org.utbot.framework.util.toModel
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.SimpleUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.tryLoadingSpringContext
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
@@ -86,24 +87,28 @@ open class TestCaseGenerator(
         classpathWithoutDependencies = buildDirs.joinToString(File.pathSeparator)
     )
 
-    private val executionInstrumentation by lazy {
+    private val executionInstrumentationFactory: UtExecutionInstrumentation.Factory<*> = run {
+        val simpleUtExecutionInstrumentationFactory = SimpleUtExecutionInstrumentation.Factory(classpathForEngine.split(File.pathSeparator).toSet())
         when (applicationContext) {
-            is SpringApplicationContext -> when (val settings = applicationContext.springSettings) {
-                is AbsentSpringSettings -> UtExecutionInstrumentation
-                is PresentSpringSettings -> when (applicationContext.springTestType) {
-                    UNIT_TEST -> UtExecutionInstrumentation
-                    INTEGRATION_TEST -> SpringUtExecutionInstrumentation(
-                        UtExecutionInstrumentation,
-                        settings,
-                        applicationContext.beanDefinitions,
-                        buildDirs.map { it.toURL() }.toTypedArray(),
-                    )
+            is SpringApplicationContext -> {
+                when (val settings = applicationContext.springSettings) {
+                    is AbsentSpringSettings -> simpleUtExecutionInstrumentationFactory
+                    is PresentSpringSettings -> when (applicationContext.springTestType) {
+                        UNIT_TEST -> simpleUtExecutionInstrumentationFactory
+                        INTEGRATION_TEST -> SpringUtExecutionInstrumentation.Factory(
+                            simpleUtExecutionInstrumentationFactory,
+                            settings,
+                            applicationContext.beanDefinitions,
+                            buildDirs.map { it.toURL() }.toTypedArray(),
+                        )
+                    }
                 }
             }
 
-            else -> UtExecutionInstrumentation
+            else -> simpleUtExecutionInstrumentationFactory
         }
     }
+
 
     private val classpathForEngine: String
         get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
@@ -128,7 +133,7 @@ open class TestCaseGenerator(
                 // force pool to create an appropriate executor
                 // TODO ensure that instrumented process that starts here is properly terminated
                 ConcreteExecutor(
-                    executionInstrumentation,
+                    executionInstrumentationFactory,
                     classpathForEngine,
                 ).apply {
                     warmup()
@@ -335,7 +340,7 @@ open class TestCaseGenerator(
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             applicationContext = applicationContext,
-            executionInstrumentation = executionInstrumentation,
+            executionInstrumentationFactory = executionInstrumentationFactory,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
             userTaintConfigurationProvider = userTaintConfigurationProvider,
         )
@@ -471,7 +476,7 @@ open class TestCaseGenerator(
                     if (applicationContext.springContextLoadingResult == null)
                         // force pool to create an appropriate executor
                         applicationContext.springContextLoadingResult = ConcreteExecutor(
-                            executionInstrumentation,
+                            executionInstrumentationFactory,
                             classpathForEngine
                         ).tryLoadingSpringContext()
             }

@@ -35,7 +35,7 @@ class TestInvokeWithStaticsInstrumentation {
     @Test
     fun testIfBranches() {
         ConcreteExecutor(
-            InvokeWithStaticsInstrumentation(),
+            InvokeWithStaticsInstrumentation.Factory(),
             CLASSPATH
         ).use {
             val res = it.execute(StaticExampleClass::inc, arrayOf(), null)
@@ -52,7 +52,7 @@ class TestInvokeWithStaticsInstrumentation {
     @Test
     fun testHiddenClass1() {
         ConcreteExecutor(
-            InvokeWithStaticsInstrumentation(),
+            InvokeWithStaticsInstrumentation.Factory(),
             CLASSPATH
         ).use {
             val res = it.execute(TestedClass::slomayInts, arrayOf(), null)
@@ -71,7 +71,7 @@ class TestInvokeWithStaticsInstrumentation {
     @Test
     fun testHiddenClassRepeatCall() {
         ConcreteExecutor(
-            InvokeWithStaticsInstrumentation(),
+            InvokeWithStaticsInstrumentation.Factory(),
             CLASSPATH
         ).use {
             val se = StaticEnvironment(
@@ -89,7 +89,7 @@ class TestInvokeWithStaticsInstrumentation {
     @Test
     fun testReferenceEquality() {
         ConcreteExecutor(
-            InvokeWithStaticsInstrumentation(),
+            InvokeWithStaticsInstrumentation.Factory(),
             CLASSPATH
         ).use {
 

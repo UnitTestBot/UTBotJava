@@ -47,20 +47,39 @@ data class UtConcreteExecutionResult(
     }
 }
 
-// TODO if possible make it non singleton
-object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
-    private val delegateInstrumentation = InvokeInstrumentation()
+interface UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
+    override fun invoke(
+        clazz: Class<*>,
+        methodSignature: String,
+        arguments: ArgumentList,
+        parameters: Any?
+    ): UtConcreteExecutionResult = invoke(
+        clazz, methodSignature, arguments, parameters, phasesWrapper = { invokeBasePhases -> invokeBasePhases() }
+    )
 
-    var instrumentationContext: InstrumentationContext = SimpleInstrumentationContext()
+    fun invoke(
+        clazz: Class<*>,
+        methodSignature: String,
+        arguments: ArgumentList,
+        parameters: Any?,
+        phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
+    ): UtConcreteExecutionResult
+
+    interface Factory<out TInstrumentation : UtExecutionInstrumentation> : Instrumentation.Factory<UtConcreteExecutionResult, TInstrumentation> {
+        override fun create(): TInstrumentation = create(SimpleInstrumentationContext())
+
+        fun create(instrumentationContext: InstrumentationContext): TInstrumentation
+    }
+}
+
+class SimpleUtExecutionInstrumentation(
+    private val pathsToUserClasses: Set<String>,
+    private val instrumentationContext: InstrumentationContext = SimpleInstrumentationContext()
+) : UtExecutionInstrumentation {
+    private val delegateInstrumentation = InvokeInstrumentation()
 
     private val traceHandler = TraceHandler()
     private val ndDetector = NonDeterministicDetector()
-    private val pathsToUserClasses = mutableSetOf<String>()
-
-    override fun init(pathsToUserClasses: Set<String>) {
-        UtExecutionInstrumentation.pathsToUserClasses.clear()
-        UtExecutionInstrumentation.pathsToUserClasses += pathsToUserClasses
-    }
 
     /**
      * Ignores [arguments], because concrete arguments will be constructed
@@ -69,14 +88,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
      * Argument [parameters] must be of type [UtConcreteExecutionData].
      */
     override fun invoke(
-        clazz: Class<*>,
-        methodSignature: String,
-        arguments: ArgumentList,
-        parameters: Any?
-    ): UtConcreteExecutionResult =
-        invoke(clazz, methodSignature, arguments, parameters, phasesWrapper = { it() })
-
-    fun invoke(
         clazz: Class<*>,
         methodSignature: String,
         arguments: ArgumentList,
@@ -190,5 +201,14 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         }
 
         return instrumenter.classByteCode
+    }
+
+    class Factory(
+        private val pathsToUserClasses: Set<String>
+    ) : UtExecutionInstrumentation.Factory<UtExecutionInstrumentation> {
+        override fun create(): UtExecutionInstrumentation = SimpleUtExecutionInstrumentation(pathsToUserClasses)
+
+        override fun create(instrumentationContext: InstrumentationContext): UtExecutionInstrumentation =
+            SimpleUtExecutionInstrumentation(pathsToUserClasses, instrumentationContext)
     }
 }

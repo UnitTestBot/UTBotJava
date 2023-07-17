@@ -20,7 +20,7 @@ class TestWithInstrumentation {
     @Test
     fun testStaticMethodCall() {
         withInstrumentation(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory(),
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ) { executor ->
             val res1 = executor.execute(StaticExampleClass::inc, arrayOf())
@@ -47,7 +47,7 @@ class TestWithInstrumentation {
     @Test
     fun testDifferentSignaturesButSameMethodNames() {
         withInstrumentation(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             ClassWithSameMethodNames::class.java.protectionDomain.codeSource.location.path
         ) { executor ->
             val clazz = ClassWithSameMethodNames::class
@@ -70,7 +70,7 @@ class TestWithInstrumentation {
     @Test
     fun testInnerClasses() {
         withInstrumentation(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory(),
             ClassWithInnerClasses::class.java.protectionDomain.codeSource.location.path
         ) { executor ->
             val innerClazz = ClassWithInnerClasses.InnerClass::class.java

@@ -40,6 +40,8 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
+import org.utbot.instrumentation.instrumentation.execution.SimpleUtExecutionInstrumentation
+import java.io.File
 import kotlin.reflect.jvm.kotlinFunction
 
 object UtBotJavaApi {
@@ -71,7 +73,7 @@ object UtBotJavaApi {
         val testSets: MutableList<UtMethodTestSet> = generatedTestCases.toMutableList()
 
         val concreteExecutor = ConcreteExecutor(
-            UtExecutionInstrumentation,
+            SimpleUtExecutionInstrumentation.Factory(pathsToUserClasses = classpath.split(File.pathSeparator).toSet()),
             classpath,
         )
 

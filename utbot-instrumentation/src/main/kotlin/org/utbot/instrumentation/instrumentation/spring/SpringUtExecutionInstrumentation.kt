@@ -6,16 +6,17 @@ import org.utbot.common.JarUtils
 import org.utbot.common.hasOnClasspath
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.SpringContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
-import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
-import org.utbot.instrumentation.process.HandlerClassesLoader
+import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
 import org.utbot.spring.api.SpringApi
 import java.net.URL
 import java.net.URLClassLoader
@@ -25,14 +26,15 @@ import java.security.ProtectionDomain
  * UtExecutionInstrumentation wrapper that is aware of Spring configuration and profiles and initialises Spring context
  */
 class SpringUtExecutionInstrumentation(
-    private val delegateInstrumentation: UtExecutionInstrumentation,
-    private val springSettings: PresentSpringSettings,
+    instrumentationContext: InstrumentationContext,
+    delegateInstrumentationFactory: UtExecutionInstrumentation.Factory<*>,
+    springSettings: PresentSpringSettings,
     private val beanDefinitions: List<BeanDefinitionData>,
-    private val buildDirs: Array<URL>,
-) : Instrumentation<UtConcreteExecutionResult> by delegateInstrumentation {
-
-    private lateinit var instrumentationContext: SpringInstrumentationContext
-    private lateinit var userSourcesClassLoader: URLClassLoader
+    buildDirs: Array<URL>,
+) : UtExecutionInstrumentation {
+    private val instrumentationContext = SpringInstrumentationContext(springSettings, instrumentationContext)
+    private val delegateInstrumentation = delegateInstrumentationFactory.create(this.instrumentationContext)
+    private val userSourcesClassLoader = URLClassLoader(buildDirs, null)
 
     private val relatedBeansCache = mutableMapOf<Class<*>, Set<String>>()
 
@@ -44,23 +46,6 @@ class SpringUtExecutionInstrumentation(
     companion object {
         private val logger = getLogger<SpringUtExecutionInstrumentation>()
         private const val SPRING_COMMONS_JAR_FILENAME = "utbot-spring-commons-shadow.jar"
-    }
-
-    override fun init(pathsToUserClasses: Set<String>) {
-        HandlerClassesLoader.addUrls(
-            listOf(
-                JarUtils.extractJarFileFromResources(
-                    jarFileName = SPRING_COMMONS_JAR_FILENAME,
-                    jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
-                    targetDirectoryName = "spring-commons"
-                ).path
-            )
-        )
-
-        userSourcesClassLoader = URLClassLoader(buildDirs, null)
-        instrumentationContext = SpringInstrumentationContext(springSettings, delegateInstrumentation.instrumentationContext)
-        delegateInstrumentation.instrumentationContext = instrumentationContext
-        delegateInstrumentation.init(pathsToUserClasses)
     }
 
     fun tryLoadingSpringContext(): SpringContextLoadingResult {
@@ -75,24 +60,29 @@ class SpringUtExecutionInstrumentation(
         clazz: Class<*>,
         methodSignature: String,
         arguments: ArgumentList,
-        parameters: Any?
+        parameters: Any?,
+        phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
 
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
-            // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
-            //     so they are executed in one thread with method under test
-            // NB! beforeTestMethod() and afterTestMethod() are executed without timeout, because:
-            //     - if the invokeBasePhases() times out, we still want to execute afterTestMethod()
-            //     - first call to beforeTestMethod() can take significant amount of time due to class loading & transformation
-            executePhaseWithoutTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
-            try {
-                invokeBasePhases()
-            } finally {
-                executePhaseWithoutTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
+            phasesWrapper {
+                // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
+                //     so they are executed in one thread with method under test
+                // NB! beforeTestMethod() and afterTestMethod() are executed without timeout, because:
+                //     - if the invokeBasePhases() times out, we still want to execute afterTestMethod()
+                //     - first call to beforeTestMethod() can take significant amount of time due to class loading & transformation
+                executePhaseWithoutTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
+                try {
+                    invokeBasePhases()
+                } finally {
+                    executePhaseWithoutTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
+                }
             }
         }
     }
+
+    override fun getStaticField(fieldId: FieldId): Result<*> = delegateInstrumentation.getStaticField(fieldId)
 
     private fun getRelevantBeans(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
         beanDefinitions
@@ -136,4 +126,27 @@ class SpringUtExecutionInstrumentation(
         } else {
             null
         }
+
+    class Factory(
+        private val delegateInstrumentationFactory: UtExecutionInstrumentation.Factory<*>,
+        private val springSettings: PresentSpringSettings,
+        private val beanDefinitions: List<BeanDefinitionData>,
+        private val buildDirs: Array<URL>,
+    ) : UtExecutionInstrumentation.Factory<SpringUtExecutionInstrumentation> {
+        override val additionalRuntimeClasspath: Set<String>
+            get() = super.additionalRuntimeClasspath + JarUtils.extractJarFileFromResources(
+                jarFileName = SPRING_COMMONS_JAR_FILENAME,
+                jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
+                targetDirectoryName = "spring-commons"
+            ).path
+
+        override fun create(instrumentationContext: InstrumentationContext): SpringUtExecutionInstrumentation =
+            SpringUtExecutionInstrumentation(
+                instrumentationContext,
+                delegateInstrumentationFactory,
+                springSettings,
+                beanDefinitions,
+                buildDirs
+            )
+    }
 }

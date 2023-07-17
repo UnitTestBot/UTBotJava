@@ -1,5 +1,6 @@
 package org.utbot.fuzzing.providers
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
@@ -11,6 +12,8 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+
+private val logger = KotlinLogging.logger {}
 
 private fun isKnownTypes(type: ClassId): Boolean {
     return type == stringClassId
@@ -133,7 +136,12 @@ class AbstractsObjectValueProvider(
     override fun accept(type: FuzzedType) = type.classId.isRefType && !isKnownTypes(type.classId)
 
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
-        val t = Scene.v().getRefType(type.classId.canonicalName).sootClass
+        val t = try {
+            Scene.v().getRefType(type.classId.canonicalName).sootClass
+        } catch (ignore: NoClassDefFoundError) {
+            logger.error(ignore) { "Soot may be not initialized" }
+            return@sequence
+        }
         fun canCreateClass(sc: SootClass): Boolean {
             try {
                 if (!sc.isConcrete) return false

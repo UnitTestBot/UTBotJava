@@ -29,6 +29,11 @@ abstract class CgClassFieldManagerImpl(context: CgContext) :
     val variableConstructor: CgSpringVariableConstructor by lazy {
         CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
     }
+
+    fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
+        val key = setOfModels?.find { it == model.wrap() } ?: return null
+        return valueByUtModelWrapper[key]
+    }
 }
 
 class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManagerImpl(context) {
@@ -43,12 +48,15 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManage
         }
 
         modelFields?.forEach { (fieldId, fieldModel) ->
-            //creating variables for modelVariable fields
+            // creating variables for modelVariable fields
             val variableForField = variableConstructor.getOrCreateVariable(fieldModel)
 
-            // If field model is a mock, it is set in the connected with instance under test automatically via @InjectMocks;
+            // is variable mocked by @Mock annotation
+            val isMocked = findCgValueByModel(fieldModel, variableConstructor.annotatedModelGroups[mockClassId]) != null
+
+            // If field model is a mock model and is mocked by @Mock annotation in classFields, it is set in the connected with instance under test automatically via @InjectMocks;
             // Otherwise we need to set this field manually.
-            if (!fieldModel.isMockModel()) {
+            if (!fieldModel.isMockModel() || !isMocked) {
                 variableConstructor.setFieldValue(modelVariable, fieldId, variableForField)
             }
         }
@@ -97,12 +105,13 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 
     fun constructVariableForField(
         model: UtModel,
-        annotatedModelGroups: Map<ClassId, Set<UtModelWrapper>>,
     ): CgValue? {
         val annotationManagers = listOf(injectingMocksFieldsManager, mockedFieldsManager, autowiredFieldsManager)
 
         annotationManagers.forEach { manager ->
-            val alreadyCreatedVariable = findCgValueByModel(model, annotatedModelGroups[manager.annotationType])
+            val annotatedModelGroups = manager.variableConstructor.annotatedModelGroups
+
+            val alreadyCreatedVariable = manager.findCgValueByModel(model, annotatedModelGroups[manager.annotationType])
 
             if (alreadyCreatedVariable != null) {
                 return manager.constructVariableForField(model, alreadyCreatedVariable)
@@ -110,10 +119,5 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
         }
 
         return null
-    }
-
-    private fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
-        val key = setOfModels?.find { it == model.wrap() } ?: return null
-        return valueByUtModelWrapper[key]
     }
 }

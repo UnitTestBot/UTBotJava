@@ -15,7 +15,7 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
     private val classFieldManager = ClassFieldManagerFacade(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        val variable = classFieldManager.constructVariableForField(model, annotatedModelGroups)
+        val variable = classFieldManager.constructVariableForField(model)
 
         variable?.let { return it }
 

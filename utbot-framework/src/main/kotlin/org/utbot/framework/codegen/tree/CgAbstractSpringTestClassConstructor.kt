@@ -22,8 +22,9 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
+import java.util.Collections.max
 
-abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
+abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
     CgAbstractTestClassConstructor<SpringTestClassModel>(context) {
 
     protected val variableConstructor: CgSpringVariableConstructor =
@@ -100,22 +101,48 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
 
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
         for ((classId, listOfUtModels) in groupedModelsByClassId) {
-            val modelWrapper = listOfUtModels.firstOrNull() ?: continue
-            val model = modelWrapper.model
-            val baseVarName = model.getBeanNameOrNull()
 
-            val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                ?: error("`UtCompositeModel` model was expected, but $model was found")
-
-            val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
-            constructedDeclarations += CgFieldDeclaration(ownerClassId = currentTestClass, declaration, annotation)
-
-            listOfUtModels.forEach { key ->
-                valueByUtModelWrapper[key] = createdVariable
+            // group [listOfUtModels] by `testSetId` and `executionId`
+            // to check how many instance of one type used in each execution
+            val groupedListOfUtModel = listOfUtModels.groupByTo(HashMap()) {
+                Pair(
+                    it.testSetId,
+                    it.executionId,
+                )
             }
 
-            variableConstructor.annotatedModelGroups
-                .getOrPut(annotationClassId) { mutableSetOf() } += listOfUtModels
+            // max count instances of one type in one execution
+            val instanceMaxCount = max(groupedListOfUtModel.map { (_, modelsList) -> modelsList.size })
+
+            // if [instanceCount] is 1, then we mock variable by @Mock annotation
+            // Otherwise we will mock variable by simple mock later
+            if (instanceMaxCount == 1) {
+                val modelWrapper = listOfUtModels.firstOrNull() ?: continue
+                val model = modelWrapper.model
+
+                val baseVarName = model.getBeanNameOrNull()
+
+                val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
+                    ?: error("`UtCompositeModel` model was expected, but $model was found")
+
+                val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
+
+                constructedDeclarations += CgFieldDeclaration(
+                    ownerClassId = currentTestClass,
+                    declaration,
+                    annotation
+                )
+
+                groupedListOfUtModel
+                    .forEach { (_, modelsList) ->
+                        val currentModel = modelsList.firstOrNull()
+
+                        currentModel?.let{
+                            valueByUtModelWrapper[currentModel] = createdVariable
+                            variableConstructor.annotatedModelGroups.getOrPut(annotationClassId) { mutableSetOf() } += currentModel
+                        }
+                    }
+            }
         }
 
         return constructedDeclarations

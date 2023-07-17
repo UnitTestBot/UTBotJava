@@ -161,19 +161,21 @@ dependencies {
     implementation(project(":utbot-ui-commons"))
 
     //Family
-    if (pythonIde?.split(',')?.contains(ideType) == true) {
-        implementation(project(":utbot-python"))
-        implementation(project(":utbot-intellij-python"))
-    }
+    if (projectType == standardProjectTypeName) {
+        if (pythonIde?.split(',')?.contains(ideType) == true) {
+            implementation(project(":utbot-python"))
+            implementation(project(":utbot-intellij-python"))
+        }
 
-    if (jsIde?.split(',')?.contains(ideType) == true) {
-        implementation(project(":utbot-js"))
-        implementation(project(":utbot-intellij-js"))
-    }
+        if (jsIde?.split(',')?.contains(ideType) == true) {
+            implementation(project(":utbot-js"))
+            implementation(project(":utbot-intellij-js"))
+        }
 
-    if (goIde?.split(',')?.contains(ideType) == true) {
-        implementation(project(":utbot-go"))
-        implementation(project(":utbot-intellij-go"))
+        if (goIde?.split(',')?.contains(ideType) == true) {
+            implementation(project(":utbot-go"))
+            implementation(project(":utbot-intellij-go"))
+        }
     }
 
     implementation(project(":utbot-android-studio"))

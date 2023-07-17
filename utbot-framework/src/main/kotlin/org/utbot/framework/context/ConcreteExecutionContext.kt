@@ -8,7 +8,7 @@ interface ConcreteExecutionContext {
     fun getErrors(): List<UtError>
 
     // TODO refactor, so this interface only includes the following:
-    //  val instrumentation: Instrumentation<UtConcreteExecutionResult>
+    //  val instrumentationFactory: UtExecutionInstrumentation.Factory<*>
     //  fun createValueProviderOrThrow(classUnderTest: ClassId, idGenerator: IdentityPreservingIdGenerator<Int>): JavaValueProvider
     //  fun loadContext(): ContextLoadingResult
     //  fun Coverage.filterCoveredInstructions(classUnderTestId: ClassId): Coverage

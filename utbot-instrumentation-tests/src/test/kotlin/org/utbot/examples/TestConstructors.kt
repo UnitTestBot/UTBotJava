@@ -28,7 +28,7 @@ class TestConstructors {
     @Test
     fun testDefaultConstructor() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             CLASSPATH
         ).use { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors
@@ -43,7 +43,7 @@ class TestConstructors {
     @Test
     fun testIntConstructors() {
         ConcreteExecutor(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             CLASSPATH
         ).use { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors
@@ -65,7 +65,7 @@ class TestConstructors {
     @Test
     fun testStringConstructors() {
         withInstrumentation(
-            InvokeInstrumentation(),
+            InvokeInstrumentation.Factory(),
             CLASSPATH
         ) { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors
@@ -86,7 +86,7 @@ class TestConstructors {
     @Test
     fun testCoverageConstructor() {
         withInstrumentation(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory(),
             CLASSPATH
         ) { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors
@@ -106,7 +106,7 @@ class TestConstructors {
     @Test
     fun testExecutionTraceConstructor() {
         withInstrumentation(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory(),
             CLASSPATH
         ) { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors

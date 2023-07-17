@@ -13,7 +13,7 @@ import kotlin.system.measureNanoTime
 fun getBasicCoverageTime_fib(count: Int): Double {
     var time: Long
     ConcreteExecutor(
-        CoverageInstrumentation,
+        CoverageInstrumentation.Factory(),
         Fibonacci::class.java.protectionDomain.codeSource.location.path
     ).use {
         val fib = Isolated(Fibonacci::calc, it)
@@ -47,7 +47,7 @@ fun getNativeCallTime_fib(count: Int): Double {
 fun getJustResultTime_fib(count: Int): Double {
     var time: Long
     ConcreteExecutor(
-        InvokeInstrumentation(),
+        InvokeInstrumentation.Factory(),
         Fibonacci::class.java.protectionDomain.codeSource.location.path
     ).use {
         val fib = Isolated(Fibonacci::calc, it)

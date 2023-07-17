@@ -117,4 +117,8 @@ class InvokeInstrumentation : Instrumentation<Result<*>> {
         protectionDomain: ProtectionDomain,
         classfileBuffer: ByteArray
     ) = null
+
+    class Factory : Instrumentation.Factory<Result<*>, InvokeInstrumentation> {
+        override fun create(): InvokeInstrumentation = InvokeInstrumentation()
+    }
 }

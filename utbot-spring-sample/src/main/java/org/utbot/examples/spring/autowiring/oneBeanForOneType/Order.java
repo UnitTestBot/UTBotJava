@@ -1,4 +1,4 @@
-package org.utbot.examples.spring.autowiring;
+package org.utbot.examples.spring.autowiring.oneBeanForOneType;
 
 import lombok.*;
 import lombok.extern.jackson.Jacksonized;

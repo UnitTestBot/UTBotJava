@@ -268,13 +268,7 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
                         parameterizedTestSource = parametrizedTestSource,
                         runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
                         enableTestsTimeout = enableTestsTimeout,
-                        springCodeGenerationContext = SpringApplicationContext(
-                            mockInstalled = true,
-                            staticsMockingIsConfigured = true,
-                            shouldUseImplementors = false,
-                            springTestType = SpringTestType.UNIT_TEST,
-                            springSettings = SpringSettings.AbsentSpringSettings(),
-                        )
+                        springCodeGenerationContext = defaultSpringApplicationContext,
                     )
                     ProjectType.PureJvm -> CodeGenerator(
                         classUnderTest.id,

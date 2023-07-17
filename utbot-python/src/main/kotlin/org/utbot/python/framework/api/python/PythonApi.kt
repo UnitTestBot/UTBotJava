@@ -100,6 +100,13 @@ class PythonUtExecution(
     testMethodName: String? = null,
     displayName: String? = null,
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
+    init {
+        stateInit.parameters.zip(stateBefore.parameters).map { (init, before) ->
+            if (init is PythonTreeModel && before is PythonTreeModel) {
+                init.tree.comparable = before.tree.comparable
+            }
+        }
+    }
     override fun copy(
         stateBefore: EnvironmentModels,
         stateAfter: EnvironmentModels,

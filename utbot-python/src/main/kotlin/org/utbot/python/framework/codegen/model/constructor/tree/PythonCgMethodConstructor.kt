@@ -333,8 +333,9 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
     ) {
         if (expectedNode.comparable || depth == 0) {
             emptyLineIfNeeded()
+            val expectedValue = variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
             testFrameworkManager.assertEquals(
-                expected,
+                expectedValue,
                 actual,
             )
             return

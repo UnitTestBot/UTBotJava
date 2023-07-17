@@ -114,7 +114,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
                 valueByUtModelWrapper[key] = createdVariable
             }
 
-            variableConstructor.annotatedModelVariables
+            variableConstructor.annotatedModelGroups
                 .getOrPut(annotationClassId) { mutableSetOf() } += listOfUtModels
         }
 
@@ -133,7 +133,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
      */
     private fun clearUnwantedVariableModels() {
         val trustedListOfModels =
-            variableConstructor.annotatedModelVariables.values.flatten() + listOf(UtSpringContextModel.wrap())
+            variableConstructor.annotatedModelGroups.values.flatten() + listOf(UtSpringContextModel.wrap())
 
         valueByUtModelWrapper
             .filterNot { it.key in trustedListOfModels }

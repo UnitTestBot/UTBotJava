@@ -64,7 +64,7 @@ open class CgVariableConstructor(val context: CgContext) :
     CgStatementConstructor by getStatementConstructorBy(context) {
 
     private val nameGenerator = getNameGeneratorBy(context)
-    protected val mockFrameworkManager = getMockFrameworkManagerBy(context)
+    val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
     /**
      * Take already created CgValue or construct either a new [CgVariable] or new [CgLiteral] for the given model.
@@ -176,7 +176,7 @@ open class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    protected fun setFieldValue(obj: CgValue, fieldId: FieldId, variableForField: CgValue){
+    fun setFieldValue(obj: CgValue, fieldId: FieldId, variableForField: CgValue){
         val field = fieldId.jField
         val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
 
@@ -219,7 +219,7 @@ open class CgVariableConstructor(val context: CgContext) :
             .also { valueByUtModelWrapper[model.wrap()] = it }
     }
 
-    protected fun constructAssembleForVariable(model: UtAssembleModel): CgValue {
+    fun constructAssembleForVariable(model: UtAssembleModel): CgValue {
         for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {

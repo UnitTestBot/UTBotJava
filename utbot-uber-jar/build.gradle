@@ -25,13 +25,14 @@ processResources {
 jar {
     dependsOn classes
 
+    archiveBaseName.set('utb-symbolic')
+    archiveClassifier.set('')
+
     manifest {
         attributes 'Bundle-SymbolicName': 'org.utbot'
         attributes 'Bundle-Version': "${project.version}"
         attributes 'JAR-Type': 'Fat JAR'
     }
-
-    version '1.3'
 
     dependsOn configurations.runtimeClasspath
     from {

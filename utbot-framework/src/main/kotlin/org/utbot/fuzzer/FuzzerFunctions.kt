@@ -1,11 +1,9 @@
 package org.utbot.fuzzer
 
 import mu.KotlinLogging
-import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.executableId
-import org.utbot.fuzzing.providers.CreateObjectAnywayValueProvider
 import soot.BooleanType
 import soot.ByteType
 import soot.CharType
@@ -48,7 +46,6 @@ fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteVa
                 StringConstant,
                 RegexByVarStringConstant,
                 DateFormatByVarStringConstant,
-                AbstractMethodIsCalled,
             ).flatMap { finder ->
                 try {
                     finder.find(graph, unit, value)
@@ -244,16 +241,6 @@ private object DateFormatByVarStringConstant: ConstantsFinder {
             if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
                 return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
             }
-        }
-        return emptyList()
-    }
-}
-
-private object AbstractMethodIsCalled: ConstantsFinder {
-    override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
-        if (UtSettings.fuzzObjectWhenTheyCannotBeCreatedClean && value is JInterfaceInvokeExpr) {
-            // todo do a better way to add information about virtual method calls to providers
-            return listOf(FuzzedConcreteValue(value.method.javaClass.id, CreateObjectAnywayValueProvider::class, FuzzedContext.Call(value.method.executableId)))
         }
         return emptyList()
     }

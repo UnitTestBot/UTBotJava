@@ -237,9 +237,9 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L, 0, Long.MAX_VALUE)
 
     /**
-     * Fuzzer will create objects when they cannot be created by other providers (e.g. private classes)
+     * Find implementations of interfaces and abstract classes to fuzz.
      */
-    var fuzzObjectWhenTheyCannotBeCreatedClean: Boolean by getBooleanProperty(false)
+    var fuzzingImplementationOfAbstractClasses: Boolean by getBooleanProperty(true)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors

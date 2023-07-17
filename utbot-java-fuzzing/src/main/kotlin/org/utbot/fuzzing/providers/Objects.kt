@@ -1,23 +1,28 @@
 package org.utbot.fuzzing.providers
 
-import org.utbot.common.isAbstract
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.hex
+import soot.Scene
+import soot.SootClass
 import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-private fun isIgnored(type: ClassId): Boolean {
+private fun isKnownTypes(type: ClassId): Boolean {
     return type == stringClassId
             || type == dateClassId
             || type == NumberValueProvider.classId
             || type.isCollectionOrMap
             || type.isPrimitiveWrapper
             || type.isEnum
+}
+
+private fun isIgnored(type: ClassId): Boolean {
+    return isKnownTypes(type)
             || type.isAbstract
             || (type.isInner && !type.isStatic)
 }
@@ -33,10 +38,8 @@ class ObjectValueProvider(
         type: FuzzedType
     ) = sequence {
         val classId = type.classId
-        val constructors = findTypesOfNonRecursiveConstructor(type, description.description.packageName)
-            .takeIf { it.isNotEmpty() }
-            ?.asSequence()
-            ?: classId.allConstructors.filter {
+        val constructors = classId.allConstructors
+            .filter {
                 isAccessible(it.constructor, description.description.packageName)
             }
         constructors.forEach { constructorId ->
@@ -92,14 +95,6 @@ class ObjectValueProvider(
             empty = nullRoutine(classId)
         )
     }
-
-    private fun findTypesOfNonRecursiveConstructor(type: FuzzedType, packageName: String?): List<ConstructorId> {
-        return type.classId.allConstructors
-            .filter { isAccessible(it.constructor, packageName) }
-            .filter { c ->
-                c.parameters.all { it.isPrimitive || it == stringClassId || it.isArray }
-            }.toList()
-    }
 }
 
 @Suppress("unused")
@@ -128,66 +123,52 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
     }
 }
 
-class CreateObjectAnywayValueProvider(
+/**
+ * Finds and create object from implementations of abstract classes or interfaces.
+ */
+class AbstractsObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-    val useMock: Boolean = false,
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
-    override fun accept(type: FuzzedType) = type.classId.isRefType && !isIgnored(type.classId)
+    override fun accept(type: FuzzedType) = type.classId.isRefType && !isKnownTypes(type.classId)
 
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
-        val methodCalls = description.constants.filter {
-            it.value == CreateObjectAnywayValueProvider::class
-        }.mapNotNull {
-            it.fuzzedContext as? FuzzedContext.Call
-        }.map {
-            it.method
-        }.toSet()
-
-        yield(Seed.Recursive(
-            construct = Routine.Create(emptyList()) {
-                UtCompositeModel(idGenerator.createId(), type.classId, useMock).fuzzed {
-                    summary = "Unsafe object"
+        val t = Scene.v().getRefType(type.classId.canonicalName).sootClass
+        fun canCreateClass(sc: SootClass): Boolean {
+            try {
+                if (!sc.isConcrete) return false
+                val packageName = sc.packageName
+                if (packageName != null) {
+                    if (packageName.startsWith("jdk.internal") ||
+                        packageName.startsWith("org.utbot") ||
+                        packageName.startsWith("sun."))
+                    return false
                 }
-            },
-            modify = sequence {
-                // generate all fields
-                generateSequence(type.classId.jClass) {
-                    it.superclass
-                }.flatMap { javaClass ->
-                    javaClass.declaredFields.toList()
-                }.forEach { field ->
-                    yield(Routine.Call(listOf(toFuzzerType(field.type, description.typeCache))) { instance, args ->
-                        (instance.model as UtCompositeModel).fields[field.fieldId] = args.first().model
-                    })
+                val isAnonymousClass = sc.name.matches(""".*\$\d+$""".toRegex())
+                if (isAnonymousClass) {
+                    return false
                 }
-
-                generateSequence(listOf(type.classId.jClass)) { classList ->
-                    classList.flatMap { listOf(it.superclass) + it.interfaces }.filterNotNull().takeIf { it.isNotEmpty() }
-                }.flatten().filter {
-                    isAccessible(it, description.description.packageName)
-                }.flatMap { javaClass ->
-                    javaClass.declaredMethods.filter {
-                        javaClass.isInterface || it.isAbstract
-                    }.filter {
-                        isAccessible(it, description.description.packageName)
-                    }
-                    // todo filter by methods seen in code
-                }.forEach { method ->
-                    val executableId = method.executableId
-                    if (methodCalls.contains(executableId)) {
-                        yield(Routine.Call(listOf(toFuzzerType(method.returnType, description.typeCache))) { instance, args ->
-                            (instance.model as UtCompositeModel).mocks[executableId] = args.map(FuzzedValue::model)
-                        })
-                    }
-                }
-            },
-            empty = Routine.Empty {
-                UtCompositeModel(idGenerator.createId(), type.classId, useMock).fuzzed {
-                    summary = "Unsafe object"
-                }
+                val jClass = sc.id.jClass
+                return isAccessible(jClass, description.description.packageName) &&
+                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) }
+            } catch (ignore: Throwable) {
+                return false
             }
-        ))
+        }
+
+        val implementations = when {
+            t.isInterface -> Scene.v().fastHierarchy.getAllImplementersOfInterface(t).filter(::canCreateClass)
+            t.isAbstract -> Scene.v().fastHierarchy.getSubclassesOf(t).filter(::canCreateClass)
+            else -> emptyList()
+        }
+        implementations.shuffled(description.random).take(10).forEach { concrete ->
+            yield(Seed.Recursive(
+                construct = Routine.Create(listOf(toFuzzerType(concrete.id.jClass, description.typeCache))) {
+                    it.first()
+                },
+                empty = nullRoutine(type.classId)
+            ))
+        }
     }
 }
 

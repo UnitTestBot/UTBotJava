@@ -289,7 +289,14 @@ private object EmptyFeedback : Feedback<Nothing, Nothing> {
 class NoSeedValueException internal constructor(
     // this type cannot be generalized because Java forbids types for [Throwable].
     val type: Any?
-) : Exception("No seed candidates generated for type: $type")
+) : Exception() {
+    override fun fillInStackTrace(): Throwable {
+        return this
+    }
+
+    override val message: String
+        get() = "No seed candidates generated for type: $type"
+}
 
 suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,

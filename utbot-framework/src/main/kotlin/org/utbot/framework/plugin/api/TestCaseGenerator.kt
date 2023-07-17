@@ -14,7 +14,6 @@ import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
 import org.utbot.common.*
-import org.utbot.common.PathUtil.toURL
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -45,7 +44,6 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min

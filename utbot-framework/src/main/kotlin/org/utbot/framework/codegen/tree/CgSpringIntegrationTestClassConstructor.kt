@@ -64,7 +64,7 @@ class CgSpringIntegrationTestClassConstructor(
         )
 
     private fun constructContextLoadsMethod() : CgTestMethod {
-        val contextLoadingResult = springCodeGenerationContext.springContextLoadingResult
+        val contextLoadingResult = springCodeGenerationContext.concreteContextLoadingResult
         if (contextLoadingResult == null)
             logger.error { "Missing contextLoadingResult" }
         val exception = contextLoadingResult?.exceptions?.firstOrNull()

@@ -4,7 +4,7 @@ import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringCodeGenerationContext
-import org.utbot.framework.plugin.api.SpringContextLoadingResult
+import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 
 /**
  * Data we get from Spring application context
@@ -19,6 +19,6 @@ interface SpringApplicationContext : ApplicationContext, SpringCodeGenerationCon
     val injectedTypes: Set<ClassId>
     val allInjectedSuperTypes: Set<ClassId>
 
-    override var springContextLoadingResult: SpringContextLoadingResult?
+    override var concreteContextLoadingResult: ConcreteContextLoadingResult?
     fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData>
 }

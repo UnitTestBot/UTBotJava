@@ -17,5 +17,5 @@ class SimpleApplicationContext(
     override fun createConcreteExecutionContext(
         fullClasspath: String,
         classpathWithoutDependencies: String
-    ): ConcreteExecutionContext = SimpleConcreteExecutionContext(fullClasspath, classpathWithoutDependencies)
+    ): ConcreteExecutionContext = SimpleConcreteExecutionContext(fullClasspath)
 }

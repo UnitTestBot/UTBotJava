@@ -7,7 +7,7 @@ import org.utbot.common.hasOnClasspath
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.SpringContextLoadingResult
+import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.util.jClass
@@ -48,9 +48,9 @@ class SpringUtExecutionInstrumentation(
         private const val SPRING_COMMONS_JAR_FILENAME = "utbot-spring-commons-shadow.jar"
     }
 
-    fun tryLoadingSpringContext(): SpringContextLoadingResult {
+    fun tryLoadingSpringContext(): ConcreteContextLoadingResult {
         val apiProviderResult = instrumentationContext.springApiProviderResult
-        return SpringContextLoadingResult(
+        return ConcreteContextLoadingResult(
             contextLoaded = apiProviderResult.result.isSuccess,
             exceptions = apiProviderResult.exceptions
         )

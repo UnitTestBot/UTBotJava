@@ -7,11 +7,13 @@ import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
+import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.SpringContextLoadingResult
+import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.plugin.api.SpringTestType
+import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassIds
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -30,15 +32,37 @@ class SpringApplicationContextImpl(
     override val typeReplacer: TypeReplacer = SpringTypeReplacer(delegateContext.typeReplacer, this)
     override val nonNullSpeculator: NonNullSpeculator = SpringNonNullSpeculator(delegateContext.nonNullSpeculator, this)
 
-    override var springContextLoadingResult: SpringContextLoadingResult? = null
+    override var concreteContextLoadingResult: ConcreteContextLoadingResult? = null
 
     override fun createConcreteExecutionContext(
         fullClasspath: String,
         classpathWithoutDependencies: String
-    ): ConcreteExecutionContext = SpringConcreteExecutionContext(
-        delegateContext.createConcreteExecutionContext(fullClasspath, classpathWithoutDependencies),
-        this
-    )
+    ): ConcreteExecutionContext {
+        var delegateConcreteExecutionContext = delegateContext.createConcreteExecutionContext(
+            fullClasspath,
+            classpathWithoutDependencies
+        )
+
+        // to avoid filtering out all coverage, we only filter
+        // coverage when `classpathWithoutDependencies` is provided
+        // (e.g. when we are launched from IDE plugin)
+        if (classpathWithoutDependencies.isNotEmpty())
+            delegateConcreteExecutionContext = CoverageFilteringConcreteExecutionContext(
+                delegateContext = delegateConcreteExecutionContext,
+                classpathToIncludeCoverageFrom = classpathWithoutDependencies,
+                annotationsToIgnoreCoverage = entityClassIds.toSet(),
+                keepOriginalCoverageOnEmptyFilteredCoverage = true
+            )
+
+        return when (springTestType) {
+            SpringTestType.UNIT_TEST -> delegateConcreteExecutionContext
+            SpringTestType.INTEGRATION_TEST -> SpringIntegrationTestConcreteExecutionContext(
+                delegateConcreteExecutionContext,
+                classpathWithoutDependencies,
+                this
+            )
+        }
+    }
 
     override fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData> = beanDefinitions.filter { beanDef ->
         // some bean classes may fail to load

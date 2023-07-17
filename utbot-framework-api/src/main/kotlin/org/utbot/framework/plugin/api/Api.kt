@@ -1323,7 +1323,7 @@ interface CodeGenerationContext
 interface SpringCodeGenerationContext : CodeGenerationContext {
     val springTestType: SpringTestType
     val springSettings: SpringSettings
-    val springContextLoadingResult: SpringContextLoadingResult?
+    val concreteContextLoadingResult: ConcreteContextLoadingResult?
 }
 
 sealed class SpringConfiguration(val fullDisplayName: String) {
@@ -1349,14 +1349,35 @@ sealed interface SpringSettings {
 }
 
 /**
- * [contextLoaded] can be `true` while [exceptions] is not empty,
- * if we failed to use most specific SpringApi available (e.g. SpringBoot), but
- * were able to successfully fall back to less specific SpringApi (e.g. PureSpring).
+ * Result of loading concrete execution context (e.g. Spring application context).
+ *
+ * [contextLoaded] can be `true` while [exceptions] is not empty. For example, we may fail
+ * to load context with most specific SpringApi available (e.g. SpringBoot),
+ * but successfully fall back to less specific SpringApi (e.g. PureSpring).
  */
-class SpringContextLoadingResult(
+class ConcreteContextLoadingResult(
     val contextLoaded: Boolean,
     val exceptions: List<Throwable>
-)
+) {
+    val utErrors: List<UtError> get() =
+        exceptions.map { UtError(it.message ?: "Concrete context loading failed", it) }
+
+    fun andThen(onSuccess: () -> ConcreteContextLoadingResult) =
+        if (contextLoaded) {
+            val otherResult = onSuccess()
+            ConcreteContextLoadingResult(
+                contextLoaded = otherResult.contextLoaded,
+                exceptions = exceptions + otherResult.exceptions
+            )
+        } else this
+
+    companion object {
+        fun successWithoutExceptions() = ConcreteContextLoadingResult(
+            contextLoaded = true,
+            exceptions = emptyList()
+        )
+    }
+}
 
 enum class SpringTestType(
     override val id: String,

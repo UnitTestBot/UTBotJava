@@ -1,15 +1,29 @@
 package org.utbot.framework.context
 
-import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzing.JavaValueProvider
+import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 
 interface ConcreteExecutionContext {
-    fun preventsFurtherTestGeneration(): Boolean
+    val instrumentationFactory: UtExecutionInstrumentation.Factory<*>
 
-    fun getErrors(): List<UtError>
+    fun loadContext(
+        concreteExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
+    ): ConcreteContextLoadingResult
 
-    // TODO refactor, so this interface only includes the following:
-    //  val instrumentationFactory: UtExecutionInstrumentation.Factory<*>
-    //  fun createValueProviderOrThrow(classUnderTest: ClassId, idGenerator: IdentityPreservingIdGenerator<Int>): JavaValueProvider
-    //  fun loadContext(): ContextLoadingResult
-    //  fun Coverage.filterCoveredInstructions(classUnderTestId: ClassId): Coverage
+    fun transformExecutionsBeforeMinimization(
+        executions: List<UtExecution>,
+        classUnderTestId: ClassId
+    ): List<UtExecution>
+
+    fun tryCreateValueProvider(
+        concreteExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
+        classUnderTest: ClassId,
+        idGenerator: IdentityPreservingIdGenerator<Int>,
+    ): JavaValueProvider
 }

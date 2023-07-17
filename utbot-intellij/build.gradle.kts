@@ -1,3 +1,7 @@
+val projectType: String by rootProject
+val standardProjectTypeName: String by rootProject
+val springProjectTypeName: String by rootProject
+
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
@@ -60,11 +64,17 @@ intellij {
     )
 
     plugins.set(
-        when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins + mavenUtilsPlugins
-            "PC" -> pythonCommunityPlugins
-            "PY" -> pythonUltimatePlugins // something else, JS?
+        when (projectType) {
+            standardProjectTypeName -> {
+                when (ideType) {
+                    "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
+                    "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins + mavenUtilsPlugins
+                    "PC" -> pythonCommunityPlugins
+                    "PY" -> pythonUltimatePlugins // something else, JS?
+                    else -> jvmPlugins
+                }
+            }
+            springProjectTypeName -> jvmPlugins
             else -> jvmPlugins
         }
     )

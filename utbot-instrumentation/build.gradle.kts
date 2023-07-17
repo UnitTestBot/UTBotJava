@@ -1,5 +1,8 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
 
+val projectType: String by rootProject
+val springProjectTypeName: String by rootProject
+
 val asmVersion: String by rootProject
 val kryoVersion: String by rootProject
 val kryoSerializersVersion: String by rootProject
@@ -58,7 +61,9 @@ dependencies {
     implementation("org.mockito:mockito-core:$mockitoVersion")
     implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
 
-    fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
+    if (projectType == springProjectTypeName) {
+        fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
+    }
 }
 
 /**

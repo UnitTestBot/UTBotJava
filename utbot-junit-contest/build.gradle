@@ -13,22 +13,30 @@ compileJava {
 
 compileTestJava {
     options.fork = true
-    options.forkOptions.executable = 'javac'
     options.compilerArgs << "-XDignore.symbol.file"
 }
+
+def testProjects = [
+        'build/output/test/antlr',
+        'build/output/test/codeforces',
+        'build/output/test/fastjson-1.2.50',
+        'build/output/test/fescar',
+        'build/output/test/guava',
+        'build/output/test/guava-26.0',
+        'build/output/test/guava-30.0',
+        'build/output/test/pdfbox',
+        'build/output/test/seata',
+        'build/output/test/seata-core-0.5.0',
+        'build/output/test/spoon',
+        'build/output/test/spoon-core-7.0.0',
+]
 
 sourceSets {
     test {
         java {
-            srcDir('build/output/test/antlr')
-            srcDir('build/output/test/custom')
-            srcDir('build/output/test/guava')
-            srcDir('build/output/test/fescar')
-            srcDir('build/output/test/pdfbox')
-            srcDir('build/output/test/seata')
-            srcDir('build/output/test/spoon')
-            srcDir('build/output/test/samples')
-            srcDir('build/output/test/utbottest')
+            testProjects.forEach {
+                srcDir(it)
+            }
         }
     }
 }
@@ -39,7 +47,26 @@ test {
 }
 
 jacocoTestReport {
+    afterEvaluate {
+        def r = testProjects.collect {
+            fileTree(dir: it)
+        }.findAll {
+            it.dir.exists()
+        }
+        sourceDirectories.setFrom(r.collect {files(it) })
+        classDirectories.setFrom(
+                r.collect {
+                    fileTree(dir: it.dir.toPath().parent.resolveSibling("unzipped").resolve(it.dir.name))
+                }.findAll {
+                    it.dir.exists()
+                }.collect {
+                    files(it)
+                }
+        )
+    }
+
     reports {
+        csv.enabled = true
         html.enabled = true
     }
 }

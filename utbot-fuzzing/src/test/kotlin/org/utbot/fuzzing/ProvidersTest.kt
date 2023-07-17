@@ -112,6 +112,27 @@ class ProvidersTest {
     }
 
     @Test
+    fun `test fallback unwrapping from providers`() {
+        val provider1 = p { 2 }
+        val provider2 = p { 3 }
+        val fallback = p { 4 }
+        val providers1 = ValueProvider.of(listOf(
+            provider1.withFallback(fallback),
+            provider2
+        ))
+        val seq1 = providers1.generate(description, Unit).toSet()
+        Assertions.assertEquals(2, seq1.count())
+        Assertions.assertEquals(2, (seq1.first() as Seed.Simple).value)
+        Assertions.assertEquals(3, (seq1.drop(1).first() as Seed.Simple).value)
+
+        val providers2 = providers1.except(provider1)
+
+        val seq2 = providers2.generate(description, Unit).toSet()
+        Assertions.assertEquals(1, seq2.count())
+        Assertions.assertEquals(3, (seq2.first() as Seed.Simple).value)
+    }
+
+    @Test
     fun `provider is not called when accept-method returns false`() {
         val seq = ValueProvider.of(listOf(
             p({ true }, { 1 }), p({ false }, { 2 }), p({ true }, { 3 }),

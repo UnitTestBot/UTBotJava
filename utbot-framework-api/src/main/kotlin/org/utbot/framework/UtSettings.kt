@@ -237,6 +237,11 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L, 0, Long.MAX_VALUE)
 
     /**
+     * Find implementations of interfaces and abstract classes to fuzz.
+     */
+    var fuzzingImplementationOfAbstractClasses: Boolean by getBooleanProperty(true)
+
+    /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
      * that throw Arithmetic Exception.
      */

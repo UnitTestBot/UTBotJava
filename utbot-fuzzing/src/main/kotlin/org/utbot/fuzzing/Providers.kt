@@ -96,9 +96,9 @@ fun interface ValueProvider<T, R, D : Description<T>> {
      */
     fun except(filter: (ValueProvider<T, R, D>) -> Boolean): ValueProvider<T, R, D> {
         return if (this is Combined) {
-            Combined(providers.filterNot(filter))
+            Combined(providers.map { it.unwrapIfFallback() }.filterNot(filter))
         } else {
-            Combined(if (filter(this)) emptyList() else listOf(this))
+            Combined(if (filter(unwrapIfFallback())) emptyList() else listOf(this))
         }
     }
 
@@ -117,26 +117,7 @@ fun interface ValueProvider<T, R, D : Description<T>> {
      * Uses fallback value provider in case when 'this' one failed to generate any value.
      */
     fun withFallback(fallback: ValueProvider<T, R, D>) : ValueProvider<T, R, D> {
-        val thisProvider = this
-        return object : ValueProvider<T, R, D> {
-            override fun enrich(description: D, type: T, scope: Scope) {
-                thisProvider.enrich(description, type, scope)
-                // Enriching scope by fallback value provider in this point is not quite right,
-                // but it doesn't look as a problem right now.
-                fallback.enrich(description, type, scope)
-            }
-
-            override fun generate(description: D, type: T): Sequence<Seed<T, R>> {
-                val default = if (thisProvider.accept(type)) thisProvider.generate(description, type) else emptySequence()
-                return if (default.iterator().hasNext()) {
-                    default
-                } else if (fallback.accept(type)) {
-                    fallback.generate(description, type)
-                } else {
-                    emptySequence()
-                }
-            }
-        }
+        return Fallback(this, fallback)
     }
 
     /**
@@ -150,6 +131,42 @@ fun interface ValueProvider<T, R, D : Description<T>> {
 
     fun letIf(flag: Boolean, block: (ValueProvider<T, R, D>) -> ValueProvider<T, R, D>) : ValueProvider<T, R, D> {
         return if (flag) block(this) else this
+    }
+
+    /**
+     * Checks if current provider has fallback and return the initial provider.
+     *
+     * If the initial provider is also fallback, then it is unwrapped too.
+     *
+     * @return unwrapped provider or this if it is not fallback
+     */
+    fun unwrapIfFallback(): ValueProvider<T, R, D> {
+        return if (this is Fallback<T, R, D>) { provider.unwrapIfFallback() } else { this }
+    }
+
+    private class Fallback<T, R, D : Description<T>>(
+        val provider: ValueProvider<T, R, D>,
+        val fallback: ValueProvider<T, R, D>,
+    ): ValueProvider<T, R, D> {
+
+        override fun enrich(description: D, type: T, scope: Scope) {
+            provider.enrich(description, type, scope)
+            // Enriching scope by fallback value provider in this point is not quite right,
+            // but it doesn't look as a problem right now.
+            fallback.enrich(description, type, scope)
+        }
+
+        override fun generate(description: D, type: T): Sequence<Seed<T, R>> {
+            val default = if (provider.accept(type)) provider.generate(description, type) else emptySequence()
+            return if (default.iterator().hasNext()) {
+                default
+            } else if (fallback.accept(type)) {
+                fallback.generate(description, type)
+            } else {
+                emptySequence()
+            }
+        }
+
     }
 
     /**

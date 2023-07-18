@@ -73,3 +73,7 @@ if (goIde.split(",").contains(ideType)) {
 include("utbot-spring-analyzer")
 include("utbot-spring-commons")
 include("utbot-spring-commons-api")
+
+include("utbot-spring-sample")
+include("utbot-spring-test")
+

@@ -46,6 +46,8 @@ dependencies {
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
 }
 
+// This is required to avoid conflict between SpringBoot standard logger and the logger of our project.
+// See https://stackoverflow.com/a/28735604 for more details.
 test {
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'

@@ -4,15 +4,12 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.OverflowDetectionError
 import org.utbot.examples.algorithms.Sort
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withSolverTimeoutInMillis
 import org.utbot.testcheckers.withTreatingOverflowAsError
-import org.utbot.testing.DoNotCalculate
-import org.utbot.testing.Compilation
-import org.utbot.testing.UtValueTestCaseChecker
-import org.utbot.testing.ignoreExecutionsNumber
-import org.utbot.testing.isException
+import org.utbot.testing.*
 import kotlin.math.floor
 import kotlin.math.sqrt
 
@@ -22,8 +19,9 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
     // Don't launch tests, because ArithmeticException will be expected, but it is not supposed to be actually thrown.
     // ArithmeticException acts as a sign of Overflow.
     listOf(
-        TestLastStage(CodegenLanguage.JAVA, Compilation),
-        TestLastStage(CodegenLanguage.KOTLIN, Compilation),
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.KOTLIN, ParametrizedTestSource.DO_NOT_PARAMETRIZE, Compilation),
     )
 ) {
     @Test

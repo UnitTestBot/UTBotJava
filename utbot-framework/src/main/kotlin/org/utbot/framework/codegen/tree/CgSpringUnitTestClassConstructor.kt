@@ -22,8 +22,10 @@ import org.utbot.framework.plugin.api.util.objectClassId
 class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTestClassConstructor(context) {
 
     private var additionalMethodsRequired: Boolean = false
-
     private lateinit var mockitoCloseableVariable: CgValue
+
+    private val injectingMocksFieldsManager = CgInjectingMocksFieldsManager(context)
+    private val mocksFieldsManager = CgMockedFieldsManager(context)
 
     override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
         val fields = mutableListOf<CgFieldDeclaration>()
@@ -31,8 +33,8 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         val mocks = testClassModel.springSpecificInformation.thisInstanceDependentMocks
 
         if (mocks.isNotEmpty()) {
-            val mockedFields = constructFieldsWithAnnotation(mockClassId, mocks)
-            val injectingMocksFields = constructFieldsWithAnnotation(injectMocksClassId, thisInstances)
+            val mockedFields = constructFieldsWithAnnotation(mocksFieldsManager, mocks)
+            val injectingMocksFields = constructFieldsWithAnnotation(injectingMocksFieldsManager, thisInstances)
 
             fields += injectingMocksFields
             fields += mockedFields
@@ -44,10 +46,8 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         return fields
     }
 
-    override fun constructAdditionalMethods(): CgMethodsCluster {
-        if (!additionalMethodsRequired) {
-            return CgMethodsCluster(header = null, content = emptyList(),)
-        }
+    override fun constructAdditionalUtilMethods(): CgMethodsCluster? {
+        if (!additionalMethodsRequired) return null
 
         importIfNeeded(openMocksMethodId)
 
@@ -67,16 +67,10 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         val openMocksStatement = CgAssignment(mockitoCloseableVariable, openMocksCall)
         val closeStatement = CgStatementExecutableCall(closeCall)
 
-        return CgMethodsCluster(
-            header = null,
+        return CgMethodsCluster.withoutDocs(
             listOf(
-                CgSimpleRegion(
-                    header = null,
-                    listOf(
-                        constructBeforeMethod(listOf(openMocksStatement)),
-                        constructAfterMethod(listOf(closeStatement)),
-                    )
-                )
+                constructBeforeMethod(listOf(openMocksStatement)),
+                constructAfterMethod(listOf(closeStatement)),
             )
         )
     }

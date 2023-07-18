@@ -3,6 +3,7 @@ package org.utbot.fuzzing
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.utbot.fuzzing.seeds.BitVectorValue
@@ -12,7 +13,7 @@ import kotlin.reflect.KClass
 class FuzzerSmokeTest {
 
     @Test
-    fun `fuzzing doesn't run with empty parameters`() {
+    fun `fuzzing runs with empty parameters`() {
         runBlocking {
             var count = 0
             runFuzzing<Unit, Unit, Description<Unit>, BaseFeedback<Unit, Unit, Unit>>(
@@ -22,7 +23,7 @@ class FuzzerSmokeTest {
                 count += 1
                 BaseFeedback(Unit, Control.STOP)
             }
-            Assertions.assertEquals(0, count)
+            Assertions.assertEquals(1, count)
         }
     }
 
@@ -256,6 +257,29 @@ class FuzzerSmokeTest {
             }
             delay(1000)
             deferred.cancel()
+        }
+    }
+
+    @Test
+    fun `fuzzer can generate value without mutations`() {
+        runBlocking {
+            var seenEmpty = false
+            withTimeout(1000) {
+                runFuzzing(
+                    { _, _ -> sequenceOf(Seed.Recursive<Unit, StringBuilder>(
+                        construct = Routine.Create(emptyList()) { StringBuilder("") },
+                        modify = sequenceOf(Routine.Call(emptyList()) { s, _ -> s.append("1") }),
+                        empty = Routine.Empty { fail("Empty is called despite construct requiring no args") }
+                    )) },
+                    Description(listOf(Unit))
+                ) { _, (s) ->
+                    if (s.isEmpty()) {
+                        seenEmpty = true
+                        BaseFeedback(Unit, Control.STOP)
+                    } else BaseFeedback(Unit, Control.CONTINUE)
+                }
+            }
+            Assertions.assertTrue(seenEmpty) { "Unmodified empty string wasn't generated" }
         }
     }
 }

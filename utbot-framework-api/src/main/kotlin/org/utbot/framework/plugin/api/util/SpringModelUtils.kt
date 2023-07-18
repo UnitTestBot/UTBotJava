@@ -10,9 +10,38 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 
 object SpringModelUtils {
+    val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
+
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
     val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
-    val entityClassId = ClassId("javax.persistence.Entity")
+
+    val springBootTestClassId = ClassId("org.springframework.boot.test.context.SpringBootTest")
+
+    val dirtiesContextClassId = ClassId("org.springframework.test.annotation.DirtiesContext")
+    val dirtiesContextClassModeClassId = ClassId("org.springframework.test.annotation.DirtiesContext\$ClassMode")
+    val transactionalClassId = ClassId("org.springframework.transaction.annotation.Transactional")
+    val autoConfigureTestDbClassId = ClassId("org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase")
+
+    val runWithClassId = ClassId("org.junit.runner.RunWith")
+    val springRunnerClassId = ClassId("org.springframework.test.context.junit4.SpringRunner")
+
+    val extendWithClassId = ClassId("org.junit.jupiter.api.extension.ExtendWith")
+    val springExtensionClassId = ClassId("org.springframework.test.context.junit.jupiter.SpringExtension")
+
+    val bootstrapWithClassId = ClassId("org.springframework.test.context.BootstrapWith")
+    val springBootTestContextBootstrapperClassId =
+        ClassId("org.springframework.boot.test.context.SpringBootTestContextBootstrapper")
+
+    val activeProfilesClassId = ClassId("org.springframework.test.context.ActiveProfiles")
+    val contextConfigurationClassId = ClassId("org.springframework.test.context.ContextConfiguration")
+
+
+    // most likely only one persistent library is on the classpath, but we need to be able to work with either of them
+    private val persistentLibraries = listOf("javax.persistence", "jakarta.persistence")
+    private fun persistentClassIds(simpleName: String) = persistentLibraries.map { ClassId("$it.$simpleName") }
+
+    val entityClassIds = persistentClassIds("Entity")
+    val generatedValueClassIds = persistentClassIds("GeneratedValue")
 
     private val getBeanMethodId = MethodId(
         classId = applicationContextClassId,
@@ -26,7 +55,8 @@ object SpringModelUtils {
         classId = crudRepositoryClassId,
         name = "save",
         returnType = Any::class.id,
-        parameters = listOf(Any::class.id)
+        parameters = listOf(Any::class.id),
+        bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
 
 
@@ -54,4 +84,13 @@ object SpringModelUtils {
 
     fun UtModel.isAutowiredFromContext(): Boolean =
         this is UtAssembleModel && this.instantiationCall.instance is UtSpringContextModel
+
+    fun UtModel.getBeanNameOrNull(): String? = if (isAutowiredFromContext()) {
+        this as UtAssembleModel
+        val beanNameParam = this.instantiationCall.params.single()
+        val paramValue = (beanNameParam as? UtPrimitiveModel)?.value
+        paramValue.toString()
+    } else {
+        null
+    }
 }

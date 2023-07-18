@@ -13,7 +13,7 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import java.security.AccessControlException
 
 class PhasesController(
@@ -67,6 +67,12 @@ class PhasesController(
         currentlyElapsed += blockElapsed
 
         return@start result.getOrThrow() as T
+    }
+
+    fun <T, R : ExecutionPhase> executePhaseWithoutTimeout(phase: R, block: R.() -> T): T = phase.start {
+        return@start ThreadBasedExecutor.threadLocal.invokeWithoutTimeout {
+            phase.block()
+        }.getOrThrow() as T
     }
 
     fun applyPreprocessing(parameters: UtConcreteExecutionData): ConstructedData {

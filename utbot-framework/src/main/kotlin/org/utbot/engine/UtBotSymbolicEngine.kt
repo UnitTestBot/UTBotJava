@@ -8,8 +8,9 @@ import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
 import org.utbot.api.exception.UtMockAssumptionViolatedException
-import org.utbot.common.measureTime
 import org.utbot.common.debug
+import org.utbot.common.measureTime
+import org.utbot.common.tryLoadClass
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
@@ -32,17 +33,18 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.util.calculateSize
+import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
-import org.utbot.fuzzing.providers.ObjectValueProvider
 import org.utbot.fuzzing.providers.FieldValueProvider
-import org.utbot.fuzzing.spring.SavedEntityProvider
+import org.utbot.fuzzing.providers.ObjectValueProvider
+import org.utbot.fuzzing.spring.SavedEntityValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
@@ -284,7 +286,7 @@ class UtBotSymbolicEngine(
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation, UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
 
                             concreteExecutionResult.processedFailure()?.let { failure ->
-                                emit(UtFailedExecution(stateBefore, failure))
+                                emitFailedConcreteExecutionResult(stateBefore, failure.exception)
 
                                 logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
                                 return@measureTime
@@ -385,22 +387,47 @@ class UtBotSymbolicEngine(
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
         var testEmittedByFuzzer = 0
+
+        if (applicationContext is SpringApplicationContext &&
+            applicationContext.springTestType == SpringTestType.INTEGRATION_TEST &&
+            applicationContext.getBeansAssignableTo(methodUnderTest.classId).isEmpty()) {
+            val fullConfigDisplayName = (applicationContext.springSettings as? SpringSettings.PresentSpringSettings)
+                ?.configuration?.fullDisplayName
+            val errorDescription = "No beans of type ${methodUnderTest.classId.name} are found. " +
+                    "Try choosing different Spring configuration or adding beans to $fullConfigDisplayName"
+            emit(UtError(
+                errorDescription,
+                IllegalStateException(errorDescription)
+            ))
+            return@flow
+        }
+
         val valueProviders = ValueProvider.of(defaultValueProviders(defaultIdGenerator))
             .letIf(applicationContext is SpringApplicationContext
-                        && applicationContext.typeReplacementApproach is TypeReplacementApproach.ReplaceIfPossible
+                        && applicationContext.springTestType == SpringTestType.INTEGRATION_TEST
             ) { provider ->
                 val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
-                val generatedValueFieldIds = relevantRepositories.map {
-                    repository -> FieldId(repository.entityClassId, "id")
+                logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
+
+                val generatedValueAnnotationClasses = SpringModelUtils.generatedValueClassIds.mapNotNull {
+                    @Suppress("UNCHECKED_CAST") // type system fails to understand that GeneratedValue is indeed an annotation
+                    utContext.classLoader.tryLoadClass(it.name) as Class<out Annotation>?
                 }
 
-                logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
+                val generatedValueFieldIds =
+                    relevantRepositories
+                        .map { it.entityClassId.jClass }
+                        .flatMap { entityClass -> generateSequence(entityClass) { it.superclass } }
+                        .flatMap { it.declaredFields.toList() }
+                        .filter { field -> generatedValueAnnotationClasses.any { field.isAnnotationPresent(it) } }
+                        .map { it.fieldId }
+                logger.info { "Detected @GeneratedValue fields: $generatedValueFieldIds" }
+
                 // spring should try to generate bean values, but if it fails, then object value provider is used for it
                 val springBeanValueProvider = SpringBeanValueProvider(
                     defaultIdGenerator,
                     beanNameProvider = { classId ->
-                        (applicationContext as SpringApplicationContext).beanDefinitions
-                            .filter { it.beanTypeFqn == classId.name }
+                        (applicationContext as SpringApplicationContext).getBeansAssignableTo(classId)
                             .map { it.beanName }
                     },
                     relevantRepositories = relevantRepositories
@@ -408,9 +435,10 @@ class UtBotSymbolicEngine(
                 provider
                     .except { p -> p is ObjectValueProvider }
                     .with(springBeanValueProvider)
-                    .with(ValueProvider.of(relevantRepositories.map { SavedEntityProvider(defaultIdGenerator, it) }))
+                    .with(ValueProvider.of(relevantRepositories.map { SavedEntityValueProvider(defaultIdGenerator, it) }))
                     .with(ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(defaultIdGenerator, it) }))
             }.let(transform)
+        val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
         runJavaFuzzing(
             defaultIdGenerator,
             methodUnderTest,
@@ -418,12 +446,6 @@ class UtBotSymbolicEngine(
             names = names,
             providers = listOf(valueProviders),
         ) { thisInstance, descr, values ->
-            if (thisInstance?.model is UtNullModel) {
-                // We should not try to run concretely any models with null-this.
-                // But fuzzer does generate such values, because it can fail to generate any "good" values.
-                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
-            }
-
             val diff = until - System.currentTimeMillis()
             val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
             // to concretely execute that values because request to instrumentation process involves
@@ -437,15 +459,21 @@ class UtBotSymbolicEngine(
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
             }
 
-            val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
+            if (thisInstance?.model is UtNullModel) {
+                // We should not try to run concretely any models with null-this.
+                // But fuzzer does generate such values, because it can fail to generate any "good" values.
+                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
+            }
+
+            val stateBefore = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
                 val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)
-                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf(), timeoutMillis)
+                concreteExecutor.executeConcretely(methodUnderTest, stateBefore, listOf(), timeoutMillis)
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }; null
             } catch (e: InstrumentedProcessDeathException) {
-                emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
+                emitFailedConcreteExecutionResult(stateBefore, e); null
             } catch (e: Throwable) {
                 emit(UtError("Default concrete execution failed", e)); null
             }
@@ -467,9 +495,16 @@ class UtBotSymbolicEngine(
             val result = concreteExecutionResult.result
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             var trieNode: Trie.Node<Instruction>? = null
+
             if (coveredInstructions.isNotEmpty()) {
                 trieNode = descr.tracer.add(coveredInstructions)
-                if (trieNode.count > 1) {
+
+                val earlierStateBeforeSize = coverageToMinStateBeforeSize[trieNode]
+                val curStateBeforeSize = stateBefore.calculateSize()
+
+                if (earlierStateBeforeSize == null || curStateBeforeSize < earlierStateBeforeSize)
+                    coverageToMinStateBeforeSize[trieNode] = curStateBeforeSize
+                else {
                     if (++attempts >= attemptsLimit) {
                         return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                     }
@@ -487,7 +522,7 @@ class UtBotSymbolicEngine(
 
             emit(
                 UtFuzzedExecution(
-                    stateBefore = initialEnvironmentModels,
+                    stateBefore = stateBefore,
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
                     coverage = concreteExecutionResult.coverage,
@@ -504,7 +539,7 @@ class UtBotSymbolicEngine(
 
     private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
         stateBefore: EnvironmentModels,
-        e: InstrumentedProcessDeathException
+        e: Throwable
     ) {
         val failedConcreteExecution = UtFailedExecution(
             stateBefore = stateBefore,
@@ -616,7 +651,7 @@ class UtBotSymbolicEngine(
                 )
 
                 concreteExecutionResult.processedFailure()?.let { failure ->
-                    emit(UtFailedExecution(stateBefore, failure))
+                    emitFailedConcreteExecutionResult(stateBefore, failure.exception)
 
                     logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
                     return

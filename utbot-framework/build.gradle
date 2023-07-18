@@ -15,6 +15,8 @@ dependencies {
     api project(':utbot-framework-api')
     api project(':utbot-rd')
 
+    implementation project(':utbot-spring-commons-api')
+
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 

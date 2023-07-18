@@ -13,9 +13,9 @@ import com.jetbrains.rd.util.ConcurrentHashMap
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.BeanAdditionalData
@@ -25,9 +25,9 @@ import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.MethodDescription
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
-import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.intellij.plugin.UtbotBundle
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
@@ -85,9 +85,7 @@ private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.
 
 private val pluginClasspath: String
     get() = (EngineProcess::class.java.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
-        separator = File.pathSeparator,
-        prefix = "\"",
-        postfix = "\""
+        separator = File.pathSeparator
     )
 
 private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"
@@ -147,20 +145,28 @@ class EngineProcess private constructor(val project: Project, private val classN
 
     fun getSpringBeanDefinitions(
         classpathList: List<String>,
-        config: String,
-        fileStorage: Array<String>,
-        profileExpression: String?): List<BeanDefinitionData> {
+        springSettings: PresentSpringSettings
+    ): List<BeanDefinitionData> {
         assertReadAccessNotAllowed()
         val result = engineModel.getSpringBeanDefinitions.startBlocking(
-            GetSpringBeanDefinitions(classpathList.toTypedArray(), config, fileStorage, profileExpression)
+            GetSpringBeanDefinitions(
+                classpathList.toTypedArray(),
+                kryoHelper.writeObject(springSettings)
+            )
         )
         return result.beanDefinitions
             .map { data ->
                 BeanDefinitionData(
                     beanName = data.beanName,
-                    beanTypeFqn = data.beanTypeFqn,
+                    beanTypeName = data.beanTypeFqn,
                     additionalData = data.additionalData
-                        ?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
+                        ?.let {
+                            BeanAdditionalData(
+                                it.factoryMethodName,
+                                it.parameterTypes,
+                                it.configClassName
+                            )
+                        }
                 )
             }
     }
@@ -199,9 +205,9 @@ class EngineProcess private constructor(val project: Project, private val classN
         engineModel.createTestGenerator.startBlocking(params)
     }
 
-    fun obtainClassId(canonicalName: String): ClassId {
+    fun obtainClassId(binaryName: String): ClassId {
         assertReadAccessNotAllowed()
-        return kryoHelper.readObject(engineModel.obtainClassId.startBlocking(canonicalName))
+        return kryoHelper.readObject(engineModel.obtainClassId.startBlocking(binaryName))
     }
 
     fun findMethodsInClassMatchingSelected(clazzId: ClassId, srcMethods: List<MemberInfo>): List<ExecutableId> {
@@ -276,54 +282,62 @@ class EngineProcess private constructor(val project: Project, private val classN
     }
 
     fun render(
-        springTestsType: SpringTestsType,
+        model: GenerateTestsModel,
         testSetsId: Long,
         classUnderTest: ClassId,
-        projectType: ProjectType,
         paramNames: MutableMap<ExecutableId, List<String>>,
         generateUtilClassFile: Boolean,
-        testFramework: TestFramework,
-        mockFramework: MockFramework,
-        staticsMocking: StaticsMocking,
-        forceStaticMocking: ForceStaticMocking,
-        generateWarningsForStaticsMocking: Boolean,
-        codegenLanguage: CodegenLanguage,
-        parameterizedTestSource: ParametrizedTestSource,
-        runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour,
-        hangingTestSource: HangingTestsTimeout,
         enableTestsTimeout: Boolean,
-        testClassPackageName: String
+        testClassPackageName: String,
     ): Pair<String, UtilClassKind?> {
         assertReadAccessNotAllowed()
-        val params = RenderParams(
-            springTestsType.name,
+        val params = makeParams(
+            model,
             testSetsId,
-            kryoHelper.writeObject(classUnderTest),
-            projectType.toString(),
-            kryoHelper.writeObject(paramNames),
+            classUnderTest,
+            paramNames,
             generateUtilClassFile,
-            testFramework.id.lowercase(),
-            mockFramework.name,
-            codegenLanguage.name,
-            parameterizedTestSource.name,
-            staticsMocking.id,
-            kryoHelper.writeObject(forceStaticMocking),
-            generateWarningsForStaticsMocking,
-            runtimeExceptionTestsBehaviour.name,
-            hangingTestSource.timeoutMs,
             enableTestsTimeout,
-            testClassPackageName
+            testClassPackageName,
         )
         val result = engineModel.render.startBlocking(params)
         val realUtilClassKind = result.utilClassKind?.let {
-            if (UtilClassKind.RegularUtUtils(codegenLanguage).javaClass.simpleName == it)
-                UtilClassKind.RegularUtUtils(codegenLanguage)
+            if (UtilClassKind.RegularUtUtils(model.codegenLanguage).javaClass.simpleName == it)
+                UtilClassKind.RegularUtUtils(model.codegenLanguage)
             else
-                UtilClassKind.UtUtilsWithMockito(codegenLanguage)
+                UtilClassKind.UtUtilsWithMockito(model.codegenLanguage)
         }
 
         return result.generatedCode to realUtilClassKind
     }
+
+    private fun makeParams(
+        model: GenerateTestsModel,
+        testSetsId: Long,
+        classUnderTest: ClassId,
+        paramNames: MutableMap<ExecutableId, List<String>>,
+        generateUtilClassFile: Boolean,
+        enableTestsTimeout: Boolean,
+        testClassPackageName: String,
+    ): RenderParams =
+        RenderParams(
+            testSetsId,
+            kryoHelper.writeObject(classUnderTest),
+            model.projectType.toString(),
+            kryoHelper.writeObject(paramNames),
+            generateUtilClassFile,
+            model.testFramework.id.lowercase(),
+            model.mockFramework.name,
+            model.codegenLanguage.name,
+            model.parametrizedTestSource.name,
+            model.staticsMocking.id,
+            kryoHelper.writeObject(model.forceStaticMocking),
+            model.generateWarningsForStaticMocking,
+            model.runtimeExceptionTestsBehaviour.name,
+            model.hangingTestsTimeout.timeoutMs,
+            enableTestsTimeout,
+            testClassPackageName,
+        )
 
     private fun getSourceFile(params: SourceStrategyMethodArgs): String? =
         DumbService.getInstance(project).runReadActionInSmartMode<String?> {

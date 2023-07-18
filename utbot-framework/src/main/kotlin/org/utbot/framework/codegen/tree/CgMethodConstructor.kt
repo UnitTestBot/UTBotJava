@@ -18,6 +18,7 @@ import org.utbot.framework.codegen.domain.builtin.invoke
 import org.utbot.framework.codegen.domain.builtin.newInstance
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.AnnotationTarget
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
 import org.utbot.framework.codegen.domain.models.CgArrayElementAccess
 import org.utbot.framework.codegen.domain.models.CgClassId
@@ -64,6 +65,7 @@ import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.util.canBeReadFrom
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.equalTo
+import org.utbot.framework.codegen.util.escapeControlChars
 import org.utbot.framework.codegen.util.inc
 import org.utbot.framework.codegen.util.length
 import org.utbot.framework.codegen.util.lessThan
@@ -112,6 +114,7 @@ import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.util.IndentUtil.TAB
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.baseStreamClassId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
@@ -152,7 +155,6 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
 import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
 import java.security.AccessControlException
@@ -337,7 +339,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $expectedException")
             PASSED_EXCEPTION -> {
                 // TODO consider rendering message in a comment
-                //  expectedException.message?.let { +comment(it) }
+                //  expectedException.message?.let { +comment(it.escapeControlChars()) }
                 testFrameworkManager.expectException(expectedException::class.id) {
                     methodInvocationBlock()
                 }
@@ -460,9 +462,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         require(currentExecutable is ExecutableId)
         val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
 
-        val warningLine = mutableListOf(
-            "This test fails because method [$executableName] produces [$exception]".escapeControlChars()
-        )
+        val warningLine = "This test fails because method [$executableName] produces [$exception]"
+            .lines()
+            .map { it.escapeControlChars() }
+            .toMutableList()
 
         val neededStackTraceLines = mutableListOf<String>()
         var executableCallFound = false
@@ -479,10 +482,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             logger.warn(exception) { "Failed to find executable call in stack trace" }
 
         +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
-    }
-
-    private fun String.escapeControlChars() : String {
-        return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\\u","\\\\u")
     }
 
     protected fun writeWarningAboutCrash() {
@@ -1869,10 +1868,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         dataProviderMethodName: String? = null,
         body: () -> Unit,
     ): CgTestMethod {
-        collectedMethodAnnotations += if (parameterized) {
-            testFrameworkManager.collectParameterizedTestAnnotations(dataProviderMethodName)
+        if (parameterized) {
+            testFrameworkManager.addParameterizedTestAnnotations(dataProviderMethodName)
         } else {
-            setOf(annotation(testFramework.testAnnotationId))
+            addAnnotation(testFramework.testAnnotationId, AnnotationTarget.Method)
         }
 
         displayName?.let {
@@ -1931,8 +1930,9 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             statements = block(body)
             // Exceptions and annotations assignment must run after the statements block is build,
             // because we collect info about exceptions and required annotations while building the statements
+            testFrameworkManager.addDataProviderAnnotations(dataProviderMethodName)
             exceptions += collectedExceptions
-            annotations += testFrameworkManager.createDataProviderAnnotations(dataProviderMethodName)
+            annotations += collectedMethodAnnotations
         }
     }
 

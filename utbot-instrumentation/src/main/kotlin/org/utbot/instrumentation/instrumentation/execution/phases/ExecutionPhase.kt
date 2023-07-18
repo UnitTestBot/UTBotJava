@@ -29,3 +29,8 @@ fun <T : ExecutionPhase, R> T.start(block: T.() -> R): R =
     } catch (e: Throwable) {
         throw this.wrapError(e)
     }
+
+abstract class ExecutionPhaseFailingOnAnyException : ExecutionPhase {
+    override fun wrapError(e: Throwable): ExecutionPhaseException =
+        ExecutionPhaseError(this::class.java.simpleName, e)
+}

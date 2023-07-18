@@ -2,22 +2,17 @@ package org.utbot.examples.codegen.modifiers
 
 import org.junit.jupiter.api.Test
 import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.testcheckers.eq
-import org.utbot.testing.Compilation
 import org.utbot.testing.UtValueTestCaseChecker
 
 // TODO failed Kotlin tests execution with non-nullable expected field
 class ClassWithPrivateMutableFieldOfPrivateTypeTest : UtValueTestCaseChecker(
     testClass = ClassWithPrivateMutableFieldOfPrivateType::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, Compilation)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testChangePrivateMutableFieldWithPrivateType() {

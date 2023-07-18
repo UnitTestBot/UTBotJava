@@ -1,20 +1,14 @@
 package org.utbot.examples.codegen
 
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.Compilation
 import org.utbot.testing.DoNotCalculate
-import org.utbot.testing.TestExecution
 import org.utbot.testing.UtValueTestCaseChecker
 
 @Suppress("INACCESSIBLE_TYPE")
 internal class ClassWithStaticAndInnerClassesTest : UtValueTestCaseChecker(
     testClass = ClassWithStaticAndInnerClasses::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testUsePrivateStaticClassWithPrivateField() {

@@ -187,7 +187,7 @@ class ValueConstructor {
             is UtNullModel -> UtConcreteValue(null, model.classId.jClass)
             is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.jClass)
             is UtEnumConstantModel -> UtConcreteValue(model.value)
-            is UtClassRefModel -> UtConcreteValue(model.value)
+            is UtClassRefModel -> UtConcreteValue(model.value.jClass)
             is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))

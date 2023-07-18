@@ -27,11 +27,13 @@ interface UtModelConstructorInterface {
  *
  * @param objectToModelCache cache used for the model construction with respect to stateBefore. For each object, it first
  * @param compositeModelStrategy decides whether we should construct a composite model for a certain value or not.
+ * @param maxDepth determines max depth for composite and assemble model nesting
  * searches in [objectToModelCache] for [UtReferenceModel.id].
  */
 class UtModelConstructor(
     private val objectToModelCache: IdentityHashMap<Any, UtModel>,
-    private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy
+    private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy,
+    private val maxDepth: Long = DEFAULT_MAX_DEPTH
 ) : UtModelConstructorInterface {
     private val constructedObjects = IdentityHashMap<Any, UtModel>()
 
@@ -42,6 +44,8 @@ class UtModelConstructor(
         .toMutableSet()
 
     companion object {
+        private const val DEFAULT_MAX_DEPTH = 7L
+
         fun createOnlyUserClassesConstructor(pathsToUserClasses: Set<String>): UtModelConstructor {
             val cache = IdentityHashMap<Any, UtModel>()
             val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
@@ -83,7 +87,10 @@ class UtModelConstructor(
      *
      * Handles cache on stateBefore values.
      */
-    override fun construct(value: Any?, classId: ClassId): UtModel {
+    override fun construct(value: Any?, classId: ClassId): UtModel =
+        construct(value, classId, maxDepth)
+
+    private fun construct(value: Any?, classId: ClassId, remainingDepth: Long): UtModel {
         objectToModelCache[value]?.let { model ->
             if (model is UtLambdaModel) {
                 return model
@@ -102,21 +109,21 @@ class UtModelConstructor(
             is Long,
             is Float,
             is Double,
-            is Boolean -> if (classId.isPrimitive) UtPrimitiveModel(value) else constructFromAny(value)
+            is Boolean -> if (classId.isPrimitive) UtPrimitiveModel(value) else constructFromAny(value, remainingDepth)
 
-            is ByteArray -> constructFromByteArray(value)
-            is ShortArray -> constructFromShortArray(value)
-            is CharArray -> constructFromCharArray(value)
-            is IntArray -> constructFromIntArray(value)
-            is LongArray -> constructFromLongArray(value)
-            is FloatArray -> constructFromFloatArray(value)
-            is DoubleArray -> constructFromDoubleArray(value)
-            is BooleanArray -> constructFromBooleanArray(value)
-            is Array<*> -> constructFromArray(value)
+            is ByteArray -> constructFromByteArray(value, remainingDepth)
+            is ShortArray -> constructFromShortArray(value, remainingDepth)
+            is CharArray -> constructFromCharArray(value, remainingDepth)
+            is IntArray -> constructFromIntArray(value, remainingDepth)
+            is LongArray -> constructFromLongArray(value, remainingDepth)
+            is FloatArray -> constructFromFloatArray(value, remainingDepth)
+            is DoubleArray -> constructFromDoubleArray(value, remainingDepth)
+            is BooleanArray -> constructFromBooleanArray(value, remainingDepth)
+            is Array<*> -> constructFromArray(value, remainingDepth)
             is Enum<*> -> constructFromEnum(value)
             is Class<*> -> constructFromClass(value)
             is BaseStream<*, *> -> constructFromStream(value)
-            else -> constructFromAny(value)
+            else -> constructFromAny(value, remainingDepth)
         }
     }
 
@@ -136,109 +143,109 @@ class UtModelConstructor(
 
     // Q: Is there a way to get rid of duplicated code?
 
-    private fun constructFromDoubleArray(array: DoubleArray): UtModel =
+    private fun constructFromDoubleArray(array: DoubleArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(0.toDouble()), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, doubleClassId)
+                stores[idx] = construct(value, doubleClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromFloatArray(array: FloatArray): UtModel =
+    private fun constructFromFloatArray(array: FloatArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(0.toFloat()), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, floatClassId)
+                stores[idx] = construct(value, floatClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromLongArray(array: LongArray): UtModel =
+    private fun constructFromLongArray(array: LongArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(0.toLong()), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, longClassId)
+                stores[idx] = construct(value, longClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromIntArray(array: IntArray): UtModel =
+    private fun constructFromIntArray(array: IntArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel = UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(0), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, intClassId)
+                stores[idx] = construct(value, intClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromCharArray(array: CharArray): UtModel =
+    private fun constructFromCharArray(array: CharArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(0.toChar()), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, charClassId)
+                stores[idx] = construct(value, charClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromShortArray(array: ShortArray): UtModel =
+    private fun constructFromShortArray(array: ShortArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(0.toShort()), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, shortClassId)
+                stores[idx] = construct(value, shortClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromByteArray(array: ByteArray): UtModel =
+    private fun constructFromByteArray(array: ByteArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(0.toByte()), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, byteClassId)
+                stores[idx] = construct(value, byteClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromBooleanArray(array: BooleanArray): UtModel =
+    private fun constructFromBooleanArray(array: BooleanArray, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtPrimitiveModel(false), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, booleanClassId)
+                stores[idx] = construct(value, booleanClassId, remainingDepth - 1)
             }
             utModel
         }
 
-    private fun constructFromArray(array: Array<*>): UtModel =
+    private fun constructFromArray(array: Array<*>, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(array) {
             val stores = mutableMapOf<Int, UtModel>()
             val utModel =
                 UtArrayModel(handleId(array), array::class.java.id, array.size, UtNullModel(objectClassId), stores)
             constructedObjects[array] = utModel
             array.forEachIndexed { idx, value ->
-                stores[idx] = construct(value, objectClassId)
+                stores[idx] = construct(value, objectClassId, remainingDepth - 1)
             }
             utModel
         }
@@ -252,7 +259,7 @@ class UtModelConstructor(
 
     private fun constructFromClass(clazz: Class<*>): UtModel =
         constructedObjects.getOrElse(clazz) {
-            val utModel = UtClassRefModel(handleId(clazz), clazz::class.java.id, clazz)
+            val utModel = UtClassRefModel(handleId(clazz), clazz::class.java.id, clazz.id)
             constructedObjects[clazz] = utModel
             utModel
         }
@@ -276,9 +283,9 @@ class UtModelConstructor(
     /**
      * First tries to construct UtAssembleModel. If failure, constructs UtCompositeModel.
      */
-    private fun constructFromAny(value: Any): UtModel =
+    private fun constructFromAny(value: Any, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(value) {
-            tryConstructUtAssembleModel(value) ?: constructCompositeModel(value)
+            tryConstructUtAssembleModel(value, remainingDepth) ?: constructCompositeModel(value, remainingDepth)
         }
 
     /**
@@ -286,10 +293,15 @@ class UtModelConstructor(
      *
      * Uses runtime class of an object.
      */
-    private fun tryConstructUtAssembleModel(value: Any): UtModel? =
+    private fun tryConstructUtAssembleModel(value: Any, remainingDepth: Long): UtModel? =
         findUtAssembleModelConstructor(value::class.java.id)?.let { assembleConstructor ->
             try {
-                assembleConstructor.constructAssembleModel(this, value, valueToClassId(value), handleId(value)) {
+                assembleConstructor.constructAssembleModel(
+                    internalConstructor = this.withMaxDepth(remainingDepth - 1),
+                    value = value,
+                    valueClassId = valueToClassId(value),
+                    id = handleId(value),
+                ) {
                     constructedObjects[value] = it
                 }
             } catch (e: Exception) { // If UtAssembleModel constructor failed, we need to remove model and return null
@@ -303,12 +315,12 @@ class UtModelConstructor(
      *
      * Uses runtime javaClass to collect ALL fields, except final static fields, and builds this model recursively.
      */
-    private fun constructCompositeModel(value: Any): UtModel {
+    private fun constructCompositeModel(value: Any, remainingDepth: Long): UtModel {
         // value can be mock only if it was previously constructed from UtCompositeModel
         val isMock = objectToModelCache[value]?.isMockModel() ?: false
 
         val javaClazz = if (isMock) objectToModelCache.getValue(value).classId.jClass else value::class.java
-        if (!compositeModelStrategy.shouldConstruct(value, javaClazz)) {
+        if (remainingDepth <= 0 || !compositeModelStrategy.shouldConstruct(value, javaClazz)) {
             return UtCompositeModel(
                 handleId(value),
                 javaClazz.id,
@@ -326,9 +338,14 @@ class UtModelConstructor(
                 .asSequence()
                 .filter { !(Modifier.isFinal(it.modifiers) && Modifier.isStatic(it.modifiers)) } // TODO: what about static final fields?
                 .filterNot { it.fieldId.isInaccessibleViaReflection }
-                .forEach { it.withAccessibility { fields[it.fieldId] = construct(it.get(value), it.type.id) } }
+                .forEach { it.withAccessibility { fields[it.fieldId] = construct(it.get(value), it.type.id, remainingDepth - 1) } }
         }
         return utModel
+    }
+
+    private fun withMaxDepth(newMaxDepth: Long) = object : UtModelConstructorInterface {
+        override fun construct(value: Any?, classId: ClassId): UtModel =
+            construct(value, classId, newMaxDepth)
     }
 }
 

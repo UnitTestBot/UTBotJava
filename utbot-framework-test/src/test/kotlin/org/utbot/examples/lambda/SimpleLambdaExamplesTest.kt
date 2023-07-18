@@ -1,9 +1,7 @@
 package org.utbot.examples.lambda
 
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isException
@@ -11,10 +9,7 @@ import org.utbot.testing.isException
 // TODO failed Kotlin compilation (generics) SAT-1332
 class SimpleLambdaExamplesTest : UtValueTestCaseChecker(
     testClass = SimpleLambdaExamples::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration),
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testBiFunctionLambdaExample() {

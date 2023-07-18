@@ -1,0 +1,31 @@
+dependencies {
+    testImplementation(project(":utbot-framework"))
+    testImplementation project(':utbot-testing')
+    testImplementation project(':utbot-spring-sample')
+
+    // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
+    // testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
+
+    // used for testing code generation
+    testImplementation group: 'junit', name: 'junit', version: junit4Version
+    testImplementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4PlatformVersion
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
+    testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
+    testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
+
+    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa', version: springBootVersion
+}
+
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+}
+
+test {
+    if (System.getProperty('DEBUG', 'false') == 'true') {
+        jvmArgs '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
+    }
+}

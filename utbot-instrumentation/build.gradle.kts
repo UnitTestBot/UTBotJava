@@ -7,7 +7,6 @@ val kotlinLoggingVersion: String by rootProject
 val rdVersion: String by rootProject
 val mockitoVersion: String by rootProject
 val mockitoInlineVersion: String by rootProject
-val springBootVersion: String by rootProject
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
@@ -49,9 +48,6 @@ dependencies {
 
     implementation("org.ow2.asm:asm:$asmVersion")
     implementation("org.ow2.asm:asm-commons:$asmVersion")
-    implementation("com.esotericsoftware.kryo:kryo5:$kryoVersion")
-    // this is necessary for serialization of some collections
-    implementation("de.javakaffee:kryo-serializers:$kryoSerializersVersion")
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
     implementation("com.jetbrains.rd:rd-framework:$rdVersion")

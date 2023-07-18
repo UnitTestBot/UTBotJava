@@ -71,6 +71,7 @@ import org.utbot.framework.codegen.domain.StaticImport
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodeGenerationContext
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
 import org.utbot.intellij.plugin.models.GenerateTestsModel
@@ -115,6 +116,7 @@ object CodeGenerationController {
 
     fun generateTests(
         model: GenerateTestsModel,
+        codeGenerationContext: CodeGenerationContext,
         classesWithTests: Map<PsiClass, RdTestGenerationResult>,
         psi2KClass: Map<PsiClass, ClassId>,
         process: EngineProcess,
@@ -161,6 +163,7 @@ object CodeGenerationController {
                         testFilePointer,
                         srcClassPathToSarifReport,
                         model,
+                        codeGenerationContext,
                         latch,
                         utilClassListener,
                         indicator
@@ -664,6 +667,7 @@ object CodeGenerationController {
         filePointer: SmartPsiElementPointer<PsiFile>,
         srcClassPathToSarifReport: MutableMap<Path, Sarif>,
         model: GenerateTestsModel,
+        codeGenerationContext: CodeGenerationContext,
         reportsCountDown: CountDownLatch,
         utilClassListener: UtilClassListener,
         indicator: ProgressIndicator
@@ -684,23 +688,13 @@ object CodeGenerationController {
                     return@run
                 }
                 proc.render(
-                    model.springTestsType,
+                    model,
                     testSetsId,
                     classUnderTest,
-                    model.projectType,
                     paramNames.toMutableMap(),
                     generateUtilClassFile = true,
-                    model.testFramework,
-                    model.mockFramework,
-                    model.staticsMocking,
-                    model.forceStaticMocking,
-                    model.generateWarningsForStaticMocking,
-                    model.codegenLanguage,
-                    model.parametrizedTestSource,
-                    model.runtimeExceptionTestsBehaviour,
-                    model.hangingTestsTimeout,
                     enableTestsTimeout = true,
-                    testPackageName
+                    testPackageName,
                 )
             } catch (e: Exception) {
                 logger.warn(e) { "Cannot render test class ${testClass.name}" }

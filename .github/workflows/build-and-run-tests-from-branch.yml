@@ -69,6 +69,8 @@ jobs:
           echo "combined-projects-matrix=$COMBINED_PROJECTS" >> $GITHUB_OUTPUT
           echo $FRAMEWORK_TESTS
           echo $COMBINED_PROJECTS
+
+
   framework-tests:
     needs: prepare-matrices
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
@@ -156,6 +158,74 @@ jobs:
         with:
           name: test_report ${{ matrix.project.PART_NAME }}
           path: utbot-framework-test/build/reports/tests/test/*
+
+
+  spring-tests:
+    runs-on: ubuntu-20.04
+    container:
+      image: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
+      volumes:
+        - "/home/runner/runners:/home/runner/runners"
+        - "/tmp/filebeat:/tmp/filebeat"
+    steps:
+      - name: Print environment variables
+        run: printenv
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Check out ${{ github.event.inputs.commit_sha }} commit
+        if: github.event.inputs.commit_sha != ''
+        run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git fetch
+          git checkout ${{ github.event.inputs.commit_sha }}
+
+      - name: Run monitoring
+        continue-on-error: true
+        run: |
+          chmod +x ./scripts/project/monitoring.sh
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+          echo ---
+          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+          chmod +x ./scripts/project/logging.sh
+          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
+          echo "Please visit ELK to check logs https://logs.utbot.org/app/discover#/ using the following search pattern: github.env.HOSTNAME:\"${HOSTNAME}\" and github.env.GITHUB_RUN_ID:\"${GITHUB_RUN_ID}\" and not github.log_level:\"INFO\""
+
+      - uses: actions/cache@v3
+        with:
+          path: /root/.gradle/caches
+          key: ${{ runner.os }}-gradle-spring-${{ hashFiles('./*.gradle*', './utbot-spring*/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-spring
+
+      - name: Run tests
+        run: |
+          cd utbot-spring-test
+          gradle --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-spring-test:test
+
+      - name: Upload logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs utbot-spring-test
+          path: utbot-spring-test/logs/*
+      - name: Upload UTBot temp directory content
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: utbot_temp utbot-spring-test
+          path: |
+            /tmp/UTBot/generated*/*
+            /tmp/UTBot/utbot-instrumentedprocess-errors/*
+      - name: Upload test report if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test_report utbot-spring-test
+          path: utbot-spring-test/build/reports/tests/test/*
+
 
   combined-projects:
     # This job does not need to wait for 'prepare-tests-matrix' result.

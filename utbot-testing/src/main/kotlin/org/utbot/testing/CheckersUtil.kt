@@ -1,14 +1,6 @@
 package org.utbot.testing
 
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.Junit4
-import org.utbot.framework.codegen.domain.MockitoStaticMocking
-import org.utbot.framework.codegen.domain.NoStaticMocking
-import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.TestNg
+import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -17,7 +9,8 @@ import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_CLASSES
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
 
-data class TestFrameworkConfiguration(
+data class TestInfrastructureConfiguration(
+    val projectType: ProjectType,
     val testFramework: TestFramework,
     val mockFramework: MockFramework,
     val mockStrategy: MockStrategyApi,
@@ -64,8 +57,8 @@ data class TestFrameworkConfiguration(
 
 val conflictTriggers: ConflictTriggers = ConflictTriggers()
 
-val allTestFrameworkConfigurations: List<TestFrameworkConfiguration> = run {
-    val possibleConfiguration = mutableListOf<TestFrameworkConfiguration>()
+val allTestInfrastructureConfigurations: List<TestInfrastructureConfiguration> = run {
+    val possibleConfiguration = mutableListOf<TestInfrastructureConfiguration>()
 
     for (mockStrategy in listOf(NO_MOCKS, OTHER_CLASSES)) {
         for (testFramework in TestFramework.allItems) {
@@ -79,7 +72,8 @@ val allTestFrameworkConfigurations: List<TestFrameworkConfiguration> = run {
                         val resetNonFinalFieldsAfterClinit =
                             parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
 
-                        possibleConfiguration += TestFrameworkConfiguration(
+                        possibleConfiguration += TestInfrastructureConfiguration(
+                            ProjectType.PureJvm,
                             testFramework,
                             mockFramework,
                             mockStrategy,
@@ -90,7 +84,8 @@ val allTestFrameworkConfigurations: List<TestFrameworkConfiguration> = run {
                             resetNonFinalFieldsAfterClinit,
                             generateUtilClassFile = false
                         )
-                        possibleConfiguration += TestFrameworkConfiguration(
+                        possibleConfiguration += TestInfrastructureConfiguration(
+                            ProjectType.PureJvm,
                             testFramework,
                             mockFramework,
                             mockStrategy,

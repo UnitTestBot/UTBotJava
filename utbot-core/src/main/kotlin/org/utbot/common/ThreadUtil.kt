@@ -36,19 +36,7 @@ class ThreadBasedExecutor {
      * [stopWatch] is used to respect specific situations (such as class loading and transforming) while invoking.
      */
     fun invokeWithTimeout(timeoutMillis: Long, stopWatch: StopWatch? = null, action:() -> Any?) : Result<Any?>? {
-        if (thread?.isAlive != true) {
-            requestQueue = ArrayBlockingQueue<() -> Any?>(1)
-            responseQueue = ArrayBlockingQueue<Result<Any?>>(1)
-
-            thread = thread(name = "executor", isDaemon = true) {
-                try {
-                    while (true) {
-                        val next = requestQueue.take()
-                        responseQueue.offer(kotlin.runCatching { next() })
-                    }
-                } catch (_: InterruptedException) {}
-            }
-        }
+        ensureThreadIsAlive()
 
         requestQueue.offer {
             try {
@@ -82,5 +70,28 @@ class ThreadBasedExecutor {
 
         }
         return res
+    }
+
+    fun invokeWithoutTimeout(action:() -> Any?) : Result<Any?> {
+        ensureThreadIsAlive()
+
+        requestQueue.offer(action)
+        return responseQueue.take()
+    }
+
+    private fun ensureThreadIsAlive() {
+        if (thread?.isAlive != true) {
+            requestQueue = ArrayBlockingQueue<() -> Any?>(1)
+            responseQueue = ArrayBlockingQueue<Result<Any?>>(1)
+
+            thread = thread(name = "executor", isDaemon = true) {
+                try {
+                    while (true) {
+                        val next = requestQueue.take()
+                        responseQueue.offer(kotlin.runCatching { next() })
+                    }
+                } catch (_: InterruptedException) {}
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
@@ -13,17 +14,18 @@ import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.providers.nullRoutine
+import org.utbot.fuzzing.toFuzzerType
 
-class SavedEntityProvider(
+class SavedEntityValueProvider(
     private val idGenerator: IdGenerator<Int>,
     private val repositoryId: SpringRepositoryId
 ) : JavaValueProvider {
-    override fun accept(type: FuzzedType): Boolean = type.classId == repositoryId.entityClassId
+    override fun accept(type: FuzzedType): Boolean = type.classId.jClass.isAssignableFrom(repositoryId.entityClassId.jClass)
 
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> =
         sequenceOf(
             Seed.Recursive(
-                construct = Routine.Create(listOf(type)) { values ->
+                construct = Routine.Create(listOf(toFuzzerType(repositoryId.entityClassId.jClass, description.typeCache))) { values ->
                     val entityValue = values.single()
                     val entityModel = entityValue.model
                     UtAssembleModel(

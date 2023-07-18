@@ -1,22 +1,15 @@
 package org.utbot.examples.algorithms
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.examples.algorithms.CorrectBracketSequences.isBracket
 import org.utbot.examples.algorithms.CorrectBracketSequences.isOpen
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
-import org.utbot.testing.UtValueTestCaseChecker
-import org.utbot.testing.ignoreExecutionsNumber
-import org.utbot.testing.isException
+import org.utbot.testing.*
 
 internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO generics in lists
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testIsOpen() {

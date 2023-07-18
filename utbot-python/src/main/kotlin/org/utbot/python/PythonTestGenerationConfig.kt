@@ -17,7 +17,7 @@ class PythonTestGenerationConfig(
     val timeout: Long,
     val timeoutForRun: Long,
     val testFramework: TestFramework,
-    val executionPath: Path,
+    val testSourceRootPath: Path,
     val withMinimization: Boolean,
     val isCanceled: () -> Boolean,
 )

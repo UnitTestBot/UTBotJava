@@ -225,7 +225,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             timeout = timeout,
             timeoutForRun = timeoutForRun,
             testFramework = testFramework,
-            executionPath = Paths.get("").toAbsolutePath(),
+            testSourceRootPath = Paths.get(output).parent.toAbsolutePath(),
             withMinimization = !doNotMinimize,
             isCanceled = { false },
         )
@@ -242,6 +242,11 @@ class PythonGenerateTestsCommand : CliktCommand(
 
         logger.info("Generating tests...")
         val testSets = processor.testGenerate(mypyStorage)
+
+        logger.info("Saving tests...")
+        val testCode = processor.testCodeGenerate(testSets)
+        processor.saveTests(testCode)
+
 
         logger.info("Saving coverage report...")
         processor.processCoverageInfo(testSets)

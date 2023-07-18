@@ -1,15 +1,14 @@
 {
   "parts": [
     {
-      "path": "samples.algorithms",
+      "path": "samples/algorithms",
       "files": [
         {
           "name": "bfs",
           "groups": [
             {
-              "function_names": [
-                "bfs"
-              ],
+              "classes": null,
+              "methods": null,
               "timeout": 10
             }
           ]
@@ -18,9 +17,8 @@
           "name": "longest_subsequence",
           "groups": [
             {
-              "function_names": [
-                "longest_subsequence"
-              ],
+              "classes": null,
+              "methods": null,
               "timeout": 10
             }
           ]
@@ -29,10 +27,524 @@
           "name": "quick_sort",
           "groups": [
             {
-              "function_names": [
-                "quick_sort"
-              ],
+              "classes": null,
+              "methods": null,
               "timeout": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/classes",
+      "files": [
+        {
+          "name": "constructors",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "dataclass",
+          "groups": [
+            {
+              "classes": "C",
+              "methods": "inc",
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "dicts",
+          "groups": [
+            {
+              "classes": "Dictionary",
+              "methods": "translate",
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "easy_class",
+          "groups": [
+            {
+              "classes": "B",
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "equals",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "fields",
+          "groups": [
+            {
+              "classes": "NoTestsProblem",
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "inner_class",
+          "groups": [
+            {
+              "classes": "Outer",
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "rename_self",
+          "groups": [
+            {
+              "classes": "A",
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "setstate_test",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/collections",
+      "files": [
+        {
+          "name": "dicts",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "lists",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "sets",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "tuple",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "using_collections",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/controlflow",
+      "files": [
+        {
+          "name": "arithmetic",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "inner_conditions",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/easy_samples",
+      "files": [
+        {
+          "name": "deep_equals",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 90
+            }
+          ]
+        },
+        {
+          "name": "deep_equals_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20
+            }
+          ]
+        },
+        {
+          "name": "full_annotated",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 150
+            }
+          ]
+        },
+        {
+          "name": "general",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 300
+            }
+          ]
+        },
+        {
+          "name": "long_function_coverage",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/exceptions",
+      "files": [
+        {
+          "name": "exception_example",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/builtins_module",
+      "files": [
+        {
+          "name": "crypto",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/inner_pack_1",
+      "files": [
+        {
+          "name": "inner_mod_1",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/inner_pack_2",
+      "files": [
+        {
+          "name": "inner_mod_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/inner_pack_2",
+      "files": [
+        {
+          "name": "inner_mod_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/primitives",
+      "files": [
+        {
+          "name": "bytes_example",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30
+            }
+          ]
+        },
+        {
+          "name": "numbers",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 80
+            }
+          ]
+        },
+        {
+          "name": "primitive_types",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 40
+            }
+          ]
+        },
+        {
+          "name": "regex",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 40
+            }
+          ]
+        },
+        {
+          "name": "str_example",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 160
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/recursion",
+      "files": [
+        {
+          "name": "recursion",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 150
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/structures",
+      "files": [
+        {
+          "name": "boruvka",
+          "groups": [
+            {
+              "classes": "Graph",
+              "methods": null,
+              "timeout": 150
+            }
+          ]
+        },
+        {
+          "name": "deque",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 150
+            }
+          ]
+        },
+        {
+          "name": "matrix",
+          "groups": [
+            {
+              "classes": "Matrix",
+              "methods": null,
+              "timeout": 240
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/type_inference",
+      "files": [
+        {
+          "name": "annotations",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 140
+            }
+          ]
+        },
+        {
+          "name": "annotations2",
+          "groups": [
+            {
+              "classes": "A",
+              "methods": null,
+              "timeout": 40
+            }
+          ]
+        },
+        {
+          "name": "annotations2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 120
+            }
+          ]
+        },
+        {
+          "name": "generics",
+          "groups": [
+            {
+              "classes": "LoggedVar",
+              "methods": null,
+              "timeout": 30
+            }
+          ]
+        },
+        {
+          "name": "generics",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30
+            }
+          ]
+        },
+        {
+          "name": "list_of_datetime",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30
+            }
+          ]
+        },
+        {
+          "name": "subtypes",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 90
+            }
+          ]
+        },
+        {
+          "name": "type_inference",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 40
+            }
+          ]
+        },
+        {
+          "name": "type_inference_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 40
             }
           ]
         }

@@ -25,17 +25,6 @@ def dict_f(x, a, b, c):
     return 2
 
 
-class A:
-    x = 4
-    y = 5
-
-    def func(self):
-        n = 0
-        for i in range(self.x):
-            n += self.y
-        return n
-
-
 def fact(n):
     ans = 1
     for i in range(1, n + 1):

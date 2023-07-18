@@ -17,11 +17,11 @@ class S1:
         return collections.Counter([x])
 
 
-def func_for_P(x: P) -> None:
+def func_for_p(x: P) -> None:
     return None
 
 
-func_for_P(S())
+# func_for_p(S())
 
 
 class R(Protocol):
@@ -34,11 +34,11 @@ class RImpl:
         return self
 
 
-def func_for_R(x: R) -> None:
+def func_for_r(x: R) -> None:
     return None
 
 
-func_for_R(RImpl())
+# func_for_r(RImpl())
 
 
 a: List[int] = []

@@ -1,5 +1,4 @@
 import re
-import time
 
 
 def check_regex(string: str) -> bool:

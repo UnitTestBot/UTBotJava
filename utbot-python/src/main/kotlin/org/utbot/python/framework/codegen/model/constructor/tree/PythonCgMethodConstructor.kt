@@ -251,9 +251,9 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
     private fun assertIsInstance(expected: CgValue, actual: CgVariable) {
         when (testFrameworkManager) {
             is PytestManager ->
-                (testFrameworkManager as PytestManager).assertIsinstance(listOf(expected.type), actual)
+                (testFrameworkManager as PytestManager).assertIsinstance(listOf(expected.type as PythonClassId), actual)
             is UnittestManager ->
-                (testFrameworkManager as UnittestManager).assertIsinstance(listOf(expected.type), actual)
+                (testFrameworkManager as UnittestManager).assertIsinstance(listOf(expected.type as PythonClassId), actual)
             else -> testFrameworkManager.assertEquals(expected, actual)
         }
     }

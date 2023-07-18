@@ -281,7 +281,7 @@ object PythonDialogProcessor {
                             timeout = model.timeout,
                             timeoutForRun = model.timeoutForRun,
                             testFramework = model.testFramework,
-                            executionPath = Path(model.testSourceRootPath),
+                            testSourceRootPath = Path(model.testSourceRootPath),
                             withMinimization = true,
                             isCanceled = { indicator.isCanceled },
                         )

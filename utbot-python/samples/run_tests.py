@@ -1,6 +1,8 @@
 import argparse
 import json
 import os
+import typing
+import pathlib
 
 
 def parse_arguments():
@@ -8,6 +10,7 @@ def parse_arguments():
         prog='UtBot Python test',
         description='Generage tests for example files'
     )
+    parser.add_argument('java')
     parser.add_argument('jar')
     parser.add_argument('path_to_test_dir')
     parser.add_argument('-c', '--config_file')
@@ -22,6 +25,7 @@ def parse_config(config_path: str):
 
 
 def run_tests(
+    java: str,
     jar_path: str,
     sys_paths: list[str],
     python_path: str, 
@@ -31,12 +35,14 @@ def run_tests(
     class_name: typing.Optional[str] = None,
     method_names: typing.Optional[str] = None
     ):
-    command = f"java -jar {jar_path} generate_python {file} -p {python_path} -o {output} -s {' '.join(sys_path)} --timeout {timeout * 1000}"
+    command = f"{java} -jar {jar_path} generate_python {file}.py -p {python_path} -o {output} -s {' '.join(sys_paths)} --timeout {timeout * 1000} --install-requirements"
     if class_name is not None:
         command += f" -c {class_name}"
     if method_names is not None:
         command += f" -m {','.join(method_names)}"
-    os.system(command)
+    print(command)
+    code = os.system(command)
+    return code
 
 
 def main():
@@ -45,16 +51,20 @@ def main():
     for part in config['parts']:
         for file in part['files']:
             for group in file['groups']:
-                full_name = '/'.join([args.path_to_test_dir, part['path'], file['name']])
-                output_file = '/'.join([args.output])
+                full_name = pathlib.PurePath(args.path_to_test_dir, part['path'], file['name'])
+                output_file = pathlib.PurePath(args.output_dir, f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}.py")
                 run_tests(
+                    args.java,
                     args.jar,
-                    args.path_to_test_dir,
+                    [args.path_to_test_dir],
                     args.python_path,
-                    full_name,
-                    group.timeout,
-                    output_file,
-                    group.classes,
-                    group.methods
+                    str(full_name),
+                    group['timeout'],
+                    str(output_file),
+                    group['classes'],
+                    group['methods']
                 )
                     
+
+if __name__ == '__main__':
+    main()

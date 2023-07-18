@@ -188,7 +188,7 @@ abstract class PythonTestGenerationProcessor {
         val sysImport = PythonSystemImport("sys")
         val osImport = PythonSystemImport("os")
         val sysPathImports = relativizePaths(
-            configuration.executionPath,
+            configuration.testSourceRootPath,
             configuration.sysPathDirectories
         ).map { PythonSysPathImport(it) }
 

@@ -1,0 +1,42 @@
+{
+  "parts": [
+    {
+      "path": "samples.algorithms",
+      "files": [
+        {
+          "name": "bfs",
+          "groups": [
+            {
+              "function_names": [
+                "bfs"
+              ],
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "longest_subsequence",
+          "groups": [
+            {
+              "function_names": [
+                "longest_subsequence"
+              ],
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "name": "quick_sort",
+          "groups": [
+            {
+              "function_names": [
+                "quick_sort"
+              ],
+              "timeout": 10
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

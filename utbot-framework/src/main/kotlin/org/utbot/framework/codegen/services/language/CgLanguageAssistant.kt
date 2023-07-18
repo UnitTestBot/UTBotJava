@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.services.language
 
-import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.context.TestClassContext
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.renderer.CgPrinter
@@ -16,11 +15,10 @@ import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
 import org.utbot.framework.codegen.tree.CgVariableConstructor
-import org.utbot.framework.codegen.tree.CgSpringVariableConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 
-abstract class CgLanguageAssistant {
+interface CgLanguageAssistant {
 
     companion object {
         fun getByCodegenLanguage(language: CodegenLanguage) = when (language) {
@@ -30,31 +28,41 @@ abstract class CgLanguageAssistant {
         }
     }
 
-    open val outerMostTestClassContent: TestClassContext? = null
+    val outerMostTestClassContent: TestClassContext?
 
-    abstract val extension: String
+    val extension: String
 
-    abstract val languageKeywords: Set<String>
+    val languageKeywords: Set<String>
 
-    abstract fun testClassName(
+    fun testClassName(
         testClassCustomName: String?,
         testClassPackageName: String,
         classUnderTest: ClassId
     ): Pair<String, String>
 
-    open fun getNameGeneratorBy(context: CgContext): CgNameGenerator = CgNameGeneratorImpl(context)
-    open fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager =
+    fun getNameGeneratorBy(context: CgContext): CgNameGenerator
+    fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager
+    fun getStatementConstructorBy(context: CgContext): CgStatementConstructor
+
+    fun getVariableConstructorBy(context: CgContext): CgVariableConstructor
+
+    fun getMethodConstructorBy(context: CgContext): CgMethodConstructor
+    fun getCgFieldStateManager(context: CgContext): CgFieldStateManager
+
+    fun getLanguageTestFrameworkManager(): LanguageTestFrameworkManager
+    fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer
+}
+
+abstract class AbstractCgLanguageAssistant : CgLanguageAssistant {
+    override val outerMostTestClassContent: TestClassContext? get() = null
+
+    override fun getNameGeneratorBy(context: CgContext): CgNameGenerator = CgNameGeneratorImpl(context)
+    override fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager =
         CgCallableAccessManagerImpl(context)
-    open fun getStatementConstructorBy(context: CgContext): CgStatementConstructor = CgStatementConstructorImpl(context)
+    override fun getStatementConstructorBy(context: CgContext): CgStatementConstructor = CgStatementConstructorImpl(context)
 
-    open fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = when (context.projectType) {
-            ProjectType.Spring -> CgSpringVariableConstructor(context)
-            else -> CgVariableConstructor(context)
-        }
+    override fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = CgVariableConstructor(context)
 
-    open fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = CgMethodConstructor(context)
-    open fun getCgFieldStateManager(context: CgContext): CgFieldStateManager = CgFieldStateManagerImpl(context)
-
-    abstract fun getLanguageTestFrameworkManager(): LanguageTestFrameworkManager
-    abstract fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer
+    override fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = CgMethodConstructor(context)
+    override fun getCgFieldStateManager(context: CgContext): CgFieldStateManager = CgFieldStateManagerImpl(context)
 }

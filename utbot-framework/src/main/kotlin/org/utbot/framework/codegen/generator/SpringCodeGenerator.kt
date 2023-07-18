@@ -7,11 +7,14 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.builders.SpringTestClassModelBuilder
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.CgSpringIntegrationTestClassConstructor
 import org.utbot.framework.codegen.tree.CgSpringUnitTestClassConstructor
+import org.utbot.framework.codegen.tree.CgSpringVariableConstructor
+import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -50,7 +53,11 @@ class SpringCodeGenerator(
     forceStaticMocking,
     generateWarningsForStaticMocking,
     codegenLanguage,
-    cgLanguageAssistant,
+    cgLanguageAssistant = object : CgLanguageAssistant by cgLanguageAssistant {
+        override fun getVariableConstructorBy(context: CgContext): CgVariableConstructor =
+            // TODO decorate original `cgLanguageAssistant.getVariableConstructorBy(context)`
+            CgSpringVariableConstructor(context)
+    },
     parameterizedTestSource,
     runtimeExceptionTestsBehaviour,
     hangingTestsTimeout,

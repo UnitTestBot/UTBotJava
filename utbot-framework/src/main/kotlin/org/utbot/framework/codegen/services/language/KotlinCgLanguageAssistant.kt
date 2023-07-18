@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JVMTestFrameworkManager
 import org.utbot.framework.plugin.api.utils.testClassNameGenerator
 
-object KotlinCgLanguageAssistant : CgLanguageAssistant() {
+object KotlinCgLanguageAssistant : AbstractCgLanguageAssistant() {
 
     override val extension: String
         get() = ".kt"

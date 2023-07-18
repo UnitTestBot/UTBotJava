@@ -16,13 +16,11 @@ import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
-import java.util.Collections.max
 
 abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
     CgAbstractTestClassConstructor<SpringTestClassModel>(context) {
@@ -94,55 +92,43 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
     open fun constructAdditionalUtilMethods(): CgMethodsCluster? = null
 
     protected fun constructFieldsWithAnnotation(
-        annotationClassId: ClassId,
+        fieldManager: CgClassFieldManager,
         groupedModelsByClassId: TypedModelWrappers,
     ): List<CgFieldDeclaration> {
+        val annotationClassId = fieldManager.annotationType
         val annotation = addAnnotation(annotationClassId, Field)
 
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
-        for ((classId, listOfUtModels) in groupedModelsByClassId) {
+        for ((classId, modelWrappers) in groupedModelsByClassId) {
 
-            // group [listOfUtModels] by `testSetId` and `executionId`
-            // to check how many instance of one type used in each execution
-            val groupedListOfUtModel = listOfUtModels.groupByTo(HashMap()) {
-                Pair(
-                    it.testSetId,
-                    it.executionId,
-                )
+            val fieldWithAnnotationIsRequired = fieldManager.fieldWithAnnotationIsRequired(modelWrappers)
+            if (!fieldWithAnnotationIsRequired) {
+                continue
             }
 
-            // max count instances of one type in one execution
-            val instanceMaxCount = max(groupedListOfUtModel.map { (_, modelsList) -> modelsList.size })
+            val modelWrapper = modelWrappers.firstOrNull() ?: continue
+            val model = modelWrapper.model
 
-            // if [instanceCount] is 1, then we mock variable by @Mock annotation
-            // Otherwise we will mock variable by simple mock later
-            if (instanceMaxCount == 1) {
-                val modelWrapper = listOfUtModels.firstOrNull() ?: continue
-                val model = modelWrapper.model
+            val baseVarName = model.getBeanNameOrNull()
 
-                val baseVarName = model.getBeanNameOrNull()
+            val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
+                ?: error("`UtCompositeModel` model was expected, but $model was found")
 
-                val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                    ?: error("`UtCompositeModel` model was expected, but $model was found")
+            val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
 
-                val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
+            constructedDeclarations += CgFieldDeclaration(
+                ownerClassId = currentTestClass,
+                declaration,
+                annotation
+            )
 
-                constructedDeclarations += CgFieldDeclaration(
-                    ownerClassId = currentTestClass,
-                    declaration,
-                    annotation
-                )
-
-                groupedListOfUtModel
-                    .forEach { (_, modelsList) ->
-                        val currentModel = modelsList.firstOrNull()
-
-                        currentModel?.let{
-                            valueByUtModelWrapper[currentModel] = createdVariable
-                            variableConstructor.annotatedModelGroups.getOrPut(annotationClassId) { mutableSetOf() } += currentModel
-                        }
+            modelWrappers
+                .forEach { modelWrapper ->
+                    modelWrapper.let {
+                        valueByUtModelWrapper[modelWrapper] = createdVariable
+                        variableConstructor.annotatedModelGroups.getOrPut(annotationClassId) { mutableSetOf() } += modelWrapper
                     }
-            }
+                }
         }
 
         return constructedDeclarations

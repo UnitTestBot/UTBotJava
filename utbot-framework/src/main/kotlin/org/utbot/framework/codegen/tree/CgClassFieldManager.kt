@@ -14,12 +14,16 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
+import java.util.*
+import kotlin.collections.HashMap
 
 sealed interface CgClassFieldManager : CgContextOwner {
 
     val annotationType: ClassId
 
     fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue
+
+    fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean
 }
 
 abstract class CgClassFieldManagerImpl(context: CgContext) :
@@ -64,6 +68,7 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManage
         return modelVariable
     }
 
+    override fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean = true
 }
 
 class CgMockedFieldsManager(context: CgContext) : CgClassFieldManagerImpl(context) {
@@ -78,6 +83,20 @@ class CgMockedFieldsManager(context: CgContext) : CgClassFieldManagerImpl(contex
             )
         }
         return modelVariable
+    }
+
+    override fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean {
+        // group [listOfUtModels] by `testSetId` and `executionId`
+        // to check how many instances of one type are used in each execution
+        val modelsByExecutions = modelWrappers
+            .groupByTo(HashMap()) { Pair(it.testSetId, it.executionId) }
+
+        // maximal instances of one type amount in one execution
+        val instanceMaxCount = Collections.max(modelsByExecutions.map { (_, modelsList) -> modelsList.size })
+
+        // if [instanceCount] is 1, then we mock variable by @Mock annotation
+        // Otherwise we will mock variable by simple mock later
+        return instanceMaxCount == 1
     }
 
 }
@@ -95,6 +114,8 @@ class CgAutowiredFieldsManager(context: CgContext) : CgClassFieldManagerImpl(con
             else -> error("Trying to autowire model $model but it is not appropriate")
         }
     }
+
+    override fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean = true
 }
 
 class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {

@@ -12,10 +12,10 @@ import org.utbot.framework.plugin.api.util.stringClassId
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
     val annotatedModelGroups: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
 
-    private val classFieldManager = ClassFieldManagerFacade(context)
+    private val fieldManagerFacade = ClassFieldManagerFacade(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        val variable = classFieldManager.constructVariableForField(model)
+        val variable = fieldManagerFacade.constructVariableForField(model)
 
         variable?.let { return it }
 

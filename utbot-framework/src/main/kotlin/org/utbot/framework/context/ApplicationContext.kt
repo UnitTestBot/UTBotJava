@@ -1,8 +1,9 @@
 package org.utbot.framework.context
 
-import org.utbot.framework.plugin.api.CodeGenerationContext
+import org.utbot.framework.codegen.generator.AbstractCodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 
-interface ApplicationContext : CodeGenerationContext {
+interface ApplicationContext {
     val mockerContext: MockerContext
     val typeReplacer: TypeReplacer
     val nonNullSpeculator: NonNullSpeculator
@@ -11,4 +12,6 @@ interface ApplicationContext : CodeGenerationContext {
         fullClasspath: String,
         classpathWithoutDependencies: String
     ): ConcreteExecutionContext
+
+    fun createCodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator
 }

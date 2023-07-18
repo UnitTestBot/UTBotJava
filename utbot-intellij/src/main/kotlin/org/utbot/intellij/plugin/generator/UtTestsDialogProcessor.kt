@@ -446,7 +446,7 @@ object UtTestsDialogProcessor {
                             // indicator.checkCanceled()
 
                             invokeLater {
-                                generateTests(model, applicationContext, testSetsByClass, psi2KClass, process, indicator)
+                                generateTests(model, testSetsByClass, psi2KClass, process, indicator)
                                 logger.info { "Generation complete" }
                             }
                         }

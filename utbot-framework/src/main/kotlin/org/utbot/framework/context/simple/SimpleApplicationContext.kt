@@ -1,5 +1,8 @@
 package org.utbot.framework.context.simple
 
+import org.utbot.framework.codegen.generator.AbstractCodeGenerator
+import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.MockerContext
@@ -18,4 +21,7 @@ class SimpleApplicationContext(
         fullClasspath: String,
         classpathWithoutDependencies: String
     ): ConcreteExecutionContext = SimpleConcreteExecutionContext(fullClasspath)
+
+    override fun createCodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator =
+        CodeGenerator(params)
 }

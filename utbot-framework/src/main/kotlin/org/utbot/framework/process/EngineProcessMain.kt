@@ -14,9 +14,7 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
-import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
-import org.utbot.framework.codegen.generator.SpringCodeGenerator
 import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.context.ApplicationContext
@@ -291,7 +289,7 @@ private fun destinationWarningMessage(testPackageName: String?, classUnderTestPa
     }
 }
 
-private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, codeGenerationContext: CodeGenerationContext): AbstractCodeGenerator {
+private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, applicationContext: ApplicationContext): AbstractCodeGenerator {
     with(params) {
         val classUnderTest: ClassId = kryoHelper.readObject(classUnderTest)
         val paramNames: MutableMap<ExecutableId, List<String>> = kryoHelper.readObject(paramNames)
@@ -300,7 +298,7 @@ private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, co
         val forceStaticMocking: ForceStaticMocking = kryoHelper.readObject(forceStaticMocking)
         val projectType = ProjectType.valueOf(projectType)
 
-        val codeGeneratorParams = CodeGeneratorParams(
+        return applicationContext.createCodeGenerator(CodeGeneratorParams(
             classUnderTest = classUnderTest,
             projectType = projectType,
             generateUtilClassFile = generateUtilClassFile,
@@ -323,11 +321,6 @@ private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, co
             hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
             enableTestsTimeout = enableTestsTimeout,
             testClassPackageName = testClassPackageName,
-        )
-
-        return when (codeGenerationContext) {
-            is SpringCodeGenerationContext -> SpringCodeGenerator(codeGenerationContext, codeGeneratorParams)
-            else -> CodeGenerator(codeGeneratorParams)
-        }
+        ))
     }
 }

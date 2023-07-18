@@ -10,13 +10,16 @@ import org.utbot.framework.codegen.tree.CgSpringVariableConstructor
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.SpringCodeGenerationContext
+import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.plugin.api.SpringSettings.AbsentSpringSettings
 import org.utbot.framework.plugin.api.SpringSettings.PresentSpringSettings
 import org.utbot.framework.plugin.api.SpringTestType
 
 class SpringCodeGenerator(
-    val springCodeGenerationContext: SpringCodeGenerationContext,
+    private val springTestType: SpringTestType,
+    private val springSettings: SpringSettings,
+    private val concreteContextLoadingResult: ConcreteContextLoadingResult?,
     params: CodeGeneratorParams
 ) : AbstractCodeGenerator(
     params.copy(
@@ -27,17 +30,17 @@ class SpringCodeGenerator(
         }
     )
 ) {
-    val classUnderTest: ClassId = params.classUnderTest
+    private val classUnderTest: ClassId = params.classUnderTest
 
     override fun generate(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
         val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
-        val astConstructor = when (springCodeGenerationContext.springTestType) {
+        val astConstructor = when (springTestType) {
             SpringTestType.UNIT_TEST -> CgSpringUnitTestClassConstructor(context)
             SpringTestType.INTEGRATION_TEST ->
-                when (val settings = springCodeGenerationContext.springSettings) {
-                    is PresentSpringSettings -> CgSpringIntegrationTestClassConstructor(context, springCodeGenerationContext, settings)
+                when (val settings = springSettings) {
+                    is PresentSpringSettings -> CgSpringIntegrationTestClassConstructor(context, concreteContextLoadingResult, settings)
                     is AbsentSpringSettings -> error("No Spring settings were provided for Spring integration test generation.")
                 }
         }

@@ -1319,14 +1319,6 @@ enum class TypeReplacementMode {
     NoImplementors,
 }
 
-interface CodeGenerationContext
-
-interface SpringCodeGenerationContext : CodeGenerationContext {
-    val springTestType: SpringTestType
-    val springSettings: SpringSettings
-    val concreteContextLoadingResult: ConcreteContextLoadingResult?
-}
-
 sealed class SpringConfiguration(val fullDisplayName: String) {
     class JavaConfiguration(val classBinaryName: String) : SpringConfiguration(classBinaryName)
     class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)

@@ -3,6 +3,9 @@ package org.utbot.framework.context.spring
 import mu.KotlinLogging
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
+import org.utbot.framework.codegen.generator.AbstractCodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
+import org.utbot.framework.codegen.generator.SpringCodeGenerator
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.NonNullSpeculator
@@ -22,7 +25,7 @@ import org.utbot.framework.plugin.api.util.utContext
 class SpringApplicationContextImpl(
     private val delegateContext: ApplicationContext,
     override val beanDefinitions: List<BeanDefinitionData> = emptyList(),
-    override val springTestType: SpringTestType,
+    private val springTestType: SpringTestType,
     override val springSettings: SpringSettings,
 ): ApplicationContext by delegateContext, SpringApplicationContext {
     companion object {
@@ -63,6 +66,15 @@ class SpringApplicationContextImpl(
             )
         }
     }
+
+    override fun createCodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator =
+        // TODO decorate original `delegateContext.createCodeGenerator(params)`
+        SpringCodeGenerator(
+            springTestType = springTestType,
+            springSettings = springSettings,
+            concreteContextLoadingResult = concreteContextLoadingResult,
+            params = params,
+        )
 
     override fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData> = beanDefinitions.filter { beanDef ->
         // some bean classes may fail to load

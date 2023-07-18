@@ -7,7 +7,7 @@ import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.ClassId
 
 open class CodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator(params) {
-    val classUnderTest: ClassId = params.classUnderTest
+    protected val classUnderTest: ClassId = params.classUnderTest
 
     override fun generate(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
         val testClassModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)

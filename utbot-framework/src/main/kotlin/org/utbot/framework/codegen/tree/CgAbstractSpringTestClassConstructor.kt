@@ -16,14 +16,13 @@ import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
 
-abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
+abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
     CgAbstractTestClassConstructor<SpringTestClassModel>(context) {
 
     protected val variableConstructor: CgSpringVariableConstructor =
@@ -93,29 +92,43 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext):
     open fun constructAdditionalUtilMethods(): CgMethodsCluster? = null
 
     protected fun constructFieldsWithAnnotation(
-        annotationClassId: ClassId,
+        fieldManager: CgClassFieldManager,
         groupedModelsByClassId: TypedModelWrappers,
     ): List<CgFieldDeclaration> {
+        val annotationClassId = fieldManager.annotationType
         val annotation = addAnnotation(annotationClassId, Field)
 
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
-        for ((classId, listOfUtModels) in groupedModelsByClassId) {
-            val modelWrapper = listOfUtModels.firstOrNull() ?: continue
+        for ((classId, modelWrappers) in groupedModelsByClassId) {
+
+            val fieldWithAnnotationIsRequired = fieldManager.fieldWithAnnotationIsRequired(modelWrappers)
+            if (!fieldWithAnnotationIsRequired) {
+                continue
+            }
+
+            val modelWrapper = modelWrappers.firstOrNull() ?: continue
             val model = modelWrapper.model
+
             val baseVarName = model.getBeanNameOrNull()
 
             val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
                 ?: error("`UtCompositeModel` model was expected, but $model was found")
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
-            constructedDeclarations += CgFieldDeclaration(ownerClassId = currentTestClass, declaration, annotation)
 
-            listOfUtModels.forEach { key ->
-                valueByUtModelWrapper[key] = createdVariable
-            }
+            constructedDeclarations += CgFieldDeclaration(
+                ownerClassId = currentTestClass,
+                declaration,
+                annotation
+            )
 
-            variableConstructor.annotatedModelGroups
-                .getOrPut(annotationClassId) { mutableSetOf() } += listOfUtModels
+            modelWrappers
+                .forEach { modelWrapper ->
+                    modelWrapper.let {
+                        valueByUtModelWrapper[modelWrapper] = createdVariable
+                        variableConstructor.annotatedModelGroups.getOrPut(annotationClassId) { mutableSetOf() } += modelWrapper
+                    }
+                }
         }
 
         return constructedDeclarations

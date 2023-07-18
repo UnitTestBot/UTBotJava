@@ -40,6 +40,9 @@ class CgSpringIntegrationTestClassConstructor(
     private val springCodeGenerationContext: SpringCodeGenerationContext,
     private val springSettings: PresentSpringSettings,
 ) : CgAbstractSpringTestClassConstructor(context) {
+
+    private val autowiredFieldManager = CgAutowiredFieldsManager(context)
+
     companion object {
         private val logger = KotlinLogging.logger {}
     }
@@ -52,7 +55,7 @@ class CgSpringIntegrationTestClassConstructor(
     override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
         val autowiredFromContextModels =
             testClassModel.springSpecificInformation.autowiredFromContextModels
-        return constructFieldsWithAnnotation(autowiredClassId, autowiredFromContextModels)
+        return constructFieldsWithAnnotation(autowiredFieldManager, autowiredFromContextModels)
     }
 
     override fun constructAdditionalTestMethods() =

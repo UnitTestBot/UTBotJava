@@ -203,7 +203,7 @@ jobs:
       - name: Run tests
         run: |
           cd utbot-spring-test
-          gradle --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-spring-test:test
+          gradle -PprojectType=Spring --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-spring-test:test
 
       - name: Upload logs
         if: ${{ always() }}

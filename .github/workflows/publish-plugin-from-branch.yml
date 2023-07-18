@@ -48,6 +48,10 @@ jobs:
             extra_options: "-PideType=IC"
           - plugin_type: IU
             extra_options: "-PideType=IU"
+          - plugin_type: IC-Spring
+            extra_options: "-PideType=IC -PprojectType=Spring"
+          - plugin_type: IU-Spring
+            extra_options: "-PideType=IU -PprojectType=Spring"
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
     steps:

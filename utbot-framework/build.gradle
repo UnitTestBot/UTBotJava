@@ -47,9 +47,9 @@ dependencies {
 
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 
+    implementation project(':utbot-spring-commons-api')
+    implementation project(':utbot-spring-analyzer')
     if (projectType == springProjectTypeName) {
-        implementation project(':utbot-spring-commons-api')
-        implementation project(':utbot-spring-analyzer')
         fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
     }
 }
@@ -59,9 +59,7 @@ processResources {
         into "lib"
     }
 
-    if (projectType == springProjectTypeName) {
-        from(configurations.fetchSpringAnalyzerJar) {
-            into "lib"
-        }
+    from(configurations.fetchSpringAnalyzerJar) {
+        into "lib"
     }
 }

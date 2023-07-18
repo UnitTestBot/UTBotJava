@@ -54,7 +54,10 @@ if (includeRiderInBuild.toBoolean()) {
 }
 
 include("utbot-ui-commons")
+
 include("utbot-spring-commons-api")
+include("utbot-spring-commons")
+include("utbot-spring-analyzer")
 
 when (projectType) {
     standardProjectTypeName -> {
@@ -79,8 +82,6 @@ when (projectType) {
     }
 
     springProjectTypeName -> {
-        include("utbot-spring-analyzer")
-        include("utbot-spring-commons")
         include("utbot-spring-sample")
         include("utbot-spring-test")
     }

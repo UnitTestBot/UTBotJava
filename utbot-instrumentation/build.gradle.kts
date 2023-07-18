@@ -46,8 +46,6 @@ val fetchSpringCommonsJar: Configuration by configurations.creating {
 dependencies {
     implementation(project(":utbot-framework-api"))
     implementation(project(":utbot-rd"))
-    implementation(project(":utbot-spring-commons-api"))
-
 
     implementation("org.ow2.asm:asm:$asmVersion")
     implementation("org.ow2.asm:asm-commons:$asmVersion")
@@ -61,6 +59,7 @@ dependencies {
     implementation("org.mockito:mockito-core:$mockitoVersion")
     implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
 
+    implementation(project(":utbot-spring-commons-api"))
     if (projectType == springProjectTypeName) {
         fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
     }

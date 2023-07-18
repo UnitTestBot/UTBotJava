@@ -1,3 +1,8 @@
+"""
+Example command
+<python> run_tests.py <java> <utbot-cli-python.jar> <path to UTBotJava/utbot-python/samples> -c test_configuration.json
+ -p <python> -o  <path to UTBotJava/utbot-python/samples/cli_test_dir or another directory>
+"""
 import argparse
 import json
 import os

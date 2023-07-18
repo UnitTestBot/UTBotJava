@@ -41,6 +41,10 @@ intellij {
         "java"
     )
 
+    val kotlinPlugins = mutableListOf(
+        "org.jetbrains.kotlin"
+    )
+
     androidStudioPath?.let { jvmPlugins += androidPlugins }
 
     val pythonCommunityPlugins = listOf(
@@ -74,7 +78,7 @@ intellij {
                     else -> jvmPlugins
                 }
             }
-            springProjectTypeName -> jvmPlugins
+            springProjectTypeName -> jvmPlugins + kotlinPlugins + mavenUtilsPlugins
             else -> jvmPlugins
         }
     )

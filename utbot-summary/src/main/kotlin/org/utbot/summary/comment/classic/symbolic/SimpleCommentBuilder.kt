@@ -1,12 +1,12 @@
 package org.utbot.summary.comment.classic.symbolic
 
-import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.stmt.CatchClause
 import com.github.javaparser.ast.stmt.ForStmt
 import com.github.javaparser.ast.stmt.IfStmt
 import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.stmt.SwitchStmt
 import com.github.javaparser.ast.stmt.ThrowStmt
+import com.github.javaparser.ast.stmt.SwitchEntry
 import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.DocPreTagStatement
@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.AbstractTextBuilder
+import org.utbot.summary.NodeConverter
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.comment.*
@@ -31,6 +32,7 @@ import soot.jimple.Stmt
 import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JInvokeStmt
 import soot.jimple.internal.JVirtualInvokeExpr
+import kotlin.jvm.optionals.getOrNull
 
 private const val JVM_CRASH_REASON = "JVM crash"
 const val EMPTY_STRING = ""
@@ -140,35 +142,41 @@ open class SimpleCommentBuilder(
     }
 
     /**
-     * Tries to find ast node where exception was thrown
-     * or condition if exception was thrown manually in function body
+     * Tries to find AST node where the exception was thrown
+     * or AST node that contains a condition which lead to the throw.
      */
-    protected fun findExceptionReason(step: Step, currentMethod: SootMethod): String {
-        var reason = ""
-        val exceptionStmt = step.stmt
-        val jimpleToASTMap = sootToAST[currentMethod] ?: return ""
-        var exceptionNode = jimpleToASTMap.stmtToASTNode[exceptionStmt]
-        if (exceptionNode is ThrowStmt) {
-            exceptionNode = getExceptionReason(exceptionNode)
-            reason += "after condition: "
-        } else reason += "in: "
+    private fun findExceptionReason(step: Step, currentMethod: SootMethod): String =
+        StringBuilder()
+            .let { stringBuilder ->
+                val jimpleToASTMap = sootToAST[currentMethod] ?: return ""
 
-        //special case if reason is MethodDeclaration -> exception was thrown after body execution, not after condition
-        if (exceptionNode is MethodDeclaration) return "in ${exceptionNode.name} function body"
-        //node is SwitchStmt only when jimple stmt is inside selector
-        if (exceptionNode is SwitchStmt) exceptionNode = exceptionNode.selector
+                val exceptionNode =
+                    jimpleToASTMap.stmtToASTNode[step.stmt]
+                        .let { node ->
+                            if (node is ThrowStmt) getExceptionReasonForComment(node)
+                            else node
+                        }
+                        ?.also { node ->
+                            stringBuilder.append(
+                                if (node is IfStmt || node is SwitchEntry) "when: "
+                                else "in: "
+                            )
+                        }
+                        ?: return ""
 
-        if (exceptionNode == null) return ""
-
-        reason += when {
-            exceptionNode is IfStmt -> exceptionNode.condition.toString()
-            isLoopStatement(exceptionNode) -> getTextIterationDescription(exceptionNode)
-            exceptionNode is SwitchStmt -> textSwitchCase(step, jimpleToASTMap)
-            else -> exceptionNode.toString()
-        }
-
-        return reason.replace(CARRIAGE_RETURN, "")
-    }
+                stringBuilder
+                    .append(
+                        when {
+                            exceptionNode is IfStmt -> exceptionNode.condition.toString()
+                            exceptionNode is SwitchEntry -> NodeConverter.convertSwitchEntry0(exceptionNode, step, removeSpaces = false)
+                            exceptionNode is SwitchStmt -> NodeConverter.convertSwitchStmt0(exceptionNode, step, removeSpaces = false)
+                            isLoopStatement(exceptionNode) -> getTextIterationDescription(exceptionNode)
+                            else -> exceptionNode.toString()
+                        }
+                    )
+            }
+            .toString()
+            .replace(CARRIAGE_RETURN, "")
 
     /**
      * Sentence blocks are built based on unique and partly unique statement tags.
@@ -247,10 +255,10 @@ open class SimpleCommentBuilder(
             }
 
             if (statementTag.basicTypeTag == BasicTypeTag.SwitchCase && statementTag.uniquenessTag == UniquenessTag.Unique) {
-                val switchCase = textSwitchCase(statementTag.step, jimpleToASTMap)
-                if (switchCase != null) {
-                    sentenceBlock.stmtTexts.add(StmtDescription(StmtType.SwitchCase, switchCase))
-                }
+                textSwitchCase(statementTag.step, jimpleToASTMap)
+                    ?.let { description ->
+                        sentenceBlock.stmtTexts.add(StmtDescription(StmtType.SwitchCase, description))
+                    }
             }
             if (statementTag.basicTypeTag == BasicTypeTag.CaughtException) {
                 jimpleToASTMap[stmt].let {

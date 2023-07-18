@@ -136,10 +136,10 @@ class SymbolicExecutionClusterCommentBuilder(
             }
 
             if (statementTag.basicTypeTag == BasicTypeTag.SwitchCase && statementTag.uniquenessTag == UniquenessTag.Unique) {
-                val switchCase = textSwitchCase(statementTag.step, jimpleToASTMap)
-                if (switchCase != null) {
-                    sentenceBlock.stmtTexts.add(StmtDescription(StmtType.SwitchCase, switchCase))
-                }
+                textSwitchCase(statementTag.step, jimpleToASTMap)
+                    ?.let { description ->
+                        sentenceBlock.stmtTexts.add(StmtDescription(StmtType.SwitchCase, description))
+                    }
             }
             if (statementTag.basicTypeTag == BasicTypeTag.CaughtException && statementTag.uniquenessTag == UniquenessTag.Unique) {
                 jimpleToASTMap[stmt].let {

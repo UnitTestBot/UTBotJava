@@ -6,7 +6,6 @@ import com.github.javaparser.ast.stmt.ExpressionStmt
 import com.github.javaparser.ast.stmt.ForEachStmt
 import com.github.javaparser.ast.stmt.ForStmt
 import com.github.javaparser.ast.stmt.Statement
-import com.github.javaparser.ast.stmt.SwitchEntry
 import com.github.javaparser.ast.stmt.SwitchStmt
 import com.github.javaparser.ast.stmt.WhileStmt
 import org.utbot.framework.plugin.api.Step
@@ -23,8 +22,6 @@ import org.utbot.summary.tag.TraceTagWithoutExecution
 import soot.SootMethod
 import soot.jimple.Stmt
 import soot.jimple.internal.JIfStmt
-import soot.jimple.internal.JLookupSwitchStmt
-import soot.jimple.internal.JTableSwitchStmt
 
 abstract class AbstractTextBuilder(
     val traceTag: TraceTagWithoutExecution,
@@ -87,38 +84,11 @@ abstract class AbstractTextBuilder(
         }
     }
 
-
-    protected fun textSwitchCase(step: Step, jimpleToASTMap: JimpleToASTMap): String? {
-        val stmt = step.stmt
-        val astNode = jimpleToASTMap[stmt]
-        if (stmt is JLookupSwitchStmt) {
-            val lookup = stmt.lookupValues
-            val decision = step.decision
-            val case = (
-                    if (decision >= lookup.size) {
-                        null
-                    } else {
-                        lookup[step.decision]
-                    }
-                    )?.value
-
-            if (astNode is SwitchStmt) {
-                return JimpleToASTMap.getSwitchCaseLabel(astNode, case)
+    protected fun textSwitchCase(step: Step, jimpleToASTMap: JimpleToASTMap): String? =
+        (jimpleToASTMap[step.stmt] as? SwitchStmt)
+            ?.let { switchStmt ->
+                NodeConverter.convertSwitchStmt0(switchStmt, step, removeSpaces = false)
             }
-        }
-        if (stmt is JTableSwitchStmt && astNode is SwitchStmt) {
-            val switchCase = JimpleToASTMap.mapSwitchCase(astNode, step)
-            if (switchCase is SwitchEntry) {
-                val case = switchCase.labels.first
-                return if (case.isPresent) {
-                    "${case.get()}"
-                } else {
-                    "default"
-                }
-            }
-        }
-        return null
-    }
 
     protected fun textCondition(statementTag: StatementTag, jimpleToASTMap: JimpleToASTMap): String? {
         var reversed = true

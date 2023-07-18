@@ -1,12 +1,5 @@
 package org.utbot.framework.codegen.generator
 
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.HangingTestsTimeout
-import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.builders.SpringTestClassModelBuilder
@@ -17,53 +10,25 @@ import org.utbot.framework.codegen.tree.CgSpringVariableConstructor
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.SpringCodeGenerationContext
-import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.SpringSettings.AbsentSpringSettings
+import org.utbot.framework.plugin.api.SpringSettings.PresentSpringSettings
+import org.utbot.framework.plugin.api.SpringTestType
 
 class SpringCodeGenerator(
-    val classUnderTest: ClassId,
-    val projectType: ProjectType,
     val springCodeGenerationContext: SpringCodeGenerationContext,
-    paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
-    generateUtilClassFile: Boolean = false,
-    testFramework: TestFramework = TestFramework.defaultItem,
-    mockFramework: MockFramework = MockFramework.defaultItem,
-    staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
-    forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
-    generateWarningsForStaticMocking: Boolean = true,
-    codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-    cgLanguageAssistant: CgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
-    parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
-    runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
-    hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
-    enableTestsTimeout: Boolean = true,
-    testClassPackageName: String = classUnderTest.packageName,
+    params: CodeGeneratorParams
 ) : AbstractCodeGenerator(
-    classUnderTest,
-    projectType,
-    paramNames,
-    generateUtilClassFile,
-    testFramework,
-    mockFramework,
-    staticsMocking,
-    forceStaticMocking,
-    generateWarningsForStaticMocking,
-    codegenLanguage,
-    cgLanguageAssistant = object : CgLanguageAssistant by cgLanguageAssistant {
-        override fun getVariableConstructorBy(context: CgContext): CgVariableConstructor =
-            // TODO decorate original `cgLanguageAssistant.getVariableConstructorBy(context)`
-            CgSpringVariableConstructor(context)
-    },
-    parameterizedTestSource,
-    runtimeExceptionTestsBehaviour,
-    hangingTestsTimeout,
-    enableTestsTimeout,
-    testClassPackageName,
+    params.copy(
+        cgLanguageAssistant = object : CgLanguageAssistant by params.cgLanguageAssistant {
+            override fun getVariableConstructorBy(context: CgContext): CgVariableConstructor =
+                // TODO decorate original `params.cgLanguageAssistant.getVariableConstructorBy(context)`
+                CgSpringVariableConstructor(context)
+        }
+    )
 ) {
+    val classUnderTest: ClassId = params.classUnderTest
+
     override fun generate(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
         val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 

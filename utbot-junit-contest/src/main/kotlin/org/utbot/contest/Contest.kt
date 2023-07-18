@@ -50,6 +50,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.*
@@ -218,6 +219,7 @@ fun runGeneration(
     val statsForClass = StatsForClass(project, cut.fqn)
 
     val codeGenerator = CodeGenerator(
+        CodeGeneratorParams(
             cut.classId,
             projectType = ProjectType.PureJvm,
             testFramework = junitByVersion(junitVersion),
@@ -227,6 +229,7 @@ fun runGeneration(
             cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
             runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.PASS,
         )
+    )
 
     logger.info().measureTime({ "class ${cut.fqn}" }, { statsForClass }) {
 

@@ -10,6 +10,7 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -85,6 +86,7 @@ object UtBotJavaApi {
 
         return withUtContext(utContext) {
             val codeGenerator = CodeGenerator(
+                CodeGeneratorParams(
                     classUnderTest = classUnderTest.id,
                     projectType = projectType,
                     testFramework = testFramework,
@@ -96,6 +98,7 @@ object UtBotJavaApi {
                     generateWarningsForStaticMocking = generateWarningsForStaticMocking,
                     testClassPackageName = testClassPackageName
                 )
+            )
 
             codeGenerator.generateAsString(testSets, destinationClassName)
         }

@@ -63,7 +63,7 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
         val summary1 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#removeValue()}\n" +
                 "@utbot.executesCondition {@code (size <= 0): True}\n" +
-                "@utbot.throwsException {@link java.lang.RuntimeException} after condition: size <= 0"
+                "@utbot.throwsException {@link java.lang.RuntimeException} when: size <= 0"
 
         val summary2 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#removeValue()}\n" +

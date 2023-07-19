@@ -12,10 +12,10 @@ class SummarySortTest : SummaryTestCaseGeneratorTest(
     @Test
     fun testDefaultSort() {
         val summary1 = "Test \n" +
-                "throws NullPointerException in: array.length < 4\n"
+                "throws NullPointerException when: array.length < 4\n"
         val summary2 = "Test executes conditions:\n" +
                 "    (array.length < 4): True\n" +
-                "throws IllegalArgumentException after condition: array.length < 4\n"
+                "throws IllegalArgumentException when: array.length < 4\n"
         val summary3 = "Test executes conditions:\n" +
                 "    (array.length < 4): False\n" +
                 "invokes:\n" +

@@ -501,16 +501,16 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
     @Test
     fun testCallSimpleSwitch() {
         val summary1 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
-                "    there it activates switch case: 12, returns from: return 12;\n" +
+                "    there it activates switch(x) case: 12, returns from: return 12;\n" +
                 "    "
         val summary2 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
-                "    there it activates switch case: 13, returns from: return 13;\n" +
+                "    there it activates switch(x) case: 13, returns from: return 13;\n" +
                 "    "
         val summary3 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
-                "    there it activates switch case: 10, returns from: return 10;\n" +
+                "    there it activates switch(x) case: 10, returns from: return 10;\n" +
                 "    "
         val summary4 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
-                "    there it activates switch case: default, returns from: return -1;\n" +
+                "    there it activates switch(x) case: default, returns from: return -1;\n" +
                 "    "
 
         val methodName1 = "testCallSimpleSwitch_Return12"
@@ -521,7 +521,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
         val displayName1 = "switch(x) case: 12 -> return 12"
         val displayName2 = "switch(x) case: 13 -> return 13"
         val displayName3 = "switch(x) case: 10 -> return 10"
-        val displayName4 = "switch(x) case: Default -> return -1"
+        val displayName4 = "switch(x) case: default -> return -1"
 
         val method = InnerCalls::callSimpleSwitch
         val mockStrategy = MockStrategyApi.NO_MOCKS
@@ -554,16 +554,16 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
     @Test
     fun testCallLookup() {
         val summary1 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
-                "    there it activates switch case: 20, returns from: return 20;\n" +
+                "    there it activates switch(x) case: 20, returns from: return 20;\n" +
                 "    "
         val summary2 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
-                "    there it activates switch case: 30, returns from: return 30;\n" +
+                "    there it activates switch(x) case: 30, returns from: return 30;\n" +
                 "    "
         val summary3 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
-                "    there it activates switch case: 0, returns from: return 0;\n" +
+                "    there it activates switch(x) case: 0, returns from: return 0;\n" +
                 "    "
         val summary4 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
-                "    there it activates switch case: default, returns from: return -1;\n" +
+                "    there it activates switch(x) case: default, returns from: return -1;\n" +
                 "    "
 
         val methodName1 = "testCallLookup_Return20"
@@ -574,7 +574,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
         val displayName1 = "switch(x) case: 20 -> return 20"
         val displayName2 = "switch(x) case: 30 -> return 30"
         val displayName3 = "switch(x) case: 0 -> return 0"
-        val displayName4 = "switch(x) case: Default -> return -1"
+        val displayName4 = "switch(x) case: default -> return -1"
 
         val method = InnerCalls::callLookup
         val mockStrategy = MockStrategyApi.NO_MOCKS

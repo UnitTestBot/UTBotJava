@@ -37,12 +37,12 @@ class SummaryBinarySearchTest : SummaryTestCaseGeneratorTest(
                 "returns from: return right + 1;\n"
         val summary5 = "Test invokes:\n" +
                 "    org.utbot.examples.algorithms.BinarySearch#isUnsorted(long[]) once\n" +
-                "throws NullPointerException in: isUnsorted(array)\n"
+                "throws NullPointerException when: isUnsorted(array)\n"
         val summary6 = "Test invokes:\n" +
                 "    org.utbot.examples.algorithms.BinarySearch#isUnsorted(long[]) once\n" +
                 "executes conditions:\n" +
                 "    (isUnsorted(array)): True\n" +
-                "throws IllegalArgumentException after condition: isUnsorted(array)\n"
+                "throws IllegalArgumentException when: isUnsorted(array)\n"
 
         val methodName1 = "testLeftBinSearch_NotFound"
         val methodName2 = "testLeftBinSearch_MiddleOfArrayLessThanKey"

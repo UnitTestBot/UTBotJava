@@ -35,7 +35,7 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
         val summary4 = "@utbot.classUnderTest {@link Recursion}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.recursion.Recursion#fib(int)}\n" +
                 "@utbot.executesCondition {@code (n < 0): True}\n" +
-                "@utbot.throwsException {@link java.lang.IllegalArgumentException} in: n < 0"
+                "@utbot.throwsException {@link java.lang.IllegalArgumentException} when: n < 0"
 
         val methodName1 = "testFib_Return1"
         val methodName2 = "testFib_ReturnZero"
@@ -92,7 +92,7 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
         val summary3 = "@utbot.classUnderTest {@link Recursion}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.recursion.Recursion#factorial(int)}\n" +
                 "@utbot.executesCondition {@code (n < 0): True}\n" +
-                "@utbot.throwsException {@link java.lang.IllegalArgumentException} after condition: n < 0"
+                "@utbot.throwsException {@link java.lang.IllegalArgumentException} when: n < 0"
 
         val methodName1 = "testFactorial_Return1"
         val methodName2 = "testFactorial_NNotEqualsZero"

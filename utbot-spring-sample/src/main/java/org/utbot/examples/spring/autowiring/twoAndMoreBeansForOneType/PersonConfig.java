@@ -7,16 +7,11 @@ import org.springframework.context.annotation.Configuration;
 public class PersonConfig {
     @Bean
     public Person personOne() {
-        return new Person("Eg", "or");
+        return new Person("Eg", "or", 7);
     }
 
     @Bean
     public Person personTwo() {
-        return new Person("Kir", "ill");
-    }
-
-    @Bean
-    public Person personThree() {
-        return new Person("Le", "nya");
+        return new Person("Kir", "ill", 6);
     }
 }

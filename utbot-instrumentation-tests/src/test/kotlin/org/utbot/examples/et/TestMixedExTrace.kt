@@ -25,7 +25,7 @@ class TestMixedExTrace {
     @Test
     fun testMixedDoesNotThrow() {
         ConcreteExecutor(
-            ExecutionTraceInstrumentation.Factory(),
+            ExecutionTraceInstrumentation.Factory,
             CLASSPATH
         ).use {
             val A = Isolated(ClassMixedWithNotInstrumented_Instr::a, it)

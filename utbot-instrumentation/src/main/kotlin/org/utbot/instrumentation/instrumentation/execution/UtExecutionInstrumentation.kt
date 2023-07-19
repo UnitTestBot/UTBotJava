@@ -210,5 +210,18 @@ class SimpleUtExecutionInstrumentation(
 
         override fun create(instrumentationContext: InstrumentationContext): UtExecutionInstrumentation =
             SimpleUtExecutionInstrumentation(pathsToUserClasses, instrumentationContext)
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Factory
+
+            return pathsToUserClasses == other.pathsToUserClasses
+        }
+
+        override fun hashCode(): Int {
+            return pathsToUserClasses.hashCode()
+        }
     }
 }

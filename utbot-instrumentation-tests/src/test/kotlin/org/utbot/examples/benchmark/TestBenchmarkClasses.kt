@@ -18,7 +18,7 @@ class TestBenchmarkClasses {
     @Disabled("Ask Sergey to check")
     fun testRepeater() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory(),
+            CoverageInstrumentation.Factory,
             Repeater::class.java.protectionDomain.codeSource.location.path
         ).use {
             val dc0 = Repeater(", ")
@@ -36,7 +36,7 @@ class TestBenchmarkClasses {
     @Test
     fun testFibonacci() {
         ConcreteExecutor(
-            InvokeInstrumentation.Factory(),
+            InvokeInstrumentation.Factory,
             Fibonacci::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res =

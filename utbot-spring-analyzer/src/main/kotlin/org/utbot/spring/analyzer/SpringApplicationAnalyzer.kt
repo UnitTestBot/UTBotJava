@@ -14,7 +14,7 @@ class SpringApplicationAnalyzer {
         val configurationClasses = SourceFinder(applicationData).findSources()
         val instantiationSettings = InstantiationSettings(
             configurationClasses,
-            applicationData.springSettings.profiles,
+            applicationData.springSettings.profiles.toTypedArray(),
         )
 
         return SpringApiProviderFacade.getInstance(this::class.java.classLoader)

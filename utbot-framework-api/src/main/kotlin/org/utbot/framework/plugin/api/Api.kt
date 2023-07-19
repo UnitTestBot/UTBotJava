@@ -1325,19 +1325,17 @@ sealed class SpringConfiguration(val fullDisplayName: String) {
 }
 
 sealed interface SpringSettings {
-    class AbsentSpringSettings : SpringSettings {
-        // Denotes no configuration and no profile setting
+    object AbsentSpringSettings : SpringSettings {
+        // NOTE that overriding equals is required just because without it
+        // we will lose equality for objects after deserialization
+        override fun equals(other: Any?): Boolean = other is AbsentSpringSettings
 
-        // NOTICE:
-        // `class` should not be replaced with `object`
-        // in order to avoid issues caused by Kryo deserialization
-        // that creates new instances breaking `when` expressions
-        // that check reference equality instead of type equality
+        override fun hashCode(): Int = 0
     }
 
-    class PresentSpringSettings(
+    data class PresentSpringSettings(
         val configuration: SpringConfiguration,
-        val profiles: Array<String>
+        val profiles: List<String>
     ) : SpringSettings
 }
 

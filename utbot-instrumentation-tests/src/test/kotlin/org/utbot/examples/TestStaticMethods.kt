@@ -17,7 +17,7 @@ class TestStaticMethods {
     @Test
     fun testStaticMethodCall() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory(),
+            CoverageInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(StaticExampleClass::inc, arrayOf())
@@ -44,7 +44,7 @@ class TestStaticMethods {
     @Test
     fun testNullableMethod() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory(),
+            CoverageInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(
@@ -75,7 +75,7 @@ class TestStaticMethods {
     @Test
     fun testNullableMethodWithoutAnnotations() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory(),
+            CoverageInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(

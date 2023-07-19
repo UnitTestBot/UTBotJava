@@ -95,7 +95,7 @@ class CoverageInstrumentation : Instrumentation<Result<*>> {
         return instrumenter.classByteCode
     }
 
-    class Factory : Instrumentation.Factory<Result<*>, CoverageInstrumentation> {
+    object Factory : Instrumentation.Factory<Result<*>, CoverageInstrumentation> {
         override fun create(): CoverageInstrumentation = CoverageInstrumentation()
     }
 }

@@ -58,7 +58,7 @@ class ExecutionTraceInstrumentation : Instrumentation<Trace> {
         }
     }
 
-    class Factory : Instrumentation.Factory<Trace, ExecutionTraceInstrumentation> {
+    object Factory : Instrumentation.Factory<Trace, ExecutionTraceInstrumentation> {
         override fun create(): ExecutionTraceInstrumentation = ExecutionTraceInstrumentation()
     }
 }

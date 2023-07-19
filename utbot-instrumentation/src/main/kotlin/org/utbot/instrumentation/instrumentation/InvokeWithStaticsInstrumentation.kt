@@ -90,7 +90,7 @@ class InvokeWithStaticsInstrumentation : Instrumentation<Result<*>> {
         }
     }
 
-    class Factory : Instrumentation.Factory<Result<*>, InvokeWithStaticsInstrumentation> {
+    object Factory : Instrumentation.Factory<Result<*>, InvokeWithStaticsInstrumentation> {
         override fun create(): InvokeWithStaticsInstrumentation = InvokeWithStaticsInstrumentation()
     }
 }

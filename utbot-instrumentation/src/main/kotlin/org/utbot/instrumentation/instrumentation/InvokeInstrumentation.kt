@@ -118,7 +118,7 @@ class InvokeInstrumentation : Instrumentation<Result<*>> {
         classfileBuffer: ByteArray
     ) = null
 
-    class Factory : Instrumentation.Factory<Result<*>, InvokeInstrumentation> {
+    object Factory : Instrumentation.Factory<Result<*>, InvokeInstrumentation> {
         override fun create(): InvokeInstrumentation = InvokeInstrumentation()
     }
 }

@@ -694,7 +694,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.springSettings =
             when (springConfig.item) {
-                NO_SPRING_CONFIGURATION_OPTION -> AbsentSpringSettings()
+                NO_SPRING_CONFIGURATION_OPTION -> AbsentSpringSettings
                 else -> {
                     val shortConfigName = springConfig.item.toString()
                     val config =
@@ -708,7 +708,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
                     PresentSpringSettings(
                         configuration = config,
-                        profiles = parseProfileExpression(profileNames.text, DEFAULT_SPRING_PROFILE_NAME)
+                        profiles = parseProfileExpression(profileNames.text, DEFAULT_SPRING_PROFILE_NAME).toList()
                     )
                 }
             }

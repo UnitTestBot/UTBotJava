@@ -148,5 +148,25 @@ class SpringUtExecutionInstrumentation(
                 beanDefinitions,
                 buildDirs
             )
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Factory
+
+            if (delegateInstrumentationFactory != other.delegateInstrumentationFactory) return false
+            if (springSettings != other.springSettings) return false
+            if (beanDefinitions != other.beanDefinitions) return false
+            return buildDirs.contentEquals(other.buildDirs)
+        }
+
+        override fun hashCode(): Int {
+            var result = delegateInstrumentationFactory.hashCode()
+            result = 31 * result + springSettings.hashCode()
+            result = 31 * result + beanDefinitions.hashCode()
+            result = 31 * result + buildDirs.contentHashCode()
+            return result
+        }
     }
 }

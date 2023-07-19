@@ -21,7 +21,7 @@ class TestIsolated {
     fun testCatchTargetException() {
         val javaClass = ExampleClass::class.java
         ConcreteExecutor(
-            InvokeInstrumentation.Factory(),
+            InvokeInstrumentation.Factory,
             javaClass.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -37,7 +37,7 @@ class TestIsolated {
     @Test
     fun testWrongArgumentsException() {
         ConcreteExecutor(
-            InvokeInstrumentation.Factory(),
+            InvokeInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -63,7 +63,7 @@ class TestIsolated {
     @Test
     fun testSameResult() {
         ConcreteExecutor(
-            InvokeInstrumentation.Factory(),
+            InvokeInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -81,7 +81,7 @@ class TestIsolated {
     @Test
     fun testEmptyMethod() {
         ConcreteExecutor(
-            InvokeInstrumentation.Factory(),
+            InvokeInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -97,7 +97,7 @@ class TestIsolated {
     @Test
     fun testStaticMethodCall() {
         ConcreteExecutor(
-            InvokeInstrumentation.Factory(),
+            InvokeInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val isolatedFunctionInc = Isolated(StaticExampleClass::inc, it)
@@ -116,7 +116,7 @@ class TestIsolated {
     @Test
     fun testNullableMethod() {
         ConcreteExecutor(
-            InvokeInstrumentation.Factory(),
+            InvokeInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val isolatedFunction = Isolated(StaticExampleClass::canBeNull, it)

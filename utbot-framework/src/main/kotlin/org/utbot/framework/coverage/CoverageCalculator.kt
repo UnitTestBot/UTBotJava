@@ -13,7 +13,7 @@ import kotlinx.coroutines.runBlocking
 fun methodCoverage(executable: ExecutableId, executions: List<UtValueExecution<*>>, classpath: String): Coverage {
     val methodSignature = executable.signature
     val classId = executable.classId
-    return ConcreteExecutor(CoverageInstrumentation.Factory(), classpath).let { executor ->
+    return ConcreteExecutor(CoverageInstrumentation.Factory, classpath).let { executor ->
         for (execution in executions) {
             val args = execution.stateBefore.params.map { it.value }.toMutableList()
             val caller = execution.stateBefore.caller

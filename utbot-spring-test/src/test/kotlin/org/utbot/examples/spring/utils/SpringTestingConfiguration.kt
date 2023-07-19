@@ -5,9 +5,6 @@ import org.springframework.data.repository.PagingAndSortingRepository
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.SpringApplicationContext
-import org.utbot.framework.plugin.api.SpringSettings
-import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.testing.SpringConfiguration
 import org.utbot.testing.TestExecution
 

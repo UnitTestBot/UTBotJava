@@ -8,14 +8,13 @@ import org.utbot.common.info
 import org.utbot.framework.codegen.generator.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.generator.CodeGenerator
-import org.utbot.framework.codegen.generator.SpringCodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description
@@ -27,7 +26,10 @@ import kotlin.reflect.KClass
 
 internal val logger = KotlinLogging.logger {}
 
-class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: TestInfrastructureConfiguration) {
+class TestCodeGeneratorPipeline(
+    private val testInfrastructureConfiguration: TestInfrastructureConfiguration,
+    private val applicationContext: ApplicationContext
+) {
 
     fun runClassesCodeGenerationTests(classesStages: ClassStages) {
         val pipeline = with(classesStages) {
@@ -252,10 +254,10 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
 
         withUtContext(UtContext(classUnderTest.java.classLoader)) {
             val codeGenerator = with(testInfrastructureConfiguration) {
-                when (projectType) {
-                    ProjectType.Spring -> SpringCodeGenerator(
+                applicationContext.createCodeGenerator(
+                    CodeGeneratorParams(
                         classUnderTest.id,
-                        projectType = ProjectType.Spring,
+                        projectType = projectType,
                         generateUtilClassFile = generateUtilClassFile,
                         paramNames = params,
                         testFramework = testFramework,
@@ -267,25 +269,8 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
                         parameterizedTestSource = parametrizedTestSource,
                         runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
                         enableTestsTimeout = enableTestsTimeout,
-                        springCodeGenerationContext = defaultSpringApplicationContext,
                     )
-                    ProjectType.PureJvm -> CodeGenerator(
-                        classUnderTest.id,
-                        projectType = ProjectType.PureJvm,
-                        generateUtilClassFile = generateUtilClassFile,
-                        paramNames = params,
-                        testFramework = testFramework,
-                        staticsMocking = staticsMocking,
-                        forceStaticMocking = forceStaticMocking,
-                        generateWarningsForStaticMocking = false,
-                        codegenLanguage = codegenLanguage,
-                        cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
-                        parameterizedTestSource = parametrizedTestSource,
-                        runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-                        enableTestsTimeout = enableTestsTimeout
-                    )
-                    else -> error("Unsupported project type $projectType in code generator instantiation")
-                }
+                )
             }
             val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
@@ -331,10 +316,7 @@ class TestCodeGeneratorPipeline(private val testInfrastructureConfiguration: Tes
                 testFramework = TestFramework.defaultItem,
                 codegenLanguage = configuration.language,
                 mockFramework = MockFramework.defaultItem,
-                mockStrategy = when (configuration.projectType) {
-                    ProjectType.Spring -> MockStrategyApi.springDefaultItem
-                    else -> MockStrategyApi.defaultItem
-                },
+                mockStrategy = configuration.mockStrategy,
                 staticsMocking = StaticsMocking.defaultItem,
                 parametrizedTestSource = configuration.parametrizedTestSource,
                 forceStaticMocking = ForceStaticMocking.defaultItem,

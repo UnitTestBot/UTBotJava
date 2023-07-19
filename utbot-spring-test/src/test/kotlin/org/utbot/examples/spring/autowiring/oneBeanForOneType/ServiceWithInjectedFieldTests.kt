@@ -5,14 +5,11 @@ import org.utbot.examples.spring.utils.findAllRepositoryCall
 import org.utbot.examples.spring.utils.saveRepositoryCall
 import org.utbot.examples.spring.utils.springAdditionalDependencies
 import org.utbot.examples.spring.utils.springMockStrategy
-import org.utbot.examples.spring.utils.standardSpringTestingConfigurations
-import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.testcheckers.eq
 import org.utbot.testing.*
 
-internal class ServiceWithInjectedFieldTests : UtValueTestCaseChecker(
+internal class ServiceWithInjectedFieldTests : SpringNoConfigUtValueTestCaseChecker(
     testClass = ServiceWithInjectedField::class,
-    configurations = standardSpringTestingConfigurations
 ) {
     @Test
     fun testGetOrders() {

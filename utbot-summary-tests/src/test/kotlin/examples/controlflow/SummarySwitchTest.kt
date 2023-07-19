@@ -115,7 +115,7 @@ class SummarySwitchTest : SummaryTestCaseGeneratorTest(
         val methodName5 = "testCharToIntSwitch_Return1000"
         val methodName6 = "testCharToIntSwitch_Return500"
         val methodName7 = "testCharToIntSwitch_Return50"
-        val methodName8 = "testCharToIntSwitch_StringBuilderToString"
+        val methodName8 = "testCharToIntSwitch_ThrowIllegalArgumentException"
 
         val displayName1 = "switch(c) case: 'C' -> return 100"
         val displayName2 = "switch(c) case: 'V' -> return 5"
@@ -173,7 +173,7 @@ class SummarySwitchTest : SummaryTestCaseGeneratorTest(
                 "@utbot.invokes org.utbot.examples.controlflow.Switch#getChar()\n" +
                 "@utbot.throwsException {@link java.lang.RuntimeException} in: switch(getChar())\n"
 
-        val methodName1 = "testThrowExceptionInSwitchArgument_SwitchGetChar"
+        val methodName1 = "testThrowExceptionInSwitchArgument_ThrowRuntimeException"
 
         val displayName1 = "switch(getChar()) -> ThrowRuntimeException"
 

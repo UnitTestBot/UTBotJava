@@ -146,7 +146,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
         val methodName4 = "testCallLeftBinSearch_Found"
         val methodName5 = "testCallLeftBinSearch_ThrowIllegalArgumentException"
         val methodName6 = "testCallLeftBinSearch_ThrowIllegalArgumentException_1"
-        val methodName7 = "testCallLeftBinSearch_BinarySearchIsUnsorted"
+        val methodName7 = "testCallLeftBinSearch_ThrowNullPointerException"
 
 
         val displayName1 = "found : False -> return -1"
@@ -327,9 +327,9 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    triggers recursion of factorial once, \n" +
                 "Test throws IllegalArgumentException in: return r.factorial(n);\n"
 
-        val methodName1 = "testCallFactorial_NEqualsZero"
+        val methodName1 = "testCallFactorial_ThrowIllegalArgumentException"
         val methodName2 = "testCallFactorial_NNotEqualsZero"
-        val methodName3 = "testCallFactorial_NLessThanZero"
+        val methodName3 = "testCallFactorial_NEqualsZero"
 
         val displayName1 = "n == 0 : True -> return 1"
         val displayName2 = "n == 0 : False -> return n * factorial(n - 1)"
@@ -384,8 +384,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    \n" +
                 "Test then returns from: return invokeExample.simpleFormula(f, s);\n"
 
-        val methodName1 = "testCallSimpleInvoke_SndLessThan100"
-        val methodName2 = "testCallSimpleInvoke_FstLessThan100"
+        val methodName1 = "testCallSimpleInvoke_ThrowIllegalArgumentException"
+        val methodName2 = "testCallSimpleInvoke_ThrowIllegalArgumentException_1"
         val methodName3 = "testCallSimpleInvoke_SndGreaterOrEqual100"
 
         val displayName1 = "return invokeExample.simpleFormula(f, s) : True -> ThrowIllegalArgumentException"
@@ -455,8 +455,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                     "    \n" +
                     "Test afterwards returns from: return stringExamples.indexOf(s, key);\n"
 
-        val methodName1 = "testCallStringExample_StringIndexOf"
-        val methodName2 = "testCallStringExample_StringIndexOf_1"
+        val methodName1 = "testCallStringExample_ThrowNullPointerException"
+        val methodName2 = "testCallStringExample_ThrowNullPointerException_1"
         val methodName3 = "testCallStringExample_IEqualsZero"
         val methodName4 = "testCallStringExample_INotEqualsZero"
         val methodName5 = "testCallStringExample_IGreaterThanZero"
@@ -632,8 +632,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    Test later returns from: return invokeExample.simpleFormula(f, s);\n" +
                 "    "
 
-        val methodName1 = "testDoubleSimpleInvoke_FstLessThan100"
-        val methodName2 = "testDoubleSimpleInvoke_SndLessThan100"
+        val methodName1 = "testDoubleSimpleInvoke_ThrowIllegalArgumentException"
+        val methodName2 = "testDoubleSimpleInvoke_ThrowIllegalArgumentException_1"
         val methodName3 = "testDoubleSimpleInvoke_SndGreaterOrEqual100"
 
         val displayName1 = "callSimpleInvoke(f, s) : True -> ThrowIllegalArgumentException"
@@ -789,9 +789,9 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "Test throws IllegalArgumentException in: return r.fib(n);\n"
 
         val methodName1 = "testCallFib_NEquals1"
-        val methodName2 = "testCallFib_NEqualsZero"
+        val methodName2 = "testCallFib_ThrowIllegalArgumentException"
         val methodName3 = "testCallFib_NNotEquals1"
-        val methodName4 = "testCallFib_NLessThanZero"
+        val methodName4 = "testCallFib_NEqualsZero"
 
         val displayName1 = "n == 1 : True -> return 1"
         val displayName2 = "n == 0 : True -> return 0"

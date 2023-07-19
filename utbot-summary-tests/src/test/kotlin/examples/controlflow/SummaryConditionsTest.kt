@@ -118,7 +118,7 @@ class SummaryConditionsTest : SummaryTestCaseGeneratorTest(
 
         val methodName1 = "testElseIf_IdGreaterThanZero"
         val methodName2 = "testElseIf_IdNotEqualsZero"
-        val methodName3 = "testElseIf_IdEqualsZero"
+        val methodName3 = "testElseIf_ThrowRuntimeException"
 
         val displayName1 = "id > 0 : True -> id > 0"
         val displayName2 = "id > 0 : False -> return 1"

@@ -29,7 +29,7 @@ class SummaryIntMathLogTest : SummaryTestCaseGeneratorTest(
         val methodName1 = "testLog2_IntegerNumberOfLeadingZeros"
         val methodName2 = "testLog2_IntegerNumberOfLeadingZeros_1"
         val methodName3 = "testLog2_IntMathLessThanBranchFree"
-        val methodName4 = "testLog2_RoundingModeOrdinal"
+        val methodName4 = "testLog2_ThrowNullPointerException"
 
         val displayName1 = "switch(mode) case: FLOOR -> return (Integer.SIZE - 1) - Integer.numberOfLeadingZeros(x)"
         val displayName2 = "switch(mode) case: CEILING -> return Integer.SIZE - Integer.numberOfLeadingZeros(x - 1)"

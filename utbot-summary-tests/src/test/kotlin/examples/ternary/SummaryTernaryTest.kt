@@ -144,7 +144,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
 
         val methodName1 = "testParse_InputEqualsNullOrInputEquals"
         val methodName2 = "testParse_InputNotEqualsNullOrInputEquals"
-        val methodName3 = "testParse_InputEqualsNullOrInputEquals_1"
+        val methodName3 = "testParse_ThrowNumberFormatException"
 
         val displayName1 = "input == null || input.equals(\"\") : False -> return value"
         val displayName2 = "input == null || input.equals(\"\") : True -> return value"

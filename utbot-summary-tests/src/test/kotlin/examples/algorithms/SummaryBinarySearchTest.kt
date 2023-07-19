@@ -48,8 +48,8 @@ class SummaryBinarySearchTest : SummaryTestCaseGeneratorTest(
         val methodName2 = "testLeftBinSearch_MiddleOfArrayLessThanKey"
         val methodName3 = "testLeftBinSearch_Found"
         val methodName4 = "testLeftBinSearch_Found_1"
-        val methodName5 = "testLeftBinSearch_BinarySearchIsUnsorted"
-        val methodName6 = "testLeftBinSearch_IsUnsorted"
+        val methodName5 = "testLeftBinSearch_ThrowNullPointerException"
+        val methodName6 = "testLeftBinSearch_ThrowIllegalArgumentException"
 
         val displayName1 = "found : False -> return -1"
         val displayName2 = "array[middle] == key : False -> return -1"

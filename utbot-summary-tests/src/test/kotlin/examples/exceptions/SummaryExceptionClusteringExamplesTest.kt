@@ -37,9 +37,9 @@ class SummaryExceptionClusteringExamplesTest : SummaryTestCaseGeneratorTest(
                 "@utbot.executesCondition {@code (i == 2): False}\n" +
                 "@utbot.returnsFrom {@code return i * 2;}\n"
 
-        val methodName1 = "testDifferentExceptions_IEqualsZero"
-        val methodName2 = "testDifferentExceptions_IEquals1"
-        val methodName3 = "testDifferentExceptions_IEquals2"
+        val methodName1 = "testDifferentExceptions_ThrowArithmeticException"
+        val methodName2 = "testDifferentExceptions_ThrowMyCheckedException"
+        val methodName3 = "testDifferentExceptions_ThrowIllegalArgumentException"
         val methodName4 = "testDifferentExceptions_INotEquals2"
 
         val displayName1 = "return 100 / i : True -> ThrowArithmeticException"

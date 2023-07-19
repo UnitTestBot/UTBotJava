@@ -40,7 +40,7 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
         val methodName1 = "testFib_Return1"
         val methodName2 = "testFib_ReturnZero"
         val methodName3 = "testFib_NNotEquals1"
-        val methodName4 = "testFib_NLessThanZero"
+        val methodName4 = "testFib_ThrowIllegalArgumentException"
 
         val displayName1 = "n == 0 : False -> return 1"
         val displayName2 = "n == 0 : True -> return 0"
@@ -96,7 +96,7 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
 
         val methodName1 = "testFactorial_Return1"
         val methodName2 = "testFactorial_NNotEqualsZero"
-        val methodName3 = "testFactorial_NLessThanZero"
+        val methodName3 = "testFactorial_ThrowIllegalArgumentException"
 
         //TODO: Display names are not complete, see [issue-899](https://github.com/UnitTestBot/UTBotJava/issues/899).
         //they should be equal "n == 0 : True -> return 1" and "n == 0 : False -> return n * factorial(n - 1)" respectively

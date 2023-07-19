@@ -23,7 +23,7 @@ class SummarySortTest : SummaryTestCaseGeneratorTest(
                 "returns from: return array;\n"
 
         val methodName1 = "testDefaultSort_ThrowNullPointerException"
-        val methodName2 = "testDefaultSort_ArrayLengthLessThan4"
+        val methodName2 = "testDefaultSort_ThrowIllegalArgumentException"
         val methodName3 = "testDefaultSort_ArrayLengthGreaterOrEqual4"
 
         val displayName1 = "array.length < 4 -> ThrowNullPointerException"

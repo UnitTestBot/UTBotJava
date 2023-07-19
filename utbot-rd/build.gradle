@@ -257,7 +257,7 @@ task generateCommonModels(type: RdGenTask) {
     }
 }
 
-if (projectType == springProjectTypeName) {
+if (projectType == springEdition || projectType == ultimateEdition) {
     task generateSpringModels(type: RdGenTask) {
         def currentProjectDir = project.projectDir
         def ideaPluginProjectDir = project.rootProject.childProjects["utbot-spring-analyzer"].projectDir

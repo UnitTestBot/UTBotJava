@@ -1,6 +1,8 @@
 val projectType: String by settings
-val standardProjectTypeName: String by settings
-val springProjectTypeName: String by settings
+val ultimateEdition: String by settings
+val springEdition: String by settings
+val languagesEdition: String by settings
+val pureJavaEdition: String by settings
 
 val ideType: String by settings
 val buildType: String by settings
@@ -59,32 +61,31 @@ include("utbot-spring-commons-api")
 include("utbot-spring-commons")
 include("utbot-spring-analyzer")
 
-when (projectType) {
-    standardProjectTypeName -> {
-        if (pythonIde.split(",").contains(ideType)) {
-            include("utbot-python")
-            include("utbot-cli-python")
-            include("utbot-intellij-python")
-            include("utbot-python-parser")
-        }
-
-        if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
-            include("utbot-js")
-            include("utbot-cli-js")
-            include("utbot-intellij-js")
-        }
-
-        if (goIde.split(",").contains(ideType)) {
-            include("utbot-go")
-            include("utbot-cli-go")
-            include("utbot-intellij-go")
-        }
+if (projectType == languagesEdition || projectType == ultimateEdition) {
+    if (pythonIde.split(",").contains(ideType)) {
+        include("utbot-python")
+        include("utbot-cli-python")
+        include("utbot-intellij-python")
+        include("utbot-python-parser")
     }
 
-    springProjectTypeName -> {
-        include("utbot-spring-sample")
-        include("utbot-spring-test")
+    if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
+        include("utbot-js")
+        include("utbot-cli-js")
+        include("utbot-intellij-js")
+    }
+
+    if (goIde.split(",").contains(ideType)) {
+        include("utbot-go")
+        include("utbot-cli-go")
+        include("utbot-intellij-go")
     }
 }
+
+if (projectType == springEdition || projectType == ultimateEdition) {
+    include("utbot-spring-sample")
+    include("utbot-spring-test")
+}
+
 
 

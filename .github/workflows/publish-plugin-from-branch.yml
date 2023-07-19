@@ -45,9 +45,9 @@ jobs:
       matrix:
         configuration:
           - plugin_type: IC
-            extra_options: "-PideType=IC"
+            extra_options: "-PideType=IC -PprojectType=PureJava"
           - plugin_type: IU
-            extra_options: "-PideType=IU"
+            extra_options: "-PideType=IU -PprojectType=ExperimentalLanguages"
           - plugin_type: IC-Spring
             extra_options: "-PideType=IC -PprojectType=Spring"
           - plugin_type: IU-Spring

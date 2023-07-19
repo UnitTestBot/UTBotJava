@@ -1,6 +1,8 @@
 val projectType: String by rootProject
-val standardProjectTypeName: String by rootProject
-val springProjectTypeName: String by rootProject
+val ultimateEdition: String by rootProject
+val springEdition: String by rootProject
+val languagesEdition: String by rootProject
+val pureJavaEdition: String by rootProject
 
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
@@ -67,19 +69,19 @@ intellij {
         "org.jetbrains.idea.maven"
     )
 
+    val basePluginSet = jvmPlugins + kotlinPlugins + mavenUtilsPlugins + androidPlugins
+
     plugins.set(
-        when (projectType) {
-            standardProjectTypeName -> {
-                when (ideType) {
-                    "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
-                    "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins + mavenUtilsPlugins
-                    "PC" -> pythonCommunityPlugins
-                    "PY" -> pythonUltimatePlugins // something else, JS?
-                    else -> jvmPlugins
-                }
+        if (projectType == languagesEdition || projectType == ultimateEdition) {
+            when (ideType) {
+                "IC" -> basePluginSet + pythonCommunityPlugins
+                "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
+                "PC" -> pythonCommunityPlugins
+                "PY" -> pythonUltimatePlugins // something else, JS?
+                else -> basePluginSet
             }
-            springProjectTypeName -> jvmPlugins + kotlinPlugins + mavenUtilsPlugins
-            else -> jvmPlugins
+        } else {
+            basePluginSet
         }
     )
 
@@ -165,7 +167,7 @@ dependencies {
     implementation(project(":utbot-ui-commons"))
 
     //Family
-    if (projectType == standardProjectTypeName) {
+    if (projectType == languagesEdition || projectType == ultimateEdition) {
         if (pythonIde?.split(',')?.contains(ideType) == true) {
             implementation(project(":utbot-python"))
             implementation(project(":utbot-intellij-python"))

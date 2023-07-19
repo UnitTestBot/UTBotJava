@@ -49,7 +49,8 @@ dependencies {
 
     implementation project(':utbot-spring-commons-api')
     implementation project(':utbot-spring-analyzer')
-    if (projectType == springProjectTypeName) {
+
+    if (projectType == springEdition || projectType==ultimateEdition) {
         fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
     }
 }

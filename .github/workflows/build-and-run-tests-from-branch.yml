@@ -135,7 +135,7 @@ jobs:
 
       - name: Run tests
         run: |
-          gradle --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
+          gradle -PprojectType=ExperimentalLanguages --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
 
       - name: Upload logs
         if: ${{ always() }}

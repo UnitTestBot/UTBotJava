@@ -5,6 +5,7 @@ import com.github.javaparser.ast.expr.VariableDeclarationExpr
 import com.github.javaparser.ast.stmt.ExpressionStmt
 import com.github.javaparser.ast.stmt.ForEachStmt
 import com.github.javaparser.ast.stmt.ForStmt
+import com.github.javaparser.ast.stmt.IfStmt
 import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.stmt.SwitchStmt
 import com.github.javaparser.ast.stmt.WhileStmt
@@ -22,6 +23,7 @@ import org.utbot.summary.tag.TraceTagWithoutExecution
 import soot.SootMethod
 import soot.jimple.Stmt
 import soot.jimple.internal.JIfStmt
+import soot.jimple.internal.JReturnStmt
 
 abstract class AbstractTextBuilder(
     val traceTag: TraceTagWithoutExecution,
@@ -54,7 +56,6 @@ abstract class AbstractTextBuilder(
         }
     }
 
-
     protected fun textReturn(
         statementTag: StatementTag,
         sentenceBlock: SimpleSentenceBlock,
@@ -74,10 +75,11 @@ abstract class AbstractTextBuilder(
             returnType = StmtType.Return
         }
         jimpleToASTMap[statementTag.step.stmt]?.let {
+            val description = if (it is IfStmt) it.thenStmt else it
             sentenceBlock.stmtTexts.add(
                 StmtDescription(
                     returnType,
-                    it.toString(),
+                    description.toString(),
                     prefix = prefixReturnText
                 )
             )
@@ -87,7 +89,7 @@ abstract class AbstractTextBuilder(
     protected fun textSwitchCase(step: Step, jimpleToASTMap: JimpleToASTMap): String? =
         (jimpleToASTMap[step.stmt] as? SwitchStmt)
             ?.let { switchStmt ->
-                NodeConverter.convertSwitchStmt0(switchStmt, step, removeSpaces = false)
+                NodeConverter.convertSwitchStmt(switchStmt, step, removeSpaces = false)
             }
 
     protected fun textCondition(statementTag: StatementTag, jimpleToASTMap: JimpleToASTMap): String? {

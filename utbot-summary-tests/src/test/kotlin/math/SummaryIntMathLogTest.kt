@@ -24,7 +24,7 @@ class SummaryIntMathLogTest : SummaryTestCaseGeneratorTest(
         val summary4 = "@utbot.classUnderTest {@link IntMath}\n" +
                 "@utbot.methodUnderTest {@link guava.examples.math.IntMath#log2(int,java.math.RoundingMode)}\n" +
                 "@utbot.invokes {@link java.math.RoundingMode#ordinal()}\n" +
-                "@utbot.throwsException {@link java.lang.NullPointerException} in: mode"
+                "@utbot.throwsException {@link java.lang.NullPointerException} in: switch(mode)"
 
         val methodName1 = "testLog2_IntegerNumberOfLeadingZeros"
         val methodName2 = "testLog2_IntegerNumberOfLeadingZeros_1"
@@ -34,7 +34,7 @@ class SummaryIntMathLogTest : SummaryTestCaseGeneratorTest(
         val displayName1 = "switch(mode) case: FLOOR -> return (Integer.SIZE - 1) - Integer.numberOfLeadingZeros(x)"
         val displayName2 = "switch(mode) case: CEILING -> return Integer.SIZE - Integer.numberOfLeadingZeros(x - 1)"
         val displayName3 = "switch(mode) case: HALF_EVEN -> return logFloor + lessThanBranchFree(cmp, x)"
-        val displayName4 = "switch(mode) case:  -> ThrowNullPointerException"
+        val displayName4 = "switch(mode) -> ThrowNullPointerException"
 
         val summaryKeys = listOf(
             summary1,

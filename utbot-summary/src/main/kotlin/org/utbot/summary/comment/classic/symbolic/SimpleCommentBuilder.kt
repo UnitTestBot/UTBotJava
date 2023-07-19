@@ -32,7 +32,6 @@ import soot.jimple.Stmt
 import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JInvokeStmt
 import soot.jimple.internal.JVirtualInvokeExpr
-import kotlin.jvm.optionals.getOrNull
 
 private const val JVM_CRASH_REASON = "JVM crash"
 const val EMPTY_STRING = ""
@@ -168,8 +167,8 @@ open class SimpleCommentBuilder(
                     .append(
                         when {
                             exceptionNode is IfStmt -> exceptionNode.condition.toString()
-                            exceptionNode is SwitchEntry -> NodeConverter.convertSwitchEntry0(exceptionNode, step, removeSpaces = false)
-                            exceptionNode is SwitchStmt -> NodeConverter.convertSwitchStmt0(exceptionNode, step, removeSpaces = false)
+                            exceptionNode is SwitchEntry -> NodeConverter.convertSwitchEntry(exceptionNode, step, removeSpaces = false)
+                            exceptionNode is SwitchStmt -> NodeConverter.convertSwitchStmt(exceptionNode, step, removeSpaces = false)
                             isLoopStatement(exceptionNode) -> getTextIterationDescription(exceptionNode)
                             else -> exceptionNode.toString()
                         }

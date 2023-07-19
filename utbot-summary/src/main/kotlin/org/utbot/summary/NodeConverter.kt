@@ -146,9 +146,9 @@ class NodeConverter {
 
                 is WhileStmt -> convertNodeToStringRecursively(ASTNode.condition, step)
                 is IfStmt -> convertNodeToStringRecursively(ASTNode.condition, step)
-                is SwitchEntry -> convertSwitchEntry0(ASTNode, step, removeSpaces = true)
+                is SwitchEntry -> convertSwitchEntry(ASTNode, step, removeSpaces = true)
                 is ThrowStmt -> "Throws${ASTNode.expression.toString().removePrefix("new").capitalize()}"
-                is SwitchStmt -> convertSwitchStmt0(ASTNode, step, removeSpaces = true)
+                is SwitchStmt -> convertSwitchStmt(ASTNode, step, removeSpaces = true)
                 is ExpressionStmt -> convertNodeToStringRecursively(ASTNode.expression, step)
 
                 else -> {
@@ -216,9 +216,9 @@ class NodeConverter {
                 is ForStmt -> getTextIterationDescription(ASTNode)
                 is ForEachStmt -> getTextIterationDescription(ASTNode)
                 is IfStmt -> convertNodeToDisplayNameStringRecursively(ASTNode.condition, step)
-                is SwitchEntry -> convertSwitchEntry0(ASTNode, step, removeSpaces = false)
+                is SwitchEntry -> convertSwitchEntry(ASTNode, step, removeSpaces = false)
                 is ThrowStmt -> "Throws ${ASTNode.expression.toString().removePrefix("new").capitalize()}"
-                is SwitchStmt -> convertSwitchStmt0(ASTNode, step, removeSpaces = false)
+                is SwitchStmt -> convertSwitchStmt(ASTNode, step, removeSpaces = false)
                 is ExpressionStmt -> convertNodeToDisplayNameStringRecursively(ASTNode.expression, step)
                 is VariableDeclarationExpr -> ASTNode.variables.joinToString(separator = " ") { variable ->
                     convertNodeToDisplayNameStringRecursively(
@@ -258,34 +258,31 @@ class NodeConverter {
             return res
         }
 
-        fun convertSwitchStmt0(switchStmt: SwitchStmt, step: Step, removeSpaces: Boolean = true): String =
+        fun convertSwitchStmt(switchStmt: SwitchStmt, step: Step, removeSpaces: Boolean = true): String =
             convertSwitchLabel(switchStmt, step)
                 ?.let { label ->
                     val selector = switchStmt.selector.toString()
                     formatSwitchLabel(label, selector, removeSpaces)
                 }
-                ?: convertToRawSwitchStmt(switchStmt)
+                ?: "switch(${switchStmt.selector})"
 
-        fun convertSwitchEntry0(switchEntry: SwitchEntry, step: Step, removeSpaces: Boolean = true): String =
+        fun convertSwitchEntry(switchEntry: SwitchEntry, step: Step, removeSpaces: Boolean = true): String =
             (switchEntry.parentNode.getOrNull() as? SwitchStmt)
                 ?.let { switchStmt ->
-                    val label = convertSwitchLabel(switchStmt, step) ?: convertSwitchEntry(switchEntry)
+                    val label = convertSwitchLabel(switchStmt, step) ?: getSwitchLabel(switchEntry)
                     val selector = switchStmt.selector.toString()
                     formatSwitchLabel(label, selector, removeSpaces)
                 }
                 ?: switchEntry.toString()
 
-        private fun convertToRawSwitchStmt(switchStmt: SwitchStmt): String =
-            "switch(${switchStmt.selector})"
-
-        private fun convertSwitchEntry(node: SwitchEntry): String {
+        private fun getSwitchLabel(node: SwitchEntry): String {
             val case = node.labels.first
             return if (case.isPresent) "${case.get()}" else "default"
         }
 
         private fun formatSwitchLabel(label: String, selector: String, removeSpaces: Boolean = true): String {
             return if (removeSpaces) "Switch${selector.capitalize()}Case" + label.replace(" ", "")
-            else "switch($selector) case: " + label
+            else "switch($selector) case: $label"
         }
 
         private fun convertSwitchLabel(switchStmt: SwitchStmt, step: Step): String? =
@@ -302,7 +299,7 @@ class NodeConverter {
                 is JTableSwitchStmt -> {
                     JimpleToASTMap
                         .mapSwitchCase(switchStmt, step)
-                        ?.let { convertSwitchEntry(it) }
+                        ?.let { getSwitchLabel(it) }
                 }
 
                 else -> null

@@ -5,6 +5,7 @@ import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.utbot.examples.controlflow.Switch
+import org.utbot.examples.exceptions.ExceptionExamples
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.testing.DoNotCalculate
 
@@ -159,6 +160,36 @@ class SummarySwitchTest : SummaryTestCaseGeneratorTest(
         )
 
         val method = Switch::charToIntSwitch
+        val mockStrategy = MockStrategyApi.NO_MOCKS
+        val coverage = DoNotCalculate
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+    }
+
+    @Test
+    fun testThrowExceptionInSwitchArgument() {
+        val summary1 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#throwExceptionInSwitchArgument()}\n" +
+                "@utbot.invokes org.utbot.examples.controlflow.Switch#getChar()\n" +
+                "@utbot.throwsException {@link java.lang.RuntimeException} in: switch(getChar())\n"
+
+        val methodName1 = "testThrowExceptionInSwitchArgument_SwitchGetChar"
+
+        val displayName1 = "switch(getChar()) -> ThrowRuntimeException"
+
+        val summaryKeys = listOf(
+            summary1,
+        )
+
+        val displayNames = listOf(
+            displayName1,
+        )
+
+        val methodNames = listOf(
+            methodName1,
+        )
+
+        val method = Switch::throwExceptionInSwitchArgument
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 

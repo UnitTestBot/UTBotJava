@@ -200,7 +200,7 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
             FieldDescription(
                 name = field.name,
                 type = if (description != null) toFuzzerType(
-                    field.type,
+                    field.genericType,
                     description.typeCache
                 ) else FuzzedType(field.type.id),
                 canBeSetDirectly = isAccessible(

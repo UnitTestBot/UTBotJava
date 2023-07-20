@@ -17,6 +17,7 @@ import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.FieldValueProvider
 import org.utbot.fuzzing.providers.ObjectValueProvider
+import org.utbot.fuzzing.providers.anyObjectValueProvider
 import org.utbot.fuzzing.spring.SavedEntityValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
@@ -85,7 +86,7 @@ class SpringIntegrationTestConcreteExecutionContext(
                 springApplicationContext.getBeansAssignableTo(classId).map { it.beanName }
             },
             relevantRepositories = relevantRepositories
-        ).withFallback(ObjectValueProvider(idGenerator))
+        ).withFallback(anyObjectValueProvider(idGenerator))
 
         return delegateContext.tryCreateValueProvider(concreteExecutor, classUnderTest, idGenerator)
             .except { p -> p is ObjectValueProvider }

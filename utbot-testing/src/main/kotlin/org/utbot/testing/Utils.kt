@@ -1,8 +1,5 @@
 package org.utbot.testing
 
-import org.utbot.framework.plugin.api.SpringApplicationContext
-import org.utbot.framework.plugin.api.SpringSettings
-import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess

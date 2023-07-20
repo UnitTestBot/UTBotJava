@@ -11,11 +11,11 @@ import org.utbot.engine.prettify
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.daysLimitForTempFiles
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.coverage.Coverage
 import org.utbot.framework.coverage.counters
 import org.utbot.framework.coverage.methodCoverage
 import org.utbot.framework.coverage.toAtLeast
-import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -26,9 +26,6 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.ObjectMockTarget
 import org.utbot.framework.plugin.api.ParameterMockTarget
-import org.utbot.framework.plugin.api.SpringApplicationContext
-import org.utbot.framework.plugin.api.SpringSettings
-import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtInstrumentation
@@ -66,6 +63,7 @@ abstract class UtValueTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
     val configurations: List<AbstractConfiguration> = standardTestingConfigurations,
+    val applicationContext: ApplicationContext = defaultApplicationContext,
 ) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, configurations) {
     // contains already analyzed by the engine methods
     private val analyzedMethods: MutableMap<MethodWithMockStrategy, MethodResult> = mutableMapOf()
@@ -2018,7 +2016,7 @@ abstract class UtValueTestCaseChecker(
                     )
                     val classStages = ClassStages(classUnderTest, stageStatusCheck, listOf(testSet))
 
-                    TestCodeGeneratorPipeline(testInfrastructureConfiguration).runClassesCodeGenerationTests(classStages)
+                    TestCodeGeneratorPipeline(testInfrastructureConfiguration, applicationContext).runClassesCodeGenerationTests(classStages)
                 }
             }
         }
@@ -2163,11 +2161,7 @@ abstract class UtValueTestCaseChecker(
                 buildInfo.buildDir,
                 buildInfo.dependencyPath,
                 System.getProperty("java.class.path"),
-                applicationContext = if (configurations.any { it is SpringConfiguration }) {
-                    defaultSpringApplicationContext
-                } else {
-                    ApplicationContext()
-                }
+                applicationContext = applicationContext
             )
         }
 

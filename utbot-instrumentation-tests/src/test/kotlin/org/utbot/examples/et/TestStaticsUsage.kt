@@ -31,7 +31,7 @@ class StaticsUsageDetectionTest {
     @Test
     fun testStaticsUsageOneUsage() {
         withInstrumentation(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             ObjectWithStaticFieldsExample::class.java.protectionDomain.codeSource.location.path
         ) {
             val instance = ObjectWithStaticFieldsExample()
@@ -46,7 +46,7 @@ class StaticsUsageDetectionTest {
     @Test
     fun testStaticsUsageZeroUsages() {
         withInstrumentation(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             ObjectWithStaticFieldsExample::class.java.protectionDomain.codeSource.location.path
         ) {
             val instance = ObjectWithStaticFieldsExample()

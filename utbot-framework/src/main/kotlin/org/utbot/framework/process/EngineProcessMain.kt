@@ -14,10 +14,10 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
-import org.utbot.framework.codegen.generator.CodeGenerator
-import org.utbot.framework.codegen.generator.SpringCodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MethodDescription
 import org.utbot.framework.plugin.api.util.UtContext
@@ -289,7 +289,7 @@ private fun destinationWarningMessage(testPackageName: String?, classUnderTestPa
     }
 }
 
-private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, codeGenerationContext: CodeGenerationContext): AbstractCodeGenerator {
+private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, applicationContext: ApplicationContext): AbstractCodeGenerator {
     with(params) {
         val classUnderTest: ClassId = kryoHelper.readObject(classUnderTest)
         val paramNames: MutableMap<ExecutableId, List<String>> = kryoHelper.readObject(paramNames)
@@ -298,61 +298,29 @@ private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, co
         val forceStaticMocking: ForceStaticMocking = kryoHelper.readObject(forceStaticMocking)
         val projectType = ProjectType.valueOf(projectType)
 
-        return when (codeGenerationContext) {
-            is SpringCodeGenerationContext -> {
-                SpringCodeGenerator(
-                    classUnderTest = classUnderTest,
-                    projectType = projectType,
-                    springCodeGenerationContext = codeGenerationContext,
-                    generateUtilClassFile = generateUtilClassFile,
-                    paramNames = paramNames,
-                    testFramework = testFramework,
-                    mockFramework = MockFramework.valueOf(mockFramework),
-                    codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
-                    cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(
-                        CodegenLanguage.valueOf(
-                            codegenLanguage
-                        )
-                    ),
-                    parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
-                    staticsMocking = staticMocking,
-                    forceStaticMocking = forceStaticMocking,
-                    generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-                    runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(
-                        runtimeExceptionTestsBehaviour
-                    ),
-                    hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
-                    enableTestsTimeout = enableTestsTimeout,
-                    testClassPackageName = testClassPackageName,
+        return applicationContext.createCodeGenerator(CodeGeneratorParams(
+            classUnderTest = classUnderTest,
+            projectType = projectType,
+            generateUtilClassFile = generateUtilClassFile,
+            paramNames = paramNames,
+            testFramework = testFramework,
+            mockFramework = MockFramework.valueOf(mockFramework),
+            codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(
+                CodegenLanguage.valueOf(
+                    codegenLanguage
                 )
-            }
-
-            else -> {
-                CodeGenerator(
-                    classUnderTest = classUnderTest,
-                    projectType = projectType,
-                    generateUtilClassFile = generateUtilClassFile,
-                    paramNames = paramNames,
-                    testFramework = testFramework,
-                    mockFramework = MockFramework.valueOf(mockFramework),
-                    codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
-                    cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(
-                        CodegenLanguage.valueOf(
-                            codegenLanguage
-                        )
-                    ),
-                    parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
-                    staticsMocking = staticMocking,
-                    forceStaticMocking = forceStaticMocking,
-                    generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-                    runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(
-                        runtimeExceptionTestsBehaviour
-                    ),
-                    hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
-                    enableTestsTimeout = enableTestsTimeout,
-                    testClassPackageName = testClassPackageName,
-                )
-            }
-        }
+            ),
+            parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
+            staticsMocking = staticMocking,
+            forceStaticMocking = forceStaticMocking,
+            generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(
+                runtimeExceptionTestsBehaviour
+            ),
+            hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
+            enableTestsTimeout = enableTestsTimeout,
+            testClassPackageName = testClassPackageName,
+        ))
     }
 }

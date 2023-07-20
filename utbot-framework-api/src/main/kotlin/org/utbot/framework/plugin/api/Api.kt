@@ -56,17 +56,8 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
-import org.utbot.common.isStatic
-import org.utbot.framework.isFromTrustedLibrary
-import org.utbot.framework.plugin.api.TypeReplacementMode.*
 import org.utbot.framework.plugin.api.util.SpringModelUtils
-import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
-import org.utbot.framework.plugin.api.util.allSuperTypes
-import org.utbot.framework.plugin.api.util.fieldId
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
-import soot.SootField
 import soot.SootMethod
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
@@ -1328,241 +1319,54 @@ enum class TypeReplacementMode {
     NoImplementors,
 }
 
-interface CodeGenerationContext
-
-interface SpringCodeGenerationContext : CodeGenerationContext {
-    val springTestType: SpringTestType
-    val springSettings: SpringSettings
-    val springContextLoadingResult: SpringContextLoadingResult?
-}
-
-/**
- * A context to use when no specific data is required.
- *
- * @param mockFrameworkInstalled shows if we have installed framework dependencies
- * @param staticsMockingIsConfigured shows if we have installed static mocking tools
- */
-open class ApplicationContext(
-    val mockFrameworkInstalled: Boolean = true,
-    staticsMockingIsConfigured: Boolean = true,
-) : CodeGenerationContext {
-    var staticsMockingIsConfigured = staticsMockingIsConfigured
-        private set
-
-    init {
-        /**
-         * Situation when mock framework is not installed but static mocking is configured is semantically incorrect.
-         *
-         * However, it may be obtained in real application after this actions:
-         * - fully configure mocking (dependency installed + resource file created)
-         * - remove mockito-core dependency from project
-         * - forget to remove mock-maker file from resource directory
-         *
-         * Here we transform this configuration to semantically correct.
-         */
-        if (!mockFrameworkInstalled && staticsMockingIsConfigured) {
-            this.staticsMockingIsConfigured = false
-        }
-    }
-
-    /**
-     * Shows if there are any restrictions on type implementors.
-     */
-    open val typeReplacementMode: TypeReplacementMode = AnyImplementor
-
-    /**
-     * Finds a type to replace the original abstract type
-     * if it is guided with some additional information.
-     */
-    open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
-
-    /**
-     * Sets the restrictions on speculative not null
-     * constraints in current application context.
-     *
-     * @see docs/SpeculativeFieldNonNullability.md for more information.
-     */
-    open fun avoidSpeculativeNotNullChecks(field: SootField): Boolean =
-        UtSettings.maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()
-
-    /**
-     * Checks whether accessing [field] (with a method invocation or field access) speculatively
-     * cannot produce [NullPointerException] (according to its finality or accessibility).
-     *
-     * @see docs/SpeculativeFieldNonNullability.md for more information.
-     */
-    open fun speculativelyCannotProduceNullPointerException(
-        field: SootField,
-        classUnderTest: ClassId,
-    ): Boolean = field.isFinal || !field.isPublic
-
-    open fun preventsFurtherTestGeneration(): Boolean = false
-
-    open fun getErrors(): List<UtError> = emptyList()
-}
-
 sealed class SpringConfiguration(val fullDisplayName: String) {
     class JavaConfiguration(val classBinaryName: String) : SpringConfiguration(classBinaryName)
     class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)
 }
 
 sealed interface SpringSettings {
-    class AbsentSpringSettings : SpringSettings {
-        // Denotes no configuration and no profile setting
+    object AbsentSpringSettings : SpringSettings {
+        // NOTE that overriding equals is required just because without it
+        // we will lose equality for objects after deserialization
+        override fun equals(other: Any?): Boolean = other is AbsentSpringSettings
 
-        // NOTICE:
-        // `class` should not be replaced with `object`
-        // in order to avoid issues caused by Kryo deserialization
-        // that creates new instances breaking `when` expressions
-        // that check reference equality instead of type equality
+        override fun hashCode(): Int = 0
     }
 
-    class PresentSpringSettings(
+    data class PresentSpringSettings(
         val configuration: SpringConfiguration,
-        val profiles: Array<String>
+        val profiles: List<String>
     ) : SpringSettings
 }
 
 /**
- * [contextLoaded] can be `true` while [exceptions] is not empty,
- * if we failed to use most specific SpringApi available (e.g. SpringBoot), but
- * were able to successfully fall back to less specific SpringApi (e.g. PureSpring).
+ * Result of loading concrete execution context (e.g. Spring application context).
+ *
+ * [contextLoaded] can be `true` while [exceptions] is not empty. For example, we may fail
+ * to load context with most specific SpringApi available (e.g. SpringBoot),
+ * but successfully fall back to less specific SpringApi (e.g. PureSpring).
  */
-class SpringContextLoadingResult(
+class ConcreteContextLoadingResult(
     val contextLoaded: Boolean,
     val exceptions: List<Throwable>
-)
+) {
+    val utErrors: List<UtError> get() =
+        exceptions.map { UtError(it.message ?: "Concrete context loading failed", it) }
 
-/**
- * Data we get from Spring application context
- * to manage engine and code generator behaviour.
- *
- * @param beanDefinitions describes bean definitions (bean name, type, some optional additional data)
- * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
- */
-// TODO move this class to utbot-framework so we can use it as abstract factory
-//  to get rid of numerous `when`s and polymorphically create things like:
-//    - Instrumentation<UtConcreteExecutionResult>
-//    - FuzzedType (to get rid of thisInstanceFuzzedTypeWrapper)
-//    - JavaValueProvider
-//    - CgVariableConstructor
-//    - CodeGeneratorResult (generateForSpringClass)
-//  Right now this refactoring is blocked because some interfaces need to get extracted and moved to utbot-framework-api
-//  As an alternative we can just move ApplicationContext itself to utbot-framework
-class SpringApplicationContext(
-    mockInstalled: Boolean,
-    staticsMockingIsConfigured: Boolean,
-    val beanDefinitions: List<BeanDefinitionData> = emptyList(),
-    private val shouldUseImplementors: Boolean,
-    override val springTestType: SpringTestType,
-    override val springSettings: SpringSettings,
-): ApplicationContext(mockInstalled, staticsMockingIsConfigured), SpringCodeGenerationContext {
-
-    override var springContextLoadingResult: SpringContextLoadingResult? = null
+    fun andThen(onSuccess: () -> ConcreteContextLoadingResult) =
+        if (contextLoaded) {
+            val otherResult = onSuccess()
+            ConcreteContextLoadingResult(
+                contextLoaded = otherResult.contextLoaded,
+                exceptions = exceptions + otherResult.exceptions
+            )
+        } else this
 
     companion object {
-        private val logger = KotlinLogging.logger {}
-    }
-
-    private var areInjectedClassesInitialized : Boolean = false
-    private var areAllInjectedTypesInitialized: Boolean = false
-
-    // Classes representing concrete types that are actually used in Spring application
-    private val springInjectedClasses: Set<ClassId>
-        get() {
-            if (!areInjectedClassesInitialized) {
-                for (beanTypeName in beanDefinitions.map { it.beanTypeName }) {
-                    try {
-                        val beanClass = utContext.classLoader.loadClass(beanTypeName)
-                        if (!beanClass.isAbstract && !beanClass.isInterface &&
-                            !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
-                            springInjectedClassesStorage += beanClass.id
-                        }
-                    } catch (e: Throwable) {
-                        // For some Spring beans (e.g. with anonymous classes)
-                        // it is possible to have problems with classes loading.
-                        when (e) {
-                            is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
-                                logger.warn { "Failed to load bean class for $beanTypeName (${e.message})" }
-
-                            else -> throw e
-                        }
-                    }
-                }
-
-                // This is done to be sure that this storage is not empty after the first class loading iteration.
-                // So, even if all loaded classes were filtered out, we will not try to load them again.
-                areInjectedClassesInitialized = true
-            }
-
-            return springInjectedClassesStorage
-        }
-
-    private val allInjectedTypes: Set<ClassId>
-        get() {
-            if (!areAllInjectedTypesInitialized) {
-                allInjectedTypesStorage = springInjectedClasses.flatMap { it.allSuperTypes() }.toSet()
-                areAllInjectedTypesInitialized = true
-            }
-
-            return allInjectedTypesStorage
-        }
-
-    // imitates `by lazy` (we can't use actual `by lazy` because communication via RD breaks it)
-    private var allInjectedTypesStorage: Set<ClassId> = emptySet()
-
-    // This is a service field to model the lazy behavior of [springInjectedClasses].
-    // Do not call it outside the getter.
-    //
-    // Actually, we should just call [springInjectedClasses] with `by lazy`, but  we had problems
-    // with a strange `kotlin.UNINITIALIZED_VALUE` in `speculativelyCannotProduceNullPointerException` method call.
-    private val springInjectedClassesStorage = mutableSetOf<ClassId>()
-
-    override val typeReplacementMode: TypeReplacementMode =
-        if (shouldUseImplementors) KnownImplementor else NoImplementors
-
-    /**
-     * Replaces an interface type with its implementor type
-     * if there is the unique implementor in bean definitions.
-     */
-    override fun replaceTypeIfNeeded(type: RefType): ClassId? =
-        if (type.isAbstractType) {
-            springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
-        } else {
-            null
-        }
-
-    override fun avoidSpeculativeNotNullChecks(field: SootField): Boolean = false
-
-    /**
-     * In Spring applications we can mark as speculatively not null
-     * fields if they are mocked and injecting into class under test so on.
-     *
-     * Fields are not mocked if their actual type is obtained from [springInjectedClasses].
-     *
-     */
-    override fun speculativelyCannotProduceNullPointerException(
-        field: SootField,
-        classUnderTest: ClassId,
-    ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.type.classId !in allInjectedTypes
-
-    override fun preventsFurtherTestGeneration(): Boolean =
-        super.preventsFurtherTestGeneration() || springContextLoadingResult?.contextLoaded == false
-
-    override fun getErrors(): List<UtError> =
-        springContextLoadingResult?.exceptions?.map { exception ->
-            UtError(
-                "Failed to load Spring application context",
-                exception
-            )
-        }.orEmpty() + super.getErrors()
-
-    fun getBeansAssignableTo(classId: ClassId): List<BeanDefinitionData> = beanDefinitions.filter { beanDef ->
-        // some bean classes may fail to load
-        runCatching {
-            val beanClass = ClassId(beanDef.beanTypeName).jClass
-            classId.jClass.isAssignableFrom(beanClass)
-        }.getOrElse { false }
+        fun successWithoutExceptions() = ConcreteContextLoadingResult(
+            contextLoaded = true,
+            exceptions = emptyList()
+        )
     }
 }
 

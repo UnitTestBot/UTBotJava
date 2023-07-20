@@ -24,7 +24,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testCatchTargetException() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -41,7 +41,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testIfBranches() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -63,7 +63,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testWrongArgumentsException() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -86,7 +86,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testMultipleRunsInsideCoverage() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -121,7 +121,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testSameResult() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -143,7 +143,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testResult() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -160,7 +160,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testEmptyMethod() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -176,7 +176,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testTernaryOperator() {
         ConcreteExecutor(
-            CoverageInstrumentation,
+            CoverageInstrumentation.Factory,
             StaticSubstitutionExamples::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = StaticSubstitutionExamples()

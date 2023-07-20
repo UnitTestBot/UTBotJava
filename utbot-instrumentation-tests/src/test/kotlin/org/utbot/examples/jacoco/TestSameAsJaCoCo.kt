@@ -123,7 +123,7 @@ private fun methodCoverageWithJaCoCo(kClass: KClass<*>, method: KCallable<*>, ex
 
 private fun methodCoverage(kClass: KClass<*>, method: KCallable<*>, executions: List<ArgumentList>): Pair<Int, Int> {
     return withInstrumentation(
-        CoverageInstrumentation,
+        CoverageInstrumentation.Factory,
         kClass.java.protectionDomain.codeSource.location.path
     ) { executor ->
         for (execution in executions) {

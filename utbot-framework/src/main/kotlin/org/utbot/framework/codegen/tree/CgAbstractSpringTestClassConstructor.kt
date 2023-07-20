@@ -21,6 +21,7 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
+import java.util.Collections.max
 
 abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
     CgAbstractTestClassConstructor<SpringTestClassModel>(context) {

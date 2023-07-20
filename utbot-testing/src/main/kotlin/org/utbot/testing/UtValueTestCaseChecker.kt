@@ -15,6 +15,7 @@ import org.utbot.framework.coverage.Coverage
 import org.utbot.framework.coverage.counters
 import org.utbot.framework.coverage.methodCoverage
 import org.utbot.framework.coverage.toAtLeast
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -25,6 +26,9 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.ObjectMockTarget
 import org.utbot.framework.plugin.api.ParameterMockTarget
+import org.utbot.framework.plugin.api.SpringApplicationContext
+import org.utbot.framework.plugin.api.SpringSettings
+import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtInstrumentation
@@ -61,7 +65,7 @@ import kotlin.reflect.KFunction5
 abstract class UtValueTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    configurations: List<AbstractConfiguration> = standardTestingConfigurations,
+    val configurations: List<AbstractConfiguration> = standardTestingConfigurations,
 ) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, configurations) {
     // contains already analyzed by the engine methods
     private val analyzedMethods: MutableMap<MethodWithMockStrategy, MethodResult> = mutableMapOf()
@@ -530,23 +534,8 @@ abstract class UtValueTestCaseChecker(
         additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
-    protected inline fun <reified R> checkMocksWithExceptions(
-        method: KFunction1<*, R>,
-        branches: ExecutionsNumberMatcher,
-        vararg matchers: (Mocks, Result<R>) -> Boolean,
-        coverage: CoverageMatcher = Full,
-        mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
-    ) = internalCheck(
-        method, mockStrategy, branches, matchers, coverage,
-        arguments = ::withMocksAndExceptions,
-        additionalDependencies = additionalDependencies,
-        additionalMockAlwaysClasses = additionalMockAlwaysClasses
-    )
-
-    protected inline fun <reified T, reified R> checkMocksWithExceptions(
-        method: KFunction2<*, T, R>,
+    protected inline fun <reified T, reified R> checkThisMocksAndExceptions(
+        method: KFunction1<T, R>,
         branches: ExecutionsNumberMatcher,
         vararg matchers: (T, Mocks, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
@@ -554,53 +543,68 @@ abstract class UtValueTestCaseChecker(
         additionalDependencies: Array<Class<*>> = emptyArray(),
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
-        method, mockStrategy, branches, matchers, coverage, T::class,
-        arguments = ::withMocksAndExceptions,
+        method, mockStrategy, branches, matchers, coverage,
+        arguments = ::withThisMocksAndExceptions,
         additionalDependencies = additionalDependencies,
         additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
-    protected inline fun <reified T1, reified T2, reified R> checkMocksWithExceptions(
-        method: KFunction3<*, T1, T2, R>,
+    protected inline fun <reified T, reified T1, reified R> checkThisMocksAndExceptions(
+        method: KFunction2<T, T1, R>,
         branches: ExecutionsNumberMatcher,
-        vararg matchers: (T1, T2, Mocks, Result<R>) -> Boolean,
+        vararg matchers: (T, T1, Mocks, Result<R>) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T1::class,
+        arguments = ::withThisMocksAndExceptions,
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
+
+    protected inline fun <reified T, reified T1, reified T2, reified R> checkThisMocksAndExceptions(
+        method: KFunction3<T, T1, T2, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, T2, Mocks, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
         additionalDependencies: Array<Class<*>> = emptyArray(),
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
-        arguments = ::withMocksAndExceptions,
+        arguments = ::withThisMocksAndExceptions,
         additionalDependencies = additionalDependencies,
         additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
-    protected inline fun <reified T1, reified T2, reified T3, reified R> checkMocksWithExceptions(
-        method: KFunction4<*, T1, T2, T3, R>,
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkThisMocksAndExceptions(
+        method: KFunction4<T, T1, T2, T3, R>,
         branches: ExecutionsNumberMatcher,
-        vararg matchers: (T1, T2, T3, Mocks, Result<R>) -> Boolean,
+        vararg matchers: (T, T1, T2, T3, Mocks, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
         additionalDependencies: Array<Class<*>> = emptyArray(),
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
-        arguments = ::withMocksAndExceptions,
+        arguments = ::withThisMocksAndExceptions,
         additionalDependencies = additionalDependencies,
         additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
 
-    protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMocksWithExceptions(
-        method: KFunction5<*, T1, T2, T3, T4, R>,
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkThisMocksAndExceptions(
+        method: KFunction5<T, T1, T2, T3, T4, R>,
         branches: ExecutionsNumberMatcher,
-        vararg matchers: (T1, T2, T3, T4, Mocks, Result<R>) -> Boolean,
+        vararg matchers: (T, T1, T2, T3, T4, Mocks, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
         additionalDependencies: Array<Class<*>> = emptyArray(),
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
-        arguments = ::withMocksAndExceptions,
+        arguments = ::withThisMocksAndExceptions,
         additionalDependencies = additionalDependencies,
         additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
@@ -2158,7 +2162,12 @@ abstract class UtValueTestCaseChecker(
             TestSpecificTestCaseGenerator(
                 buildInfo.buildDir,
                 buildInfo.dependencyPath,
-                System.getProperty("java.class.path")
+                System.getProperty("java.class.path"),
+                applicationContext = if (configurations.any { it is SpringConfiguration }) {
+                    defaultSpringApplicationContext
+                } else {
+                    ApplicationContext()
+                }
             )
         }
 
@@ -2307,8 +2316,8 @@ fun withMocks(ex: UtValueExecution<*>) = ex.paramsBefore + listOf(ex.mocks) + ex
 fun withMocksAndInstrumentation(ex: UtValueExecution<*>) =
     ex.paramsBefore + listOf(ex.mocks) + listOf(ex.instrumentation) + ex.evaluatedResult
 
-fun withMocksAndExceptions(ex: UtValueExecution<*>) =
-    ex.paramsBefore + listOf(ex.mocks) + ex.returnValue
+fun withThisMocksAndExceptions(ex: UtValueExecution<*>) =
+    listOf(ex.callerBefore) + ex.paramsBefore + listOf(ex.mocks) + ex.returnValue
 
 fun withMocksInstrumentationAndThis(ex: UtValueExecution<*>) =
     listOf(ex.callerBefore) + ex.paramsBefore + listOf(ex.mocks) + listOf(ex.instrumentation) + ex.evaluatedResult

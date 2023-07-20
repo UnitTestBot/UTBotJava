@@ -98,7 +98,7 @@ class SummaryConditionsTest : SummaryTestCaseGeneratorTest(
     }
 
     @Test
-    fun testIfElse() {
+    fun testElseIf() {
         val summary1 = "@utbot.classUnderTest {@link Conditions}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Conditions#elseIf(int)}\n" +
                 "@utbot.executesCondition {@code (id > 0): True}\n" +

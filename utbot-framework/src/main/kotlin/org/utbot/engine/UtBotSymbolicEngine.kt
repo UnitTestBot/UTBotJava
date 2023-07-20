@@ -393,7 +393,7 @@ class UtBotSymbolicEngine(
             applicationContext.getBeansAssignableTo(methodUnderTest.classId).isEmpty()) {
             val fullConfigDisplayName = (applicationContext.springSettings as? SpringSettings.PresentSpringSettings)
                 ?.configuration?.fullDisplayName
-            val errorDescription = "No beans of type ${methodUnderTest.classId.name} are found. " +
+            val errorDescription = "No beans of type ${methodUnderTest.classId.name} were found. " +
                     "Try choosing different Spring configuration or adding beans to $fullConfigDisplayName"
             emit(UtError(
                 errorDescription,

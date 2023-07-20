@@ -63,13 +63,13 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
         val summary1 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#removeValue()}\n" +
                 "@utbot.executesCondition {@code (size <= 0): True}\n" +
-                "@utbot.throwsException {@link java.lang.RuntimeException} after condition: size <= 0"
+                "@utbot.throwsException {@link java.lang.RuntimeException} when: size <= 0"
 
         val summary2 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#removeValue()}\n" +
                 "@utbot.executesCondition {@code (size <= 0): False}\n"
 
-        val methodName1 = "testRemoveValue_SizeLessOrEqualZero"
+        val methodName1 = "testRemoveValue_ThrowRuntimeException"
         val methodName2 = "testRemoveValue_SizeGreaterThanZero"
 
         val displayName1 = "size <= 0 -> ThrowRuntimeException"
@@ -145,7 +145,7 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
         val methodName4 = "testAddValue_ThrowNullPointerException_1"
         val methodName5 = "testAddValue_ThrowNullPointerException_2"
         val methodName6 = "testAddValue_ThrowArrayIndexOutOfBoundsException_2"
-        val methodName7 = "testAddValue_MathMin"
+        val methodName7 = "testAddValue_ThrowArrayIndexOutOfBoundsException_3"
         val methodName8 = "testAddValue_SizeEqualsZero"
         val methodName9 = "testAddValue_SizeNotEqualsZero"
 

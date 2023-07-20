@@ -1,4 +1,4 @@
-package org.utbot.summary.name
+package org.utbot.summary
 
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.VariableDeclarator
@@ -41,12 +41,13 @@ import soot.jimple.internal.JIfStmt
 import soot.jimple.internal.JLookupSwitchStmt
 import soot.jimple.internal.JReturnStmt
 import soot.jimple.internal.JTableSwitchStmt
+import kotlin.jvm.optionals.getOrNull
 
 
 private const val STATEMENT_DECISION_TRUE = 1
 private const val STATEMENT_DECISION_FALSE = 0
 
-class NodeConvertor {
+class NodeConverter {
 
     companion object {
         /**
@@ -145,8 +146,9 @@ class NodeConvertor {
 
                 is WhileStmt -> convertNodeToStringRecursively(ASTNode.condition, step)
                 is IfStmt -> convertNodeToStringRecursively(ASTNode.condition, step)
+                is SwitchEntry -> convertSwitchEntry(ASTNode, step, removeSpaces = true)
                 is ThrowStmt -> "Throws${ASTNode.expression.toString().removePrefix("new").capitalize()}"
-                is SwitchStmt -> convertSwitch(ASTNode, step)
+                is SwitchStmt -> convertSwitchStmt(ASTNode, step, removeSpaces = true)
                 is ExpressionStmt -> convertNodeToStringRecursively(ASTNode.expression, step)
 
                 else -> {
@@ -165,7 +167,7 @@ class NodeConvertor {
             if (node is ExpressionStmt) node = node.expression
             if (node is EnclosedExpr) node = JimpleToASTMap.unEncloseExpr(node)
             var res = convertNodeToDisplayNameStringRecursively(node, step)
-            if (node is ReturnStmt) node = node.expression.orElse(null) ?: node
+            if (node is ReturnStmt) node = node.expression.getOrNull() ?: node
             if (step.stmt is JReturnStmt) return res
             if (nodeContainsBooleanCondition(node)) {
                 res += if (step.decision == STATEMENT_DECISION_TRUE) {
@@ -193,7 +195,7 @@ class NodeConvertor {
                 || node is VariableDeclarationExpr && node.variables.any { nodeContainsBooleanCondition(it) }
             ) return true
             if (node is VariableDeclarator) {
-                val initializer = node.initializer.orElse(null)
+                val initializer = node.initializer.getOrNull()
                 if (initializer != null) {
                     return nodeContainsBooleanCondition(initializer)
                 }
@@ -214,8 +216,9 @@ class NodeConvertor {
                 is ForStmt -> getTextIterationDescription(ASTNode)
                 is ForEachStmt -> getTextIterationDescription(ASTNode)
                 is IfStmt -> convertNodeToDisplayNameStringRecursively(ASTNode.condition, step)
+                is SwitchEntry -> convertSwitchEntry(ASTNode, step, removeSpaces = false)
                 is ThrowStmt -> "Throws ${ASTNode.expression.toString().removePrefix("new").capitalize()}"
-                is SwitchStmt -> convertSwitch(ASTNode, step, removeSpaces = false)
+                is SwitchStmt -> convertSwitchStmt(ASTNode, step, removeSpaces = false)
                 is ExpressionStmt -> convertNodeToDisplayNameStringRecursively(ASTNode.expression, step)
                 is VariableDeclarationExpr -> ASTNode.variables.joinToString(separator = " ") { variable ->
                     convertNodeToDisplayNameStringRecursively(
@@ -255,42 +258,52 @@ class NodeConvertor {
             return res
         }
 
-        /**
-         * Converts switchNode into String
-         */
-        private fun convertSwitch(switchNode: SwitchStmt, step: Step, removeSpaces: Boolean = true): String {
-            val stmt = step.stmt
-            var res = ""
-            if (stmt is JLookupSwitchStmt) {
-                val lookup = stmt.lookupValues
-                val decision = step.decision
-                val case = (
-                        if (decision >= lookup.size) {
-                            null
-                        } else {
-                            lookup[step.decision]
-                        }
-                        )?.value
-                res += JimpleToASTMap.getSwitchCaseLabel(switchNode, case).capitalize()
-            }
-            if (stmt is JTableSwitchStmt) {
-                val switchCase = JimpleToASTMap.mapSwitchCase(switchNode, step)
-                if (switchCase is SwitchEntry) {
-                    val case = switchCase.labels.first
-                    res += if (case.isPresent) {
-                        case.get().toString().capitalize()
-                    } else {
-                        "Default"
-                    }
+        fun convertSwitchStmt(switchStmt: SwitchStmt, step: Step, removeSpaces: Boolean = true): String =
+            convertSwitchLabel(switchStmt, step)
+                ?.let { label ->
+                    val selector = switchStmt.selector.toString()
+                    formatSwitchLabel(label, selector, removeSpaces)
                 }
-            }
-            res = if (removeSpaces) {
-                "Switch${switchNode.selector.toString().capitalize()}Case" + res.replace(" ", "")
-            } else {
-                "switch(${switchNode.selector}) case: " + res
-            }
-            return res
+                ?: "switch(${switchStmt.selector})"
+
+        fun convertSwitchEntry(switchEntry: SwitchEntry, step: Step, removeSpaces: Boolean = true): String =
+            (switchEntry.parentNode.getOrNull() as? SwitchStmt)
+                ?.let { switchStmt ->
+                    val label = convertSwitchLabel(switchStmt, step) ?: getSwitchLabel(switchEntry)
+                    val selector = switchStmt.selector.toString()
+                    formatSwitchLabel(label, selector, removeSpaces)
+                }
+                ?: switchEntry.toString()
+
+        private fun getSwitchLabel(node: SwitchEntry): String {
+            val case = node.labels.first
+            return if (case.isPresent) "${case.get()}" else "default"
         }
+
+        private fun formatSwitchLabel(label: String, selector: String, removeSpaces: Boolean = true): String {
+            return if (removeSpaces) "Switch${selector.capitalize()}Case" + label.replace(" ", "")
+            else "switch($selector) case: $label"
+        }
+
+        private fun convertSwitchLabel(switchStmt: SwitchStmt, step: Step): String? =
+            when (val stmt = step.stmt) {
+                is JLookupSwitchStmt -> {
+                    val lookup = stmt.lookupValues
+                    val case =
+                        if (step.decision >= lookup.size) null
+                        else lookup[step.decision].value
+
+                    JimpleToASTMap.getSwitchCaseLabel(switchStmt, case)
+                }
+
+                is JTableSwitchStmt -> {
+                    JimpleToASTMap
+                        .mapSwitchCase(switchStmt, step)
+                        ?.let { getSwitchLabel(it) }
+                }
+
+                else -> null
+            }
 
         /**
          * Converts literal into String

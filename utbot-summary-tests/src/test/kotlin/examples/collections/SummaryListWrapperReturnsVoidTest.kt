@@ -26,7 +26,7 @@ class SummaryListWrapperReturnsVoidTest : SummaryTestCaseGeneratorTest(
         val summary3 = "Test returns from: return i[0];"
         val summary4 = "Test returns from: return i[0];"
 
-        val methodName1 = "testRunForEach_ListForEach"
+        val methodName1 = "testRunForEach_ThrowNullPointerException"
         val methodName2 = "testRunForEach_Return0OfI"
         val methodName3 = "testRunForEach_Return0OfI_1"
         val methodName4 = "testRunForEach_Return0OfI_2"
@@ -88,7 +88,7 @@ class SummaryListWrapperReturnsVoidTest : SummaryTestCaseGeneratorTest(
                 "returns from: return sum[0];"
 
         val methodName1 = "testSumPositiveForEach_ThrowNullPointerException"
-        val methodName2 = "testSumPositiveForEach_ListForEach"
+        val methodName2 = "testSumPositiveForEach_ThrowNullPointerException_1"
         val methodName3 = "testSumPositiveForEach_0OfSumEqualsZero"
         val methodName4 = "testSumPositiveForEach_0OfSumEqualsZero_1"
         val methodName5 = "testSumPositiveForEach_0OfSumNotEqualsZero"

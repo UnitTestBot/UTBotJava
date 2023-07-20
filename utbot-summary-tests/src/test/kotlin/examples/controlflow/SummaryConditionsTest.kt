@@ -96,4 +96,56 @@ class SummaryConditionsTest : SummaryTestCaseGeneratorTest(
 
         summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
+
+    @Test
+    fun testElseIf() {
+        val summary1 = "@utbot.classUnderTest {@link Conditions}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Conditions#elseIf(int)}\n" +
+                "@utbot.executesCondition {@code (id > 0): True}\n" +
+                "@utbot.returnsFrom {@code return 0;}"
+
+        val summary2 = "@utbot.classUnderTest {@link Conditions}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Conditions#elseIf(int)}\n" +
+                "@utbot.executesCondition {@code (id > 0): False}\n" +
+                "@utbot.executesCondition {@code (id == 0): False}\n" +
+                "@utbot.returnsFrom {@code return 1;}"
+
+        val summary3 = "@utbot.classUnderTest {@link Conditions}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Conditions#elseIf(int)}\n" +
+                "@utbot.executesCondition {@code (id > 0): False}\n" +
+                "@utbot.executesCondition {@code (id == 0): True}\n" +
+                "@utbot.throwsException {@link java.lang.RuntimeException} when: id == 0"
+
+        val methodName1 = "testElseIf_IdGreaterThanZero"
+        val methodName2 = "testElseIf_IdNotEqualsZero"
+        val methodName3 = "testElseIf_ThrowRuntimeException"
+
+        val displayName1 = "id > 0 : True -> id > 0"
+        val displayName2 = "id > 0 : False -> return 1"
+        val displayName3 = "id == 0 -> ThrowRuntimeException"
+
+        val summaryKeys = listOf(
+            summary1,
+            summary2,
+            summary3
+        )
+
+        val displayNames = listOf(
+            displayName1,
+            displayName2,
+            displayName3
+        )
+
+        val methodNames = listOf(
+            methodName1,
+            methodName2,
+            methodName3
+        )
+
+        val method = Conditions::elseIf
+        val mockStrategy = MockStrategyApi.NO_MOCKS
+        val coverage = DoNotCalculate
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+    }
 }

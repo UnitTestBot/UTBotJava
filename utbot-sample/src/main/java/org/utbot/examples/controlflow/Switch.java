@@ -59,6 +59,19 @@ public class Switch {
         }
     }
 
+    public int throwExceptionInSwitchArgument() {
+        switch (getChar()) {
+            case 'I':
+                return 1;
+            default:
+                return 100;
+        }
+    }
+
+    private char getChar() throws RuntimeException {
+        throw new RuntimeException("Exception message");
+    }
+
     //TODO: String switch
 //    public int stringSwitch(String s) {
 //        switch (s) {
@@ -72,4 +85,3 @@ public class Switch {
 //        }
 //    }
 }
-

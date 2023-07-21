@@ -1,7 +1,6 @@
 package org.utbot.fuzzing
 
 import mu.KotlinLogging
-import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.Instruction
@@ -43,9 +42,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     FloatValueProvider,
     StringValueProvider,
     NumberValueProvider,
-    ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
-        ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
-    },
+    anyObjectValueProvider(idGenerator),
     ArrayValueProvider(idGenerator),
     EnumValueProvider(idGenerator),
     ListSetValueProvider(idGenerator),

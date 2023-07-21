@@ -1,6 +1,7 @@
 package org.utbot.fuzzing.providers
 
 import mu.KotlinLogging
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
@@ -29,6 +30,11 @@ private fun isIgnored(type: ClassId): Boolean {
             || type.isAbstract
             || (type.isInner && !type.isStatic)
 }
+
+fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
+    ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
+        ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
+    }
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,

@@ -5,9 +5,11 @@ import kotlinx.coroutines.flow.flow
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.assertThrows
 import org.utbot.fuzzing.seeds.BitVectorValue
 import org.utbot.fuzzing.seeds.Signed
+import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
 class FuzzerSmokeTest {
@@ -280,6 +282,30 @@ class FuzzerSmokeTest {
                 }
             }
             Assertions.assertTrue(seenEmpty) { "Unmodified empty string wasn't generated" }
+        }
+    }
+
+    @Test
+    @Timeout(10, unit = TimeUnit.SECONDS) // withTimeout(1000) works inconsistently
+    fun `fuzzer works when there are many recursive seeds`() {
+        class Node(val parent: Node?)
+
+        runBlocking {
+            var seenAnything = false
+            withTimeout(1000) {
+                runFuzzing(
+                    { _, _ -> List(100) {Seed.Recursive<Unit, Node?>(
+                        construct = Routine.Create(listOf(Unit)) { (parent) -> Node(parent) },
+                        modify = emptySequence(),
+                        empty = Routine.Empty { null }
+                    )}.asSequence() },
+                    Description(listOf(Unit))
+                ) { _, _ ->
+                    seenAnything = true
+                    BaseFeedback(Unit, Control.STOP)
+                }
+            }
+            Assertions.assertTrue(seenAnything) { "Fuzzer hasn't generated any values" }
         }
     }
 }

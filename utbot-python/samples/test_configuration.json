@@ -244,12 +244,32 @@
           ]
         },
         {
-          "name": "full_annotated",
+          "name": "fully_annotated",
           "groups": [
             {
               "classes": null,
               "methods": null,
               "timeout": 150
+            }
+          ]
+        },
+        {
+          "name": "dummy_with_eq",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20
+            }
+          ]
+        },
+        {
+          "name": "dummy_without_eq",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20
             }
           ]
         },

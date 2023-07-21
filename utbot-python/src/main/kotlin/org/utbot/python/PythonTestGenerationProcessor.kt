@@ -3,6 +3,7 @@ package org.utbot.python
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.parsers.python.PythonParser
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtClusterInfo
@@ -122,6 +123,8 @@ abstract class PythonTestGenerationProcessor {
                 paramNames = paramNames,
                 testFramework = configuration.testFramework,
                 testClassPackageName = "",
+                hangingTestsTimeout = HangingTestsTimeout(configuration.timeoutForRun),
+                runtimeExceptionTestsBehaviour = configuration.runtimeExceptionTestsBehaviour,
             )
             val testCode = codegen.pythonGenerateAsStringWithTestReport(
                 testSets.map { testSet ->

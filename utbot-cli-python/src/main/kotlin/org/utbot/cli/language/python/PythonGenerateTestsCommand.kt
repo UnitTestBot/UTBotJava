@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
@@ -96,6 +97,10 @@ class PythonGenerateTestsCommand : CliktCommand(
     private val testFrameworkAsString by option("--test-framework", help = "Test framework to be used.")
         .choice(Pytest.toString(), Unittest.toString())
         .default(Unittest.toString())
+
+    private val runtimeExceptionTestsBehaviour by option("--runtime-exception-behaviour", help = "Passing or Failing")
+        .choice("Passing", "Failing")
+        .default("Failing")
 
     private val testFramework: TestFramework
         get() =
@@ -228,6 +233,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             testSourceRootPath = Paths.get(output).parent.toAbsolutePath(),
             withMinimization = !doNotMinimize,
             isCanceled = { false },
+            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour)
         )
 
         val processor = PythonCliProcessor(

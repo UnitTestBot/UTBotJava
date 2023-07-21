@@ -74,7 +74,5 @@ class PythonIntellijProcessor(
         )
     }
 
-    override fun processCoverageInfo(testSets: List<PythonTestSet>) {
-        TODO("Not yet implemented")
-    }
+    override fun processCoverageInfo(testSets: List<PythonTestSet>) { }
 }

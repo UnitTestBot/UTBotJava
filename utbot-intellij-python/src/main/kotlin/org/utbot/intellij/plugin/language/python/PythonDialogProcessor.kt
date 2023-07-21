@@ -284,6 +284,7 @@ object PythonDialogProcessor {
                             testSourceRootPath = Path(model.testSourceRootPath),
                             withMinimization = true,
                             isCanceled = { indicator.isCanceled },
+                            runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour
                         )
                         val processor = PythonIntellijProcessor(
                             config,

@@ -1,5 +1,6 @@
 package org.utbot.python
 
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
 import java.nio.file.Path
 
@@ -20,4 +21,5 @@ class PythonTestGenerationConfig(
     val testSourceRootPath: Path,
     val withMinimization: Boolean,
     val isCanceled: () -> Boolean,
+    val runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour,
 )

@@ -7,8 +7,10 @@ Example command
  -c <path to UTBotJava/utbot-python/samples>
 """
 import argparse
+import asyncio
 import json
 import os
+import sys
 import typing
 import pathlib
 
@@ -38,25 +40,27 @@ def parse_config(config_path: str):
         return json.loads(fin.read())
 
 
-def generate_tests(
-    java: str,
-    jar_path: str,
-    sys_paths: list[str],
-    python_path: str, 
-    file: str, 
-    timeout: int,
-    output: str,
-    class_name: typing.Optional[str] = None,
-    method_names: typing.Optional[str] = None
-    ):
-    command = f"{java} -jar {jar_path} generate_python {file}.py -p {python_path} -o {output} -s {' '.join(sys_paths)} --timeout {timeout * 1000} --install-requirements --runtime-exception-behaviour Passing"
+async def generate_tests(
+        java: str,
+        jar_path: str,
+        sys_paths: list[str],
+        python_path: str,
+        file: str,
+        timeout: int,
+        output: str,
+        class_name: typing.Optional[str] = None,
+        method_names: typing.Optional[str] = None
+):
+    command = f"{java} -jar {jar_path} generate_python {file}.py -p {python_path} -o {output} -s {' '.join(sys_paths)} --timeout {timeout * 1000} --install-requirements --runtime-exception-behaviour PASS"
     if class_name is not None:
         command += f" -c {class_name}"
     if method_names is not None:
         command += f" -m {','.join(method_names)}"
     print(command)
-    code = os.system(command)
-    return code
+    # code = os.system(command)
+    proc = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE)
+    stdout, stderr = await proc.communicate()
+    return stdout
 
 
 def run_tests(
@@ -70,13 +74,20 @@ def run_tests(
     return code
 
 
-def main():
+async def main(args):
     config = parse_config(args.config_file)
+    params = []
     for part in config['parts']:
         for file in part['files']:
             for group in file['groups']:
-                full_name = pathlib.PurePath(args.path_to_test_dir, part['path'], file['name'])
-                output_file = pathlib.PurePath(args.output_dir, f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}.py")
+                params.append((part, file, group))
+
+    async with asyncio.TaskGroup() as tg:
+        for (part, file, group) in params:
+            full_name = pathlib.PurePath(args.path_to_test_dir, part['path'], file['name'])
+            output_file = pathlib.PurePath(args.output_dir,
+                                           f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}.py")
+            task = tg.create_task(
                 generate_tests(
                     args.java,
                     args.jar,
@@ -88,8 +99,8 @@ def main():
                     group['classes'],
                     group['methods']
                 )
-                    
+            )
+
 
 if __name__ == '__main__':
-    args = parse_arguments()
-    print(args)
+    asyncio.run(main(parse_arguments()))

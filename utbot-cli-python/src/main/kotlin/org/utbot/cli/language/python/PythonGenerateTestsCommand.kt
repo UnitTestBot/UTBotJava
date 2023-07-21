@@ -98,9 +98,9 @@ class PythonGenerateTestsCommand : CliktCommand(
         .choice(Pytest.toString(), Unittest.toString())
         .default(Unittest.toString())
 
-    private val runtimeExceptionTestsBehaviour by option("--runtime-exception-behaviour", help = "Passing or Failing")
-        .choice("Passing", "Failing")
-        .default("Failing")
+    private val runtimeExceptionTestsBehaviour by option("--runtime-exception-behaviour", help = "PASS or FAIL")
+        .choice("PASS", "FAIL")
+        .default("FAIL")
 
     private val testFramework: TestFramework
         get() =

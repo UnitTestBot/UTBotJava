@@ -89,7 +89,7 @@
           ]
         },
         {
-          "name": "fields",
+          "name": "field",
           "groups": [
             {
               "classes": "NoTestsProblem",
@@ -164,7 +164,7 @@
           ]
         },
         {
-          "name": "tuple",
+          "name": "tuples",
           "groups": [
             {
               "classes": null,
@@ -299,7 +299,7 @@
       "path": "samples/exceptions",
       "files": [
         {
-          "name": "exception_example",
+          "name": "exception_examples",
           "groups": [
             {
               "classes": null,
@@ -326,7 +326,7 @@
       ]
     },
     {
-      "path": "samples/imports/inner_pack_1",
+      "path": "samples/imports/pack_1/inner_pack_1",
       "files": [
         {
           "name": "inner_mod_1",
@@ -341,7 +341,7 @@
       ]
     },
     {
-      "path": "samples/imports/inner_pack_2",
+      "path": "samples/imports/pack_1/inner_pack_2",
       "files": [
         {
           "name": "inner_mod_2",
@@ -356,7 +356,7 @@
       ]
     },
     {
-      "path": "samples/imports/inner_pack_2",
+      "path": "samples/imports/pack_1/inner_pack_2",
       "files": [
         {
           "name": "inner_mod_2",

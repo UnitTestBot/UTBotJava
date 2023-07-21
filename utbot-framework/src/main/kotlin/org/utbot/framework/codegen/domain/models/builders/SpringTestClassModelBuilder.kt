@@ -98,8 +98,8 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
         return classModels
     }
 
-    private fun collectRecursively(currentModel: UtModel, allModels: MutableSet<UtModelWrapper>) {
-        val cgModel = with(context) { currentModel.wrap() }
+    private fun collectRecursively(currentModel: UtModel, allModels: MutableSet<UtModelWrapper>, modelTagName: String? = null) {
+        val cgModel = with(context) { currentModel.wrap(if(currentModel.isMockModel()) modelTagName else null) }
         if (!allModels.add(cgModel)) {
             return
         }
@@ -124,7 +124,9 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                 // Here we traverse fields only.
                 // Traversing mocks as well will result in wrong models playing
                 // a role of class fields with @Mock annotation.
-                currentModel.fields.values.forEach { collectRecursively(it, allModels) }
+                currentModel.fields.forEach { (key, value) ->
+                    collectRecursively(value, allModels, key.name)
+                }
             }
             is UtAssembleModel -> {
                 currentModel.origin?.let { collectRecursively(it, allModels) }

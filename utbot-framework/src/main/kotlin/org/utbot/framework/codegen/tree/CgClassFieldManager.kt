@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
-import java.util.*
+import java.util.Collections.max
 import kotlin.collections.HashMap
 
 sealed interface CgClassFieldManager : CgContextOwner {
@@ -92,7 +92,7 @@ class CgMockedFieldsManager(context: CgContext) : CgClassFieldManagerImpl(contex
             .groupByTo(HashMap()) { Pair(it.testSetId, it.executionId) }
 
         // maximal instances of one type amount in one execution
-        val instanceMaxCount = Collections.max(modelsByExecutions.map { (_, modelsList) -> modelsList.size })
+        val instanceMaxCount = max(modelsByExecutions.map { (_, modelsList) -> modelsList.size })
 
         // if [instanceCount] is 1, then we mock variable by @Mock annotation
         // Otherwise we will mock variable by simple mock later

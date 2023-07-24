@@ -9,7 +9,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -19,7 +20,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -29,7 +31,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         }
@@ -44,7 +47,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -65,7 +69,8 @@
             {
               "classes": ["Dictionary"],
               "methods": ["translate"],
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -75,7 +80,8 @@
             {
               "classes": ["B"],
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -85,7 +91,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -95,7 +102,8 @@
             {
               "classes": ["NoTestsProblem"],
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -105,7 +113,8 @@
             {
               "classes": ["Outer"],
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -115,7 +124,8 @@
             {
               "classes": ["A"],
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -125,7 +135,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         }
@@ -140,7 +151,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -150,7 +162,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -160,7 +173,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -170,7 +184,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -180,7 +195,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         }
@@ -195,7 +211,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -205,7 +222,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -215,7 +233,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         }
@@ -230,7 +249,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 90
+              "timeout": 90,
+              "coverage": 100
             }
           ]
         },
@@ -240,7 +260,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 20
+              "timeout": 20,
+              "coverage": 100
             }
           ]
         },
@@ -250,7 +271,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 150
+              "timeout": 150,
+              "coverage": 100
             }
           ]
         },
@@ -260,7 +282,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 20
+              "timeout": 20,
+              "coverage": 100
             }
           ]
         },
@@ -270,7 +293,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 20
+              "timeout": 20,
+              "coverage": 100
             }
           ]
         },
@@ -280,7 +304,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 300
+              "timeout": 300,
+              "coverage": 100
             }
           ]
         },
@@ -290,7 +315,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 20
+              "timeout": 20,
+              "coverage": 100
             }
           ]
         }
@@ -305,7 +331,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 180
+              "timeout": 180,
+              "coverage": 100
             }
           ]
         }
@@ -320,7 +347,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 180
+              "timeout": 180,
+              "coverage": 100
             }
           ]
         }
@@ -335,7 +363,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 180
+              "timeout": 180,
+              "coverage": 100
             }
           ]
         }
@@ -350,7 +379,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 20
+              "timeout": 20,
+              "coverage": 100
             }
           ]
         }
@@ -365,7 +395,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 20
+              "timeout": 20,
+              "coverage": 100
             }
           ]
         }
@@ -380,7 +411,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 30
+              "timeout": 30,
+              "coverage": 100
             }
           ]
         },
@@ -390,7 +422,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 80
+              "timeout": 80,
+              "coverage": 100
             }
           ]
         },
@@ -400,7 +433,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 40
+              "timeout": 40,
+              "coverage": 100
             }
           ]
         },
@@ -410,7 +444,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 40
+              "timeout": 40,
+              "coverage": 100
             }
           ]
         },
@@ -420,7 +455,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 160
+              "timeout": 160,
+              "coverage": 100
             }
           ]
         }
@@ -435,7 +471,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 150
+              "timeout": 150,
+              "coverage": 100
             }
           ]
         }
@@ -450,7 +487,8 @@
             {
               "classes": ["Graph"],
               "methods": null,
-              "timeout": 150
+              "timeout": 150,
+              "coverage": 100
             }
           ]
         },
@@ -460,7 +498,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 150
+              "timeout": 150,
+              "coverage": 100
             }
           ]
         },
@@ -470,7 +509,8 @@
             {
               "classes": ["Matrix"],
               "methods": null,
-              "timeout": 240
+              "timeout": 240,
+              "coverage": 100
             }
           ]
         }
@@ -485,7 +525,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 140
+              "timeout": 140,
+              "coverage": 100
             }
           ]
         },
@@ -495,7 +536,8 @@
             {
               "classes": ["A"],
               "methods": null,
-              "timeout": 40
+              "timeout": 40,
+              "coverage": 100
             }
           ]
         },
@@ -505,7 +547,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 120
+              "timeout": 120,
+              "coverage": 100
             }
           ]
         },
@@ -515,7 +558,8 @@
             {
               "classes": ["LoggedVar"],
               "methods": null,
-              "timeout": 30
+              "timeout": 30,
+              "coverage": 100
             }
           ]
         },
@@ -525,7 +569,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 30
+              "timeout": 30,
+              "coverage": 100
             }
           ]
         },
@@ -535,7 +580,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 30
+              "timeout": 30,
+              "coverage": 100
             }
           ]
         },
@@ -545,7 +591,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 90
+              "timeout": 90,
+              "coverage": 100
             }
           ]
         },
@@ -555,7 +602,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 40
+              "timeout": 40,
+              "coverage": 100
             }
           ]
         },
@@ -565,7 +613,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 40
+              "timeout": 40,
+              "coverage": 100
             }
           ]
         }

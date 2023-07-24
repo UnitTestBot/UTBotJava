@@ -1,6 +1,7 @@
 package org.utbot.fuzzing.providers
 
 import mu.KotlinLogging
+import org.utbot.common.isStatic
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
@@ -47,32 +48,31 @@ class ObjectValueProvider(
         type: FuzzedType
     ) = sequence {
         val classId = type.classId
-        val constructors = classId.allConstructors
-            .filter {
-                isAccessible(it.constructor, description.description.packageName)
-            }
-        constructors.forEach { constructorId ->
-            yield(createValue(classId, constructorId, description))
+        findAccessibleCreators(description, classId).forEach { creatorExecutableId ->
+            yield(createValue(classId, creatorExecutableId, description))
         }
     }
 
-    private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
+    private fun createValue(classId: ClassId, creatorExecutableId: ExecutableId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
         return Seed.Recursive(
-            construct = Routine.Create(constructorId.executable.genericParameterTypes.map {
+            construct = Routine.Create(creatorExecutableId.executable.genericParameterTypes.map {
                 toFuzzerType(it, description.typeCache)
             }) { values ->
                 val id = idGenerator.createId()
                 UtAssembleModel(
                     id = id,
                     classId = classId,
-                    modelName = "${constructorId.classId.name}${constructorId.parameters}#" + id.hex(),
+                    modelName = "${creatorExecutableId.classId.name}.${creatorExecutableId.signature}#" + id.hex(),
                     instantiationCall = UtExecutableCallModel(
                         null,
-                        constructorId,
+                        creatorExecutableId,
                         values.map { it.model }),
                     modificationsChainProvider = { mutableListOf() }
                 ).fuzzed {
-                    summary = "%var% = ${classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
+                    summary = "%var% = ${when (creatorExecutableId) {
+                        is ConstructorId -> classId.simpleName
+                        is MethodId -> creatorExecutableId.simpleNameWithClass
+                    }}(${creatorExecutableId.parameters.joinToString { it.simpleName }})"
                 }
             },
             modify = sequence {
@@ -164,12 +164,7 @@ class AbstractsObjectValueProvider(
                 }
                 val jClass = sc.id.jClass
                 return isAccessible(jClass, description.description.packageName) &&
-                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) } &&
-                        jClass.let {
-                            // This won't work in case of implementations with generics like `Impl<T> implements A<T>`.
-                            // Should be reworked with accurate generic matching between all classes.
-                            toFuzzerType(it, description.typeCache).traverseHierarchy(description.typeCache).contains(type)
-                        }
+                        findAccessibleCreators(description, jClass.id).any()
             } catch (ignore: Throwable) {
                 return false
             }
@@ -190,6 +185,12 @@ class AbstractsObjectValueProvider(
         }
     }
 }
+
+private fun findAccessibleCreators(description: FuzzedDescription, classId: ClassId): Sequence<ExecutableId> =
+    (classId.allConstructors + (classId.jClass.methods
+                .filter { it.isStatic && it.returnType.id.isSubtypeOf(classId) }
+                .map { it.executableId })
+    ).filter { isAccessible(it.executable, description.description.packageName) }
 
 internal class PublicSetterGetter(
     val setter: Method,

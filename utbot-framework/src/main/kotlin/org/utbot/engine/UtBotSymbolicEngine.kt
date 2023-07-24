@@ -537,7 +537,7 @@ class UtBotSymbolicEngine(
 
             emit(
                 UtFuzzedExecution(
-                    stateBefore = stateBefore,
+                    stateBefore = concreteExecutionResult.stateBefore,
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
                     coverage = concreteExecutionResult.coverage,

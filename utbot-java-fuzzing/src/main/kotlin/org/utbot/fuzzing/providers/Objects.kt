@@ -106,7 +106,7 @@ class ObjectValueProvider(
                         model.modificationsChain as MutableList +=
                             UtExecutableCallModel(
                                 model,
-                                md.executableId,
+                                md.executable,
                                 values.map { it.model }
                             )
                     })
@@ -232,9 +232,8 @@ internal class FieldDescription(
 
 internal class MethodDescription(
     val name: String,
-//    val returnType: FuzzedType,
     val parameterTypes: List<FuzzedType>,
-    val executableId: ExecutableId
+    val executable: ExecutableId
 )
 
 internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
@@ -262,27 +261,28 @@ internal fun findAllPublicMethods(
     description: FuzzedDescription?,
     classId: ClassId,
     packageName: String?
-): List<MethodDescription> {
-    return classId.jClass.declaredMethods.mapNotNull { method ->
+): List<MethodDescription> =
+    classId.jClass.declaredMethods.mapNotNull { method ->
         if (isAccessible(method, packageName)) {
             val parameterTypes =
                 method
                     .parameterTypes
                     .map {
-                        if (description != null) toFuzzerType(
-                            it,
-                            description.typeCache
-                        ) else FuzzedType(method.returnType.id)
+                        if (description != null) {
+                            toFuzzerType(
+                                it,
+                                description.typeCache
+                            )
+                        } else FuzzedType(it.id)
                     }
 
             MethodDescription(
                 name = method.name,
                 parameterTypes = parameterTypes,
-                executableId = method.executableId
+                executable = method.executableId
             )
         } else null
     }
-}
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {
     @Suppress("DEPRECATION") val postfixName = field.name.capitalize()

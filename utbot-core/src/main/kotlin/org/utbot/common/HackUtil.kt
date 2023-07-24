@@ -76,4 +76,10 @@ enum class WorkaroundReason {
      * construct `toArray` invocation (because streams cannot be consumed twice).
      */
     CONSUME_DIRTY_STREAMS,
+
+    /**
+     * During analyzing Spring projects, we process all static initializers in enums concretely because they are used
+     * very widely and are too big and complicated.
+     */
+    PROCESS_CONCRETELY_STATIC_INITIALIZERS_IN_ENUMS_FOR_SPRING
 }

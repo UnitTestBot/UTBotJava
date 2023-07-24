@@ -106,7 +106,6 @@ import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.SECURITY_FIELD_SIGNATURE
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
-import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.util.statics.concrete.makeEnumNonStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
@@ -118,6 +117,7 @@ import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.isFromTrustedLibrary
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.NonNullSpeculator
+import org.utbot.framework.context.StaticInitializerConcreteProcessor
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -243,6 +243,7 @@ class Traverser(
     private val mocker: Mocker,
     private val typeReplacer: TypeReplacer,
     private val nonNullSpeculator: NonNullSpeculator,
+    private val staticInitializerConcreteProcessor: StaticInitializerConcreteProcessor,
     private val taintContext: TaintContext,
 ) : UtContextInitializer() {
 
@@ -498,7 +499,7 @@ class Traverser(
         // This order of processing options is important.
         // First, we should process classes that
         // cannot be analyzed without clinit sections, e.g., enums
-        if (shouldProcessStaticFieldConcretely(fieldRef)) {
+        if (staticInitializerConcreteProcessor.shouldProcessStaticFieldConcretely(fieldRef, typeResolver)) {
             return processStaticFieldConcretely(fieldRef, stmt)
         }
 
@@ -543,52 +544,6 @@ class Traverser(
         }
         return true
     }
-
-    /**
-     * Decides should we read this static field concretely or not.
-     */
-    private fun shouldProcessStaticFieldConcretely(fieldRef: StaticFieldRef): Boolean {
-        workaround(HACK) {
-            val className = fieldRef.field.declaringClass.name
-
-            // We should process clinit sections for classes from these packages.
-            // Note that this list is not exhaustive, so it may be supplemented in the future.
-            val packagesToProcessConcretely = javaPackagesToProcessConcretely + sunPackagesToProcessConcretely
-
-            val declaringClass = fieldRef.field.declaringClass
-
-            val isFromPackageToProcessConcretely = packagesToProcessConcretely.any { className.startsWith(it) }
-                    // it is required to remove classes we override, since
-                    // we could accidentally initialize their final fields
-                    // with values that will later affect our overridden classes
-                    && fieldRef.field.declaringClass.type !in classToWrapper.keys
-                    // because of the same reason we should not use
-                    // concrete information from clinit sections for enums
-                    && !fieldRef.field.declaringClass.isEnum
-                    //hardcoded string for class name is used cause class is not public
-                    //this is a hack to avoid crashing on code with Math.random()
-                    && !className.endsWith("RandomNumberGeneratorHolder")
-
-            // we can process concretely only enums that does not affect the external system
-            val isEnumNotAffectingExternalStatics = declaringClass.let {
-                it.isEnum && !it.isEnumAffectingExternalStatics(typeResolver)
-            }
-
-            return isEnumNotAffectingExternalStatics || isFromPackageToProcessConcretely
-        }
-    }
-
-    private val javaPackagesToProcessConcretely = listOf(
-        "applet", "awt", "beans", "io", "lang", "math", "net",
-        "nio", "rmi", "security", "sql", "text", "time", "util"
-    ).map { "java.$it" }
-
-    private val sunPackagesToProcessConcretely = listOf(
-        "applet", "audio", "awt", "corba", "font", "instrument",
-        "invoke", "io", "java2d", "launcher", "management", "misc",
-        "net", "nio", "print", "reflect", "rmi", "security",
-        "swing", "text", "tools.jar", "tracing", "util"
-    ).map { "sun.$it" }
 
     /**
      * Checks if field was processed (read) already.

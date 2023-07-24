@@ -176,6 +176,7 @@ class UtBotSymbolicEngine(
         mocker,
         applicationContext.typeReplacer,
         applicationContext.nonNullSpeculator,
+        applicationContext.staticInitializerConcreteProcessor,
         taintContext,
     )
 

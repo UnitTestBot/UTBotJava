@@ -52,9 +52,10 @@
           "name": "dataclass",
           "groups": [
             {
-              "classes": "C",
-              "methods": "inc",
-              "timeout": 10
+              "classes": ["C"],
+              "methods": ["inc"],
+              "timeout": 10,
+              "coverage": 100
             }
           ]
         },
@@ -62,8 +63,8 @@
           "name": "dicts",
           "groups": [
             {
-              "classes": "Dictionary",
-              "methods": "translate",
+              "classes": ["Dictionary"],
+              "methods": ["translate"],
               "timeout": 10
             }
           ]
@@ -72,7 +73,7 @@
           "name": "easy_class",
           "groups": [
             {
-              "classes": "B",
+              "classes": ["B"],
               "methods": null,
               "timeout": 10
             }
@@ -92,7 +93,7 @@
           "name": "field",
           "groups": [
             {
-              "classes": "NoTestsProblem",
+              "classes": ["NoTestsProblem"],
               "methods": null,
               "timeout": 10
             }
@@ -102,7 +103,7 @@
           "name": "inner_class",
           "groups": [
             {
-              "classes": "Outer",
+              "classes": ["Outer"],
               "methods": null,
               "timeout": 10
             }
@@ -112,7 +113,7 @@
           "name": "rename_self",
           "groups": [
             {
-              "classes": "A",
+              "classes": ["A"],
               "methods": null,
               "timeout": 10
             }
@@ -447,7 +448,7 @@
           "name": "boruvka",
           "groups": [
             {
-              "classes": "Graph",
+              "classes": ["Graph"],
               "methods": null,
               "timeout": 150
             }
@@ -467,7 +468,7 @@
           "name": "matrix",
           "groups": [
             {
-              "classes": "Matrix",
+              "classes": ["Matrix"],
               "methods": null,
               "timeout": 240
             }
@@ -492,7 +493,7 @@
           "name": "annotations2",
           "groups": [
             {
-              "classes": "A",
+              "classes": ["A"],
               "methods": null,
               "timeout": 40
             }
@@ -512,7 +513,7 @@
           "name": "generics",
           "groups": [
             {
-              "classes": "LoggedVar",
+              "classes": ["LoggedVar"],
               "methods": null,
               "timeout": 30
             }

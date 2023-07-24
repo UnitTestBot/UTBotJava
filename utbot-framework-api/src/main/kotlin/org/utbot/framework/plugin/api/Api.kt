@@ -1320,7 +1320,12 @@ enum class TypeReplacementMode {
 }
 
 sealed class SpringConfiguration(val fullDisplayName: String) {
-    class JavaConfiguration(val classBinaryName: String) : SpringConfiguration(classBinaryName)
+    abstract class JavaBasedConfiguration(open val configBinaryName: String) : SpringConfiguration(configBinaryName)
+
+    class JavaConfiguration(override val configBinaryName: String) : JavaBasedConfiguration(configBinaryName)
+
+    class SpringBootConfiguration(override val configBinaryName: String, val isUnique: Boolean): JavaBasedConfiguration(configBinaryName)
+
     class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)
 }
 

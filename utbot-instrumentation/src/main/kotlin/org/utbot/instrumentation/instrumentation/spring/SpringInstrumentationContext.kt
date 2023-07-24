@@ -26,7 +26,7 @@ class SpringInstrumentationContext(
                 //  so we expect JavaConfigurations only.
                 //  After fix rewrite the following.
                 classLoader.loadClass(
-                    (springSettings.configuration as? JavaConfiguration)?.classBinaryName
+                    (springSettings.configuration as? JavaBasedConfiguration)?.configBinaryName
                         ?: error("JavaConfiguration was expected, but ${springSettings.configuration.javaClass.name} was provided.")
                 )
             ),

@@ -103,6 +103,11 @@ class CgSpringIntegrationTestClassConstructor(
     )
 
     private fun addNecessarySpringSpecificAnnotations() {
+        val isSpringBootTestAccessible = utContext.classLoader.tryLoadClass(springBootTestClassId.name) != null
+        if (isSpringBootTestAccessible) {
+            addAnnotation(springBootTestClassId, Class)
+        }
+
         val (testFrameworkExtension, springExtension) = when (testFramework) {
             Junit4 -> runWithClassId to springRunnerClassId
             Junit5 -> extendWithClassId to springExtensionClassId
@@ -110,11 +115,14 @@ class CgSpringIntegrationTestClassConstructor(
             else -> error("Trying to generate tests for Spring project with non-JVM framework")
         }
 
-        addAnnotation(
-            classId = testFrameworkExtension,
-            argument = createGetClassExpression(springExtension, codegenLanguage),
-            target = Class,
-        )
+        // @SpringBootTest contains @ExtendWith(SpringExtension.class), no need to add it manually
+        if (!isSpringBootTestAccessible || testFrameworkExtension != extendWithClassId) {
+            addAnnotation(
+                classId = testFrameworkExtension,
+                argument = createGetClassExpression(springExtension, codegenLanguage),
+                target = Class,
+            )
+        }
 
         if (utContext.classLoader.tryLoadClass(springBootTestContextBootstrapperClassId.name) != null)
             // TODO in somewhat new versions of Spring Boot, @SpringBootTest
@@ -126,49 +134,44 @@ class CgSpringIntegrationTestClassConstructor(
                 target = Class,
             )
 
-        if (utContext.classLoader.tryLoadClass(springBootTestClassId.name) != null)
-            addAnnotation(springBootTestClassId, Class)
-
-        // TODO avoid adding @ActiveProfiles(profiles = {"default"}) to reduce number of annotations
-        addAnnotation(
-            classId = activeProfilesClassId,
-            namedArguments =
-            listOf(
-                CgNamedAnnotationArgument(
-                    name = "profiles",
-                    value =
-                    CgArrayAnnotationArgument(
-                        springSettings.profiles.map { profile ->
-                            profile.resolve()
-                        }
+        val defaultProfileIsUsed = springSettings.profiles.singleOrNull() == "default"
+        if (!defaultProfileIsUsed) {
+            addAnnotation(
+                classId = activeProfilesClassId,
+                namedArguments = listOf(
+                    CgNamedAnnotationArgument(
+                        name = "profiles",
+                        value = CgArrayAnnotationArgument(springSettings.profiles.map { profile -> profile.resolve() })
                     )
-                )
-            ),
-            target = Class,
-        )
+                ),
+                target = Class,
+            )
+        }
 
-        // TODO avoid adding @ContextConfiguration(classes = {$defaultBootConfigClass}) to reduce number of annotations
-        addAnnotation(
-            classId = contextConfigurationClassId,
-            namedArguments =
-            listOf(
-                CgNamedAnnotationArgument(
-                    name = "classes",
-                    value = CgArrayAnnotationArgument(
-                        listOf(
-                            createGetClassExpression(
-                                // TODO:
-                                //  For now we support only JavaConfigurations in integration tests.
-                                //  Adapt for XMLConfigurations when supported.
-                                ClassId((springSettings.configuration as JavaConfiguration).classBinaryName),
-                                codegenLanguage
+        val configClass = springSettings.configuration as JavaBasedConfiguration
+        if (configClass is JavaConfiguration || configClass is SpringBootConfiguration && !configClass.isUnique) {
+            addAnnotation(
+                classId = contextConfigurationClassId,
+                namedArguments = listOf(
+                    CgNamedAnnotationArgument(
+                        name = "classes",
+                        value = CgArrayAnnotationArgument(
+                            listOf(
+                                createGetClassExpression(
+                                    // TODO: we support only JavaConfigurations in integration tests.
+                                    //  Adapt for XMLConfigurations when supported.
+                                    ClassId((springSettings.configuration as JavaConfiguration).configBinaryName),
+                                    codegenLanguage
+                                )
                             )
                         )
                     )
-                )
-            ),
-            target = Class,
-        )
+                ),
+                target = Class,
+            )
+        }
+
+
         addAnnotation(
             classId = dirtiesContextClassId,
             namedArguments = listOf(

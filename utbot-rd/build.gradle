@@ -257,30 +257,33 @@ task generateCommonModels(type: RdGenTask) {
     }
 }
 
-task generateSpringModels(type: RdGenTask) {
-    def currentProjectDir = project.projectDir
-    def ideaPluginProjectDir = project.rootProject.childProjects["utbot-spring-analyzer"].projectDir
-    def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/spring/generated")
-    def hashDir = generatedOutputDir
-    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
-    def rdParams = extensions.getByName("params") as RdGenExtension
+if (projectType == springEdition || projectType == ultimateEdition) {
+    task generateSpringModels(type: RdGenTask) {
+        def currentProjectDir = project.projectDir
+        def ideaPluginProjectDir = project.rootProject.childProjects["utbot-spring-analyzer"].projectDir
+        def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/spring/generated")
+        def hashDir = generatedOutputDir
+        def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+        def rdParams = extensions.getByName("params") as RdGenExtension
 
-    group = "rdgen"
-    rdParams.verbose = true
-    rdParams.sources(sourcesDir)
-    rdParams.hashFolder = hashDir.canonicalPath
-    // where to search roots
-    rdParams.packages = "org.utbot.rd.models"
+        group = "rdgen"
+        rdParams.verbose = true
+        rdParams.sources(sourcesDir)
+        rdParams.hashFolder = hashDir.canonicalPath
+        // where to search roots
+        rdParams.packages = "org.utbot.rd.models"
 
-    rdParams.generator {
-        language = "kotlin"
-        transform = "symmetric"
-        root = "org.utbot.rd.models.SpringAnalyzerRoot"
+        rdParams.generator {
+            language = "kotlin"
+            transform = "symmetric"
+            root = "org.utbot.rd.models.SpringAnalyzerRoot"
 
-        directory = generatedOutputDir.canonicalPath
-        namespace = "org.utbot.spring.generated"
+            directory = generatedOutputDir.canonicalPath
+            namespace = "org.utbot.spring.generated"
+        }
     }
 }
+
 
 task generateCSharpModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir

@@ -100,6 +100,17 @@ class ObjectValueProvider(
                         }
                     }
                 }
+                findAllPublicMethods(description, classId, description.description.packageName).forEach { md ->
+                    yield(Routine.Call(md.parameterTypes) { self, values ->
+                        val model = self.model as UtAssembleModel
+                        model.modificationsChain as MutableList +=
+                            UtExecutableCallModel(
+                                model,
+                                md.executableId,
+                                values.map { it.model }
+                            )
+                    })
+                }
             },
             empty = nullRoutine(classId)
         )
@@ -219,6 +230,13 @@ internal class FieldDescription(
     val getter: Method?
 )
 
+internal class MethodDescription(
+    val name: String,
+//    val returnType: FuzzedType,
+    val parameterTypes: List<FuzzedType>,
+    val executableId: ExecutableId
+)
+
 internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
     return generateSequence(classId.jClass) { it.superclass }.flatMap { jClass ->
         jClass.declaredFields.map { field ->
@@ -238,6 +256,32 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
             )
         }
     }.toList()
+}
+
+internal fun findAllPublicMethods(
+    description: FuzzedDescription?,
+    classId: ClassId,
+    packageName: String?
+): List<MethodDescription> {
+    return classId.jClass.declaredMethods.mapNotNull { method ->
+        if (isAccessible(method, packageName)) {
+            val parameterTypes =
+                method
+                    .parameterTypes
+                    .map {
+                        if (description != null) toFuzzerType(
+                            it,
+                            description.typeCache
+                        ) else FuzzedType(method.returnType.id)
+                    }
+
+            MethodDescription(
+                name = method.name,
+                parameterTypes = parameterTypes,
+                executableId = method.executableId
+            )
+        } else null
+    }
 }
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {

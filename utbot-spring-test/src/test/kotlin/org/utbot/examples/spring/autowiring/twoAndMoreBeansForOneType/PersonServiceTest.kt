@@ -2,10 +2,7 @@ package org.utbot.examples.spring.autowiring.twoAndMoreBeansForOneType
 
 import org.junit.jupiter.api.Test
 import org.utbot.examples.spring.autowiring.SpringNoConfigUtValueTestCaseChecker
-import org.utbot.examples.spring.utils.namePersonCall
-import org.utbot.examples.spring.utils.agePersonCall
-import org.utbot.examples.spring.utils.springAdditionalDependencies
-import org.utbot.examples.spring.utils.springMockStrategy
+import org.utbot.examples.spring.utils.*
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.testcheckers.eq
 import org.utbot.testing.*
@@ -24,26 +21,37 @@ class PersonServiceTest : SpringNoConfigUtValueTestCaseChecker(
     fun testJoin() {
         checkThisMocksAndExceptions(
             method = PersonService::joinInfo,
-            branches = eq(2),
-            { thisInstance, mocks, r ->
-                val personOne = mocks.singleMock("personOne", namePersonCall)
+            branches = eq(3),
+            { _, mocks, r ->
+                val personOne = mocks.singleMock("personOne", weightPersonCall)
+
+                val personOneWeight = personOne.value<Int?>()
+
+                val r1 = personOneWeight == null
+
+                r1 && r.isException<NullPointerException>()
+            },
+            { _, mocks, r ->
+                val personOne = mocks.singleMock("personOne", weightPersonCall)
                 val personTwo = mocks.singleMock("personTwo", agePersonCall)
 
-                val personOneName = personOne.value<String?>()
-                val personTwoAge = personTwo.value<Int?>().toString()
+                val personOneWeight = personOne.value<Int?>()
+                val personTwoAge = personTwo.value<Int?>()
 
-                personOneName + personTwoAge + thisInstance.baseOrders.size == r.getOrNull()
+                val r1 = personOneWeight != null
+                val r2 = personTwoAge == null
+
+                r1 && r2 && r.isException<NullPointerException>()
             },
             { thisInstance, mocks, r ->
-                val personOne = mocks.singleMock("personOne", namePersonCall)
+                val personOne = mocks.singleMock("personOne", weightPersonCall)
                 val personTwo = mocks.singleMock("personTwo", agePersonCall)
 
-                //Test conditions
-                val r1 = (personOne != null)
-                val r2 = (personTwo != null)
-                val r3 = thisInstance.baseOrders == null
+                val personOneWeight = personOne.value<Int?>()!!
+                val personTwoAge = personTwo.value<Int?>()!!
+                val baseOrders = thisInstance.baseOrders!!
 
-                r1 && r2 && r3 && r.isException<NullPointerException>()
+                personOneWeight + personTwoAge + baseOrders.size == r.getOrNull()
             },
             coverage = DoNotCalculate,
             mockStrategy = springMockStrategy,

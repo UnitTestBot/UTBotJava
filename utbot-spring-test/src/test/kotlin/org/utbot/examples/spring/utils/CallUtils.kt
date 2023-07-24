@@ -24,11 +24,11 @@ val saveRepositoryCall: KFunction2<OrderRepository, Order?, Order?> =
 
 
 @Suppress("UNCHECKED_CAST")
-val namePersonCall: KFunction1<Person, String?> =
+val weightPersonCall: KFunction1<Person, Int?> =
     Person::class
         .functions
-        .single { it.name == "getName" && it.parameters.size == 1 }
-            as KFunction1<Person, String?>
+        .single { it.name == "getWeight" && it.parameters.size == 1 }
+            as KFunction1<Person, Int?>
 
 @Suppress("UNCHECKED_CAST")
 val agePersonCall: KFunction1<Person, Int?> =

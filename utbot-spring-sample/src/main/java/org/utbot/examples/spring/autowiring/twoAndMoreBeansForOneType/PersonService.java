@@ -14,7 +14,7 @@ public class PersonService {
     @Autowired
     private Person personTwo;
 
-    public List<String> baseOrders = new ArrayList<>();
+    public final List<String> baseOrders = new ArrayList<>();
 
     // a method for testing the case when the Engine reproduces one model on @Autowired variables of the same type
     public Integer ageSum(){
@@ -22,7 +22,7 @@ public class PersonService {
     }
 
     // a method for testing the case when the Engine reproduces two models on @Autowired variables of the same type
-    public String joinInfo(){
-        return personOne.getName() + personTwo.getAge() + baseOrders.size();
+    public Integer joinInfo(){
+        return personOne.getWeight() + personTwo.getAge() + baseOrders.size();
     }
 }

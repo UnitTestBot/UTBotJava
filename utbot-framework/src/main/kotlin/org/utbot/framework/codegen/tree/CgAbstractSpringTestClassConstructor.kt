@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
@@ -124,8 +125,17 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
 
             modelWrappers
                 .forEach { modelWrapper ->
-                    valueByUtModelWrapper[modelWrapper] = createdVariable
-                    variableConstructor.annotatedModelGroups.getOrPut(annotationClassId) { mutableSetOf() } += modelWrapper
+                    val modelWrapperWithEmptyTagName = UtModelWrapper(
+                        testSetId = modelWrapper.testSetId,
+                        executionId = modelWrapper.executionId,
+                        model = modelWrapper.model,
+                        modelTagName = null,
+                    )
+
+                    valueByUtModelWrapper[modelWrapperWithEmptyTagName] = createdVariable
+
+                    variableConstructor.annotatedModelGroups
+                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapperWithEmptyTagName
                 }
         }
 

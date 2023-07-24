@@ -6,10 +6,13 @@ public class Person {
 
     private Integer age;
 
-    public Person(String firstName, String secondName, Integer age) {
+    private Integer weight;
+
+    public Person(String firstName, String secondName, Integer age, Integer weight) {
         this.firstName = firstName;
         this.lastName = secondName;
         this.age = age;
+        this.weight = weight;
     }
 
     public Integer getAge(){
@@ -18,5 +21,9 @@ public class Person {
 
     public String getName() {
         return firstName + " " + lastName;
+    }
+
+    public Integer getWeight() {
+        return weight;
     }
 }

@@ -48,6 +48,7 @@ import org.utbot.instrumentation.instrumentation.execution.mock.MockController
 import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Modifier
 import java.util.*
+import org.utbot.framework.plugin.api.util.id
 import kotlin.reflect.KClass
 
 /**
@@ -325,7 +326,7 @@ class InstrumentationContextAwareValueConstructor(
         constructedObjects[assembleModel]?.let { return it }
 
         val instantiationExecutableCall = assembleModel.instantiationCall
-        val result = updateWithStatementCallModel(instantiationExecutableCall)
+        val result = updateWithStatementCallModel(instantiationExecutableCall).getOrThrow()
 
         // Executions that get `null` in a complicated way (e.g. like this: `new Pair(null, null).getFirst()`)
         // are only produced by fuzzer and are considered undesirable because fuzzer can also produce simpler
@@ -385,26 +386,34 @@ class InstrumentationContextAwareValueConstructor(
      *
      * @return the result of [callModel] invocation
      */
-    private fun updateWithStatementCallModel(callModel: UtStatementCallModel): Any? {
-        when (callModel) {
-            is UtExecutableCallModel -> {
-                val executable = callModel.executable
-                val instanceValue = callModel.instance?.let { value(it) }
-                val params = callModel.params.map { value(it) }
+    private fun updateWithStatementCallModel(callModel: UtStatementCallModel): Result<*> =
+        runCatching {
+            when (callModel) {
+                is UtExecutableCallModel -> {
+                    val executable = callModel.executable
+                    val instanceValue = callModel.instance?.let { value(it) }
+                    val params = callModel.params.map { value(it) }
 
-                return when (executable) {
-                    is MethodId -> executable.call(params, instanceValue)
-                    is ConstructorId -> executable.call(params)
+                    when (executable) {
+                        is MethodId -> executable.call(params, instanceValue)
+                        is ConstructorId -> executable.call(params)
+                    }
+                }
+
+                is UtDirectGetFieldModel -> {
+                    val fieldAccess = callModel.fieldAccess
+                    val instanceValue = value(callModel.instance)
+
+                    fieldAccess.get(instanceValue)
                 }
             }
-            is UtDirectGetFieldModel -> {
-                val fieldAccess = callModel.fieldAccess
-                val instanceValue = value(callModel.instance)
-
-                return fieldAccess.get(instanceValue)
-            }
         }
-    }
+            .also { result ->
+                result
+                    .exceptionOrNull()
+                    ?.let { callModel.thrownConcreteException = it.javaClass.id }
+            }
+
 
     /**
      * Updates instance with [UtDirectSetFieldModel] execution.

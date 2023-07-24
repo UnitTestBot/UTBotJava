@@ -27,7 +27,7 @@ class ModelConstructionPhase(
         return when (e) {
             is TimeoutException -> ExecutionPhaseStop(
                 message,
-                UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage())
+                UtConcreteExecutionResult(MissingState, MissingState, UtTimeoutException(e), Coverage())
             )
 
             else -> ExecutionPhaseError(message, e)

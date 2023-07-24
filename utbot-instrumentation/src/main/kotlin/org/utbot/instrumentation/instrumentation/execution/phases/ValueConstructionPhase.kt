@@ -27,6 +27,7 @@ class ValueConstructionPhase(
     override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseStop(
         phase = this.javaClass.simpleName,
         result = UtConcreteExecutionResult(
+            stateBefore = MissingState,
             stateAfter = MissingState,
             result = when(e) {
                 is TimeoutException -> UtTimeoutException(e)

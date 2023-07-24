@@ -49,6 +49,7 @@ class PhasesController(
             if (e.cause.cause is AccessControlException) {
                 return UtConcreteExecutionResult(
                     MissingState,
+                    MissingState,
                     UtSandboxFailure(e.cause.cause!!),
                     Coverage()
                 )

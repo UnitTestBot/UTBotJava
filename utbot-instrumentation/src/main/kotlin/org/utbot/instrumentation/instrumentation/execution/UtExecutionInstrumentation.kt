@@ -23,6 +23,7 @@ data class UtConcreteExecutionData(
 )
 
 data class UtConcreteExecutionResult(
+    val stateBefore: EnvironmentModels,
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
     val coverage: Coverage,

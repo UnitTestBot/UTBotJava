@@ -826,6 +826,7 @@ sealed class UtStatementCallModel(
     override val instance: UtReferenceModel?,
     open val statement: StatementId,
     open val params: List<UtModel>,
+    var thrownConcreteException: ClassId? = null
 ): UtStatementModel(instance) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {

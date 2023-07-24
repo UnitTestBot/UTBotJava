@@ -22,6 +22,7 @@ private fun UtConcreteExecutionResult.updateWithAssembleModels(
         (result as? UtExecutionSuccess)?.model?.let { UtExecutionSuccess(toAssemble(it)) } ?: result
 
     return UtConcreteExecutionResult(
+        stateBefore,
         resolvedStateAfter,
         resolvedResult,
         coverage,

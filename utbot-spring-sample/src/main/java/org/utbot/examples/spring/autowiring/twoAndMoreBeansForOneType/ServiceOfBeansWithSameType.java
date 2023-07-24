@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class PersonService {
+public class ServiceOfBeansWithSameType {
     @Autowired
     private Person personOne;
 
@@ -16,12 +16,12 @@ public class PersonService {
 
     public final List<String> baseOrders = new ArrayList<>();
 
-    // a method for testing the case when the Engine reproduces one model on @Autowired variables of the same type
+    // a method for testing the case when the Engine produces one model on @Autowired variables of the same type
     public Integer ageSum(){
         return personOne.getAge() + personTwo.getAge();
     }
 
-    // a method for testing the case when the Engine reproduces two models on @Autowired variables of the same type
+    // a method for testing the case when the Engine produces two models on @Autowired variables of the same type
     public Integer joinInfo(){
         return personOne.getWeight() + personTwo.getAge() + baseOrders.size();
     }

@@ -7,10 +7,9 @@ import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.testcheckers.eq
 import org.utbot.testing.*
 
-class PersonServiceTest : SpringNoConfigUtValueTestCaseChecker(
-    testClass = PersonService::class,
+class ServiceOfBeansWithSameTypeTest : SpringNoConfigUtValueTestCaseChecker(
+    testClass = ServiceOfBeansWithSameType::class,
 ) {
-
 
     /**
      *  In this test, we check the case when the Engine reproduces two models on two @Autowired variables of the same type.
@@ -20,16 +19,16 @@ class PersonServiceTest : SpringNoConfigUtValueTestCaseChecker(
     @Test
     fun testJoin() {
         checkThisMocksAndExceptions(
-            method = PersonService::joinInfo,
+            method = ServiceOfBeansWithSameType::joinInfo,
             branches = eq(3),
             { _, mocks, r ->
                 val personOne = mocks.singleMock("personOne", weightPersonCall)
 
                 val personOneWeight = personOne.value<Int?>()
 
-                val r1 = personOneWeight == null
+                val isPersonOneWeightNull = personOneWeight == null
 
-                r1 && r.isException<NullPointerException>()
+                isPersonOneWeightNull && r.isException<NullPointerException>()
             },
             { _, mocks, r ->
                 val personOne = mocks.singleMock("personOne", weightPersonCall)
@@ -38,10 +37,10 @@ class PersonServiceTest : SpringNoConfigUtValueTestCaseChecker(
                 val personOneWeight = personOne.value<Int?>()
                 val personTwoAge = personTwo.value<Int?>()
 
-                val r1 = personOneWeight != null
-                val r2 = personTwoAge == null
+                val isPersonOneWeightNotNull = personOneWeight != null
+                val isPersonTwoAgeNull = personTwoAge == null
 
-                r1 && r2 && r.isException<NullPointerException>()
+                isPersonOneWeightNotNull && isPersonTwoAgeNull && r.isException<NullPointerException>()
             },
             { thisInstance, mocks, r ->
                 val personOne = mocks.singleMock("personOne", weightPersonCall)
@@ -59,7 +58,6 @@ class PersonServiceTest : SpringNoConfigUtValueTestCaseChecker(
         )
     }
 
-
     /**
      *  In this test, we check the case when the Engine reproduces one model on two @Autowired variables of the same type.
      *
@@ -68,7 +66,7 @@ class PersonServiceTest : SpringNoConfigUtValueTestCaseChecker(
     @Test
     fun testAgeSum(){
         checkThisMocksAndExceptions(
-            method = PersonService::ageSum,
+            method = ServiceOfBeansWithSameType::ageSum,
             branches = ignoreExecutionsNumber,
             { _, mocks, r ->
                 val personOne = mocks.singleMock("personOne", agePersonCall)
@@ -102,5 +100,4 @@ class PersonServiceTest : SpringNoConfigUtValueTestCaseChecker(
             additionalDependencies = springAdditionalDependencies,
         )
     }
-
 }

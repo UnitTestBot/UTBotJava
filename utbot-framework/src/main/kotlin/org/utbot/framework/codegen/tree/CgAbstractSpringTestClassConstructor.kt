@@ -125,17 +125,18 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
 
             modelWrappers
                 .forEach { modelWrapper ->
-                    val modelWrapperWithEmptyTagName = UtModelWrapper(
+
+                    val modelWrapperWithNullTagName = UtModelWrapper(
                         testSetId = modelWrapper.testSetId,
                         executionId = modelWrapper.executionId,
                         model = modelWrapper.model,
                         modelTagName = null,
                     )
 
-                    valueByUtModelWrapper[modelWrapperWithEmptyTagName] = createdVariable
+                    valueByUtModelWrapper[modelWrapperWithNullTagName] = createdVariable
 
                     variableConstructor.annotatedModelGroups
-                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapperWithEmptyTagName
+                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapperWithNullTagName
                 }
         }
 

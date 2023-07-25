@@ -297,53 +297,56 @@ class PythonEngine(
                 Random(0),
             )
 
-            if (parameters.isEmpty()) {
-                val result = fuzzingResultHandler(pmd, emptyList(), parameters, manager)
-                result?.let {
-                    emit(it.fuzzingExecutionFeedback)
+            try {
+                if (parameters.isEmpty()) {
+                    val result = fuzzingResultHandler(pmd, emptyList(), parameters, manager)
+                    result?.let {
+                        emit(it.fuzzingExecutionFeedback)
+                    }
+                } else {
+                    try {
+                        PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
+                            if (isCancelled()) {
+                                logger.info { "Fuzzing process was interrupted" }
+                                manager.disconnect()
+                                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                            }
+                            if (System.currentTimeMillis() >= until) {
+                                logger.info { "Fuzzing process was interrupted by timeout" }
+                                manager.disconnect()
+                                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                            }
+
+                            if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
+                                logger.debug("FakeNode in Python model")
+                                emit(FakeNodeFeedback)
+                                return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+                            }
+
+                            val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
+                            val mem = cache.get(pair)
+                            if (mem != null) {
+                                logger.debug("Repeat in fuzzing")
+                                emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
+                                return@PythonFuzzing mem.fuzzingPlatformFeedback
+                            }
+                            val result = fuzzingResultHandler(description, arguments, parameters, manager)
+                            if (result == null) {  // timeout
+                                manager.disconnect()
+                                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                            }
+
+                            cache.add(pair, result)
+                            emit(result.fuzzingExecutionFeedback)
+                            return@PythonFuzzing result.fuzzingPlatformFeedback
+                        }.fuzz(pmd)
+                    } catch (_: NoSeedValueException) {
+                        logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
+                    }
                 }
-            } else {
-                try {
-                    PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
-                        if (isCancelled()) {
-                            logger.info { "Fuzzing process was interrupted" }
-                            manager.disconnect()
-                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
-                        }
-                        if (System.currentTimeMillis() >= until) {
-                            logger.info { "Fuzzing process was interrupted by timeout" }
-                            manager.disconnect()
-                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
-                        }
-
-                        if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
-                            logger.debug("FakeNode in Python model")
-                            emit(FakeNodeFeedback)
-                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
-                        }
-
-                        val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
-                        val mem = cache.get(pair)
-                        if (mem != null) {
-                            logger.debug("Repeat in fuzzing")
-                            emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
-                            return@PythonFuzzing mem.fuzzingPlatformFeedback
-                        }
-                        val result = fuzzingResultHandler(description, arguments, parameters, manager)
-                        if (result == null) {  // timeout
-                            manager.disconnect()
-                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
-                        }
-
-                        cache.add(pair, result)
-                        emit(result.fuzzingExecutionFeedback)
-                        return@PythonFuzzing result.fuzzingPlatformFeedback
-                    }.fuzz(pmd)
-                } catch (_: NoSeedValueException) {
-                    logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
-                }
+            } finally {
+                manager.shutdown()
             }
-            manager.shutdown()
         }
     }
 }

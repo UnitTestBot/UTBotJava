@@ -121,7 +121,9 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     recordActualResult()
                     generateResultAssertions()
 
-                    generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
+                    if (methodType == CgTestMethodType.PASSED_EXCEPTION) {
+                        generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
+                    }
                 }
 
                 if (statics.isNotEmpty()) {
@@ -340,8 +342,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         useExpectedAsValue: Boolean = false
     ) {
         if (expectedNode.comparable || depth == 0) {
-            val expectedValue =
-            if (useExpectedAsValue) {
+            val expectedValue = if (useExpectedAsValue) {
                 expected
             } else {
                 variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))

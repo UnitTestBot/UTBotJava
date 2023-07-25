@@ -3,18 +3,26 @@ package org.utbot.instrumentation.instrumentation.transformation.adapters
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 import kotlin.properties.Delegates
 
 /**
- * Class for transforming an if statement with call of the [String.equals] method with a constant string into
- * a sequence of comparisons of each char of the string with each char of the constant string.
+ * Class for transforming an if statement with call of the [String.equals], [String.startsWith] or [String.endsWith] method
+ * with a constant string into a sequence of comparisons of each char of the string with each char of the constant string.
  */
-class StringEqualsMethodAdapter(api: Int, methodVisitor: MethodVisitor) : PatternMethodAdapter(api, methodVisitor) {
+class StringEqualsMethodAdapter(
+    api: Int,
+    access: Int,
+    descriptor: String?,
+    methodVisitor: MethodVisitor
+) : PatternMethodAdapter(api, access, descriptor, methodVisitor) {
     private enum class State {
         SEEN_NOTHING,
         SEEN_ALOAD,
         SEEN_LDC_STRING_CONST,
         SEEN_INVOKEVIRTUAL_STRING_EQUALS,
+        SEEN_INVOKEVIRTUAL_STRING_STARTSWITH,
+        SEEN_INVOKEVIRTUAL_STRING_ENDSWITH
     }
 
     private var state: State = State.SEEN_NOTHING
@@ -34,6 +42,30 @@ class StringEqualsMethodAdapter(api: Int, methodVisitor: MethodVisitor) : Patter
                 mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
                 mv.visitLdcInsn(constString)
                 mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "equals", "(Ljava/lang/Object;)Z", false)
+            }
+
+            State.SEEN_INVOKEVIRTUAL_STRING_STARTSWITH -> {
+                mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
+                mv.visitLdcInsn(constString)
+                mv.visitMethodInsn(
+                    Opcodes.INVOKEVIRTUAL,
+                    "java/lang/String",
+                    "startsWith",
+                    "(Ljava/lang/String;)Z",
+                    false
+                )
+            }
+
+            State.SEEN_INVOKEVIRTUAL_STRING_ENDSWITH -> {
+                mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
+                mv.visitLdcInsn(constString)
+                mv.visitMethodInsn(
+                    Opcodes.INVOKEVIRTUAL,
+                    "java/lang/String",
+                    "endsWith",
+                    "(Ljava/lang/String;)Z",
+                    false
+                )
             }
 
             else -> {}
@@ -63,10 +95,22 @@ class StringEqualsMethodAdapter(api: Int, methodVisitor: MethodVisitor) : Patter
         descriptor: String?,
         isInterface: Boolean
     ) {
-        if (state == State.SEEN_LDC_STRING_CONST) {
-            if (!isInterface && opcode == Opcodes.INVOKEVIRTUAL && owner == "java/lang/String" && name == "equals" && descriptor == "(Ljava/lang/Object;)Z") {
-                state = State.SEEN_INVOKEVIRTUAL_STRING_EQUALS
-                return
+        if (state == State.SEEN_LDC_STRING_CONST && !isInterface && opcode == Opcodes.INVOKEVIRTUAL && owner == "java/lang/String") {
+            when {
+                name == "equals" && descriptor == "(Ljava/lang/Object;)Z" -> {
+                    state = State.SEEN_INVOKEVIRTUAL_STRING_EQUALS
+                    return
+                }
+
+                name == "startsWith" && descriptor == "(Ljava/lang/String;)Z" -> {
+                    state = State.SEEN_INVOKEVIRTUAL_STRING_STARTSWITH
+                    return
+                }
+
+                name == "endsWith" && descriptor == "(Ljava/lang/String;)Z" -> {
+                    state = State.SEEN_INVOKEVIRTUAL_STRING_ENDSWITH
+                    return
+                }
             }
         }
         resetState()
@@ -84,30 +128,68 @@ class StringEqualsMethodAdapter(api: Int, methodVisitor: MethodVisitor) : Patter
     }
 
     override fun visitJumpInsn(opcode: Int, label: Label?) {
-        if (state == State.SEEN_INVOKEVIRTUAL_STRING_EQUALS && opcode == Opcodes.IFEQ) {
+        if (setOf(
+                State.SEEN_INVOKEVIRTUAL_STRING_EQUALS,
+                State.SEEN_INVOKEVIRTUAL_STRING_STARTSWITH,
+                State.SEEN_INVOKEVIRTUAL_STRING_ENDSWITH
+            ).any { it == state } && opcode == Opcodes.IFEQ
+        ) {
             state = State.SEEN_NOTHING
             // code transformation
-            // if (str.length() == constString.length())
+            // if (str.length() >= constString.length()) for startsWith and endsWith methods
+            // if (str.length() == constString.length()) for equals method
             mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false)
             mv.visitIntInsn(Opcodes.BIPUSH, constString.length)
-            mv.visitJumpInsn(Opcodes.IF_ICMPNE, label)
+            if (state == State.SEEN_INVOKEVIRTUAL_STRING_EQUALS) {
+                mv.visitJumpInsn(Opcodes.IF_ICMPNE, label)
+            } else {
+                mv.visitJumpInsn(Opcodes.IF_ICMPLT, label)
+            }
+
             if (constString.isEmpty()) {
                 return
             }
-            constString.forEachIndexed { index, c ->
-                // if (str.charAt(index) == c)
-                val l = Label()
-                mv.visitLabel(l)
+
+            if (state == State.SEEN_INVOKEVIRTUAL_STRING_ENDSWITH) {
+                // int length = str.length()
+                mv.visitLabel(Label())
                 mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
-                mv.visitIntInsn(Opcodes.BIPUSH, index)
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false)
-                mv.visitIntInsn(Opcodes.BIPUSH, c.code)
-                mv.visitJumpInsn(Opcodes.IF_ICMPNE, label)
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false)
+                val length = newLocal(Type.INT_TYPE)
+                mv.visitVarInsn(Opcodes.ISTORE, length)
+
+                constString.forEachIndexed { index, c ->
+                    // if (str.charAt(length - (constString.length() - index)) == c)
+                    mv.visitLabel(Label())
+                    mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
+                    mv.visitVarInsn(Opcodes.ILOAD, length)
+                    mv.visitIntInsn(Opcodes.BIPUSH, constString.length - index)
+                    mv.visitInsn(Opcodes.ISUB)
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false)
+                    mv.visitIntInsn(Opcodes.BIPUSH, c.code)
+                    mv.visitJumpInsn(Opcodes.IF_ICMPNE, label)
+                }
+            } else {
+                constString.forEachIndexed { index, c ->
+                    // if (str.charAt(index) == c)
+                    mv.visitLabel(Label())
+                    mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
+                    mv.visitIntInsn(Opcodes.BIPUSH, index)
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false)
+                    mv.visitIntInsn(Opcodes.BIPUSH, c.code)
+                    mv.visitJumpInsn(Opcodes.IF_ICMPNE, label)
+                }
             }
             return
         }
         resetState()
         mv.visitJumpInsn(opcode, label)
+    }
+
+    override fun visitMaxs(maxStack: Int, maxLocals: Int) {
+        resetState()
+        // TODO optimize
+        mv.visitMaxs(maxStack + 1, maxLocals + 1)
     }
 }

@@ -18,6 +18,6 @@ class BytecodeTransformer(classVisitor: ClassVisitor) : ClassVisitor(Settings.AS
         exceptions: Array<out String>?
     ): MethodVisitor {
         val methodVisitor = cv.visitMethod(access, name, descriptor, signature, exceptions)
-        return StringEqualsMethodAdapter(api, methodVisitor)
+        return StringEqualsMethodAdapter(api, access, descriptor, methodVisitor)
     }
 }

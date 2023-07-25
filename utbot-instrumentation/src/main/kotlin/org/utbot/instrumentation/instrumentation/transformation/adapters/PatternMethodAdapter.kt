@@ -3,12 +3,18 @@ package org.utbot.instrumentation.instrumentation.transformation.adapters
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.commons.LocalVariablesSorter
 
 
 /**
  * Abstract class for the pattern method adapters.
  */
-abstract class PatternMethodAdapter(api: Int, methodVisitor: MethodVisitor) : MethodVisitor(api, methodVisitor) {
+abstract class PatternMethodAdapter(
+    api: Int,
+    access: Int,
+    descriptor: String?,
+    methodVisitor: MethodVisitor
+) : LocalVariablesSorter(api, access, descriptor, methodVisitor) {
     protected abstract fun resetState()
 
     override fun visitFrame(type: Int, numLocal: Int, local: Array<out Any>?, numStack: Int, stack: Array<out Any>?) {

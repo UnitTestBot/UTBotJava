@@ -22,7 +22,7 @@ public class ServiceOfBeansWithSameType {
     }
 
     // a method for testing the case when the Engine produces two models on @Autowired variables of the same type
-    public Integer joinInfo(){
-        return personOne.getWeight() + personTwo.getAge() + baseOrders.size();
+    public Boolean checker() {
+        return personOne.getName().equals("k") && personTwo.getName().length() > 5 && baseOrders.isEmpty();
     }
 }

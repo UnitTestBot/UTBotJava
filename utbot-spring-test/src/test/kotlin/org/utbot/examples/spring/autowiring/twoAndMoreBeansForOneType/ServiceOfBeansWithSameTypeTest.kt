@@ -12,45 +12,86 @@ class ServiceOfBeansWithSameTypeTest : SpringNoConfigUtValueTestCaseChecker(
 ) {
 
     /**
-     *  In this test, we check the case when the Engine reproduces two models on two @Autowired variables of the same type.
+     *  In this test, we check the case when the Engine produces two models on two @Autowired variables of the same type.
      *
-     *  Therefore, we mock all the variables and get the only necessary `mock.values` in each variable
+     *  The engine produce two models only in the tests, when `baseOrder` is a testing participant.
+     *  In these tests, we mock all the variables and get the only necessary `mock.values` in each variable.
      */
     @Test
-    fun testJoin() {
+    fun testChecker() {
         checkThisMocksAndExceptions(
-            method = ServiceOfBeansWithSameType::joinInfo,
-            branches = eq(3),
-            { _, mocks, r ->
-                val personOne = mocks.singleMock("personOne", weightPersonCall)
+            method = ServiceOfBeansWithSameType::checker,
+            branches = eq(6),
+            {_, mocks, r ->
+                val personOne = mocks.singleMock("personOne", namePersonCall)
 
-                val personOneWeight = personOne.value<Int?>()
+                val personOneName = personOne.value<String?>()
 
-                val isPersonOneWeightNull = personOneWeight == null
+                val r1 = personOneName == null
 
-                isPersonOneWeightNull && r.isException<NullPointerException>()
+                r1 && r.isException<NullPointerException>()
             },
-            { _, mocks, r ->
-                val personOne = mocks.singleMock("personOne", weightPersonCall)
-                val personTwo = mocks.singleMock("personTwo", agePersonCall)
+            {_, mocks, r ->
+                val person = mocks.singleMock("personOne", namePersonCall)
 
-                val personOneWeight = personOne.value<Int?>()
-                val personTwoAge = personTwo.value<Int?>()
+                val personOneName = (person.values[0] as? UtConcreteValue<*>)?.value
+                val personTwoName = (person.values[1] as? UtConcreteValue<*>)?.value
 
-                val isPersonOneWeightNotNull = personOneWeight != null
-                val isPersonTwoAgeNull = personTwoAge == null
+                val r1 = personOneName == "k"
+                val r2 = personTwoName == null
 
-                isPersonOneWeightNotNull && isPersonTwoAgeNull && r.isException<NullPointerException>()
+                r1 && r2 && r.isException<NullPointerException>()
             },
-            { thisInstance, mocks, r ->
-                val personOne = mocks.singleMock("personOne", weightPersonCall)
-                val personTwo = mocks.singleMock("personTwo", agePersonCall)
+            {_, mocks, r ->
+                val personOne = mocks.singleMock("personOne", namePersonCall)
 
-                val personOneWeight = personOne.value<Int?>()!!
-                val personTwoAge = personTwo.value<Int?>()!!
-                val baseOrders = thisInstance.baseOrders!!
+                val personOneName = personOne.value<String?>()
 
-                personOneWeight + personTwoAge + baseOrders.size == r.getOrNull()
+                val r1 = personOneName != "k"
+
+                r1 && (r.getOrNull() == false)
+            },
+            {_, mocks, r ->
+                val person = mocks.singleMock("personOne", namePersonCall)
+
+                val personOneName = (person.values[0] as? UtConcreteValue<*>)?.value
+                val personTwoName = (person.values[1] as? UtConcreteValue<*>)?.value.toString()
+
+                val r1 = personOneName == "k"
+                val r2 = personTwoName.length <= 5
+
+                r1 && r2 && (r.getOrNull() == false)
+            },
+
+            //In this test Engine produces two models on two @Autowired variables of the same type
+            {thisInstance, mocks, r ->
+                val personOne = mocks.singleMock("personOne", namePersonCall)
+                val personTwo = mocks.singleMock("personTwo", namePersonCall)
+
+                val personOneName = (personOne.values[0] as? UtConcreteValue<*>)?.value
+                val personTwoName = (personTwo.values[0] as? UtConcreteValue<*>)?.value.toString()
+                val baseOrders = thisInstance.baseOrders
+
+                val r1 = personOneName == "k"
+                val r2 = personTwoName.length > 5
+                val r3 = baseOrders.isEmpty()
+
+                r1 && r2 && r3 && (r.getOrNull() == true)
+            },
+
+            {thisInstance, mocks, r ->
+                val personOne = mocks.singleMock("personOne", namePersonCall)
+                val personTwo = mocks.singleMock("personTwo", namePersonCall)
+
+                val personOneName = (personOne.values[0] as? UtConcreteValue<*>)?.value
+                val personTwoName = (personTwo.values[0] as? UtConcreteValue<*>)?.value.toString()
+                val baseOrders = thisInstance.baseOrders
+
+                val r1 = personOneName == "k"
+                val r2 = personTwoName.length > 5
+                val r3 = baseOrders.isNotEmpty()
+
+                r1 && r2 && r3 && (r.getOrNull() == false)
             },
             coverage = DoNotCalculate,
             mockStrategy = springMockStrategy,
@@ -59,7 +100,7 @@ class ServiceOfBeansWithSameTypeTest : SpringNoConfigUtValueTestCaseChecker(
     }
 
     /**
-     *  In this test, we check the case when the Engine reproduces one model on two @Autowired variables of the same type.
+     *  In this test, we check the case when the Engine produces one model on two @Autowired variables of the same type.
      *
      *  Therefore, we only mock one of the variables and get all `mock.values` in it
      */
@@ -67,7 +108,7 @@ class ServiceOfBeansWithSameTypeTest : SpringNoConfigUtValueTestCaseChecker(
     fun testAgeSum(){
         checkThisMocksAndExceptions(
             method = ServiceOfBeansWithSameType::ageSum,
-            branches = ignoreExecutionsNumber,
+            branches = eq(3),
             { _, mocks, r ->
                 val personOne = mocks.singleMock("personOne", agePersonCall)
 

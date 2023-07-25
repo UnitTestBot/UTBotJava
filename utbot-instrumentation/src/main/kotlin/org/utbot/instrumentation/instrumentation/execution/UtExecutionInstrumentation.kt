@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.execution
 
+import org.objectweb.asm.ClassWriter
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.singleExecutableId
@@ -14,8 +15,10 @@ import org.utbot.instrumentation.instrumentation.execution.context.SimpleInstrum
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicClassVisitor
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicDetector
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.instrumentation.instrumenter.ClassVisitorBuilder
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import org.utbot.instrumentation.instrumentation.transformation.BytecodeTransformer
 import java.security.ProtectionDomain
 import kotlin.reflect.jvm.javaMethod
 
@@ -168,6 +171,13 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         classfileBuffer: ByteArray
     ): ByteArray {
         val instrumenter = Instrumenter(classfileBuffer, loader)
+
+        instrumenter.visitClass(object : ClassVisitorBuilder<BytecodeTransformer> {
+            override val writerFlags: Int
+                get() = 0
+
+            override fun build(writer: ClassWriter): BytecodeTransformer = BytecodeTransformer(writer)
+        })
 
         traceHandler.registerClass(className)
         instrumenter.visitInstructions(traceHandler.computeInstructionVisitor(className))

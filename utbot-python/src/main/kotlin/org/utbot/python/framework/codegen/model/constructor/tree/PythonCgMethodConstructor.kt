@@ -22,10 +22,17 @@ import org.utbot.python.framework.api.python.util.pythonExceptionClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
+import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
     private val maxDepth: Int = 5
+
+    private fun CgVariable.deepcopy(): CgVariable {
+        val classId = PythonClassId("copy.deepcopy")
+        importIfNeeded(classId)
+        return newVar(this.type) { CgPythonFunctionCall(classId, "copy.deepcopy", listOf(this)) }
+    }
 
     override fun assertEquality(expected: CgValue, actual: CgVariable) {
         pythonDeepEquals(expected, actual)
@@ -276,7 +283,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             val firstChild =
                 elements.first()  // TODO: We can use only structure => we should use another element if the first is empty
 
-            emptyLine()
+            emptyLineIfNeeded()
             if (elementsHaveSameStructure) {
                 val index = newVar(pythonNoneClassId, keyName) {
                     CgLiteral(pythonNoneClassId, "None")
@@ -299,7 +306,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 index
                             )
                         }
-                        pythonDeepTreeEquals(firstChild, indexExpected, indexActual)
+                        pythonDeepTreeEquals(firstChild, indexExpected, indexActual, useExpectedAsValue = true)
                         statements = currentBlock
                     }
                 }
@@ -329,11 +336,16 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgValue,
         actual: CgVariable,
-        depth: Int = maxDepth
+        depth: Int = maxDepth,
+        useExpectedAsValue: Boolean = false
     ) {
         if (expectedNode.comparable || depth == 0) {
-            emptyLineIfNeeded()
-            val expectedValue = variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
+            val expectedValue =
+            if (useExpectedAsValue) {
+                expected
+            } else {
+                variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
+            }
             testFrameworkManager.assertEquals(
                 expectedValue,
                 actual,

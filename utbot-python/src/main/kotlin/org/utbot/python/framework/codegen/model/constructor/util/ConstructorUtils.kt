@@ -3,10 +3,12 @@ package org.utbot.python.framework.codegen.model.constructor.util
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.codegen.model.PythonUserImport
+import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 
 internal fun CgContextOwner.importIfNeeded(method: PythonMethodId) {
     collectedImports += PythonUserImport(method.moduleName)
@@ -47,3 +49,4 @@ internal fun String.dropBuiltins(): String {
     else
         this
 }
+

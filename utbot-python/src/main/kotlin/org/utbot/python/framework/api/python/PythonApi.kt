@@ -106,6 +106,11 @@ class PythonUtExecution(
                 init.tree.comparable = before.tree.comparable
             }
         }
+        val init = stateInit.thisInstance
+        val before = stateBefore.thisInstance
+        if (init is PythonTreeModel && before is PythonTreeModel) {
+            init.tree.comparable = before.tree.comparable
+        }
     }
     override fun copy(
         stateBefore: EnvironmentModels,

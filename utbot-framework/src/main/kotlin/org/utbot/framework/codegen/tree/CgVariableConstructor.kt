@@ -41,6 +41,8 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.booleanWrapperClassId
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.jField
@@ -51,6 +53,8 @@ import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
 import org.utbot.framework.plugin.api.util.isStatic
+import org.utbot.framework.plugin.api.util.primitiveWrappers
+import org.utbot.framework.plugin.api.util.primitives
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
@@ -176,7 +180,11 @@ open class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    fun setFieldValue(obj: CgValue, fieldId: FieldId, variableForField: CgValue){
+    fun setFieldValue(obj: CgValue, fieldId: FieldId, valueForField: CgValue) {
+        if (valueForField.hasDefaultValue()) {
+            return
+        }
+
         val field = fieldId.jField
         val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
 
@@ -187,14 +195,27 @@ open class CgVariableConstructor(val context: CgContext) :
         // branchRegisterRequest.byteBuffer = heapByteBuffer;
         // byteBuffer is field of type ByteBuffer and upper line is incorrect
         val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
-            fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
+            fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == valueForField.type
         if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context, obj.type)) {
             // TODO: check if it is correct to use declaringClass of a field here
             val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
-            fieldAccess `=` variableForField
+            fieldAccess `=` valueForField
         } else {
             // composite models must not have info about static fields, hence only non-static fields are set here
-            +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, variableForField)
+            +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, valueForField)
+        }
+    }
+
+    private fun CgValue.hasDefaultValue(): Boolean {
+        if (this !is CgLiteral) {
+            return false;
+        }
+
+        return when {
+            this.value == null -> true
+            (this.type == booleanClassId || this.type == booleanWrapperClassId) && this.value == false -> true
+            (this.type in primitives || this.type in primitiveWrappers) && this.value == 0 -> true
+            else -> false
         }
     }
 

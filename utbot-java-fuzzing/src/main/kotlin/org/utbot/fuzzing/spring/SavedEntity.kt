@@ -13,7 +13,7 @@ import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.providers.nullRoutine
+import org.utbot.fuzzing.providers.defaultValueRoutine
 import org.utbot.fuzzing.toFuzzerType
 
 class SavedEntityValueProvider(
@@ -42,7 +42,7 @@ class SavedEntityValueProvider(
                     }
                 },
                 modify = emptySequence(),
-                empty = nullRoutine(type.classId)
+                empty = defaultValueRoutine(type.classId)
             )
         )
 }

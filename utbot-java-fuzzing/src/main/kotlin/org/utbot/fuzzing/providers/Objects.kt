@@ -101,7 +101,7 @@ class ObjectValueProvider(
                     }
                 }
             },
-            empty = nullRoutine(classId)
+            empty = defaultValueRoutine(classId)
         )
     }
 }
@@ -127,7 +127,7 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
         type: FuzzedType
     ) = sequence<Seed<FuzzedType, FuzzedValue>> {
         if (description.scope?.getProperty(NULLABLE_PROP) == true) {
-            yield(Seed.Simple(nullFuzzedValue(classClassId)))
+            yield(Seed.Simple(defaultFuzzedValue(classClassId)))
         }
     }
 }
@@ -180,7 +180,7 @@ class AbstractsObjectValueProvider(
                 construct = Routine.Create(listOf(toFuzzerType(concrete.id.jClass, description.typeCache))) {
                     it.first()
                 },
-                empty = nullRoutine(type.classId)
+                empty = defaultValueRoutine(type.classId)
             ))
         }
     }

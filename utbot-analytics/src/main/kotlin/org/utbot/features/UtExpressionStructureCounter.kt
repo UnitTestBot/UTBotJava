@@ -145,6 +145,7 @@ class UtExpressionStructureCounter(private val input: Iterable<UtExpression>) : 
     override fun visit(expr: UtAddNoOverflowExpression) = multipleExpressions(expr.left, expr.right)
 
     override fun visit(expr: UtSubNoOverflowExpression) = multipleExpressions(expr.left, expr.right)
+    override fun visit(expr: UtMulNoOverflowExpression)= multipleExpressions(expr.left, expr.right)
 
     override fun visit(expr: UtNegExpression): NestStat {
         val stat = buildState(expr.variable.expr)

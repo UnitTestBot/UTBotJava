@@ -43,8 +43,9 @@ include("utbot-instrumentation")
 include("utbot-instrumentation-tests")
 
 include("utbot-summary")
-include("utbot-gradle")
-include("utbot-maven")
+// todo these gradle and maven modules fail to build
+//include("utbot-gradle")
+//include("utbot-maven")
 include("utbot-summary-tests")
 include("utbot-framework-test")
 include("utbot-testing")
@@ -88,4 +89,6 @@ if (projectType == springEdition || projectType == ultimateEdition) {
 }
 
 
+
+include("utbot-light")
 

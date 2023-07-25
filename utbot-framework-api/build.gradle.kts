@@ -1,5 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 val junit4Version: String by rootProject
 val sootVersion: String by rootProject
 val commonsLangVersion: String by rootProject
@@ -7,10 +5,6 @@ val kotlinLoggingVersion: String? by rootProject
 val rdVersion: String? by rootProject
 val kryoVersion: String? by rootProject
 val kryoSerializersVersion: String? by rootProject
-
-plugins {
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-}
 
 dependencies {
     api(project(":utbot-core"))
@@ -30,11 +24,8 @@ dependencies {
     testImplementation(group = "junit", name = "junit", version = junit4Version)
 }
 
-tasks {
-    withType<ShadowJar> {
-        archiveClassifier.set(" ")
-        minimize()
-    }
+java {
+    withSourcesJar()
 }
 
 tasks {

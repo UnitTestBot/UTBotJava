@@ -323,6 +323,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         } else {
                             this.resultModel = resultModel
                             val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
+                            emptyLineIfNeeded()
                             assertEquality(expected, actual)
                         }
                     }

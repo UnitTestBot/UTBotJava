@@ -97,4 +97,33 @@ class SummaryExceptionExampleTest : SummaryTestCaseGeneratorTest(
 
         summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
+
+    @Test
+    fun testThrowExceptionInMethodUnderTest() {
+        val summary1 = "@utbot.classUnderTest {@link ExceptionExamples}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.exceptions.ExceptionExamples#throwExceptionInMethodUnderTest()}\n" +
+                "@utbot.throwsException {@link java.lang.RuntimeException} in: throw new RuntimeException(\"Exception message\");\n"
+
+        val methodName1 = "testThrowExceptionInMethodUnderTest_ThrowRuntimeException"
+
+        val displayName1 = " -> ThrowRuntimeException"
+
+        val summaryKeys = listOf(
+            summary1,
+        )
+
+        val displayNames = listOf(
+            displayName1,
+        )
+
+        val methodNames = listOf(
+            methodName1,
+        )
+
+        val method = ExceptionExamples::throwExceptionInMethodUnderTest
+        val mockStrategy = MockStrategyApi.NO_MOCKS
+        val coverage = DoNotCalculate
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+    }
 }

@@ -9,6 +9,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzing.samples.DeepNested
 import org.utbot.fuzzer.FuzzedType
@@ -17,6 +18,7 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.providers.NullValueProvider
 import org.utbot.fuzzing.samples.AccessibleObjects
 import org.utbot.fuzzing.samples.FailToGenerateListGeneric
+import org.utbot.fuzzing.samples.StringListHolder
 import org.utbot.fuzzing.samples.Stubs
 import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.GenericArrayType
@@ -24,6 +26,7 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.IdentityHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.jvm.javaMethod
 
 internal object TestIdentityPreservingIdGenerator : IdentityPreservingIdGenerator<Int> {
     private val cache = mutableMapOf<Any, Int>()
@@ -271,6 +274,31 @@ class JavaFuzzingTest {
         collections.filterIsInstance<UtAssembleModel>().forEach {
             assertEquals(0, it.modificationsChain.size)
         }
+    }
+
+    @Test
+    fun `fuzzer correctly works with settable field that has a parameterized type`() {
+        val seenStringListHolders = mutableListOf<StringListHolder>()
+        var remainingRuns = 100
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = StringListHolder::methodUnderTest.javaMethod!!.executableId,
+                constants = emptyList(),
+                names = emptyList(),
+            ) { thisInstance, _, _ ->
+                thisInstance?.let {
+                    seenStringListHolders.add(
+                        ValueConstructor().construct(listOf(it.model)).single().value as StringListHolder
+                    )
+                }
+                remainingRuns--
+                BaseFeedback(Trie.emptyNode(), if (remainingRuns > 0) Control.CONTINUE else Control.STOP)
+            }
+        }
+        val seenStrings = seenStringListHolders.flatMap { it.strings.orEmpty().filterNotNull() }
+        assertNotEquals(emptyList<String>(), seenStrings)
+        seenStrings.forEach { assertInstanceOf(String::class.java, it) }
     }
 
     @Test

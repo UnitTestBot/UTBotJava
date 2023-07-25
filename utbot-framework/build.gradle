@@ -15,8 +15,6 @@ dependencies {
     api project(':utbot-framework-api')
     api project(':utbot-rd')
 
-    implementation project(':utbot-spring-commons-api')
-
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
@@ -46,17 +44,23 @@ dependencies {
 
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
+
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
+
+    implementation project(':utbot-spring-commons-api')
     implementation project(':utbot-spring-analyzer')
 
-    fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
-    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
+    if (projectType == springEdition || projectType==ultimateEdition) {
+        fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
+    }
 }
 
 processResources {
-    from(configurations.fetchSpringAnalyzerJar) {
+    from(configurations.fetchInstrumentationJar) {
         into "lib"
     }
-    from(configurations.fetchInstrumentationJar) {
+
+    from(configurations.fetchSpringAnalyzerJar) {
         into "lib"
     }
 }

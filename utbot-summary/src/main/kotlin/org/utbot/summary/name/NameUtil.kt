@@ -26,6 +26,8 @@ data class TestNameDescription(
         if (this.uniquenessTag == UniquenessTag.Common && other.uniquenessTag == UniquenessTag.Partly) return -1
         if (this.uniquenessTag == UniquenessTag.Common && other.uniquenessTag == UniquenessTag.Unique) return -1
 
+        if (this.nameType == NameType.ThrowsException && other.nameType != NameType.ThrowsException) return 1
+        if (this.nameType != NameType.ThrowsException && other.nameType == NameType.ThrowsException) return -1
 
         if (this.nameType == NameType.CaughtException && other.nameType != NameType.CaughtException) return 1
         if (this.nameType != NameType.CaughtException && other.nameType == NameType.CaughtException) return -1
@@ -47,6 +49,7 @@ data class TestNameDescription(
 
         if (this.index > other.index) return 1
         if (this.index < other.index) return -1
+
         return 0
     }
 }

@@ -30,7 +30,7 @@ class SpringInstrumentationContext(
                         ?: error("JavaConfiguration was expected, but ${springSettings.configuration.javaClass.name} was provided.")
                 )
             ),
-            profiles = springSettings.profiles,
+            profiles = springSettings.profiles.toTypedArray(),
         )
 
         SpringApiProviderFacade

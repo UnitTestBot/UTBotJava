@@ -14,6 +14,7 @@ import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
@@ -59,21 +60,23 @@ class PythonCodeGenerator(
     enableTestsTimeout: Boolean = true,
     testClassPackageName: String = classUnderTest.packageName
 ) : CodeGenerator(
-    classUnderTest = classUnderTest,
-    projectType = ProjectType.Python,
-    paramNames = paramNames,
-    generateUtilClassFile = true,
-    testFramework = testFramework,
-    mockFramework = mockFramework,
-    staticsMocking = staticsMocking,
-    forceStaticMocking = forceStaticMocking,
-    generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-    parameterizedTestSource = parameterizedTestSource,
-    runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-    hangingTestsTimeout = hangingTestsTimeout,
-    enableTestsTimeout = enableTestsTimeout,
-    testClassPackageName = testClassPackageName,
-    cgLanguageAssistant = PythonCgLanguageAssistant,
+    CodeGeneratorParams(
+        classUnderTest = classUnderTest,
+        projectType = ProjectType.Python,
+        paramNames = paramNames,
+        generateUtilClassFile = true,
+        testFramework = testFramework,
+        mockFramework = mockFramework,
+        staticsMocking = staticsMocking,
+        forceStaticMocking = forceStaticMocking,
+        generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+        parameterizedTestSource = parameterizedTestSource,
+        runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
+        hangingTestsTimeout = hangingTestsTimeout,
+        enableTestsTimeout = enableTestsTimeout,
+        testClassPackageName = testClassPackageName,
+        cgLanguageAssistant = PythonCgLanguageAssistant,
+    )
 ) {
     fun pythonGenerateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,

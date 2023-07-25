@@ -10,7 +10,7 @@ import kotlinx.coroutines.runBlocking
  *
  * @param TResult the type of an execution result.
  */
-interface Executor<TResult> {
+interface Executor<out TResult> {
     /**
      * Main method to override.
      * Returns the result of the execution of the [ExecutableId] with [arguments] and [parameters].

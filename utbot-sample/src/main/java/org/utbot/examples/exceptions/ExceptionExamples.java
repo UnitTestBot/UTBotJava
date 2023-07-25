@@ -123,4 +123,8 @@ public class ExceptionExamples {
         }
         return i;
     }
+
+    public int throwExceptionInMethodUnderTest() throws RuntimeException {
+        throw new RuntimeException("Exception message");
+    }
 }

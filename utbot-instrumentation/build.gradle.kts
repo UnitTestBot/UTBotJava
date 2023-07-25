@@ -1,5 +1,11 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
 
+val projectType: String by rootProject
+val ultimateEdition: String by rootProject
+val springEdition: String by rootProject
+val languagesEdition: String by rootProject
+val pureJavaEdition: String by rootProject
+
 val asmVersion: String by rootProject
 val kryoVersion: String by rootProject
 val kryoSerializersVersion: String by rootProject
@@ -43,8 +49,6 @@ val fetchSpringCommonsJar: Configuration by configurations.creating {
 dependencies {
     implementation(project(":utbot-framework-api"))
     implementation(project(":utbot-rd"))
-    implementation(project(":utbot-spring-commons-api"))
-
 
     implementation("org.ow2.asm:asm:$asmVersion")
     implementation("org.ow2.asm:asm-commons:$asmVersion")
@@ -58,7 +62,10 @@ dependencies {
     implementation("org.mockito:mockito-core:$mockitoVersion")
     implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
 
-    fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
+    implementation(project(":utbot-spring-commons-api"))
+    if (projectType == springEdition || projectType == ultimateEdition) {
+        fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
+    }
 }
 
 /**

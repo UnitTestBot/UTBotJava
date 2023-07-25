@@ -422,7 +422,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     if (seeds.isEmpty()) {
         throw NoSeedValueException(type)
     }
-    val candidates = seeds.map {
+    return seeds.random(random).let {
         when (it) {
             is Seed.Simple<TYPE, RESULT> -> Result.Simple(it.value, it.mutation)
             is Seed.Known<TYPE, RESULT, *> -> it.asResult()
@@ -430,7 +430,6 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
         }
     }
-    return candidates.random(random)
 }
 
 /**

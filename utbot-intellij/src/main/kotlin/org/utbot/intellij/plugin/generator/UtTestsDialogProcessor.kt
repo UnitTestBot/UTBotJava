@@ -48,6 +48,9 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ProjectType.*
+import org.utbot.framework.context.simple.SimpleApplicationContext
+import org.utbot.framework.context.simple.SimpleMockerContext
+import org.utbot.framework.context.spring.SpringApplicationContextImpl
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
@@ -260,6 +263,9 @@ object UtTestsDialogProcessor {
                         process.terminateOnException { _ ->
                             val classpathForClassLoader = buildDirs + classpathList
                             process.setupUtContext(classpathForClassLoader)
+                            val simpleApplicationContext = SimpleApplicationContext(
+                                SimpleMockerContext(mockFrameworkInstalled, staticMockingConfigured)
+                            )
                             val applicationContext = when (model.projectType) {
                                 Spring -> {
                                     val beanDefinitions =
@@ -273,21 +279,17 @@ object UtTestsDialogProcessor {
                                             }
                                         }
 
-                                    val shouldUseImplementors = beanDefinitions.isNotEmpty()
-
                                     val clarifiedBeanDefinitions =
                                         clarifyBeanDefinitionReturnTypes(beanDefinitions, project)
 
-                                    SpringApplicationContext(
-                                        mockFrameworkInstalled,
-                                        staticMockingConfigured,
+                                    SpringApplicationContextImpl(
+                                        simpleApplicationContext,
                                         clarifiedBeanDefinitions,
-                                        shouldUseImplementors,
                                         model.springTestType,
                                         model.springSettings,
                                     )
                                 }
-                                else -> ApplicationContext(mockFrameworkInstalled, staticMockingConfigured)
+                                else -> simpleApplicationContext
                             }
                             process.createTestGenerator(
                                 buildDirs,
@@ -444,7 +446,7 @@ object UtTestsDialogProcessor {
                             // indicator.checkCanceled()
 
                             invokeLater {
-                                generateTests(model, applicationContext, testSetsByClass, psi2KClass, process, indicator)
+                                generateTests(model, testSetsByClass, psi2KClass, process, indicator)
                                 logger.info { "Generation complete" }
                             }
                         }

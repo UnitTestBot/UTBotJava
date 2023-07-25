@@ -22,6 +22,7 @@ import org.junit.jupiter.api.fail
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor
 import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.context.ApplicationContext
 import java.nio.file.Path
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -31,6 +32,7 @@ abstract class CodeGenerationIntegrationTest(
     private val testClass: KClass<*>,
     private var testCodeGeneration: Boolean = true,
     private val configurationsToTest: List<AbstractConfiguration>,
+    private val applicationContext: ApplicationContext = defaultApplicationContext,
 ) {
     private val testSets: MutableList<UtMethodTestSet> = arrayListOf()
 
@@ -102,7 +104,7 @@ abstract class CodeGenerationIntegrationTest(
                         )
 
                         val pipelineConfig = TestCodeGeneratorPipeline.configurePipeline(configuration)
-                        TestCodeGeneratorPipeline(pipelineConfig).runClassesCodeGenerationTests(classStages)
+                        TestCodeGeneratorPipeline(pipelineConfig, applicationContext).runClassesCodeGenerationTests(classStages)
                     } catch (e: RuntimeException) {
                         logger.warn(e) { "error in test pipeline" }
                         pipelineErrors.add(e.message)

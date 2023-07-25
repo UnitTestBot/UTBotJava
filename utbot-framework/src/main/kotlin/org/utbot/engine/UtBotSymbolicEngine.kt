@@ -10,7 +10,6 @@ import org.utbot.analytics.Predictors
 import org.utbot.api.exception.UtMockAssumptionViolatedException
 import org.utbot.common.debug
 import org.utbot.common.measureTime
-import org.utbot.common.tryLoadClass
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
@@ -33,6 +32,8 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -42,13 +43,8 @@ import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
-import org.utbot.fuzzing.providers.FieldValueProvider
-import org.utbot.fuzzing.providers.ObjectValueProvider
-import org.utbot.fuzzing.spring.SavedEntityValueProvider
-import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.getRelevantSpringRepositories
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -115,10 +111,11 @@ class UtBotSymbolicEngine(
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     val applicationContext: ApplicationContext,
-    executionInstrumentation: Instrumentation<UtConcreteExecutionResult>,
+    val concreteExecutionContext: ConcreteExecutionContext,
     userTaintConfigurationProvider: TaintConfigurationProvider? = null,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
 ) : UtContextInitializer() {
+    
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
     }.graph()
@@ -141,7 +138,7 @@ class UtBotSymbolicEngine(
         hierarchy,
         chosenClassesToMockAlways,
         MockListenerController(controller),
-        applicationContext = applicationContext,
+        mockerContext = applicationContext.mockerContext,
     )
 
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
@@ -177,7 +174,8 @@ class UtBotSymbolicEngine(
         typeResolver,
         globalGraph,
         mocker,
-        applicationContext,
+        applicationContext.typeReplacer,
+        applicationContext.nonNullSpeculator,
         taintContext,
     )
 
@@ -186,7 +184,7 @@ class UtBotSymbolicEngine(
 
     private val concreteExecutor =
         ConcreteExecutor(
-            executionInstrumentation,
+            concreteExecutionContext.instrumentationFactory,
             classpath,
         ).apply { this.classLoader = utContext.classLoader }
 
@@ -388,57 +386,15 @@ class UtBotSymbolicEngine(
         val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
         var testEmittedByFuzzer = 0
 
-        if (applicationContext is SpringApplicationContext &&
-            applicationContext.springTestType == SpringTestType.INTEGRATION_TEST &&
-            applicationContext.getBeansAssignableTo(methodUnderTest.classId).isEmpty()) {
-            val fullConfigDisplayName = (applicationContext.springSettings as? SpringSettings.PresentSpringSettings)
-                ?.configuration?.fullDisplayName
-            val errorDescription = "No beans of type ${methodUnderTest.classId.name} are found. " +
-                    "Try choosing different Spring configuration or adding beans to $fullConfigDisplayName"
-            emit(UtError(
-                errorDescription,
-                IllegalStateException(errorDescription)
-            ))
+        val valueProviders = try {
+            concreteExecutionContext.tryCreateValueProvider(concreteExecutor, classUnderTest, defaultIdGenerator)
+        } catch (e: Exception) {
+            emit(UtError(e.message ?: "Failed to create ValueProvider", e))
             return@flow
-        }
+        }.let(transform)
 
-        val valueProviders = ValueProvider.of(defaultValueProviders(defaultIdGenerator))
-            .letIf(applicationContext is SpringApplicationContext
-                        && applicationContext.springTestType == SpringTestType.INTEGRATION_TEST
-            ) { provider ->
-                val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(methodUnderTest.classId)
-                logger.info { "Detected relevant repositories for class ${methodUnderTest.classId}: $relevantRepositories" }
-
-                val generatedValueAnnotationClasses = SpringModelUtils.generatedValueClassIds.mapNotNull {
-                    @Suppress("UNCHECKED_CAST") // type system fails to understand that GeneratedValue is indeed an annotation
-                    utContext.classLoader.tryLoadClass(it.name) as Class<out Annotation>?
-                }
-
-                val generatedValueFieldIds =
-                    relevantRepositories
-                        .map { it.entityClassId.jClass }
-                        .flatMap { entityClass -> generateSequence(entityClass) { it.superclass } }
-                        .flatMap { it.declaredFields.toList() }
-                        .filter { field -> generatedValueAnnotationClasses.any { field.isAnnotationPresent(it) } }
-                        .map { it.fieldId }
-                logger.info { "Detected @GeneratedValue fields: $generatedValueFieldIds" }
-
-                // spring should try to generate bean values, but if it fails, then object value provider is used for it
-                val springBeanValueProvider = SpringBeanValueProvider(
-                    defaultIdGenerator,
-                    beanNameProvider = { classId ->
-                        (applicationContext as SpringApplicationContext).getBeansAssignableTo(classId)
-                            .map { it.beanName }
-                    },
-                    relevantRepositories = relevantRepositories
-                ).withFallback(ObjectValueProvider(defaultIdGenerator))
-                provider
-                    .except { p -> p is ObjectValueProvider }
-                    .with(springBeanValueProvider)
-                    .with(ValueProvider.of(relevantRepositories.map { SavedEntityValueProvider(defaultIdGenerator, it) }))
-                    .with(ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(defaultIdGenerator, it) }))
-            }.let(transform)
         val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
+
         runJavaFuzzing(
             defaultIdGenerator,
             methodUnderTest,

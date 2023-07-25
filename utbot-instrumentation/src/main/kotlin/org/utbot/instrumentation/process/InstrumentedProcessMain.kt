@@ -144,11 +144,12 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
     }
     watchdog.measureTimeForActiveCall(setInstrumentation, "Instrumentation setup") { params ->
         logger.debug { "setInstrumentation request" }
-        instrumentation = kryoHelper.readObject(params.instrumentation)
+        val instrumentationFactory = kryoHelper.readObject<Instrumentation.Factory<*, *>>(params.instrumentation)
+        HandlerClassesLoader.addUrls(instrumentationFactory.additionalRuntimeClasspath)
+        instrumentation = instrumentationFactory.create()
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
         Agent.dynamicClassTransformer.transformer = instrumentation
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
-        instrumentation.init(pathsToUserClasses)
     }
     watchdog.measureTimeForActiveCall(addPaths, "User and dependency classpath setup") { params ->
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()

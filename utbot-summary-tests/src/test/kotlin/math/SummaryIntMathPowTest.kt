@@ -11,7 +11,7 @@ class SummaryIntMathPowTest : SummaryTestCaseGeneratorTest(
 ) {
     @Test
     fun testPow() {
-        val summary1 = "Test activates switch case: 1, returns from: return 1;\n"
+        val summary1 = "Test activates switch(b) case: 1, returns from: return 1;\n"
         val summary2 = "Test executes conditions:\n" +
                 "    (k < Integer.SIZE): False\n" +
                 "returns from: return 0;\n"

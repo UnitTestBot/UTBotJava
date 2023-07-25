@@ -367,8 +367,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         DependencyInjectionFramework.installedItems.forEach {
             it.testFrameworkInstalled = findDependencyInjectionTestLibrary(model.testModule, it) != null
         }
+
+        val isUtBotSpringRuntimePresent = this::class.java.classLoader.getResource("lib/utbot-spring-analyzer-shadow.jar") != null
+
         model.projectType =
-            if (DependencyInjectionFramework.installedItems.isNotEmpty()) ProjectType.Spring
+            // TODO show some warning, when we see Spring project, but don't have `utBotSpringRuntime`
+            if (isUtBotSpringRuntimePresent && DependencyInjectionFramework.installedItems.isNotEmpty()) ProjectType.Spring
             else ProjectType.PureJvm
 
         // Configure notification urls callbacks
@@ -694,7 +698,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.springSettings =
             when (springConfig.item) {
-                NO_SPRING_CONFIGURATION_OPTION -> AbsentSpringSettings()
+                NO_SPRING_CONFIGURATION_OPTION -> AbsentSpringSettings
                 else -> {
                     val shortConfigName = springConfig.item.toString()
                     val config =
@@ -708,7 +712,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
                     PresentSpringSettings(
                         configuration = config,
-                        profiles = parseProfileExpression(profileNames.text, DEFAULT_SPRING_PROFILE_NAME)
+                        profiles = parseProfileExpression(profileNames.text, DEFAULT_SPRING_PROFILE_NAME).toList()
                     )
                 }
             }

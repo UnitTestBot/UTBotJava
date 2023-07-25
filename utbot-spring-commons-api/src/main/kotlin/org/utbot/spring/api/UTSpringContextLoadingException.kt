@@ -6,6 +6,6 @@ package org.utbot.spring.api
  * and parts of stack trace inside Spring and user application.
  */
 class UTSpringContextLoadingException(override val cause: Throwable) : Exception(
-    "UTBot failed to load Spring application context",
+    "Failed to load Spring application context",
     cause
 )

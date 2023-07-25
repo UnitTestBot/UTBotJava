@@ -5,7 +5,7 @@ import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgRendererContext
-import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.codegen.services.language.AbstractCgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.codegen.model.constructor.name.PythonCgNameGenerator
@@ -16,8 +16,7 @@ import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgVariabl
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
 import org.utbot.python.framework.codegen.model.services.access.PythonCgFieldStateManager
 
-object PythonCgLanguageAssistant : CgLanguageAssistant() {
-
+object PythonCgLanguageAssistant : AbstractCgLanguageAssistant() {
     override val extension: String
         get() = ".py"
 

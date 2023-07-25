@@ -7,13 +7,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
 import org.utbot.common.*
-import org.utbot.common.PathUtil.toURL
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -25,9 +25,11 @@ import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.disableCoroutinesDebug
 import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.simple.SimpleApplicationContext
+import org.utbot.framework.context.simple.SimpleMockerContext
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.minimization.minimizeTestCase
-import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassIds
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.services.JdkInfo
@@ -39,13 +41,9 @@ import org.utbot.framework.util.toModel
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
-import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
-import org.utbot.instrumentation.tryLoadingSpringContext
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
@@ -68,28 +66,19 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
-    val applicationContext: ApplicationContext = ApplicationContext(),
+    val applicationContext: ApplicationContext = SimpleApplicationContext(
+        SimpleMockerContext(
+            mockFrameworkInstalled = true,
+            staticsMockingIsConfigured = true
+        )
+    ),
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
-    private val executionInstrumentation by lazy {
-        when (applicationContext) {
-            is SpringApplicationContext -> when (val settings = applicationContext.springSettings) {
-                is AbsentSpringSettings -> UtExecutionInstrumentation
-                is PresentSpringSettings -> when (applicationContext.springTestType) {
-                    UNIT_TEST -> UtExecutionInstrumentation
-                    INTEGRATION_TEST -> SpringUtExecutionInstrumentation(
-                        UtExecutionInstrumentation,
-                        settings,
-                        applicationContext.beanDefinitions,
-                        buildDirs.map { it.toURL() }.toTypedArray(),
-                    )
-                }
-            }
-
-            else -> UtExecutionInstrumentation
-        }
-    }
+    private val concreteExecutionContext = applicationContext.createConcreteExecutionContext(
+        fullClasspath = classpathForEngine,
+        classpathWithoutDependencies = buildDirs.joinToString(File.pathSeparator)
+    )
 
     private val classpathForEngine: String
         get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
@@ -114,7 +103,7 @@ open class TestCaseGenerator(
                 // force pool to create an appropriate executor
                 // TODO ensure that instrumented process that starts here is properly terminated
                 ConcreteExecutor(
-                    executionInstrumentation,
+                    concreteExecutionContext.instrumentationFactory,
                     classpathForEngine,
                 ).apply {
                     warmup()
@@ -128,12 +117,12 @@ open class TestCaseGenerator(
             TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
             TestSelectionStrategyType.COVERAGE_STRATEGY ->
                 minimizeTestCase(
-                    when (applicationContext) {
-                        is SpringApplicationContext -> executions.filterCoveredInstructions(classUnderTestId)
-                        else -> executions
-                    }
+                    concreteExecutionContext.transformExecutionsBeforeMinimization(
+                        executions,
+                        classUnderTestId
+                    ),
+                    executionToTestSuite = { it.result::class.java }
                 )
-                { it.result::class.java }
         }
 
     @Throws(CancellationException::class)
@@ -148,9 +137,9 @@ open class TestCaseGenerator(
         if (isCanceled())
             return@flow
 
-        doContextDependentPreparationForTestGeneration()
-        applicationContext.getErrors().forEach { emit(it) }
-        if (applicationContext.preventsFurtherTestGeneration())
+        val contextLoadingResult = loadConcreteExecutionContext()
+        emitAll(flowOf(*contextLoadingResult.utErrors.toTypedArray()))
+        if (!contextLoadingResult.contextLoaded)
             return@flow
 
         try {
@@ -182,13 +171,13 @@ open class TestCaseGenerator(
     ): List<UtMethodTestSet> = ConcreteExecutor.defaultPool.use { _ -> // TODO: think on appropriate way to close instrumented processes
         if (isCanceled()) return@use methods.map { UtMethodTestSet(it) }
 
-        doContextDependentPreparationForTestGeneration()
+        val contextLoadingResult = loadConcreteExecutionContext()
 
         val method2errors: Map<ExecutableId, MutableMap<String, Int>> = methods.associateWith {
-            applicationContext.getErrors().associateTo(mutableMapOf()) { it.description to 1 }
+            contextLoadingResult.utErrors.associateTo(mutableMapOf()) { it.description to 1 }
         }
 
-        if (applicationContext.preventsFurtherTestGeneration())
+        if (!contextLoadingResult.contextLoaded)
             return@use methods.map { method -> UtMethodTestSet(method, errors = method2errors.getValue(method)) }
 
         val executionStartInMillis = System.currentTimeMillis()
@@ -321,7 +310,7 @@ open class TestCaseGenerator(
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             applicationContext = applicationContext,
-            executionInstrumentation = executionInstrumentation,
+            concreteExecutionContext = concreteExecutionContext,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
             userTaintConfigurationProvider = userTaintConfigurationProvider,
         )
@@ -379,91 +368,9 @@ open class TestCaseGenerator(
         }
     }
 
-    private fun List<UtExecution>.filterCoveredInstructions(classUnderTestId: ClassId): List<UtExecution> {
-        // Do nothing when we were launched not from IDEA or when there are no executions
-        if (buildDirs.isEmpty() || this.isEmpty()) return this
-
-        // List of annotations that we want to find in execution instructions
-        // in order to exclude such instructions for some reason
-        // E.g. we exclude instructions (which classes have @Entity) when it is not a class under test
-        // because we are not interested in coverage which was possibly produced by Spring itself
-        val annotationsToIgnoreCoverage =
-            entityClassIds.mapNotNull { utContext.classLoader.tryLoadClass(it.name) }
-
-        val buildDirsClassLoader = createBuildDirsClassLoader()
-        val isClassOnUserClasspathCache = mutableMapOf<String, Boolean>()
-
-        // Here we filter out instructions from third-party libraries
-        // Also, we filter out instructions that operate
-        // in classes marked with annotations from [annotationsToIgnore]
-        // and in standard java libs
-        return this.map { execution ->
-            val coverage = execution.coverage ?: return@map execution
-
-            val filteredCoveredInstructions =
-                coverage.coveredInstructions
-                    .filter { instruction ->
-                        val instrClassName = instruction.className
-
-                        val isInstrClassOnClassPath =
-                            isClassOnUserClasspathCache.getOrPut(instrClassName) {
-                                buildDirsClassLoader.hasOnClasspath(instrClassName)
-                            }
-
-                        // We want to
-                        // - always keep instructions that are in class under test
-                        // - ignore instructions in classes marked with annotations from [annotationsToIgnore]
-                        return@filter instrClassName == classUnderTestId.name ||
-                                (isInstrClassOnClassPath && !hasAnnotations(instrClassName, annotationsToIgnoreCoverage))
-                    }
-                    .ifEmpty {
-                        coverage.coveredInstructions
-                            .also {
-                                logger.warn("Execution covered instruction list became empty. Proceeding with not filtered instruction list.")
-                            }
-                    }
-
-            execution.copy(
-                coverage = Coverage(
-                    coveredInstructions = filteredCoveredInstructions,
-                    instructionsCount = coverage.instructionsCount,
-                    missedInstructions = coverage.missedInstructions
-                )
-            )
-        }
-    }
-
-    private fun createBuildDirsClassLoader(): URLClassLoader {
-        val urls = buildDirs.map { it.toURL() }.toTypedArray()
-        return URLClassLoader(urls, null)
-    }
-
-    private fun hasAnnotations(className: String, annotations: List<Class<*>>): Boolean =
-        utContext
-            .classLoader
-            .loadClass(className)
-            .annotations
-            .any { existingAnnotation ->
-                annotations.any { annotation ->
-                    annotation.isInstance(existingAnnotation)
-                }
-            }
-
-    private fun doContextDependentPreparationForTestGeneration() {
-        when (applicationContext) {
-            is SpringApplicationContext -> when (applicationContext.springTestType) {
-                UNIT_TEST -> Unit
-                INTEGRATION_TEST ->
-                    if (applicationContext.springContextLoadingResult == null)
-                        // force pool to create an appropriate executor
-                        applicationContext.springContextLoadingResult = ConcreteExecutor(
-                            executionInstrumentation,
-                            classpathForEngine
-                        ).tryLoadingSpringContext()
-            }
-            else -> Unit
-        }
+    private fun loadConcreteExecutionContext(): ConcreteContextLoadingResult {
+        // force pool to create an appropriate executor
+        val concreteExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
+        return concreteExecutionContext.loadContext(concreteExecutor)
     }
 }
-
-

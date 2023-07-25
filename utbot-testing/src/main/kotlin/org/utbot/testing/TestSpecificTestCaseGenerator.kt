@@ -9,6 +9,7 @@ import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -35,6 +36,7 @@ class TestSpecificTestCaseGenerator(
     engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean = { false },
     private val taintConfigurationProvider: TaintConfigurationProvider? = null,
+    applicationContext: ApplicationContext = defaultApplicationContext,
 ): TestCaseGenerator(
     listOf(buildDir),
     classpath,
@@ -42,7 +44,8 @@ class TestSpecificTestCaseGenerator(
     JdkInfoDefaultProvider().info,
     engineActions,
     isCanceled,
-    forceSootReload = false
+    forceSootReload = false,
+    applicationContext = applicationContext,
 ) {
 
     private val logger = KotlinLogging.logger {}

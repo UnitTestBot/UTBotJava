@@ -20,7 +20,7 @@ import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.common.logException
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.SpringContextLoadingResult
+import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -48,10 +48,10 @@ private val logger = KotlinLogging.logger {}
  * @see [org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation].
  */
 inline fun <TBlockResult, TIResult, reified T : Instrumentation<TIResult>> withInstrumentation(
-    instrumentation: T,
+    instrumentationFactory: Instrumentation.Factory<TIResult, T>,
     pathsToUserClasses: String,
     block: (ConcreteExecutor<TIResult, T>) -> TBlockResult
-) = ConcreteExecutor(instrumentation, pathsToUserClasses).use {
+) = ConcreteExecutor(instrumentationFactory, pathsToUserClasses).use {
     block(it)
 }
 
@@ -59,20 +59,20 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
     private val executors = ArrayDeque<ConcreteExecutor<*, *>>(maxCount)
 
     /**
-     * Tries to find the concrete executor for the supplied [instrumentation] and [pathsToDependencyClasses]. If it
+     * Tries to find the concrete executor for the supplied [instrumentationFactory] and [pathsToDependencyClasses]. If it
      * doesn't exist, then creates a new one.
      */
     fun <TIResult, TInstrumentation : Instrumentation<TIResult>> get(
-        instrumentation: TInstrumentation,
+        instrumentationFactory: Instrumentation.Factory<TIResult, TInstrumentation>,
         pathsToUserClasses: String,
     ): ConcreteExecutor<TIResult, TInstrumentation> {
         executors.removeIf { !it.alive }
 
         @Suppress("UNCHECKED_CAST")
         return executors.firstOrNull {
-            it.pathsToUserClasses == pathsToUserClasses && it.instrumentation == instrumentation
+            it.pathsToUserClasses == pathsToUserClasses && it.instrumentationFactory == instrumentationFactory
         } as? ConcreteExecutor<TIResult, TInstrumentation>
-            ?: ConcreteExecutor.createNew(instrumentation, pathsToUserClasses).apply {
+            ?: ConcreteExecutor.createNew(instrumentationFactory, pathsToUserClasses).apply {
                 executors.addFirst(this)
                 if (executors.size > maxCount) {
                     executors.removeLast().close()
@@ -100,12 +100,12 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
  *
  * If [instrumentation] depends on other classes, they should be passed in [pathsToDependencyClasses].
  *
- * Also takes [instrumentation] object which will be used in the instrumented process for the instrumentation.
+ * Also takes [instrumentationFactory] object which will be used in the instrumented process to create an [Instrumentation].
  *
- * @param TIResult the return type of [Instrumentation.invoke] function for the given [instrumentation].
+ * @param TIResult the return type of [Instrumentation.invoke] function for the given [Instrumentation].
  */
-class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> private constructor(
-    internal val instrumentation: TInstrumentation,
+class ConcreteExecutor<out TIResult, out TInstrumentation : Instrumentation<TIResult>> private constructor(
+    internal val instrumentationFactory: Instrumentation.Factory<TIResult, TInstrumentation>,
     internal val pathsToUserClasses: String
 ) : Closeable, Executor<TIResult> {
     private val ldef: LifetimeDefinition = LifetimeDefinition()
@@ -129,14 +129,14 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
          * and in case of failure, creates a new one.
          */
         operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
-            instrumentation: TInstrumentation,
+            instrumentationFactory: Instrumentation.Factory<TIResult, TInstrumentation>,
             pathsToUserClasses: String,
-        ) = defaultPool.get(instrumentation, pathsToUserClasses)
+        ) = defaultPool.get(instrumentationFactory, pathsToUserClasses)
 
         internal fun <TIResult, TInstrumentation : Instrumentation<TIResult>> createNew(
-            instrumentation: TInstrumentation,
+            instrumentationFactory: Instrumentation.Factory<TIResult, TInstrumentation>,
             pathsToUserClasses: String
-        ) = ConcreteExecutor(instrumentation, pathsToUserClasses)
+        ) = ConcreteExecutor(instrumentationFactory, pathsToUserClasses)
     }
 
     var classLoader: ClassLoader? = UtContext.currentContext()?.classLoader
@@ -157,7 +157,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         if (proc == null || !proc.lifetime.isAlive) {
             proc = InstrumentedProcess(
                 ldef,
-                instrumentation,
+                instrumentationFactory,
                 pathsToUserClasses,
                 classLoader
             )
@@ -293,7 +293,7 @@ fun ConcreteExecutor<*, *>.getRelevantSpringRepositories(classId: ClassId): Set<
     }
 }
 
-fun ConcreteExecutor<*, *>.tryLoadingSpringContext(): SpringContextLoadingResult = runBlocking {
+fun ConcreteExecutor<*, *>.tryLoadingSpringContext(): ConcreteContextLoadingResult = runBlocking {
     withProcess {
         val result = instrumentedProcessModel.tryLoadingSpringContext.startSuspending(lifetime, Unit)
         kryoHelper.readObject(result.springContextLoadingResult)

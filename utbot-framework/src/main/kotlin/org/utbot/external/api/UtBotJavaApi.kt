@@ -10,6 +10,7 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -40,6 +41,8 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
+import org.utbot.instrumentation.instrumentation.execution.SimpleUtExecutionInstrumentation
+import java.io.File
 import kotlin.reflect.jvm.kotlinFunction
 
 object UtBotJavaApi {
@@ -71,7 +74,7 @@ object UtBotJavaApi {
         val testSets: MutableList<UtMethodTestSet> = generatedTestCases.toMutableList()
 
         val concreteExecutor = ConcreteExecutor(
-            UtExecutionInstrumentation,
+            SimpleUtExecutionInstrumentation.Factory(pathsToUserClasses = classpath.split(File.pathSeparator).toSet()),
             classpath,
         )
 
@@ -83,6 +86,7 @@ object UtBotJavaApi {
 
         return withUtContext(utContext) {
             val codeGenerator = CodeGenerator(
+                CodeGeneratorParams(
                     classUnderTest = classUnderTest.id,
                     projectType = projectType,
                     testFramework = testFramework,
@@ -94,6 +98,7 @@ object UtBotJavaApi {
                     generateWarningsForStaticMocking = generateWarningsForStaticMocking,
                     testClassPackageName = testClassPackageName
                 )
+            )
 
             codeGenerator.generateAsString(testSets, destinationClassName)
         }

@@ -88,7 +88,7 @@ class InstrumentedProcess private constructor(
 
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
             parent: Lifetime,
-            instrumentation: TInstrumentation,
+            instrumentationFactory: Instrumentation.Factory<TIResult, TInstrumentation>,
             pathsToUserClasses: String,
             classLoader: ClassLoader?
         ): InstrumentedProcess = parent.createNested().terminateOnException { lifetime ->
@@ -131,7 +131,7 @@ class InstrumentedProcess private constructor(
             logger.trace("sending instrumentation")
             proc.instrumentedProcessModel.setInstrumentation.startSuspending(
                 proc.lifetime, SetInstrumentationParams(
-                    proc.kryoHelper.writeObject(instrumentation)
+                    proc.kryoHelper.writeObject(instrumentationFactory)
                 )
             )
             logger.trace("start commands sent")

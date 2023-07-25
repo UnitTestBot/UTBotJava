@@ -22,7 +22,7 @@ data class CoverageInfo(
 /**
  * This instrumentation allows collecting coverage after several calls.
  */
-object CoverageInstrumentation : Instrumentation<Result<*>> {
+class CoverageInstrumentation : Instrumentation<Result<*>> {
     private val invokeWithStatics = InvokeWithStaticsInstrumentation()
 
     /**
@@ -93,6 +93,10 @@ object CoverageInstrumentation : Instrumentation<Result<*>> {
         instrumenter.addStaticField(staticArrayStrategy)
 
         return instrumenter.classByteCode
+    }
+
+    object Factory : Instrumentation.Factory<Result<*>, CoverageInstrumentation> {
+        override fun create(): CoverageInstrumentation = CoverageInstrumentation()
     }
 }
 

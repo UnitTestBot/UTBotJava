@@ -40,3 +40,10 @@ internal fun PythonClassId.dropBuiltins(): PythonClassId {
         this
 }
 
+internal fun String.dropBuiltins(): String {
+    val builtinsPrefix = "$pythonBuiltinsModuleName."
+    return if (this.startsWith(builtinsPrefix))
+        this.drop(builtinsPrefix.length)
+    else
+        this
+}

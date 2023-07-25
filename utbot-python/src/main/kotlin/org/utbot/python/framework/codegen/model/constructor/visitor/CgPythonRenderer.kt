@@ -66,6 +66,7 @@ import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.codegen.model.constructor.util.dropBuiltins
 import org.utbot.python.framework.codegen.model.tree.*
 import java.lang.StringBuilder
 import org.utbot.python.framework.codegen.utils.toRelativeRawPath
@@ -300,7 +301,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgConstructorCall) {
-        print(element.executableId.classId.name)
+        print(element.executableId.classId.name.dropBuiltins())
         renderExecutableCallArguments(element)
     }
 
@@ -504,7 +505,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonRepr) {
-        print(element.content)
+        print(element.content.dropBuiltins())
     }
 
     override fun visit(element: CgPythonIndex) {
@@ -515,7 +516,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonFunctionCall) {
-        print(element.name)
+        print(element.name.dropBuiltins())
         print("(")
         val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
         element.parameters.renderSeparated(newLinesNeeded)
@@ -604,7 +605,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgLiteral) {
-        print(element.value.toString())
+        print(element.value.toString().dropBuiltins())
     }
 
     override fun visit(element: CgFormattedString) {

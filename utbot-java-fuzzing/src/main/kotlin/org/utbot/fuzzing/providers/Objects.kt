@@ -31,13 +31,14 @@ private fun isIgnored(type: ClassId): Boolean {
             || (type.isInner && !type.isStatic)
 }
 
-fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
-    ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
+fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, isSpringProject: Boolean = false) =
+    ObjectValueProvider(idGenerator, isSpringProject).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
         ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
     }
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
+    private val isSpringProject: Boolean,
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
@@ -100,16 +101,18 @@ class ObjectValueProvider(
                         }
                     }
                 }
-                findAllPublicMethods(description, classId, description.description.packageName).forEach { md ->
-                    yield(Routine.Call(md.parameterTypes) { self, values ->
-                        val model = self.model as UtAssembleModel
-                        model.modificationsChain as MutableList +=
-                            UtExecutableCallModel(
-                                model,
-                                md.executable,
-                                values.map { it.model }
-                            )
-                    })
+                if (isSpringProject) {
+                    findAllPublicMethods(description, classId, description.description.packageName).forEach { md ->
+                        yield(Routine.Call(md.parameterTypes) { self, values ->
+                            val model = self.model as UtAssembleModel
+                            model.modificationsChain as MutableList +=
+                                UtExecutableCallModel(
+                                    model,
+                                    md.method.executableId,
+                                    values.map { it.model }
+                                )
+                        })
+                    }
                 }
             },
             empty = nullRoutine(classId)
@@ -233,7 +236,7 @@ internal class FieldDescription(
 internal class MethodDescription(
     val name: String,
     val parameterTypes: List<FuzzedType>,
-    val executable: ExecutableId
+    val method: Method
 )
 
 internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
@@ -264,6 +267,7 @@ internal fun findAllPublicMethods(
 ): List<MethodDescription> =
     classId.jClass.declaredMethods.mapNotNull { method ->
         if (isAccessible(method, packageName)) {
+            if (method.genericParameterTypes.any { it !is Class<*> }) return@mapNotNull null
             val parameterTypes =
                 method
                     .parameterTypes
@@ -279,9 +283,14 @@ internal fun findAllPublicMethods(
             MethodDescription(
                 name = method.name,
                 parameterTypes = parameterTypes,
-                executable = method.executableId
+                method = method
             )
         } else null
+    }
+
+internal fun List<MethodDescription>.removeSetters(): List<MethodDescription> =
+    filterNot { md ->
+        md.method.name.startsWith("set") && md.method.parameterCount == 1
     }
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {

@@ -29,6 +29,7 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
 
     interface Factory<out TIResult, out TInstrumentation : Instrumentation<TIResult>> {
         val additionalRuntimeClasspath: Set<String> get() = emptySet()
+        val forceDisableSandbox: Boolean get() = false
 
         fun create(): TInstrumentation
     }

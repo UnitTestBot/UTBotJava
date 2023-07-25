@@ -3,9 +3,12 @@ package org.utbot.spring.provider
 import org.utbot.spring.api.provider.InstantiationSettings
 import org.utbot.spring.dummy.DummySpringBootIntegrationTestClass
 import org.utbot.spring.SpringApiImpl
+import org.utbot.spring.dummy.DummySpringBootIntegrationTestClassAutoconfigMockMvc
+import org.utbot.spring.dummy.DummySpringBootIntegrationTestClassAutoconfigMockMvcAndTestDB
 import org.utbot.spring.dummy.DummySpringBootIntegrationTestClassAutoconfigTestDB
 import org.utbot.spring.utils.DependencyUtils.isSpringBootTestOnClasspath
 import org.utbot.spring.utils.DependencyUtils.isSpringDataOnClasspath
+import org.utbot.spring.utils.DependencyUtils.isSpringWebOnClasspath
 
 class SpringBootApiProvider : SpringApiProvider {
 
@@ -14,7 +17,11 @@ class SpringBootApiProvider : SpringApiProvider {
     override fun provideAPI(instantiationSettings: InstantiationSettings) =
         SpringApiImpl(
             instantiationSettings,
-            if (isSpringDataOnClasspath) DummySpringBootIntegrationTestClassAutoconfigTestDB::class.java
-            else DummySpringBootIntegrationTestClass::class.java
+            when {
+                isSpringDataOnClasspath && isSpringWebOnClasspath -> DummySpringBootIntegrationTestClassAutoconfigMockMvcAndTestDB::class
+                isSpringDataOnClasspath && !isSpringWebOnClasspath -> DummySpringBootIntegrationTestClassAutoconfigTestDB::class
+                !isSpringDataOnClasspath && isSpringWebOnClasspath -> DummySpringBootIntegrationTestClassAutoconfigMockMvc::class
+                else -> DummySpringBootIntegrationTestClass::class
+            }.java
         )
 }

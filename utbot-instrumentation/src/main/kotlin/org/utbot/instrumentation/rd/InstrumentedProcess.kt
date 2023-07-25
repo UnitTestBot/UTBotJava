@@ -11,7 +11,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.framework.process.kryo.KryoHelper
-import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.DISABLE_SANDBOX_OPTION
 import org.utbot.instrumentation.process.generated.AddPathsParams
@@ -95,7 +94,9 @@ class InstrumentedProcess private constructor(
             val rdProcess: ProcessWithRdServer = startUtProcessWithRdServer(
                 lifetime = lifetime
             ) { port ->
-                val cmd = obtainProcessCommandLine(port)
+                val cmd = obtainProcessCommandLine(port) + listOfNotNull(
+                    DISABLE_SANDBOX_OPTION.takeIf { instrumentationFactory.forceDisableSandbox }
+                )
                 logger.debug { "Starting instrumented process: $cmd" }
                 val directory = WorkingDirService.provide().toFile()
                 val processBuilder = ProcessBuilder(cmd)

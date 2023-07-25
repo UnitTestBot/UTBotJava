@@ -10,8 +10,15 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.util.SpringModelUtils
+import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.ArgumentList
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
@@ -63,7 +70,41 @@ class SpringUtExecutionInstrumentation(
         parameters: Any?,
         phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult {
+        if (parameters !is UtConcreteExecutionData)
+            throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
+
         getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
+
+        @Suppress("NAME_SHADOWING") var clazz = clazz
+        @Suppress("NAME_SHADOWING") var methodSignature = methodSignature
+        @Suppress("NAME_SHADOWING") var parameters: UtConcreteExecutionData = parameters
+        clazz.id.allMethods.firstOrNull { it.signature == methodSignature }?.method?.executableId?.let { methodId ->
+            if (!methodId.isStatic) {
+
+                // TODO try coming up with better approach to generating ids
+                var lastId = 1378139720 // random int (around 0.642 * Int.MAX_VALUE)
+                val idGenerator = { lastId++ }
+
+                SpringModelUtils.createRequestBuilderModelOrNull(
+                    methodId,
+                    parameters.stateBefore.parameters,
+                    idGenerator
+                )?.let { requestBuilderModel ->
+                    parameters = parameters.copy(stateBefore = parameters.stateBefore.copy(
+                        thisInstance = null,
+                        parameters = listOf(
+                            parameters.stateBefore.thisInstance!!,
+                            SpringModelUtils.createMockMvcModel(idGenerator),
+                            requestBuilderModel,
+                        )
+                    ))
+
+                    val getMockMvcResponseMethod = springApi.getMockMvcResponseDataMethod
+                    clazz = getMockMvcResponseMethod.declaringClass
+                    methodSignature = getMockMvcResponseMethod.signature
+                }
+            }
+        }
 
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             phasesWrapper {
@@ -115,17 +156,21 @@ class SpringUtExecutionInstrumentation(
         classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain,
         classfileBuffer: ByteArray
-    ): ByteArray? =
+    ): ByteArray? {
+        // always transform `MockMvc` to avoid empty coverage when testing controllers
+        val isMockMvc = className == "org/springframework/test/web/servlet/MockMvc"
+
         // we do not transform Spring classes as it takes too much time
 
         // maybe we should still transform classes related to data validation
         // (e.g. from packages "javax/persistence" and "jakarta/persistence"),
         // since traces from such classes can be particularly useful for feedback to fuzzer
-        if (userSourcesClassLoader.hasOnClasspath(className.replace("/", "."))) {
+        return if (isMockMvc || userSourcesClassLoader.hasOnClasspath(className.replace("/", "."))) {
             delegateInstrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
         } else {
             null
         }
+    }
 
     class Factory(
         private val delegateInstrumentationFactory: UtExecutionInstrumentation.Factory<*>,
@@ -139,6 +184,9 @@ class SpringUtExecutionInstrumentation(
                 jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
                 targetDirectoryName = "spring-commons"
             ).path
+
+        override val forceDisableSandbox: Boolean
+            get() = true
 
         override fun create(instrumentationContext: InstrumentationContext): SpringUtExecutionInstrumentation =
             SpringUtExecutionInstrumentation(

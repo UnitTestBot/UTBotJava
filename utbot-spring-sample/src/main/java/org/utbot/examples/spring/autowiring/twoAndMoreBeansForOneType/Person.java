@@ -12,11 +12,11 @@ public class Person {
         this.age = age;
     }
 
-    public Integer getAge(){
-        return age;
+    public String getName() {
+        return firstName + " " + lastName;
     }
 
-    public String name() {
-        return firstName + " " + lastName;
+    public Integer getAge(){
+        return age;
     }
 }

@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
-import java.util.*
+import java.util.Collections.max
 import kotlin.collections.HashMap
 
 sealed interface CgClassFieldManager : CgContextOwner {
@@ -88,15 +88,16 @@ class CgMockedFieldsManager(context: CgContext) : CgClassFieldManagerImpl(contex
     override fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean {
         // group [listOfUtModels] by `testSetId` and `executionId`
         // to check how many instances of one type are used in each execution
-        val modelsByExecutions = modelWrappers
+        val modelWrappersByExecutions = modelWrappers
             .groupByTo(HashMap()) { Pair(it.testSetId, it.executionId) }
 
-        // maximal instances of one type amount in one execution
-        val instanceMaxCount = Collections.max(modelsByExecutions.map { (_, modelsList) -> modelsList.size })
+        // maximal count of instances of the same type amount in one execution
+        // we use `modelTagName` in order to distinguish mock models by their name
+        val maxCountOfInstancesOfTheSameTypeByExecution = max(modelWrappersByExecutions.map { (_, modelsList) -> modelsList.size })
 
-        // if [instanceCount] is 1, then we mock variable by @Mock annotation
+        // if [maxCountOfInstancesOfTheSameTypeByExecution] is 1, then we mock variable by @Mock annotation
         // Otherwise we will mock variable by simple mock later
-        return instanceMaxCount == 1
+        return maxCountOfInstancesOfTheSameTypeByExecution == 1
     }
 
 }

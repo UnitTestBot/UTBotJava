@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
@@ -21,7 +22,6 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
-import java.util.Collections.max
 
 abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
     CgAbstractTestClassConstructor<SpringTestClassModel>(context) {
@@ -125,10 +125,18 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
 
             modelWrappers
                 .forEach { modelWrapper ->
-                    modelWrapper.let {
-                        valueByUtModelWrapper[modelWrapper] = createdVariable
-                        variableConstructor.annotatedModelGroups.getOrPut(annotationClassId) { mutableSetOf() } += modelWrapper
-                    }
+
+                    val modelWrapperWithNullTagName = UtModelWrapper(
+                        testSetId = modelWrapper.testSetId,
+                        executionId = modelWrapper.executionId,
+                        model = modelWrapper.model,
+                        modelTagName = null,
+                    )
+
+                    valueByUtModelWrapper[modelWrapperWithNullTagName] = createdVariable
+
+                    variableConstructor.annotatedModelGroups
+                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapperWithNullTagName
                 }
         }
 

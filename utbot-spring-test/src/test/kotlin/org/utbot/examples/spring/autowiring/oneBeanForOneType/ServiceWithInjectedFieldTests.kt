@@ -1,6 +1,7 @@
 package org.utbot.examples.spring.autowiring.oneBeanForOneType
 
 import org.junit.jupiter.api.Test
+import org.utbot.examples.spring.autowiring.SpringNoConfigUtValueTestCaseChecker
 import org.utbot.examples.spring.utils.findAllRepositoryCall
 import org.utbot.examples.spring.utils.saveRepositoryCall
 import org.utbot.examples.spring.utils.springAdditionalDependencies

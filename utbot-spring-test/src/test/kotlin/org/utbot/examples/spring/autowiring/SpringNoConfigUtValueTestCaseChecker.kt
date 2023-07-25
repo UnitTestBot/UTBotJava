@@ -1,4 +1,4 @@
-package org.utbot.examples.spring.autowiring.oneBeanForOneType
+package org.utbot.examples.spring.autowiring
 
 import org.utbot.examples.spring.utils.standardSpringTestingConfigurations
 import org.utbot.testing.UtValueTestCaseChecker

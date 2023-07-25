@@ -451,7 +451,7 @@ interface CgContextOwner {
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
 
-    fun UtModel.wrap(): UtModelWrapper
+    fun UtModel.wrap(modelTagName: String? = null): UtModelWrapper
 }
 
 /**
@@ -580,11 +580,12 @@ class CgContext(
         }
     }
 
-    override fun UtModel.wrap(): UtModelWrapper =
+    override fun UtModel.wrap(modelTagName: String?): UtModelWrapper =
         UtModelWrapper(
             testSetId = currentTestSetId,
             executionId = currentExecutionId,
-            model = this
+            model = this,
+            modelTagName = modelTagName
         )
 
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {

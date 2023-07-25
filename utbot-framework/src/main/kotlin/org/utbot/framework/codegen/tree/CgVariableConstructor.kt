@@ -175,16 +175,13 @@ open class CgVariableConstructor(val context: CgContext) :
 
         for ((fieldId, fieldModel) in model.fields) {
             val variableForField = getOrCreateVariable(fieldModel)
-            setFieldValue(obj, fieldId, variableForField)
+            if (!variableForField.hasDefaultValue())
+                setFieldValue(obj, fieldId, variableForField)
         }
         return obj
     }
 
     fun setFieldValue(obj: CgValue, fieldId: FieldId, valueForField: CgValue) {
-        if (valueForField.hasDefaultValue()) {
-            return
-        }
-
         val field = fieldId.jField
         val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
 

@@ -248,6 +248,7 @@ class PythonGenerateTestsCommand : CliktCommand(
 
         logger.info("Generating tests...")
         val testSets = processor.testGenerate(mypyStorage)
+        if (testSets.isEmpty()) return
 
         logger.info("Saving tests...")
         val testCode = processor.testCodeGenerate(testSets)

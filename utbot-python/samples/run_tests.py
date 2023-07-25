@@ -61,6 +61,7 @@ def generate_tests(
         command += f" -m {','.join(method_names)}"
     print(command)
     code = os.system(command)
+    print(code)
     return code
 
 
@@ -81,9 +82,10 @@ def check_coverage(
 ):
     config = parse_config(config_file)
     report: typing.Dict[str, bool] = {}
-    for part in config['parts'][:2]:
-        for file in part['files'][:2]:
-            for group in file['groups'][:2]:
+    coverage: typing.Dict[str, typing.Tuple[float, float]] = {}
+    for part in config['parts']:
+        for file in part['files']:
+            for group in file['groups']:
                 expected_coverage = group.get('coverage', 0)
 
                 file_suffix = f"{part['path'].replace('/', '_')}_{file['name']}"
@@ -92,8 +94,9 @@ def check_coverage(
                     actual_coverage_json = json.loads(fin.readline())
                 actual_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['covered'])
                 actual_not_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['notCovered'])
-                actual_coverage = round(actual_covered / (actual_not_covered + actual_covered)) * 100
+                actual_coverage = round(actual_covered / (actual_not_covered + actual_covered) * 100)
 
+                coverage[file_suffix] = (actual_coverage, expected_coverage)
                 report[file_suffix] = actual_coverage >= expected_coverage
     if all(report.values()):
         return True
@@ -102,15 +105,15 @@ def check_coverage(
     print("-------------")
     for file, good_coverage in report.items():
         if not good_coverage:
-            print(file)
+            print(f"{file}: {coverage[file][0]}/{coverage[file][1]}")
     return False
 
 
 def main_test_generation(args):
     config = parse_config(args.config_file)
-    for part in config['parts'][:2]:
-        for file in part['files'][:2]:
-            for group in file['groups'][:2]:
+    for part in config['parts']:
+        for file in part['files']:
+            for group in file['groups']:
                 full_name = pathlib.PurePath(args.path_to_test_dir, part['path'], file['name'])
                 output_file = pathlib.PurePath(args.output_dir, f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}.py")
                 coverage_output_file = pathlib.PurePath(args.coverage_output_dir, f"coverage_{part['path'].replace('/', '_')}_{file['name']}.json")

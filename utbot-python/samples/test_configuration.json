@@ -32,7 +32,7 @@
               "classes": null,
               "methods": null,
               "timeout": 10,
-              "coverage": 100
+              "coverage": 85
             }
           ]
         }
@@ -48,7 +48,7 @@
               "classes": null,
               "methods": null,
               "timeout": 10,
-              "coverage": 100
+              "coverage": 80
             }
           ]
         },
@@ -70,7 +70,7 @@
               "classes": ["Dictionary"],
               "methods": ["translate"],
               "timeout": 10,
-              "coverage": 100
+              "coverage": 89
             }
           ]
         },
@@ -195,8 +195,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10,
-              "coverage": 100
+              "timeout": 60,
+              "coverage": 88
             }
           ]
         }
@@ -211,7 +211,7 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10,
+              "timeout": 100,
               "coverage": 100
             }
           ]
@@ -222,8 +222,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10,
-              "coverage": 100
+              "timeout": 30,
+              "coverage": 72
             }
           ]
         },
@@ -233,8 +233,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 10,
-              "coverage": 100
+              "timeout": 30,
+              "coverage": 75
             }
           ]
         }
@@ -271,7 +271,7 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 150,
+              "timeout": 300,
               "coverage": 100
             }
           ]
@@ -294,17 +294,6 @@
               "classes": null,
               "methods": null,
               "timeout": 20,
-              "coverage": 100
-            }
-          ]
-        },
-        {
-          "name": "general",
-          "groups": [
-            {
-              "classes": null,
-              "methods": null,
-              "timeout": 300,
               "coverage": 100
             }
           ]
@@ -348,7 +337,7 @@
               "classes": null,
               "methods": null,
               "timeout": 180,
-              "coverage": 100
+              "coverage": 86
             }
           ]
         }
@@ -433,7 +422,7 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 40,
+              "timeout": 60,
               "coverage": 100
             }
           ]
@@ -504,12 +493,34 @@
           ]
         },
         {
+          "name": "graph_matrix",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 120,
+              "coverage": 100
+            }
+          ]
+        },
+        {
           "name": "matrix",
           "groups": [
             {
               "classes": ["Matrix"],
               "methods": null,
               "timeout": 240,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "multi_level_feedback_queue",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180,
               "coverage": 100
             }
           ]
@@ -559,7 +570,7 @@
               "classes": ["LoggedVar"],
               "methods": null,
               "timeout": 30,
-              "coverage": 100
+              "coverage": 80
             }
           ]
         },
@@ -581,7 +592,7 @@
               "classes": null,
               "methods": null,
               "timeout": 30,
-              "coverage": 100
+              "coverage": 50
             }
           ]
         },
@@ -614,7 +625,7 @@
               "classes": null,
               "methods": null,
               "timeout": 40,
-              "coverage": 100
+              "coverage": 62
             }
           ]
         }

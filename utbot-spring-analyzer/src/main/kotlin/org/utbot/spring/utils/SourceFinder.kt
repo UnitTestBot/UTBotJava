@@ -7,7 +7,6 @@ import org.utbot.common.patchAnnotation
 import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.spring.api.ApplicationData
 import org.utbot.spring.config.TestApplicationConfiguration
-import org.utbot.spring.configurators.ApplicationConfigurationType
 import java.nio.file.Path
 import kotlin.io.path.Path
 
@@ -20,11 +19,11 @@ class SourceFinder(
 
     fun findSources(): Array<Class<*>> =
         when (val config = applicationData.springSettings.configuration) {
-            is JavaConfiguration -> {
+            is JavaBasedConfiguration -> {
                 logger.info { "Using java Spring configuration" }
                 arrayOf(
                     TestApplicationConfiguration::class.java,
-                    classLoader.loadClass(config.classBinaryName)
+                    classLoader.loadClass(config.configBinaryName)
                 )
             }
 

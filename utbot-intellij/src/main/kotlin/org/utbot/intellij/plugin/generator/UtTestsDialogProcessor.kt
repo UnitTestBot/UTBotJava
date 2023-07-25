@@ -180,10 +180,10 @@ object UtTestsDialogProcessor {
                 is AbsentSpringSettings -> null
                 is PresentSpringSettings ->
                     when (val config = settings.configuration) {
-                        is JavaConfiguration -> {
+                        is JavaBasedConfiguration -> {
                             PsiClassHelper
-                                .findClass(config.classBinaryName, project)
-                                ?: error("Cannot find configuration class ${config.classBinaryName}.")
+                                .findClass(config.configBinaryName, project)
+                                ?: error("Cannot find configuration class ${config.configBinaryName}.")
                         }
                         // TODO: for XML config we also need to compile module containing,
                         //  since it may reference classes from that module

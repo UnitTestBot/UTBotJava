@@ -5,7 +5,10 @@ import org.utbot.engine.ExecutionStateListener
 import org.utbot.engine.MockStrategy
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.simple.SimpleApplicationContext
+import org.utbot.framework.context.simple.SimpleConcreteExecutionContext
+import org.utbot.framework.context.simple.SimpleMockerContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -45,8 +48,11 @@ object UnitTestBotLight {
         dependencyPaths = "",
         mockStrategy = mockStrategy,
         chosenClassesToMockAlways = chosenClassesToMockAlways,
-        applicationContext = ApplicationContext(),
-        executionInstrumentation = UtExecutionInstrumentation,
+        applicationContext = SimpleApplicationContext(SimpleMockerContext(
+            mockFrameworkInstalled = true,
+            staticsMockingIsConfigured = true
+        )),
+        concreteExecutionContext = SimpleConcreteExecutionContext(classpath),
         solverTimeoutInMillis = UtSettings.checkSolverTimeoutMillis
     )
 
@@ -75,8 +81,11 @@ object UnitTestBotLight {
                     MockStrategyApi.OTHER_CLASSES -> MockStrategy.OTHER_CLASSES
                 },
                 HashSet(),
-                ApplicationContext(),
-                UtExecutionInstrumentation
+                SimpleApplicationContext(SimpleMockerContext(
+                    mockFrameworkInstalled = true,
+                    staticsMockingIsConfigured = true
+                )),
+                SimpleConcreteExecutionContext(classpath)
             ).addListener(stateListener).traverseAll()
         }
     }

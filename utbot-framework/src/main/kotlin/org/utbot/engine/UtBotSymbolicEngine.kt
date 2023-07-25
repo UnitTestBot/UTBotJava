@@ -43,6 +43,7 @@ import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
+import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -392,6 +393,7 @@ class UtBotSymbolicEngine(
             emit(UtError(e.message ?: "Failed to create ValueProvider", e))
             return@flow
         }.let(transform)
+            .withFallback(AnyDepthNullValueProvider)
 
         val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
 

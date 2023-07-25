@@ -9,8 +9,10 @@ import mu.KotlinLogging
 import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
+import org.utbot.python.PythonTestSet
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.TestFileInformation
 import org.utbot.python.code.PythonCode
@@ -101,6 +103,9 @@ class PythonGenerateTestsCommand : CliktCommand(
     private val runtimeExceptionTestsBehaviour by option("--runtime-exception-behaviour", help = "PASS or FAIL")
         .choice("PASS", "FAIL")
         .default("FAIL")
+
+    private val generateRegressionSuite by option("--generate-regression-suite", help = "Generate regression test suite")
+        .flag(default = false)
 
     private val testFramework: TestFramework
         get() =
@@ -247,8 +252,19 @@ class PythonGenerateTestsCommand : CliktCommand(
         val (mypyStorage, _) = processor.sourceCodeAnalyze()
 
         logger.info("Generating tests...")
-        val testSets = processor.testGenerate(mypyStorage)
+        var testSets = processor.testGenerate(mypyStorage)
         if (testSets.isEmpty()) return
+        if (!generateRegressionSuite) {
+            testSets = testSets.map { testSet ->
+                PythonTestSet(
+                    testSet.method,
+                    testSet.executions.filter { it.result is UtExecutionSuccess },
+                    testSet.errors,
+                    testSet.mypyReport,
+                    testSet.classId
+                )
+            }
+        }
 
         logger.info("Saving tests...")
         val testCode = processor.testCodeGenerate(testSets)

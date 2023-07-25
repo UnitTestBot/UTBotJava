@@ -77,6 +77,14 @@ Run generated tests:
 - `--test-framework [pytest|Unittest]`
 
   Test framework to be used.
+
+- `--runtime-exception-behaviour [PASS|FAIL]`
+
+  Expected behaviour for runtime exception.
+
+- `--generate-regression-suite`
+
+  Generate regression test suite. Default error test suite generation only.
   
 ### `run_python` options
 

@@ -12,10 +12,10 @@ import org.utbot.examples.modificators.StronglyConnectedComponents
 import org.utbot.examples.modificators.coupling.ClassA
 import org.utbot.examples.modificators.coupling.ClassB
 import org.utbot.examples.modificators.hierarchy.InheritedModifications
-import org.utbot.framework.modifications.AnalysisMode
-import org.utbot.framework.modifications.AnalysisMode.AllModificators
-import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
-import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
+import org.utbot.modifications.AnalysisMode
+import org.utbot.modifications.AnalysisMode.AllModificators
+import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import kotlin.reflect.KClass
@@ -193,7 +193,7 @@ internal class UtBotFieldModificatorsTest {
 
     //We use sorting here to make comparing with sorted in advance expected collections easier
     private fun runFieldModificatorsSearch(analysisMode: AnalysisMode) =
-        fieldsModificatorsSearcher.findModificators(analysisMode)
+        fieldsModificatorsSearcher.getFieldToModificators(analysisMode)
             .map { (key, value) ->
                 val modificatorNames = value.filterNot { it.name.startsWith("direct_set_") }.map { it.name }
                 key.name to modificatorNames.toSortedSet()

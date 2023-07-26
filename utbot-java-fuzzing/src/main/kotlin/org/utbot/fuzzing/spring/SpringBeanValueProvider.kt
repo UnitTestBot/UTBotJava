@@ -12,8 +12,9 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
+import org.utbot.fuzzing.providers.MethodDescription
 import org.utbot.fuzzing.providers.SPRING_BEAN_PROP
-import org.utbot.fuzzing.providers.findAllPublicMethods
+import org.utbot.fuzzing.providers.findAllAvailableMethods
 import org.utbot.fuzzing.providers.nullRoutine
 import org.utbot.fuzzing.spring.valid.EntityLifecycleState
 import org.utbot.fuzzing.spring.valid.EntityLifecycleStateProperty
@@ -79,7 +80,11 @@ class SpringBeanValueProvider(
                                 }
                             })
                         }
-                        findAllPublicMethods(description, type.classId, description.description.packageName)
+                        /**
+                         * We find all methods that are public, accessible, are not setters and modify at least one field.
+                         * We don't take setters because they may
+                         */
+                        findAllAvailableMethods(description, type.classId, description.description.packageName)
                             .removeSetters()
                             .forEach { md ->
                                 yield(Routine.Call(md.parameterTypes) { self, values ->
@@ -98,4 +103,9 @@ class SpringBeanValueProvider(
             )
         }
     }
+
+    private fun List<MethodDescription>.removeSetters(): List<MethodDescription> =
+        filterNot { md ->
+            md.method.name.startsWith("set") && md.method.parameterCount == 1
+        }
 }

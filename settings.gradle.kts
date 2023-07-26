@@ -28,6 +28,7 @@ rootProject.name = "utbot"
 include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
+include("utbot-modification-analyzer")
 include("utbot-intellij")
 include("utbot-sample")
 include("utbot-java-fuzzing")

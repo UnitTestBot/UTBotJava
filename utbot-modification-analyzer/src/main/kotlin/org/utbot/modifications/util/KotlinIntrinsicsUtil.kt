@@ -1,4 +1,4 @@
-package org.utbot.framework.util
+package org.utbot.modifications.util
 
 import org.utbot.framework.plugin.api.BuiltinClassId
 

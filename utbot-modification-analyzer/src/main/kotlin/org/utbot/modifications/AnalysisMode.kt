@@ -1,4 +1,4 @@
-package org.utbot.framework.modifications
+package org.utbot.modifications
 
 /**
  * Restrictions on demanded modificators
@@ -19,4 +19,6 @@ enum class AnalysisMode {
      * Search constructors only
      */
     Constructors,
+
+    // TODO?: add all modificators without constructors (methods only)
 }

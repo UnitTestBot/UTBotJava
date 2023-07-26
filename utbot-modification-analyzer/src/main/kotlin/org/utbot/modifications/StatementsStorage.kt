@@ -1,8 +1,8 @@
-package org.utbot.framework.modifications
+package org.utbot.modifications
 
-import org.utbot.framework.modifications.AnalysisMode.AllModificators
-import org.utbot.framework.modifications.AnalysisMode.Constructors
-import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
+import org.utbot.modifications.AnalysisMode.AllModificators
+import org.utbot.modifications.AnalysisMode.Constructors
+import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
@@ -96,6 +96,7 @@ class StatementsStorage {
         return when (analysisMode) {
             AllModificators -> fields
             SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
+            // TODO: add Methods -> { ... }
             Constructors -> if (statementId is ConstructorId) fields else emptySet()
         }
     }

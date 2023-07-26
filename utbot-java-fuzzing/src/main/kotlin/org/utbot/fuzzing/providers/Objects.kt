@@ -13,6 +13,9 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.lang.reflect.TypeVariable
+import org.utbot.modifications.AnalysisMode
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 
 private val logger = KotlinLogging.logger {}
 
@@ -31,14 +34,14 @@ private fun isIgnored(type: ClassId): Boolean {
             || (type.isInner && !type.isStatic)
 }
 
-fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, isSpringProject: Boolean = false) =
-    ObjectValueProvider(idGenerator, isSpringProject).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
+fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, shouldMutateWithMethods: Boolean = false) =
+    ObjectValueProvider(idGenerator, shouldMutateWithMethods).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
         ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
     }
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-    private val isSpringProject: Boolean,
+    private val shouldMutateWithMethods: Boolean,
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
@@ -101,8 +104,8 @@ class ObjectValueProvider(
                         }
                     }
                 }
-                if (isSpringProject) {
-                    findAllPublicMethods(description, classId, description.description.packageName).forEach { md ->
+                if (true || shouldMutateWithMethods) {
+                    findAllAvailableMethods(description, classId, description.description.packageName).forEach { md ->
                         yield(Routine.Call(md.parameterTypes) { self, values ->
                             val model = self.model as UtAssembleModel
                             model.modificationsChain as MutableList +=
@@ -260,14 +263,20 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
     }.toList()
 }
 
-internal fun findAllPublicMethods(
+/**
+ * text.
+ */
+internal fun findAllAvailableMethods(
     description: FuzzedDescription?,
     classId: ClassId,
     packageName: String?
-): List<MethodDescription> =
-    classId.jClass.declaredMethods.mapNotNull { method ->
+): List<MethodDescription> {
+    val modifyingMethods = findModifyingMethodNames(classId)
+    return classId.jClass.declaredMethods.mapNotNull { method ->
         if (isAccessible(method, packageName)) {
-            if (method.genericParameterTypes.any { it !is Class<*> }) return@mapNotNull null
+            if (method.name !in modifyingMethods) return@mapNotNull null
+            if (method.genericParameterTypes.any { it is TypeVariable<*> }) return@mapNotNull null
+
             val parameterTypes =
                 method
                     .parameterTypes
@@ -287,11 +296,7 @@ internal fun findAllPublicMethods(
             )
         } else null
     }
-
-internal fun List<MethodDescription>.removeSetters(): List<MethodDescription> =
-    filterNot { md ->
-        md.method.name.startsWith("set") && md.method.parameterCount == 1
-    }
+}
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {
     @Suppress("DEPRECATION") val postfixName = field.name.capitalize()
@@ -324,6 +329,15 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
     return Modifier.isPublic(clazz.modifiers) ||
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
+
+private fun findModifyingMethodNames(classId: ClassId) =
+    UtBotFieldsModificatorsSearcher()
+        .let { searcher ->
+            searcher.update(setOf(classId))
+            searcher.getModificatorToFields(AnalysisMode.AllModificators)
+                .keys
+                .mapTo(mutableSetOf()) { it.name }
+        }
 
 private fun isNotPrivateOrProtected(modifiers: Int): Boolean {
     val hasAnyAccessModifier = Modifier.isPrivate(modifiers) || Modifier.isProtected(modifiers)

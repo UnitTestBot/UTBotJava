@@ -14,6 +14,7 @@ dependencies {
     api project(':utbot-summary')
     api project(':utbot-framework-api')
     api project(':utbot-rd')
+    api project(':utbot-modification-analyzer')
 
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion

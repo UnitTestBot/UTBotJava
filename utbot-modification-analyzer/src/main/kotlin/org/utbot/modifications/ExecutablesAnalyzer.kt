@@ -1,4 +1,4 @@
-package org.utbot.framework.modifications
+package org.utbot.modifications
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.util.executableId
+import org.utbot.modifications.util.retrieveJimpleBody
 import soot.Scene
 import soot.SootMethod
 import soot.jimple.InvokeExpr

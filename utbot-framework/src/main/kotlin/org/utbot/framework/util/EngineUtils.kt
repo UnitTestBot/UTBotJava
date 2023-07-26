@@ -3,41 +3,18 @@ package org.utbot.framework.util
 import mu.KotlinLogging
 import org.utbot.common.logException
 import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtMethodValueTestSet
 import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.constructorId
-import org.utbot.framework.plugin.api.util.methodId
 import java.util.concurrent.atomic.AtomicInteger
-import soot.SootMethod
 
 
 private val logger = KotlinLogging.logger {  }
 
-/**
- * Gets method or constructor id of SootMethod.
- */
-val SootMethod.executableId: ExecutableId
-    get() = when {
-        isConstructor -> constructorId(
-                classId = declaringClass.id,
-                arguments = parameterTypes.map { it.classId }.toTypedArray()
-        )
-        else -> methodId(
-                classId = declaringClass.id,
-                name = name,
-                returnType = returnType.classId,
-                arguments = parameterTypes.map { it.classId }.toTypedArray()
-        )
-    }
-
-val instanceCounter = AtomicInteger(0)
+private val instanceCounter = AtomicInteger(0)
 
 fun nextModelName(base: String): String = "$base${instanceCounter.incrementAndGet()}"
 

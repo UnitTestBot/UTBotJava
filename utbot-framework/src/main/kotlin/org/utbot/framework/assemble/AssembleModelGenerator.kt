@@ -7,10 +7,10 @@ import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.util.isAccessibleFrom
-import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
-import org.utbot.framework.modifications.ConstructorAnalyzer
-import org.utbot.framework.modifications.ConstructorAssembleInfo
-import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
+import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
+import org.utbot.modifications.ConstructorAnalyzer
+import org.utbot.modifications.ConstructorAssembleInfo
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
@@ -492,7 +492,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
      * Finds setters and direct accessors for fields of particular class.
      */
     private fun findSettersAndDirectAccessors(classId: ClassId): Map<FieldId, StatementId> {
-        val allModificatorsOfClass =  modificatorsSearcher.findModificators(SettersAndDirectAccessors)
+        val allModificatorsOfClass =  modificatorsSearcher.getFieldToModificators(SettersAndDirectAccessors)
 
         return allModificatorsOfClass
             .mapNotNull { (fieldId, possibleModificators) ->

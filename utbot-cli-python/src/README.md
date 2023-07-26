@@ -82,9 +82,9 @@ Run generated tests:
 
   Expected behaviour for runtime exception.
 
-- `--generate-regression-suite`
+- `--do-not-generate-regression-suite`
 
-  Generate regression test suite. Default error test suite generation only.
+  Generate regression test suite or not. Regression suite and error suite generation is active by default.
   
 ### `run_python` options
 

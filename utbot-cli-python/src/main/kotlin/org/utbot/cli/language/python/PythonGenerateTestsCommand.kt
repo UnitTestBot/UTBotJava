@@ -104,7 +104,7 @@ class PythonGenerateTestsCommand : CliktCommand(
         .choice("PASS", "FAIL")
         .default("FAIL")
 
-    private val generateRegressionSuite by option("--generate-regression-suite", help = "Generate regression test suite")
+    private val doNotGenerateRegressionSuite by option("--do-not-generate-regression-suite", help = "Do not generate regression test suite")
         .flag(default = false)
 
     private val testFramework: TestFramework
@@ -254,11 +254,11 @@ class PythonGenerateTestsCommand : CliktCommand(
         logger.info("Generating tests...")
         var testSets = processor.testGenerate(mypyStorage)
         if (testSets.isEmpty()) return
-        if (!generateRegressionSuite) {
+        if (doNotGenerateRegressionSuite) {
             testSets = testSets.map { testSet ->
                 PythonTestSet(
                     testSet.method,
-                    testSet.executions.filter { it.result is UtExecutionSuccess },
+                    testSet.executions.filterNot { it.result is UtExecutionSuccess },
                     testSet.errors,
                     testSet.mypyReport,
                     testSet.classId

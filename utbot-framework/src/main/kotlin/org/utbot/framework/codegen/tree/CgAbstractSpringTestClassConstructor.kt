@@ -14,9 +14,10 @@ import org.utbot.framework.codegen.domain.models.CgMethodsCluster
 import org.utbot.framework.codegen.domain.models.CgRegion
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
-import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
@@ -111,9 +112,14 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
             val model = modelWrapper.model
 
             val baseVarName = model.getBeanNameOrNull()
+                ?: modelWrapper.modelTagName
+                ?: nameGenerator.nameFrom(model.classId)
 
-            val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                ?: error("`UtCompositeModel` model was expected, but $model was found")
+            val createdVariable = when(model){
+                is UtCompositeModel -> variableConstructor.constructComposite(model, baseVarName)
+                is UtAssembleModel -> variableConstructor.constructAssemble(model, baseVarName, isSpy = true)
+                else -> error("`UtCompositeModel` model or `UtAssembleModel` was expected, but $model was found")
+            }
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
 

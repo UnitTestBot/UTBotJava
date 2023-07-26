@@ -19,8 +19,9 @@ interface CgNameGenerator {
      * Generate a variable name given a [base] name.
      * @param isMock denotes whether a variable represents a mock object or not
      * @param isStatic denotes whether a variable represents a static variable or not
+     * @param isSpy denotes whether a variable represents a spy object or not (currently only for Spring)
      */
-    fun variableName(base: String, isMock: Boolean = false, isStatic: Boolean = false): String
+    fun variableName(base: String, isMock: Boolean = false, isSpy: Boolean = false, isStatic: Boolean = false): String
 
     /**
      * Convert a given class id to a string that can serve
@@ -39,8 +40,9 @@ interface CgNameGenerator {
      * If [base] is not null, then use it to generate name
      * Otherwise, fall back to generating a name by [type]
      * @param isMock denotes whether a variable represents a mock object or not
+     * @param isSpy denotes whether a variable represents a spy object or not (currently only for Spring)
      */
-    fun variableName(type: ClassId, base: String? = null, isMock: Boolean = false): String
+    fun variableName(type: ClassId, base: String? = null, isMock: Boolean = false, isSpy: Boolean = false): String
 
     /**
      * Generate a new test method name.
@@ -70,9 +72,10 @@ interface CgNameGenerator {
 class CgNameGeneratorImpl(val context: CgContext)
     : CgNameGenerator, CgContextOwner by context {
 
-    override fun variableName(base: String, isMock: Boolean, isStatic: Boolean): String {
+    override fun variableName(base: String, isMock: Boolean, isSpy: Boolean, isStatic: Boolean): String {
         val baseName = when {
             isMock -> base + "Mock"
+            isSpy -> base + "Spy"
             isStatic -> base + "Static"
             else -> base
         }
@@ -85,9 +88,9 @@ class CgNameGeneratorImpl(val context: CgContext)
         }
     }
 
-    override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
+    override fun variableName(type: ClassId, base: String?, isMock: Boolean, isSpy: Boolean): String {
         val baseName = base?.fromScreamingSnakeCaseToCamelCase() ?: nameFrom(type)
-        return variableName(baseName.decapitalize(), isMock)
+        return variableName(baseName.decapitalize(), isMock, isSpy)
     }
 
     override fun testMethodNameFor(executableId: ExecutableId, customName: String?): String {

@@ -62,13 +62,14 @@ interface CgStatementConstructor {
         baseName: String? = null,
         isMutable: Boolean = false,
         init: () -> CgExpression
-    ): CgVariable = newVar(baseType, model, baseName, isMock = false, isMutable = isMutable, init)
+    ): CgVariable = newVar(baseType, model, baseName, isMock = false, isSpy = false, isMutable = isMutable, init)
 
     fun newVar(
         baseType: ClassId,
         model: UtModel? = null,
         baseName: String? = null,
         isMock: Boolean = false,
+        isSpy: Boolean = false,
         isMutable: Boolean = false,
         init: () -> CgExpression
     ): CgVariable
@@ -78,6 +79,7 @@ interface CgStatementConstructor {
         model: UtModel? = null,
         baseName: String? = null,
         isMock: Boolean = false,
+        isSpy: Boolean = false,
         isMutableVar: Boolean = false,
         init: () -> CgExpression
     ): Either<CgDeclaration, CgVariable>
@@ -171,6 +173,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         model: UtModel?,
         baseName: String?,
         isMock: Boolean,
+        isSpy: Boolean,
         isMutableVar: Boolean,
         init: () -> CgExpression
     ): Either<CgDeclaration, CgVariable> {
@@ -196,7 +199,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 nameGenerator.variableName(base + "Clazz")
             }
             // we use baseType here intentionally
-            else -> nameGenerator.variableName(baseType, baseName, isMock)
+            else -> nameGenerator.variableName(baseType, baseName, isMock, isSpy)
         }
 
         importIfNeeded(type)
@@ -219,6 +222,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         model: UtModel?,
         baseName: String?,
         isMock: Boolean,
+        isSpy: Boolean,
         isMutable: Boolean,
         init: () -> CgExpression
     ): CgVariable {
@@ -231,6 +235,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 model,
                 baseName,
                 isMock,
+                isSpy,
                 isMutable,
                 init
             )

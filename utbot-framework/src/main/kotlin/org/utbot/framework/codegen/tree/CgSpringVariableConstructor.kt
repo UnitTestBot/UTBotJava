@@ -4,6 +4,7 @@ import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.services.framework.SpyFrameworkManager
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
@@ -13,6 +14,8 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
     val annotatedModelGroups: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
 
     private val fieldManagerFacade = ClassFieldManagerFacade(context)
+
+    val spyFrameworkManager = SpyFrameworkManager(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val variable = fieldManagerFacade.constructVariableForField(model)

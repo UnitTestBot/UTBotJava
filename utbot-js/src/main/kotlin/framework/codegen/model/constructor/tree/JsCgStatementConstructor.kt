@@ -46,6 +46,7 @@ class JsCgStatementConstructor(context: CgContext) :
         model: UtModel?,
         baseName: String?,
         isMock: Boolean,
+        isSpy: Boolean,
         isMutable: Boolean,
         init: () -> CgExpression
     ): CgVariable {
@@ -55,6 +56,7 @@ class JsCgStatementConstructor(context: CgContext) :
                 model,
                 baseName,
                 isMock,
+                isSpy,
                 isMutable,
                 init
             )
@@ -74,6 +76,7 @@ class JsCgStatementConstructor(context: CgContext) :
         model: UtModel?,
         baseName: String?,
         isMock: Boolean,
+        isSpy: Boolean,
         isMutableVar: Boolean,
         init: () -> CgExpression
     ): Either<CgDeclaration, CgVariable> {

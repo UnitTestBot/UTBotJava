@@ -318,6 +318,24 @@ val closeMethodId = MethodId(
     parameters = emptyList(),
 )
 
+
+/**
+ * [MethodId] for Collections clearing.
+ */
+val clearCollectionSpyMethodId = MethodId(
+    classId = Collection::class.java.id,
+    name = "clear",
+    returnType = voidClassId,
+    parameters = emptyList()
+)
+
+val clearMapSpyMethodId = MethodId(
+    classId = Map::class.java.id,
+    name = "clear",
+    returnType = voidClassId,
+    parameters = emptyList()
+)
+
 val mocksAutoCloseable: Set<ClassId> = setOf(
     MockitoStaticMocking.mockedStaticClassId,
     MockitoStaticMocking.mockedConstructionClassId

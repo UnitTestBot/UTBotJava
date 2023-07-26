@@ -170,7 +170,7 @@ open class CgVariableConstructor(val context: CgContext) :
         )
     }
 
-    private fun constructComposite(model: UtCompositeModel, baseName: String): CgVariable {
+    fun constructComposite(model: UtCompositeModel, baseName: String): CgVariable {
         val obj = if (model.isMock) {
             mockFrameworkManager.createMockFor(model, baseName)
         } else {
@@ -228,12 +228,14 @@ open class CgVariableConstructor(val context: CgContext) :
         }
     }
 
-    private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
-        instantiateAssembleModel(model, baseName)
-        return constructAssembleForVariable(model)
+    fun constructAssemble(model: UtAssembleModel, baseName: String?, isSpy: Boolean = false): CgVariable {
+        val createdVariable = instantiateAssembleModel(model, baseName, isSpy)
+        constructAssembleForVariable(model)
+
+        return createdVariable
     }
 
-    private fun instantiateAssembleModel(model: UtAssembleModel, baseName: String?) {
+    private fun instantiateAssembleModel(model: UtAssembleModel, baseName: String?, isSpy: Boolean): CgVariable {
         val statementCall = model.instantiationCall
         val executable = statementCall.statement
         val params = statementCall.params
@@ -245,8 +247,11 @@ open class CgVariableConstructor(val context: CgContext) :
             createCgExecutableCallFromUtExecutableCall(statementCall)
         }
 
-        newVar(model.classId, model, baseName) { initExpr }
-            .also { valueByUtModelWrapper[model.wrap()] = it }
+        val createdVariable = newVar(model.classId, model, baseName, isSpy = isSpy) { initExpr }
+
+        valueByUtModelWrapper[model.wrap()] = createdVariable
+
+        return createdVariable
     }
 
     fun constructAssembleForVariable(model: UtAssembleModel): CgValue {

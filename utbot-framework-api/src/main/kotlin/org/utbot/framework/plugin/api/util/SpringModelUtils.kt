@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api.util
 
-import org.utbot.common.tryLoadClass
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.SpringRepositoryId
@@ -97,6 +96,13 @@ object SpringModelUtils {
     } else {
         null
     }
+
+    // Check if [UtModel] is a spy model in Spring project.
+    // Used only for construct variables with @Spy annotation
+    fun UtModel.isSpyInSpring() =
+        this is UtAssembleModel &&
+                (Collection::class.java.isAssignableFrom(this.classId.jClass) ||
+                        Map::class.java.isAssignableFrom(this.classId.jClass))
 
     ///region spring-web
     private val requestMappingClassId = ClassId("org.springframework.web.bind.annotation.RequestMapping")

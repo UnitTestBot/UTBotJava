@@ -44,9 +44,10 @@ class PythonCgNameGenerator(val context: CgContext)
             else -> id.simpleName.toSnakeCase()
         }
 
-    override fun variableName(base: String, isMock: Boolean, isStatic: Boolean): String {
+    override fun variableName(base: String, isMock: Boolean, isSpy: Boolean, isStatic: Boolean): String {
         val baseName = when {
             isMock -> base + "_mock"
+            isSpy -> base + "_spy"
             isStatic -> base + "_static"
             else -> base
         }
@@ -59,7 +60,7 @@ class PythonCgNameGenerator(val context: CgContext)
         }
     }
 
-    override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
+    override fun variableName(type: ClassId, base: String?, isMock: Boolean, isSpy: Boolean): String {
         val baseName = base?.toSnakeCase() ?: nameFrom(type)
         val importedModuleNames = collectedImports.mapNotNull {
             if (it is PythonImport) it.rootModuleName else null

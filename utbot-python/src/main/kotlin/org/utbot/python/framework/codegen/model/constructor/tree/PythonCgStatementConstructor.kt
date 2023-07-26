@@ -53,6 +53,7 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
         model: UtModel?,
         baseName: String?,
         isMock: Boolean,
+        isSpy: Boolean,
         isMutable: Boolean,
         init: () -> CgExpression
     ): CgVariable {
@@ -62,6 +63,7 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
                 model,
                 baseName,
                 isMock,
+                isSpy,
                 isMutable,
                 init
             )
@@ -81,6 +83,7 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
         model: UtModel?,
         baseName: String?,
         isMock: Boolean,
+        isSpy: Boolean,
         isMutableVar: Boolean,
         init: () -> CgExpression
     ): Either<CgDeclaration, CgVariable> {

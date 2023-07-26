@@ -2,10 +2,16 @@ package org.utbot.examples.spring.autowiring.twoAndMoreBeansForOneType
 
 import org.junit.jupiter.api.Test
 import org.utbot.examples.spring.autowiring.SpringNoConfigUtValueTestCaseChecker
-import org.utbot.examples.spring.utils.*
+import org.utbot.examples.spring.utils.agePersonCall
+import org.utbot.examples.spring.utils.namePersonCall
+import org.utbot.examples.spring.utils.springAdditionalDependencies
+import org.utbot.examples.spring.utils.springMockStrategy
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.testcheckers.eq
-import org.utbot.testing.*
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.isException
+import org.utbot.testing.singleMock
+import org.utbot.testing.value
 
 class ServiceOfBeansWithSameTypeTest : SpringNoConfigUtValueTestCaseChecker(
     testClass = ServiceOfBeansWithSameType::class,

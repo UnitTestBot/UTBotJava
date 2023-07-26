@@ -143,7 +143,7 @@ class AbstractsObjectValueProvider(
 
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
         val t = try {
-            Scene.v().getRefType(type.classId.canonicalName).sootClass
+            Scene.v().getRefType(type.classId.name).sootClass
         } catch (ignore: NoClassDefFoundError) {
             logger.error(ignore) { "Soot may be not initialized" }
             return@sequence
@@ -164,7 +164,12 @@ class AbstractsObjectValueProvider(
                 }
                 val jClass = sc.id.jClass
                 return isAccessible(jClass, description.description.packageName) &&
-                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) }
+                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) } &&
+                        jClass.let {
+                            // This won't work in case of implementations with generics like `Impl<T> implements A<T>`.
+                            // Should be reworked with accurate generic matching between all classes.
+                            toFuzzerType(it, description.typeCache).traverseHierarchy(description.typeCache).contains(type)
+                        }
             } catch (ignore: Throwable) {
                 return false
             }

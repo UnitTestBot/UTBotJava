@@ -261,7 +261,7 @@ internal fun CgContextOwner.importIfNeeded(method: MethodId) {
     method.takeIf { it.isStatic && packageName != testClassPackageName && packageName != "java.lang" }
         .takeIf { importedStaticMethods.none { it.name == name } }
         // do not import method under test in order to specify the declaring class directly for its calls
-        .takeIf { currentExecutable != method }
+        .takeIf { currentExecutableUnderTest != method }
         ?.let {
             importedStaticMethods += method
             collectedImports += StaticImport(method.classId.canonicalName, method.name)

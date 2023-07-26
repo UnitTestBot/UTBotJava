@@ -287,11 +287,33 @@ class UtFailedExecution(
     }
 }
 
+/**
+ * @property executableToCall executable that is called in the test body and whose result is used in asserts as `actual`.
+ *
+ * Most often [executableToCall] is just method under test, but it may be changed to different executable if more
+ * appropriate way of calling specific method is found (for example, Spring controller methods are called via `MockMvc`).
+ *
+ * `null` value of [executableToCall] indicates that method under test should be called in the test body.
+ */
 open class EnvironmentModels(
     val thisInstance: UtModel?,
     val parameters: List<UtModel>,
-    val statics: Map<FieldId, UtModel>
+    val statics: Map<FieldId, UtModel>,
+    val executableToCall: ExecutableId?,
 ) {
+    @Deprecated("Now `executableToCall` also need to be passed to `EnvironmentModels` constructor " +
+            "(see more details in `EnvironmentModels` class documentation)", level = DeprecationLevel.ERROR)
+    constructor(
+        thisInstance: UtModel?,
+        parameters: List<UtModel>,
+        statics: Map<FieldId, UtModel>,
+    ) : this(
+        thisInstance = thisInstance,
+        parameters = parameters,
+        statics = statics,
+        executableToCall = null,
+    )
+
     override fun toString() = buildString {
         append("this=$thisInstance")
         appendOptional("parameters", parameters)
@@ -305,8 +327,9 @@ open class EnvironmentModels(
     fun copy(
         thisInstance: UtModel? = this.thisInstance,
         parameters: List<UtModel> = this.parameters,
-        statics: Map<FieldId, UtModel> = this.statics
-    ) = EnvironmentModels(thisInstance, parameters, statics)
+        statics: Map<FieldId, UtModel> = this.statics,
+        executableToCall: ExecutableId? = this.executableToCall,
+    ) = EnvironmentModels(thisInstance, parameters, statics, executableToCall)
 }
 
 /**
@@ -315,7 +338,8 @@ open class EnvironmentModels(
 object MissingState : EnvironmentModels(
     thisInstance = null,
     parameters = emptyList(),
-    statics = emptyMap()
+    statics = emptyMap(),
+    executableToCall = null,
 )
 
 /**

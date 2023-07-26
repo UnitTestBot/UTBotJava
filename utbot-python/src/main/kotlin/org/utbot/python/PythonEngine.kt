@@ -107,9 +107,9 @@ class PythonEngine(
         val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
         val coverage = Coverage(coveredInstructions)
         val utFuzzedExecution = PythonUtExecution(
-            stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
-            stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
-            stateAfter = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
+            stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
+            stateAfter = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
             diffIds = emptyList(),
             result = executionResult,
             coverage = coverage,
@@ -162,9 +162,9 @@ class PythonEngine(
         val (afterThisObject, afterModelList) = transformModelList(hasThisObject, evaluationResult.stateAfter, evaluationResult.modelListIds)
 
         val utFuzzedExecution = PythonUtExecution(
-            stateInit = EnvironmentModels(thisObject, initModelList, emptyMap()),
-            stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
-            stateAfter = EnvironmentModels(afterThisObject, afterModelList, emptyMap()),
+            stateInit = EnvironmentModels(thisObject, initModelList, emptyMap(), executableToCall = null),
+            stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
+            stateAfter = EnvironmentModels(afterThisObject, afterModelList, emptyMap(), executableToCall = null),
             diffIds = evaluationResult.diffIds,
             result = executionResult,
             coverage = evaluationResult.coverage,

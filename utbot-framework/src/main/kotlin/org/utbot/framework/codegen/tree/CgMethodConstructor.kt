@@ -303,12 +303,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
      * Generates result assertions for unit tests.
      */
     protected open fun generateResultAssertions() {
-        when (currentExecutable) {
-            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
-            is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
+        when (val executable = currentExecutableToCall) {
+            is ConstructorId -> generateConstructorCall(executable, currentExecution!!)
+            is BuiltinMethodId -> error("Unexpected BuiltinMethodId $executable while generating result assertions")
             is MethodId -> {
                 emptyLineIfNeeded()
-                val method = currentExecutable as MethodId
                 val currentExecution = currentExecution!!
                 val executionResult = currentExecution.result
 
@@ -318,8 +317,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         methodType = SUCCESSFUL
 
                         // TODO possible engine bug - void method return type and result model not UtVoidModel
-                        if (resultModel.isUnit() || method.returnType == voidClassId) {
-                            +thisInstance[method](*methodArguments.toTypedArray())
+                        if (resultModel.isUnit() || executable.returnType == voidClassId) {
+                            +thisInstance[executable](*methodArguments.toTypedArray())
                         } else {
                             this.resultModel = resultModel
                             val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
@@ -381,7 +380,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun prepareArtificialFailureMessage(executionResult: UtExecutionResult): CgLiteral {
         when (executionResult) {
             is UtOverflowFailure -> {
-                val failureMessage = "Overflow detected in \'${currentExecutable!!.name}\' call"
+                val failureMessage = "Overflow detected in \'${currentExecutableToCall!!.name}\' call"
                 return CgLiteral(stringClassId, failureMessage)
             }
             is UtTaintAnalysisFailure -> {
@@ -400,7 +399,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
 
         return {
-            with(currentExecutable) {
+            with(currentExecutableToCall) {
                 when (this) {
                     is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                     is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()
@@ -411,7 +410,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     }
 
     private fun constructStreamConsumingBlock(): () -> Unit {
-        val executable = currentExecutable
+        val executable = currentExecutableToCall
 
         require((executable is MethodId) && (executable.returnType isSubtypeOf baseStreamClassId)) {
             "Unexpected non-stream returning executable $executable"
@@ -460,8 +459,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     }
 
     protected fun writeWarningAboutFailureTest(exception: Throwable) {
-        require(currentExecutable is ExecutableId)
-        val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
+        require(currentExecutableToCall is ExecutableId)
+        val executableName = "${currentExecutableToCall!!.classId.name}.${currentExecutableToCall!!.name}"
 
         val warningLine = "This test fails because method [$executableName] produces [$exception]"
             .lines()
@@ -496,16 +495,15 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun generateAssertionsForParameterizedTest() {
         emptyLineIfNeeded()
 
-        when (currentExecutable) {
-            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
+        when (val executable = currentExecutableToCall) {
+            is ConstructorId -> generateConstructorCall(executable, currentExecution!!)
             is MethodId -> {
-                val method = currentExecutable as MethodId
                 val executionResult = currentExecution!!.result
 
                 executionResult
                     .onSuccess { resultModel ->
                         if (resultModel.isUnit()) {
-                            +thisInstance[method](*methodArguments.toTypedArray())
+                            +thisInstance[executable](*methodArguments.toTypedArray())
                         } else {
                             //"generic" expected variable is represented with a wrapper if
                             //actual result is primitive to support cases with exceptions.
@@ -522,7 +520,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                             if (containsStreamConsumingFailureForParametrizedTests) {
                                 constructStreamConsumingBlock().invoke()
                             } else {
-                                thisInstance[method](*methodArguments.toTypedArray()).intercepted()
+                                thisInstance[executable](*methodArguments.toTypedArray()).intercepted()
                             }
                         }
                     }
@@ -1271,7 +1269,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         generateDeepEqualsOrNullAssertion(expected.expression, actual)
     }
 
-    private fun generateConstructorCall(currentExecutableId: ExecutableId, currentExecution: UtExecution) {
+    private fun generateConstructorCall(currentExecutableId: ConstructorId, currentExecution: UtExecution) {
         // we cannot generate any assertions for constructor testing
         // but we need to generate a constructor call
         val constructorCall = currentExecutableId as ConstructorId
@@ -1358,12 +1356,12 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val executionResult = currentExecution!!.result
 
         executionResult.onSuccess { resultModel ->
-            when (val executable = currentExecutable) {
+            when (val executable = currentExecutableToCall) {
                 is ConstructorId -> {
                     // there is nothing to generate for constructors
                     return
                 }
-                is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
+                is BuiltinMethodId -> error("Unexpected BuiltinMethodId $executable while generating actual result")
                 is MethodId -> {
                     // TODO possible engine bug - void method return type and result model not UtVoidModel
                     if (resultModel.isUnit() || executable.returnType == voidClassId) return
@@ -1392,7 +1390,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     }
 
     private fun processStreamConsumingException(innerException: Throwable) {
-        val executable = currentExecutable
+        val executable = currentExecutableToCall
 
         require((executable is MethodId) && (executable.returnType isSubtypeOf baseStreamClassId)) {
             "Unexpected exception $innerException during stream consuming in non-stream returning executable $executable"
@@ -1743,7 +1741,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             arguments += variableConstructor.getOrCreateVariable(model, field.name)
         }
 
-        val method = currentExecutable!!
+        val method = currentExecutableToCall!!
         val needsReturnValue = method.returnType != voidClassId
         val containsFailureExecution = containsFailureExecution(testSet)
         execution.result

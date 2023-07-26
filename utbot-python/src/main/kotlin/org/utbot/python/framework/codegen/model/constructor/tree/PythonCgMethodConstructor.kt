@@ -139,13 +139,13 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         }
 
     override fun generateResultAssertions() {
-        if (currentExecutable is MethodId) {
+        if (currentExecutableToCall is MethodId) {
             val currentExecution = currentExecution!!
             val executionResult = currentExecution.result
             if (executionResult is UtExecutionFailure) {
                 val exceptionId = executionResult.rootCauseException.message?.let {PythonClassId(it)} ?: pythonExceptionClassId
                 val executionBlock = {
-                    with(currentExecutable) {
+                    with(currentExecutableToCall) {
                         when (this) {
                             is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                             else -> {}
@@ -160,7 +160,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                         return
                     }
                     CgTestMethodType.FAILING -> {
-                        val executable = currentExecutable!! as PythonMethodId
+                        val executable = currentExecutableToCall!! as PythonMethodId
                         val executableName = "${executable.moduleName}.${executable.name}"
                         val warningLine =
                             "This test fails because function [$executableName] produces [${exceptionId.prettyName}]"

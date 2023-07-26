@@ -50,11 +50,11 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
             }
 
             for ((testSetIndex, testSet) in notYetConstructedTestSets.withIndex()) {
-                updateCurrentExecutable(testSet.executableId)
+                updateExecutableUnderTest(testSet.executableId)
                 withTestSetIdScope(testSetIndex) {
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: return@withTestSetIdScope
                     val executableUnderTestCluster = CgMethodsCluster(
-                        "Test suites for executable $currentExecutable",
+                        "Test suites for executable $currentExecutableUnderTest",
                         currentMethodUnderTestRegions
                     )
                     methodRegions += executableUnderTestCluster

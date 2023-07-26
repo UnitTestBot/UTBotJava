@@ -60,7 +60,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
     override fun generateResultAssertions() {
         emptyLineIfNeeded()
         val currentExecution = currentExecution!!
-        val method = currentExecutable as MethodId
+        val method = currentExecutableToCall as MethodId
         // build assertions
         currentExecution.result
             .onSuccess { result ->
@@ -80,7 +80,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
 
     private fun processExecutionFailure(execution: UtExecution, exception: Throwable) {
         val methodInvocationBlock = {
-            with(currentExecutable) {
+            with(currentExecutableToCall) {
                 when (this) {
                     is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                     is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()

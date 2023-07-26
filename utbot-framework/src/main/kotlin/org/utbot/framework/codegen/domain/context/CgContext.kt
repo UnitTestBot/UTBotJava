@@ -45,7 +45,7 @@ import org.utbot.framework.plugin.api.util.jClass
  * Although, some of the properties are declared as 'var' so that
  * they can be reassigned as well as modified
  *
- * For example, [outerMostTestClass] and [currentExecutable] can be reassigned
+ * For example, [outerMostTestClass] and [currentExecution] can be reassigned
  * when we start generating another method or test class
  *
  * [existingVariableNames] is a 'var' property
@@ -70,7 +70,13 @@ interface CgContextOwner {
     val utilMethodProvider: UtilMethodProvider
 
     // current executable under test
-    var currentExecutable: ExecutableId?
+    // NOTE: may differ from `executableToCall`
+    var currentExecutableUnderTest: ExecutableId?
+
+    // executable that is called in the current test method body and whose result is used in asserts as `actual`
+    // NOTE: may differ from `executableUnderTest`
+    val currentExecutableToCall: ExecutableId? get() =
+        currentExecution?.stateBefore?.executableToCall ?: currentExecutableUnderTest
 
     // ClassInfo for the outermost class currently being generated
     val outerMostTestClassContext: TestClassContext
@@ -259,8 +265,8 @@ interface CgContextOwner {
             currentBlock = currentBlock.add(it)
         }
 
-    fun updateCurrentExecutable(executableId: ExecutableId) {
-        currentExecutable = executableId
+    fun updateExecutableUnderTest(executableId: ExecutableId) {
+        currentExecutableUnderTest = executableId
     }
 
     fun <R> withTestSetIdScope(testSetId: Int, block: () -> R): R {
@@ -461,7 +467,7 @@ class CgContext(
     override val classUnderTest: ClassId,
     override val projectType: ProjectType,
     val generateUtilClassFile: Boolean = false,
-    override var currentExecutable: ExecutableId? = null,
+    override var currentExecutableUnderTest: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
@@ -628,7 +634,7 @@ class CgContext(
         classUnderTest = this.classUnderTest,
         projectType = this.projectType,
         generateUtilClassFile = this.generateUtilClassFile,
-        currentExecutable = this.currentExecutable,
+        currentExecutableUnderTest = this.currentExecutableUnderTest,
         collectedExceptions =this.collectedExceptions,
         collectedMethodAnnotations = this.collectedMethodAnnotations,
         collectedImports = this.collectedImports,

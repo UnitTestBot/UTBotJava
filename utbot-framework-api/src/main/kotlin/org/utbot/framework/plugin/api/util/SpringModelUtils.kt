@@ -177,8 +177,9 @@ object SpringModelUtils {
         val requestMethod = getRequestMethodOrNull(requestMappingAnnotation) ?: return null
 
         @Suppress("UNCHECKED_CAST")
-        val classRequestMappingAnnotation = methodId.classId.jClass.getAnnotation(requestMappingClassId.jClass as Class<out Annotation>)
-        val cassRequestPath = getRequestPathOrNull(classRequestMappingAnnotation).orEmpty()
+        val classRequestMappingAnnotation: Annotation? =
+            methodId.classId.jClass.getAnnotation(requestMappingClassId.jClass as Class<out Annotation>)
+        val cassRequestPath = classRequestMappingAnnotation?.let { getRequestPathOrNull(it) }.orEmpty()
 
         val requestPath = cassRequestPath + (getRequestPathOrNull(requestMappingAnnotation) ?: return null)
 

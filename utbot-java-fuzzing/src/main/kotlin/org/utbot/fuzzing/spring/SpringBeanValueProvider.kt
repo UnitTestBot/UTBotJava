@@ -9,7 +9,7 @@ import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.SPRING_BEAN_PROP
-import org.utbot.fuzzing.providers.defaultValueRoutine
+import org.utbot.fuzzing.providers.nullRoutine
 
 class SpringBeanValueProvider(
     private val idGenerator: IdGenerator<Int>,
@@ -60,7 +60,7 @@ class SpringBeanValueProvider(
                             })
                         }
                     },
-                    empty = defaultValueRoutine(type.classId)
+                    empty = nullRoutine(type.classId)
                 )
             )
         }

@@ -43,9 +43,8 @@ include("utbot-instrumentation")
 include("utbot-instrumentation-tests")
 
 include("utbot-summary")
-// todo these gradle and maven modules fail to build
-//include("utbot-gradle")
-//include("utbot-maven")
+include("utbot-gradle")
+include("utbot-maven")
 include("utbot-summary-tests")
 include("utbot-framework-test")
 include("utbot-testing")

@@ -10,7 +10,7 @@ import kotlin.properties.Delegates
  * Class for transforming an if statement with call of the [String.equals], [String.startsWith] or [String.endsWith] method
  * with a constant string into a sequence of comparisons of each char of the string with each char of the constant string.
  */
-class StringEqualsMethodAdapter(
+class StringMethodsAdapter(
     api: Int,
     access: Int,
     descriptor: String?,
@@ -132,12 +132,11 @@ class StringEqualsMethodAdapter(
                 State.SEEN_INVOKEVIRTUAL_STRING_EQUALS,
                 State.SEEN_INVOKEVIRTUAL_STRING_STARTSWITH,
                 State.SEEN_INVOKEVIRTUAL_STRING_ENDSWITH
-            ).any { it == state } && opcode == Opcodes.IFEQ
+            ).any { state == it } && opcode == Opcodes.IFEQ
         ) {
-            state = State.SEEN_NOTHING
             // code transformation
-            // if (str.length() >= constString.length()) for startsWith and endsWith methods
             // if (str.length() == constString.length()) for equals method
+            // if (str.length() >= constString.length()) for startsWith and endsWith methods
             mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I", false)
             mv.visitIntInsn(Opcodes.BIPUSH, constString.length)
@@ -148,6 +147,7 @@ class StringEqualsMethodAdapter(
             }
 
             if (constString.isEmpty()) {
+                state = State.SEEN_NOTHING
                 return
             }
 
@@ -181,6 +181,7 @@ class StringEqualsMethodAdapter(
                     mv.visitJumpInsn(Opcodes.IF_ICMPNE, label)
                 }
             }
+            state = State.SEEN_NOTHING
             return
         }
         resetState()
@@ -189,7 +190,6 @@ class StringEqualsMethodAdapter(
 
     override fun visitMaxs(maxStack: Int, maxLocals: Int) {
         resetState()
-        // TODO optimize
         mv.visitMaxs(maxStack + 1, maxLocals + 1)
     }
 }

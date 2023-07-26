@@ -134,6 +134,9 @@ class SimpleUtExecutionInstrumentation(
             override val writerFlags: Int
                 get() = 0
 
+            override val readerParsingOptions: Int
+                get() = 0
+
             override fun build(writer: ClassWriter): BytecodeTransformer = BytecodeTransformer(writer)
         })
 

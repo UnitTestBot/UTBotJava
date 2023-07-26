@@ -872,8 +872,6 @@ val Type.classId: ClassId
         else -> error("Unknown type $this")
     }
 
-private val logger = KotlinLogging.logger {}
-
 /**
  * Class id. Contains name, not a full qualified name.
  *
@@ -898,9 +896,7 @@ open class ClassId @JvmOverloads constructor(
         get() = jClass.modifiers
 
     open val canonicalName: String
-        get() = jClass.canonicalName ?: name.also {
-            logger.error("ClassId $name does not have canonical name")
-        }
+        get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
 
     open val simpleName: String get() = jClass.simpleName
 

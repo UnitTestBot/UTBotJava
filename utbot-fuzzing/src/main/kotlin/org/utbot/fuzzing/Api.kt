@@ -357,6 +357,24 @@ data class BaseFeedback<VALUE, TYPE, RESULT>(
     }
 }
 
+interface WeightedFeedback<TYPE, RESULT, WEIGHT : Comparable<WEIGHT>> : Feedback<TYPE, RESULT> {
+    val weight: WEIGHT
+}
+
+data class BaseWeightedFeedback<VALUE, TYPE, RESULT, WEIGHT : Comparable<WEIGHT>>(
+    val result: VALUE,
+    override val weight: WEIGHT,
+    override val control: Control,
+) : WeightedFeedback<TYPE, RESULT, WEIGHT>, Comparable<WeightedFeedback<TYPE, RESULT, WEIGHT>> {
+    override fun compareTo(other: WeightedFeedback<TYPE, RESULT, WEIGHT>): Int {
+        return weight.compareTo(other.weight)
+    }
+    override fun toString(): String {
+        return "$result with weight $weight | $control"
+    }
+}
+
+
 /**
  * Controls fuzzing execution.
  */

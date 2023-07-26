@@ -19,7 +19,7 @@ private val logger by lazy { KotlinLogging.logger {} }
  * @see [org.utbot.fuzzing.demo.JavaFuzzing]
  * @see [org.utbot.fuzzing.demo.JsonFuzzingKt]
  */
-interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> {
+interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> {
 
     /**
      * Before producing seeds, this method is called to recognize,
@@ -76,12 +76,12 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
 /**
  * Some description of the current fuzzing run. Usually, it contains the name of the target method and its parameter list.
  */
-open class Description<TYPE>(
+open class Description<TYPE, RESULT>(
     parameters: List<TYPE>
 ) {
     val parameters: List<TYPE> = parameters.toList()
 
-    open fun clone(scope: Scope): Description<TYPE> {
+    open fun clone(scope: Scope): Description<TYPE, RESULT> {
         error("Scope was changed for $this, but method clone is not specified")
     }
 }
@@ -298,7 +298,7 @@ class NoSeedValueException internal constructor(
         get() = "No seed candidates generated for type: $type"
 }
 
-suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
+suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,
     random: Random = Random(0),
     configuration: Configuration = Configuration()
@@ -311,7 +311,7 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
  *
  * This is an entry point for every fuzzing.
  */
-private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
+private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,
     statistic: StatisticImpl<T, R, F>,
 ) {
@@ -372,7 +372,7 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
 
 ///region Implementation of the fuzzing and non-public functions.
 
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> fuzz(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> fuzz(
     parameters: List<TYPE>,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,
@@ -399,7 +399,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     return Node(result, parameters, builder)
 }
 
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> produce(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> produce(
     type: TYPE,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,
@@ -436,7 +436,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
  * reduces [Seed.Collection] type. When `configuration.recursionTreeDepth` limit is reached it creates
  * an empty collection and doesn't do any modification to it.
  */
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>>  reduce(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>>  reduce(
     task: Seed.Collection<TYPE, RESULT>,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,
@@ -496,7 +496,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
  *  reduces [Seed.Recursive] type.  When `configuration.recursionTreeDepth` limit is reached it calls
  *  `Seed.Recursive#empty` routine to create an empty object.
  */
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> reduce(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> reduce(
     task: Seed.Recursive<TYPE, RESULT>,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,

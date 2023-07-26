@@ -23,7 +23,7 @@ class FuzzedDescription(
     val typeCache: MutableMap<Type, FuzzedType>,
     val random: Random,
     val scope: Scope? = null
-) : Description<FuzzedType>(
+) : Description<FuzzedType, FuzzedValue>(
     description.parameters.mapIndexed { index, classId ->
         description.fuzzerType(index) ?: FuzzedType(classId)
     }

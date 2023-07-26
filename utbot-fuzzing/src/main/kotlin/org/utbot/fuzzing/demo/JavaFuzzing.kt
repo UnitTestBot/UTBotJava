@@ -10,8 +10,8 @@ import org.utbot.fuzzing.seeds.StringValue
  * This example implements some basics for Java fuzzing that supports only a few types:
  * integers, strings, primitive arrays and user class [A].
  */
-object JavaFuzzing : Fuzzing<Class<*>, Any?, Description<Class<*>>, Feedback<Class<*>, Any?>> {
-    override fun generate(description: Description<Class<*>>, type: Class<*>) = sequence<Seed<Class<*>, Any?>> {
+object JavaFuzzing : Fuzzing<Class<*>, Any?, Description<Class<*>, Any?>, Feedback<Class<*>, Any?>> {
+    override fun generate(description: Description<Class<*>, Any?>, type: Class<*>) = sequence<Seed<Class<*>, Any?>> {
         if (type == Boolean::class.javaPrimitiveType) {
             yield(Seed.Known(Bool.TRUE.invoke()) { obj: BitVectorValue -> obj.toBoolean() })
             yield(Seed.Known(Bool.FALSE.invoke()) { obj: BitVectorValue -> obj.toBoolean() })
@@ -71,7 +71,7 @@ object JavaFuzzing : Fuzzing<Class<*>, Any?, Description<Class<*>>, Feedback<Cla
         }
     }
 
-    override suspend fun handle(description: Description<Class<*>>, values: List<Any?>): Feedback<Class<*>, Any?> {
+    override suspend fun handle(description: Description<Class<*>, Any?>, values: List<Any?>): Feedback<Class<*>, Any?> {
         println(values.joinToString {
             when (it) {
                 is BooleanArray -> it.contentToString()

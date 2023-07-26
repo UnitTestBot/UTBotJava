@@ -33,7 +33,7 @@ private class JsonBuilder(
 suspend fun main() {
     var count = 0
     val set = mutableMapOf<String, AtomicLong>()
-    BaseFuzzing<CustomType, JsonBuilder, Description<CustomType>, Feedback<CustomType, JsonBuilder>>(
+    BaseFuzzing<CustomType, JsonBuilder, Description<CustomType, JsonBuilder>, Feedback<CustomType, JsonBuilder>>(
         TypeProvider(CustomType.INT) { _, _ ->
             for (b in Signed.values()) {
                 yield(Seed.Known(BitVectorValue(3, b)) { bvv ->

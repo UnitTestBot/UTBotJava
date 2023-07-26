@@ -5,23 +5,23 @@ import org.junit.jupiter.api.Test
 
 class ProvidersTest {
 
-    private fun <T> p(supplier: () -> T) : ValueProvider<Unit, T, Description<Unit>> {
+    private fun <T> p(supplier: () -> T) : ValueProvider<Unit, T, Description<Unit, T>> {
         return ValueProvider { _, _ -> sequenceOf(Seed.Simple(supplier())) }
     }
 
     private fun <T> p(
         accept: () -> Boolean,
         supplier: () -> T
-    ) : ValueProvider<Unit, T, Description<Unit>> {
-        return object : ValueProvider<Unit, T, Description<Unit>> {
+    ) : ValueProvider<Unit, T, Description<Unit, T>> {
+        return object : ValueProvider<Unit, T, Description<Unit, T>> {
             override fun accept(type: Unit) = accept()
-            override fun generate(description: Description<Unit>, type: Unit) = sequence<Seed<Unit, T>> {
+            override fun generate(description: Description<Unit, T>, type: Unit) = sequence<Seed<Unit, T>> {
                 yield(Seed.Simple(supplier()))
             }
         }
     }
 
-    private val description = Description(listOf(Unit))
+    private val description = Description<Unit, Int>(listOf(Unit))
 
     @Test
     fun `test common provider API`() {
@@ -170,9 +170,9 @@ class ProvidersTest {
         val seq = ValueProvider.of(listOf(
             p({ false }, { 1 }), p({ false }, { 2 }), p({ false }, { 3 }),
         )).withFallback(
-            object : ValueProvider<Unit, Int, Description<Unit>> {
+            object : ValueProvider<Unit, Int, Description<Unit, Int>> {
                 override fun accept(type: Unit) = false
-                override fun generate(description: Description<Unit>, type: Unit) = emptySequence<Seed.Simple<Unit, Int>>()
+                override fun generate(description: Description<Unit, Int>, type: Unit) = emptySequence<Seed.Simple<Unit, Int>>()
             }
         ).generate(description, Unit)
         Assertions.assertEquals(0, seq.count())
@@ -180,12 +180,12 @@ class ProvidersTest {
 
     @Test
     fun `type providers check exactly the type`() {
-        val seq1 = TypeProvider<Any, Int, Description<Any>>('A') { _, _ ->
+        val seq1 = TypeProvider<Any, Int, Description<Any, Int>>('A') { _, _ ->
             yield(Seed.Simple(2))
         }.generate(Description(listOf('A')), 'A')
         Assertions.assertEquals(1, seq1.count())
 
-        val seq2 = TypeProvider<Any, Int, Description<Any>>('A') { _, _ ->
+        val seq2 = TypeProvider<Any, Int, Description<Any, Int>>('A') { _, _ ->
             yield(Seed.Simple(2))
         }.generate(Description(listOf('A')), 'B')
         Assertions.assertEquals(0, seq2.count())

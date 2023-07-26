@@ -96,3 +96,5 @@ data class Configuration(
      */
     var maxNumberOfRecursiveSeedModifications: Int = 10,
 )
+
+enum class SingleValueSelectionStrategy { FIRST, LAST }

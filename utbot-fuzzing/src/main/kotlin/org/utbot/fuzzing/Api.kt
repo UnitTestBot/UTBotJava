@@ -5,7 +5,6 @@ import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.utils.MissedSeed
-import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import org.utbot.fuzzing.utils.transformIfNotEmpty
 import java.io.File
@@ -63,7 +62,8 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-        fuzz(description, StatisticImpl(statistics))
+        fuzz(description, BasicSingleValueMinsetStatistic(statistics, SingleValueSelectionStrategy.LAST)
+        )
     }
 
     /**
@@ -431,7 +431,9 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-    fuzz(description, StatisticImpl(random = random, configuration = configuration))
+    fuzz(description, BasicSingleValueMinsetStatistic(
+        random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST)
+    )
 }
 
 /**
@@ -441,7 +443,7 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
  */
 private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,
-    statistic: StatisticImpl<T, R, F>,
+    statistic: SeedsMaintainingStatistic<T, R, F>,
 ) {
     val random = statistic.random
     val configuration = statistic.configuration
@@ -490,6 +492,11 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
 
         description.updatePerIteration(values, feedback)
 
+        if ((statistic.totalRuns % 50).toInt() == 0) {
+            println(statistic.totalRuns)
+        }
+
+
         when (feedback.control) {
             Control.CONTINUE -> {
                 statistic.put(random, configuration, feedback, values)
@@ -502,8 +509,6 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         }
     }
 }
-
-
 ///region Implementation of the fuzzing and non-public functions.
 
 private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> fuzz(
@@ -831,51 +836,6 @@ class Node<TYPE, RESULT>(
             }
         }.joinToString(", ")
     }
-}
-
-private class StatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
-    override var totalRuns: Long = 0,
-    override val startTime: Long = System.nanoTime(),
-    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
-    override val random: Random,
-    override val configuration: Configuration,
-) : Statistic<TYPE, RESULT> {
-
-    constructor(source: Statistic<TYPE, RESULT>) : this(
-        totalRuns = source.totalRuns,
-        startTime = source.startTime,
-        missedTypes = source.missedTypes,
-        random = source.random,
-        configuration = source.configuration.copy(),
-    )
-
-    override val elapsedTime: Long
-        get() = System.nanoTime() - startTime
-    private val seeds = linkedMapOf<FEEDBACK, Node<TYPE, RESULT>>()
-    private val count = linkedMapOf<FEEDBACK, Long>()
-
-    fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) {
-        if (random.flipCoin(configuration.probUpdateSeedInsteadOfKeepOld)) {
-            seeds[feedback] = seed
-        } else {
-            seeds.putIfAbsent(feedback, seed)
-        }
-        count[feedback] = count.getOrDefault(feedback, 0L) + 1L
-    }
-
-    fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
-        if (seeds.isEmpty()) error("Call `isNotEmpty` before getting the seed")
-        val entries = seeds.entries.toList()
-        val frequencies = DoubleArray(seeds.size).also { f ->
-            entries.forEachIndexed { index, (key, _) ->
-                f[index] = configuration.energyFunction(count.getOrDefault(key, 0L))
-            }
-        }
-        val index = random.chooseOne(frequencies)
-        return entries[index].value
-    }
-
-    fun isNotEmpty() = seeds.isNotEmpty()
 }
 ///endregion
 

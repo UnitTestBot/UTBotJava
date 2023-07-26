@@ -1,6 +1,5 @@
 package org.utbot.spring.api
 
-import java.lang.reflect.Method
 import java.net.URLClassLoader
 
 //TODO: `userSourcesClassLoader` must not be passed as a method argument, requires refactoring
@@ -31,14 +30,6 @@ interface SpringApi {
      * because transactions are bound to threads
      */
     fun afterTestMethod()
-
-    /**
-     * Returns static method that should be defined like this:
-     * `fun getMockMvcResponse(controllerInstance: Any, mockMvc: MockMvc, requestBuilder: RequestBuilder): Map<String, Object>`
-     *
-     * @see relevantMockMvcResponseDataGetterNames
-     */
-    val getMockMvcResponseDataMethod: Method
 }
 
 data class RepositoryDescription(

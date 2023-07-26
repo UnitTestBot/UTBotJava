@@ -17,7 +17,6 @@ import org.utbot.spring.api.provider.InstantiationSettings
 import org.utbot.spring.dummy.DummySpringIntegrationTestClass
 import org.utbot.spring.utils.DependencyUtils.isSpringDataOnClasspath
 import org.utbot.spring.utils.RepositoryUtils
-import org.utbot.spring.utils.getMockMvcResponseData
 import java.lang.reflect.Method
 import java.net.URLClassLoader
 import kotlin.reflect.jvm.javaMethod
@@ -157,9 +156,6 @@ class SpringApiImpl(
         testContextManager.afterTestMethod(dummyTestClassInstance, dummyTestMethod, null)
         isInsideTestMethod = false
     }
-
-    override val getMockMvcResponseDataMethod: Method
-        get() = ::getMockMvcResponseData.javaMethod!!
 
     private fun describesRepository(bean: Any): Boolean =
         try {

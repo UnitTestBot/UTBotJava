@@ -47,9 +47,8 @@ class ObjectValueProvider(
         description: FuzzedDescription,
         type: FuzzedType
     ) = sequence {
-        val classId = type.classId
-        findAccessibleCreators(description, classId).forEach { creatorExecutableId ->
-            yield(createValue(classId, creatorExecutableId, description))
+        findAccessibleCreators(description, type).forEach { creatorExecutableId ->
+            yield(createValue(type.classId, creatorExecutableId, description))
         }
     }
 
@@ -164,7 +163,8 @@ class AbstractsObjectValueProvider(
                 }
                 val jClass = sc.id.jClass
                 return isAccessible(jClass, description.description.packageName) &&
-                        findAccessibleCreators(description, jClass.id).any()
+                        findAccessibleCreators(description, toFuzzerType(jClass, description.typeCache)).any() &&
+                        jClass.let { toFuzzerType(it, description.typeCache).isDefinitelySubtypeOf(description, type) }
             } catch (ignore: Throwable) {
                 return false
             }
@@ -186,11 +186,26 @@ class AbstractsObjectValueProvider(
     }
 }
 
-private fun findAccessibleCreators(description: FuzzedDescription, classId: ClassId): Sequence<ExecutableId> =
-    (classId.allConstructors + (classId.jClass.methods
-                .filter { it.isStatic && it.returnType.id.isSubtypeOf(classId) }
-                .map { it.executableId })
+private fun findAccessibleCreators(
+    description: FuzzedDescription,
+    neededType: FuzzedType
+): Sequence<ExecutableId> =
+    (neededType.classId.allConstructors + (neededType.classId.jClass.methods
+            .filter {
+                it.isStatic && toFuzzerType(it.genericReturnType, description.typeCache)
+                        .isDefinitelySubtypeOf(description, neededType)
+            }
+            .map { it.executableId })
     ).filter { isAccessible(it.executable, description.description.packageName) }
+
+/**
+ * NOTE: this function takes conservative when generics are involved.
+ *
+ * For example, `false` may be returned when [this] is `List<T>` or `ArrayList<T>` while [other] is `List<String>`.
+ */
+// TODO should be reworked with accurate generic matching
+private fun FuzzedType.isDefinitelySubtypeOf(description: FuzzedDescription, other: FuzzedType): Boolean =
+    classId.isSubtypeOf(other.classId) && traverseHierarchy(description.typeCache).contains(other)
 
 internal class PublicSetterGetter(
     val setter: Method,

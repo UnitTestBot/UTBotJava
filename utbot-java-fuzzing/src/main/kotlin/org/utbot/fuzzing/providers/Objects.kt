@@ -133,6 +133,21 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
 }
 
 /**
+ * Unlike [NullValueProvider] can generate `null` values at any depth.
+ *
+ * Intended to be used as a last fallback.
+ */
+object AnyDepthNullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+
+    override fun accept(type: FuzzedType) = type.classId.isRefType
+
+    override fun generate(
+        description: FuzzedDescription,
+        type: FuzzedType
+    ) = sequenceOf<Seed<FuzzedType, FuzzedValue>>(Seed.Simple(nullFuzzedValue(classClassId)))
+}
+
+/**
  * Finds and create object from implementations of abstract classes or interfaces.
  */
 class AbstractsObjectValueProvider(

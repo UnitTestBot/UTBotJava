@@ -15,6 +15,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
+import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
 import org.utbot.fuzzing.providers.FieldValueProvider
 import org.utbot.fuzzing.providers.ObjectValueProvider
 import org.utbot.fuzzing.providers.anyObjectValueProvider
@@ -93,6 +94,7 @@ class SpringIntegrationTestConcreteExecutionContext(
             .with(springBeanValueProvider)
             .with(createSavedEntityValueProviders(relevantRepositories, idGenerator))
             .with(createFieldValueProviders(relevantRepositories, idGenerator))
+            .withFallback(AnyDepthNullValueProvider)
     }
 
     private fun createSavedEntityValueProviders(

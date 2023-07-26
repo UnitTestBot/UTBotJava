@@ -1,6 +1,7 @@
 plugins {
     id 'java-gradle-plugin'
     id 'com.gradle.plugin-publish' version '0.18.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
 configurations {

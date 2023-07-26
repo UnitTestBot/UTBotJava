@@ -108,30 +108,31 @@ object SpringModelUtils {
     private val mockMvcRequestBuildersClassId = ClassId("org.springframework.test.web.servlet.request.MockMvcRequestBuilders")
     private val requestBuilderClassId = ClassId("org.springframework.test.web.servlet.RequestBuilder")
     private val resultActionsClassId = ClassId("org.springframework.test.web.servlet.ResultActions")
-    private val mockMvcClassId = ClassId("org.springframework.test.web.servlet.MockMvc")
+    val mockMvcClassId = ClassId("org.springframework.test.web.servlet.MockMvc")
     private val mvcResultClassId = ClassId("org.springframework.test.web.servlet.MvcResult")
     private val mockHttpServletRequestBuilderClassId = ClassId("org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder")
 
     private val objectMapperClassId = ClassId("com.fasterxml.jackson.databind.ObjectMapper")
+
+    val mockMvcPerformMethodId = MethodId(
+        classId = mockMvcClassId,
+        name = "perform",
+        parameters = listOf(requestBuilderClassId),
+        returnType = resultActionsClassId
+    )
 
     fun createMockMvcModel(idGenerator: () -> Int) =
         createBeanModel("mockMvc", idGenerator(), mockMvcClassId)
 
     fun createGetMockMvcResponseModel(requestBuilderModel: UtModel, idGenerator: () -> Int): UtModel {
         val mockMvcModel = createMockMvcModel(idGenerator)
-
         val performModel = UtAssembleModel(
             id = idGenerator(),
             classId = resultActionsClassId,
             modelName = "perform",
             instantiationCall = UtExecutableCallModel(
                 instance = mockMvcModel,
-                executable = MethodId(
-                    classId = mockMvcClassId,
-                    name = "perform",
-                    parameters = listOf(requestBuilderClassId),
-                    returnType = resultActionsClassId
-                ),
+                executable = mockMvcPerformMethodId,
                 params = listOf(requestBuilderModel)
             )
         )

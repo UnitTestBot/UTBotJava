@@ -474,7 +474,13 @@ class UtBotSymbolicEngine(
                 return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
             }
 
-            val stateBefore = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf(), methodUnderTest)
+            val stateBefore = concreteExecutionContext.createStateBefore(
+                thisInstance = thisInstance?.model,
+                parameters = values.map { it.model },
+                statics = emptyMap(),
+                executableToCall = methodUnderTest,
+                idGenerator = defaultIdGenerator
+            )
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
                 val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)

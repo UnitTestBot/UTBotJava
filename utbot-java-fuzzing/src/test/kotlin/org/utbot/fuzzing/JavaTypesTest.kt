@@ -166,8 +166,8 @@ class JavaTypesTest {
 
             val goodType = toFuzzerType(Implementations.AInteger::class.java, cache)
             val goodTypeHierarchy = goodType.traverseHierarchy(cache).toSet()
-            Assertions.assertEquals(2, badTypeHierarchy.size) { "There's only one class (Object) and one interface should be found" }
-            Assertions.assertTrue(goodTypeHierarchy.contains(type)) { "Bad type hierarchy should contain tested type $type" }
+            Assertions.assertEquals(2, goodTypeHierarchy.size) { "There's only one class (Object) and one interface should be found" }
+            Assertions.assertTrue(goodTypeHierarchy.contains(type)) { "Good type hierarchy should contain tested type $type" }
         }
     }
 }

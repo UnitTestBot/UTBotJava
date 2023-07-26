@@ -8,6 +8,10 @@ import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import org.utbot.fuzzing.utils.transformIfNotEmpty
+import java.io.File
+import java.io.FileOutputStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.random.Random
 
 private val logger by lazy { KotlinLogging.logger {} }
@@ -73,6 +77,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
     suspend fun afterIteration(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) { }
 }
 
+///region Description
 /**
  * Some description of the current fuzzing run. Usually, it contains the name of the target method and its parameter list.
  */
@@ -84,7 +89,108 @@ open class Description<TYPE, RESULT>(
     open fun clone(scope: Scope): Description<TYPE, RESULT> {
         error("Scope was changed for $this, but method clone is not specified")
     }
+
+    open fun setUp() {}
+
+    open fun updatePerIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) {}
+
+    open fun conclude(statistic: Statistic<TYPE, RESULT>) {}
 }
+
+abstract class ReportingDescription<TYPE, RESULT> (
+    parameters: List<TYPE>,
+    private val reporter: Reporter<TYPE, RESULT>
+) : Description<TYPE, RESULT>(parameters) {
+
+    override fun setUp() {
+        reporter.setUp(this)
+    }
+
+    override fun updatePerIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>) {
+        reporter.update(values, feedback)
+    }
+
+    override fun conclude(statistic: Statistic<TYPE, RESULT>) {
+        reporter.conclude(statistic)
+    }
+}
+
+class LoggingDescription<TYPE, RESULT> (
+    parameters: List<TYPE>,
+    path: String
+) : ReportingDescription<TYPE, RESULT>(
+    parameters,
+    LoggingReporter(path = path)
+)
+
+
+///region Reporter
+abstract class Reporter<TYPE, RESULT>(
+    private val reportPath : String,
+) {
+    private lateinit var description: Description<TYPE, RESULT>
+    fun setUp(description: Description<TYPE, RESULT>) {
+        this.description = description
+    }
+    abstract fun update(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>)
+    abstract fun conclude(statistic: Statistic<TYPE, RESULT>)
+}
+
+
+class LoggingReporter<TYPE, RESULT>(
+    path: String
+) : Reporter<TYPE, RESULT>(path) {
+
+    private val actualPath = if (path.startsWith("~/")) {
+        System.getProperty("user.home") + path.drop(1)
+    } else {
+        path
+    }
+
+    private val logFile = File("$actualPath/log")
+    private val overviewFile = File("$actualPath/overview.txt")
+
+    init {
+        File(actualPath).mkdirs()
+        logFile.apply { delete(); createNewFile() }
+        overviewFile.apply { delete(); createNewFile() }
+    }
+
+    override fun update(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) {
+
+        fun alignString(obj: Any, length: Int) : String {
+            val aligned = obj.toString().replace("\n", "/")
+            return if (aligned.length > length) {
+                aligned.take((length-1)/2) + ".." + aligned.takeLast((length-1)/2)
+            } else {
+                aligned + " ".repeat(length - aligned.length)
+            }
+        }
+
+        val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
+
+        FileOutputStream(logFile, true).bufferedWriter().use {
+            it.write("[$time] | ${alignString(values, 53)} | ${alignString(feedback, 30)}\n")
+        }
+    }
+
+    override fun conclude(statistic: Statistic<TYPE, RESULT>) {
+        File(actualPath).mkdirs()
+        File("$actualPath/overview.txt").apply{ createNewFile() }.printWriter().use { out ->
+            out.println("Total runs: ${statistic.totalRuns}")
+
+            val seconds = statistic.elapsedTime / 1_000_000_000
+            val minutes = (seconds % 3600) / 60
+            val remainingSeconds = (seconds % 3600) % 60
+            val formattedTime = String.format("%02d min %02d.%03d sec", minutes, remainingSeconds, statistic.elapsedTime % 1_000_000)
+            out.println("Elapsed time: $formattedTime")
+        }
+    }
+}
+///endregion
+///endregion
+
+
 
 class Scope(
     val parameterIndex: Int,
@@ -245,7 +351,11 @@ interface Feedback<TYPE, RESULT> : AsKey {
 data class BaseFeedback<VALUE, TYPE, RESULT>(
     val result: VALUE,
     override val control: Control,
-) : Feedback<TYPE, RESULT>
+) : Feedback<TYPE, RESULT> {
+    override fun toString(): String {
+        return "$result | $control"
+    }
+}
 
 /**
  * Controls fuzzing execution.
@@ -330,6 +440,8 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         state = State(typeCache, statistic.missedTypes),
     )
 
+    description.setUp()
+
     while (!fuzzing.isCancelled(description, statistic)) {
         beforeIteration(description, statistic)
         val values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
@@ -357,11 +469,15 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         val valuesCache = mutableMapOf<Result<T, R>, R>()
         val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
         val feedback = fuzzing.handle(description, result)
+
+        description.updatePerIteration(values, feedback)
+
         when (feedback.control) {
             Control.CONTINUE -> {
                 statistic.put(random, configuration, feedback, values)
             }
             Control.STOP -> {
+                description.conclude(statistic)
                 break
             }
             Control.PASS -> {}
@@ -685,7 +801,19 @@ class Node<TYPE, RESULT>(
     val result: List<Result<TYPE, RESULT>>,
     val parameters: List<TYPE>,
     val builder: Routine<TYPE, RESULT>,
-)
+) {
+    override fun toString() : String {
+        return result.map {
+            when(it) {
+                is Result.Empty -> "_"
+                is Result.Simple -> it.result
+                is Result.Known<*, *, *> -> it.value.toString()
+                is Result.Collection -> it.modify.joinToString(", ", "[", "]")
+                is Result.Recursive -> it.modify.joinToString(", ", "{", "}")
+            }
+        }.joinToString(", ")
+    }
+}
 
 private class StatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
     override var totalRuns: Long = 0,

@@ -59,5 +59,5 @@ suspend fun main() {
                 control = if (result == searchString.length) Control.STOP else Control.CONTINUE
             )
         }
-    }.fuzz(Description(listOf(Unit)))
+    }.fuzz(LoggingDescription(listOf(Unit), "~/.utbot/AbcFuzzing"))
 }

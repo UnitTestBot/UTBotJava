@@ -105,7 +105,7 @@ class FunctionNode(
     val returnType: MypyAnnotation,
     val typeVars: List<String>,
     val argKinds: List<PythonCallableTypeDescription.ArgKind>,
-    val argNames: List<String?>,
+    var argNames: List<String?>,
 ): MypyAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + argTypes + listOf(returnType)
@@ -250,3 +250,14 @@ val annotationAdapter: PolymorphicJsonAdapterFactory<MypyAnnotationNode> =
         .withSubtype(PythonNoneType::class.java, AnnotationType.NoneType.name)
         .withSubtype(TypeAliasNode::class.java, AnnotationType.TypeAlias.name)
         .withSubtype(UnknownAnnotationNode::class.java, AnnotationType.Unknown.name)
+
+object MypyAnnotations {
+
+    data class MypyReportLine(
+        val line: Int,
+        val type: String,
+        val message: String,
+        val file: String
+    )
+
+}

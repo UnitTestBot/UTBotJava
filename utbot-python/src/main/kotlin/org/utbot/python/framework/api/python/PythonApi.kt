@@ -1,6 +1,7 @@
 package org.utbot.python.framework.api.python
 
 import org.utbot.framework.plugin.api.*
+import org.utbot.python.PythonArgument
 import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.moduleOfType
 
@@ -93,11 +94,24 @@ class PythonUtExecution(
     stateAfter: EnvironmentModels,
     val diffIds: List<Long>,
     result: UtExecutionResult,
+    val arguments: List<PythonArgument>,
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
-    displayName: String? = null
+    displayName: String? = null,
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
+    init {
+        stateInit.parameters.zip(stateBefore.parameters).map { (init, before) ->
+            if (init is PythonTreeModel && before is PythonTreeModel) {
+                init.tree.comparable = before.tree.comparable
+            }
+        }
+        val init = stateInit.thisInstance
+        val before = stateBefore.thisInstance
+        if (init is PythonTreeModel && before is PythonTreeModel) {
+            init.tree.comparable = before.tree.comparable
+        }
+    }
     override fun copy(
         stateBefore: EnvironmentModels,
         stateAfter: EnvironmentModels,
@@ -116,7 +130,8 @@ class PythonUtExecution(
             coverage = coverage,
             summary = summary,
             testMethodName = testMethodName,
-            displayName = displayName
+            displayName = displayName,
+            arguments = arguments
         )
     }
 }

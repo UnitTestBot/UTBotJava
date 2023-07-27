@@ -31,7 +31,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
     override fun accept(type: Type): Boolean {
         val hasSupportedType =
             !unsupportedTypes.contains(type.pythonTypeName())
-        return hasSupportedType && isConcreteType(type) // && (hasInit || hasNew)
+        return hasSupportedType && isConcreteType(type)
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
@@ -59,10 +59,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
             .forEach {
                 // TODO: here we need to use same as .getPythonAttributeByName but without name
                 // TODO: now we do not have fields from parents
-                // val slots = type.getPythonAttributeByName(description.pythonTypeStorage, "__slots__")
-                // if (slots != null) {
-                //     TODO: here we should use only attributes from __slots__
-                //}
+                // TODO: here we should use only attributes from __slots__
                 val fields = type.getPythonAttributes()
                     .filter { attr ->
                         !(attr.meta.name.startsWith("__") && attr.meta.name.endsWith("__") && attr.meta.name.length >= 4) &&

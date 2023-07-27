@@ -22,10 +22,17 @@ import org.utbot.python.framework.api.python.util.pythonExceptionClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
+import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
     private val maxDepth: Int = 5
+
+    private fun CgVariable.deepcopy(): CgVariable {
+        val classId = PythonClassId("copy.deepcopy")
+        importIfNeeded(classId)
+        return newVar(this.type) { CgPythonFunctionCall(classId, "copy.deepcopy", listOf(this)) }
+    }
 
     override fun assertEquality(expected: CgValue, actual: CgVariable) {
         pythonDeepEquals(expected, actual)
@@ -83,7 +90,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     // build arguments
                     val stateAssertions = emptyMap<Int, Pair<CgVariable, UtModel>>().toMutableMap()
                     for ((index, param) in constructorState.parameters.withIndex()) {
-                        val name = paramNames[executableId]?.get(index)
+                        val name = execution.arguments[index].name
                         var argument = variableConstructor.getOrCreateVariable(param, name)
 
                         val beforeValue = execution.stateBefore.parameters[index]
@@ -96,6 +103,9 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 stateAssertions[index] = Pair(argument, afterValue)
                             }
                         }
+                        if (execution.arguments[index].isNamed) {
+                            argument = CgPythonNamedArgument(name, argument)
+                        }
 
                         methodArguments += argument
                     }
@@ -103,12 +113,17 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                         if (it is CgPythonTree) {
                             context.currentBlock.addAll(it.arguments)
                         }
+                        if (it is CgPythonNamedArgument && it.value is CgPythonTree) {
+                            context.currentBlock.addAll(it.value.arguments)
+                        }
                     }
 
                     recordActualResult()
                     generateResultAssertions()
 
-                    generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
+                    if (methodType == CgTestMethodType.PASSED_EXCEPTION) {
+                        generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
+                    }
                 }
 
                 if (statics.isNotEmpty()) {
@@ -245,9 +260,9 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
     private fun assertIsInstance(expected: CgValue, actual: CgVariable) {
         when (testFrameworkManager) {
             is PytestManager ->
-                (testFrameworkManager as PytestManager).assertIsInstance(listOf(expected.type), actual)
+                (testFrameworkManager as PytestManager).assertIsinstance(listOf(expected.type as PythonClassId), actual)
             is UnittestManager ->
-                (testFrameworkManager as UnittestManager).assertIsInstance(listOf(expected.type), actual)
+                (testFrameworkManager as UnittestManager).assertIsinstance(listOf(expected.type as PythonClassId), actual)
             else -> testFrameworkManager.assertEquals(expected, actual)
         }
     }
@@ -270,7 +285,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             val firstChild =
                 elements.first()  // TODO: We can use only structure => we should use another element if the first is empty
 
-            emptyLine()
+            emptyLineIfNeeded()
             if (elementsHaveSameStructure) {
                 val index = newVar(pythonNoneClassId, keyName) {
                     CgLiteral(pythonNoneClassId, "None")
@@ -293,7 +308,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 index
                             )
                         }
-                        pythonDeepTreeEquals(firstChild, indexExpected, indexActual)
+                        pythonDeepTreeEquals(firstChild, indexExpected, indexActual, useExpectedAsValue = true)
                         statements = currentBlock
                     }
                 }
@@ -323,12 +338,17 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgValue,
         actual: CgVariable,
-        depth: Int = maxDepth
+        depth: Int = maxDepth,
+        useExpectedAsValue: Boolean = false
     ) {
         if (expectedNode.comparable || depth == 0) {
-            emptyLineIfNeeded()
+            val expectedValue = if (useExpectedAsValue) {
+                expected
+            } else {
+                variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
+            }
             testFrameworkManager.assertEquals(
-                expected,
+                expectedValue,
                 actual,
             )
             return

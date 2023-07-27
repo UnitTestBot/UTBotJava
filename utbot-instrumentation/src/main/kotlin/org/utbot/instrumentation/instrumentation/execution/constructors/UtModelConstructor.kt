@@ -17,6 +17,13 @@ interface UtModelConstructorInterface {
      * Constructs a UtModel from a concrete [value] with a specific [classId].
      */
     fun construct(value: Any?, classId: ClassId): UtModel
+
+    /**
+     * Constructs UtCompositeModel.
+     *
+     * Uses runtime javaClass to collect ALL fields, except final static fields, and builds this model recursively.
+     */
+    fun constructCompositeModel(value: Any): UtCompositeModel
 }
 
 /**
@@ -314,12 +321,12 @@ class UtModelConstructor(
             }
         }
 
-    /**
-     * Constructs UtCompositeModel.
-     *
-     * Uses runtime javaClass to collect ALL fields, except final static fields, and builds this model recursively.
-     */
-    private fun constructCompositeModel(value: Any, remainingDepth: Long): UtModel {
+    override fun constructCompositeModel(value: Any): UtCompositeModel = constructCompositeModel(
+        value,
+        remainingDepth = maxDepth
+    )
+
+    private fun constructCompositeModel(value: Any, remainingDepth: Long): UtCompositeModel {
         // value can be mock only if it was previously constructed from UtCompositeModel
         val isMock = objectToModelCache[value]?.isMockModel() ?: false
 
@@ -350,6 +357,9 @@ class UtModelConstructor(
     private fun withMaxDepth(newMaxDepth: Long) = object : UtModelConstructorInterface {
         override fun construct(value: Any?, classId: ClassId): UtModel =
             construct(value, classId, newMaxDepth)
+
+        override fun constructCompositeModel(value: Any): UtCompositeModel =
+            constructCompositeModel(value, newMaxDepth)
     }
 }
 

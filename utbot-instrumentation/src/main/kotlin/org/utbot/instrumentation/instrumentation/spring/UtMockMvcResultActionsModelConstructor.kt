@@ -30,6 +30,7 @@ class UtMockMvcResultActionsModelConstructor : UtCustomModelConstructor {
 
         return UtSpringMockMvcResultActionsModel(
             id = id,
+            origin = internalConstructor.constructCompositeModel(value),
             status = responseGetStatusMethodId.method.invoke(response) as Int,
             errorMessage = responseGetErrorMessageMethodId.method.invoke(response) as String?,
             contentAsString = responseGetContentAsStringMethodId.method.invoke(response) as String,

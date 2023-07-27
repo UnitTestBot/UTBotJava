@@ -761,6 +761,7 @@ data class SpringRepositoryId(
 
 class UtSpringMockMvcResultActionsModel(
     id: Int?,
+    origin: UtCompositeModel?,
     val status: Int,
     val errorMessage: String?,
     val contentAsString: String,
@@ -769,6 +770,7 @@ class UtSpringMockMvcResultActionsModel(
     val model: UtModel?
     // TODO add headers and other data
 ) : UtCustomModel(
+    origin = origin,
     classId = SpringModelUtils.resultActionsClassId,
     id = id,
     modelName = "mockMvcResultActions@$id"

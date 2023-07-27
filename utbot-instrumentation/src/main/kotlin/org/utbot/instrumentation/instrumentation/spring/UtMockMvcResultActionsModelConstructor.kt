@@ -29,6 +29,7 @@ class UtMockMvcResultActionsModelConstructor : UtCustomModelConstructor {
         val modelAndView = mvcResultGetModelAndViewMethodId.method.invoke(mvcResult)
 
         return UtSpringMockMvcResultActionsModel(
+            id = id,
             status = responseGetStatusMethodId.method.invoke(response) as Int,
             errorMessage = responseGetErrorMessageMethodId.method.invoke(response) as String?,
             contentAsString = responseGetContentAsStringMethodId.method.invoke(response) as String,

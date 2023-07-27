@@ -727,7 +727,17 @@ class UtLambdaModel(
     }
 }
 
-object UtSpringContextModel : UtReferenceModel(
+/**
+ * Common parent of all framework-specific models (e.g. Spring-specific models)
+ */
+abstract class UtCustomModel(
+    val origin: UtCompositeModel? = null,
+    id: Int?,
+    classId: ClassId,
+    modelName: String = id.toString()
+) : UtReferenceModel(id, classId, modelName)
+
+object UtSpringContextModel : UtCustomModel(
     id = null,
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
@@ -746,6 +756,7 @@ data class SpringRepositoryId(
 )
 
 class UtSpringMockMvcResultActionsModel(
+    id: Int?,
     val status: Int,
     val errorMessage: String?,
     val contentAsString: String,
@@ -753,8 +764,10 @@ class UtSpringMockMvcResultActionsModel(
     // model for mvcResult.modelAndView?.model
     val model: UtModel?
     // TODO add headers and other data
-) : UtModel(
-    classId = SpringModelUtils.resultActionsClassId
+) : UtCustomModel(
+    classId = SpringModelUtils.resultActionsClassId,
+    id = id,
+    modelName = "mockMvcResultActions@$id"
 )
 
 /**

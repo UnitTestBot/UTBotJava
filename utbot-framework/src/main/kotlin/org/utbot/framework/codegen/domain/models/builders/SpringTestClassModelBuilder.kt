@@ -10,13 +10,13 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
@@ -112,8 +112,8 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                 is UtPrimitiveModel,
                 is UtClassRefModel,
                 is UtVoidModel,
-                is UtEnumConstantModel,
-                is UtSpringContextModel -> {}
+                is UtEnumConstantModel -> {}
+                is UtCustomModel -> currentModel.origin?.let { collectRecursively(it.wrap(), allModels) }
                 is UtLambdaModel -> {
                     currentModel.capturedValues.forEach { collectRecursively(it.wrap(), allModels) }
                 }

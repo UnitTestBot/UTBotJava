@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.resultActionsClassId
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
@@ -49,6 +50,6 @@ class SpringInstrumentationContext(
     }
 
     override fun findUtCustomModelConstructor(classId: ClassId): UtCustomModelConstructor? =
-        if (classId == resultActionsClassId) UtMockMvcResultActionsModelConstructor()
+        if (classId.isSubtypeOf(resultActionsClassId)) UtMockMvcResultActionsModelConstructor()
         else delegateInstrumentationContext.findUtCustomModelConstructor(classId)
 }

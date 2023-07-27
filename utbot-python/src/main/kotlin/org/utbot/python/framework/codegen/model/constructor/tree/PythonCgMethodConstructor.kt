@@ -6,6 +6,7 @@ import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgGetLength
 import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgMultilineComment
 import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgReferenceExpression
@@ -38,17 +39,17 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         pythonDeepEquals(expected, actual)
     }
 
-    override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    override fun createTestMethod(testSet: CgMethodTestSet, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val constructorState = (execution as PythonUtExecution).stateInit
             val diffIds = execution.diffIds
             (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
-            val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
+            val testMethodName = nameGenerator.testMethodNameFor(testSet.executableUnderTest, execution.testMethodName)
             if (execution.testMethodName == null) {
                 execution.testMethodName = testMethodName
             }
             // TODO: remove this line when SAT-1273 is completed
-            execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
+            execution.displayName = execution.displayName?.let { "${testSet.executableUnderTest.name}: $it" }
             pythonTestMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
@@ -122,7 +123,11 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     generateResultAssertions()
 
                     if (methodType == CgTestMethodType.PASSED_EXCEPTION) {
-                        generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
+                        generateFieldStateAssertions(
+                            stateAssertions,
+                            assertThisObject,
+                            execution.executableToCall ?: testSet.executableUnderTest
+                        )
                     }
                 }
 

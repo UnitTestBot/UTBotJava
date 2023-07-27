@@ -22,10 +22,10 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
         testFrameworkManager.assertEquals(expected, actual)
     }
 
-    override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    override fun createTestMethod(testSet: CgMethodTestSet, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
-            execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
+            val testMethodName = nameGenerator.testMethodNameFor(testSet.executableUnderTest, execution.testMethodName)
+            execution.displayName = execution.displayName?.let { "${testSet.executableUnderTest.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
@@ -37,7 +37,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
-                        val name = paramNames[executableId]?.get(index)
+                        val name = paramNames[execution.executableToCall ?: testSet.executableUnderTest]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     recordActualResult()

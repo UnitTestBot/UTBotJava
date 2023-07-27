@@ -142,6 +142,8 @@ abstract class UtExecution(
         testMethodName: String? = this.testMethodName,
         displayName: String? = this.displayName,
     ): UtExecution
+
+    val executableToCall get() = stateBefore.executableToCall
 }
 
 /**

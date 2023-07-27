@@ -99,7 +99,7 @@ open class CgVariableConstructor(val context: CgContext) :
             constructValueByModel(model, name)
         }
 
-    private fun constructValueByModel(model: UtModel, name: String?): CgValue {
+    open fun constructValueByModel(model: UtModel, name: String?): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
 

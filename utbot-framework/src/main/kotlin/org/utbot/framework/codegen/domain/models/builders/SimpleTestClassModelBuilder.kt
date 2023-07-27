@@ -12,10 +12,10 @@ open class SimpleTestClassModelBuilder(context: CgContext): TestClassModelBuilde
         testSets: List<CgMethodTestSet>,
     ): SimpleTestClassModel {
         // For each class stores list of methods declared in this class (methods from nested classes are excluded)
-        val class2methodTestSets = testSets.groupBy { it.executableId.classId }
+        val class2methodTestSets = testSets.groupBy { it.executableUnderTest.classId }
 
         val classesWithMethodsUnderTest = testSets
-            .map { it.executableId.classId }
+            .map { it.executableUnderTest.classId }
             .distinct()
 
         // For each class stores list of its "direct" nested classes

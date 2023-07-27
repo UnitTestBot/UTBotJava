@@ -1422,14 +1422,14 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    open fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    open fun createTestMethod(testSet: CgMethodTestSet, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
+            val testMethodName = nameGenerator.testMethodNameFor(testSet.executableUnderTest, execution.testMethodName)
             if (execution.testMethodName == null) {
                 execution.testMethodName = testMethodName
             }
             // TODO: remove this line when SAT-1273 is completed
-            execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
+            execution.displayName = execution.displayName?.let { "${testSet.executableUnderTest.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 //Enum constants are static, but there is no need to store and recover value for them
                 val statics = currentExecution!!.stateBefore
@@ -1451,7 +1451,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
-                        val name = paramNames[executableId]?.get(index)
+                        val name = paramNames[execution.executableToCall ?: testSet.executableUnderTest]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
 
@@ -1524,7 +1524,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private val expectedResultVarName = "expectedResult"
     private val expectedErrorVarName = "expectedError"
 
-    fun createParameterizedTestMethod(testSet: CgMethodTestSet, dataProviderMethodName: String): CgTestMethod {
+    /**
+     * Returns `null` if parameterized test method can't be created for [testSet]
+     * (for example, when there are multiple distinct [CgMethodTestSet.executablesToCall]).
+     */
+    fun createParameterizedTestMethod(testSet: CgMethodTestSet, dataProviderMethodName: String): CgTestMethod? {
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = chooseGenericExecution(testSet.executions)
@@ -1540,7 +1544,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return withTestMethodScope(genericExecution) {
             val testName = nameGenerator.parameterizedTestMethodName(dataProviderMethodName)
             withNameScope {
-                val testParameterDeclarations = createParameterDeclarations(testSet, genericExecution)
+                val testParameterDeclarations =
+                    createParameterDeclarations(testSet, genericExecution) ?: return@withNameScope null
 
                 methodType = PARAMETRIZED
                 testMethod(
@@ -1610,12 +1615,16 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 .firstOrNull { it.result is UtExecutionSuccess } ?: executions.first()
     }
 
+    /**
+     * Returns `null` if parameter declarations can't be created for [testSet]
+     * (for example, when there are multiple distinct [CgMethodTestSet.executablesToCall]).
+     */
     private fun createParameterDeclarations(
         testSet: CgMethodTestSet,
         genericExecution: UtExecution,
-    ): List<CgParameterDeclaration> {
-        val executableUnderTest = testSet.executableId
-        val executableUnderTestParameters = testSet.executableId.executable.parameters
+    ): List<CgParameterDeclaration>? {
+        val executableToCall = testSet.executablesToCall.singleOrNull() ?: return null
+        val executableUnderTestParameters = executableToCall.executable.parameters
 
         return mutableListOf<CgParameterDeclaration>().apply {
             // this instance
@@ -1634,7 +1643,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
 
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
-                val argumentName = paramNames[executableUnderTest]?.get(index)
+                val argumentName = paramNames[executableToCall]?.get(index)
                 val paramType = executableUnderTestParameters[index].parameterizedType
 
                 val argumentType = when {
@@ -1670,7 +1679,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 }
             }
 
-            val expectedResultClassId = wrapTypeIfRequired(testSet.resultType())
+            val expectedResultClassId = wrapTypeIfRequired(testSet.getCommonResultTypeOrNull() ?: return null)
             if (expectedResultClassId != voidClassId) {
                 val wrappedType = wrapIfPrimitive(expectedResultClassId)
                 //We are required to wrap the type of expected result if it is primitive
@@ -1748,7 +1757,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
 
         for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
-            val argumentName = paramNames[testSet.executableId]?.get(paramIndex)
+            val argumentName = paramNames[execution.executableToCall ?: testSet.executableUnderTest]?.get(paramIndex)
             arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
         }
 
@@ -1951,8 +1960,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    fun errorMethod(executable: ExecutableId, errors: Map<String, Int>): CgRegion<CgMethod> {
-        val name = nameGenerator.errorMethodNameFor(executable)
+    fun errorMethod(testSet: CgMethodTestSet, errors: Map<String, Int>): CgRegion<CgMethod> {
+        val name = nameGenerator.errorMethodNameFor(testSet.executableUnderTest)
         val body = block {
             comment("Couldn't generate some tests. List of errors:")
             comment()
@@ -1980,7 +1989,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             }
         }
         val errorTestMethod = CgErrorTestMethod(name, body)
-        return CgSimpleRegion("Errors report for ${executable.name}", listOf(errorTestMethod))
+        return CgSimpleRegion("Errors report for ${testSet.executableUnderTest.name}", listOf(errorTestMethod))
     }
 
     private fun CgExecutableCall.wrapReflectiveCall() {

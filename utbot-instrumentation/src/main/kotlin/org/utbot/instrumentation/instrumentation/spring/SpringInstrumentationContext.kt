@@ -1,11 +1,14 @@
 package org.utbot.instrumentation.instrumentation.spring
 
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.util.SpringModelUtils.resultActionsClassId
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.spring.api.SpringApi
 import org.utbot.spring.api.provider.SpringApiProviderFacade
@@ -44,4 +47,8 @@ class SpringInstrumentationContext(
         is UtSpringContextModel -> UtConcreteValue(springApi.getOrLoadSpringApplicationContext())
         else -> delegateInstrumentationContext.constructContextDependentValue(model)
     }
+
+    override fun findUtCustomModelConstructor(classId: ClassId): UtCustomModelConstructor? =
+        if (classId == resultActionsClassId) UtMockMvcResultActionsModelConstructor()
+        else delegateInstrumentationContext.findUtCustomModelConstructor(classId)
 }

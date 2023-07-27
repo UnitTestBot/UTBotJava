@@ -745,6 +745,18 @@ data class SpringRepositoryId(
     val entityClassId: ClassId,
 )
 
+class UtSpringMockMvcResultActionsModel(
+    val status: Int,
+    val errorMessage: String?,
+    val contentAsString: String,
+    val viewName: String?,
+    // model for mvcResult.modelAndView?.model
+    val model: UtModel?
+    // TODO add headers and other data
+) : UtModel(
+    classId = SpringModelUtils.resultActionsClassId
+)
+
 /**
  * Model for a step to obtain [UtAssembleModel].
  */

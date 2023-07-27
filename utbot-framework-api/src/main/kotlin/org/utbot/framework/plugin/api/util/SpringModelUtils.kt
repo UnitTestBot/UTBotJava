@@ -107,10 +107,11 @@ object SpringModelUtils {
 
     private val mockMvcRequestBuildersClassId = ClassId("org.springframework.test.web.servlet.request.MockMvcRequestBuilders")
     private val requestBuilderClassId = ClassId("org.springframework.test.web.servlet.RequestBuilder")
-    private val resultActionsClassId = ClassId("org.springframework.test.web.servlet.ResultActions")
-    val mockMvcClassId = ClassId("org.springframework.test.web.servlet.MockMvc")
+    val resultActionsClassId = ClassId("org.springframework.test.web.servlet.ResultActions")
+    private val mockMvcClassId = ClassId("org.springframework.test.web.servlet.MockMvc")
     private val mvcResultClassId = ClassId("org.springframework.test.web.servlet.MvcResult")
     private val mockHttpServletRequestBuilderClassId = ClassId("org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder")
+    private val modelAndViewClassId = ClassId("org.springframework.web.servlet.ModelAndView")
 
     private val objectMapperClassId = ClassId("com.fasterxml.jackson.databind.ObjectMapper")
 
@@ -119,6 +120,62 @@ object SpringModelUtils {
         name = "perform",
         parameters = listOf(requestBuilderClassId),
         returnType = resultActionsClassId
+    )
+
+    val resultActionsAndReturnMethodId = MethodId(
+        classId = resultActionsClassId,
+        name = "andReturn",
+        parameters = listOf(),
+        returnType = mvcResultClassId
+    )
+
+    val mvcResultGetResponseMethodId = MethodId(
+        classId = mvcResultClassId,
+        name = "getResponse",
+        parameters = listOf(),
+        returnType = mockHttpServletResponseClassId
+    )
+
+    val responseGetStatusMethodId = MethodId(
+        classId = mockHttpServletResponseClassId,
+        name = "getStatus",
+        parameters = listOf(),
+        returnType = intClassId
+    )
+
+    val responseGetErrorMessageMethodId = MethodId(
+        classId = mockHttpServletResponseClassId,
+        name = "getErrorMessage",
+        parameters = listOf(),
+        returnType = stringClassId
+    )
+
+    val responseGetContentAsStringMethodId = MethodId(
+        classId = mockHttpServletResponseClassId,
+        name = "getContentAsString",
+        parameters = listOf(),
+        returnType = stringClassId
+    )
+
+    val mvcResultGetModelAndViewMethodId = MethodId(
+        classId = mvcResultClassId,
+        name = "getModelAndView",
+        parameters = listOf(),
+        returnType = modelAndViewClassId
+    )
+
+    val modelAndViewGetModelMethodId = MethodId(
+        classId = modelAndViewClassId,
+        name = "getModel",
+        parameters = listOf(),
+        returnType = mapClassId
+    )
+
+    val modelAndViewGetViewNameMethodId = MethodId(
+        classId = modelAndViewClassId,
+        name = "getViewName",
+        parameters = listOf(),
+        returnType = stringClassId
     )
 
     fun createMockMvcModel(idGenerator: () -> Int) =
@@ -143,12 +200,7 @@ object SpringModelUtils {
             modelName = "andReturn",
             instantiationCall = UtExecutableCallModel(
                 instance = performModel,
-                executable = MethodId(
-                    classId = mvcResultClassId,
-                    name = "andReturn",
-                    parameters = listOf(),
-                    returnType = mvcResultClassId
-                ),
+                executable = resultActionsAndReturnMethodId,
                 params = listOf()
             )
         )
@@ -158,12 +210,7 @@ object SpringModelUtils {
             modelName = "getResponse",
             instantiationCall = UtExecutableCallModel(
                 instance = andReturnModel,
-                executable = MethodId(
-                    classId = mvcResultClassId,
-                    name = "getResponse",
-                    parameters = listOf(),
-                    returnType = mockHttpServletResponseClassId
-                ),
+                executable = mvcResultGetResponseMethodId,
                 params = listOf()
             )
         )

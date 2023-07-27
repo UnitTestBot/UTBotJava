@@ -10,10 +10,13 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
@@ -94,7 +97,13 @@ class SpringUtExecutionInstrumentation(
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
     }
 
-    fun getBean(beanName: String): Any = springApi.getBean(beanName)
+    fun getBeanModel(beanName: String, classpathToConstruct: Set<String>): UtModel {
+        val bean = springApi.getBean(beanName)
+        return UtModelConstructor.createOnlyUserClassesConstructor(
+            pathsToUserClasses = classpathToConstruct,
+            utCustomModelConstructorFinder = instrumentationContext::findUtCustomModelConstructor
+        ).construct(bean, bean::class.java.id)
+    }
 
     fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
         val relevantBeanNames = getRelevantBeans(classId.jClass)

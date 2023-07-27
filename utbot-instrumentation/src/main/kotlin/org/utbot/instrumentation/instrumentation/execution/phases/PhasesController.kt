@@ -31,7 +31,10 @@ class PhasesController(
 
     val statisticsCollectionPhase = StatisticsCollectionPhase(traceHandler)
 
-    val modelConstructionPhase = ModelConstructionPhase(traceHandler)
+    val modelConstructionPhase = ModelConstructionPhase(
+        traceHandler = traceHandler,
+        utCustomModelConstructorFinder = instrumentationContext::findUtCustomModelConstructor
+    )
 
     val postprocessingPhase = PostprocessingPhase()
 

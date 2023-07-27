@@ -9,6 +9,7 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import java.security.AccessControlException
 import java.util.*
@@ -17,7 +18,8 @@ import java.util.*
  * This phase of model construction from concrete values.
  */
 class ModelConstructionPhase(
-    private val traceHandler: TraceHandler
+    private val traceHandler: TraceHandler,
+    private val utCustomModelConstructorFinder: (ClassId) -> UtCustomModelConstructor?,
 ) : ExecutionPhase {
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
@@ -42,7 +44,11 @@ class ModelConstructionPhase(
     fun configureConstructor(block: ConstructorConfiguration.() -> Unit) {
         ConstructorConfiguration().run {
             block()
-            constructor = UtModelConstructor(cache, strategy)
+            constructor = UtModelConstructor(
+                objectToModelCache = cache,
+                utCustomModelConstructorFinder = utCustomModelConstructorFinder,
+                compositeModelStrategy = strategy,
+            )
         }
     }
 

@@ -129,8 +129,10 @@ class SimpleUtExecutionInstrumentation(
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =
         delegateInstrumentation.getStaticField(fieldId).map { value ->
-            UtModelConstructor.createOnlyUserClassesConstructor(pathsToUserClasses)
-                .construct(value, fieldId.type)
+            UtModelConstructor.createOnlyUserClassesConstructor(
+                pathsToUserClasses = pathsToUserClasses,
+                utCustomModelConstructorFinder = instrumentationContext::findUtCustomModelConstructor
+            ).construct(value, fieldId.type)
         }
 
     override fun transform(

@@ -89,6 +89,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecution
@@ -98,6 +99,7 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtModelWithOrigin
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
@@ -321,6 +323,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                             +thisInstance[executable](*methodArguments.toTypedArray())
                         } else {
                             this.resultModel = resultModel
+
+                            // TODO support custom way of rendering asserts when `resultModel` is `UtCustomModel`
                             val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
                             emptyLineIfNeeded()
                             assertEquality(expected, actual)
@@ -755,43 +759,21 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         )
                     }
                 }
-                is UtCompositeModel -> {
-                    // Basically, to compare two iterables or maps, we need to iterate over them and compare each entry.
-                    // But it leads to a lot of trash code in each test method, and it is more clear to use
-                    // outer deep equals here
-                    if (expected.isIterableOrMap()) {
-                        currentBlock += CgSingleLineComment(
-                            "${expected.type.canonicalName} is iterable or Map, use outer deep equals to iterate over"
-                        )
-                        currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
-
-                        return
-                    }
-
-                    // We can use overridden equals if we have one, but not for mocks.
-                    if (expected.hasNotParametrizedCustomEquals() && !expectedModel.isMock) {
-                        // We rely on already existing equals
-                        currentBlock += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
-                        currentBlock += assertions[assertEquals](expected, actual).toStatement()
-
-                        return
-                    }
-
-                    for ((fieldId, fieldModel) in expectedModel.fields) {
-                        // we should not process enclosing class
-                        // (actually, we do not do it properly anyway)
-                        if (fieldId.isInnerClassEnclosingClassReference) continue
-
-                        traverseFieldRecursively(
-                            fieldId,
-                            fieldModel,
-                            expected,
-                            actual,
-                            depth,
-                            visitedModels
-                        )
-                    }
-                }
+                is UtCompositeModel -> assertDeepEqualsForComposite(
+                    expected = expected,
+                    actual = actual,
+                    expectedModel = expectedModel,
+                    depth = depth,
+                    visitedModels = visitedModels
+                )
+                is UtCustomModel -> assertDeepEqualsForComposite(
+                    expected = expected,
+                    actual = actual,
+                    expectedModel = expectedModel.origin
+                        ?: error("Can't generate equals assertion for custom expected model without origin [$expectedModel]"),
+                    depth = depth,
+                    visitedModels = visitedModels
+                )
                 is UtLambdaModel -> Unit // we do not check equality of lambdas
                 is UtVoidModel -> {
                     // Unit result is considered in generateResultAssertions method
@@ -799,6 +781,50 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 }
                 else -> {}
             }
+        }
+    }
+
+    private fun TestFrameworkManager.assertDeepEqualsForComposite(
+        expected: CgVariable,
+        actual: CgVariable,
+        expectedModel: UtCompositeModel,
+        depth: Int,
+        visitedModels: MutableSet<ModelWithField>
+    ) {
+        // Basically, to compare two iterables or maps, we need to iterate over them and compare each entry.
+        // But it leads to a lot of trash code in each test method, and it is more clear to use
+        // outer deep equals here
+        if (expected.isIterableOrMap()) {
+            currentBlock += CgSingleLineComment(
+                "${expected.type.canonicalName} is iterable or Map, use outer deep equals to iterate over"
+            )
+            currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
+
+            return
+        }
+
+        // We can use overridden equals if we have one, but not for mocks.
+        if (expected.hasNotParametrizedCustomEquals() && !expectedModel.isMock) {
+            // We rely on already existing equals
+            currentBlock += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
+            currentBlock += assertions[assertEquals](expected, actual).toStatement()
+
+            return
+        }
+
+        for ((fieldId, fieldModel) in expectedModel.fields) {
+            // we should not process enclosing class
+            // (actually, we do not do it properly anyway)
+            if (fieldId.isInnerClassEnclosingClassReference) continue
+
+            traverseFieldRecursively(
+                fieldId,
+                fieldModel,
+                expected,
+                actual,
+                depth,
+                visitedModels
+            )
         }
     }
 
@@ -1041,18 +1067,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun collectExecutionsResultFields() {
         for (model in successfulExecutionsModels) {
             when (model) {
-                is UtCompositeModel -> {
-                    for ((fieldId, fieldModel) in model.fields) {
-                        collectExecutionsResultFieldsRecursively(fieldId, fieldModel, 0)
-                    }
-                }
+                is UtCompositeModel -> collectExecutionsResultFieldsRecursively(model, 0)
 
-                is UtAssembleModel -> {
-                    model.origin?.let {
-                        for ((fieldId, fieldModel) in it.fields) {
-                            collectExecutionsResultFieldsRecursively(fieldId, fieldModel, 0)
-                        }
-                    }
+                is UtModelWithOrigin -> model.origin?.let {
+                    collectExecutionsResultFieldsRecursively(it, 0)
                 }
 
                 // Lambdas do not have fields. They have captured values, but we do not consider them here.
@@ -1070,6 +1088,12 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
+    private fun collectExecutionsResultFieldsRecursively(model: UtCompositeModel, depth: Int) {
+        for ((fieldId, fieldModel) in model.fields) {
+            collectExecutionsResultFieldsRecursively(fieldId, fieldModel, depth)
+        }
+    }
+
     private fun collectExecutionsResultFieldsRecursively(
         fieldId: FieldId,
         fieldModel: UtModel,
@@ -1083,18 +1107,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         fieldsOfExecutionResults.getOrPut(fieldKey) { mutableListOf() } += fieldModel
 
         when (fieldModel) {
-            is UtCompositeModel -> {
-                for ((id, model) in fieldModel.fields) {
-                    collectExecutionsResultFieldsRecursively(id, model, depth + 1)
-                }
-            }
+            is UtCompositeModel -> collectExecutionsResultFieldsRecursively(fieldModel, depth + 1)
 
-            is UtAssembleModel -> {
-                fieldModel.origin?.let {
-                    for ((id, model) in it.fields) {
-                        collectExecutionsResultFieldsRecursively(id, model, depth + 1)
-                    }
-                }
+            is UtModelWithOrigin -> fieldModel.origin?.let {
+                collectExecutionsResultFieldsRecursively(it, depth + 1)
             }
 
             // Lambdas do not have fields. They have captured values, but we do not consider them here.

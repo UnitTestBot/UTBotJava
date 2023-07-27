@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -111,6 +112,7 @@ open class CgVariableConstructor(val context: CgContext) :
             is UtLambdaModel -> constructLambda(model, baseName)
             is UtNullModel -> nullLiteral()
             is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
+            is UtCustomModel -> constructValueByModel(model.origin ?: error("Can't construct value for custom model without origin [$model]"), name)
             is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
             is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
             else -> error("Unexpected UtModel: ${model::class}")

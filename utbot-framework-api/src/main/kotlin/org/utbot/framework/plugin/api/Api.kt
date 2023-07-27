@@ -574,6 +574,10 @@ data class UtArrayModel(
     override fun hashCode(): Int = id
 }
 
+interface UtModelWithOrigin {
+    val origin: UtCompositeModel?
+}
+
 /**
  * Model for complex objects with assemble instructions.
  *
@@ -588,8 +592,8 @@ data class UtAssembleModel private constructor(
     override val modelName: String,
     val instantiationCall: UtStatementCallModel,
     val modificationsChain: List<UtStatementModel>,
-    val origin: UtCompositeModel?
-) : UtReferenceModel(id, classId, modelName) {
+    override val origin: UtCompositeModel?
+) : UtReferenceModel(id, classId, modelName), UtModelWithOrigin {
 
     /**
      * Creates a new [UtAssembleModel].
@@ -731,11 +735,11 @@ class UtLambdaModel(
  * Common parent of all framework-specific models (e.g. Spring-specific models)
  */
 abstract class UtCustomModel(
-    val origin: UtCompositeModel? = null,
+    override val origin: UtCompositeModel? = null,
     id: Int?,
     classId: ClassId,
     modelName: String = id.toString()
-) : UtReferenceModel(id, classId, modelName)
+) : UtReferenceModel(id, classId, modelName), UtModelWithOrigin
 
 object UtSpringContextModel : UtCustomModel(
     id = null,

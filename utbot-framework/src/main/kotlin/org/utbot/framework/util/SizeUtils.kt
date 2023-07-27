@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtLambdaModel
@@ -37,7 +38,7 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
 
     return when (this) {
         is UtNullModel, is UtPrimitiveModel, UtVoidModel -> 0
-        is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel -> 1
+        is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel, is UtCustomModel -> 1
         is UtAssembleModel -> {
             1 + instantiationCall.calculateSize(used) + modificationsChain.sumOf { it.calculateSize(used) }
         }

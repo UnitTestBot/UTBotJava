@@ -92,9 +92,9 @@ open class Description<TYPE, RESULT>(
 
     open fun setUp() {}
 
-    open fun updatePerIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) {}
+    open fun updatePerIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event: MinsetEvent) {}
 
-    open fun conclude(statistic: Statistic<TYPE, RESULT>) {}
+    open fun finalizeReport(statistic: Statistic<TYPE, RESULT>) {}
 }
 
 abstract class ReportingDescription<TYPE, RESULT> (
@@ -106,16 +106,16 @@ abstract class ReportingDescription<TYPE, RESULT> (
         reporter.setUp(this)
     }
 
-    override fun updatePerIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>) {
-        reporter.update(values, feedback)
+    override fun updatePerIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event: MinsetEvent) {
+        reporter.update(values, feedback, event)
     }
 
-    override fun conclude(statistic: Statistic<TYPE, RESULT>) {
+    override fun finalizeReport(statistic: Statistic<TYPE, RESULT>) {
         reporter.conclude(statistic)
     }
 }
 
-class LoggingDescription<TYPE, RESULT> (
+open class LoggingDescription<TYPE, RESULT> (
     parameters: List<TYPE>,
     path: String
 ) : ReportingDescription<TYPE, RESULT>(
@@ -128,18 +128,24 @@ class LoggingDescription<TYPE, RESULT> (
 abstract class Reporter<TYPE, RESULT>(
     private val reportPath : String,
 ) {
+    abstract fun clone() : Reporter<TYPE, RESULT>
+
     private lateinit var description: Description<TYPE, RESULT>
     fun setUp(description: Description<TYPE, RESULT>) {
         this.description = description
     }
-    abstract fun update(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>)
+    abstract fun update(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event : MinsetEvent, additionalMessage: String = "")
     abstract fun conclude(statistic: Statistic<TYPE, RESULT>)
 }
 
 
 class LoggingReporter<TYPE, RESULT>(
-    path: String
+    val path: String
 ) : Reporter<TYPE, RESULT>(path) {
+
+    override fun clone() : LoggingReporter<TYPE, RESULT> {
+        return LoggingReporter(path)
+    }
 
     private val actualPath = if (path.startsWith("~/")) {
         System.getProperty("user.home") + path.drop(1)
@@ -152,11 +158,11 @@ class LoggingReporter<TYPE, RESULT>(
 
     init {
         File(actualPath).mkdirs()
-        logFile.apply { delete(); createNewFile() }
-        overviewFile.apply { delete(); createNewFile() }
+//        logFile.apply { delete(); createNewFile() }
+//        overviewFile.apply { delete(); createNewFile() }
     }
 
-    override fun update(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) {
+    override fun update(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event : MinsetEvent, additionalMessage: String) {
 
         fun alignString(obj: Any, length: Int) : String {
             val aligned = obj.toString().replace("\n", "/")
@@ -170,7 +176,8 @@ class LoggingReporter<TYPE, RESULT>(
         val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
 
         FileOutputStream(logFile, true).bufferedWriter().use {
-            it.write("[$time] | ${alignString(values, 53)} | ${alignString(feedback, 30)}\n")
+//            it.write("[$time] | ${alignString(values, 53)} | ${alignString(feedback, 100)}\n")
+            it.write("[$time] | ${alignString(values, 50)} | $feedback | $event | $additionalMessage\n")
         }
     }
 
@@ -353,7 +360,7 @@ data class BaseFeedback<VALUE, TYPE, RESULT>(
     override val control: Control,
 ) : Feedback<TYPE, RESULT> {
     override fun toString(): String {
-        return "$result | $control"
+        return "$result"
     }
 }
 
@@ -370,7 +377,7 @@ data class BaseWeightedFeedback<VALUE, TYPE, RESULT, WEIGHT : Comparable<WEIGHT>
         return weight.compareTo(other.weight)
     }
     override fun toString(): String {
-        return "$result with weight $weight | $control"
+        return "$result with weight $weight"
     }
 }
 
@@ -432,7 +439,7 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     configuration: Configuration = Configuration()
 ) {
     fuzz(description, BasicSingleValueMinsetStatistic(
-        random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST)
+        random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.FIRST)
     )
 }
 
@@ -490,22 +497,20 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
         val feedback = fuzzing.handle(description, result)
 
-        description.updatePerIteration(values, feedback)
-
-        if ((statistic.totalRuns % 50).toInt() == 0) {
-            println(statistic.totalRuns)
-        }
-
+        val minsetResponse = statistic.put(random, configuration, feedback, values)
 
         when (feedback.control) {
             Control.CONTINUE -> {
-                statistic.put(random, configuration, feedback, values)
+                description.updatePerIteration(values, feedback, minsetResponse)
+                description.finalizeReport(statistic)
             }
             Control.STOP -> {
-                description.conclude(statistic)
+                description.finalizeReport(statistic)
                 break
             }
-            Control.PASS -> {}
+            Control.PASS -> {
+                description.finalizeReport(statistic)
+            }
         }
     }
 }

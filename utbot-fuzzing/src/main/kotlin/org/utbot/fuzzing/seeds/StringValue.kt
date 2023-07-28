@@ -24,4 +24,8 @@ open class StringValue(
             StringMutations.ShuffleCharacters,
         )
     }
+
+    override fun toString(): String {
+        return "\"" + value + "\""
+    }
 }

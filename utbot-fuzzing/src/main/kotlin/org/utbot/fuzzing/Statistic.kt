@@ -15,13 +15,14 @@ interface Statistic<TYPE, RESULT> {
     val missedTypes: MissedSeed<TYPE, RESULT>
     val random: Random
     val configuration: Configuration
+//    val minsetSize: Long
 }
 
 ///region Statistic Implementations
 
 interface SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>: Statistic<TYPE, RESULT> {
     override var totalRuns: Long
-    fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>)
+    fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) : MinsetEvent
     fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>
     fun isNotEmpty() : Boolean
 }
@@ -46,13 +47,24 @@ open class BaseStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
     private val seeds = linkedMapOf<FEEDBACK, Node<TYPE, RESULT>>()
     private val count = linkedMapOf<FEEDBACK, Long>()
 
-    override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) {
+    override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) : MinsetEvent {
+        var result = MinsetEvent.NOTHING_NEW
+
+        if (!seeds.containsKey(feedback)) {
+            result = MinsetEvent.NEW_FEEDBACK
+        }
+
         if (random.flipCoin(configuration.probUpdateSeedInsteadOfKeepOld)) {
+            if (seeds[feedback] != seed) {
+                result = MinsetEvent.NEW_VALUE
+            }
             seeds[feedback] = seed
         } else {
             seeds.putIfAbsent(feedback, seed)
         }
         count[feedback] = count.getOrDefault(feedback, 0L) + 1L
+
+        return result
     }
 
     override fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
@@ -95,8 +107,8 @@ open class SingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
         generateStorage = generateStorage
     )
 
-    override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) {
-        minset.put(seed, feedback)
+    override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) : MinsetEvent {
+        return minset.put(seed, feedback)
     }
 
     override fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
@@ -137,6 +149,9 @@ class BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
 ///endregion
 
 ///region Minset
+
+enum class MinsetEvent { NEW_FEEDBACK, NEW_VALUE, NOTHING_NEW }
+
 abstract class Minset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : ValueStorage<TYPE, RESULT>> (
     open val valueStorageGenerator: () -> STORAGE,
     val seeds: LinkedHashMap<FEEDBACK, STORAGE> = linkedMapOf(),
@@ -146,9 +161,22 @@ abstract class Minset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE :
         return seeds[feedback]
     }
 
-    fun put(value: Node<TYPE, RESULT>, feedback: FEEDBACK) {
-        seeds.getOrPut(feedback) { valueStorageGenerator.invoke() }.put(value, feedback)
+    fun put(value: Node<TYPE, RESULT>, feedback: FEEDBACK) : MinsetEvent {
+        val result: MinsetEvent
+
+        if (seeds.containsKey(feedback)) {
+            result = if( seeds[feedback]!!.put(value, feedback) ) { MinsetEvent.NEW_VALUE } else { MinsetEvent.NOTHING_NEW }
+        } else {
+            result = MinsetEvent.NEW_FEEDBACK
+            seeds[feedback] = valueStorageGenerator.invoke()
+            seeds[feedback]!!.put(value, feedback)
+        }
+
+//        seeds.getOrPut(feedback) { valueStorageGenerator.invoke() }.put(value, feedback)
+
         count[feedback] = count.getOrDefault(feedback, 0L) + 1L
+
+        return result
     }
 
     fun isNotEmpty(): Boolean {
@@ -173,7 +201,7 @@ interface InfiniteIterator<T> : Iterator<T> {
 }
 
 interface ValueStorage<TYPE, RESULT> : InfiniteIterator<Node<TYPE, RESULT>> {
-    fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>)
+    fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) : Boolean
 }
 
 open class SingleValueStorage<TYPE, RESULT> (
@@ -181,11 +209,20 @@ open class SingleValueStorage<TYPE, RESULT> (
 ) : ValueStorage<TYPE, RESULT> {
 
     private var storedValue: Node<TYPE, RESULT>? = null
-    override fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) {
+    override fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) : Boolean {
+
+        var result = false;
+
+        if(storedValue == null) {
+            result = true
+        }
+
         storedValue = when (strategy) {
             SingleValueSelectionStrategy.FIRST -> storedValue ?: value
             SingleValueSelectionStrategy.LAST -> value
         }
+
+        return result || (strategy == SingleValueSelectionStrategy.LAST)
     }
 
     override fun next(): Node<TYPE, RESULT> {

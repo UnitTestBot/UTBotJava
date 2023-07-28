@@ -113,7 +113,9 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                 is UtClassRefModel,
                 is UtVoidModel,
                 is UtEnumConstantModel -> {}
-                is UtCustomModel -> currentModel.origin?.let { collectRecursively(it.wrap(), allModels) }
+                is UtCustomModel -> currentModel.origin?.let {
+                    collectRecursively(it.wrap(currentModelWrapper.modelTagName), allModels)
+                }
                 is UtLambdaModel -> {
                     currentModel.capturedValues.forEach { collectRecursively(it.wrap(), allModels) }
                 }

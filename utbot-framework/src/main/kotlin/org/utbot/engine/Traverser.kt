@@ -4060,12 +4060,14 @@ class Traverser(
         val memory = symbolicState.memory
         val solver = symbolicState.solver
 
-        //no need to respect soft constraints in NestedMethod
-        val holder = solver.check(respectSoft = !environment.state.isInNestedMethod())
+        if (!UtSettings.disableUnsatChecking) {
+            //no need to respect soft constraints in NestedMethod
+            val holder = solver.check(respectSoft = !environment.state.isInNestedMethod())
 
-        if (holder !is UtSolverStatusSAT) {
-            logger.trace { "processResult<${environment.method.signature}> UNSAT" }
-            return
+            if (holder !is UtSolverStatusSAT) {
+                logger.trace { "processResult<${environment.method.signature}> UNSAT" }
+                return
+            }
         }
         val methodResult = MethodResult(symbolicResult)
 

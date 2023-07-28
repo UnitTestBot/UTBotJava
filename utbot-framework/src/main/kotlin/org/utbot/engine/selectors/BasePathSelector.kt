@@ -80,7 +80,7 @@ abstract class BasePathSelector(
             pathLogger.trace { "poll next state (lastStatus=${state.solver.lastStatus}): " + state.prettifiedPathLog() }
 
             current = null
-            if (choosingStrategy.shouldDrop(state) || checkUnsatIfFork(state)) {
+            if (choosingStrategy.shouldDrop(state) || (!UtSettings.disableUnsatChecking && checkUnsatIfFork(state))) {
                 state.close()
                 continue
             }

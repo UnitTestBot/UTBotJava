@@ -1,0 +1,16 @@
+dependencies {
+    implementation(project(":utbot-framework"))
+}
+
+jar {
+    dependsOn classes
+    dependsOn configurations.runtimeClasspath
+    archiveClassifier.set('')
+    from {
+        sourceSets.main.output + configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    zip64 = true
+    // to minimize artifact size some binaries can be excluded from target zip
+    // exclude 'lib/utbot-*.jar'
+}

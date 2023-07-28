@@ -48,11 +48,14 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.taint.*
 import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
+import java.util.function.Consumer
+import java.util.function.Predicate
 import kotlin.math.min
 import kotlin.system.measureTimeMillis
 
@@ -78,6 +81,9 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
             withStepsLimit(pathSelectorStepsLimit)
         }
         PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.BFS_SELECTOR -> bfsSelector(graph, StrategyOption.VISIT_COUNTING) {
             withStepsLimit(pathSelectorStepsLimit)
         }
         PathSelectorType.SUBPATH_GUIDED_SELECTOR -> subpathGuidedSelector(graph, StrategyOption.DISTANCE) {
@@ -140,6 +146,18 @@ class UtBotSymbolicEngine(
         MockListenerController(controller),
         mockerContext = applicationContext.mockerContext,
     )
+
+    private val stateListeners: MutableList<ExecutionStateListener> = mutableListOf();
+
+    fun addListener(listener: ExecutionStateListener): UtBotSymbolicEngine {
+        stateListeners += listener
+        return this
+    }
+
+    fun removeListener(listener: ExecutionStateListener): UtBotSymbolicEngine {
+        stateListeners -= listener
+        return this
+    }
 
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
 
@@ -216,6 +234,22 @@ class UtBotSymbolicEngine(
         .onStart { preTraverse() }
         .onCompletion { postTraverse() }
 
+    /**
+     * Traverse through all states and get results.
+     *
+     * This method is supposed to used when calling [traverse] is not suitable,
+     * e.g. from Java programs. It runs traversing with blocking style using callback
+     * to provide [UtResult].
+     */
+    @JvmOverloads
+    fun traverseAll(consumer: Consumer<UtResult> = Consumer { }) {
+        runBlocking {
+            traverse().collect {
+                consumer.accept(it)
+            }
+        }
+    }
+
     private fun traverseImpl(): Flow<UtResult> = flow {
 
         require(trackableResources.isEmpty())
@@ -252,7 +286,7 @@ class UtBotSymbolicEngine(
                             "queue size=${(pathSelector as? NonUniformRandomSearch)?.size ?: -1}"
                 }
 
-                if (controller.executeConcretely || statesForConcreteExecution.isNotEmpty()) {
+                if (UtSettings.useConcreteExecution && (controller.executeConcretely || statesForConcreteExecution.isNotEmpty())) {
                     val state = pathSelector.pollUntilFastSAT()
                         ?: statesForConcreteExecution.pollUntilSat(processUnknownStatesDuringConcreteExecution)
                         ?: break
@@ -316,6 +350,14 @@ class UtBotSymbolicEngine(
                         }
                     }
 
+                    // I am not sure this part works correctly when concrete execution is enabled.
+                    // todo test this part more accurate
+                    try {
+                        fireExecutionStateEvent(state)
+                    } catch (ce: CancellationException) {
+                        break
+                    }
+
                 } else {
                     val state = pathSelector.poll()
 
@@ -360,7 +402,23 @@ class UtBotSymbolicEngine(
 
                     // TODO: think about concise modifying globalGraph in Traverser and UtBotSymbolicEngine
                     globalGraph.visitNode(state)
+
+                    try {
+                        fireExecutionStateEvent(state)
+                    } catch (ce: CancellationException) {
+                        break
+                    }
                 }
+            }
+        }
+    }
+
+    private fun fireExecutionStateEvent(state: ExecutionState) {
+        stateListeners.forEach { l ->
+            try {
+                l.visit(globalGraph, state)
+            } catch (t: Throwable) {
+                logger.error(t) { "$l failed with error" }
             }
         }
     }
@@ -516,7 +574,11 @@ class UtBotSymbolicEngine(
         val solver = state.solver
         val parameters = state.parameters.map { it.value }
         val symbolicResult = requireNotNull(state.methodResult?.symbolicResult) { "The state must have symbolicResult" }
-        val holder = requireNotNull(solver.lastStatus as? UtSolverStatusSAT) { "The state must be SAT!" }
+        val holder = if (UtSettings.disableUnsatChecking) {
+            (solver.lastStatus as? UtSolverStatusSAT) ?: return
+        } else {
+            requireNotNull(solver.lastStatus as? UtSolverStatusSAT) { "The state must be SAT!" }
+        }
 
         val predictedTestName = Predictors.testName.predict(state.path)
         Predictors.testName.provide(state.path, predictedTestName, "")

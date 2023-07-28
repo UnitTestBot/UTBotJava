@@ -4,8 +4,12 @@ import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.utbot.common.JarUtils
 import org.utbot.common.hasOnClasspath
-import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.SpringSettings.PresentSpringSettings
+import org.utbot.framework.plugin.api.BeanDefinitionData
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.SpringRepositoryId
+import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.execution.ResultOfInstrumentation
@@ -79,6 +83,9 @@ class SpringUtExecutionInstrumentation(
         }
     }
 
+    override fun getResultOfInstrumentation(className: String, methodName: String): ResultOfInstrumentation =
+        delegateInstrumentation.getResultOfInstrumentation(className, methodName)
+
     override fun getStaticField(fieldId: FieldId): Result<*> = delegateInstrumentation.getStaticField(fieldId)
 
     private fun getRelevantBeans(clazz: Class<*>): Set<String> = relatedBeansCache.getOrPut(clazz) {
@@ -113,19 +120,16 @@ class SpringUtExecutionInstrumentation(
         protectionDomain: ProtectionDomain,
         classfileBuffer: ByteArray
     ): ByteArray? =
-    // we do not transform Spring classes as it takes too much time
+        // we do not transform Spring classes as it takes too much time
 
-    // maybe we should still transform classes related to data validation
-    // (e.g. from packages "javax/persistence" and "jakarta/persistence"),
+        // maybe we should still transform classes related to data validation
+        // (e.g. from packages "javax/persistence" and "jakarta/persistence"),
         // since traces from such classes can be particularly useful for feedback to fuzzer
         if (userSourcesClassLoader.hasOnClasspath(className.replace("/", "."))) {
             delegateInstrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
         } else {
             null
         }
-
-    override fun getResultOfInstrumentation(className: String, methodName: String): ResultOfInstrumentation =
-        delegateInstrumentation.getResultOfInstrumentation(className, methodName)
 
     class Factory(
         private val delegateInstrumentationFactory: UtExecutionInstrumentation.Factory<*>,

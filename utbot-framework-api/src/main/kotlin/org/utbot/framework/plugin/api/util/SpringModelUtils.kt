@@ -24,6 +24,7 @@ object SpringModelUtils {
     val dirtiesContextClassModeClassId = ClassId("org.springframework.test.annotation.DirtiesContext\$ClassMode")
     val transactionalClassId = ClassId("org.springframework.transaction.annotation.Transactional")
     val autoConfigureTestDbClassId = ClassId("org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase")
+    val autoConfigureMockMvcClassId = ClassId("org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc")
 
     val runWithClassId = ClassId("org.junit.runner.RunWith")
     val springRunnerClassId = ClassId("org.springframework.test.context.junit4.SpringRunner")
@@ -110,6 +111,13 @@ object SpringModelUtils {
     val resultActionsClassId = ClassId("org.springframework.test.web.servlet.ResultActions")
     private val mockMvcClassId = ClassId("org.springframework.test.web.servlet.MockMvc")
     private val mvcResultClassId = ClassId("org.springframework.test.web.servlet.MvcResult")
+    private val resultHandlerClassId = ClassId("org.springframework.test.web.servlet.ResultHandler")
+    val mockMvcResultHandlersClassId = ClassId("org.springframework.test.web.servlet.result.MockMvcResultHandlers")
+    private val resultMatcherClassId = ClassId("org.springframework.test.web.servlet.ResultMatcher")
+    val mockMvcResultMatchersClassId = ClassId("org.springframework.test.web.servlet.result.MockMvcResultMatchers")
+    private val statusResultMatchersClassId = ClassId("org.springframework.test.web.servlet.result.StatusResultMatchers")
+    private val contentResultMatchersClassId = ClassId("org.springframework.test.web.servlet.result.ContentResultMatchers")
+    private val viewResultMatchersClassId = ClassId("org.springframework.test.web.servlet.result.ViewResultMatchers")
     private val mockHttpServletRequestBuilderClassId = ClassId("org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder")
     private val modelAndViewClassId = ClassId("org.springframework.web.servlet.ModelAndView")
 
@@ -176,6 +184,69 @@ object SpringModelUtils {
         name = "getViewName",
         parameters = listOf(),
         returnType = stringClassId
+    )
+
+    val resultActionsAndDoMethodId = MethodId(
+        classId = resultActionsClassId,
+        name = "andDo",
+        parameters = listOf(resultHandlerClassId),
+        returnType = resultActionsClassId
+    )
+
+    val resultHandlersPrintMethodId = MethodId(
+        classId = mockMvcResultHandlersClassId,
+        name = "print",
+        parameters = listOf(),
+        returnType = resultHandlerClassId
+    )
+
+    val resultActionsAndExpectMethodId = MethodId(
+        classId = resultActionsClassId,
+        name = "andExpect",
+        parameters = listOf(resultMatcherClassId),
+        returnType = resultActionsClassId
+    )
+
+    val resultMatchersStatusMethodId = MethodId(
+        classId = mockMvcResultMatchersClassId,
+        name = "status",
+        parameters = listOf(),
+        returnType = statusResultMatchersClassId
+    )
+
+    val statusMatchersIsMethodId = MethodId(
+        classId = statusResultMatchersClassId,
+        name = "is",
+        parameters = listOf(intClassId),
+        returnType = resultMatcherClassId
+    )
+
+    val resultMatchersContentMethodId = MethodId(
+        classId = mockMvcResultMatchersClassId,
+        name = "content",
+        parameters = listOf(),
+        returnType = contentResultMatchersClassId
+    )
+
+    val contentMatchersStringMethodId = MethodId(
+        classId = contentResultMatchersClassId,
+        name = "string",
+        parameters = listOf(stringClassId),
+        returnType = resultMatcherClassId
+    )
+
+    val resultMatchersViewMethodId = MethodId(
+        classId = contentResultMatchersClassId,
+        name = "view",
+        parameters = listOf(),
+        returnType = viewResultMatchersClassId
+    )
+
+    val viewMatchersNameMethodId = MethodId(
+        classId = viewResultMatchersClassId,
+        name = "name",
+        parameters = listOf(stringClassId),
+        returnType = resultMatcherClassId
     )
 
     fun createMockMvcModel(idGenerator: () -> Int) =

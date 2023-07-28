@@ -62,8 +62,8 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-        fuzz(description, SingleEntryMinsetStatistic(statistics)
-        )
+        fuzz(description, SingleEntryMinsetStatistic(statistics))
+//        fuzz(description, BasicSingleValueMinsetStatistic(statistics, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
     }
 
     /**
@@ -442,6 +442,7 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     configuration: Configuration = Configuration()
 ) {
     fuzz(description, SingleEntryMinsetStatistic(random = random, configuration = configuration))
+//    fuzz(description, BasicSingleValueMinsetStatistic(random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
 }
 
 /**

@@ -7,7 +7,6 @@ import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
-import org.utbot.framework.plugin.api.UtSpringMockMvcResultActionsModel
 import org.utbot.framework.plugin.api.util.stringClassId
 
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
@@ -35,13 +34,5 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
         return applicationContextVariable.also {
             valueByUtModelWrapper[UtSpringContextModel.wrap()] = it
         }
-    }
-
-    override fun constructValueByModel(model: UtModel, name: String?): CgValue = when (model) {
-        is UtSpringMockMvcResultActionsModel -> CgLiteral(
-            model.classId,
-            "UtSpringMockMvcResult(${model.status}, ${model.errorMessage}, ${model.contentAsString}, ${model.viewName})"
-        )
-        else -> super.constructValueByModel(model, name)
     }
 }

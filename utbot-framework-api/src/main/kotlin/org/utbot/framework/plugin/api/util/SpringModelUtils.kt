@@ -252,41 +252,6 @@ object SpringModelUtils {
     fun createMockMvcModel(idGenerator: () -> Int) =
         createBeanModel("mockMvc", idGenerator(), mockMvcClassId)
 
-    fun createGetMockMvcResponseModel(requestBuilderModel: UtModel, idGenerator: () -> Int): UtModel {
-        val mockMvcModel = createMockMvcModel(idGenerator)
-        val performModel = UtAssembleModel(
-            id = idGenerator(),
-            classId = resultActionsClassId,
-            modelName = "perform",
-            instantiationCall = UtExecutableCallModel(
-                instance = mockMvcModel,
-                executable = mockMvcPerformMethodId,
-                params = listOf(requestBuilderModel)
-            )
-        )
-        // TODO add `andDo(print())`
-        val andReturnModel = UtAssembleModel(
-            id = idGenerator(),
-            classId = mvcResultClassId,
-            modelName = "andReturn",
-            instantiationCall = UtExecutableCallModel(
-                instance = performModel,
-                executable = resultActionsAndReturnMethodId,
-                params = listOf()
-            )
-        )
-        return UtAssembleModel(
-            id = idGenerator(),
-            classId = mockHttpServletResponseClassId,
-            modelName = "getResponse",
-            instantiationCall = UtExecutableCallModel(
-                instance = andReturnModel,
-                executable = mvcResultGetResponseMethodId,
-                params = listOf()
-            )
-        )
-    }
-
     fun createRequestBuilderModelOrNull(methodId: MethodId, arguments: List<UtModel>, idGenerator: () -> Int): UtModel? {
         check(methodId.parameters.size == arguments.size)
 

@@ -24,12 +24,11 @@ Test generation settings are also configured manually.
 
 ### Code instrumentation
 
-UnitTestBot Go adds logging about the passage of a given line during the execution 
-after each line in functions.
+After each line in a function, UnitTestBot Go adds logging about this line traversal during the execution.
 
 ### Go source code analysis
 
-UnitTestBot Go collects the size in bits of an int or uint value and information about the target functions:
+UnitTestBot Go gains information about the `int` or `uint` value size in bits, and information about the target functions:
 * signatures and type information;
 * constants in the function bodies.
 

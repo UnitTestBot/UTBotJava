@@ -77,7 +77,7 @@ class JavaFeedback(
         if (result.count == 0) {
             return " FAIL | EMPTY TRACE"
         }
-        return "$result | ${if(result.count == 1) { "NEW_TRACE" } else { "trace count: " + String.format("%4s", result.count) } }"
+        return "$result | trace hash: ${result.hashCode()} | instruction count: ${String.format("%4s", result.count)}"
     }
 }
 

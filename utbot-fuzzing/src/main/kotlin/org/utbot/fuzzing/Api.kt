@@ -62,7 +62,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-        fuzz(description, BasicSingleValueMinsetStatistic(statistics, SingleValueSelectionStrategy.LAST)
+        fuzz(description, SingleEntryMinsetStatistic(statistics)
         )
     }
 
@@ -176,15 +176,18 @@ class LoggingReporter<TYPE, RESULT>(
         val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
 
         FileOutputStream(logFile, true).bufferedWriter().use {
-//            it.write("[$time] | ${alignString(values, 53)} | ${alignString(feedback, 100)}\n")
             it.write("[$time] | ${alignString(values, 50)} | $feedback | $event | $additionalMessage\n")
         }
     }
 
     override fun conclude(statistic: Statistic<TYPE, RESULT>) {
         File(actualPath).mkdirs()
-        File("$actualPath/overview.txt").apply{ createNewFile() }.printWriter().use { out ->
+        overviewFile.apply{ createNewFile() }.printWriter().use { out ->
             out.println("Total runs: ${statistic.totalRuns}")
+
+            if (statistic is SeedsMaintainingStatistic<*, *, *>) {
+                out.println("Final minset size: ${statistic.getMinsetSize()}")
+            }
 
             val seconds = statistic.elapsedTime / 1_000_000_000
             val minutes = (seconds % 3600) / 60
@@ -438,9 +441,7 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-    fuzz(description, BasicSingleValueMinsetStatistic(
-        random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.FIRST)
-    )
+    fuzz(description, SingleEntryMinsetStatistic(random = random, configuration = configuration))
 }
 
 /**

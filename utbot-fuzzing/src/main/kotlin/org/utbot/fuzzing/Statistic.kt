@@ -25,6 +25,7 @@ interface SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESU
     fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) : MinsetEvent
     fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>
     fun isNotEmpty() : Boolean
+    fun getMinsetSize() : Int
 }
 
 open class BaseStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
@@ -80,6 +81,9 @@ open class BaseStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
     }
 
     override fun isNotEmpty() = seeds.isNotEmpty()
+    override fun getMinsetSize(): Int {
+        return seeds.size
+    }
 }
 
 open class SingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : SingleValueStorage<TYPE, RESULT>>(
@@ -94,7 +98,6 @@ open class SingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
         get() = System.nanoTime() - startTime
 
     private val minset: Minset<TYPE, RESULT, FEEDBACK, STORAGE> = SingleValueMinset(
-        configuration = SingleValueSelectionStrategy.LAST,
         valueStorageGenerator = generateStorage
     )
 
@@ -114,7 +117,7 @@ open class SingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
     override fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
         if (minset.isEmpty()) error("Call `isNotEmpty` before getting the seed")
         val entries = minset.seeds.entries.toList()
-        val frequencies = DoubleArray(minset.seeds.size).also { f ->
+        val frequencies = DoubleArray(minset.getSize()).also { f ->
             entries.forEachIndexed { index, (key, _) ->
                 f[index] = configuration.energyFunction( minset.count.getOrDefault(key, 0L))
             }
@@ -124,9 +127,12 @@ open class SingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
     }
 
     override fun isNotEmpty() = minset.isNotEmpty()
+    override fun getMinsetSize(): Int {
+        return minset.getSize()
+    }
 }
 
-class BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
+open class BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
     override var totalRuns: Long = 0,
     override val startTime: Long = System.nanoTime(),
     override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
@@ -146,6 +152,24 @@ class BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
     )
 }
 
+class SingleEntryMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
+    override var totalRuns: Long = 0,
+    override val startTime: Long = System.nanoTime(),
+    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
+    override val random: Random,
+    override val configuration: Configuration,
+) : BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK>(
+    totalRuns, startTime, missedTypes, random, configuration, SingleValueSelectionStrategy.LAST
+) {
+    constructor(source: Statistic<TYPE, RESULT>) : this (
+        totalRuns = source.totalRuns,
+        startTime = source.startTime,
+        missedTypes = source.missedTypes,
+        random = source.random,
+        configuration = source.configuration.copy()
+    )
+}
+
 ///endregion
 
 ///region Minset
@@ -161,7 +185,7 @@ abstract class Minset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE :
         return seeds[feedback]
     }
 
-    fun put(value: Node<TYPE, RESULT>, feedback: FEEDBACK) : MinsetEvent {
+    open fun put(value: Node<TYPE, RESULT>, feedback: FEEDBACK) : MinsetEvent {
         val result: MinsetEvent
 
         if (seeds.containsKey(feedback)) {
@@ -186,12 +210,32 @@ abstract class Minset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE :
     fun isEmpty(): Boolean {
         return seeds.isEmpty()
     }
+
+    fun getSize() : Int {
+        return seeds.size
+    }
 }
 
-class SingleValueMinset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : SingleValueStorage<TYPE, RESULT>> (
-    val configuration : SingleValueSelectionStrategy,
+open class SingleValueMinset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : SingleValueStorage<TYPE, RESULT>> (
     override val valueStorageGenerator: () -> STORAGE,
 ) : Minset<TYPE, RESULT, FEEDBACK, STORAGE>(valueStorageGenerator)
+
+@Suppress("UNCHECKED_CAST")
+class SingleEntryMinset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : SingleValueStorage<TYPE, RESULT>>:
+    SingleValueMinset<TYPE, RESULT, FEEDBACK, STORAGE>( { SingleValueStorage<TYPE, RESULT>(SingleValueSelectionStrategy.LAST) as STORAGE} ) {
+        override fun put(value: Node<TYPE, RESULT>, feedback: FEEDBACK) : MinsetEvent {
+            val result : MinsetEvent = if (seeds.containsKey(feedback)) {
+                MinsetEvent.NEW_VALUE
+            } else {
+                seeds.clear()
+                seeds[feedback] = SingleValueStorage<TYPE, RESULT>(SingleValueSelectionStrategy.LAST) as STORAGE
+                MinsetEvent.NEW_FEEDBACK
+            }
+            seeds[feedback]!!.put(value, feedback)
+            return result
+        }
+    }
+
 ///endregion
 
 ///region Value storages

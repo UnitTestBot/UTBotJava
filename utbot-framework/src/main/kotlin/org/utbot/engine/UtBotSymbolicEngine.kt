@@ -48,14 +48,12 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.taint.*
 import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
 import java.util.function.Consumer
-import java.util.function.Predicate
 import kotlin.math.min
 import kotlin.system.measureTimeMillis
 
@@ -317,10 +315,7 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation, UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
 
-                            concreteExecutionResult.processedFailure()?.let { failure ->
-                                emitFailedConcreteExecutionResult(stateBefore, failure.exception)
-
-                                logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+                            if (failureCanBeProcessedGracefully(concreteExecutionResult, executionToRollbackOn = null)) {
                                 return@measureTime
                             }
 
@@ -668,10 +663,7 @@ class UtBotSymbolicEngine(
                     UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis
                 )
 
-                concreteExecutionResult.processedFailure()?.let { failure ->
-                    emitFailedConcreteExecutionResult(stateBefore, failure.exception)
-
-                    logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+                if (failureCanBeProcessedGracefully(concreteExecutionResult, symbolicUtExecution)) {
                     return
                 }
 
@@ -697,6 +689,29 @@ class UtBotSymbolicEngine(
         } catch (e: Throwable) {
             emit(UtError("Default concrete execution failed", e))
         }
+    }
+
+    private suspend fun FlowCollector<UtResult>.failureCanBeProcessedGracefully(
+        concreteExecutionResult: UtConcreteExecutionResult,
+        executionToRollbackOn: UtExecution?,
+    ): Boolean {
+        concreteExecutionResult.processedFailure()?.let { failure ->
+            // If concrete execution failed to some reasons that are not process death or cancellation
+            // when we call something that is processed successfully by symbolic engine,
+            // we should:
+            // - roll back to symbolic execution data ignoring failing concrete (is symbolic execution exists);
+            // - do not emit an execution if there is nothing to roll back on.
+
+            // Note that this situation is suspicious anyway, so we log a WARN message about the failure.
+            executionToRollbackOn?.let {
+                emit(it)
+            }
+
+            logger.warn { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+            return true
+        }
+
+        return false
     }
 
     /**

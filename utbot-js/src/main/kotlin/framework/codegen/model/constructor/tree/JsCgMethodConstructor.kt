@@ -69,8 +69,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
                     +thisInstance[method](*methodArguments.toTypedArray())
                 } else {
                     resultModel = result
-                    val expected = variableConstructor.getOrCreateVariable(result, "expected")
-                    assertEquality(expected, actual)
+                    assertEquality(result, actual)
                 }
             }
             .onFailure { exception ->

@@ -57,6 +57,7 @@ import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.access.CgFieldStateManagerImpl
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
 import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getCustomAssertConstructorBy
 import org.utbot.framework.codegen.tree.CgComponents.getMockFrameworkManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
@@ -175,6 +176,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     protected val testFrameworkManager = getTestFrameworkManagerBy(context)
 
     protected val variableConstructor = getVariableConstructorBy(context)
+    private val customAssertConstructor = getCustomAssertConstructorBy(context)
     private val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
     private val floatDelta: Float = 1e-6f
@@ -323,11 +325,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                             +thisInstance[executable](*methodArguments.toTypedArray())
                         } else {
                             this.resultModel = resultModel
-
-                            // TODO support custom way of rendering asserts when `resultModel` is `UtCustomModel`
-                            val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
-                            emptyLineIfNeeded()
-                            assertEquality(expected, actual)
+                            assertEquality(resultModel, actual, emptyLineIfNeeded = true)
                         }
                     }
                     .onFailure { exception -> processExecutionFailure(exception, executionResult) }
@@ -573,9 +571,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
 
         if (afterModel !is UtReferenceModel) {
-            val expectedAfter =
-                variableConstructor.getOrCreateVariable(afterModel, "expected" + afterVariable.name.capitalize())
-            assertEquality(expectedAfter, afterVariable)
+            assertEquality(
+                expected = afterModel,
+                actual = afterVariable,
+                expectedVariableName = "expected" + afterVariable.name.capitalize()
+            )
         } else {
             if (beforeVariable != null)
                 testFrameworkManager.assertBoolean(false, beforeVariable equalTo afterVariable)
@@ -1193,6 +1193,19 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val nestedElementClassId = nestedElementClassIdList.last()
 
         return ClassIdArrayInfo(classId, nestedElementClassId, dimensions)
+    }
+
+    fun assertEquality(
+        expected: UtModel,
+        actual: CgVariable,
+        expectedVariableName: String = "expected",
+        emptyLineIfNeeded: Boolean = false,
+    ) {
+        if (expected !is UtCustomModel || !customAssertConstructor.tryConstructCustomAssert(expected, actual)) {
+            val expectedVariable = variableConstructor.getOrCreateVariable(expected, expectedVariableName)
+            if (emptyLineIfNeeded) emptyLineIfNeeded()
+            assertEquality(expectedVariable, actual)
+        }
     }
 
     open fun assertEquality(expected: CgValue, actual: CgVariable) {

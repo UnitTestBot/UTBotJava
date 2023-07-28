@@ -190,17 +190,21 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             emptyLineIfNeeded()
         }
         stateAssertions.forEach { (index, it) ->
-            val name = paramNames[executableId]?.get(index) + "_modified"
-            val modifiedArgument = variableConstructor.getOrCreateVariable(it.second, name)
-            assertEquality(modifiedArgument, it.first)
+            assertEquality(
+                expected = it.second,
+                actual = it.first,
+                expectedVariableName = paramNames[executableId]?.get(index) + "_modified"
+            )
         }
         if (assertThisObject.isNotEmpty()) {
             emptyLineIfNeeded()
         }
         assertThisObject.forEach {
-            val name = it.first.name + "_modified"
-            val modifiedThisObject = variableConstructor.getOrCreateVariable(it.second, name)
-            assertEquality(modifiedThisObject, it.first)
+            assertEquality(
+                expected = it.second,
+                actual = it.first,
+                expectedVariableName = it.first.name + "_modified"
+            )
         }
     }
 

@@ -14,6 +14,15 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("instrumentation", array(PredefinedType.byte))
     }
 
+    val GetResultOfInstrumentationParams = structdef {
+        field("className", PredefinedType.string)
+        field("methodName", PredefinedType.string)
+    }
+
+    val GetResultOfInstrumentationResult = structdef {
+        field("result", array(PredefinedType.byte))
+    }
+
     val InvokeMethodCommandParams = structdef {
         field("classname", PredefinedType.string)
         field("signature", PredefinedType.string)
@@ -76,6 +85,11 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
             async
             documentation =
                 "The main process sends [instrumentation] to the instrumented process"
+        }
+        call("GetResultOfInstrumentation", GetResultOfInstrumentationParams, GetResultOfInstrumentationResult).apply {
+            async
+            documentation =
+                "This command is sent to the instrumented process from the [ConcreteExecutor] to get instrumentation result"
         }
         call("InvokeMethodCommand", InvokeMethodCommandParams, InvokeMethodCommandResult).apply {
             async

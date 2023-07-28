@@ -74,7 +74,7 @@ class TraceListStrategy(
 
     private fun processNewInstruction(mv: MethodVisitor, instructionData: InstructionData): MethodVisitor {
         val id = nextId()
-        storage.addInstruction(id, instructionData)
+        storage.addInstruction(id, currentClassMethodId, instructionData)
         return inserter.insertUtilityInstructions(mv, id)
     }
 

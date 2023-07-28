@@ -12,15 +12,10 @@ import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
-import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.process.generated.CollectCoverageResult
-import org.utbot.instrumentation.process.generated.GetSpringBeanResult
-import org.utbot.instrumentation.process.generated.GetSpringRepositoriesResult
-import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
-import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
-import org.utbot.instrumentation.process.generated.TryLoadingSpringContextResult
-import org.utbot.instrumentation.process.generated.instrumentedProcessModel
+import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.process.generated.*
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
@@ -150,6 +145,12 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
         Agent.dynamicClassTransformer.transformer = instrumentation
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
+    }
+    watchdog.measureTimeForActiveCall(getResultOfInstrumentation, "Getting instrumentation result") { params ->
+        HandlerClassesLoader.loadClass(params.className)
+        val result = (instrumentation as UtExecutionInstrumentation)
+            .getResultOfInstrumentation(params.className, params.methodName)
+        GetResultOfInstrumentationResult(kryoHelper.writeObject(result))
     }
     watchdog.measureTimeForActiveCall(addPaths, "User and dependency classpath setup") { params ->
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()

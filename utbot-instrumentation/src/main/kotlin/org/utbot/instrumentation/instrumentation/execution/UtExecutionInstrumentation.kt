@@ -36,6 +36,8 @@ data class UtConcreteExecutionResult(
     }
 }
 
+data class ResultOfInstrumentation(val instructionsIds: List<Long>)
+
 interface UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     override fun invoke(
         clazz: Class<*>,
@@ -53,6 +55,8 @@ interface UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult
         parameters: Any?,
         phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult
+
+    fun getResultOfInstrumentation(className: String, methodName: String): ResultOfInstrumentation
 
     interface Factory<out TInstrumentation : UtExecutionInstrumentation> : Instrumentation.Factory<UtConcreteExecutionResult, TInstrumentation> {
         override fun create(): TInstrumentation = create(SimpleInstrumentationContext())

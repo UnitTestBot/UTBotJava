@@ -16,22 +16,21 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.common.logException
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
-import org.utbot.framework.plugin.api.SpringRepositoryId
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.instrumentation.execution.ResultOfInstrumentation
 import org.utbot.instrumentation.process.generated.ComputeStaticFieldParams
+import org.utbot.instrumentation.process.generated.GetResultOfInstrumentationParams
 import org.utbot.instrumentation.process.generated.GetSpringRepositoriesParams
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.rd.InstrumentedProcess
 import org.utbot.instrumentation.util.InstrumentedProcessError
 import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.overrideDefaultRdLoggerFactoryWithKLogger
+import org.utbot.rd.startBlocking
 
 private val logger = KotlinLogging.logger {}
 
@@ -310,6 +309,14 @@ fun <T> ConcreteExecutor<*, *>.computeStaticField(fieldId: FieldId): Result<T> =
 
         val result = instrumentedProcessModel.computeStaticField.startSuspending(lifetime, params)
 
+        kryoHelper.readObject(result.result)
+    }
+}
+
+fun ConcreteExecutor<*, *>.getInstrumentationResult(methodUnderTest: ExecutableId): ResultOfInstrumentation = runBlocking {
+    withProcess {
+        val params = GetResultOfInstrumentationParams(methodUnderTest.classId.name, methodUnderTest.name)
+        val result = instrumentedProcessModel.getResultOfInstrumentation.startBlocking(params)
         kryoHelper.readObject(result.result)
     }
 }

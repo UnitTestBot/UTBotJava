@@ -45,17 +45,16 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.getInstrumentationResult
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.taint.*
 import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
 import java.util.function.Consumer
-import java.util.function.Predicate
 import kotlin.math.min
 import kotlin.system.measureTimeMillis
 
@@ -452,6 +451,8 @@ class UtBotSymbolicEngine(
         }.let(transform)
 
         val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
+        val instrumentationResult = concreteExecutor.getInstrumentationResult(methodUnderTest)
+        val needToCoverInstructionsIds = instrumentationResult.instructionsIds
 
         runJavaFuzzing(
             defaultIdGenerator,

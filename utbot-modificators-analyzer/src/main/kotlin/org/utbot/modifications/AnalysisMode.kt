@@ -1,7 +1,7 @@
 package org.utbot.modifications
 
 /**
- * Restrictions on demanded modificators
+ * Restrictions on demanded modifications
  */
 enum class AnalysisMode {
 
@@ -20,5 +20,9 @@ enum class AnalysisMode {
      */
     Constructors,
 
-    // TODO?: add all modificators without constructors (methods only)
+    /**
+     * Look for methods that modify fields.
+     * Setters are excluded.
+     */
+    Methods,
 }

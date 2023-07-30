@@ -104,7 +104,7 @@ class ObjectValueProvider(
                         }
                     }
                 }
-                if (true || shouldMutateWithMethods) {
+                if (shouldMutateWithMethods) {
                     findAllAvailableMethods(description, classId, description.description.packageName).forEach { md ->
                         yield(Routine.Call(md.parameterTypes) { self, values ->
                             val model = self.model as UtAssembleModel
@@ -263,9 +263,6 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
     }.toList()
 }
 
-/**
- * text.
- */
 internal fun findAllAvailableMethods(
     description: FuzzedDescription?,
     classId: ClassId,
@@ -334,7 +331,7 @@ private fun findModifyingMethodNames(classId: ClassId) =
     UtBotFieldsModificatorsSearcher()
         .let { searcher ->
             searcher.update(setOf(classId))
-            searcher.getModificatorToFields(AnalysisMode.AllModificators)
+            searcher.getModificatorToFields(AnalysisMode.Methods)
                 .keys
                 .mapTo(mutableSetOf()) { it.name }
         }

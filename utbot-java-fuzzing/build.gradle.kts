@@ -5,7 +5,7 @@ val rgxgenVersion: String by rootProject
 dependencies {
     implementation(project(":utbot-framework-api"))
     api(project(":utbot-fuzzing"))
-    api(project(":utbot-modification-analyzer"))
+    api(project(":utbot-modificators-analyzer"))
 
     implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
         exclude(group="com.google.guava", module="guava")

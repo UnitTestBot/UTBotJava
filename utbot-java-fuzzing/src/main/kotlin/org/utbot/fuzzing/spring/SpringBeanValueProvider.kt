@@ -80,12 +80,7 @@ class SpringBeanValueProvider(
                                 }
                             })
                         }
-                        /**
-                         * We find all methods that are public, accessible, are not setters and modify at least one field.
-                         * We don't take setters because they may
-                         */
                         findAllAvailableMethods(description, type.classId, description.description.packageName)
-                            .removeSetters()
                             .forEach { md ->
                                 yield(Routine.Call(md.parameterTypes) { self, values ->
                                     val model = self.model as UtAssembleModel
@@ -103,9 +98,4 @@ class SpringBeanValueProvider(
             )
         }
     }
-
-    private fun List<MethodDescription>.removeSetters(): List<MethodDescription> =
-        filterNot { md ->
-            md.method.name.startsWith("set") && md.method.parameterCount == 1
-        }
 }

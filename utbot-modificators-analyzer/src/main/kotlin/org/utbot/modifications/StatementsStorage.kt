@@ -1,6 +1,7 @@
 package org.utbot.modifications
 
 import org.utbot.modifications.AnalysisMode.AllModificators
+import org.utbot.modifications.AnalysisMode.Methods
 import org.utbot.modifications.AnalysisMode.Constructors
 import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.plugin.api.ClassId
@@ -8,6 +9,7 @@ import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.StatementId
 
 /**
@@ -91,12 +93,15 @@ class StatementsStorage {
         statementId: StatementId,
         analysisMode: AnalysisMode,
     ): Set<FieldId> {
+        fun isSetterOrDirectAccessor(statementId: StatementId, fields: Set<FieldId>): Boolean =
+            isSetterOrDirectAccessor(statementId) && fields.size == 1
+
         val fields = items[statementId]?.allModifiedFields ?: return emptySet()
 
         return when (analysisMode) {
             AllModificators -> fields
-            SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
-            // TODO: add Methods -> { ... }
+            Methods -> if (statementId is MethodId && !isSetterOrDirectAccessor(statementId, fields)) fields else emptySet()
+            SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId, fields)) fields else emptySet()
             Constructors -> if (statementId is ConstructorId) fields else emptySet()
         }
     }

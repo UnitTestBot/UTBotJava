@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {  }
 
-private val instanceCounter = AtomicInteger(0)
+val instanceCounter = AtomicInteger(0)
 
 fun nextModelName(base: String): String = "$base${instanceCounter.incrementAndGet()}"
 

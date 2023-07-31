@@ -62,7 +62,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-        fuzz(description, SingleEntryMinsetStatistic(statistics))
+        fuzz(description, LastKeepingSingleValueMinsetStatistic(statistics))
 //        fuzz(description, BasicSingleValueMinsetStatistic(statistics, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
     }
 
@@ -445,7 +445,7 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-    fuzz(description, SingleEntryMinsetStatistic(random = random, configuration = configuration))
+    fuzz(description, LastKeepingSingleValueMinsetStatistic(random = random, configuration = configuration))
 //    fuzz(description, BasicSingleValueMinsetStatistic(random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
 }
 
@@ -802,7 +802,7 @@ sealed interface Result<TYPE, RESULT> {
     /**
      * Known value.
      */
-    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT, val mutations: Set<Mutation<V>> = setOf()) : Result<TYPE, RESULT> {
+    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT, val lastMutation: Mutation<V>? = null) : Result<TYPE, RESULT> {
         override fun toString(): String {
             return this.value.toString()
         }
@@ -813,7 +813,7 @@ sealed interface Result<TYPE, RESULT> {
     class Recursive<TYPE, RESULT>(
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
-        val mutations: Set<RecursiveMutations<TYPE, RESULT>> = setOf(),
+        val lastMutation: RecursiveMutations<TYPE, RESULT>? = null,
     ) : Result<TYPE, RESULT>
 
     /**
@@ -823,7 +823,7 @@ sealed interface Result<TYPE, RESULT> {
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
         val iterations: Int,
-        val mutations: Set<CollectionMutations<TYPE, RESULT>> = setOf(),
+        val lastMutation: CollectionMutations<TYPE, RESULT>? = null,
     ) : Result<TYPE, RESULT>
 
     /**
@@ -843,21 +843,27 @@ class Node<TYPE, RESULT>(
     val builder: Routine<TYPE, RESULT>,
 ) {
     override fun toString() : String {
-        return result.map { it ->
+        return result.map {
             when(it) {
                 is Result.Empty -> "_"
                 is Result.Simple -> it.result
-                is Result.Known<*, *, *> -> "$it : ${it.mutations
-                    .map { it.toString().substringAfter("$").substringBefore('@')
-                    }.joinToString(", ", "(", ")")}"
-                is Result.Collection -> it.modify
-                    .joinToString(", ", "[", "]") + " : ${it.mutations.map {
-                        it.toString().substringAfter("$").substringBefore('@')
-                    }.joinToString(", ", "(", ")") }}"
-                is Result.Recursive -> it.modify
-                    .joinToString(", ", "{", "}")+ " : ${it.mutations.map {
-                        it.toString().substringAfter("$").substringBefore('@')
-                    }.joinToString(", ", "(", ")") }"
+                is Result.Known<*, *, *> -> {
+                    if (it.lastMutation != null) {
+                        "${it.value} : ${it.lastMutation.toString().substringAfter("$").substringBefore('@')}"
+                    } else { it.value.toString() }
+                }
+                is Result.Collection -> {
+                    if (it.lastMutation != null) {
+                        "${it.modify.joinToString(", ", "[", "]")} : ${it.lastMutation.toString().substringAfter("$").substringBefore('@')}"
+                    } else { it.modify.joinToString(", ", "[", "]") }
+                }
+                is Result.Recursive -> {
+                    if (it.lastMutation != null) {
+                        "${it.modify.joinToString(", ", "{", "}")} : ${it.lastMutation.toString().substringAfter("$").substringBefore('@')}"
+                    } else {
+                        it.modify.joinToString(", ", "{", "}")
+                    }
+                }
             }
         }.joinToString(", ")
     }

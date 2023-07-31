@@ -8,15 +8,6 @@ import org.utbot.fuzzing.utils.flipCoin
 import kotlin.random.Random
 
 class MutationFactory<TYPE, RESULT> {
-
-    private val memo: HashMap<TYPE, Mutation<*>> = linkedMapOf<TYPE, Mutation<*>>()
-    fun memorizeMutation(source: TYPE, mutation: Mutation<TYPE>) {
-        if (memo.containsKey(source)) {
-            error("New mutation for memorized value")
-        }
-        memo[source] = mutation
-    }
-
     fun mutate(node: Node<TYPE, RESULT>, random: Random, configuration: Configuration): Node<TYPE, RESULT> {
         if (node.result.isEmpty()) return node
         val indexOfMutatedResult = random.chooseOne(node.result.map(::rate).toDoubleArray())
@@ -57,7 +48,6 @@ class MutationFactory<TYPE, RESULT> {
                     else ->
                         CollectionMutations.Shuffle<TYPE, RESULT>()
                 }.mutate(resultToMutate, recursive, random, configuration)
-//                }.mutateWithMemo(resultToMutate, recursive, random, configuration, this)
 
             } else {
                 resultToMutate
@@ -109,7 +99,7 @@ class MutationFactory<TYPE, RESULT> {
         return Result.Known(
             mutate,
             build as (T) -> RESULT,
-            mutations = setOf(mutation)
+            lastMutation = mutation
         )
     }
 }
@@ -128,11 +118,6 @@ fun <RESULT> emptyMutation(): (RESULT, random: Random) -> RESULT {
  */
 fun interface Mutation<T> {
     fun mutate(source: T, random: Random, configuration: Configuration): T
-
-    fun mutateWithMemo(source: T, random: Random, configuration: Configuration, factory: MutationFactory<T, *>): T {
-        factory.memorizeMutation(source, this)
-        return mutate(source, random, configuration)
-    }
 }
 
 sealed class BitVectorMutations : Mutation<BitVectorValue> {
@@ -272,7 +257,7 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
                 construct = source.construct,
                 modify = source.modify.toMutableList().shuffled(random),
                 iterations = source.iterations,
-                mutations = source.mutations + setOf(this),
+                lastMutation = this,
             )
         }
     }
@@ -291,7 +276,7 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
                     set(i, recursive.mutate(source.modify[i], random, configuration))
                 },
                 iterations = source.iterations,
-                mutations = source.mutations + setOf(this),
+                lastMutation = this,
             )
         }
     }
@@ -325,7 +310,7 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
             return Result.Recursive(
                 construct = recursive.mutate(source.construct,random, configuration),
                 modify = source.modify,
-                mutations = source.mutations + setOf(this),
+                lastMutation = this,
             )
         }
     }
@@ -340,7 +325,7 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
             return Result.Recursive(
                 construct = source.construct,
                 modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1)),
-                mutations = source.mutations + setOf(this),
+                lastMutation = this,
             )
         }
     }
@@ -358,7 +343,7 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
                     val i = random.nextInt(0, source.modify.size)
                     set(i, recursive.mutate(source.modify[i], random, configuration))
                 },
-                mutations = source.mutations + setOf(this),
+                lastMutation = this,
             )
         }
 

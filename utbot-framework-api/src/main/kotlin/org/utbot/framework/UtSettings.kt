@@ -467,6 +467,15 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var useSandbox by getBooleanProperty(true)
 
     /**
+     * Transform bytecode in the instrumented process.
+     *
+     * If true, bytecode transformation will help fuzzing to find interesting input data, but the size of bytecode can increase.
+     *
+     * If false, bytecode won`t be changed.
+     */
+    var useBytecodeTransformation by getBooleanProperty(false)
+
+    /**
      * Limit for number of generated tests per method (in each region)
      */
     var maxTestsPerMethodInRegion by getIntProperty(50, 1, Integer.MAX_VALUE)

@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.execution
 
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
@@ -128,8 +129,10 @@ class SimpleUtExecutionInstrumentation(
     ): ByteArray {
         val instrumenter = Instrumenter(classfileBuffer, loader)
 
-        instrumenter.visitClass { writer ->
-            BytecodeTransformer(writer)
+        if (UtSettings.useBytecodeTransformation) {
+            instrumenter.visitClass { writer ->
+                BytecodeTransformer(writer)
+            }
         }
 
         traceHandler.registerClass(className)

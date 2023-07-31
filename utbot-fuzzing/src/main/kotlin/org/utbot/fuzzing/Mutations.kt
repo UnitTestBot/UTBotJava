@@ -9,6 +9,14 @@ import kotlin.random.Random
 
 class MutationFactory<TYPE, RESULT> {
 
+    private val memo: HashMap<TYPE, Mutation<*>> = linkedMapOf<TYPE, Mutation<*>>()
+    fun memorizeMutation(source: TYPE, mutation: Mutation<TYPE>) {
+        if (memo.containsKey(source)) {
+            error("New mutation for memorized value")
+        }
+        memo[source] = mutation
+    }
+
     fun mutate(node: Node<TYPE, RESULT>, random: Random, configuration: Configuration): Node<TYPE, RESULT> {
         if (node.result.isEmpty()) return node
         val indexOfMutatedResult = random.chooseOne(node.result.map(::rate).toDoubleArray())
@@ -16,7 +24,10 @@ class MutationFactory<TYPE, RESULT> {
             mutate(n, r, c)
         }
         val mutated = when (val resultToMutate = node.result[indexOfMutatedResult]) {
-            is Result.Simple<TYPE, RESULT> -> Result.Simple(resultToMutate.mutation(resultToMutate.result, random), resultToMutate.mutation)
+            is Result.Simple<TYPE, RESULT> -> Result.Simple(
+                resultToMutate.mutation(resultToMutate.result, random),
+                resultToMutate.mutation
+            )
             is Result.Known<TYPE, RESULT, *> -> {
                 val mutations = resultToMutate.value.mutations()
                 if (mutations.isNotEmpty()) {
@@ -29,19 +40,25 @@ class MutationFactory<TYPE, RESULT> {
                 when {
                     resultToMutate.modify.isEmpty() || random.flipCoin(configuration.probConstructorMutationInsteadModificationMutation) ->
                         RecursiveMutations.Constructor<TYPE, RESULT>()
+
                     random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation) ->
                         RecursiveMutations.ShuffleAndCutModifications()
+
                     else ->
                         RecursiveMutations.Mutate()
+//                }.mutateWithMemo(resultToMutate, recursive, random, configuration, this)
                 }.mutate(resultToMutate, recursive, random, configuration)
             }
             is Result.Collection<TYPE, RESULT> -> if (resultToMutate.modify.isNotEmpty()) {
                 when {
                     random.flipCoin(100 - configuration.probCollectionShuffleInsteadResultMutation) ->
                         CollectionMutations.Mutate()
+
                     else ->
                         CollectionMutations.Shuffle<TYPE, RESULT>()
                 }.mutate(resultToMutate, recursive, random, configuration)
+//                }.mutateWithMemo(resultToMutate, recursive, random, configuration, this)
+
             } else {
                 resultToMutate
             }
@@ -82,12 +99,17 @@ class MutationFactory<TYPE, RESULT> {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <TYPE, RESULT, T : KnownValue<T>> Result.Known<TYPE, RESULT, *>.mutate(mutation: Mutation<T>, random: Random, configuration: Configuration): Result.Known<TYPE, RESULT, T> {
+    private fun <TYPE, RESULT, T : KnownValue<T>> Result.Known<TYPE, RESULT, *>.mutate(
+        mutation: Mutation<T>,
+        random: Random,
+        configuration: Configuration
+    ): Result.Known<TYPE, RESULT, T> {
         val source: T = value as T
         val mutate = mutation.mutate(source, random, configuration)
         return Result.Known(
             mutate,
-            build as (T) -> RESULT
+            build as (T) -> RESULT,
+            mutations = setOf(mutation)
         )
     }
 }
@@ -106,6 +128,11 @@ fun <RESULT> emptyMutation(): (RESULT, random: Random) -> RESULT {
  */
 fun interface Mutation<T> {
     fun mutate(source: T, random: Random, configuration: Configuration): T
+
+    fun mutateWithMemo(source: T, random: Random, configuration: Configuration, factory: MutationFactory<T, *>): T {
+        factory.memorizeMutation(source, this)
+        return mutate(source, random, configuration)
+    }
 }
 
 sealed class BitVectorMutations : Mutation<BitVectorValue> {
@@ -244,7 +271,8 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
             return Result.Collection(
                 construct = source.construct,
                 modify = source.modify.toMutableList().shuffled(random),
-                iterations = source.iterations
+                iterations = source.iterations,
+                mutations = source.mutations + setOf(this),
             )
         }
     }
@@ -262,7 +290,8 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
                     val i = random.nextInt(0, source.modify.size)
                     set(i, recursive.mutate(source.modify[i], random, configuration))
                 },
-                iterations = source.iterations
+                iterations = source.iterations,
+                mutations = source.mutations + setOf(this),
             )
         }
     }
@@ -295,7 +324,8 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
         ): Result.Recursive<TYPE, RESULT> {
             return Result.Recursive(
                 construct = recursive.mutate(source.construct,random, configuration),
-                modify = source.modify
+                modify = source.modify,
+                mutations = source.mutations + setOf(this),
             )
         }
     }
@@ -309,7 +339,8 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
         ): Result.Recursive<TYPE, RESULT> {
             return Result.Recursive(
                 construct = source.construct,
-                modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1))
+                modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1)),
+                mutations = source.mutations + setOf(this),
             )
         }
     }
@@ -326,7 +357,8 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
                 modify = source.modify.toMutableList().apply {
                     val i = random.nextInt(0, source.modify.size)
                     set(i, recursive.mutate(source.modify[i], random, configuration))
-                }
+                },
+                mutations = source.mutations + setOf(this),
             )
         }
 

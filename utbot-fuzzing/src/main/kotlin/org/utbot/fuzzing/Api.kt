@@ -176,7 +176,7 @@ class LoggingReporter<TYPE, RESULT>(
         val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
 
         FileOutputStream(logFile, true).bufferedWriter().use {
-            it.write("[$time] | ${alignString(values, 50)} | $feedback | $event | $additionalMessage\n")
+            it.write("[$time] | $values | $feedback | $event | $additionalMessage\n")
         }
     }
 
@@ -421,6 +421,10 @@ private object EmptyFeedback : Feedback<Nothing, Nothing> {
 
     override fun hashCode(): Int {
         return 0
+    }
+
+    override fun toString(): String {
+        return "EMPTY_FEEDBACK"
     }
 }
 
@@ -798,13 +802,18 @@ sealed interface Result<TYPE, RESULT> {
     /**
      * Known value.
      */
-    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT) : Result<TYPE, RESULT>
+    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT, val mutations: Set<Mutation<V>> = setOf()) : Result<TYPE, RESULT> {
+        override fun toString(): String {
+            return this.value.toString()
+        }
+    }
     /**
      * A tree of object that has constructor and some modifications.
      */
     class Recursive<TYPE, RESULT>(
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
+        val mutations: Set<RecursiveMutations<TYPE, RESULT>> = setOf(),
     ) : Result<TYPE, RESULT>
 
     /**
@@ -814,6 +823,7 @@ sealed interface Result<TYPE, RESULT> {
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
         val iterations: Int,
+        val mutations: Set<CollectionMutations<TYPE, RESULT>> = setOf(),
     ) : Result<TYPE, RESULT>
 
     /**
@@ -833,13 +843,21 @@ class Node<TYPE, RESULT>(
     val builder: Routine<TYPE, RESULT>,
 ) {
     override fun toString() : String {
-        return result.map {
+        return result.map { it ->
             when(it) {
                 is Result.Empty -> "_"
                 is Result.Simple -> it.result
-                is Result.Known<*, *, *> -> it.value.toString()
-                is Result.Collection -> it.modify.joinToString(", ", "[", "]")
-                is Result.Recursive -> it.modify.joinToString(", ", "{", "}")
+                is Result.Known<*, *, *> -> "$it : ${it.mutations
+                    .map { it.toString().substringAfter("$").substringBefore('@')
+                    }.joinToString(", ", "(", ")")}"
+                is Result.Collection -> it.modify
+                    .joinToString(", ", "[", "]") + " : ${it.mutations.map {
+                        it.toString().substringAfter("$").substringBefore('@')
+                    }.joinToString(", ", "(", ")") }}"
+                is Result.Recursive -> it.modify
+                    .joinToString(", ", "{", "}")+ " : ${it.mutations.map {
+                        it.toString().substringAfter("$").substringBefore('@')
+                    }.joinToString(", ", "(", ")") }"
             }
         }.joinToString(", ")
     }

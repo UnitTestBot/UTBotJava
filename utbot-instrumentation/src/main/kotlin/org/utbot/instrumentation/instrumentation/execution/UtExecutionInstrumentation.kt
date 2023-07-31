@@ -36,7 +36,7 @@ data class UtConcreteExecutionResult(
     }
 }
 
-data class ResultOfInstrumentation(val instructionsIds: List<Long>)
+data class ResultOfInstrumentation(val instructionsIds: List<Long>?)
 
 interface UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     override fun invoke(

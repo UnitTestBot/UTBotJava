@@ -2,15 +2,15 @@ package org.utbot.instrumentation.instrumentation.et
 
 import com.jetbrains.rd.util.error
 import com.jetbrains.rd.util.getLogger
-import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.commons.LocalVariablesSorter
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.instrumentation.Settings
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaMethod
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
+import org.objectweb.asm.commons.LocalVariablesSorter
 
 sealed class InstructionData {
     abstract val line: Int
@@ -94,7 +94,6 @@ class ProcessingStorage {
         instructionsData.computeIfAbsent(id) {
             val (className, _) = computeClassNameAndLocalId(id)
             classToInstructionsCount.merge(className, 1, Long::plus)
-            // TODO refactor this
             if (methodId !in methodIdToInstructionsIds) {
                 methodIdToInstructionsIds[methodId] = mutableListOf(id)
             } else {
@@ -111,9 +110,9 @@ class ProcessingStorage {
         return instructionsData.getValue(id)
     }
 
-    fun getInstructionsIds(className: String, methodName: String): List<Long> {
+    fun getInstructionsIds(className: String, methodName: String): List<Long>? {
         val methodId = classMethodToId[ClassToMethod(className, methodName)]
-        return methodIdToInstructionsIds[methodId]!!
+        return methodIdToInstructionsIds[methodId]
     }
 
     companion object {

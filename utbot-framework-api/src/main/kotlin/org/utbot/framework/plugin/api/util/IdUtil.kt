@@ -543,7 +543,7 @@ val Constructor<*>.executableId: ConstructorId
 val ExecutableId.humanReadableName: String
     get() {
         val executableName = this.name
-        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
+        val parameters = this.parameters.joinToString(separator = ", ") { it.name }
         return "$executableName($parameters)"
     }
 

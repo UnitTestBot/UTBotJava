@@ -451,8 +451,6 @@ class UtBotSymbolicEngine(
         }.let(transform)
 
         val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
-        val instrumentationResult = concreteExecutor.getInstrumentationResult(methodUnderTest)
-        val needToCoverInstructionsIds = instrumentationResult.instructionsIds
 
         runJavaFuzzing(
             defaultIdGenerator,

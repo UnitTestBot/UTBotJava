@@ -1,11 +1,9 @@
 package org.utbot.instrumentation.instrumentation.transformation
 
-import org.objectweb.asm.ClassWriter
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.instrumentation.instrumenter.ClassVisitorBuilder
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import java.security.ProtectionDomain
 
@@ -33,15 +31,9 @@ class BytecodeTransformation : Instrumentation<Result<*>> {
     ): ByteArray {
         val instrumenter = Instrumenter(classfileBuffer, loader)
 
-        instrumenter.visitClass(object : ClassVisitorBuilder<BytecodeTransformer> {
-            override val writerFlags: Int
-                get() = 0
-
-            override val readerParsingOptions: Int
-                get() = 0
-
-            override fun build(writer: ClassWriter): BytecodeTransformer = BytecodeTransformer(writer)
-        })
+        instrumenter.visitClass { writer ->
+            BytecodeTransformer(writer)
+        }
 
         return instrumenter.classByteCode
     }

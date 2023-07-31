@@ -8,6 +8,8 @@ import org.objectweb.asm.commons.LocalVariablesSorter
 
 /**
  * Abstract class for the pattern method adapters.
+ *
+ * The idea of stateful bytecode transformation was described in the [ASM library user guide](https://asm.ow2.io/asm4-guide.pdf) in chapter 3.2.5.
  */
 abstract class PatternMethodAdapter(
     api: Int,
@@ -32,9 +34,9 @@ abstract class PatternMethodAdapter(
         mv.visitIntInsn(opcode, operand)
     }
 
-    override fun visitVarInsn(opcode: Int, `var`: Int) {
+    override fun visitVarInsn(opcode: Int, localVariable: Int) {
         resetState()
-        mv.visitVarInsn(opcode, `var`)
+        mv.visitVarInsn(opcode, localVariable)
     }
 
     override fun visitTypeInsn(opcode: Int, type: String?) {

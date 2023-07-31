@@ -73,19 +73,19 @@ class StringMethodsAdapter(
         state = State.SEEN_NOTHING
     }
 
-    override fun visitVarInsn(opcode: Int, `var`: Int) {
+    override fun visitVarInsn(opcode: Int, localVariable: Int) {
         if (state == State.SEEN_NOTHING && opcode == Opcodes.ALOAD) {
             state = State.SEEN_ALOAD
-            indexOfLocalVariable = `var`
+            indexOfLocalVariable = localVariable
             return
         }
         resetState()
         if (opcode == Opcodes.ALOAD) {
             state = State.SEEN_ALOAD
-            indexOfLocalVariable = `var`
+            indexOfLocalVariable = localVariable
             return
         }
-        mv.visitVarInsn(opcode, `var`)
+        mv.visitVarInsn(opcode, localVariable)
     }
 
     override fun visitMethodInsn(
@@ -159,12 +159,13 @@ class StringMethodsAdapter(
                 val length = newLocal(Type.INT_TYPE)
                 mv.visitVarInsn(Opcodes.ISTORE, length)
 
-                constString.forEachIndexed { index, c ->
-                    // if (str.charAt(length - (constString.length() - index)) == c)
+                // reverse constant string to compare chars from the end
+                constString.reversed().forEachIndexed { index, c ->
+                    // if (str.charAt(length - (index + 1)) == c)
                     mv.visitLabel(Label())
                     mv.visitVarInsn(Opcodes.ALOAD, indexOfLocalVariable)
                     mv.visitVarInsn(Opcodes.ILOAD, length)
-                    mv.visitIntInsn(Opcodes.BIPUSH, constString.length - index)
+                    mv.visitIntInsn(Opcodes.BIPUSH, index + 1)
                     mv.visitInsn(Opcodes.ISUB)
                     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "charAt", "(I)C", false)
                     mv.visitIntInsn(Opcodes.BIPUSH, c.code)
@@ -186,10 +187,5 @@ class StringMethodsAdapter(
         }
         resetState()
         mv.visitJumpInsn(opcode, label)
-    }
-
-    override fun visitMaxs(maxStack: Int, maxLocals: Int) {
-        resetState()
-        mv.visitMaxs(maxStack + 1, maxLocals + 1)
     }
 }

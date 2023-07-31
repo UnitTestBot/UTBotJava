@@ -100,7 +100,7 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtModelWithOrigin
+import org.utbot.framework.plugin.api.UtModelWithCompositeOrigin
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
@@ -1069,7 +1069,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             when (model) {
                 is UtCompositeModel -> collectExecutionsResultFieldsRecursively(model, 0)
 
-                is UtModelWithOrigin -> model.origin?.let {
+                is UtModelWithCompositeOrigin -> model.origin?.let {
                     collectExecutionsResultFieldsRecursively(it, 0)
                 }
 
@@ -1109,7 +1109,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         when (fieldModel) {
             is UtCompositeModel -> collectExecutionsResultFieldsRecursively(fieldModel, depth + 1)
 
-            is UtModelWithOrigin -> fieldModel.origin?.let {
+            is UtModelWithCompositeOrigin -> fieldModel.origin?.let {
                 collectExecutionsResultFieldsRecursively(it, depth + 1)
             }
 
@@ -1201,7 +1201,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expectedVariableName: String = "expected",
         emptyLineIfNeeded: Boolean = false,
     ) {
-        if (expected !is UtCustomModel || !customAssertConstructor.tryConstructCustomAssert(expected, actual)) {
+        val successfullyConstructedCustomAssert = expected is UtCustomModel &&
+                customAssertConstructor.tryConstructCustomAssert(expected, actual)
+
+        if (!successfullyConstructedCustomAssert) {
             val expectedVariable = variableConstructor.getOrCreateVariable(expected, expectedVariableName)
             if (emptyLineIfNeeded) emptyLineIfNeeded()
             assertEquality(expectedVariable, actual)

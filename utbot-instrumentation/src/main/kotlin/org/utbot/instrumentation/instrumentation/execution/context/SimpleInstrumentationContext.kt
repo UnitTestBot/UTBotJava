@@ -4,8 +4,8 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdLibCustomModelConstructors
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
+import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdLibModelWithCompositeOriginConstructors
 
 /**
  * Simple instrumentation context, that is used for pure JVM projects without
@@ -19,6 +19,6 @@ class SimpleInstrumentationContext : InstrumentationContext {
      */
     override fun constructContextDependentValue(model: UtModel): UtConcreteValue<*>? = null
 
-    override fun findUtCustomModelConstructor(classId: ClassId): UtCustomModelConstructor? =
-        javaStdLibCustomModelConstructors[classId.jClass]?.invoke()
+    override fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor? =
+        javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
 }

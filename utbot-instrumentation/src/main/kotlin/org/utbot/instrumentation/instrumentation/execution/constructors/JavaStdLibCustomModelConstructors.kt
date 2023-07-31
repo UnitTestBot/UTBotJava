@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
-val javaStdLibCustomModelConstructors: Map<Class<*>, () -> UtCustomModelConstructor> =
+val javaStdLibModelWithCompositeOriginConstructors: Map<Class<*>, () -> UtModelWithCompositeOriginConstructor> =
     mutableMapOf<Class<*>, () -> UtAssembleModelConstructorBase>(
         /**
          * Optionals

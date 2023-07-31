@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtModelWithOrigin
+import org.utbot.framework.plugin.api.UtModelWithCompositeOrigin
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
@@ -48,7 +48,7 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManage
     override fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue {
         val modelFields = when (model) {
             is UtCompositeModel -> model.fields
-            is UtModelWithOrigin -> model.origin?.fields
+            is UtModelWithCompositeOrigin -> model.origin?.fields
             else -> null
         }
 

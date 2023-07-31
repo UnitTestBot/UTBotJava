@@ -13,24 +13,24 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.responseGetStatusMet
 import org.utbot.framework.plugin.api.util.SpringModelUtils.resultActionsAndReturnMethodId
 import org.utbot.framework.plugin.api.util.mapClassId
 import org.utbot.framework.plugin.api.util.method
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructorInterface
 
-class UtMockMvcResultActionsModelConstructor : UtCustomModelConstructor {
-    override fun constructCustomModel(
+class UtMockMvcResultActionsModelConstructor : UtModelWithCompositeOriginConstructor {
+    override fun constructModelWithCompositeOrigin(
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         valueClassId: ClassId,
         id: Int?,
         saveToCache: (UtModel) -> Unit
-    ): UtModel {
+    ): UtSpringMockMvcResultActionsModel {
         val mvcResult = resultActionsAndReturnMethodId.method.invoke(value)
         val response = mvcResultGetResponseMethodId.method.invoke(mvcResult)
         val modelAndView = mvcResultGetModelAndViewMethodId.method.invoke(mvcResult)
 
         return UtSpringMockMvcResultActionsModel(
             id = id,
-            origin = internalConstructor.constructCompositeModel(value),
+            origin = null, // replace with actual origin if needed
             status = responseGetStatusMethodId.method.invoke(response) as Int,
             errorMessage = responseGetErrorMessageMethodId.method.invoke(response) as String?,
             contentAsString = responseGetContentAsStringMethodId.method.invoke(response) as String,

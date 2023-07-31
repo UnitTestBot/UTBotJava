@@ -9,7 +9,7 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import java.security.AccessControlException
 import java.util.*
@@ -19,7 +19,7 @@ import java.util.*
  */
 class ModelConstructionPhase(
     private val traceHandler: TraceHandler,
-    private val utCustomModelConstructorFinder: (ClassId) -> UtCustomModelConstructor?,
+    private val utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?,
 ) : ExecutionPhase {
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
@@ -46,7 +46,7 @@ class ModelConstructionPhase(
             block()
             constructor = UtModelConstructor(
                 objectToModelCache = cache,
-                utCustomModelConstructorFinder = utCustomModelConstructorFinder,
+                utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
                 compositeModelStrategy = strategy,
             )
         }

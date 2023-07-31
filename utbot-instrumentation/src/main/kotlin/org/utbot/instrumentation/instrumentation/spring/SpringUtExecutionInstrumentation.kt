@@ -101,7 +101,7 @@ class SpringUtExecutionInstrumentation(
         val bean = springApi.getBean(beanName)
         return UtModelConstructor.createOnlyUserClassesConstructor(
             pathsToUserClasses = classpathToConstruct,
-            utCustomModelConstructorFinder = instrumentationContext::findUtCustomModelConstructor
+            utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
         ).construct(bean, bean::class.java.id)
     }
 
@@ -152,6 +152,9 @@ class SpringUtExecutionInstrumentation(
                 targetDirectoryName = "spring-commons"
             ).path
 
+        // TODO may be we can use some alternative sandbox that has more permissions
+        //  (at the very least we need `ReflectPermission("suppressAccessChecks")`
+        //  to let Jackson work with private fields when `@RequestBody` is used)
         override val forceDisableSandbox: Boolean
             get() = true
 

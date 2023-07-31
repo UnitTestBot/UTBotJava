@@ -109,7 +109,7 @@ object SpringModelUtils {
     private val mockMvcRequestBuildersClassId = ClassId("org.springframework.test.web.servlet.request.MockMvcRequestBuilders")
     private val requestBuilderClassId = ClassId("org.springframework.test.web.servlet.RequestBuilder")
     val resultActionsClassId = ClassId("org.springframework.test.web.servlet.ResultActions")
-    private val mockMvcClassId = ClassId("org.springframework.test.web.servlet.MockMvc")
+    val mockMvcClassId = ClassId("org.springframework.test.web.servlet.MockMvc")
     private val mvcResultClassId = ClassId("org.springframework.test.web.servlet.MvcResult")
     private val resultHandlerClassId = ClassId("org.springframework.test.web.servlet.ResultHandler")
     val mockMvcResultHandlersClassId = ClassId("org.springframework.test.web.servlet.result.MockMvcResultHandlers")

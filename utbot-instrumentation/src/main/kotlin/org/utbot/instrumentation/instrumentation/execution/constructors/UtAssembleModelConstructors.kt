@@ -18,8 +18,8 @@ internal fun findStreamConstructor(stream: BaseStream<*, *>): UtAssembleModelCon
         else -> BaseStreamConstructor()
     }
 
-internal abstract class UtAssembleModelConstructorBase : UtCustomModelConstructor {
-    override fun constructCustomModel(
+internal abstract class UtAssembleModelConstructorBase : UtModelWithCompositeOriginConstructor {
+    override fun constructModelWithCompositeOrigin(
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         valueClassId: ClassId,

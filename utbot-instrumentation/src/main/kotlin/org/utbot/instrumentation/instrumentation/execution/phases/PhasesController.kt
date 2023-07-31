@@ -33,7 +33,7 @@ class PhasesController(
 
     val modelConstructionPhase = ModelConstructionPhase(
         traceHandler = traceHandler,
-        utCustomModelConstructorFinder = instrumentationContext::findUtCustomModelConstructor
+        utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
     )
 
     val postprocessingPhase = PostprocessingPhase()

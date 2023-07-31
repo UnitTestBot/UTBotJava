@@ -15,7 +15,7 @@ import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtModelWithOrigin
+import org.utbot.framework.plugin.api.UtModelWithCompositeOrigin
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
@@ -106,7 +106,7 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
         var modelBefore = before
 
         if (before::class != after::class) {
-            if (before is UtModelWithOrigin && after is UtModelWithOrigin && before.origin != null) {
+            if (before is UtModelWithCompositeOrigin && after is UtModelWithCompositeOrigin && before.origin != null) {
                 modelBefore = before.origin ?: unreachableBranch("We have already checked the origin for a null value")
             } else {
                 doNotRun {
@@ -114,7 +114,7 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
                     // modelAfter (constructed by concrete executor) will consist all these fields,
                     // therefore, AssembleModelGenerator won't be able to transform the given composite model
 
-                    val reason = if (before is UtModelWithOrigin && after is UtCompositeModel) {
+                    val reason = if (before is UtModelWithCompositeOrigin && after is UtCompositeModel) {
                         "ModelBefore is an UtModelWithOrigin and ModelAfter " +
                                 "is a CompositeModel, but modelBefore doesn't have an origin model."
                     } else {

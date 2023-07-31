@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.resultActionsClassId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.spring.api.SpringApi
 import org.utbot.spring.api.provider.SpringApiProviderFacade
@@ -49,7 +49,7 @@ class SpringInstrumentationContext(
         else -> delegateInstrumentationContext.constructContextDependentValue(model)
     }
 
-    override fun findUtCustomModelConstructor(classId: ClassId): UtCustomModelConstructor? =
+    override fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor? =
         if (classId.isSubtypeOf(resultActionsClassId)) UtMockMvcResultActionsModelConstructor()
-        else delegateInstrumentationContext.findUtCustomModelConstructor(classId)
+        else delegateInstrumentationContext.findUtModelWithCompositeOriginConstructor(classId)
 }

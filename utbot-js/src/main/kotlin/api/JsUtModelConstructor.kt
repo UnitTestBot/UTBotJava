@@ -21,11 +21,11 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructorInterface
 
-class JsUtModelConstructor {
+class JsUtModelConstructor : UtModelConstructorInterface {
 
     // TODO SEVERE: Requires substantial expansion to other types
     @Suppress("NAME_SHADOWING")
-    fun construct(value: Any?, classId: ClassId): UtModel {
+    override fun construct(value: Any?, classId: ClassId): UtModel {
         val classId = classId as JsClassId
         if (classId == jsErrorClassId) return UtModel(jsErrorClassId)
         return when (value) {

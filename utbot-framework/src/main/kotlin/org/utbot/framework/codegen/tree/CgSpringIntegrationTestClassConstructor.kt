@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.util.IndentUtil.TAB
+import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.activeProfilesClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autoConfigureTestDbClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.bootstrapWithClassId
@@ -25,6 +26,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.crudRepositoryClassI
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.extendWithClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.mockMvcClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.runWithClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContextBootstrapperClassId
@@ -47,7 +49,7 @@ class CgSpringIntegrationTestClassConstructor(
     }
 
     override fun constructTestClass(testClassModel: SpringTestClassModel): CgClass {
-        addNecessarySpringSpecificAnnotations()
+        addNecessarySpringSpecificAnnotations(testClassModel)
         return super.constructTestClass(testClassModel)
     }
 
@@ -102,7 +104,7 @@ class CgSpringIntegrationTestClassConstructor(
             .map { it.escapeControlChars() }
     )
 
-    private fun addNecessarySpringSpecificAnnotations() {
+    private fun addNecessarySpringSpecificAnnotations(testClassModel: SpringTestClassModel) {
         val isSpringBootTestAccessible = utContext.classLoader.tryLoadClass(springBootTestClassId.name) != null
         if (isSpringBootTestAccessible) {
             addAnnotation(springBootTestClassId, Class)
@@ -193,5 +195,8 @@ class CgSpringIntegrationTestClassConstructor(
         // generated tests will fail with `ClassNotFoundException: org.springframework.dao.DataAccessException`.
         if (utContext.classLoader.tryLoadClass(crudRepositoryClassId.name) != null)
             addAnnotation(autoConfigureTestDbClassId, Class)
+
+        if (mockMvcClassId in testClassModel.springSpecificInformation.autowiredFromContextModels)
+            addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
     }
 }

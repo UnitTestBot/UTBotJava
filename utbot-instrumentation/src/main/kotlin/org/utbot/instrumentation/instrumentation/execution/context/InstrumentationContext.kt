@@ -3,7 +3,7 @@ package org.utbot.instrumentation.instrumentation.execution.context
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtCustomModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import java.lang.reflect.Method
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
@@ -28,7 +28,11 @@ interface InstrumentationContext {
      */
     fun constructContextDependentValue(model: UtModel): UtConcreteValue<*>?
 
-    fun findUtCustomModelConstructor(classId: ClassId): UtCustomModelConstructor?
+    /**
+     * Finds [UtModelWithCompositeOriginConstructor] that should be used to
+     * construct models for instances of specified [class][classId].
+     */
+    fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor?
 
     object MockGetter {
         data class MockContainer(private val values: List<*>) {

@@ -131,7 +131,7 @@ class SimpleUtExecutionInstrumentation(
         delegateInstrumentation.getStaticField(fieldId).map { value ->
             UtModelConstructor.createOnlyUserClassesConstructor(
                 pathsToUserClasses = pathsToUserClasses,
-                utCustomModelConstructorFinder = instrumentationContext::findUtCustomModelConstructor
+                utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
             ).construct(value, fieldId.type)
         }
 

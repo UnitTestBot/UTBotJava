@@ -17,13 +17,6 @@ interface UtModelConstructorInterface {
      * Constructs a UtModel from a concrete [value] with a specific [classId].
      */
     fun construct(value: Any?, classId: ClassId): UtModel
-
-    /**
-     * Constructs UtCompositeModel.
-     *
-     * Uses runtime javaClass to collect ALL fields, except final static fields, and builds this model recursively.
-     */
-    fun constructCompositeModel(value: Any): UtCompositeModel
 }
 
 /**
@@ -39,7 +32,7 @@ interface UtModelConstructorInterface {
  */
 class UtModelConstructor(
     private val objectToModelCache: IdentityHashMap<Any, UtModel>,
-    private val utCustomModelConstructorFinder: (ClassId) -> UtCustomModelConstructor?,
+    private val utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?,
     private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy,
     private val maxDepth: Long = DEFAULT_MAX_DEPTH
 ) : UtModelConstructorInterface {
@@ -56,13 +49,13 @@ class UtModelConstructor(
 
         fun createOnlyUserClassesConstructor(
             pathsToUserClasses: Set<String>,
-            utCustomModelConstructorFinder: (ClassId) -> UtCustomModelConstructor?
+            utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?
         ): UtModelConstructor {
             val cache = IdentityHashMap<Any, UtModel>()
             val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
                 pathsToUserClasses, cache
             )
-            return UtModelConstructor(cache, utCustomModelConstructorFinder, strategy)
+            return UtModelConstructor(cache, utModelWithCompositeOriginConstructorFinder, strategy)
         }
     }
 
@@ -280,7 +273,7 @@ class UtModelConstructor(
             val streamConstructor = findStreamConstructor(stream)
 
             try {
-                streamConstructor.constructCustomModel(this, stream, valueToClassId(stream), handleId(stream)) {
+                streamConstructor.constructModelWithCompositeOrigin(this, stream, valueToClassId(stream), handleId(stream)) {
                     constructedObjects[stream] = it
                 }
             } catch (e: Exception) {
@@ -305,9 +298,9 @@ class UtModelConstructor(
      * Uses runtime class of [value].
      */
     private fun tryConstructCustomModel(value: Any, remainingDepth: Long): UtModel? =
-        utCustomModelConstructorFinder(value::class.java.id)?.let { modelConstructor ->
+        utModelWithCompositeOriginConstructorFinder(value::class.java.id)?.let { modelConstructor ->
             try {
-                modelConstructor.constructCustomModel(
+                modelConstructor.constructModelWithCompositeOrigin(
                     internalConstructor = this.withMaxDepth(remainingDepth - 1),
                     value = value,
                     valueClassId = valueToClassId(value),
@@ -321,11 +314,11 @@ class UtModelConstructor(
             }
         }
 
-    override fun constructCompositeModel(value: Any): UtCompositeModel = constructCompositeModel(
-        value,
-        remainingDepth = maxDepth
-    )
-
+    /**
+     * Constructs UtCompositeModel.
+     *
+     * Uses runtime javaClass to collect ALL fields, except final static fields, and builds this model recursively.
+     */
     private fun constructCompositeModel(value: Any, remainingDepth: Long): UtCompositeModel {
         // value can be mock only if it was previously constructed from UtCompositeModel
         val isMock = objectToModelCache[value]?.isMockModel() ?: false
@@ -357,9 +350,6 @@ class UtModelConstructor(
     private fun withMaxDepth(newMaxDepth: Long) = object : UtModelConstructorInterface {
         override fun construct(value: Any?, classId: ClassId): UtModel =
             construct(value, classId, newMaxDepth)
-
-        override fun constructCompositeModel(value: Any): UtCompositeModel =
-            constructCompositeModel(value, newMaxDepth)
     }
 }
 

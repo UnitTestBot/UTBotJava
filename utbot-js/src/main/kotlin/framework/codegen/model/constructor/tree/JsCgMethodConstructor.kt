@@ -38,7 +38,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
-                        val name = paramNames[execution.executableToCall ?: testSet.executableUnderTest]?.get(index)
+                        val name = paramNames[testSet.executableUnderTest]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     recordActualResult()
@@ -61,7 +61,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
     override fun generateResultAssertions() {
         emptyLineIfNeeded()
         val currentExecution = currentExecution!!
-        val method = currentExecutableToCall as MethodId
+        val method = currentExecutableUnderTest as MethodId
         // build assertions
         currentExecution.result
             .onSuccess { result ->
@@ -80,7 +80,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
 
     private fun processExecutionFailure(execution: UtExecution, exception: Throwable) {
         val methodInvocationBlock = {
-            with(currentExecutableToCall) {
+            with(currentExecutableUnderTest) {
                 when (this) {
                     is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                     is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()

@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import mu.KotlinLogging
 import org.utbot.common.isStatic
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
@@ -68,6 +69,10 @@ open class CgVariableConstructor(val context: CgContext) :
     CgCallableAccessManager by getCallableAccessManagerBy(context),
     CgStatementConstructor by getStatementConstructorBy(context) {
 
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
     private val nameGenerator = getNameGeneratorBy(context)
     val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
@@ -99,7 +104,7 @@ open class CgVariableConstructor(val context: CgContext) :
             constructValueByModel(model, name)
         }
 
-    open fun constructValueByModel(model: UtModel, name: String?): CgValue {
+    private fun constructValueByModel(model: UtModel, name: String?): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
 
@@ -112,7 +117,12 @@ open class CgVariableConstructor(val context: CgContext) :
             is UtLambdaModel -> constructLambda(model, baseName)
             is UtNullModel -> nullLiteral()
             is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
-            is UtCustomModel -> constructValueByModel(model.origin ?: error("Can't construct value for custom model without origin [$model]"), name)
+            is UtCustomModel -> {
+                logger.error { "Unexpected behaviour: value for UtCustomModel [$model] is constructed by base CgVariableConstructor" }
+                constructValueByModel(
+                    model.origin ?: error("Can't construct value for UtCustomModel without origin [$model]"), name
+                )
+            }
             is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
             is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
             else -> error("Unexpected UtModel: ${model::class}")

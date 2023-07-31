@@ -27,7 +27,7 @@ abstract class BaseConstructorTest {
     protected fun <T : Any> computeReconstructed(value: T): T {
         val model = UtModelConstructor(
             objectToModelCache = IdentityHashMap(),
-            utCustomModelConstructorFinder = ::findUtCustomModelConstructor
+            utModelWithCompositeOriginConstructorFinder = ::findUtCustomModelConstructor
         ).construct(value, value::class.java.id)
 
         Assertions.assertTrue(model is UtAssembleModel)
@@ -36,6 +36,6 @@ abstract class BaseConstructorTest {
         return ValueConstructor().construct(listOf(model)).single().value as T
     }
 
-    protected open fun findUtCustomModelConstructor(classId: ClassId): UtCustomModelConstructor? =
-        javaStdLibCustomModelConstructors[classId.jClass]?.invoke()
+    protected open fun findUtCustomModelConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor? =
+        javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
 }

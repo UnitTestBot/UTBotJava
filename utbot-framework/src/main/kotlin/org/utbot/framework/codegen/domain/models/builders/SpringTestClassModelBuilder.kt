@@ -21,8 +21,8 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.canBeSpied
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
-import org.utbot.framework.plugin.api.util.SpringModelUtils.isSpyInSpring
 
 typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
 
@@ -76,7 +76,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         val dependentSpyModels =
             thisInstancesDependentModels
                 .filterTo(mutableSetOf()) { cgModel ->
-                    cgModel.model.isSpyInSpring() && cgModel !in thisInstanceModels
+                    cgModel.model.canBeSpied() && cgModel !in thisInstanceModels
                 }
 
         val autowiredFromContextModels =
@@ -137,7 +137,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
                 // a role of class fields with @Mock annotation.
                 currentModel.fields.forEach { (fieldId, model) ->
                     // We use `modelTagName` in order to distinguish mock models
-                    val modelTagName = if (model.isMockModel() || model.isSpyInSpring()) fieldId.name else null
+                    val modelTagName = if (model.isMockModel() || model.canBeSpied()) fieldId.name else null
                     collectRecursively(model.wrap(modelTagName), allModels)
                 }
             }
@@ -149,7 +149,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
 
                 // when the model is annotated with @Spy, we should not @Mock UtModels from [model.modificationsChain],
                 // In this case, we use simple mock
-                if (!currentModel.isSpyInSpring()) {
+                if (!currentModel.canBeSpied()) {
                     currentModel.modificationsChain.forEach { stmt ->
                         stmt.instance?.let { collectRecursively(it.wrap(), allModels) }
                         when (stmt) {

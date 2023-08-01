@@ -1,10 +1,7 @@
 package org.utbot.framework.codegen.tree
 
+import org.utbot.framework.codegen.domain.builtin.clearMethodId
 import org.utbot.framework.codegen.domain.builtin.closeMethodId
-import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
-import org.utbot.framework.codegen.domain.builtin.mockClassId
-import org.utbot.framework.codegen.domain.builtin.clearCollectionSpyMethodId
-import org.utbot.framework.codegen.domain.builtin.clearMapSpyMethodId
 import org.utbot.framework.codegen.domain.builtin.openMocksMethodId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgAssignment
@@ -12,12 +9,10 @@ import org.utbot.framework.codegen.domain.models.CgDeclaration
 import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgMethodsCluster
-import org.utbot.framework.codegen.domain.models.CgSimpleRegion
 import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -78,7 +73,7 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         val clearSpyModelCalls = spyClearVariables.map { spyVariable ->
             CgMethodCall(
                 caller = spyVariable,
-                executableId = getExecutableMethodId(spyVariable),
+                executableId = clearMethodId(spyVariable.type.jClass),
                 arguments = emptyList()
             )
         }
@@ -90,7 +85,7 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
         return CgMethodsCluster.withoutDocs(
             listOf(
                 constructBeforeMethod(listOf(openMocksStatement)),
-                constructAfterMethod(listOf(closeStatement) + clearSpyModels),
+                constructAfterMethod(clearSpyModels + listOf(closeStatement)),
             )
         )
     }
@@ -109,13 +104,6 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
             variableConstructor.getOrCreateVariable(mockitoCloseableModel, mockitoCloseableVarName)
         val mockitoCloseableDeclaration = CgDeclaration(mockitoCloseableVarType, mockitoCloseableVarName, initializer = null)
         return CgFieldDeclaration(ownerClassId = currentTestClass, mockitoCloseableDeclaration)
-    }
-
-    private fun getExecutableMethodId(spyVariable: CgValue): MethodId {
-        if(Collection::class.java.isAssignableFrom(spyVariable.type.jClass)) return clearCollectionSpyMethodId
-        if(Map::class.java.isAssignableFrom(spyVariable.type.jClass)) return clearMapSpyMethodId
-
-        error("executable methodId for $spyVariable was not found")
     }
 
 }

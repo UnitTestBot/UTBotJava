@@ -98,13 +98,6 @@ object SpringModelUtils {
         null
     }
 
-    // Check if [UtModel] is a spy model in Spring project.
-    // Used only for construct variables with @Spy annotation
-    fun UtModel.isSpyInSpring() =
-        this is UtAssembleModel &&
-                (Collection::class.java.isAssignableFrom(this.classId.jClass) ||
-                        Map::class.java.isAssignableFrom(this.classId.jClass))
-
     ///region spring-web
     private val requestMappingClassId = ClassId("org.springframework.web.bind.annotation.RequestMapping")
     private val pathVariableClassId = ClassId("org.springframework.web.bind.annotation.PathVariable")

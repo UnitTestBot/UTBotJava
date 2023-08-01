@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import org.utbot.common.tryLoadClass
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.SpringRepositoryId

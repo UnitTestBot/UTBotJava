@@ -26,7 +26,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.isSpyInSpring
 
 typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
 
-class SpringTestClassModelBuilder(val context: CgContext):
+class SpringTestClassModelBuilder(val context: CgContext) :
     TestClassModelBuilder(),
     CgContextOwner by context {
 
@@ -93,9 +93,7 @@ class SpringTestClassModelBuilder(val context: CgContext):
     private fun collectByModel(model: UtModel): Set<UtModelWrapper> {
         val dependentModels = mutableSetOf<UtModelWrapper>()
 
-        with(context){
-            collectRecursively(model.wrap(), dependentModels)
-        }
+        collectRecursively(model.wrap(), dependentModels)
 
         return dependentModels
     }
@@ -115,55 +113,53 @@ class SpringTestClassModelBuilder(val context: CgContext):
             return
         }
 
-        with(context) {
-            when (val currentModel = currentModelWrapper.model) {
-                is UtNullModel,
-                is UtPrimitiveModel,
-                is UtClassRefModel,
-                is UtVoidModel,
-                is UtEnumConstantModel -> {},
-                is UtCustomModel -> currentModel.origin?.let {
-                    collectRecursively(it.wrap(currentModelWrapper.modelTagName), allModels)
+        when (val currentModel = currentModelWrapper.model) {
+            is UtNullModel,
+            is UtPrimitiveModel,
+            is UtClassRefModel,
+            is UtVoidModel,
+            is UtEnumConstantModel -> {}
+            is UtCustomModel -> currentModel.origin?.let {
+                collectRecursively(it.wrap(currentModelWrapper.modelTagName), allModels)
+            }
+            is UtLambdaModel -> {
+                currentModel.capturedValues.forEach { collectRecursively(it.wrap(), allModels) }
+            }
+            is UtArrayModel -> {
+                currentModel.stores.values.forEach { collectRecursively(it.wrap(), allModels) }
+                if (currentModel.stores.count() < currentModel.length) {
+                    collectRecursively(currentModel.constModel.wrap(), allModels)
                 }
-                is UtLambdaModel -> {
-                    currentModel.capturedValues.forEach { collectRecursively(it.wrap(), allModels) }
+            }
+            is UtCompositeModel -> {
+                // Here we traverse fields only.
+                // Traversing mocks as well will result in wrong models playing
+                // a role of class fields with @Mock annotation.
+                currentModel.fields.forEach { (fieldId, model) ->
+                    // We use `modelTagName` in order to distinguish mock models
+                    val modelTagName = if (model.isMockModel() || model.isSpyInSpring()) fieldId.name else null
+                    collectRecursively(model.wrap(modelTagName), allModels)
                 }
-                is UtArrayModel -> {
-                    currentModel.stores.values.forEach { collectRecursively(it.wrap(), allModels) }
-                    if (currentModel.stores.count() < currentModel.length) {
-                        collectRecursively(currentModel.constModel.wrap(), allModels)
-                    }
-                }
-                is UtCompositeModel -> {
-                    // Here we traverse fields only.
-                    // Traversing mocks as well will result in wrong models playing
-                    // a role of class fields with @Mock annotation.
-                    currentModel.fields.forEach { (fieldId, model) ->
-                        // We use `modelTagName` in order to distinguish mock models
-                        val modelTagName = if(model.isMockModel() || model.isSpyInSpring()) fieldId.name else null
-                        collectRecursively(model.wrap(modelTagName), allModels)
-                    }
-                }
-                is UtAssembleModel -> {
-                    currentModel.origin?.let { collectRecursively(it.wrap(), allModels) }
+            }
+            is UtAssembleModel -> {
+                currentModel.origin?.let { collectRecursively(it.wrap(), allModels) }
 
                 currentModel.instantiationCall.instance?.let { collectRecursively(it.wrap(), allModels) }
                 currentModel.instantiationCall.params.forEach { collectRecursively(it.wrap(), allModels) }
 
-                    // when the model is annotated with @Spy, we should not @Mock UtModels from [model.modificationsChain],
-                    // In this case, we use simple mock
-                    if(!currentModel.isSpyInSpring()) {
-                        currentModel.modificationsChain.forEach { stmt ->
-                            stmt.instance?.let { collectRecursively(it.wrap(), allModels) }
-                            when (stmt) {
-                                is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it.wrap(), allModels) }
-                                is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel.wrap(), allModels)
-                            }
+                // when the model is annotated with @Spy, we should not @Mock UtModels from [model.modificationsChain],
+                // In this case, we use simple mock
+                if (!currentModel.isSpyInSpring()) {
+                    currentModel.modificationsChain.forEach { stmt ->
+                        stmt.instance?.let { collectRecursively(it.wrap(), allModels) }
+                        when (stmt) {
+                            is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it.wrap(), allModels) }
+                            is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel.wrap(), allModels)
                         }
                     }
                 }
-                //Python, JavaScript, Go models are not required in Spring
             }
+            //Python, JavaScript, Go models are not required in Spring
         }
     }
 }

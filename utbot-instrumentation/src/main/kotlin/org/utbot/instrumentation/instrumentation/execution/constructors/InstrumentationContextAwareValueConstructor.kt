@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -110,8 +111,11 @@ class InstrumentationContextAwareValueConstructor(
             is UtVoidModel -> UtConcreteValue(Unit)
             else -> {
                 instrumentationContext.constructContextDependentValue(model) ?:
-                // PythonModel, JsUtModel may be here
-                throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
+                if (model is UtCustomModel)
+                    construct(model.origin ?: error("Can't construct value for custom model without origin [$model]"))
+                else
+                    // PythonModel, JsUtModel may be here
+                    throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
             }
         }
 

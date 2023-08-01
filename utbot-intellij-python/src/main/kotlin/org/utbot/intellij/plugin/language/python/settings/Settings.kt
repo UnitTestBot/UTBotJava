@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.language.python.settings
 
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.intellij.plugin.language.python.PythonTestsModel
 import org.utbot.intellij.plugin.settings.Settings
 
@@ -13,5 +14,7 @@ private fun fromGenerateTestsModel(model: PythonTestsModel): Settings.State {
         testFramework = model.testFramework,
         generationTimeoutInMillis = model.timeout,
         enableExperimentalLanguagesSupport = true,
+        hangingTestsTimeout = HangingTestsTimeout(model.timeoutForRun),
+        runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
     )
 }

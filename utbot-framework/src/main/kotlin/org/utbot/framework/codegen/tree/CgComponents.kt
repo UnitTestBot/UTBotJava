@@ -22,6 +22,7 @@ object CgComponents {
         mockFrameworkManagers.clear()
         variableConstructors.clear()
         methodConstructors.clear()
+        customAssertConstructors.clear()
     }
 
     private val nameGenerators: IdentityHashMap<CgContext, CgNameGenerator> = IdentityHashMap()
@@ -33,6 +34,7 @@ object CgComponents {
     private val statementConstructors: IdentityHashMap<CgContext, CgStatementConstructor> = IdentityHashMap()
     private val variableConstructors: IdentityHashMap<CgContext, CgVariableConstructor> = IdentityHashMap()
     private val methodConstructors: IdentityHashMap<CgContext, CgMethodConstructor> = IdentityHashMap()
+    private val customAssertConstructors: IdentityHashMap<CgContext, CgCustomAssertConstructor> = IdentityHashMap()
 
     fun getNameGeneratorBy(context: CgContext): CgNameGenerator = nameGenerators.getOrPut(context) {
         context.cgLanguageAssistant.getNameGeneratorBy(context)
@@ -61,5 +63,9 @@ object CgComponents {
 
     fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = methodConstructors.getOrPut(context) {
         context.cgLanguageAssistant.getMethodConstructorBy(context)
+    }
+
+    fun getCustomAssertConstructorBy(context: CgContext): CgCustomAssertConstructor = customAssertConstructors.getOrPut(context) {
+        context.cgLanguageAssistant.getCustomAssertConstructorBy(context)
     }
 }

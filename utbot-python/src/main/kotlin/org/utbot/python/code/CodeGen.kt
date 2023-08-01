@@ -11,34 +11,6 @@ import org.utbot.python.newtyping.general.Type
 
 
 object PythonCodeGenerator {
-    fun generateRunFunctionCode(
-        method: PythonMethod,
-        methodArguments: List<UtModel>,
-        directoriesForSysPath: Set<String>,
-        moduleToImport: String,
-        additionalModules: Set<String> = emptySet(),
-        fileForOutputName: String,
-        coverageDatabasePath: String,
-    ): String {
-        val context = UtContext(this::class.java.classLoader)
-        withUtContext(context) {
-            val codegen = org.utbot.python.framework.codegen.model.PythonCodeGenerator(
-                PythonClassId("TopLevelFunction"),
-                paramNames = emptyMap<ExecutableId, List<String>>().toMutableMap(),
-                testFramework = PythonCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks[0],
-                testClassPackageName = "",
-            )
-            return codegen.generateFunctionCall(
-                method,
-                methodArguments,
-                directoriesForSysPath,
-                moduleToImport,
-                additionalModules,
-                fileForOutputName,
-                coverageDatabasePath,
-            )
-        }
-    }
 
     fun generateMypyCheckCode(
         method: PythonMethod,

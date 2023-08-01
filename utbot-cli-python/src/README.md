@@ -6,13 +6,13 @@
 
  - Required Java version: 11.
 
- - Prefered Python version: 3.8 or 3.9.
+ - Prefered Python version: 3.8+.
 
     Make sure that your Python has `pip` installed (this is usually the case). [Read more about pip installation](https://pip.pypa.io/en/stable/installation/).
 
     Before running utbot install pip requirements (or use `--install-requirements` flag in `generate_python` command):
 
-        python -m pip install mypy==0.971 astor typeshed-client coverage
+        python -m pip install mypy==1.0 utbot_executor==0.4.31 utbot_mypy_runner==0.2.8
 
 ## Basic usage
 
@@ -66,10 +66,6 @@ Run generated tests:
   
   Turn off Python requirements check (to speed up).
   
-- `--visit-only-specified-source`
-
-  Do not search for classes and imported modules in other Python files from `--sys-path` option.
-
 - `-t, --timeout INT`                
 
   Specify the maximum time in milliseconds to spend on generating tests (60000 by default).
@@ -81,6 +77,14 @@ Run generated tests:
 - `--test-framework [pytest|Unittest]`
 
   Test framework to be used.
+
+- `--runtime-exception-behaviour [PASS|FAIL]`
+
+  Expected behaviour for runtime exception.
+
+- `--do-not-generate-regression-suite`
+
+  Generate regression test suite or not. Regression suite and error suite generation is active by default.
   
 ### `run_python` options
 

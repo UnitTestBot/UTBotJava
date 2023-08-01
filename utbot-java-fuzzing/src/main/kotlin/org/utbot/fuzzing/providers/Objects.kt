@@ -133,6 +133,21 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
 }
 
 /**
+ * Unlike [NullValueProvider] can generate `null` values at any depth.
+ *
+ * Intended to be used as a last fallback.
+ */
+object AnyDepthNullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+
+    override fun accept(type: FuzzedType) = type.classId.isRefType
+
+    override fun generate(
+        description: FuzzedDescription,
+        type: FuzzedType
+    ) = sequenceOf<Seed<FuzzedType, FuzzedValue>>(Seed.Simple(nullFuzzedValue(classClassId)))
+}
+
+/**
  * Finds and create object from implementations of abstract classes or interfaces.
  */
 class AbstractsObjectValueProvider(
@@ -143,7 +158,7 @@ class AbstractsObjectValueProvider(
 
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
         val t = try {
-            Scene.v().getRefType(type.classId.canonicalName).sootClass
+            Scene.v().getRefType(type.classId.name).sootClass
         } catch (ignore: NoClassDefFoundError) {
             logger.error(ignore) { "Soot may be not initialized" }
             return@sequence
@@ -164,7 +179,12 @@ class AbstractsObjectValueProvider(
                 }
                 val jClass = sc.id.jClass
                 return isAccessible(jClass, description.description.packageName) &&
-                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) }
+                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) } &&
+                        jClass.let {
+                            // This won't work in case of implementations with generics like `Impl<T> implements A<T>`.
+                            // Should be reworked with accurate generic matching between all classes.
+                            toFuzzerType(it, description.typeCache).traverseHierarchy(description.typeCache).contains(type)
+                        }
             } catch (ignore: Throwable) {
                 return false
             }

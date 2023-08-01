@@ -89,7 +89,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
         testSet: CgMethodTestSet,
         regions: MutableList<CgRegion<CgMethod>>
     ) {
-        val (methodUnderTest, _, clustersInfo) = testSet
+        val (_, _, clustersInfo) = testSet
 
         for ((clusterSummary, executionIndices) in clustersInfo) {
             val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
@@ -102,7 +102,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
 
             for (i in checkedRange) {
                 withExecutionIdScope(i) {
-                    currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
+                    currentTestCaseTestMethods += methodConstructor.createTestMethod(testSet, testSet.executions[i])
                 }
             }
 

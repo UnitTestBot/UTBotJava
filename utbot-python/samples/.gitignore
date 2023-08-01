@@ -1,5 +1,6 @@
 .tmp/
 utbot_tests/
+cli_test_dir/
 utbot-cli.jar
 __pycache__/
 .venv/

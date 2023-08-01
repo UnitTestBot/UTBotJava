@@ -405,7 +405,7 @@ class CgSingleArgAnnotation(
  * NOTE: use `StatementConstructor.addAnnotation`
  * instead of explicit constructor call.
  */
-class CgMultipleArgsAnnotation(
+data class CgMultipleArgsAnnotation(
     override val classId: ClassId,
     val arguments: MutableList<CgNamedAnnotationArgument>,
     override val target: AnnotationTarget,

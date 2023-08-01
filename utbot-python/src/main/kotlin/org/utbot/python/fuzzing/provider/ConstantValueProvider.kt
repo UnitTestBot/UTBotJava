@@ -9,7 +9,7 @@ import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.typing.TypesFromJSONStorage
+import org.utbot.python.fuzzing.value.TypesFromJSONStorage
 
 object ConstantValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {

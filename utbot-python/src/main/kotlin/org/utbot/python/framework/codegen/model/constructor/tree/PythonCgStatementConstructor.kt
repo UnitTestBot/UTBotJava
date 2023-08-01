@@ -34,8 +34,10 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant.getCallableAccessManagerBy
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant.getNameGeneratorBy
+import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.python.framework.codegen.model.constructor.util.plus
 import java.util.*
 
@@ -253,7 +255,10 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
             AnnotationTarget.Field -> error("Annotation ${annotation.target} is not supported in Python")
         }
 
-        importIfNeeded(annotation.classId)
+        val classId = annotation.classId
+        if (classId is PythonClassId) {
+            importIfNeeded(classId)
+        }
     }
 
     override fun returnStatement(expression: () -> CgExpression) {

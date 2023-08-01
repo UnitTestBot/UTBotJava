@@ -576,6 +576,13 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var maxArraySize by getIntProperty(1024)
 
     // endregion
+
+    // region UTBot light related options
+    // Changes to improve symbolic engine for light version
+
+    var disableUnsatChecking by getBooleanProperty(false)
+
+    // endregion
 }
 
 /**
@@ -591,6 +598,11 @@ enum class PathSelectorType {
      * [InheritorsSelector]
      */
     INHERITORS_SELECTOR,
+
+    /**
+     * [BFSSelector]
+     */
+    BFS_SELECTOR,
 
     /**
      * [SubpathGuidedSelector]

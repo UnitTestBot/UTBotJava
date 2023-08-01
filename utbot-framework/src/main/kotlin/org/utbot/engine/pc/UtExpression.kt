@@ -805,6 +805,31 @@ data class UtSubNoOverflowExpression(
     override fun hashCode() = hashCode
 }
 
+data class UtMulNoOverflowExpression(
+    val left: UtExpression,
+    val right: UtExpression,
+) : UtBoolExpression() {
+    override val hashCode = Objects.hash(left, right)
+
+    override fun <TResult> accept(visitor: UtExpressionVisitor<TResult>): TResult = visitor.visit(this)
+
+    override fun toString() = "(mulNoOverflow $left $right)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UtMulNoOverflowExpression
+
+        if (left != other.left) return false
+        if (right != other.right) return false
+
+        return true
+    }
+
+    override fun hashCode() = hashCode
+}
+
 data class UtNegExpression(val variable: PrimitiveValue) : UtExpression(alignSort(variable.type.toSort())) {
     override val hashCode = variable.hashCode
 

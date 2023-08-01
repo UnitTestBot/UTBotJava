@@ -89,3 +89,5 @@ if (projectType == springEdition || projectType == ultimateEdition) {
 
 
 
+include("utbot-light")
+

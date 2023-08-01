@@ -81,7 +81,7 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         )
     }
 
-    fun assertIsInstance(types: List<ClassId>, actual: CgVariable) {
+    fun assertIsinstance(types: List<PythonClassId>, actual: CgVariable) {
         +CgPythonAssertEquals(
             CgPythonFunctionCall(
                 pythonBoolClassId,
@@ -89,9 +89,9 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
                 listOf(
                     actual,
                     if (types.size == 1)
-                        CgLiteral(pythonAnyClassId, types[0].name)
+                        CgLiteral(pythonAnyClassId, types[0].prettyName)
                     else
-                        CgPythonTuple(types.map { CgLiteral(pythonAnyClassId, it.name) })
+                        CgPythonTuple(types.map { CgLiteral(pythonAnyClassId, it.prettyName) })
                 ),
             ),
         )
@@ -152,7 +152,7 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
             )
     }
 
-    fun assertIsInstance(types: List<ClassId>, actual: CgVariable) {
+    fun assertIsinstance(types: List<PythonClassId>, actual: CgVariable) {
         +assertions[assertTrue](
             CgPythonFunctionCall(
                 pythonBoolClassId,
@@ -160,9 +160,9 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
                 listOf(
                     actual,
                     if (types.size == 1)
-                        CgLiteral(pythonAnyClassId, types[0].name)
+                        CgLiteral(pythonAnyClassId, types[0].prettyName)
                     else
-                        CgPythonTuple(types.map { CgLiteral(pythonAnyClassId, it.name) })
+                        CgPythonTuple(types.map { CgLiteral(pythonAnyClassId, it.prettyName) })
                 ),
             ),
         )

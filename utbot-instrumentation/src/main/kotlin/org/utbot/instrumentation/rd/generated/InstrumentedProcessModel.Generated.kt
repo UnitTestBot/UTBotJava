@@ -67,7 +67,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = -3572666434834334555L
+        const val serializationHash = 2667021258656776274L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -260,7 +260,7 @@ data class AddPathsParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:28]
+ * #### Generated from [InstrumentedProcessModel.kt:29]
  */
 data class CollectCoverageParams (
     val clazz: ByteArray
@@ -317,7 +317,7 @@ data class CollectCoverageParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:32]
+ * #### Generated from [InstrumentedProcessModel.kt:33]
  */
 data class CollectCoverageResult (
     val coverageInfo: ByteArray
@@ -374,7 +374,7 @@ data class CollectCoverageResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:36]
+ * #### Generated from [InstrumentedProcessModel.kt:37]
  */
 data class ComputeStaticFieldParams (
     val fieldId: ByteArray
@@ -431,7 +431,7 @@ data class ComputeStaticFieldParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:40]
+ * #### Generated from [InstrumentedProcessModel.kt:41]
  */
 data class ComputeStaticFieldResult (
     val result: ByteArray
@@ -488,7 +488,7 @@ data class ComputeStaticFieldResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:44]
+ * #### Generated from [InstrumentedProcessModel.kt:45]
  */
 data class GetSpringBeanParams (
     val beanName: String
@@ -545,7 +545,7 @@ data class GetSpringBeanParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:48]
+ * #### Generated from [InstrumentedProcessModel.kt:49]
  */
 data class GetSpringBeanResult (
     val beanModel: ByteArray
@@ -602,7 +602,7 @@ data class GetSpringBeanResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:52]
+ * #### Generated from [InstrumentedProcessModel.kt:53]
  */
 data class GetSpringRepositoriesParams (
     val classId: ByteArray
@@ -659,7 +659,7 @@ data class GetSpringRepositoriesParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:56]
+ * #### Generated from [InstrumentedProcessModel.kt:57]
  */
 data class GetSpringRepositoriesResult (
     val springRepositoryIds: ByteArray
@@ -716,7 +716,7 @@ data class GetSpringRepositoriesResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:17]
+ * #### Generated from [InstrumentedProcessModel.kt:18]
  */
 data class InvokeMethodCommandParams (
     val classname: String,
@@ -791,7 +791,7 @@ data class InvokeMethodCommandParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:24]
+ * #### Generated from [InstrumentedProcessModel.kt:25]
  */
 data class InvokeMethodCommandResult (
     val result: ByteArray
@@ -851,7 +851,8 @@ data class InvokeMethodCommandResult (
  * #### Generated from [InstrumentedProcessModel.kt:13]
  */
 data class SetInstrumentationParams (
-    val instrumentation: ByteArray
+    val instrumentation: ByteArray,
+    val useBytecodeTransformation: Boolean
 ) : IPrintable {
     //companion
     
@@ -861,11 +862,13 @@ data class SetInstrumentationParams (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SetInstrumentationParams  {
             val instrumentation = buffer.readByteArray()
-            return SetInstrumentationParams(instrumentation)
+            val useBytecodeTransformation = buffer.readBool()
+            return SetInstrumentationParams(instrumentation, useBytecodeTransformation)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SetInstrumentationParams)  {
             buffer.writeByteArray(value.instrumentation)
+            buffer.writeBool(value.useBytecodeTransformation)
         }
         
         
@@ -882,6 +885,7 @@ data class SetInstrumentationParams (
         other as SetInstrumentationParams
         
         if (!(instrumentation contentEquals other.instrumentation)) return false
+        if (useBytecodeTransformation != other.useBytecodeTransformation) return false
         
         return true
     }
@@ -889,6 +893,7 @@ data class SetInstrumentationParams (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + instrumentation.contentHashCode()
+        __r = __r*31 + useBytecodeTransformation.hashCode()
         return __r
     }
     //pretty print
@@ -896,6 +901,7 @@ data class SetInstrumentationParams (
         printer.println("SetInstrumentationParams (")
         printer.indent {
             print("instrumentation = "); instrumentation.print(printer); println()
+            print("useBytecodeTransformation = "); useBytecodeTransformation.print(printer); println()
         }
         printer.print(")")
     }
@@ -905,7 +911,7 @@ data class SetInstrumentationParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:60]
+ * #### Generated from [InstrumentedProcessModel.kt:61]
  */
 data class TryLoadingSpringContextResult (
     val springContextLoadingResult: ByteArray

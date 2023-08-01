@@ -1,10 +1,10 @@
 package org.utbot.instrumentation.instrumentation.execution
 
-import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.singleExecutableId
+import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
@@ -129,7 +129,7 @@ class SimpleUtExecutionInstrumentation(
     ): ByteArray {
         val instrumenter = Instrumenter(classfileBuffer, loader)
 
-        if (UtSettings.useBytecodeTransformation) {
+        if (Agent.dynamicClassTransformer.useBytecodeTransformation) {
             instrumenter.visitClass { writer ->
                 BytecodeTransformer(writer)
             }

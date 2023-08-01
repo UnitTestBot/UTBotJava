@@ -110,10 +110,8 @@ class SpringTestClassModelBuilder(val context: CgContext):
             is UtPrimitiveModel,
             is UtClassRefModel,
             is UtVoidModel,
-            is UtEnumConstantModel -> {}
-            is UtCustomModel -> currentModel.origin?.let {
-                collectRecursively(it.wrap(currentModelWrapper.modelTagName), allModels)
-            }
+            is UtEnumConstantModel,
+            is UtCustomModel-> {}
             is UtLambdaModel -> {
                 currentModel.capturedValues.forEach { collectRecursively(it.wrap(), allModels) }
             }
@@ -134,8 +132,6 @@ class SpringTestClassModelBuilder(val context: CgContext):
                 }
             }
             is UtAssembleModel -> {
-                currentModel.origin?.let { collectRecursively(it.wrap(), allModels) }
-
                 currentModel.instantiationCall.instance?.let { collectRecursively(it.wrap(), allModels) }
                 currentModel.instantiationCall.params.forEach { collectRecursively(it.wrap(), allModels) }
 

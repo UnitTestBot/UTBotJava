@@ -2,59 +2,55 @@
 
 ## Introduction to the technique
 
-Taint analysis is a method that allows you to track the spread of unverified external data on the program. Getting such
-data into critical sections of the code can lead to various vulnerabilities, including SQL injection, cross-site
-scripting
-(XSS) and many others. Attackers can use these vulnerabilities to disrupt the correct operation of the system, obtain
-confidential data or conduct other unauthorized operations. Taint analysis helps to find the described mistakes at the
-compilation stage.
+Taint analysis allows you to track the propagation of unverified external data through the program.
+If this kind of data reaches critical code sections, it may lead to vulnerabilities, including SQL injections, 
+cross-site scripting (XSS) and others.
+Attackers can use these vulnerabilities to disrupt correct system operation, get confidential data, or perform other unauthorized operations.
+Taint analysis helps to find these mistakes at the compilation stage.
 
-The key idea of the approach is that any variable that can be changed by an external user stores a potential security
-threat.
-If this variable is used in some expression, then the value of this expression also becomes suspicious.
-Further, the algorithm tracks and notifies of situations when any of these marked variables are used in dangerous
-command execution,
-for example, direct queries to the database or the computer's operating system.
+The key idea of the approach is that any variable an external user can change stores a potential security
+threat. If the variable is used in some expression, then the value of this expression also becomes suspicious.
+The algorithm tracks situations when the variables marked as suspicious are used in dangerous
+command execution, for example, in direct queries to a database or an operating system.
 
-For its work, taint analysis requires a configuration in which program methods can be assigned one of the following
-roles.
+Taint analysis requires a configuration, where you assign one of the following
+roles to each method in a program.
 
 - Taint source — a source of unverified data.
-  For example, it can be a method for reading user input or a method for obtaining a parameter of an incoming HTTP
+  For example, it can be a method for reading user input, or a method for getting a parameter of an incoming HTTP
   request.
-  The Taint source execution result is called marked. The semantics of the method determines which mark will be applied
+  The Taint source execution result is marked. The method semantics determines the mark to be applied
   to the variable.
-  Moreover, the name of the mark can be completely arbitrary, since it is chosen by the one who writes the
+  The name of the mark can be completely arbitrary, since it is chosen by the one who writes the
   configuration.
-  For example, it can be set that the `getPassword()` method marks its return value with a "sensitive-data" mark.
+  For example, according to configuration, the `getPassword()` method marks its return value with a "sensitive-data" 
+  mark.
 - Taint pass — a function that marks the return value taking into account the marks in its arguments.
-  Depending on the implementation, marks can be applied not only to the result of the method but also to the object
-  `this`, and on the input parameters. For example, it can be set that the concatenation
-  method `concat(String a, String b)`
-  marks its result with all marks from `a` and from `b`.
+  Depending on the implementation, marks can be applied not only to method results but also to a `this` object, and to 
+  input parameters. For example, you can configure the `concat(String a, String b)` concatenation method 
+  to mark its result with all the marks from `a` and `b`.
 - Taint cleaner — a function that removes a given set of marks from the passed arguments.
-  Most often, this is some kind of validation method that verifies that the user has entered data in the expected
+  Most often, this is a kind of validation method that verifies that the user has entered data in the expected
   format.
-  For example, the `validateEmail(String email)` method removes the XSS mark upon successful completion of the checks,
-  because now there is no unverified data in the `email` that can lead to vulnerability of cross-site
-  scripting.
-- Taint sink — a receiver, some critical section of the application.
-  It can be a method of direct access to the database or file system, as well as any other potentially dangerous
-  operation.
+  For example, the `validateEmail(String email)` method removes the "XSS" mark upon successful check completion,
+  because no unverified data in the `email` object that can now lead to cross-site
+  scripting vulnerability.
+- Taint sink — a receiver, a critical section of an application.
+  It can be a method that accesses a database or a file system directly, or perform other potentially dangerous
+  operations.
   For the Taint sink, you can set a list of marks. Variables with specified marks should not leak into this taint sink.
-  For example, if a value marked "sensitive-data" is passed to the logging function, which prints its arguments directly
-  to the console, then this is a developer mistake, since data leaks.
+  For example, if a value marked as "sensitive-data" is passed to a logging function, which prints its arguments 
+  directly to the console, then this is a developer mistake, since data leaks.
 
 The taint analysis algorithm scans the data flow graph, trying to detect a route between a method from a set of Taint
-sources
-and a method from Taint sinks. The UnitTesBot taint analysis is implemented inside the symbolic engine
+sources and a method from Taint sinks. The UnitTesBot taint analysis feature is implemented inside the symbolic engine
 to avoid a large number of false positives.
 
-### Example
+**Example**
 
-Consider an example of a simple function in which there is an SQL injection vulnerability:
-if an attacker enters the string `"name'); DROP TABLE Employees; --"` into the variable name, then he will be able
-to delete the Employees table along with all the data that was stored in it.
+Consider an example of a simple function with an SQL injection vulnerability inside:
+if an attacker enters the string `"name'); DROP TABLE Employees; --"` into the variable name, then it will be possible
+to delete the `Employees` table with the data in it.
 
 ```java
 class Example {
@@ -70,26 +66,26 @@ class Example {
 }
 ```
 
-For taint analysis, you must set the configuration.
+For taint analysis, you have to set the configuration.
 
 - Taint source is a `java.util.Scanner.nextLine` method that adds a "user-input" mark to the returned value.
 - Taint pass is a `java.lang.String.concat` method that passes the "user-input" marks through itself received
   either from the first argument or from the object on which this method is called (`this`).
-- Taint sink is a `java.sql.Statement.executeUpdate` method that checks variables marked "user-input".
+- Taint sink is a `java.sql.Statement.executeUpdate` method that checks variables marked as "user-input".
 
 Any correct implementation of the taint analysis algorithm should detect a mistake in this code: the variable with
-the mark "user-input" is passed to the `executeUpdate` (sink).
+the "user-input" mark is passed to `executeUpdate` (the sink).
 
-It is important to note that the duties of the algorithm do not include detecting specific data that an attacker could
-enter to harm the program. It is only necessary to discover the route connecting the source and the sink.
+Note that the algorithm is not responsible for detecting specific data that an attacker could
+enter to harm the program. It only discovers the route connecting the source and the sink.
 
 ## UnitTestBot implementation
 
-There is no unified configuration format for taint analysis in the world and all static analyzers describe their
-own way of configuration. Thus, we are going to do the same thing: to come up with a configuration scheme
-where it would be possible to describe the rules: sources, passes, cleaners and sinks.
+No unified configuration format is provided for taint analysis in the world, and all static analyzers describe their
+own way of configuration. Thus, we provide a custom configuration scheme to describe the rules: sources, passes, 
+cleaners, and sinks.
 
-### Configuration
+### Configuration: general structure
 
 The general structure of the configuration format (based on YAML) is presented below.
 
@@ -111,17 +107,17 @@ sinks:
 
 That is, these are just lists of rules related to a specific type.
 
-Each rule has a certain set of characteristics.
+Each rule has a set of characteristics.
 
 - The unique identifier of the method that this rule describes.
-  It consists of the full name of the method, including the package name and class name,
-  as well as the signature of the method — a set of types of its arguments (the `signature` key in YAML).
+  It consists of the method's full name, including the package name and the class name,
+  as well as the signature of the method — a set of argument types (the `signature` key in the YAML file).
 - Some `conditions` that must be met during execution for the rule to work.
 - A set of `marks` that the rule uses.
-- A set of specific mark management actions that occur when a rule is triggered (`add-to`, `get-from`, `remove-from`, or
-  `check`, depending on the semantics of the rule).
+- A set of specific mark management actions that occur when the rule is triggered (`add-to`, `get-from`, 
+  `remove-from`, or `check`, depending on the semantics of the rule).
 
-Thus, one rule, for example, taint source, can look like
+For example, the rule for the taint source can look like this.
 
 ```yaml
 com.abc.ClassName.methodName:
@@ -133,28 +129,28 @@ com.abc.ClassName.methodName:
   marks: user-input
 ```
 
-This rule is defined for a method named `methodName` from the `ClassName` class, which is in the `com.abc` package.
-The method takes exactly 3 arguments, the first of which has the `int` type, the second can be anything,
-and the last has the `java.lang.Object` type.
-The `signature` key may not be specified, then any `methodName` overload is considered appropriate.
+This rule is defined for a method named `methodName` from the `ClassName` class located in the `com.abc` package.
+The method takes exactly 3 arguments: the first one has the `int` type, the second can be anything,
+and the last one has the `java.lang.Object` type.
+The `signature` key may not be specified, then any `methodName` overload is appropriate.
 
-Triggering occurs only when the first argument (`arg1`) is not equal to either -1 or 1,
-which is specified by the `conditions` key (the list is interpreted as a logical OR).
-This parameter is optional, if it is not present, no conditions will be checked.
+The rule is triggered when the first argument (`arg1`) is not equal to either -1 or 1 as specified by the `conditions` 
+key (the list is interpreted as logical OR).
+This parameter is optional, if it is absent, no conditions are checked.
 
-The described source adds a "user-input" mark on the variables corresponding to `this`, `arg2` and `return`.
-In other words, to the class object `ClassName` on which methodName is called, the second argument of the function
-and the return value. Moreover, the `add-to` and `marks` keys can contain both a list and a single value — this is done
-for more convenient use.
+The described source adds a "user-input" mark to the variables corresponding to `this`, `arg2` and `return`:
+to the `ClassName` class object on which `methodName` is called, to the second argument of the function
+and to the return value. Moreover, the `add-to` and `marks` keys can contain both a list, and a single value.
 
-The other types of rules have the same syntax as the source, except for the `add-to` key.
+The other rule types have the same syntax as the source, except for the `add-to` key.
 
 - Taint pass transfers marks from one set of objects to another, so two keys are defined for it:
-  `get-from` and `add-to`, respectively. The mark specified in `marks` are added on `add-to` if there is one in `get-from`.
+  `get-from` and `add-to`, respectively. The marks specified in `marks` are added on `add-to` if there is a mark in 
+  `get-from`.
 - Taint cleaner removes marks from objects, so its key is called `remove-from`.
-- Taint sink checks for the presence of some marks in variables, which locates under the `check` key.
+- Taint sink checks for the marks in variables, which locates under the `check` key.
 
-### Configuration details
+### Configuration: details
 
 Fully qualified method names can be written in one line or using nested structure: the package name is specified first,
 then the class name appears, and finally, there is the method name itself.
@@ -173,8 +169,6 @@ or
 
 Note that regular expressions in names are not supported yet.
 
----
-
 The `add-to`, `get-from`, `remove-from`, and `check` fields specify the objects (or entities) to be marked.
 You can specify only one value here or a whole list.
 
@@ -186,9 +180,7 @@ Possible values are:
 - ...
 - `return`
 
----
-
-The user can define arbitrary mark names or specify an empty list (`[]`) if he means all possible marks.
+The user can define arbitrary mark names or specify an empty list (`[]`) for all possible marks.
 
 ```yaml
 passes:
@@ -208,21 +200,19 @@ passes:
       marks: [ ] # all possible marks
 ```
 
----
-
 To check the conformity to `conditions`, you can set:
 
 - the specific values of method arguments
 - their runtime types
 
-Values can be set for the following types: `boolean`, `int`, `float` or `string` (and also `null` value for all nullable
+Values can be set for the following types: `boolean`, `int`, `float` or `string` (and `null` value for all nullable
 types).
 
 The full type name must be specified in the angle brackets `<>`.
 
 The `conditions` field specifies runtime conditions for arguments (`arg1`, `arg2`, ...).
 Conditions can also be specified for `this` and `return` if it makes sense.
-For sinks there is no sense to check some conditions for return value, so such functionality is not supported.
+For sinks, checking conditions for a return value makes no sense, so this functionality is not supported.
 
 ```yaml
 conditions:
@@ -248,13 +238,9 @@ conditions:
   arg4: [ "", { not: <java.lang.String> } ] # should be an empty string or not a string at all
 ```
 
----
+If several rules are suitable for one method call, they are all applied.
 
-If several rules are suitable for one method call, they will all be applied in some kind of order.
-
----
-
-### Overall example
+**Overall example**
 
 ```yaml
 sources:
@@ -304,9 +290,9 @@ sinks:
           marks: [ sql-injection, xss ]
 ```
 
-### Usage examples
+**Usage examples**
 
-`java.lang.System.getenv` is a source of the "environment" mark. There are two overloads of this method: with one string
+`java.lang.System.getenv` is a source of the “environment” mark. There are two overloads of this method: with one string
 parameter and no parameters at all. We want to describe only the first overload:
 
   ```yaml
@@ -337,7 +323,7 @@ not equal to `""`:
             marks: sensitive-data
   ```
 
-If you want to define `+` operator for strings as taint pass, you should write the following rules:
+If you want to define a `+` operator for strings as taint pass, you should write the following rules:
 
 ```yaml
 passes:
@@ -362,7 +348,7 @@ passes:
         marks: [ sql-injection, xss ]
   ```
 
-Suppose that the `org.example.util.unsafe` method is a sink for the "environment" mark if the second argument is
+Suppose that the `org.example.util.unsafe` method is a sink for the “environment” mark if the second argument is
 an `Integer` and equal to zero:
 
   ```yaml
@@ -375,7 +361,7 @@ an `Integer` and equal to zero:
         marks: environment
   ```
 
-The configuration above checks the type at compile-time, but sometimes we want to check the type at runtime:
+The configuration above checks the type at compile time, but sometimes we want to check the type at runtime:
 
   ```yaml
   sinks:
@@ -392,13 +378,13 @@ Perhaps explicit `and` for `conditions` will be added in the future.
 ### Algorithm implementation details
 
 The main idea of the implemented approach is that each symbolic variable is associated with a taint vector — a 64-bit
-value, each bit `i` of which is responsible for the presence of a mark with the number `i` in this object.
+value, where each `i` bit is responsible for the presence of a mark with the number `i` in this object.
 After that, during the symbolic execution, these mappings are maintained and updated in accordance with
 the classical taint analysis algorithm.
 
-The implementation mostly affect the `Traverser` and `Memory` classes. Also, the new classes `TaintMarkRegistry`
-and `TaintMarkManager`. The diagram below shows a high-level architecture of the taint module (actually, in the code
-it was written a little differently, but to understand the idea, the diagram is greatly simplified).
+The implementation mostly affects the `Traverser` and `Memory` classes, as well as the new `TaintMarkRegistry`
+and `TaintMarkManager` classes. The diagram below shows a high-level architecture of the taint module (in the actual 
+code, the implementation is a bit different, but to understand the idea, the diagram is greatly simplified).
 
 <img src="https://github.com/UnitTestBot/UTBotJava/assets/54814796/0a199fc8-ef6c-4fc5-830d-91ed556a8e3f" height="250">
 
@@ -407,48 +393,49 @@ The number of marks is limited to 64. However, firstly, this is enough for almos
 and secondly, the decision was made due to performance issues — operations with the `Long` data type are
 performed much faster than if a bit array was used.
 
-The TaintModel component (data classes at `org.utbot.taint.model`) is responsible for providing access
+The `TaintModel` component (data classes at `org.utbot.taint.model`) is responsible for providing access
 to the configuration. In particular, it defines a way to convert conditions (the value of the `conditions` key
 in a YAML document) into logical expressions over symbolic variables.
 
 `Memory` stores the values of the taint bit-vectors for symbolic variables. Only simple methods were implemented there
 (functions to update vectors and get them at the address of a symbolic object).
 All the complex logic of adding and removing marks, based on taint analysis theory,
-was written in a separate class `TaintMarkManager`. In other words, this class wraps low-level memory work into
+was written in a separate `TaintMarkManager` class. In other words, this class wraps low-level memory work into
 domain-friendly operations.
 
-The information about the marked variables is updated during the `Traverser` work. Before each of the `invoke()`
-instruction, which corresponds to the launch of some method in the user code, a special `Traverser.processTaintSink`
-handler is called, and after the `invoke` instruction, the `Traverser.processTaintSource`, `Traverser.processTaintPass`
-and `Traverser.processTaintCleaner` handlers are called. This order is because all rules, except sinks,
-need the result of the function. At the same time, the transfer fact of tainted data occurs at the time of launching
-the sink function, therefore, you can report the vulnerability found even before it is executed.
+The information about the marked variables is updated during the `Traverser` work. Before each `invoke()`
+instruction corresponding to the method call in the user code, a special `Traverser.
+processTaintSink` handler is called, and after the `invoke` instruction, the `Traverser.processTaintSource`, 
+`Traverser.processTaintPass` and `Traverser.processTaintCleaner` handlers are called. This order is set because all the
+rules, except tose for the sinks, need the result of the function. At the same time, the fact of transferring 
+the tainted data occurs when launching the sink function, therefore, you can report the vulnerability 
+found even before it is executed.
 
 The listed rule handlers get the configuration and perform the taint analysis semantics. The `processTaintSink` method
-requests information from the `TaintMarkManager` about the marks already set and adds constraints to the SMT solver,
-the satisfiability of which corresponds to the detection of a defect. The other handlers modify the symbolic `Memory`
-through the `TaintMarkManager`, adding and removing marks from the selected symbolic variables.
+requests information from the `TaintMarkManager` about the marks already set and adds constraints to the SMT 
+solver: the satisfiability corresponds to the defect detection. The other handlers modify the symbolic 
+`Memory` through the `TaintMarkManager`, adding and removing marks from the selected symbolic variables.
 
 ### Code generator modification
 
-The result of the UnitTestBot (in addition to the SARIF report) are unit tests. `CodeGenerator` is launched on each
-found test case, and generates the test (as Java code). Moreover, the test which leads to throwing an unhandled exception
-should not pass. The taint analysis errors are not real from the point of view of the language, since they are not
-real exceptions. However, it is still needed to highlight such tests as failed, so the code generator was modified
-in such a way that an artificial error was added at the end of each test, which would ensure a fall (the same strategy
+UnitTestBot produces unit tests (and the SARIF reports). `CodeGenerator` is launched on each
+found test case, and generates the test (as Java code). Moreover, the test, which leads to throwing an unhandled exception, 
+should not pass. Taint analysis errors are not real from the language perspective, since they 
+are not real exceptions. However, we still have to highlight such tests as failed. The code generator was modified
+so that an artificial error was added at the end of each test to ensure a fail (the same strategy
 was used in the integer overflow detection).
 
 ```java
 fail("'java.lang.String' marked 'user-input' was passed into 'Example.example' method");
 ```
 
-The solution allows to automatically get integration with SARIF reports and visualization of results
-in the Problems view tab in IntelliJ IDEA. The found test case is treated as a real exception,
+The solution allows us to automatically integrate with the SARIF reports and to visualize the results
+in the IntelliJ IDEA _Problems_ tool window. The found test case is treated as a real exception,
 and all the necessary logic has already been written for them.
 
-### Example
+**Example**
 
-Consider the code below
+Consider the code below.
 
 ```java
 public class User {
@@ -471,8 +458,8 @@ public class User {
 ```
 
 The `getPassword` method returns sensitive data that should never leak out of the application, but the programmer prints
-them to the `stdout`, which is a serious mistake. First, we will write a configuration that expresses the thought said,
-and save it to the file `./.idea/utbot-taint-config.yaml`, from where the analyzer can read it.
+them to the `stdout`, which is a serious mistake. First, we write the corresponding configuration and save it to the 
+`./.idea/utbot-taint-config.yaml` file for the analyzer to read from.
 
 ```yaml
 sources:
@@ -492,7 +479,7 @@ sinks:
       marks: sensitive-data
 ```
 
-Then we enable taint analysis in settings and run the UnitTestBot using the IntelliJ IDEA plugin.
+Then we enable taint analysis in settings and run the UnitTestBot plugin in IntelliJ IDEA.
 
 <img src="https://github.com/UnitTestBot/UTBotJava/assets/54814796/64f12291-5596-4c6e-a1cd-6ad4aab03e47" height="250">
 
@@ -517,19 +504,24 @@ public final class UserTest {
 }
 ```
 
-Also, we can see the detected problem on the Problems tab:
+We can see the detected problem in the _Problems_ tool window:
 
 <img src="https://github.com/UnitTestBot/UTBotJava/assets/54814796/59cacc9c-7329-4a3f-b496-5a0307c96d06" height="250">
 
-**A brief explanation**: After executing the `getPassword` method, the symbol corresponding to the password variable
-is marked as "sensitive-data" (a zero bit is set to 1 in its taint vector). After calling `userInfo`, the `info`
-variable is also marked, since `userInfo` is a taint pass that adds to the return value all the marks collected from
-both of its arguments. Before printing `info` to the console, the `processTaintSink` handler function adds a constraint
-to the SMT solver, the satisfiability of which corresponds to throwing our artificial error. The logical formula for
+**A brief explanation**
+
+Upon executing the `getPassword` method, the symbol corresponding to the password variable
+is marked as "sensitive-data" (a zero bit is set to 1 in its taint vector). Upon calling `userInfo`, the `info`
+variable is also marked, since `userInfo` is a taint pass that adds the marks from
+both of its arguments to the return value. Before printing `info` to the console, the `processTaintSink` handler function adds a constraint
+to the SMT solver, so that its satisfiability corresponds to throwing an artificial error. The logical 
+formula for
 this path is satisfiable, so the analyzer reports an error detected, which we eventually observe.
 
 ### Unit tests
 
-Taint analysis unit tests are at the `./utbot-framework-test/src/test/kotlin/org/utbot/examples/taint/`
-directory. Tests use examples at the `utbot-sample/src/main/java/org/utbot/examples/taint`. Each example has its own
-configuration file stored at the `utbot-sample/src/main/resources/taint`.
+Taint analysis unit tests are located at the `./utbot-framework-test/src/test/kotlin/org/utbot/examples/taint/`
+directory.
+
+Test use examples are located at `utbot-sample/src/main/java/org/utbot/examples/taint`. Each example has its own
+configuration file stored at `utbot-sample/src/main/resources/taint`.

@@ -40,11 +40,11 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
             constructAdditionalTestMethods()?.let { methodRegions += it }
 
             for ((testSetIndex, testSet) in testClassModel.methodTestSets.withIndex()) {
-                updateCurrentExecutable(testSet.executableId)
+                updateExecutableUnderTest(testSet.executableUnderTest)
                 withTestSetIdScope(testSetIndex) {
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: return@withTestSetIdScope
                     val executableUnderTestCluster = CgMethodsCluster(
-                        "Test suites for executable $currentExecutable",
+                        "Test suites for executable $currentExecutableUnderTest",
                         currentMethodUnderTestRegions
                     )
                     methodRegions += executableUnderTestCluster
@@ -75,7 +75,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
 
         val errors = testSet.allErrors
         if (errors.isNotEmpty()) {
-            regions += methodConstructor.errorMethod(testSet.executableId, errors)
+            regions += methodConstructor.errorMethod(testSet, errors)
             testsGenerationReport.addMethodErrors(testSet, errors)
         }
 

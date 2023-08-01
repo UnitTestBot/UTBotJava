@@ -50,11 +50,11 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
             }
 
             for ((testSetIndex, testSet) in notYetConstructedTestSets.withIndex()) {
-                updateCurrentExecutable(testSet.executableId)
+                updateExecutableUnderTest(testSet.executableUnderTest)
                 withTestSetIdScope(testSetIndex) {
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: return@withTestSetIdScope
                     val executableUnderTestCluster = CgMethodsCluster(
-                        "Test suites for executable $currentExecutable",
+                        "Test suites for executable $currentExecutableUnderTest",
                         currentMethodUnderTestRegions
                     )
                     methodRegions += executableUnderTestCluster
@@ -96,14 +96,16 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
                         createParametrizedTestAndDataProvider(
                             testSet,
                             regions
-                        )
+                        ).let { parametrizedTestCreatedSuccessfully ->
+                            if (!parametrizedTestCreatedSuccessfully) createTest(testSet, regions)
+                        }
                 }
             }.onFailure { e -> processFailure(testSet, e) }
         }
 
         val errors = testSet.allErrors
         if (errors.isNotEmpty()) {
-            regions += methodConstructor.errorMethod(testSet.executableId, errors)
+            regions += methodConstructor.errorMethod(testSet, errors)
             testsGenerationReport.addMethodErrors(testSet, errors)
         }
 
@@ -119,17 +121,21 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
         return testSets
     }
 
+    /**
+     * Returns `false` if parameterized test method can't be created for [testSet]
+     * (for example, when there are multiple distinct [CgMethodTestSet.executablesToCall]).
+     */
     private fun createParametrizedTestAndDataProvider(
         testSet: CgMethodTestSet,
         regions: MutableList<CgRegion<CgMethod>>
-    ) {
+    ) : Boolean {
         val (methodUnderTest, _, _) = testSet
 
         for (preparedTestSet in testSet.prepareTestSetsForParameterizedTestGeneration()) {
-            val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(preparedTestSet.executableId)
+            val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(preparedTestSet.executableUnderTest)
 
             val parameterizedTestMethod =
-                methodConstructor.createParameterizedTestMethod(preparedTestSet, dataProviderMethodName)
+                methodConstructor.createParameterizedTestMethod(preparedTestSet, dataProviderMethodName) ?: return false
 
             testFrameworkManager.addDataProvider(
                 methodConstructor.createParameterizedTestDataProvider(preparedTestSet, dataProviderMethodName)
@@ -150,6 +156,8 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
             "FUZZER: Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
             collectFuzzerTestsForParameterizedMode(testSet),
         )
+
+        return true
     }
 
     /**
@@ -164,7 +172,7 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
             .withIndex()
             .forEach { (index, execution) ->
                 withExecutionIdScope(index) {
-                    testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
+                    testMethods += methodConstructor.createTestMethod(testSet, execution)
                 }
             }
 
@@ -184,7 +192,7 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
             .withIndex()
             .forEach { (index, execution) ->
                 withExecutionIdScope(index) {
-                    testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
+                    testMethods += methodConstructor.createTestMethod(testSet, execution)
                 }
             }
 

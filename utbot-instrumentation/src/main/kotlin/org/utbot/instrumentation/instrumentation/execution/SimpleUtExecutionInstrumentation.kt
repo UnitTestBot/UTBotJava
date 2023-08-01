@@ -3,6 +3,8 @@ package org.utbot.instrumentation.instrumentation.execution
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
@@ -31,6 +33,9 @@ class SimpleUtExecutionInstrumentation(
     /**
      * Ignores [arguments], because concrete arguments will be constructed
      * from models passed via [parameters].
+     *
+     * Ignores [clazz] and [methodSignature] if they can be constructed
+     * from [parameters] (see [EnvironmentModels.executableToCall]).
      *
      * Argument [parameters] must be of type [UtConcreteExecutionData].
      */
@@ -61,7 +66,12 @@ class SimpleUtExecutionInstrumentation(
 
                     // invocation
                     val concreteResult = executePhaseInTimeout(invocationPhase) {
-                        invoke(clazz, methodSignature, params.map { it.value })
+                        val executableToCall = stateBefore.executableToCall?.executable
+                        invoke(
+                            clazz = executableToCall?.declaringClass ?: clazz,
+                            methodSignature = executableToCall?.signature ?: methodSignature,
+                            params = params.map { it.value }
+                        )
                     }
 
                     // statistics collection
@@ -93,7 +103,12 @@ class SimpleUtExecutionInstrumentation(
                         } else {
                             stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
                         }
-                        val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
+                        val stateAfter = EnvironmentModels(
+                            thisInstance = stateAfterThis,
+                            parameters = stateAfterParameters,
+                            statics = stateAfterStatics,
+                            executableToCall = stateBefore.executableToCall
+                        )
 
                         Triple(executionResult, stateAfter, newInstrumentation)
                     }
@@ -114,8 +129,10 @@ class SimpleUtExecutionInstrumentation(
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =
         delegateInstrumentation.getStaticField(fieldId).map { value ->
-            UtModelConstructor.createOnlyUserClassesConstructor(pathsToUserClasses)
-                .construct(value, fieldId.type)
+            UtModelConstructor.createOnlyUserClassesConstructor(
+                pathsToUserClasses = pathsToUserClasses,
+                utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
+            ).construct(value, fieldId.type)
         }
 
     override fun transform(

@@ -32,6 +32,7 @@ interface UtModelConstructorInterface {
  */
 class UtModelConstructor(
     private val objectToModelCache: IdentityHashMap<Any, UtModel>,
+    private val utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?,
     private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy,
     private val maxDepth: Long = DEFAULT_MAX_DEPTH
 ) : UtModelConstructorInterface {
@@ -46,12 +47,15 @@ class UtModelConstructor(
     companion object {
         private const val DEFAULT_MAX_DEPTH = 7L
 
-        fun createOnlyUserClassesConstructor(pathsToUserClasses: Set<String>): UtModelConstructor {
+        fun createOnlyUserClassesConstructor(
+            pathsToUserClasses: Set<String>,
+            utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?
+        ): UtModelConstructor {
             val cache = IdentityHashMap<Any, UtModel>()
             val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
                 pathsToUserClasses, cache
             )
-            return UtModelConstructor(cache, strategy)
+            return UtModelConstructor(cache, utModelWithCompositeOriginConstructorFinder, strategy)
         }
     }
 
@@ -269,7 +273,7 @@ class UtModelConstructor(
             val streamConstructor = findStreamConstructor(stream)
 
             try {
-                streamConstructor.constructAssembleModel(this, stream, valueToClassId(stream), handleId(stream)) {
+                streamConstructor.constructModelWithCompositeOrigin(this, stream, valueToClassId(stream), handleId(stream)) {
                     constructedObjects[stream] = it
                 }
             } catch (e: Exception) {
@@ -285,18 +289,18 @@ class UtModelConstructor(
      */
     private fun constructFromAny(value: Any, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(value) {
-            tryConstructUtAssembleModel(value, remainingDepth) ?: constructCompositeModel(value, remainingDepth)
+            tryConstructCustomModel(value, remainingDepth) ?: constructCompositeModel(value, remainingDepth)
         }
 
     /**
-     * Constructs UtAssembleModel but does it only for predefined list of classes.
+     * Constructs custom UtModel but does it only for predefined list of classes.
      *
-     * Uses runtime class of an object.
+     * Uses runtime class of [value].
      */
-    private fun tryConstructUtAssembleModel(value: Any, remainingDepth: Long): UtModel? =
-        findUtAssembleModelConstructor(value::class.java.id)?.let { assembleConstructor ->
+    private fun tryConstructCustomModel(value: Any, remainingDepth: Long): UtModel? =
+        utModelWithCompositeOriginConstructorFinder(value::class.java.id)?.let { modelConstructor ->
             try {
-                assembleConstructor.constructAssembleModel(
+                modelConstructor.constructModelWithCompositeOrigin(
                     internalConstructor = this.withMaxDepth(remainingDepth - 1),
                     value = value,
                     valueClassId = valueToClassId(value),
@@ -315,7 +319,7 @@ class UtModelConstructor(
      *
      * Uses runtime javaClass to collect ALL fields, except final static fields, and builds this model recursively.
      */
-    private fun constructCompositeModel(value: Any, remainingDepth: Long): UtModel {
+    private fun constructCompositeModel(value: Any, remainingDepth: Long): UtCompositeModel {
         // value can be mock only if it was previously constructed from UtCompositeModel
         val isMock = objectToModelCache[value]?.isMockModel() ?: false
 

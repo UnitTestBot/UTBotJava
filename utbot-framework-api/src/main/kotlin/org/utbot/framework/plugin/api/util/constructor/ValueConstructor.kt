@@ -20,6 +20,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -193,6 +194,10 @@ class ValueConstructor {
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
+            is UtCustomModel -> UtConcreteValue(
+                constructObject(model.origin ?: error("Can't construct value for custom model without origin [$model]")),
+                model.classId.jClass
+            )
             // Python, JavaScript are supposed to be here as well
             else -> throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
         }

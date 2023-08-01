@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import mu.KotlinLogging
 import org.utbot.common.isStatic
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
@@ -30,6 +31,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -66,6 +68,10 @@ open class CgVariableConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),
     CgStatementConstructor by getStatementConstructorBy(context) {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     private val nameGenerator = getNameGeneratorBy(context)
     val mockFrameworkManager = getMockFrameworkManagerBy(context)
@@ -111,6 +117,12 @@ open class CgVariableConstructor(val context: CgContext) :
             is UtLambdaModel -> constructLambda(model, baseName)
             is UtNullModel -> nullLiteral()
             is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
+            is UtCustomModel -> {
+                logger.error { "Unexpected behaviour: value for UtCustomModel [$model] is constructed by base CgVariableConstructor" }
+                constructValueByModel(
+                    model.origin ?: error("Can't construct value for UtCustomModel without origin [$model]"), name
+                )
+            }
             is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
             is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
             else -> error("Unexpected UtModel: ${model::class}")

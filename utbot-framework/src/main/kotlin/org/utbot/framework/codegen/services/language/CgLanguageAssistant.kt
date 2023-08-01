@@ -11,7 +11,9 @@ import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl
 import org.utbot.framework.codegen.services.access.CgFieldStateManager
 import org.utbot.framework.codegen.services.access.CgFieldStateManagerImpl
+import org.utbot.framework.codegen.tree.CgCustomAssertConstructor
 import org.utbot.framework.codegen.tree.CgMethodConstructor
+import org.utbot.framework.codegen.tree.CgSimpleCustomAssertConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
 import org.utbot.framework.codegen.tree.CgVariableConstructor
@@ -47,6 +49,9 @@ interface CgLanguageAssistant {
     fun getVariableConstructorBy(context: CgContext): CgVariableConstructor
 
     fun getMethodConstructorBy(context: CgContext): CgMethodConstructor
+
+    fun getCustomAssertConstructorBy(context: CgContext): CgCustomAssertConstructor
+
     fun getCgFieldStateManager(context: CgContext): CgFieldStateManager
 
     fun getLanguageTestFrameworkManager(): LanguageTestFrameworkManager
@@ -65,4 +70,7 @@ abstract class AbstractCgLanguageAssistant : CgLanguageAssistant {
 
     override fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = CgMethodConstructor(context)
     override fun getCgFieldStateManager(context: CgContext): CgFieldStateManager = CgFieldStateManagerImpl(context)
+
+    override fun getCustomAssertConstructorBy(context: CgContext): CgCustomAssertConstructor =
+        CgSimpleCustomAssertConstructor(context)
 }

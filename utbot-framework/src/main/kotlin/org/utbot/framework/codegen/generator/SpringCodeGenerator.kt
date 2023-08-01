@@ -4,11 +4,13 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.builders.SpringTestClassModelBuilder
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.codegen.tree.CgCustomAssertConstructor
 import org.utbot.framework.codegen.tree.CgSpringIntegrationTestClassConstructor
 import org.utbot.framework.codegen.tree.CgSpringUnitTestClassConstructor
 import org.utbot.framework.codegen.tree.CgSpringVariableConstructor
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
+import org.utbot.framework.codegen.tree.withCustomAssertForMockMvcResultActions
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringSettings
@@ -27,6 +29,10 @@ class SpringCodeGenerator(
             override fun getVariableConstructorBy(context: CgContext): CgVariableConstructor =
                 // TODO decorate original `params.cgLanguageAssistant.getVariableConstructorBy(context)`
                 CgSpringVariableConstructor(context)
+
+            override fun getCustomAssertConstructorBy(context: CgContext): CgCustomAssertConstructor =
+                params.cgLanguageAssistant.getCustomAssertConstructorBy(context)
+                    .withCustomAssertForMockMvcResultActions()
         }
     )
 ) {

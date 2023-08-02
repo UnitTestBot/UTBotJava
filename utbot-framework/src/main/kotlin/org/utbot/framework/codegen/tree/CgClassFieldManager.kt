@@ -43,9 +43,6 @@ abstract class CgClassFieldManagerImpl(context: CgContext) :
 
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
 
-    val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
-    val spyFrameworkManager = SpyFrameworkManager(context)
-
     fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
         val key = setOfModels?.find { it == model.wrap() } ?: return null
         return valueByUtModelWrapper[key]
@@ -58,6 +55,10 @@ abstract class CgClassFieldManagerImpl(context: CgContext) :
 
 abstract class CgUnitTestsClassFieldManager(context: CgContext) : CgClassFieldManagerImpl(context){
 
+    /*
+     * If count of fields of the same type is 1, then we mock/spy variable by @Mock/@Spy annotation,
+     * otherwise we will create this variable by simple variable constructor.
+     */
     override fun fieldWithAnnotationIsRequired(classId: ClassId) =
         classUnderTest.allDeclaredFieldIds.filter { classId.isSubtypeOf(it.type) }.toList().size == 1
 }
@@ -98,6 +99,8 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManage
 
 class CgMockedFieldsManager(context: CgContext) : CgUnitTestsClassFieldManager(context) {
 
+    private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
+
     override val annotationType = mockClassId
 
     override fun constructVariableForField(model: UtModel, modelVariable: CgValue) {
@@ -118,6 +121,9 @@ class CgMockedFieldsManager(context: CgContext) : CgUnitTestsClassFieldManager(c
 }
 
 class CgSpiedFieldsManager(context: CgContext) : CgUnitTestsClassFieldManager(context) {
+
+    private val spyFrameworkManager = SpyFrameworkManager(context)
+
     override val annotationType = spyClassId
 
     override fun constructVariableForField(model: UtModel, modelVariable: CgValue) {

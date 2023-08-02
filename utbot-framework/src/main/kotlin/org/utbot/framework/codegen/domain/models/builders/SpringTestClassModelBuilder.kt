@@ -93,7 +93,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
     private fun collectByModel(model: UtModel): Set<UtModelWrapper> {
         val dependentModels = mutableSetOf<UtModelWrapper>()
 
-        collectRecursively(model.wrap(), dependentModels)
+        collectRecursively(model, dependentModels)
 
         return dependentModels
     }
@@ -108,12 +108,12 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         return classModels
     }
 
-    private fun collectRecursively(currentModelWrapper: UtModelWrapper, allModels: MutableSet<UtModelWrapper>) {
-        if (!allModels.add(currentModelWrapper)) {
+    private fun collectRecursively(model: UtModel, allModels: MutableSet<UtModelWrapper>) {
+        if (!allModels.add(model.wrap())) {
             return
         }
 
-        when (val currentModel = currentModelWrapper.model) {
+        when (model) {
             is UtNullModel,
             is UtPrimitiveModel,
             is UtClassRefModel,
@@ -121,32 +121,34 @@ class SpringTestClassModelBuilder(val context: CgContext) :
             is UtEnumConstantModel,
             is UtCustomModel-> {}
             is UtLambdaModel -> {
-                currentModel.capturedValues.forEach { collectRecursively(it.wrap(), allModels) }
+                model.capturedValues.forEach { collectRecursively(it, allModels) }
             }
             is UtArrayModel -> {
-                currentModel.stores.values.forEach { collectRecursively(it.wrap(), allModels) }
-                if (currentModel.stores.count() < currentModel.length) {
-                    collectRecursively(currentModel.constModel.wrap(), allModels)
+                model.stores.values.forEach { collectRecursively(it, allModels) }
+                if (model.stores.count() < model.length) {
+                    collectRecursively(model.constModel, allModels)
                 }
             }
             is UtCompositeModel -> {
                 // Here we traverse fields only.
                 // Traversing mocks as well will result in wrong models playing
                 // a role of class fields with @Mock annotation.
-                currentModel.fields.forEach {( _, model) ->
-                    collectRecursively(model.wrap(), allModels)
+                model.fields.forEach { ( _, model) ->
+                    collectRecursively(model, allModels)
                 }
             }
             is UtAssembleModel -> {
-                currentModel.instantiationCall.instance?.let { collectRecursively(it.wrap(), allModels) }
-                currentModel.instantiationCall.params.forEach { collectRecursively(it.wrap(), allModels) }
+                model.instantiationCall.instance?.let { collectRecursively(it, allModels) }
+                model.instantiationCall.params.forEach { collectRecursively(it, allModels) }
 
-                if(!currentModel.canBeSpied()) {
-                    currentModel.modificationsChain.forEach { stmt ->
-                        stmt.instance?.let { collectRecursively(it.wrap(), allModels) }
+                // When the model is annotated with @Spy, we should not collect UtModels from [model.modificationsChain],
+                // In this case, we use simple mock
+                if (!model.canBeSpied()) {
+                    model.modificationsChain.forEach { stmt ->
+                        stmt.instance?.let { collectRecursively(it, allModels) }
                         when (stmt) {
-                            is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it.wrap(), allModels) }
-                            is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel.wrap(), allModels)
+                            is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it, allModels) }
+                            is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel, allModels)
                         }
                     }
                 }

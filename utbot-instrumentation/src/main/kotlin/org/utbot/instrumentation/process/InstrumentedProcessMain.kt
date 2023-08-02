@@ -147,6 +147,7 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         HandlerClassesLoader.addUrls(instrumentationFactory.additionalRuntimeClasspath)
         instrumentation = instrumentationFactory.create()
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
+        Agent.dynamicClassTransformer.useBytecodeTransformation = params.useBytecodeTransformation
         Agent.dynamicClassTransformer.transformer = instrumentation
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
     }

@@ -74,7 +74,7 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private val nameGenerator = getNameGeneratorBy(context)
-    val mockFrameworkManager = getMockFrameworkManagerBy(context)
+    private val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
     /**
      * Take already created CgValue or construct either a new [CgVariable] or new [CgLiteral] for the given model.

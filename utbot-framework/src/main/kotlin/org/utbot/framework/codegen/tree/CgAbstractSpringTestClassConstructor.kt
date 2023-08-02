@@ -110,10 +110,10 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
             val modelWrapper = modelWrappers.firstOrNull() ?: continue
             val model = modelWrapper.model
 
-            val baseVarName = model.getBeanNameOrNull()
+            val baseVarName = fieldManager.getBaseVarName(model)
 
             val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                ?: error("`UtCompositeModel` model was expected, but $model was found")
+                ?: error("`UtCompositeModel` or `UtAssembleModel` model was expected, but $model was found")
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
 
@@ -126,17 +126,10 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
             modelWrappers
                 .forEach { modelWrapper ->
 
-                    val modelWrapperWithNullTagName = UtModelWrapper(
-                        testSetId = modelWrapper.testSetId,
-                        executionId = modelWrapper.executionId,
-                        model = modelWrapper.model,
-                        modelTagName = null,
-                    )
-
-                    valueByUtModelWrapper[modelWrapperWithNullTagName] = createdVariable
+                    valueByUtModelWrapper[modelWrapper] = createdVariable
 
                     variableConstructor.annotatedModelGroups
-                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapperWithNullTagName
+                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapper
                 }
         }
 

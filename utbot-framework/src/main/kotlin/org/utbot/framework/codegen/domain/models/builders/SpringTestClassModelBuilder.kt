@@ -22,10 +22,11 @@ import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
+import org.utbot.framework.plugin.api.canBeSpied
 
 typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
 
-class SpringTestClassModelBuilder(val context: CgContext):
+class SpringTestClassModelBuilder(val context: CgContext) :
     TestClassModelBuilder(),
     CgContextOwner by context {
 
@@ -72,12 +73,19 @@ class SpringTestClassModelBuilder(val context: CgContext):
                     cgModel.model.isMockModel() && cgModel !in thisInstanceModels
                 }
 
+        val dependentSpyModels =
+            thisInstancesDependentModels
+                .filterTo(mutableSetOf()) { cgModel ->
+                    cgModel.model.canBeSpied() && cgModel !in thisInstanceModels
+                }
+
         val autowiredFromContextModels =
             stateBeforeDependentModels.filterTo(HashSet()) { it.model.isAutowiredFromContext() }
 
         return SpringSpecificInformation(
             thisInstanceModels.groupByClassId(),
             dependentMockModels.groupByClassId(),
+            dependentSpyModels.groupByClassId(),
             autowiredFromContextModels.groupByClassId(),
         )
     }
@@ -125,21 +133,21 @@ class SpringTestClassModelBuilder(val context: CgContext):
                 // Here we traverse fields only.
                 // Traversing mocks as well will result in wrong models playing
                 // a role of class fields with @Mock annotation.
-                currentModel.fields.forEach { (fieldId, model) ->
-                    // We use `modelTagName` in order to distinguish mock models
-                    val modeTagName = if(model.isMockModel()) fieldId.name else null
-                    collectRecursively(model.wrap(modeTagName), allModels)
+                currentModel.fields.forEach {( _, model) ->
+                    collectRecursively(model.wrap(), allModels)
                 }
             }
             is UtAssembleModel -> {
                 currentModel.instantiationCall.instance?.let { collectRecursively(it.wrap(), allModels) }
                 currentModel.instantiationCall.params.forEach { collectRecursively(it.wrap(), allModels) }
 
-                currentModel.modificationsChain.forEach { stmt ->
-                    stmt.instance?.let { collectRecursively(it.wrap(), allModels) }
-                    when (stmt) {
-                        is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it.wrap(), allModels) }
-                        is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel.wrap(), allModels)
+                if(!currentModel.canBeSpied()) {
+                    currentModel.modificationsChain.forEach { stmt ->
+                        stmt.instance?.let { collectRecursively(it.wrap(), allModels) }
+                        when (stmt) {
+                            is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it.wrap(), allModels) }
+                            is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel.wrap(), allModels)
+                        }
                     }
                 }
             }

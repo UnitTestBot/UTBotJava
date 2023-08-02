@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import argparse
 import pandas as pd
 from tqdm import tqdm
 from matplotlib import pyplot as plt
@@ -50,20 +51,19 @@ def build_dataframe(logpath: str):
             except:
                 pass
 
-        return (pd.DataFrame(data,
-            columns = ['class_name', 'method', 'value'] + list(mutation_labels) + ['line_number', 'trace_hash', 'trace_count', 'event', 'time']
-        ),
-        list(mutation_labels))
+        df = pd.DataFrame(data, columns =
+                          ['class_name', 'method', 'value'] + list(mutation_labels) + 
+                          ['line_number', 'trace_hash', 'trace_count', 'event', 'time'])
+        df = df.assign(new_feedbacks_count = (df.event == 'NEW_FEEDBACK').cumsum())
 
+        return (df, list(mutation_labels))
 
-if __name__ == "__main__":
-    (df, mutation_labels) = build_dataframe(sys.argv[1])
-    df = df.assign(new_feedbacks_count = (df.event == 'NEW_FEEDBACK').cumsum())
-
+def draw_report(df: pd.DataFrame, mutations_labels: list, title: str):
     plt.figure(0)
-    ax1 = plt.subplot2grid((2,3), (0,0), colspan=2)
-    ax2 = plt.subplot2grid((2,3), (0,2))
-    ax3 = plt.subplot2grid((2,3), (1,0), colspan=3)
+    ax1 = plt.subplot2grid((3,3), (0,0), colspan=2)
+    ax2 = plt.subplot2grid((3,3), (0,2))
+    ax3 = plt.subplot2grid((3,3), (1,0), colspan=3)
+    ax4 = plt.subplot2grid((3,3), (2,0), colspan=3)
 
     ax1.set_title('Specific effectiveness')
     [ ax1.plot( df.index, (df[label]*df.new_feedbacks_count.diff()).cumsum() / df[label].cumsum()) for label in mutation_labels ]
@@ -75,15 +75,35 @@ if __name__ == "__main__":
 
     ax2.set_title('Total specific effectiveness')
     ax2.bar(mutation_labels, [ (df[label] * df.new_feedbacks_count.diff()).sum() / df[label].sum() for label in mutation_labels] )
-    # ax2.grid(axis='y')
+    ax2.grid(axis='y')
 
     ax3.set_title('Number of discovered traces')
     [ ax3.plot(df.index, (df.new_feedbacks_count.diff() * df[label]).cumsum()) for label in mutation_labels ]
-    plt.plot(df.index, df.new_feedbacks_count)
+    ax3.plot(df.index, df.new_feedbacks_count)
     ax3.legend(labels = mutation_labels + ['Overall'])
     ax3.set_xlabel('Iteration')
     ax3.set_ylabel('Number of traces')
     ax3.grid()
 
-    plt.suptitle('Regular traces')
+    [ ax4.plot(df.index[50:], (df[label].cumsum() / df.index)[50:]) for label in mutation_labels ]
+    ax4.legend(labels=mutation_labels)
+    ax4.set_xlabel('Iteration')
+    ax4.set_ylabel('Number of mutations')
+    ax4.grid()
+
+    if title:
+        plt.suptitle(title)
+
     plt.show()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', help='Log file path', type=str)
+    parser.add_argument('--title', help='Report title', type=str)
+    args = parser.parse_args()
+    
+    (df, mutation_labels) = build_dataframe(args.path)
+
+    draw_report(df, mutation_labels, args.title)
+

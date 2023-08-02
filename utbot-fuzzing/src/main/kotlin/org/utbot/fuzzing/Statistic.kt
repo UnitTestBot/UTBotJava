@@ -1,5 +1,6 @@
 package org.utbot.fuzzing
 
+import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
@@ -26,6 +27,9 @@ interface SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESU
     fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>
     fun isNotEmpty() : Boolean
     fun getMinsetSize() : Int
+    fun getMutationsEfficiencies(): Map<Mutation<KnownValue<*>>, Float> {
+        return emptyMap()
+    }
 }
 
 open class BaseStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
@@ -152,6 +156,26 @@ open class BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYP
     )
 }
 
+open class MutationsCountingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
+    override var totalRuns: Long = 0,
+    override val startTime: Long = System.nanoTime(),
+    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
+    override val random: Random,
+    override val configuration: Configuration,
+    private val seedSelectionStrategy: SingleValueSelectionStrategy
+) : SingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK, SingleValueStorage<TYPE, RESULT>>(
+    totalRuns, startTime, missedTypes, random, configuration, { MutationsCountingSingleValueStorage(seedSelectionStrategy) }
+) {
+    constructor(source: Statistic<TYPE, RESULT>, seedSelectionStrategy: SingleValueSelectionStrategy) : this (
+        totalRuns = source.totalRuns,
+        startTime = source.startTime,
+        missedTypes = source.missedTypes,
+        random = source.random,
+        configuration = source.configuration.copy(),
+        seedSelectionStrategy = seedSelectionStrategy
+    )
+}
+
 class LastKeepingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
     override var totalRuns: Long = 0,
     override val startTime: Long = System.nanoTime(),
@@ -161,7 +185,12 @@ class LastKeepingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TY
 ) : BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK>(
     totalRuns, startTime, missedTypes, random, configuration, SingleValueSelectionStrategy.LAST
 ) {
+    private val successCumSums: HashMap<Mutation<*>, Int> = hashMapOf()
+    private val overallCumSums: HashMap<Mutation<*>, Int> = hashMapOf()
+    private val knownValueMutationsEfficiencies: HashMap<Mutation<KnownValue<*>>, Float> = hashMapOf()
+
     private var lastSeed: Node<TYPE, RESULT>? = null
+
     constructor(source: Statistic<TYPE, RESULT>) : this (
         totalRuns = source.totalRuns,
         startTime = source.startTime,
@@ -177,7 +206,41 @@ class LastKeepingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TY
         seed: Node<TYPE, RESULT>
     ): MinsetEvent {
         lastSeed = seed
-        return super.put(random, configuration, feedback, seed)
+        val event = super.put(random, configuration, feedback, seed)
+
+        seed.result.forEach { result ->
+            when(result) {
+                is Result.Known<TYPE, RESULT, *> -> {
+                    result.lastMutation?.let {
+                        overallCumSums[it] = overallCumSums.getOrDefault(it, 0) + 1
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        if (event == MinsetEvent.NEW_FEEDBACK) {
+            seed.result.forEach { result ->
+                when(result) {
+                    is Result.Known<TYPE, RESULT, *> -> {
+                        result.lastMutation.let {
+                            it?.let {
+                                successCumSums[it] = successCumSums.getOrDefault(it, 0) + 1
+                                knownValueMutationsEfficiencies[it as Mutation<KnownValue<*>>] =
+                                    successCumSums[it]!!.toFloat() / overallCumSums[it]!!.toFloat()
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
+
+        return event
+    }
+
+    override fun getMutationsEfficiencies() : Map<Mutation<KnownValue<*>>, Float> {
+        return knownValueMutationsEfficiencies
     }
 
     override fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
@@ -235,8 +298,6 @@ abstract class Minset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE :
 open class SingleValueMinset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : SingleValueStorage<TYPE, RESULT>> (
     override val valueStorageGenerator: () -> STORAGE,
 ) : Minset<TYPE, RESULT, FEEDBACK, STORAGE>(valueStorageGenerator)
-
-
 ///endregion
 
 ///region Value storages
@@ -280,6 +341,28 @@ open class SingleValueStorage<TYPE, RESULT> (
 
     override fun hasNext(): Boolean {
         return storedValue != null
+    }
+}
+
+class MutationsCountingSingleValueStorage<TYPE, RESULT>(strategy: SingleValueSelectionStrategy) :
+    SingleValueStorage<TYPE, RESULT>(strategy) {
+    private val knownValueMutationsCount: HashMap<Mutation<*>, Int> = hashMapOf()
+
+    override fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>): Boolean {
+        value.result.forEach { result ->
+            when(result) {
+                is Result.Known<*, *, *> -> {
+                    result.lastMutation.let {
+                        it?.let {
+                            knownValueMutationsCount[it] = knownValueMutationsCount.getOrDefault(it, 0) + 1
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        return super.put(value, feedback)
     }
 }
 

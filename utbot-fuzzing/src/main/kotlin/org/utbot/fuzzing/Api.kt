@@ -62,8 +62,9 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-        fuzz(description, LastKeepingSingleValueMinsetStatistic(statistics))
+//        fuzz(description, LastKeepingSingleValueMinsetStatistic(statistics))
 //        fuzz(description, BasicSingleValueMinsetStatistic(statistics, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
+        fuzz(description, MutationsCountingSingleValueMinsetStatistic(statistics, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
     }
 
     /**
@@ -445,8 +446,9 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-    fuzz(description, LastKeepingSingleValueMinsetStatistic(random = random, configuration = configuration))
+//    fuzz(description, LastKeepingSingleValueMinsetStatistic(random = random, configuration = configuration))
 //    fuzz(description, BasicSingleValueMinsetStatistic(random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
+    fuzz(description, MutationsCountingSingleValueMinsetStatistic(random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
 }
 
 /**
@@ -479,14 +481,14 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         beforeIteration(description, statistic)
         val values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
             statistic.getRandomSeed(random, configuration).let {
-                mutationFactory.mutate(it, random, configuration)
+                mutationFactory.mutate(it, random, configuration, statistic)
             }
         } else {
             val actualParameters = description.parameters
             // fuzz one value, seems to be bad, when have only a few and simple values
             fuzzOne(actualParameters).let {
                 if (random.flipCoin(configuration.probMutationRate)) {
-                    mutationFactory.mutate(it, random, configuration)
+                    mutationFactory.mutate(it, random, configuration, statistic)
                 } else {
                     it
                 }

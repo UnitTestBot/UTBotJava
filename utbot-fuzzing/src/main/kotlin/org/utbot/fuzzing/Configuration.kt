@@ -8,6 +8,11 @@ import kotlin.math.pow
 data class Configuration(
 
     /**
+     * Number of iterations before mutations probabilities correction.
+     */
+    var investigationPeriodIterations: Int = 500,
+
+    /**
      * Choose between already generated values and new generation of values.
      */
     var probSeedRetrievingInsteadGenerating: Int = 70,

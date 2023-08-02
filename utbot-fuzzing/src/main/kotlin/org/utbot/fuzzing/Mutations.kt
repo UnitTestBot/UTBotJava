@@ -7,12 +7,36 @@ import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import kotlin.random.Random
 
+fun Map<Mutation<KnownValue<*>>, Float>.randomMutation(random: Random): Mutation<KnownValue<*>>? {
+    val weightsSum = entries.sumOf { it.value.toDouble() }
+
+    if (weightsSum == 0.0) {
+        return null
+    }
+
+    var randomWeight = random.nextDouble( weightsSum )
+
+    for (entry in entries) {
+        randomWeight -= entry.value.toDouble()
+        if (randomWeight <= 0) {
+            return entry.key
+        }
+    }
+
+    return null
+}
+
 class MutationFactory<TYPE, RESULT> {
-    fun mutate(node: Node<TYPE, RESULT>, random: Random, configuration: Configuration): Node<TYPE, RESULT> {
+    fun mutate(
+        node: Node<TYPE, RESULT>,
+        random: Random,
+        configuration: Configuration,
+        statistic: SeedsMaintainingStatistic<TYPE, RESULT, *>
+    ): Node<TYPE, RESULT> {
         if (node.result.isEmpty()) return node
         val indexOfMutatedResult = random.chooseOne(node.result.map(::rate).toDoubleArray())
         val recursive: NodeMutation<TYPE, RESULT> = NodeMutation { n, r, c ->
-            mutate(n, r, c)
+            mutate(n, r, c, statistic)
         }
         val mutated = when (val resultToMutate = node.result[indexOfMutatedResult]) {
             is Result.Simple<TYPE, RESULT> -> Result.Simple(
@@ -21,8 +45,15 @@ class MutationFactory<TYPE, RESULT> {
             )
             is Result.Known<TYPE, RESULT, *> -> {
                 val mutations = resultToMutate.value.mutations()
+
+                val mutation = if (configuration.investigationPeriodIterations > 0 && statistic.totalRuns > configuration.investigationPeriodIterations) {
+                    statistic.getMutationsEfficiencies().randomMutation(random) ?: mutations.random(random)
+                } else {
+                    mutations.random(random)
+                }
+
                 if (mutations.isNotEmpty()) {
-                    resultToMutate.mutate(mutations.random(random), random, configuration)
+                    resultToMutate.mutate(mutation, random, configuration)
                 } else {
                     resultToMutate
                 }
@@ -37,7 +68,6 @@ class MutationFactory<TYPE, RESULT> {
 
                     else ->
                         RecursiveMutations.Mutate()
-//                }.mutateWithMemo(resultToMutate, recursive, random, configuration, this)
                 }.mutate(resultToMutate, recursive, random, configuration)
             }
             is Result.Collection<TYPE, RESULT> -> if (resultToMutate.modify.isNotEmpty()) {

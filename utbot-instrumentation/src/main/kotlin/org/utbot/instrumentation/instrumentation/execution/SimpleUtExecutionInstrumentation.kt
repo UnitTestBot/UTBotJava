@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.singleExecutableId
+import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
@@ -18,6 +19,7 @@ import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicD
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import org.utbot.instrumentation.instrumentation.transformation.BytecodeTransformer
 import java.security.ProtectionDomain
 import kotlin.reflect.jvm.javaMethod
 
@@ -143,6 +145,12 @@ class SimpleUtExecutionInstrumentation(
         classfileBuffer: ByteArray
     ): ByteArray {
         val instrumenter = Instrumenter(classfileBuffer, loader)
+
+        if (Agent.dynamicClassTransformer.useBytecodeTransformation) {
+            instrumenter.visitClass { writer ->
+                BytecodeTransformer(writer)
+            }
+        }
 
         traceHandler.registerClass(className)
         instrumenter.visitInstructions(traceHandler.computeInstructionVisitor(className))

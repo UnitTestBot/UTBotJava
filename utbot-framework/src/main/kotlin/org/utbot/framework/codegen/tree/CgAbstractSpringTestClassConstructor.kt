@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.tree
 
-import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
@@ -19,7 +18,6 @@ import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtSpringContextModel
-import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
 
@@ -102,13 +100,13 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
         for ((classId, modelWrappers) in groupedModelsByClassId) {
 
-            val fieldWithAnnotationIsRequired = fieldManager.fieldWithAnnotationIsRequired(modelWrappers)
+            val modelWrapper = modelWrappers.firstOrNull() ?: continue
+            val model = modelWrapper.model
+
+            val fieldWithAnnotationIsRequired = fieldManager.fieldWithAnnotationIsRequired(model.classId)
             if (!fieldWithAnnotationIsRequired) {
                 continue
             }
-
-            val modelWrapper = modelWrappers.firstOrNull() ?: continue
-            val model = modelWrapper.model
 
             val baseVarName = fieldManager.getBaseVarName(model)
 

@@ -14,6 +14,8 @@ val rdVersion: String by rootProject
 val mockitoVersion: String by rootProject
 val mockitoInlineVersion: String by rootProject
 
+val jacocoVersion: String by rootProject
+
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("java")
@@ -52,6 +54,7 @@ dependencies {
 
     implementation("org.ow2.asm:asm:$asmVersion")
     implementation("org.ow2.asm:asm-commons:$asmVersion")
+    implementation("org.ow2.asm:asm-util:$asmVersion")
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
     implementation("com.jetbrains.rd:rd-framework:$rdVersion")
@@ -61,6 +64,8 @@ dependencies {
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
     implementation("org.mockito:mockito-core:$mockitoVersion")
     implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
+
+    implementation("org.jacoco:org.jacoco.core:$jacocoVersion")
 
     implementation(project(":utbot-spring-commons-api"))
     if (projectType == springEdition || projectType == ultimateEdition) {

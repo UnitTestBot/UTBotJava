@@ -22,7 +22,7 @@ data class CoverageInfo(
 /**
  * This instrumentation allows collecting coverage after several calls.
  */
-class CoverageInstrumentation : Instrumentation<Result<*>> {
+open class CoverageInstrumentation : Instrumentation<Result<*>> {
     private val invokeWithStatics = InvokeWithStaticsInstrumentation()
 
     /**
@@ -53,7 +53,7 @@ class CoverageInstrumentation : Instrumentation<Result<*>> {
     /**
      * Collects coverage from the given [clazz] via reflection.
      */
-    fun <T : Any> collectCoverageInfo(clazz: Class<out T>): CoverageInfo {
+    open fun <T : Any> collectCoverageInfo(clazz: Class<out T>): CoverageInfo {
         val probesFieldName: String = Settings.PROBES_ARRAY_NAME
         val visitedLinesField = clazz.fields.firstOrNull { it.name == probesFieldName }
             ?: throw NoProbesArrayException(clazz, Settings.PROBES_ARRAY_NAME)
@@ -62,7 +62,7 @@ class CoverageInstrumentation : Instrumentation<Result<*>> {
             val visitedLines = visitedLinesField.get(null) as? BooleanArray
                 ?: throw CastProbesArrayException()
 
-            val methodToInstrRange = Instrumenter(clazz).computeMapOfRanges()
+            val methodToInstrRange = methodToCollectCoverage(clazz)
 
             val res = CoverageInfo(methodToInstrRange, visitedLines.mapIndexed { idx, b ->
                 if (b) idx else null
@@ -72,6 +72,10 @@ class CoverageInstrumentation : Instrumentation<Result<*>> {
 
             res
         }
+    }
+
+    protected open fun <T : Any> methodToCollectCoverage(clazz: Class<out T>): Map<String, IntRange> {
+        return Instrumenter(clazz).computeMapOfRanges()
     }
 
     /**

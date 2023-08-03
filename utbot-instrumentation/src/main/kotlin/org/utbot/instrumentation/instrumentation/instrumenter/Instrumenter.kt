@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.instrumenter
 
+import org.jacoco.core.internal.instr.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
@@ -49,6 +50,22 @@ class Instrumenter(classByteCode: ByteArray, val classLoader: ClassLoader? = nul
         return methodToListOfProbesInserter.methodToProbes.mapValues { (_, probes) -> (probes.first()..probes.last()) }
     }
 
+    fun computeMapOfRangesForBranchCoverage(): Map<String, IntRange> {
+
+        visitClass(object : ClassVisitorBuilder<ClassVisitor> {
+            override val writerFlags: Int
+                get() = 0
+
+            override val readerParsingOptions: Int
+                get() = ClassReader.EXPAND_FRAMES
+
+            override fun build(writer: ClassWriter): ClassVisitor =
+                createJacocoClassVisitorForCollectionBranchCoverage(writer)
+        })
+
+        return MyProbeInserter.methodToProbes.mapValues { (_, probes) -> (probes.first()..probes.last()) }
+    }
+
     fun addField(instanceFieldInitializer: InstanceFieldInitializer) {
         visitClass { writer -> AddFieldAdapter(writer, instanceFieldInitializer) }
     }
@@ -82,6 +99,7 @@ private class TunedClassWriter(
     override fun getClassLoader(): ClassLoader {
         return HandlerClassesLoader
     }
+
     override fun getCommonSuperClass(type1: String, type2: String): String {
         try {
             val info1 = typeInfo(type1)

@@ -3,9 +3,10 @@ package org.jacoco.core.internal.instr
 import org.jacoco.core.internal.flow.MethodProbesVisitor
 import org.objectweb.asm.ClassVisitor
 
-class MyClassInstrumenter(
+class NoneClassInstrumenter(
     probeArrayStrategy: IProbeArrayStrategy,
-    cv: ClassVisitor
+    cv: ClassVisitor,
+    private val methodToProbes: MutableMap<String, MutableList<Int>>,
 ) : ClassInstrumenter(probeArrayStrategy, cv) {
 
     override fun visitMethod(
@@ -18,8 +19,8 @@ class MyClassInstrumenter(
         val mv = cv.visitMethod(access, name, desc, signature, exceptions)
 
         val frameEliminator = DuplicateFrameEliminator(mv)
-        val probeVariableInserter = MyProbeInserter(name, frameEliminator)
-        return MyMethodInstrumenter(probeVariableInserter, probeVariableInserter)
+        val probeVariableInserter = NoneProbeInserter(name, methodToProbes, frameEliminator)
+        return MethodInstrumenter(probeVariableInserter, probeVariableInserter)
     }
 
 }

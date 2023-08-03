@@ -5,11 +5,13 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.util.TraceClassVisitor
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.MethodToProbesVisitor
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.*
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import java.io.IOException
 import java.io.InputStream
+import java.io.PrintWriter
 
 
 // TODO: handle with flags EXPAND_FRAMES, etc.
@@ -51,19 +53,18 @@ class Instrumenter(classByteCode: ByteArray, val classLoader: ClassLoader? = nul
     }
 
     fun computeMapOfRangesForBranchCoverage(): Map<String, IntRange> {
-
-        visitClass(object : ClassVisitorBuilder<ClassVisitor> {
+        val methodToListOfProbesInserter = visitClass(object : ClassVisitorBuilder<MyMethodToProbesVisitor> {
             override val writerFlags: Int
                 get() = 0
 
             override val readerParsingOptions: Int
                 get() = ClassReader.EXPAND_FRAMES
 
-            override fun build(writer: ClassWriter): ClassVisitor =
+            override fun build(writer: ClassWriter): MyMethodToProbesVisitor =
                 createJacocoClassVisitorForCollectionBranchCoverage(writer)
         })
 
-        return MyProbeInserter.methodToProbes.mapValues { (_, probes) -> (probes.first()..probes.last()) }
+        return methodToListOfProbesInserter.methodToProbes.mapValues { (_, probes) -> (probes.first()..probes.last()) }
     }
 
     fun addField(instanceFieldInitializer: InstanceFieldInitializer) {
@@ -71,7 +72,10 @@ class Instrumenter(classByteCode: ByteArray, val classLoader: ClassLoader? = nul
     }
 
     fun addStaticField(staticFieldInitializer: StaticFieldInitializer) {
-        visitClass { writer -> AddStaticFieldAdapter(writer, staticFieldInitializer) }
+        visitClass { writer ->
+            val tcv = TraceClassVisitor(writer, PrintWriter(sw))
+            AddStaticFieldAdapter(tcv, staticFieldInitializer)
+        }
     }
 
     fun visitInstructions(instructionVisitor: IInstructionVisitor, methodName: String? = null) {

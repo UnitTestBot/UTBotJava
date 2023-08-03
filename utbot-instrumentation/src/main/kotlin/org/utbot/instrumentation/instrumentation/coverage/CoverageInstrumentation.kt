@@ -62,7 +62,7 @@ open class CoverageInstrumentation : Instrumentation<Result<*>> {
             val visitedLines = visitedLinesField.get(null) as? BooleanArray
                 ?: throw CastProbesArrayException()
 
-            val methodToInstrRange = methodToCollectCoverage(clazz)
+            val methodToInstrRange = computeMapOfRanges(clazz)
 
             val res = CoverageInfo(methodToInstrRange, visitedLines.mapIndexed { idx, b ->
                 if (b) idx else null
@@ -74,7 +74,7 @@ open class CoverageInstrumentation : Instrumentation<Result<*>> {
         }
     }
 
-    protected open fun <T : Any> methodToCollectCoverage(clazz: Class<out T>): Map<String, IntRange> {
+    protected open fun <T : Any> computeMapOfRanges(clazz: Class<out T>): Map<String, IntRange> {
         return Instrumenter(clazz).computeMapOfRanges()
     }
 

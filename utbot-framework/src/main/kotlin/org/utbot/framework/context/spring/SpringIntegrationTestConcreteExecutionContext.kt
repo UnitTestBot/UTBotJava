@@ -26,11 +26,11 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
-import org.utbot.fuzzing.providers.FieldValueProvider
-import org.utbot.fuzzing.providers.ObjectValueProvider
-import org.utbot.fuzzing.providers.anyObjectValueProvider
-import org.utbot.fuzzing.spring.SavedEntityValueProvider
+import org.utbot.fuzzing.spring.GeneratedFieldValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
+import org.utbot.fuzzing.spring.valid.EmailValueProvider
+import org.utbot.fuzzing.spring.valid.NotEmptyStringValueProvider
+import org.utbot.fuzzing.spring.valid.ValidEntityValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.getRelevantSpringRepositories
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -90,29 +90,28 @@ class SpringIntegrationTestConcreteExecutionContext(
         val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(classUnderTest)
         logger.info { "Detected relevant repositories for class $classUnderTest: $relevantRepositories" }
 
-        // spring should try to generate bean values, but if it fails, then object value provider is used for it
         val springBeanValueProvider = SpringBeanValueProvider(
             idGenerator,
             beanNameProvider = { classId ->
                 springApplicationContext.getBeansAssignableTo(classId).map { it.beanName }
             },
             relevantRepositories = relevantRepositories
-        ).withFallback(anyObjectValueProvider(idGenerator))
+        )
 
-        return delegateContext.tryCreateValueProvider(concreteExecutor, classUnderTest, idGenerator)
-            .except { p -> p is ObjectValueProvider }
-            .with(springBeanValueProvider)
-            .with(createSavedEntityValueProviders(relevantRepositories, idGenerator))
-            .with(createFieldValueProviders(relevantRepositories, idGenerator))
-            .withFallback(AnyDepthNullValueProvider)
+        return springBeanValueProvider
+            .withFallback(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = true))
+            .withFallback(EmailValueProvider())
+            .withFallback(NotEmptyStringValueProvider())
+            .withFallback(springBeanValueProvider)
+            .withFallback(
+                delegateContext.tryCreateValueProvider(concreteExecutor, classUnderTest, idGenerator)
+                    .with(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
+                    .with(createGeneratedFieldValueProviders(relevantRepositories, idGenerator))
+                    .withFallback(AnyDepthNullValueProvider)
+            )
     }
 
-    private fun createSavedEntityValueProviders(
-        relevantRepositories: Set<SpringRepositoryId>,
-        idGenerator: IdentityPreservingIdGenerator<Int>
-    ) = ValueProvider.of(relevantRepositories.map { SavedEntityValueProvider(idGenerator, it) })
-
-    private fun createFieldValueProviders(
+    private fun createGeneratedFieldValueProviders(
         relevantRepositories: Set<SpringRepositoryId>,
         idGenerator: IdentityPreservingIdGenerator<Int>
     ): JavaValueProvider {
@@ -127,7 +126,7 @@ class SpringIntegrationTestConcreteExecutionContext(
                 .filter { fieldId -> generatedValueAnnotationClasses.any { fieldId.jField.isAnnotationPresent(it) } }
         logger.info { "Detected @GeneratedValue fields: $generatedValueFieldIds" }
 
-        return ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(idGenerator, it) })
+        return ValueProvider.of(generatedValueFieldIds.map { GeneratedFieldValueProvider(idGenerator, it) })
     }
 
     override fun createStateBefore(

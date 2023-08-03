@@ -2,6 +2,8 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
 
 val springVersion: String by rootProject
 val springBootVersion: String by rootProject
+val javaxVersion: String by rootProject
+val jakartaVersion: String by rootProject
 val rdVersion: String by rootProject
 
 plugins {
@@ -25,6 +27,9 @@ dependencies {
     compileOnly("org.springframework:spring-tx:$springVersion")
     compileOnly("org.springframework:spring-web:$springVersion")
     compileOnly("org.springframework.data:spring-data-commons:$springBootVersion")
+
+    compileOnly("javax.persistence:javax.persistence-api:$javaxVersion")
+    compileOnly("jakarta.persistence:jakarta.persistence-api:$jakartaVersion")
 
     implementation("com.jetbrains.rd:rd-core:$rdVersion") { exclude(group = "org.slf4j", module = "slf4j-api") }
 }

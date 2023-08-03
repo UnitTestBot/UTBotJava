@@ -4,7 +4,7 @@ import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.warn
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.Repository
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestContextManager
@@ -44,6 +44,8 @@ class SpringApiImpl(
     private val testContextManager: TestContextManager = TestContextManager(this.dummyTestClass)
 
     private val context get() = getOrLoadSpringApplicationContext()
+
+    override fun getEntityManager(): Any = dummyTestClassInstance.entityManager
 
     override fun getOrLoadSpringApplicationContext() = try {
         testContextManager.testContext.applicationContext as ConfigurableApplicationContext
@@ -106,9 +108,9 @@ class SpringApiImpl(
             val repositoryClassName = repositoryClass
                 .interfaces
                 .filter { clazz -> userSourcesClassLoader.hasOnClasspath(clazz.name) }
-                .filter { CrudRepository::class.java.isAssignableFrom(it) }
+                .filter { Repository::class.java.isAssignableFrom(it) }
                 .map { it.name }
-                .firstOrNull() ?: CrudRepository::class.java.name
+                .firstOrNull() ?: Repository::class.java.name
 
             val entity = RepositoryUtils.getEntityClass(repositoryClass)
 
@@ -159,7 +161,7 @@ class SpringApiImpl(
 
     private fun describesRepository(bean: Any): Boolean =
         try {
-            bean is CrudRepository<*, *>
+            bean is Repository<*, *>
         } catch (e: ClassNotFoundException) {
             false
         }

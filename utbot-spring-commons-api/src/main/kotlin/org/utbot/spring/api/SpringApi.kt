@@ -5,11 +5,19 @@ import java.net.URLClassLoader
 //TODO: `userSourcesClassLoader` must not be passed as a method argument, requires refactoring
 interface SpringApi {
     /**
-     * NOTE! [Any] return type is used here because Spring itself may not be on the classpath of the API user
+     * NOTE! [Any] return type is used here because Spring itself may not be on the classpath of the API user class loader
      *
      * @throws [UTSpringContextLoadingException] as a wrapper for all runtime exceptions
      */
     fun getOrLoadSpringApplicationContext(): Any
+
+    /**
+     * NOTE! [Any] return type is used here because Spring itself may not be on the classpath of the API user class loader
+     *
+     * Besides that `entityManager` depending on libraries used by user may be either `javax.persistence.EntityManager`
+     * or `jakarta.persistence.EntityManager` and they don't have common super type other than `Object`.
+     */
+    fun getEntityManager(): Any
 
     fun getBean(beanName: String): Any
 

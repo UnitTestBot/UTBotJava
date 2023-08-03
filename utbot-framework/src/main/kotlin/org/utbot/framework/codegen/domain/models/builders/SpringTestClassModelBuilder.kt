@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
@@ -82,11 +83,15 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         val autowiredFromContextModels =
             stateBeforeDependentModels.filterTo(HashSet()) { it.model.isAutowiredFromContext() }
 
+        val entityManagerModels =
+            stateBeforeDependentModels.filterTo(HashSet()) { it.model is UtSpringEntityManagerModel }
+
         return SpringSpecificInformation(
             thisInstanceModels.groupByClassId(),
             dependentMockModels.groupByClassId(),
             dependentSpyModels.groupByClassId(),
             autowiredFromContextModels.groupByClassId(),
+            entityManagerModels.groupByClassId(),
         )
     }
 

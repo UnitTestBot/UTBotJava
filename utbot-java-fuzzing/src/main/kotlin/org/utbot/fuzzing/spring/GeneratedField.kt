@@ -1,6 +1,8 @@
-package org.utbot.fuzzing.providers
+package org.utbot.fuzzing.spring
 
 import mu.KotlinLogging
+import org.utbot.common.dynamicPropertiesOf
+import org.utbot.common.withValue
 import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -17,9 +19,13 @@ import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.providers.defaultFuzzedValue
+import org.utbot.fuzzing.providers.defaultValueRoutine
+import org.utbot.fuzzing.spring.valid.EntityLifecycleState
+import org.utbot.fuzzing.spring.valid.EntityLifecycleStateProperty
 import org.utbot.fuzzing.toFuzzerType
 
-class FieldValueProvider(
+class GeneratedFieldValueProvider(
     private val idGenerator: IdGenerator<Int>,
     private val fieldId: FieldId,
 ) : JavaValueProvider {
@@ -34,7 +40,11 @@ class FieldValueProvider(
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> = sequenceOf(
         Seed.Recursive(
             construct = Routine.Create(listOf(
-                toFuzzerType(fieldId.declaringClass.jClass, description.typeCache)
+                toFuzzerType(fieldId.declaringClass.jClass, description.typeCache).addProperties(
+                    dynamicPropertiesOf(
+                        EntityLifecycleStateProperty.withValue(EntityLifecycleState.MANAGED)
+                    )
+                )
             )) { values ->
                 val thisInstanceValue = values.single()
                 val thisInstanceModel = when (val model = thisInstanceValue.model) {

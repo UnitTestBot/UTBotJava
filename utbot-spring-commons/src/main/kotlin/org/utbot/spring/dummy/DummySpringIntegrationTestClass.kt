@@ -9,5 +9,9 @@ import org.springframework.transaction.annotation.Transactional
 @ContextConfiguration(/* fills dynamically */)
 @Transactional(isolation = Isolation.SERIALIZABLE)
 abstract class DummySpringIntegrationTestClass {
+    @javax.persistence.PersistenceContext
+    @jakarta.persistence.PersistenceContext
+    lateinit var entityManager: Any
+
     fun dummyTestMethod() {}
 }

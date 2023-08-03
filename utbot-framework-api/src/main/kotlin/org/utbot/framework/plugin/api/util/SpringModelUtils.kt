@@ -3,7 +3,6 @@ package org.utbot.framework.plugin.api.util
 import org.utbot.common.tryLoadClass
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -16,7 +15,7 @@ object SpringModelUtils {
     val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
 
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
-    val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
+    val repositoryClassId = ClassId("org.springframework.data.repository.Repository")
 
     val springBootTestClassId = ClassId("org.springframework.boot.test.context.SpringBootTest")
 
@@ -39,13 +38,51 @@ object SpringModelUtils {
     val activeProfilesClassId = ClassId("org.springframework.test.context.ActiveProfiles")
     val contextConfigurationClassId = ClassId("org.springframework.test.context.ContextConfiguration")
 
+    private fun getClassIdFromEachAvailablePackage(
+        packages: List<String>,
+        classNameFromPackage: String
+    ): List<ClassId> = packages.map { ClassId("$it.$classNameFromPackage") }
+        .filter { utContext.classLoader.tryLoadClass(it.name) != null }
 
     // most likely only one persistent library is on the classpath, but we need to be able to work with either of them
     private val persistentLibraries = listOf("javax.persistence", "jakarta.persistence")
-    private fun persistentClassIds(simpleName: String) = persistentLibraries.map { ClassId("$it.$simpleName") }
+    private fun persistentClassIds(simpleName: String) = getClassIdFromEachAvailablePackage(persistentLibraries, simpleName)
 
-    val entityClassIds = persistentClassIds("Entity")
-    val generatedValueClassIds = persistentClassIds("GeneratedValue")
+    val entityClassIds get() = persistentClassIds("Entity")
+    val generatedValueClassIds get() = persistentClassIds("GeneratedValue")
+    val idClassIds get() = persistentClassIds("Id")
+    val persistenceContextClassIds get() = persistentClassIds("PersistenceContext")
+    val entityManagerClassIds get() = persistentClassIds("EntityManager")
+
+    val persistMethodIdOrNull: MethodId?
+        get() {
+            return MethodId(
+                classId = entityManagerClassIds.firstOrNull() ?: return null,
+                name = "persist",
+                returnType = voidClassId,
+                parameters = listOf(objectClassId),
+                bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+            )
+        }
+
+    val detachMethodIdOrNull: MethodId?
+        get() {
+            return MethodId(
+                classId = entityManagerClassIds.firstOrNull() ?: return null,
+                name = "detach",
+                returnType = voidClassId,
+                parameters = listOf(objectClassId),
+                bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+            )
+        }
+
+    private val validationLibraries = listOf("jakarta.validation.constraints")
+    private fun validationClassIds(simpleName: String) = getClassIdFromEachAvailablePackage(validationLibraries, simpleName)
+        .filter { utContext.classLoader.tryLoadClass(it.name) != null }
+
+    val notEmptyClassIds get() = validationClassIds("NotEmpty")
+    val emailClassIds get() = validationClassIds("Email")
+
 
     private val getBeanMethodId = MethodId(
         classId = applicationContextClassId,
@@ -54,15 +91,6 @@ object SpringModelUtils {
         parameters = listOf(String::class.id),
         bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
-
-    private val saveMethodId = MethodId(
-        classId = crudRepositoryClassId,
-        name = "save",
-        returnType = Any::class.id,
-        parameters = listOf(Any::class.id),
-        bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
-    )
-
 
     fun createBeanModel(beanName: String, id: Int, classId: ClassId) = UtAssembleModel(
         id = id,
@@ -74,16 +102,6 @@ object SpringModelUtils {
             params = listOf(UtPrimitiveModel(beanName))
         ),
         modificationsChainProvider = { mutableListOf() }
-    )
-
-    fun createSaveCallModel(repositoryId: SpringRepositoryId, id: Int, entityModel: UtModel) = UtExecutableCallModel(
-        instance = createBeanModel(
-            beanName = repositoryId.repositoryBeanName,
-            id = id,
-            classId = repositoryId.repositoryClassId,
-        ),
-        executable = saveMethodId,
-        params = listOf(entityModel)
     )
 
     fun UtModel.isAutowiredFromContext(): Boolean =
@@ -291,7 +309,7 @@ object SpringModelUtils {
             )
         )
 
-        // TODO support @RequestParam, @RequestHeader, @CookieValue, @RequestAttribute
+        // TODO #2462 (support @RequestParam, @RequestHeader, @CookieValue, @RequestAttribute, ...)
         return addContentToRequestBuilderModel(methodId, arguments, requestBuilderModel, idGenerator)
     }
 

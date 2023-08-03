@@ -94,11 +94,7 @@ class ProcessingStorage {
         instructionsData.computeIfAbsent(id) {
             val (className, _) = computeClassNameAndLocalId(id)
             classToInstructionsCount.merge(className, 1, Long::plus)
-            if (methodId !in methodIdToInstructionsIds) {
-                methodIdToInstructionsIds[methodId] = mutableListOf(id)
-            } else {
-                methodIdToInstructionsIds[methodId]!!.add(id)
-            }
+            methodIdToInstructionsIds.getOrPut(methodId) { mutableListOf() }.add(id)
             instructionData
         }
     }

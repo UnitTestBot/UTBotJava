@@ -91,6 +91,8 @@ class SpringTestClassModelBuilder(val context: CgContext) :
     private fun collectDependentModels(model: UtModel): Set<UtModelWrapper> {
         val dependentModels = mutableSetOf<UtModelWrapper>()
 
+        dependentModels.add(model.wrap())
+
         when (model) {
             is UtNullModel,
             is UtPrimitiveModel,

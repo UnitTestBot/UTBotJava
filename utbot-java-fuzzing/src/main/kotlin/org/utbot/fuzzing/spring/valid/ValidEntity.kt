@@ -87,24 +87,20 @@ class ValidEntityValueProvider(
                     classId = classId,
                     modelName = "${noArgConstructorId.classId.name}${noArgConstructorId.parameters}#" + id.hex(),
                     instantiationCall = UtExecutableCallModel(null, noArgConstructorId, params = emptyList()),
-                    modificationsChainProvider = { mutableListOf() }
+                    modificationsChainProvider = {
+                        lifecycleState.entityManagerMethodsGetter().map { methodId ->
+                            UtExecutableCallModel(
+                                instance = UtSpringEntityManagerModel(),
+                                executable = methodId,
+                                params = listOf(this),
+                            )
+                        }
+                    }
                 ).fuzzed {
                     summary = "%var% = ${classId.simpleName}()"
                 }
             },
             modify = sequence {
-                yield(Routine.Call(types = emptyList()) { self, _ ->
-                    val model = self.model as UtAssembleModel
-                    (model.modificationsChain as MutableList).addAll(
-                        lifecycleState.entityManagerMethodsGetter().map { methodId ->
-                            UtExecutableCallModel(
-                                instance = UtSpringEntityManagerModel(),
-                                executable = methodId,
-                                params = listOf(model),
-                            )
-                        })
-                })
-
                 // TODO maybe all fields
                 findAccessibleModifiableFields(
                     description,

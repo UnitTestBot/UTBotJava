@@ -3,6 +3,7 @@ package org.utbot.fuzzing.spring
 import mu.KotlinLogging
 import org.utbot.common.dynamicPropertiesOf
 import org.utbot.common.withValue
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -27,6 +28,7 @@ import org.utbot.fuzzing.toFuzzerType
 
 class GeneratedFieldValueProvider(
     private val idGenerator: IdGenerator<Int>,
+    private val entityClassId: ClassId,
     private val fieldId: FieldId,
 ) : JavaValueProvider {
     companion object {
@@ -40,7 +42,7 @@ class GeneratedFieldValueProvider(
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> = sequenceOf(
         Seed.Recursive(
             construct = Routine.Create(listOf(
-                toFuzzerType(fieldId.declaringClass.jClass, description.typeCache).addProperties(
+                toFuzzerType(entityClassId.jClass, description.typeCache).addProperties(
                     dynamicPropertiesOf(
                         EntityLifecycleStateProperty.withValue(EntityLifecycleState.MANAGED)
                     )

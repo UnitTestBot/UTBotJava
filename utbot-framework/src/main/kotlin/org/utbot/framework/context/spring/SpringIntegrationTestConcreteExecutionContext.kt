@@ -120,13 +120,20 @@ class SpringIntegrationTestConcreteExecutionContext(
             utContext.classLoader.tryLoadClass(it.name) as Class<out Annotation>?
         }
 
-        val generatedValueFieldIds =
+        val generatedValueFields =
             relevantRepositories
-                .flatMap { it.entityClassId.allDeclaredFieldIds }
-                .filter { fieldId -> generatedValueAnnotationClasses.any { fieldId.jField.isAnnotationPresent(it) } }
-        logger.info { "Detected @GeneratedValue fields: $generatedValueFieldIds" }
+                .flatMap { springRepositoryId ->
+                    val entityClassId = springRepositoryId.entityClassId
+                    entityClassId.allDeclaredFieldIds
+                        .filter { fieldId -> generatedValueAnnotationClasses.any { fieldId.jField.isAnnotationPresent(it) } }
+                        .map { entityClassId to it }
+                }
 
-        return ValueProvider.of(generatedValueFieldIds.map { GeneratedFieldValueProvider(idGenerator, it) })
+        logger.info { "Detected @GeneratedValue fields: $generatedValueFields" }
+
+        return ValueProvider.of(generatedValueFields.map { (entityClassId, fieldId) ->
+            GeneratedFieldValueProvider(idGenerator, entityClassId, fieldId)
+        })
     }
 
     override fun createStateBefore(

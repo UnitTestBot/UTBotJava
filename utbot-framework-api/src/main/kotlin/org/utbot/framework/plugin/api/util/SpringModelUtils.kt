@@ -81,6 +81,7 @@ object SpringModelUtils {
         .filter { utContext.classLoader.tryLoadClass(it.name) != null }
 
     val notEmptyClassIds get() = validationClassIds("NotEmpty")
+    val notBlankClassIds get() = validationClassIds("NotBlank")
     val emailClassIds get() = validationClassIds("Email")
 
 

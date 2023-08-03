@@ -30,6 +30,7 @@ import org.utbot.fuzzing.spring.GeneratedFieldValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
 import org.utbot.fuzzing.spring.preserveProperties
 import org.utbot.fuzzing.spring.valid.EmailValueProvider
+import org.utbot.fuzzing.spring.valid.NotBlankStringValueProvider
 import org.utbot.fuzzing.spring.valid.NotEmptyStringValueProvider
 import org.utbot.fuzzing.spring.valid.ValidEntityValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
@@ -102,6 +103,7 @@ class SpringIntegrationTestConcreteExecutionContext(
         return springBeanValueProvider
             .withFallback(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = true))
             .withFallback(EmailValueProvider())
+            .withFallback(NotBlankStringValueProvider())
             .withFallback(NotEmptyStringValueProvider())
             .withFallback(
                 delegateContext.tryCreateValueProvider(concreteExecutor, classUnderTest, idGenerator)

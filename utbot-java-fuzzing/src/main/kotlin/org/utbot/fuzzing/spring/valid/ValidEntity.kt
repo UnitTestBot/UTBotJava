@@ -9,12 +9,14 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
-import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassIds
 import org.utbot.framework.plugin.api.util.SpringModelUtils.generatedValueClassIds
 import org.utbot.framework.plugin.api.util.SpringModelUtils.detachMethodIdOrNull
+import org.utbot.framework.plugin.api.util.SpringModelUtils.emailClassIds
 import org.utbot.framework.plugin.api.util.SpringModelUtils.persistMethodIdOrNull
 import org.utbot.framework.plugin.api.util.SpringModelUtils.idClassIds
+import org.utbot.framework.plugin.api.util.SpringModelUtils.notBlankClassIds
+import org.utbot.framework.plugin.api.util.SpringModelUtils.notEmptyClassIds
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -115,8 +117,9 @@ class ValidEntityValueProvider(
 
                     val validationProperties = field.annotatedType.annotations.mapNotNull { annotation ->
                         when (annotation.annotationClass.id) {
-                            in SpringModelUtils.notEmptyClassIds -> NotEmptyTypeFlag.withValue(Unit)
-                            in SpringModelUtils.emailClassIds -> EmailTypeFlag.withValue(Unit)
+                            in notEmptyClassIds -> NotEmptyTypeFlag.withValue(Unit)
+                            in notBlankClassIds -> NotBlankTypeFlag.withValue(Unit)
+                            in emailClassIds -> EmailTypeFlag.withValue(Unit)
                             // TODO support more validators
                             else -> null
                         }

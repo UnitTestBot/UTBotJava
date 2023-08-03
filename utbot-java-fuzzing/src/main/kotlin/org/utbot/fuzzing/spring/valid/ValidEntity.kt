@@ -1,6 +1,5 @@
 package org.utbot.fuzzing.spring.valid
 
-import org.utbot.common.dynamicPropertiesOf
 import org.utbot.common.toDynamicProperties
 import org.utbot.common.withValue
 import org.utbot.framework.plugin.api.ClassId
@@ -31,9 +30,8 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.providers.findAccessibleModifiableFields
 import org.utbot.fuzzing.providers.nullRoutine
-import org.utbot.fuzzing.spring.FuzzedTypeProperty
+import org.utbot.fuzzing.spring.PreservableFuzzedTypeProperty
 import org.utbot.fuzzing.spring.addProperties
-import org.utbot.fuzzing.spring.addPropertiesDeeply
 import org.utbot.fuzzing.spring.properties
 import org.utbot.fuzzing.utils.hex
 
@@ -48,7 +46,7 @@ enum class EntityLifecycleState(
     DETACHED(generatedValueClassIds + idClassIds, { listOfNotNull(persistMethodIdOrNull, detachMethodIdOrNull) }),
 }
 
-object EntityLifecycleStateProperty : FuzzedTypeProperty<EntityLifecycleState>
+object EntityLifecycleStateProperty : PreservableFuzzedTypeProperty<EntityLifecycleState>
 
 class ValidEntityValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -129,11 +127,6 @@ class ValidEntityValueProvider(
                     }.toDynamicProperties()
 
                     val typeWithProperties = fd.type.addProperties(validationProperties)
-                        .addPropertiesDeeply(
-                            dynamicPropertiesOf(
-                                EntityLifecycleStateProperty.withValue(lifecycleState)
-                            )
-                        )
 
                     when {
                         fd.canBeSetDirectly -> {

@@ -31,25 +31,3 @@ fun FuzzedType.withoutProperty(property: FuzzedTypeProperty<*>): FuzzedTypeWithP
 
 fun FuzzedType.addProperties(properties: FuzzedTypeProperties): FuzzedTypeWithProperties =
     FuzzedTypeWithProperties(origin, this.properties + properties)
-
-/**
- * Unlike [addProperties] adds [properties] not just to the type itself, but also to its
- * [FuzzedType.generics], generics of generics, and so on.
- */
-fun FuzzedType.addPropertiesDeeply(properties: FuzzedTypeProperties): FuzzedTypeWithProperties {
-    val cache = mutableMapOf<FuzzedType, FuzzedTypeWithProperties>()
-
-    fun FuzzedType.addPropertiesDeeply(): FuzzedTypeWithProperties {
-        cache[this]?.let { return it }
-        val generics = mutableListOf<FuzzedTypeWithProperties>()
-        val result = FuzzedTypeWithProperties(
-            origin = FuzzedType(classId, generics),
-            properties = this.properties + properties
-        )
-        cache[this] = result
-        this.generics.forEach { generics.add(it.addPropertiesDeeply()) }
-        return result
-    }
-
-    return addPropertiesDeeply()
-}

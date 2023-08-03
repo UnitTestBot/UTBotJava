@@ -74,7 +74,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         val dependentSpyModels =
             thisInstancesDependentModels
                 .filterTo(mutableSetOf()) { cgModel ->
-                    cgModel.model.canBeSpied() && cgModel !in thisInstanceModels
+                    cgModel.model.canBeSpied() && cgModel !in thisInstanceModels && cgModel !in dependentMockModels
                 }
 
         val autowiredFromContextModels =

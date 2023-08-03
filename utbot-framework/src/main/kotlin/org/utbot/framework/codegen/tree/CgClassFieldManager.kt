@@ -9,6 +9,7 @@ import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.framework.SpyFrameworkManager
+import org.utbot.framework.codegen.tree.MockitoInjectionUtils.canBeInjectedByTypeInto
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -26,14 +27,14 @@ sealed interface CgClassFieldManager : CgContextOwner {
 
     val annotationType: ClassId
 
-    fun constructVariableForField(model: UtModel, modelVariable: CgValue)
+    fun constructFieldsForVariable(model: UtModel, variable: CgValue)
 
     fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean
 
-    fun getBaseVarName(model: UtModel): String?
+    fun constructBaseVarName(model: UtModel): String?
 }
 
-abstract class CgClassFieldManagerImpl(context: CgContext) :
+abstract class CgAbstractClassFieldManager(context: CgContext) :
     CgClassFieldManager,
     CgContextOwner by context {
 
@@ -48,27 +49,14 @@ abstract class CgClassFieldManagerImpl(context: CgContext) :
         return valueByUtModelWrapper[key]
     }
 
-    override fun getBaseVarName(model: UtModel): String? {
-        return nameGenerator.nameFrom(model.classId)
-    }
+    override fun constructBaseVarName(model: UtModel): String? = nameGenerator.nameFrom(model.classId)
 }
 
-abstract class CgUnitTestsClassFieldManager(context: CgContext) : CgClassFieldManagerImpl(context){
-
-    /*
-     * If count of fields of the same type is 1, then we mock/spy variable by @Mock/@Spy annotation,
-     * otherwise we will create this variable by simple variable constructor.
-     */
-    override fun fieldWithAnnotationIsRequired(classId: ClassId) =
-        classUnderTest.allDeclaredFieldIds.filter { classId.isSubtypeOf(it.type) }.toList().size == 1
-}
-
-
-class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManagerImpl(context) {
+class CgInjectingMocksFieldsManager(val context: CgContext) : CgAbstractClassFieldManager(context) {
 
     override val annotationType = injectMocksClassId
 
-    override fun constructVariableForField(model: UtModel, modelVariable: CgValue) {
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
         val modelFields = when (model) {
             is UtCompositeModel -> model.fields
             is UtModelWithCompositeOrigin -> model.origin?.fields
@@ -89,7 +77,7 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManage
             // it is set in the connected with instance under test automatically via @InjectMocks.
             // Otherwise, we need to set this field manually.
             if ((!fieldModel.isMockModel() || !isMocked) && !isSpied) {
-                variableConstructor.setFieldValue(modelVariable, fieldId, variableForField)
+                variableConstructor.setFieldValue(variable, fieldId, variableForField)
             }
         }
     }
@@ -97,55 +85,58 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManage
     override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean = true
 }
 
-class CgMockedFieldsManager(context: CgContext) : CgUnitTestsClassFieldManager(context) {
+class CgMockedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(context) {
 
     private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
 
     override val annotationType = mockClassId
 
-    override fun constructVariableForField(model: UtModel, modelVariable: CgValue) {
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
         if (!model.isMockModel()) {
-            error("isMockModel was expected, but $model was found")
+            error("$model does not represent a mock")
         }
 
         mockFrameworkManager.createMockForVariable(
             model as UtCompositeModel,
-            modelVariable as CgVariable,
+            variable as CgVariable,
         )
 
         for ((fieldId, fieldModel) in model.fields) {
             val variableForField = variableConstructor.getOrCreateVariable(fieldModel)
-            variableConstructor.setFieldValue(modelVariable, fieldId, variableForField)
+            variableConstructor.setFieldValue(variable, fieldId, variableForField)
         }
     }
+
+    override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean =
+        classId.canBeInjectedByTypeInto(classUnderTest)
 }
 
-class CgSpiedFieldsManager(context: CgContext) : CgUnitTestsClassFieldManager(context) {
+class CgSpiedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(context) {
 
     private val spyFrameworkManager = SpyFrameworkManager(context)
 
     override val annotationType = spyClassId
 
-    override fun constructVariableForField(model: UtModel, modelVariable: CgValue) {
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
         if (!model.canBeSpied()) {
-            error("canBeSpied model was expected, but $model was found")
+            error("$model does not represent a spy")
         }
         spyFrameworkManager.spyForVariable(
             model as UtAssembleModel,
         )
     }
 
-    override fun getBaseVarName(model: UtModel): String {
-        return super.getBaseVarName(model) + "Spy"
-    }
+    override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean =
+        classId.canBeInjectedByTypeInto(classUnderTest)
 
+    override fun constructBaseVarName(model: UtModel): String = super.constructBaseVarName(model) + "Spy"
 }
 
-class CgAutowiredFieldsManager(context: CgContext) : CgClassFieldManagerImpl(context) {
+class CgAutowiredFieldsManager(context: CgContext) : CgAbstractClassFieldManager(context) {
 
     override val annotationType = autowiredClassId
 
-    override fun constructVariableForField(model: UtModel, modelVariable: CgValue) {
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
         when {
             model.isAutowiredFromContext() -> {
                 variableConstructor.constructAssembleForVariable(model as UtAssembleModel)
@@ -155,9 +146,7 @@ class CgAutowiredFieldsManager(context: CgContext) : CgClassFieldManagerImpl(con
         }
     }
 
-    override fun getBaseVarName(model: UtModel): String? {
-        return model.getBeanNameOrNull()
-    }
+    override fun constructBaseVarName(model: UtModel): String? = model.getBeanNameOrNull()
 
     override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean = true
 }
@@ -181,11 +170,20 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
             val alreadyCreatedVariable = manager.findCgValueByModel(model, annotatedModelGroups[manager.annotationType])
 
             if (alreadyCreatedVariable != null) {
-                manager.constructVariableForField(model, alreadyCreatedVariable)
+                manager.constructFieldsForVariable(model, alreadyCreatedVariable)
                 return alreadyCreatedVariable
             }
         }
 
         return null
     }
+}
+
+object MockitoInjectionUtils {
+    /*
+     * If count of fields of the same type is 1, then we mock/spy variable by @Mock/@Spy annotation,
+     * otherwise we will create this variable by simple variable constructor.
+     */
+    fun ClassId.canBeInjectedByTypeInto(classToInjectInto: ClassId): Boolean =
+        classToInjectInto.allDeclaredFieldIds.filter { isSubtypeOf(it.type) }.toList().size == 1
 }

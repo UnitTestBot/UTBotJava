@@ -108,10 +108,10 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
                 continue
             }
 
-            val baseVarName = fieldManager.getBaseVarName(model)
+            val baseVarName = fieldManager.constructBaseVarName(model)
 
             val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                ?: error("`UtCompositeModel` or `UtAssembleModel` model was expected, but $model was found")
+                ?: error("`CgVariable` cannot be constructed from a $model model")
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
 

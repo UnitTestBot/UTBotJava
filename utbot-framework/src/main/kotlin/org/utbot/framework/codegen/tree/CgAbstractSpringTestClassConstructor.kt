@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.tree
 
-import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
@@ -19,7 +18,6 @@ import org.utbot.framework.codegen.domain.models.SpringTestClassModel
 import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtSpringContextModel
-import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.id
 import java.lang.Exception
 
@@ -102,18 +100,18 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
         val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
         for ((classId, modelWrappers) in groupedModelsByClassId) {
 
-            val fieldWithAnnotationIsRequired = fieldManager.fieldWithAnnotationIsRequired(modelWrappers)
+            val modelWrapper = modelWrappers.firstOrNull() ?: continue
+            val model = modelWrapper.model
+
+            val fieldWithAnnotationIsRequired = fieldManager.fieldWithAnnotationIsRequired(model.classId)
             if (!fieldWithAnnotationIsRequired) {
                 continue
             }
 
-            val modelWrapper = modelWrappers.firstOrNull() ?: continue
-            val model = modelWrapper.model
-
-            val baseVarName = model.getBeanNameOrNull()
+            val baseVarName = fieldManager.constructBaseVarName(model)
 
             val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                ?: error("`UtCompositeModel` model was expected, but $model was found")
+                ?: error("`CgVariable` cannot be constructed from a $model model")
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
 
@@ -126,17 +124,10 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
             modelWrappers
                 .forEach { modelWrapper ->
 
-                    val modelWrapperWithNullTagName = UtModelWrapper(
-                        testSetId = modelWrapper.testSetId,
-                        executionId = modelWrapper.executionId,
-                        model = modelWrapper.model,
-                        modelTagName = null,
-                    )
-
-                    valueByUtModelWrapper[modelWrapperWithNullTagName] = createdVariable
+                    valueByUtModelWrapper[modelWrapper] = createdVariable
 
                     variableConstructor.annotatedModelGroups
-                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapperWithNullTagName
+                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapper
                 }
         }
 

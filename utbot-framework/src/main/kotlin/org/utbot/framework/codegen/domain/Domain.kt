@@ -757,12 +757,9 @@ object SpringBoot : DependencyInjectionFramework(
  *
  * Used as a key in [valueByUtModelWrapper].
  * Was introduced primarily for shared among all test methods global variables.
- *
- * `modelTagName` is used to distinguish between variables with annotation @Mock that have the same model
  */
 data class UtModelWrapper(
     val testSetId: Int,
     val executionId: Int,
     val model: UtModel,
-    val modelTagName: String?
 )

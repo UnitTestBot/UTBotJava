@@ -33,5 +33,6 @@ class SpringTestClassModel(
 class SpringSpecificInformation(
     val thisInstanceModels: TypedModelWrappers,
     val thisInstanceDependentMocks: TypedModelWrappers,
+    val thisInstanceDependentSpies: TypedModelWrappers,
     val autowiredFromContextModels: TypedModelWrappers,
 )

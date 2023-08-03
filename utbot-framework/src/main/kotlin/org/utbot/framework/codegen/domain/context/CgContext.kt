@@ -457,12 +457,11 @@ interface CgContextOwner {
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
 
-    fun UtModel.wrap(modelTagName: String? = null): UtModelWrapper =
+    fun UtModel.wrap(): UtModelWrapper =
         UtModelWrapper(
             testSetId = currentTestSetId,
             executionId = currentExecutionId,
             model = this,
-            modelTagName = modelTagName
         )
 }
 

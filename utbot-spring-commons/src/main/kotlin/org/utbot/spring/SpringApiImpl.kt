@@ -57,17 +57,16 @@ class SpringApiImpl(
 
     override fun getDependenciesForBean(beanName: String, userSourcesClassLoader: URLClassLoader): Set<String> {
         val analyzedBeanNames = mutableSetOf<String>()
-        return getDependenciesForBeanInternal(beanName, analyzedBeanNames, userSourcesClassLoader)
+        collectDependenciesForBeanRecursively(beanName, analyzedBeanNames, userSourcesClassLoader)
+        return analyzedBeanNames
     }
 
-    private fun getDependenciesForBeanInternal(
+    private fun collectDependenciesForBeanRecursively(
         beanName: String,
         analyzedBeanNames: MutableSet<String>,
         userSourcesClassLoader: URLClassLoader,
-        ): Set<String> {
-        if (beanName in analyzedBeanNames) {
-            return emptySet()
-        }
+    ) {
+        if (beanName in analyzedBeanNames) return
 
         analyzedBeanNames.add(beanName)
 
@@ -83,7 +82,7 @@ class SpringApiImpl(
             }
             .toSet()
 
-        return setOf(beanName) + dependencyBeanNames.flatMap { getDependenciesForBean(it, userSourcesClassLoader) }
+        dependencyBeanNames.forEach { collectDependenciesForBeanRecursively(it, analyzedBeanNames, userSourcesClassLoader) }
     }
 
     override fun resetBean(beanName: String) {

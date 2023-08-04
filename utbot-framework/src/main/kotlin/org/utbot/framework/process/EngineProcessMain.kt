@@ -74,9 +74,10 @@ private var idCounter: Long = 0
 private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog, realProtocol: IProtocol) {
     val model = this
     watchdog.measureTimeForActiveCall(setupUtContext, "UtContext setup") { params ->
+        // we use parent classloader with null to disable autoload classes from system classloader
         UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
             File(it).toURI().toURL()
-        }.toTypedArray())))
+        }.toTypedArray(), null)))
     }
     watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
         try {

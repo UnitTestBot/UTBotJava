@@ -29,6 +29,14 @@ fun String.transformRawString(): String {
     }
 }
 
+fun String.makeRawString(): String {
+    return if (this.isRawString()) {
+        this
+    } else {
+        "r${this}"
+    }
+}
+
 fun String.isRawString(): Boolean {
     val rawStringWithDoubleQuotationMarks = this.startsWith("r\"") && this.endsWith("\"")
     val rawStringWithOneQuotationMarks = this.startsWith("r'") && this.endsWith("'")

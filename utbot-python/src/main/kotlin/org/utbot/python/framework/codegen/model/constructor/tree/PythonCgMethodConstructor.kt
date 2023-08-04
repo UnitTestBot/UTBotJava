@@ -288,7 +288,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             emptyLineIfNeeded()
             if (elementsHaveSameStructure) {
                 val index = newVar(pythonNoneClassId, keyName) {
-                    CgLiteral(pythonNoneClassId, "None")
+                    CgPythonRepr(pythonNoneClassId, "None")
                 }
                 forEachLoop {
                     innerBlock {

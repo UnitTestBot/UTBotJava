@@ -38,7 +38,7 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
     private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null): Pair<CgValue, List<CgStatement>> {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
-                Pair(CgLiteral(objectNode.type, objectNode.repr), emptyList())
+                Pair(CgPythonRepr(objectNode.type, objectNode.repr), emptyList())
             }
 
             is PythonTree.ListNode -> {

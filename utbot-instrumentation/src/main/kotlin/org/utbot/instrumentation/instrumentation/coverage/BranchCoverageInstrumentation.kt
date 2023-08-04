@@ -1,7 +1,7 @@
 package org.utbot.instrumentation.instrumentation.coverage
 
 import org.jacoco.core.internal.flow.ClassProbesAdapter
-import org.jacoco.core.internal.instr.createJacocoClassVisitorForBytecodeInstrumentation
+import org.jacoco.core.internal.instr.createClassVisitorForBranchCoverageInstrumentation
 import org.jacoco.core.internal.instr.sw
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -35,7 +35,7 @@ class BranchCoverageInstrumentation : CoverageInstrumentation() {
                 get() = ClassReader.EXPAND_FRAMES
 
             override fun build(writer: ClassWriter): ClassProbesAdapter =
-                createJacocoClassVisitorForBytecodeInstrumentation(writer, className)
+                createClassVisitorForBranchCoverageInstrumentation(writer, className)
         })
 
         // TODO exceptions

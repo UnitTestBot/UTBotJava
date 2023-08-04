@@ -53,16 +53,9 @@ class Instrumenter(classByteCode: ByteArray, val classLoader: ClassLoader? = nul
     }
 
     fun computeMapOfRangesForBranchCoverage(): Map<String, IntRange> {
-        val methodToListOfProbesInserter = visitClass(object : ClassVisitorBuilder<MyMethodToProbesVisitor> {
-            override val writerFlags: Int
-                get() = 0
-
-            override val readerParsingOptions: Int
-                get() = ClassReader.EXPAND_FRAMES
-
-            override fun build(writer: ClassWriter): MyMethodToProbesVisitor =
-                createJacocoClassVisitorForCollectionBranchCoverage(writer)
-        })
+        val methodToListOfProbesInserter = visitClass { writer ->
+            createClassVisitorForComputeMapOfRangesForBranchCoverage(writer)
+        }
 
         return methodToListOfProbesInserter.methodToProbes.mapValues { (_, probes) -> (probes.first()..probes.last()) }
     }

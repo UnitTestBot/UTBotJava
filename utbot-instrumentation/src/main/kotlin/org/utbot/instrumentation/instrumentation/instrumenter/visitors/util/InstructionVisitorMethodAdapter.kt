@@ -16,7 +16,7 @@ open class InstructionVisitorMethodAdapter(
     var lvs: LocalVariablesSorter? = null
 
     companion object {
-        private val returnInsns = setOf(
+        val returnInsns = setOf(
             Opcodes.IRETURN,
             Opcodes.LRETURN,
             Opcodes.FRETURN,

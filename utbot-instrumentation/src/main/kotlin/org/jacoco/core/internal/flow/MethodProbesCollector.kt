@@ -1,9 +1,10 @@
-package org.jacoco.core.internal.instr
+package org.jacoco.core.internal.flow
 
-import org.jacoco.core.internal.flow.ClassProbesAdapter
+import org.jacoco.core.internal.instr.IProbeArrayStrategy
+import org.jacoco.core.internal.instr.NoneClassInstrumenter
 import org.objectweb.asm.ClassVisitor
 
-class MyMethodToProbesVisitor(
+class MethodProbesCollector(
     api: Int,
     strategy: IProbeArrayStrategy,
     writer: ClassVisitor,

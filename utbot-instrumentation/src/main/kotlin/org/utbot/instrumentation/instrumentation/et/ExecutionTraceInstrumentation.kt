@@ -1,19 +1,19 @@
 package org.utbot.instrumentation.instrumentation.et
 
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeWithStaticsInstrumentation
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import java.security.ProtectionDomain
-import org.utbot.framework.plugin.api.FieldId
 
 /**
  * This instrumentation allows to get execution trace during each call.
  */
 
-class ExecutionTraceInstrumentation : Instrumentation<Trace> {
+open class ExecutionTraceInstrumentation : Instrumentation<Trace> {
     private val invokeWithStatics = InvokeWithStaticsInstrumentation()
-    private val traceHandler = TraceHandler()
+    protected val traceHandler = TraceHandler()
 
     /**
      * Invokes a method with the given [methodSignature], the declaring class of which is [clazz], with the supplied

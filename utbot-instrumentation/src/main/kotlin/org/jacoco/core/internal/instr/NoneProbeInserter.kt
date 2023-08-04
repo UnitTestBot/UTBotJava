@@ -4,7 +4,7 @@ import org.objectweb.asm.MethodVisitor
 import org.utbot.instrumentation.Settings
 
 /**
- * The probe inserter does not emit any code at all. This is used to collect method probes.
+ * This inserter does not emit any code at all. This is used to collect method probes.
  */
 class NoneProbeInserter(
     private val methodName: String,

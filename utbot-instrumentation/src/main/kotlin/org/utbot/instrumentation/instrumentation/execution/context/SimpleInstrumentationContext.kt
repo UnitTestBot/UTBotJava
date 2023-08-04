@@ -23,5 +23,5 @@ class SimpleInstrumentationContext : InstrumentationContext {
     override fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor? =
         javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
 
-    override fun onPhaseUnderTimeoutFailure(failedPhase: ExecutionPhase, throwable: Throwable) = Unit
+    override fun onPhaseTimeout(timedOutedPhase: ExecutionPhase) = Unit
 }

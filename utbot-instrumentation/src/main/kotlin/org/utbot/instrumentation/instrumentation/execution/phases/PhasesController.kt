@@ -66,18 +66,14 @@ class PhasesController(
         val stopWatch = StopWatch()
         val context = UtContext(utContext.classLoader, stopWatch)
         val timeoutForCurrentPhase = timeout - currentlyElapsed
-        val result = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout - currentlyElapsed, stopWatch) {
+        val executor = ThreadBasedExecutor.threadLocal
+        val result = executor.invokeWithTimeout(timeout - currentlyElapsed, stopWatch) {
             withUtContext(context) {
                 try {
                     phase.block()
-                } catch (outerThrowable: Throwable) {
-                    try {
-                        instrumentationContext.onPhaseUnderTimeoutFailure(phase, outerThrowable)
-                    } catch (innerThrowable: Throwable) {
-                        logger.error("onPhaseUnderTimeoutFailure failed", innerThrowable)
-                    } finally {
-                        throw outerThrowable
-                    }
+                } finally {
+                    if (executor.isCurrentThreadTimedOut())
+                        instrumentationContext.onPhaseTimeout(phase)
                 }
             }
         } ?: throw TimeoutException("Timeout $timeoutForCurrentPhase ms for phase ${phase.javaClass.simpleName} elapsed, controller timeout - $timeout")

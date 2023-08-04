@@ -54,6 +54,6 @@ class SpringInstrumentationContext(
         if (classId.isSubtypeOf(resultActionsClassId)) UtMockMvcResultActionsModelConstructor()
         else delegateInstrumentationContext.findUtModelWithCompositeOriginConstructor(classId)
 
-    override fun onPhaseUnderTimeoutFailure(failedPhase: ExecutionPhase, throwable: Throwable) =
+    override fun onPhaseTimeout(timedOutedPhase: ExecutionPhase) =
         springApi.afterTestMethod()
 }

@@ -36,13 +36,11 @@ interface InstrumentationContext {
     fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor?
 
     /**
-     * Called when [failedPhase] fails while being executed under timeout.
-     * This method is executed in the same thread that [failedPhase] was run in.
-     * Implementor are expected to only perform some clean up operations (e.g. rollback transactions in Spring).
-     *
-     * In case of timeout [throwable] can be [ThreadDeath], [InterruptedException], or any other [Throwable].
+     * Called when [timedOutedPhase] times out.
+     * This method is executed in the same thread that [timedOutedPhase] was run in.
+     * Implementor is expected to only perform some clean up operations (e.g. rollback transactions in Spring).
      */
-    fun onPhaseUnderTimeoutFailure(failedPhase: ExecutionPhase, throwable: Throwable)
+    fun onPhaseTimeout(timedOutedPhase: ExecutionPhase)
 
     object MockGetter {
         data class MockContainer(private val values: List<*>) {

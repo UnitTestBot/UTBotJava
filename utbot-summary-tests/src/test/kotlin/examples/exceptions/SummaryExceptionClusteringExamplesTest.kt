@@ -23,13 +23,13 @@ class SummaryExceptionClusteringExamplesTest : SummaryTestCaseGeneratorTest(
                 "@utbot.methodUnderTest {@link org.utbot.examples.exceptions.ExceptionClusteringExamples#differentExceptions(int)}\n" +
                 "@utbot.executesCondition {@code (i == 0): False}\n" +
                 "@utbot.executesCondition {@code (i == 1): True}\n" +
-                "@utbot.throwsException {@link org.utbot.examples.exceptions.MyCheckedException} after condition: i == 1"
+                "@utbot.throwsException {@link org.utbot.examples.exceptions.MyCheckedException} when: i == 1"
         val summary3 = "@utbot.classUnderTest {@link ExceptionClusteringExamples}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.exceptions.ExceptionClusteringExamples#differentExceptions(int)}\n" +
                 "@utbot.executesCondition {@code (i == 0): False}\n" +
                 "@utbot.executesCondition {@code (i == 1): False}\n" +
                 "@utbot.executesCondition {@code (i == 2): True}\n" +
-                "@utbot.throwsException {@link java.lang.IllegalArgumentException} after condition: i == 2"
+                "@utbot.throwsException {@link java.lang.IllegalArgumentException} when: i == 2"
         val summary4 = "@utbot.classUnderTest {@link ExceptionClusteringExamples}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.exceptions.ExceptionClusteringExamples#differentExceptions(int)}\n" +
                 "@utbot.executesCondition {@code (i == 0): False}\n" +
@@ -37,9 +37,9 @@ class SummaryExceptionClusteringExamplesTest : SummaryTestCaseGeneratorTest(
                 "@utbot.executesCondition {@code (i == 2): False}\n" +
                 "@utbot.returnsFrom {@code return i * 2;}\n"
 
-        val methodName1 = "testDifferentExceptions_IEqualsZero"
-        val methodName2 = "testDifferentExceptions_IEquals1"
-        val methodName3 = "testDifferentExceptions_IEquals2"
+        val methodName1 = "testDifferentExceptions_ThrowArithmeticException"
+        val methodName2 = "testDifferentExceptions_ThrowMyCheckedException"
+        val methodName3 = "testDifferentExceptions_ThrowIllegalArgumentException"
         val methodName4 = "testDifferentExceptions_INotEquals2"
 
         val displayName1 = "return 100 / i : True -> ThrowArithmeticException"

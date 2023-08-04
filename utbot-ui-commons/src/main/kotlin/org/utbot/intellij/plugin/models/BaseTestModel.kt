@@ -1,10 +1,8 @@
 package org.utbot.intellij.plugin.models
 
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.TestModuleProperties
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.JavaPsiFacade
@@ -23,12 +21,10 @@ import org.utbot.intellij.plugin.ui.utils.getResourcesPaths
 import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
-import java.io.IOException
-import java.io.StringReader
+import org.utbot.intellij.plugin.util.binaryName
 import java.nio.file.Files
 import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.parsers.ParserConfigurationException
 import kotlin.streams.asSequence
 
 
@@ -37,8 +33,8 @@ const val HISTORY_LIMIT = 10
 
 const val SPRINGBOOT_APPLICATION_FQN = "org.springframework.boot.autoconfigure.SpringBootApplication"
 const val SPRINGBOOT_CONFIGURATION_FQN = "org.springframework.boot.SpringBootConfiguration"
-const val SPRING_CONFIGURATION_ANNOTATION = "org.springframework.context.annotation.Configuration"
-const val SPRING_TESTCONFIGURATION_ANNOTATION = "org.springframework.boot.test.context.TestConfiguration"
+const val SPRING_CONFIGURATION_ANNOTATION_FQN = "org.springframework.context.annotation.Configuration"
+const val SPRING_TESTCONFIGURATION_ANNOTATION_FQN = "org.springframework.boot.test.context.TestConfiguration"
 
 const val SPRING_BEANS_SCHEMA_URL = "http://www.springframework.org/schema/beans"
 const val SPRING_LOAD_DTD_GRAMMAR_PROPERTY = "http://apache.org/xml/features/nonvalidating/load-dtd-grammar"
@@ -98,7 +94,8 @@ open class BaseTestsModel(
      * @see [getSortedAnnotatedClasses]
      */
     fun getSortedSpringBootApplicationClasses(): Set<String> =
-        getSortedAnnotatedClasses(SPRINGBOOT_CONFIGURATION_FQN) + getSortedAnnotatedClasses(SPRINGBOOT_APPLICATION_FQN)
+        getSortedAnnotatedClasses(SPRINGBOOT_CONFIGURATION_FQN) +
+                getSortedAnnotatedClasses(SPRINGBOOT_APPLICATION_FQN)
 
     /**
      * Finds @TestConfiguration and @Configuration classes in Spring application.
@@ -106,7 +103,8 @@ open class BaseTestsModel(
      * @see [getSortedAnnotatedClasses]
      */
     fun getSortedSpringConfigurationClasses(): Set<String> =
-        getSortedAnnotatedClasses(SPRING_TESTCONFIGURATION_ANNOTATION) + getSortedAnnotatedClasses(SPRING_CONFIGURATION_ANNOTATION)
+        getSortedAnnotatedClasses(SPRING_TESTCONFIGURATION_ANNOTATION_FQN) +
+                getSortedAnnotatedClasses(SPRING_CONFIGURATION_ANNOTATION_FQN)
 
     /**
      * Finds classes annotated with given annotation in [srcModule] and [potentialTestModules].
@@ -116,21 +114,27 @@ open class BaseTestsModel(
      *   - classes from production source roots
      */
     private fun getSortedAnnotatedClasses(annotationFqn: String): Set<String> {
-        val searchScope = potentialTestModules.fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
-            accScope.union(GlobalSearchScope.moduleScope(module))
-        }
+        val searchScope =
+            potentialTestModules
+                .fold(GlobalSearchScope.moduleScope(srcModule)) { accScope, module ->
+                    accScope.union(GlobalSearchScope.moduleScope(module))
+                }
 
         val annotationClass = JavaPsiFacade
             .getInstance(project)
-            .findClass(annotationFqn, GlobalSearchScope.allScope(project)) ?: return emptySet()
+            .findClass(annotationFqn, GlobalSearchScope.allScope(project))
+            ?: return emptySet()
 
-        val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }
+        val testRootToIndex =
+            getSortedTestRoots()
+                .withIndex()
+                .associate { (i, root) -> root.dir to i }
 
         return AnnotatedElementsSearch
             .searchPsiClasses(annotationClass, searchScope)
             .findAll()
             .sortedBy { testRootToIndex[it.containingFile.sourceRoot] ?: Int.MAX_VALUE }
-            .mapNotNullTo(mutableSetOf()) { it.qualifiedName }
+            .mapNotNullTo(mutableSetOf()) { it.binaryName }
     }
 
     fun getSpringXMLConfigurationFiles(): Set<String> {

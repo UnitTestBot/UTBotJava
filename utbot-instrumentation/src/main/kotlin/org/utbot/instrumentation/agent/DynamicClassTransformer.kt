@@ -9,6 +9,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.nio.file.Paths
 import java.security.ProtectionDomain
 import kotlin.io.path.absolutePathString
+import kotlin.properties.Delegates
 
 
 private val logger = getLogger<DynamicClassTransformer>()
@@ -19,6 +20,7 @@ private val logger = getLogger<DynamicClassTransformer>()
 class DynamicClassTransformer : ClassFileTransformer {
     lateinit var transformer: ClassFileTransformer
 
+    var useBytecodeTransformation by Delegates.notNull<Boolean>()
     private val pathsToUserClasses = mutableSetOf<String>()
 
     fun addUserPaths(paths: Iterable<String>) {

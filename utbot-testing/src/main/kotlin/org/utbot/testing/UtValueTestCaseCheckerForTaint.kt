@@ -2,6 +2,7 @@ package org.utbot.testing
 
 import org.junit.jupiter.api.AfterAll
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.plugin.api.*
 import org.utbot.taint.TaintConfigurationProvider
 import kotlin.reflect.KClass
@@ -9,9 +10,10 @@ import kotlin.reflect.KClass
 open class UtValueTestCaseCheckerForTaint(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    pipelines: List<TestLastStage> = listOf(
-        TestLastStage(CodegenLanguage.JAVA, Compilation),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines: List<Configuration> = listOf(
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.PARAMETRIZE, Compilation),
+        Configuration(CodegenLanguage.KOTLIN, ParametrizedTestSource.DO_NOT_PARAMETRIZE, CodeGeneration),
     ),
     private val taintConfigurationProvider: TaintConfigurationProvider,
 ) : UtValueTestCaseChecker(testClass, testCodeGeneration, pipelines) {

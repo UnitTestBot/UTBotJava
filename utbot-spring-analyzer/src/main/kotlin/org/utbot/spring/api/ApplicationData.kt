@@ -1,9 +1,7 @@
 package org.utbot.spring.api
 
-import java.net.URL
+import org.utbot.framework.plugin.api.SpringSettings.*
 
 class ApplicationData(
-    val configurationFile: String,
-    val fileStorage: List<URL>,
-    val profileExpression: String?,
+    val springSettings: PresentSpringSettings
 )

@@ -27,6 +27,8 @@ fun Random.chooseOne(frequencies: DoubleArray): Int {
  * If a random value is less than [probability] returns true.
  */
 fun Random.flipCoin(probability: Int): Boolean {
+    if (probability == 0) return false
+    if (probability == 100) return true
     check(probability in 0 .. 100) { "probability must in range [0, 100] but $probability is provided" }
     return nextInt(1, 101) <= probability
 }

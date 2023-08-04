@@ -7,14 +7,11 @@ import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import kotlin.reflect.KClass
 import org.junit.jupiter.api.Test
 import org.utbot.examples.mock.others.ClassWithStaticField
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
-import org.utbot.testing.TestExecution
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.singleMock
 import org.utbot.testing.singleMockOrNull
@@ -23,11 +20,8 @@ import org.utbot.testing.value
 internal class MockStaticFieldExampleTest : UtValueTestCaseChecker(
     testClass = MockStaticFieldExample::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution),
-        // disabled due to https://github.com/UnitTestBot/UTBotJava/issues/88
-        TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
-    )
+    // disabled due to https://github.com/UnitTestBot/UTBotJava/issues/88
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
 
     @Test

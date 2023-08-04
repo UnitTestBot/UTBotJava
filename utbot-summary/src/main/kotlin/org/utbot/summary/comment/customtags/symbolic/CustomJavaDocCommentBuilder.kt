@@ -108,7 +108,7 @@ class CustomJavaDocCommentBuilder(
             StmtType.Condition -> comment.executesCondition += "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
             StmtType.Return -> comment.returnsFrom = "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
             StmtType.CaughtException -> comment.caughtException = "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
-            StmtType.SwitchCase -> comment.switchCase = "{@code case ${statement.description.replace(CARRIAGE_RETURN, "")}}"
+            StmtType.SwitchCase -> comment.switchCase = "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
             StmtType.CountedReturn -> comment.countedReturn = "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
             StmtType.RecursionAssignment -> comment.recursion = "of {@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
         }

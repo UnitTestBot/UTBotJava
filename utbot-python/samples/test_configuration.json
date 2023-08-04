@@ -1,0 +1,635 @@
+{
+  "parts": [
+    {
+      "path": "samples/algorithms",
+      "files": [
+        {
+          "name": "bfs",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "longest_subsequence",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "quick_sort",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 85
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/classes",
+      "files": [
+        {
+          "name": "constructors",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 80
+            }
+          ]
+        },
+        {
+          "name": "dataclass",
+          "groups": [
+            {
+              "classes": ["C"],
+              "methods": ["inc"],
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "dicts",
+          "groups": [
+            {
+              "classes": ["Dictionary"],
+              "methods": ["translate"],
+              "timeout": 10,
+              "coverage": 89
+            }
+          ]
+        },
+        {
+          "name": "easy_class",
+          "groups": [
+            {
+              "classes": ["B"],
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "equals",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "field",
+          "groups": [
+            {
+              "classes": ["NoTestsProblem"],
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "inner_class",
+          "groups": [
+            {
+              "classes": ["Outer"],
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "rename_self",
+          "groups": [
+            {
+              "classes": ["A"],
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "setstate_test",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/collections",
+      "files": [
+        {
+          "name": "dicts",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "lists",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "sets",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "tuples",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 10,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "using_collections",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 60,
+              "coverage": 88
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/controlflow",
+      "files": [
+        {
+          "name": "arithmetic",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 100,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "conditions",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30,
+              "coverage": 72
+            }
+          ]
+        },
+        {
+          "name": "inner_conditions",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30,
+              "coverage": 75
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/easy_samples",
+      "files": [
+        {
+          "name": "deep_equals",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 90,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "deep_equals_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "fully_annotated",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 300,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "dummy_with_eq",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "dummy_without_eq",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "long_function_coverage",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/exceptions",
+      "files": [
+        {
+          "name": "exception_examples",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/builtins_module",
+      "files": [
+        {
+          "name": "crypto",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180,
+              "coverage": 86
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/pack_1/inner_pack_1",
+      "files": [
+        {
+          "name": "inner_mod_1",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/pack_1/inner_pack_2",
+      "files": [
+        {
+          "name": "inner_mod_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/imports/pack_1/inner_pack_2",
+      "files": [
+        {
+          "name": "inner_mod_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 20,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/primitives",
+      "files": [
+        {
+          "name": "bytes_example",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "numbers",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 80,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "primitive_types",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 60,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "regex",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 40,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "str_example",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 160,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/recursion",
+      "files": [
+        {
+          "name": "recursion",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 150,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/structures",
+      "files": [
+        {
+          "name": "boruvka",
+          "groups": [
+            {
+              "classes": ["Graph"],
+              "methods": null,
+              "timeout": 150,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "deque",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 150,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "graph_matrix",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 120,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "matrix",
+          "groups": [
+            {
+              "classes": ["Matrix"],
+              "methods": null,
+              "timeout": 240,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "multi_level_feedback_queue",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 180,
+              "coverage": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "samples/type_inference",
+      "files": [
+        {
+          "name": "annotations",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 140,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "annotations2",
+          "groups": [
+            {
+              "classes": ["A"],
+              "methods": null,
+              "timeout": 40,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "annotations2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 120,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "generics",
+          "groups": [
+            {
+              "classes": ["LoggedVar"],
+              "methods": null,
+              "timeout": 30,
+              "coverage": 80
+            }
+          ]
+        },
+        {
+          "name": "generics",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "list_of_datetime",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30,
+              "coverage": 50
+            }
+          ]
+        },
+        {
+          "name": "subtypes",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 90,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "type_inference",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 40,
+              "coverage": 100
+            }
+          ]
+        },
+        {
+          "name": "type_inference_2",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 40,
+              "coverage": 62
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

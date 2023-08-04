@@ -173,7 +173,7 @@ class CgFieldDeclaration(
     val ownerClassId: ClassId,
     val declaration: CgDeclaration,
     val annotation: CgAnnotation? = null,
-    val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
+    val visibility: VisibilityModifier = VisibilityModifier.PRIVATE,
 ) : CgElement
 
 /**
@@ -234,7 +234,19 @@ data class CgTestMethodCluster(
 data class CgMethodsCluster(
     override val header: String?,
     override val content: List<CgRegion<CgMethod>>
-) : CgRegion<CgRegion<CgMethod>>()
+) : CgRegion<CgRegion<CgMethod>>() {
+    companion object {
+        fun withoutDocs(methodsList: List<CgMethod>) = CgMethodsCluster(
+            header = null,
+            content = listOf(
+                CgSimpleRegion(
+                    header = null,
+                    content = methodsList
+                )
+            )
+        )
+    }
+}
 
 /**
  * Util entity is either an instance of [CgAuxiliaryClass] or [CgUtilMethod].
@@ -293,10 +305,10 @@ sealed class CgMethod(open val isStatic: Boolean) : CgElement {
 
 class CgTestMethod(
     override val name: String,
-    override val returnType: ClassId,
-    override val parameters: List<CgParameterDeclaration>,
+    override val returnType: ClassId = voidClassId,
+    override val parameters: List<CgParameterDeclaration> = emptyList(),
     override val statements: List<CgStatement>,
-    override val exceptions: Set<ClassId>,
+    override val exceptions: Set<ClassId> = emptySet(),
     override val annotations: List<CgAnnotation>,
     override val visibility: VisibilityModifier = VisibilityModifier.PUBLIC,
     val type: CgTestMethodType,
@@ -357,22 +369,46 @@ enum class CgTestMethodType(val displayName: String, val isThrowing: Boolean) {
 
 // Annotations
 
+enum class AnnotationTarget {
+    Class,
+
+    Method,
+
+    Field,
+}
+
 abstract class CgAnnotation : CgElement {
     abstract val classId: ClassId
+    abstract val target: AnnotationTarget
 }
 
+/**
+ * NOTE: use `StatementConstructor.addAnnotation`
+ * instead of explicit constructor call.
+ */
 class CgCommentedAnnotation(val annotation: CgAnnotation) : CgAnnotation() {
     override val classId: ClassId = annotation.classId
+    override val target: AnnotationTarget = annotation.target
 }
 
+/**
+ * NOTE: use `StatementConstructor.addAnnotation`
+ * instead of explicit constructor call.
+ */
 class CgSingleArgAnnotation(
     override val classId: ClassId,
-    val argument: CgExpression
+    val argument: CgExpression,
+    override val target: AnnotationTarget,
 ) : CgAnnotation()
 
-class CgMultipleArgsAnnotation(
+/**
+ * NOTE: use `StatementConstructor.addAnnotation`
+ * instead of explicit constructor call.
+ */
+data class CgMultipleArgsAnnotation(
     override val classId: ClassId,
-    val arguments: MutableList<CgNamedAnnotationArgument>
+    val arguments: MutableList<CgNamedAnnotationArgument>,
+    override val target: AnnotationTarget,
 ) : CgAnnotation()
 
 data class CgArrayAnnotationArgument(
@@ -942,8 +978,16 @@ sealed class CgGetClass : CgReferenceExpression {
     override val type: ClassId = Class::class.id
 }
 
+/**
+ * NOTE: use `CgContext.createGetClassExpression`
+ * instead of the explicit constructor call.
+ */
 data class CgGetJavaClass(override val classId: ClassId) : CgGetClass()
 
+/**
+ * NOTE: use `CgContext.createGetClassExpression`
+ * instead of the explicit constructor call.
+ */
 data class CgGetKotlinClass(override val classId: ClassId) : CgGetClass()
 
 // Executable calls

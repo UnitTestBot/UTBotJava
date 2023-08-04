@@ -30,9 +30,9 @@ class SpringTestClassModel(
     val springSpecificInformation: SpringSpecificInformation,
 ): TestClassModel(classUnderTest, methodTestSets, nestedClasses)
 
-
 class SpringSpecificInformation(
-    val thisInstanceModels: TypedModelWrappers = mapOf(),
-    val thisInstanceDependentMocks: TypedModelWrappers = mapOf(),
-    val autowiredFromContextModels: TypedModelWrappers = mapOf(),
+    val thisInstanceModels: TypedModelWrappers,
+    val thisInstanceDependentMocks: TypedModelWrappers,
+    val thisInstanceDependentSpies: TypedModelWrappers,
+    val autowiredFromContextModels: TypedModelWrappers,
 )

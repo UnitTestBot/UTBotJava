@@ -12,7 +12,6 @@ import org.utbot.engine.prettify
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.useFuzzing
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -43,11 +42,8 @@ import kotlin.reflect.KFunction3
 abstract class UtModelTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    pipelines: List<TestLastStage> = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
-) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, pipelines) {
+    configurations: List<AbstractConfiguration> = standardTestingConfigurations,
+) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, configurations) {
     protected fun check(
         method: KFunction2<*, *, *>,
         branches: ExecutionsNumberMatcher,
@@ -126,7 +122,7 @@ abstract class UtModelTestCaseChecker(
 
             // if force mocking took place in parametrized test generation,
             // we do not need to process this [testSet]
-            if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+            if (TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration.isParametrizedAndMocked) {
                 conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                 return
             }
@@ -137,7 +133,7 @@ abstract class UtModelTestCaseChecker(
             }
             executions.checkMatchers(matchers, arguments)
 
-            processTestCase(testSet)
+            processTestSet(testSet)
         }
     }
 

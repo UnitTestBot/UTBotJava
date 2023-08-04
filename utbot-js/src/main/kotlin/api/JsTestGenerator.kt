@@ -292,7 +292,7 @@ class JsTestGenerator(
                                 null to params
                             } else params[0] to params.drop(1)
                             val initEnv =
-                                EnvironmentModels(thisObject, modelList, mapOf())
+                                EnvironmentModels(thisObject, modelList, mapOf(), execId)
                             emit(
                                 JsValidExecution(
                                     JsUtFuzzedExecution(

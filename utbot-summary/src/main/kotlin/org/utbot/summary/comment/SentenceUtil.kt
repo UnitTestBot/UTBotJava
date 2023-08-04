@@ -1,6 +1,7 @@
 package org.utbot.summary.comment
 
 import com.github.javaparser.ast.Node
+import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.stmt.BlockStmt
 import com.github.javaparser.ast.stmt.ForEachStmt
 import com.github.javaparser.ast.stmt.ForStmt
@@ -16,6 +17,7 @@ import org.utbot.summary.SummarySentenceConstants.NEW_LINE
 import org.utbot.summary.SummarySentenceConstants.TAB
 import org.utbot.summary.comment.classic.symbolic.SquashedStmtTexts
 import org.utbot.summary.comment.classic.symbolic.StmtType
+import kotlin.jvm.optionals.getOrNull
 
 fun numberWithSuffix(number: Int) = when (number % 10) {
     1 -> "${number}st"
@@ -25,21 +27,41 @@ fun numberWithSuffix(number: Int) = when (number % 10) {
 }
 
 /**
- * Returns reason for given ThrowStmt
- * It can be parent ast node
- * or grandparent node if parent is BlockStmt class,
+ * Returns a reason for the given ThrowStmt: a condition or ThrowStmt itself.
+ *
+ * ThrowStmt is returned when its grandparent is MethodDeclaration (method under test).
+ * E.g.
+ *  `public void myMethod() throws RuntimeException { throw new RuntimeException("message") }`
+ *
+ * Keep in mind, for inner method that throws something the reason will be that inner method.
  */
-fun getExceptionReason(throwStmt: ThrowStmt): Node? {
-    val parent = throwStmt.parentNode.orElse(null)
-    if (parent != null) {
-        return if (parent is BlockStmt) {
-            parent.parentNode.orElse(null)
-        } else {
-            parent
+private fun getExceptionReason(throwStmt: ThrowStmt): Node? =
+    throwStmt
+        .parentNode
+        .getOrNull()
+        ?.let { parent ->
+            if (parent is BlockStmt) {
+                val grandParent = parent.parentNode.getOrNull()
+                if (grandParent is MethodDeclaration) throwStmt
+                else grandParent
+            } else parent
         }
-    }
-    return null
-}
+
+fun getExceptionReasonForComment(throwStmt: ThrowStmt): Node? =
+    getExceptionReason(throwStmt)
+
+fun getExceptionReasonForName(throwStmt: ThrowStmt): Node? =
+    getExceptionReason(throwStmt)
+        ?.let {
+            if (it is ThrowStmt) {
+                /**
+                 * When the node is ThrowStmt it means that we have a deal with a case
+                 * when the method under test just throws an exception with no conditions.
+                 * So instead of rendering the whole method in display name we want to omit it at all.
+                 */
+                null
+            } else it
+        }
 
 fun numberOccurrencesToText(n: Int): String = when (n) {
     0 -> ""
@@ -91,15 +113,26 @@ val nextSynonyms = arrayOf(
     "then"
 )
 
-val skipInvokes = arrayOf(
+val forbiddenMethodInvokes = arrayOf(
     "<init>",
     "<clinit>",
     "valueOf",
-    "getClass"
+    "getClass",
 )
 
-// TODO: SAT-1589
-fun shouldSkipInvoke(invoke: String) = (invoke in skipInvokes) || (invoke.endsWith('$'))
+val forbiddenClassInvokes = arrayOf(
+    "soot.dummy.InvokeDynamic"
+)
+
+/**
+ * Filters out
+ * ```soot.dummy.InvokeDynamic#makeConcat```,
+ * ```soot.dummy.InvokeDynamic#makeConcatWithConstants```,
+ * constructor calls (```<init>```), ```bootstrap$```
+ * and other unwanted things from name and comment text.
+ */
+fun shouldSkipInvoke(className: String, methodName: String) =
+    className in forbiddenClassInvokes || methodName in forbiddenMethodInvokes || methodName.endsWith("$")
 
 fun squashDocRegularStatements(sentences: List<DocStatement>): List<DocStatement> {
     val newStatements = mutableListOf<DocStatement>()

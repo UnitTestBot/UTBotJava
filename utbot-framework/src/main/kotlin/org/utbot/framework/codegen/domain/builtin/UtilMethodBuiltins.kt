@@ -318,6 +318,26 @@ val closeMethodId = MethodId(
     parameters = emptyList(),
 )
 
+private val clearCollectionMethodId = MethodId(
+    classId = Collection::class.java.id,
+    name = "clear",
+    returnType = voidClassId,
+    parameters = emptyList()
+)
+
+private val clearMapMethodId = MethodId(
+    classId = Map::class.java.id,
+    name = "clear",
+    returnType = voidClassId,
+    parameters = emptyList()
+)
+
+fun clearMethodId(javaClass: Class<*>): MethodId = when {
+    Collection::class.java.isAssignableFrom(javaClass) -> clearCollectionMethodId
+    Map::class.java.isAssignableFrom(javaClass) -> clearMapMethodId
+    else -> error("Clear method is not implemented for $javaClass")
+}
+
 val mocksAutoCloseable: Set<ClassId> = setOf(
     MockitoStaticMocking.mockedStaticClassId,
     MockitoStaticMocking.mockedConstructionClassId

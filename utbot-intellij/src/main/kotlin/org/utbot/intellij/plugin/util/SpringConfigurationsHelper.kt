@@ -1,5 +1,7 @@
 package org.utbot.intellij.plugin.util
 
+import java.io.File
+
 /**
  * This class is a converter between full Spring configuration names and shortened versions.
  *
@@ -13,7 +15,7 @@ package org.utbot.intellij.plugin.util
  * ->
  * [["web.WebConfig", "web2.WebConfig", "AnotherConfig"]]
  */
-class SpringConfigurationsHelper(val separator: String) {
+class SpringConfigurationsHelper(val configType: SpringConfigurationType) {
 
     private val nameToInfo = mutableMapOf<String, NameInfo>()
 
@@ -21,7 +23,7 @@ class SpringConfigurationsHelper(val separator: String) {
         val shortenedName: String
             get() = innerShortName
 
-        private val pathFragments: MutableList<String> = fullName.split(separator).toMutableList()
+        private val pathFragments: MutableList<String> = fullName.split(*configType.separatorsToSplitBy).toMutableList()
         private var innerShortName = pathFragments.removeLast()
 
         fun enlargeShortName(): Boolean {
@@ -30,7 +32,7 @@ class SpringConfigurationsHelper(val separator: String) {
             }
 
             val lastElement = pathFragments.removeLast()
-            innerShortName = "${lastElement}$separator$innerShortName"
+            innerShortName = "${lastElement}${configType.separatorToConcatenateBy}$innerShortName"
             return true
         }
     }
@@ -40,7 +42,7 @@ class SpringConfigurationsHelper(val separator: String) {
             .values
             .singleOrNull { it.shortenedName == shortenedName }
             ?.fullName
-            ?: error("Full name of configuration file cannot be restored by shortened name $shortenedName")
+            ?: error("Full name of configuration file cannot be restored from shortened name $shortenedName")
 
     fun shortenSpringConfigNames(fullNames: Set<String>): Map<String, String> {
         fullNames.forEach { nameToInfo[it] = NameInfo(it) }
@@ -51,7 +53,7 @@ class SpringConfigurationsHelper(val separator: String) {
             nameInfoCollection = nameInfoCollection.sortedBy { it.shortenedName }.toMutableList()
 
             var index = 0
-            while(index < nameInfoCollection.size){
+            while (index < nameInfoCollection.size) {
                 val curShortenedPath = nameInfoCollection[index].shortenedName
 
                 // here we search a block of shortened paths that are equivalent
@@ -60,8 +62,7 @@ class SpringConfigurationsHelper(val separator: String) {
                 while (maxIndexWithSamePath < nameInfoCollection.size) {
                     if (nameInfoCollection[maxIndexWithSamePath].shortenedName == curShortenedPath) {
                         maxIndexWithSamePath++
-                    }
-                    else {
+                    } else {
                         break
                     }
                 }
@@ -89,4 +90,37 @@ class SpringConfigurationsHelper(val separator: String) {
 
     private fun collectShortenedNames() = nameToInfo.values.associate { it.fullName to it.shortenedName }
 
+}
+
+/*
+ * Transforms active profile information
+ * from the form of user input to a list of active profiles.
+ *
+ * NOTICE: Current user input form is comma-separated values, but it may be changed later.
+ */
+fun parseProfileExpression(profileExpression: String?, default: String): Array<String> {
+    if (profileExpression.isNullOrEmpty()) {
+        return arrayOf(default)
+    }
+
+    return profileExpression
+        .filter { !it.isWhitespace() }
+        .split(',')
+        .toTypedArray()
+}
+
+@Deprecated("To be deleted")
+enum class SpringConfigurationType(
+    val separatorsToSplitBy: Array<String>,
+    val separatorToConcatenateBy: String,
+) {
+    ClassConfiguration(
+        separatorsToSplitBy = arrayOf("."),
+        separatorToConcatenateBy = ".",
+    ),
+
+    FileConfiguration(
+        separatorsToSplitBy = arrayOf(File.separator),
+        separatorToConcatenateBy = File.separator,
+    ),
 }

@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 fun getBasicCoverageTime(count: Int): Double {
     var time: Long
     ConcreteExecutor(
-        CoverageInstrumentation,
+        CoverageInstrumentation.Factory,
         Repeater::class.java.protectionDomain.codeSource.location.path
     ).use { executor ->
         val dc0 = Repeater(", ")
@@ -51,7 +51,7 @@ fun getNativeCallTime(count: Int): Double {
 fun getJustResultTime(count: Int): Double {
     var time: Long
     ConcreteExecutor(
-        InvokeInstrumentation(),
+        InvokeInstrumentation.Factory,
         Repeater::class.java.protectionDomain.codeSource.location.path
     ).use {
         val dc0 = Repeater(", ")

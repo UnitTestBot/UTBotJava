@@ -8,12 +8,13 @@ import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.isFailure
 import org.utbot.summary.AbstractTextBuilder
+import org.utbot.summary.NodeConverter
 import org.utbot.summary.SummarySentenceConstants.FROM_TO_NAMES_TRANSITION
 import org.utbot.summary.ast.JimpleToASTMap
-import org.utbot.summary.comment.getExceptionReason
+import org.utbot.summary.comment.getExceptionReasonForName
 import org.utbot.summary.comment.getTextTypeIterationDescription
 import org.utbot.summary.comment.shouldSkipInvoke
-import org.utbot.summary.name.NodeConvertor.Companion.convertNodeToDisplayNameString
+import org.utbot.summary.NodeConverter.Companion.convertNodeToDisplayNameString
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.CallOrderTag
 import org.utbot.summary.tag.StatementTag
@@ -91,7 +92,7 @@ class SimpleNameBuilder(
 
     private fun exceptionPlace(
         jimpleToASTMap: JimpleToASTMap,
-        placeAfter: String = " after condition: ",
+        placeAfter: String = " when: ",
         placeIn: String = " in: "
     ): String {
         if (traceTag.path.isEmpty()) return ""
@@ -100,7 +101,7 @@ class SimpleNameBuilder(
             val lastStep = traceTag.path.last()
             val lastNode = jimpleToASTMap[lastStep.stmt]
             if (lastNode is ThrowStmt) {
-                val exceptionReason = getExceptionReason(lastNode) ?: return ""
+                val exceptionReason = getExceptionReasonForName(lastNode) ?: return ""
                 return placeAfter + convertNodeToDisplayNameString(exceptionReason, lastStep)
             } else if (lastNode != null) {
                 return placeIn + convertNodeToDisplayNameString(lastNode, lastStep)
@@ -352,7 +353,7 @@ class SimpleNameBuilder(
                     if (statementTag.uniquenessTag == UniquenessTag.Unique
                         || (statementTag.uniquenessTag == UniquenessTag.Partly && statementTag.executionFrequency == 1)
                     ) {
-                        conditionName = NodeConvertor.convertNodeToString(nodeAST, statementTag.step)
+                        conditionName = NodeConverter.convertNodeToString(nodeAST, statementTag.step)
                     }
                     conditionName?.let {
                         testNames.add(
@@ -372,7 +373,7 @@ class SimpleNameBuilder(
 
 
                 var prefix = ""
-                var name = NodeConvertor.convertNodeToString(nodeAST, statementTag.step)
+                var name = NodeConverter.convertNodeToString(nodeAST, statementTag.step)
                 var type: NameType? = null
 
                 if (statementTag.basicTypeTag == BasicTypeTag.SwitchCase && statementTag.uniquenessTag == UniquenessTag.Unique) {
@@ -385,11 +386,12 @@ class SimpleNameBuilder(
                     prefix = "Return"
                     name = name ?: ""
                 } else if (statementTag.basicTypeTag == BasicTypeTag.Invoke && statementTag.uniquenessTag == UniquenessTag.Unique) {
+                    val declaringClass = stmt.invokeExpr.methodRef.declaringClass
                     val methodName = stmt.invokeExpr.method.name.capitalize()
-                    if (!shouldSkipInvoke(methodName)) {
+                    if (!shouldSkipInvoke(declaringClass.name, methodName)) {
                         if (stmt is JAssignStmt || stmt is JInvokeStmt) {
                             type = NameType.Invoke
-                            prefix += stmt.invokeExpr.methodRef.declaringClass.javaStyleName.substringBefore('$') //class name
+                            prefix += declaringClass.javaStyleName.substringBefore('$')
                             prefix += methodName
                             name =
                                 "" //todo change var name to val name, everything should be mapped through .convertNodeToString
@@ -467,7 +469,7 @@ class SimpleNameBuilder(
     override fun conditionStep(step: Step, reversed: Boolean, jimpleToASTMap: JimpleToASTMap): String {
         val nodeAST = jimpleToASTMap[step.stmt]
         return if (nodeAST != null) {
-            NodeConvertor.convertNodeToString(nodeAST, step) ?: ""
+            NodeConverter.convertNodeToString(nodeAST, step) ?: ""
         } else ""
     }
 }

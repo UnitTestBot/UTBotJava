@@ -45,11 +45,13 @@ fun readMypyAnnotationStorageAndInitialErrors(
         )
     )
     val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null
+    val stdout = if (fileForMypyStdout.exists()) fileForMypyStdout.readText() else null
     val mypyExitStatus = if (fileForMypyExitStatus.exists()) fileForMypyExitStatus.readText() else null
     if (result.exitValue != 0 || mypyExitStatus != "0")
         error("Something went wrong in initial mypy run. " +
                 "\nPython stderr ${result.stderr}" +
-                "\nMypy stderr: $stderr")
+                "\nMypy stderr: $stderr" +
+                "\nMypy stdout: $stdout")
     return Pair(
         readMypyAnnotationStorage(fileForAnnotationStorage.readText()),
         getErrorsAndNotes(fileForMypyStdout.readText())

@@ -1,10 +1,8 @@
 package org.utbot.examples.collections
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.between
@@ -15,10 +13,7 @@ import org.utbot.testing.isException
 class SetIteratorsTest : UtValueTestCaseChecker(
     testClass = SetIterators::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testReturnIterator() {

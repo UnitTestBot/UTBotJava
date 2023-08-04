@@ -1,26 +1,14 @@
 package org.utbot.framework.minimization
 
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtLambdaModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.util.calculateSize
+import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 
 
 /**
@@ -53,22 +41,35 @@ fun <T : Any> minimizeTestCase(
 
 fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
     val unknownCoverageExecutions =
-        executions.indices.filter { executions[it].coverage?.coveredInstructions?.isEmpty() ?: true }.toSet()
+        executions.filter { it.coverage?.coveredInstructions.isNullOrEmpty() }.toSet()
     // ^^^ here we add executions with empty or null coverage, because it happens only if a concrete execution failed,
     //     so we don't know the actual coverage for such executions
 
-    val filteredExecutions = executions.filterIndexed { idx, _ -> idx !in unknownCoverageExecutions }
+    val filteredExecutions = filterOutDuplicateCoverages(executions - unknownCoverageExecutions)
     val (mapping, executionToPriorityMapping) = buildMapping(filteredExecutions)
 
-    val usedExecutionIndexes = (GreedyEssential.minimize(mapping, executionToPriorityMapping) + unknownCoverageExecutions).toSet()
+    val usedFilteredExecutionIndexes = GreedyEssential.minimize(mapping, executionToPriorityMapping).toSet()
+    val usedFilteredExecutions = filteredExecutions.filterIndexed { idx, _ -> idx in usedFilteredExecutionIndexes }
 
-    val usedMinimizedExecutions = executions.filterIndexed { idx, _ -> idx in usedExecutionIndexes }
+    val usedMinimizedExecutions = usedFilteredExecutions + unknownCoverageExecutions
 
     return if (UtSettings.minimizeCrashExecutions) {
         usedMinimizedExecutions.filteredCrashExecutions()
     } else {
         usedMinimizedExecutions
     }
+}
+
+private fun filterOutDuplicateCoverages(executions: List<UtExecution>): List<UtExecution> {
+    val (executionIdxToCoveredEdgesMap, _) = buildMapping(executions)
+    return executions
+        .withIndex()
+        // we need to group by coveredEdges and not just Coverage to not miss exceptional edges that buildMapping() function adds
+        .groupBy(
+            keySelector = { indexedExecution -> executionIdxToCoveredEdgesMap[indexedExecution.index] },
+            valueTransform = { indexedExecution -> indexedExecution.value }
+        ).values
+        .map { executionsWithEqualCoverage -> executionsWithEqualCoverage.chooseOneExecution() }
 }
 
 /**
@@ -192,55 +193,20 @@ private fun List<UtExecution>.filteredCrashExecutions(): List<UtExecution> {
 
     val notCrashExecutions = filterNot { it.result is UtConcreteExecutionFailure }
 
-    return notCrashExecutions + crashExecutions.chooseMinimalCrashExecution()
+    return notCrashExecutions + crashExecutions.chooseOneExecution()
 }
 
 /**
- * As for now crash execution can only be produced by Concrete Executor, it does not have [UtExecution.stateAfter] and
- * [UtExecution.result] is [UtExecutionFailure], so we check only [UtExecution.stateBefore].
+ * Chooses one execution with the highest [execution priority][getExecutionPriority]. If multiple executions
+ * have the same priority, then the one with the [smallest][calculateSize] [UtExecution.stateBefore] is chosen.
+ *
+ * Only [UtExecution.stateBefore] is considered, because [UtExecution.result] and [UtExecution.stateAfter]
+ * don't represent true picture as they are limited by [construction depth][UtModelConstructor.maxDepth] and their
+ * sizes can't be calculated for crushed executions.
  */
-private fun List<UtExecution>.chooseMinimalCrashExecution(): UtExecution = minByOrNull {
-   it.stateBefore.calculateSize()
-} ?: error("Cannot find minimal crash execution within empty executions")
-
-private fun EnvironmentModels.calculateSize(): Int {
-    val thisInstanceSize = thisInstance?.calculateSize() ?: 0
-    val parametersSize = parameters.sumOf { it.calculateSize() }
-    val staticsSize = statics.values.sumOf { it.calculateSize() }
-
-    return thisInstanceSize + parametersSize + staticsSize
-}
-
-/**
- * We assume that "size" for "common" models is 1, 0 for [UtVoidModel] (as they do not return anything) and
- * [UtPrimitiveModel] and [UtNullModel] (we use them as literals in codegen), summarising for all statements for [UtAssembleModel] and
- * summarising for all fields and mocks for [UtCompositeModel]. As [UtCompositeModel] could be recursive, we need to
- * store it in [used]. Moreover, if we already calculate size for [this], it means that we will use already created
- * variable by this model and do not need to create it again, so size should be equal to 0.
- */
-private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): Int {
-    if (this in used) return 0
-
-    used += this
-
-    return when (this) {
-        is UtNullModel, is UtPrimitiveModel, UtVoidModel -> 0
-        is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel -> 1
-        is UtAssembleModel -> {
-            1 + instantiationCall.calculateSize(used) + modificationsChain.sumOf { it.calculateSize(used) }
-        }
-        is UtCompositeModel -> 1 + fields.values.sumOf { it.calculateSize(used) }
-        is UtLambdaModel -> 1 + capturedValues.sumOf { it.calculateSize(used) }
-        // PythonModel, JsUtModel, UtSpringContextModel may be here
-        else -> 0
-    }
-}
-
-private fun UtStatementModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): Int =
-    when (this) {
-        is UtDirectSetFieldModel -> 1 + fieldModel.calculateSize(used) + instance.calculateSize(used)
-        is UtStatementCallModel -> 1 + params.sumOf { it.calculateSize(used) } + (instance?.calculateSize(used) ?: 0)
-    }
+private fun List<UtExecution>.chooseOneExecution(): UtExecution = minWithOrNull(
+    compareBy({ it.getExecutionPriority() }, { it.stateBefore.calculateSize() })
+) ?: error("Cannot find minimal execution within empty executions")
 
 /**
  * Extends the [instructionsWithoutExtra] with one extra instruction if the [result] is
@@ -273,6 +239,8 @@ private fun Throwable.exceptionToInfo(): String =
 /**
  * Returns an execution priority. [UtSymbolicExecution] has the highest priority
  * over other executions like [UtFuzzedExecution], [UtFailedExecution], etc.
+ *
+ * NOTE! Smaller number represents higher priority.
  *
  * See [https://github.com/UnitTestBot/UTBotJava/issues/1504] for more details.
  */

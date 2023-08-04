@@ -38,7 +38,7 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
     private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null): Pair<CgValue, List<CgStatement>> {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
-                Pair(CgLiteral(objectNode.type.dropBuiltins(), objectNode.repr), emptyList())
+                Pair(CgLiteral(objectNode.type, objectNode.repr), emptyList())
             }
 
             is PythonTree.ListNode -> {
@@ -84,7 +84,7 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                     getOrCreateVariable(PythonTreeModel(it, it.type))
                 }
                 val constructor = ConstructorId(
-                    objectNode.constructor.dropBuiltins(),
+                    objectNode.constructor,
                     initArgs.map { it.type }
                 )
                 val constructorCall = CgConstructorCall(constructor, initArgs)
@@ -107,8 +107,23 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                     keyObj to valueObj
                 }
 
-                state.forEach { (key, value) ->
-                    obj[FieldId(objectNode.type, key)] `=` value
+                if (objectNode.customState) {
+                    val setstate = state["state"]!!
+                    val methodCall = CgMethodCall(
+                        obj,
+                        PythonMethodId(
+                            obj.type as PythonClassId,
+                            "__setstate__",
+                            NormalizedPythonAnnotation(pythonNoneClassId.name),
+                            listOf(RawPythonAnnotation(setstate.type.name))
+                        ),
+                        listOf(setstate)
+                    )
+                    +methodCall
+                } else {
+                    state.forEach { (key, value) ->
+                        obj[FieldId(objectNode.type, key)] `=` value
+                    }
                 }
                 listitems.forEach {
                     val methodCall = CgMethodCall(

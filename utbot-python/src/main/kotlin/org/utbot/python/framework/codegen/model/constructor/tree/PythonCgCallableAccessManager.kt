@@ -50,26 +50,13 @@ class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAcce
     override fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall {
         val resolvedArgs = emptyList<CgExpression>().toMutableList()
         args.forEach { arg ->
+            // if arg is named argument we must use this name
             if (arg is CgPythonTree) {
                 resolvedArgs.add(arg.value)
-//                arg.children.forEach { +it }
             } else {
                 resolvedArgs.add(arg as CgExpression)
             }
         }
-//        resolvedArgs.forEach {
-//            if (it is CgPythonTree) {
-//                it.children.forEach { child ->
-//                    if (child is CgAssignment) {
-//                        if (!existingVariableNames.contains(child.lValue.toString())) {
-//                            +child
-//                        }
-//                    } else {
-//                        +child
-//                    }
-//                }
-//            }
-//        }
         val methodCall = CgMethodCall(caller, method, resolvedArgs)
         if (method is PythonMethodId)
             newMethodCall(method)

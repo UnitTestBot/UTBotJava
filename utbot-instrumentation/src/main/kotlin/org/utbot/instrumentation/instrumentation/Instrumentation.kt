@@ -27,10 +27,10 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
 
     fun getStaticField(fieldId: FieldId): Result<*>
 
-    /**
-     * Will be called in the very beginning in the instrumented process.
-     *
-     * Do not call from engine process to avoid unwanted side effects (e.g. Spring context initialization)
-     */
-    fun init(pathsToUserClasses: Set<String>) {}
+    interface Factory<out TIResult, out TInstrumentation : Instrumentation<TIResult>> {
+        val additionalRuntimeClasspath: Set<String> get() = emptySet()
+        val forceDisableSandbox: Boolean get() = false
+
+        fun create(): TInstrumentation
+    }
 }

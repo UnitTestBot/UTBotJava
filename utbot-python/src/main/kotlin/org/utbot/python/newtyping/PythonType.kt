@@ -2,6 +2,7 @@ package org.utbot.python.newtyping
 
 import org.utbot.python.newtyping.general.*
 import org.utbot.python.newtyping.general.Name
+import org.utbot.python.newtyping.utils.isRequired
 
 sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
     open fun castToCompatibleTypeApi(type: Type): Type = type
@@ -185,9 +186,9 @@ class PythonCallableTypeDescription(
             argumentKinds,
             argumentNames
         ) { self ->
-            val oldToNewParameters = (like.parameters zip self.parameters).associate {
-                (it.first as TypeParameter) to it.second
-            }
+            val oldToNewParameters = (self.parameters zip like.parameters).mapNotNull {
+                if (it.second is TypeParameter) it else null
+            }.toMap()
             val newArgs = args.map {
                 DefaultSubstitutionProvider.substitute(it, oldToNewParameters)
             }
@@ -222,6 +223,25 @@ class PythonCallableTypeDescription(
                 functionType.arguments.take(argsCount).map {
                     DefaultSubstitutionProvider.substitute(it, substitution)
                 },
+                DefaultSubstitutionProvider.substitute(functionType.returnValue, substitution)
+            )
+        }
+    }
+
+    fun removeNotRequiredArgs(type: Type): FunctionType {
+        val functionType = castToCompatibleTypeApi(type)
+        return createPythonCallableType(
+            functionType.parameters.size,
+            argumentKinds.filter { isRequired(it) },
+            argumentNames.filterIndexed { index, _ -> isRequired(argumentKinds[index]) }
+        ) { self ->
+            val substitution = (functionType.parameters zip self.parameters).associate {
+                Pair(it.first as TypeParameter, it.second)
+            }
+            FunctionTypeCreator.InitializationData(
+                functionType.arguments
+                    .filterIndexed { index, _ -> isRequired(argumentKinds[index]) }
+                    .map { DefaultSubstitutionProvider.substitute(it, substitution) },
                 DefaultSubstitutionProvider.substitute(functionType.returnValue, substitution)
             )
         }

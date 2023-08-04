@@ -40,6 +40,19 @@ class MypyAnnotationStorage(
         annotation.initialized = true
         annotation.args?.forEach { initAnnotation(it) }
     }
+    private fun fillArgNames(definition: MypyDefinition) {
+        val node = definition.type.node
+        if (node is ConcreteAnnotation) {
+            node.members.filterIsInstance<FuncDef>().forEach { funcDef ->
+                val nodeInfo = nodeStorage[funcDef.type.nodeId]
+                if (nodeInfo is FunctionNode && nodeInfo.argNames.contains(null)) {
+                    nodeInfo.argNames = nodeInfo.argNames.zip(funcDef.args).map {
+                        it.first ?: (it.second as Variable).name
+                    }
+                }
+            }
+        }
+    }
     val nodeToUtBotType: MutableMap<MypyAnnotationNode, Type> = mutableMapOf()
     fun getUtBotTypeOfNode(node: MypyAnnotationNode): Type {
         //println("entering $node")
@@ -57,6 +70,7 @@ class MypyAnnotationStorage(
         definitions.values.forEach { defsInModule ->
             defsInModule.forEach {
                 initAnnotation(it.value.type)
+                fillArgNames(it.value)
             }
         }
         types.values.flatten().forEach {

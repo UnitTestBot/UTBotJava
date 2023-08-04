@@ -3,6 +3,7 @@ package org.utbot.framework.plugin.sarif
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -70,15 +71,17 @@ class GenerateTestsAndSarifReportFacade(
         val isForceStaticMocking = sarifProperties.forceStaticMocking == ForceStaticMocking.FORCE
 
         return CodeGenerator(
-            classUnderTest = targetClass.classUnderTest.id,
-            projectType = sarifProperties.projectType,
-            testFramework = sarifProperties.testFramework,
-            mockFramework = sarifProperties.mockFramework,
-            staticsMocking = sarifProperties.staticsMocking,
-            forceStaticMocking = sarifProperties.forceStaticMocking,
-            generateWarningsForStaticMocking = isNoStaticMocking && isForceStaticMocking,
-            codegenLanguage = sarifProperties.codegenLanguage,
-            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(sarifProperties.codegenLanguage),
+            CodeGeneratorParams(
+                classUnderTest = targetClass.classUnderTest.id,
+                projectType = sarifProperties.projectType,
+                testFramework = sarifProperties.testFramework,
+                mockFramework = sarifProperties.mockFramework,
+                staticsMocking = sarifProperties.staticsMocking,
+                forceStaticMocking = sarifProperties.forceStaticMocking,
+                generateWarningsForStaticMocking = isNoStaticMocking && isForceStaticMocking,
+                codegenLanguage = sarifProperties.codegenLanguage,
+                cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(sarifProperties.codegenLanguage),
+            )
         )
     }
 

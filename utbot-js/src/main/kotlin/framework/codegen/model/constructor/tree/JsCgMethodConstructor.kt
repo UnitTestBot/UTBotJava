@@ -2,6 +2,7 @@ package framework.codegen.model.constructor.tree
 
 import framework.api.js.JsClassId
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgValue
@@ -22,10 +23,10 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
         testFrameworkManager.assertEquals(expected, actual)
     }
 
-    override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    override fun createTestMethod(testSet: CgMethodTestSet, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
-            execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
+            val testMethodName = nameGenerator.testMethodNameFor(testSet.executableUnderTest, execution.testMethodName)
+            execution.displayName = execution.displayName?.let { "${testSet.executableUnderTest.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
@@ -37,7 +38,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
-                        val name = paramNames[executableId]?.get(index)
+                        val name = paramNames[testSet.executableUnderTest]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     recordActualResult()
@@ -60,7 +61,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
     override fun generateResultAssertions() {
         emptyLineIfNeeded()
         val currentExecution = currentExecution!!
-        val method = currentExecutable as MethodId
+        val method = currentExecutableUnderTest as MethodId
         // build assertions
         currentExecution.result
             .onSuccess { result ->
@@ -69,8 +70,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
                     +thisInstance[method](*methodArguments.toTypedArray())
                 } else {
                     resultModel = result
-                    val expected = variableConstructor.getOrCreateVariable(result, "expected")
-                    assertEquality(expected, actual)
+                    assertEquality(result, actual)
                 }
             }
             .onFailure { exception ->
@@ -80,7 +80,7 @@ class JsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
 
     private fun processExecutionFailure(execution: UtExecution, exception: Throwable) {
         val methodInvocationBlock = {
-            with(currentExecutable) {
+            with(currentExecutableUnderTest) {
                 when (this) {
                     is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                     is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()

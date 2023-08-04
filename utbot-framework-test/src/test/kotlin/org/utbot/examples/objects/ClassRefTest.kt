@@ -2,25 +2,20 @@
 
 package org.utbot.examples.objects
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import java.lang.Boolean
 import kotlin.Array
 import kotlin.Suppress
 import kotlin.arrayOf
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.atLeast
 
 internal class ClassRefTest : UtValueTestCaseChecker(
     testClass = ClassRef::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        // TODO: SAT-1457 Restore Kotlin codegen for a group of tests with type casts
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    // TODO: SAT-1457 Restore Kotlin codegen for a group of tests with type casts
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testTakeBooleanClassRef() {

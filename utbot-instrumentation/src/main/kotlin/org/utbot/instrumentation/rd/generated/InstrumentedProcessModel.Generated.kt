@@ -26,7 +26,8 @@ class InstrumentedProcessModel private constructor(
     private val _collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult>,
     private val _computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>,
     private val _getSpringBean: RdCall<GetSpringBeanParams, GetSpringBeanResult>,
-    private val _getRelevantSpringRepositories: RdCall<GetSpringRepositoriesParams, GetSpringRepositoriesResult>
+    private val _getRelevantSpringRepositories: RdCall<GetSpringRepositoriesParams, GetSpringRepositoriesResult>,
+    private val _tryLoadingSpringContext: RdCall<Unit, TryLoadingSpringContextResult>
 ) : RdExtBase() {
     //companion
     
@@ -45,6 +46,7 @@ class InstrumentedProcessModel private constructor(
             serializers.register(GetSpringBeanResult)
             serializers.register(GetSpringRepositoriesParams)
             serializers.register(GetSpringRepositoriesResult)
+            serializers.register(TryLoadingSpringContextResult)
         }
         
         
@@ -65,7 +67,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = -6973752778611891323L
+        const val serializationHash = 2667021258656776274L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -113,9 +115,15 @@ class InstrumentedProcessModel private constructor(
     val getSpringBean: RdCall<GetSpringBeanParams, GetSpringBeanResult> get() = _getSpringBean
     
     /**
-     * Get Spring repositories by bean names (requires Spring instrumentation)
+     * Gets a list of [SpringRepositoryId]s that class specified by the [ClassId] (possibly indirectly) depends on (requires Spring instrumentation)
      */
     val getRelevantSpringRepositories: RdCall<GetSpringRepositoriesParams, GetSpringRepositoriesResult> get() = _getRelevantSpringRepositories
+    
+    /**
+     * This command is sent to the instrumented process from the [ConcreteExecutor]
+    if the user wants to determine whether or not Spring application context can load
+     */
+    val tryLoadingSpringContext: RdCall<Unit, TryLoadingSpringContextResult> get() = _tryLoadingSpringContext
     //methods
     //initializer
     init {
@@ -127,6 +135,7 @@ class InstrumentedProcessModel private constructor(
         _computeStaticField.async = true
         _getSpringBean.async = true
         _getRelevantSpringRepositories.async = true
+        _tryLoadingSpringContext.async = true
     }
     
     init {
@@ -138,6 +147,7 @@ class InstrumentedProcessModel private constructor(
         bindableChildren.add("computeStaticField" to _computeStaticField)
         bindableChildren.add("getSpringBean" to _getSpringBean)
         bindableChildren.add("getRelevantSpringRepositories" to _getRelevantSpringRepositories)
+        bindableChildren.add("tryLoadingSpringContext" to _tryLoadingSpringContext)
     }
     
     //secondary constructor
@@ -150,7 +160,8 @@ class InstrumentedProcessModel private constructor(
         RdCall<CollectCoverageParams, CollectCoverageResult>(CollectCoverageParams, CollectCoverageResult),
         RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>(ComputeStaticFieldParams, ComputeStaticFieldResult),
         RdCall<GetSpringBeanParams, GetSpringBeanResult>(GetSpringBeanParams, GetSpringBeanResult),
-        RdCall<GetSpringRepositoriesParams, GetSpringRepositoriesResult>(GetSpringRepositoriesParams, GetSpringRepositoriesResult)
+        RdCall<GetSpringRepositoriesParams, GetSpringRepositoriesResult>(GetSpringRepositoriesParams, GetSpringRepositoriesResult),
+        RdCall<Unit, TryLoadingSpringContextResult>(FrameworkMarshallers.Void, TryLoadingSpringContextResult)
     )
     
     //equals trait
@@ -167,6 +178,7 @@ class InstrumentedProcessModel private constructor(
             print("computeStaticField = "); _computeStaticField.print(printer); println()
             print("getSpringBean = "); _getSpringBean.print(printer); println()
             print("getRelevantSpringRepositories = "); _getRelevantSpringRepositories.print(printer); println()
+            print("tryLoadingSpringContext = "); _tryLoadingSpringContext.print(printer); println()
         }
         printer.print(")")
     }
@@ -180,7 +192,8 @@ class InstrumentedProcessModel private constructor(
             _collectCoverage.deepClonePolymorphic(),
             _computeStaticField.deepClonePolymorphic(),
             _getSpringBean.deepClonePolymorphic(),
-            _getRelevantSpringRepositories.deepClonePolymorphic()
+            _getRelevantSpringRepositories.deepClonePolymorphic(),
+            _tryLoadingSpringContext.deepClonePolymorphic()
         )
     }
     //contexts
@@ -247,7 +260,7 @@ data class AddPathsParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:28]
+ * #### Generated from [InstrumentedProcessModel.kt:29]
  */
 data class CollectCoverageParams (
     val clazz: ByteArray
@@ -304,7 +317,7 @@ data class CollectCoverageParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:32]
+ * #### Generated from [InstrumentedProcessModel.kt:33]
  */
 data class CollectCoverageResult (
     val coverageInfo: ByteArray
@@ -361,7 +374,7 @@ data class CollectCoverageResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:36]
+ * #### Generated from [InstrumentedProcessModel.kt:37]
  */
 data class ComputeStaticFieldParams (
     val fieldId: ByteArray
@@ -418,7 +431,7 @@ data class ComputeStaticFieldParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:40]
+ * #### Generated from [InstrumentedProcessModel.kt:41]
  */
 data class ComputeStaticFieldResult (
     val result: ByteArray
@@ -475,7 +488,7 @@ data class ComputeStaticFieldResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:44]
+ * #### Generated from [InstrumentedProcessModel.kt:45]
  */
 data class GetSpringBeanParams (
     val beanName: String
@@ -532,7 +545,7 @@ data class GetSpringBeanParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:48]
+ * #### Generated from [InstrumentedProcessModel.kt:49]
  */
 data class GetSpringBeanResult (
     val beanModel: ByteArray
@@ -589,7 +602,7 @@ data class GetSpringBeanResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:52]
+ * #### Generated from [InstrumentedProcessModel.kt:53]
  */
 data class GetSpringRepositoriesParams (
     val classId: ByteArray
@@ -646,7 +659,7 @@ data class GetSpringRepositoriesParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:56]
+ * #### Generated from [InstrumentedProcessModel.kt:57]
  */
 data class GetSpringRepositoriesResult (
     val springRepositoryIds: ByteArray
@@ -703,7 +716,7 @@ data class GetSpringRepositoriesResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:17]
+ * #### Generated from [InstrumentedProcessModel.kt:18]
  */
 data class InvokeMethodCommandParams (
     val classname: String,
@@ -778,7 +791,7 @@ data class InvokeMethodCommandParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:24]
+ * #### Generated from [InstrumentedProcessModel.kt:25]
  */
 data class InvokeMethodCommandResult (
     val result: ByteArray
@@ -838,7 +851,8 @@ data class InvokeMethodCommandResult (
  * #### Generated from [InstrumentedProcessModel.kt:13]
  */
 data class SetInstrumentationParams (
-    val instrumentation: ByteArray
+    val instrumentation: ByteArray,
+    val useBytecodeTransformation: Boolean
 ) : IPrintable {
     //companion
     
@@ -848,11 +862,13 @@ data class SetInstrumentationParams (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SetInstrumentationParams  {
             val instrumentation = buffer.readByteArray()
-            return SetInstrumentationParams(instrumentation)
+            val useBytecodeTransformation = buffer.readBool()
+            return SetInstrumentationParams(instrumentation, useBytecodeTransformation)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SetInstrumentationParams)  {
             buffer.writeByteArray(value.instrumentation)
+            buffer.writeBool(value.useBytecodeTransformation)
         }
         
         
@@ -869,6 +885,7 @@ data class SetInstrumentationParams (
         other as SetInstrumentationParams
         
         if (!(instrumentation contentEquals other.instrumentation)) return false
+        if (useBytecodeTransformation != other.useBytecodeTransformation) return false
         
         return true
     }
@@ -876,6 +893,7 @@ data class SetInstrumentationParams (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + instrumentation.contentHashCode()
+        __r = __r*31 + useBytecodeTransformation.hashCode()
         return __r
     }
     //pretty print
@@ -883,6 +901,64 @@ data class SetInstrumentationParams (
         printer.println("SetInstrumentationParams (")
         printer.indent {
             print("instrumentation = "); instrumentation.print(printer); println()
+            print("useBytecodeTransformation = "); useBytecodeTransformation.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [InstrumentedProcessModel.kt:61]
+ */
+data class TryLoadingSpringContextResult (
+    val springContextLoadingResult: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<TryLoadingSpringContextResult> {
+        override val _type: KClass<TryLoadingSpringContextResult> = TryLoadingSpringContextResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): TryLoadingSpringContextResult  {
+            val springContextLoadingResult = buffer.readByteArray()
+            return TryLoadingSpringContextResult(springContextLoadingResult)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: TryLoadingSpringContextResult)  {
+            buffer.writeByteArray(value.springContextLoadingResult)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as TryLoadingSpringContextResult
+        
+        if (!(springContextLoadingResult contentEquals other.springContextLoadingResult)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + springContextLoadingResult.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("TryLoadingSpringContextResult (")
+        printer.indent {
+            print("springContextLoadingResult = "); springContextLoadingResult.print(printer); println()
         }
         printer.print(")")
     }

@@ -34,7 +34,7 @@ class TestSimpleExTrace {
     @Test
     fun testClassSimple() {
         ConcreteExecutor(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             CLASSPATH
         ).use {
             val alwaysThrows = Isolated(ClassSimple::alwaysThrows, it)
@@ -89,7 +89,7 @@ class TestSimpleExTrace {
     @Test
     fun testClasSimpleCatch() {
         ConcreteExecutor(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             CLASSPATH
         ).use {
             val A = Isolated(ClassSimpleCatch::A, it)
@@ -159,7 +159,7 @@ class TestSimpleExTrace {
     @Test
     fun testClassSimpleRecursive() {
         ConcreteExecutor(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             CLASSPATH
         ).use {
             val A = Isolated(ClassSimpleRecursive::A, it)
@@ -228,7 +228,7 @@ class TestSimpleExTrace {
     @Test
     fun testClassBinaryRecursionWithTrickyThrow() {
         ConcreteExecutor(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             CLASSPATH
         ).use {
             val A = Isolated(ClassBinaryRecursionWithTrickyThrow::A, it)
@@ -347,7 +347,7 @@ class TestSimpleExTrace {
     @Test
     fun testClassBinaryRecursionWithThrow() {
         ConcreteExecutor(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             CLASSPATH
         ).use {
             val A = Isolated(ClassBinaryRecursionWithThrow::A, it)
@@ -436,7 +436,7 @@ class TestSimpleExTrace {
     @Test
     fun testClassSimpleNPE() {
         ConcreteExecutor(
-            ExecutionTraceInstrumentation(),
+            ExecutionTraceInstrumentation.Factory,
             CLASSPATH
         ).use {
             val A = Isolated(ClassSimpleNPE::A, it)

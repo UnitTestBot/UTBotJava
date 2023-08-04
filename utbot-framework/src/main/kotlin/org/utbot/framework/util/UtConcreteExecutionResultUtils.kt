@@ -13,10 +13,10 @@ private fun UtConcreteExecutionResult.updateWithAssembleModels(
 ): UtConcreteExecutionResult {
     val toAssemble: (UtModel) -> UtModel = { assembledUtModels.getOrDefault(it, it) }
 
-    val resolvedStateAfter = if (stateAfter is MissingState) MissingState else EnvironmentModels(
-        stateAfter.thisInstance?.let { toAssemble(it) },
-        stateAfter.parameters.map { toAssemble(it) },
-        stateAfter.statics.mapValues { toAssemble(it.value) }
+    val resolvedStateAfter = if (stateAfter is MissingState) MissingState else stateAfter.copy(
+        thisInstance = stateAfter.thisInstance?.let { toAssemble(it) },
+        parameters = stateAfter.parameters.map { toAssemble(it) },
+        statics = stateAfter.statics.mapValues { toAssemble(it.value) },
     )
     val resolvedResult =
         (result as? UtExecutionSuccess)?.model?.let { UtExecutionSuccess(toAssemble(it)) } ?: result

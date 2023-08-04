@@ -23,6 +23,7 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -210,15 +211,17 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         val generateWarningsForStaticMocking =
             forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking is NoStaticMocking
         return CodeGenerator(
-            testFramework = testFrameworkByName(testFramework),
-            classUnderTest = classUnderTest,
-            //TODO: Support Spring projects in utbot-cli if requested
-            projectType = ProjectType.PureJvm,
-            codegenLanguage = codegenLanguage,
-            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
-            staticsMocking = staticsMocking,
-            forceStaticMocking = forceStaticMocking,
-            generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+            CodeGeneratorParams(
+                testFramework = testFrameworkByName(testFramework),
+                classUnderTest = classUnderTest,
+                //TODO: Support Spring projects in utbot-cli if requested
+                projectType = ProjectType.PureJvm,
+                codegenLanguage = codegenLanguage,
+                cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
+                staticsMocking = staticsMocking,
+                forceStaticMocking = forceStaticMocking,
+                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+            )
         )
     }
 

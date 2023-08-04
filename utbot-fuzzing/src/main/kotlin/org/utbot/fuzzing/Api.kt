@@ -7,6 +7,7 @@ import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
+import org.utbot.fuzzing.utils.transformIfNotEmpty
 import kotlin.random.Random
 
 private val logger by lazy { KotlinLogging.logger {} }
@@ -288,7 +289,14 @@ private object EmptyFeedback : Feedback<Nothing, Nothing> {
 class NoSeedValueException internal constructor(
     // this type cannot be generalized because Java forbids types for [Throwable].
     val type: Any?
-) : Exception("No seed candidates generated for type: $type")
+) : Exception() {
+    override fun fillInStackTrace(): Throwable {
+        return this
+    }
+
+    override val message: String
+        get() = "No seed candidates generated for type: $type"
+}
 
 suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,
@@ -324,18 +332,21 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
 
     while (!fuzzing.isCancelled(description, statistic)) {
         beforeIteration(description, statistic)
-        var values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
-            statistic.getRandomSeed(random, configuration)
+        val values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+            statistic.getRandomSeed(random, configuration).let {
+                mutationFactory.mutate(it, random, configuration)
+            }
         } else {
             val actualParameters = description.parameters
             // fuzz one value, seems to be bad, when have only a few and simple values
-            fuzzOne(actualParameters)
+            fuzzOne(actualParameters).let {
+                if (random.flipCoin(configuration.probMutationRate)) {
+                    mutationFactory.mutate(it, random, configuration)
+                } else {
+                    it
+                }
+            }
         }
-        values = mutationFactory.mutate(
-            values,
-            random,
-            configuration
-        )
         afterIteration(description, statistic)
 
         yield()
@@ -411,7 +422,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     if (seeds.isEmpty()) {
         throw NoSeedValueException(type)
     }
-    val candidates = seeds.map {
+    return seeds.random(random).let {
         when (it) {
             is Seed.Simple<TYPE, RESULT> -> Result.Simple(it.value, it.mutation)
             is Seed.Known<TYPE, RESULT, *> -> it.asResult()
@@ -419,7 +430,6 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             is Seed.Collection<TYPE, RESULT> -> reduce(it, fuzzing, description, random, configuration, state)
         }
     }
-    return candidates.random(random)
 }
 
 /**
@@ -512,11 +522,11 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 }
             ),
             modify = task.modify
-//                .toMutableList()
-//                .transformIfNotEmpty {
-//                    shuffle(random)
-//                    take(random.nextInt(size + 1))
-//                }
+                .toMutableList()
+                .transformIfNotEmpty {
+                    shuffle(random)
+                    take(configuration.maxNumberOfRecursiveSeedModifications)
+                }
                 .mapTo(arrayListOf()) { routine ->
                     fuzz(
                         routine.types,

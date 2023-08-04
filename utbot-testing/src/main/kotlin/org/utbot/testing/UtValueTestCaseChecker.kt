@@ -11,12 +11,12 @@ import org.utbot.engine.prettify
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.daysLimitForTempFiles
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.coverage.Coverage
 import org.utbot.framework.coverage.counters
 import org.utbot.framework.coverage.methodCoverage
 import org.utbot.framework.coverage.toAtLeast
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.FieldMockTarget
@@ -62,11 +62,9 @@ import kotlin.reflect.KFunction5
 abstract class UtValueTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    pipelines: List<TestLastStage> = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
-) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, pipelines) {
+    val configurations: List<AbstractConfiguration> = standardTestingConfigurations,
+    val applicationContext: ApplicationContext = defaultApplicationContext,
+) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, configurations) {
     // contains already analyzed by the engine methods
     private val analyzedMethods: MutableMap<MethodWithMockStrategy, MethodResult> = mutableMapOf()
 
@@ -530,6 +528,81 @@ abstract class UtValueTestCaseChecker(
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocks,
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
+
+    protected inline fun <reified T, reified R> checkThisMocksAndExceptions(
+        method: KFunction1<T, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, Mocks, Result<R>) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage,
+        arguments = ::withThisMocksAndExceptions,
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
+
+    protected inline fun <reified T, reified T1, reified R> checkThisMocksAndExceptions(
+        method: KFunction2<T, T1, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, Mocks, Result<R>) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T1::class,
+        arguments = ::withThisMocksAndExceptions,
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
+
+    protected inline fun <reified T, reified T1, reified T2, reified R> checkThisMocksAndExceptions(
+        method: KFunction3<T, T1, T2, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, T2, Mocks, Result<R>) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
+        arguments = ::withThisMocksAndExceptions,
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
+
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkThisMocksAndExceptions(
+        method: KFunction4<T, T1, T2, T3, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, T2, T3, Mocks, Result<R>) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
+        arguments = ::withThisMocksAndExceptions,
+        additionalDependencies = additionalDependencies,
+        additionalMockAlwaysClasses = additionalMockAlwaysClasses
+    )
+
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkThisMocksAndExceptions(
+        method: KFunction5<T, T1, T2, T3, T4, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, T2, T3, T4, Mocks, Result<R>) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<Class<*>> = emptyArray(),
+        additionalMockAlwaysClasses: Set<ClassId> = emptySet()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
+        arguments = ::withThisMocksAndExceptions,
         additionalDependencies = additionalDependencies,
         additionalMockAlwaysClasses = additionalMockAlwaysClasses
     )
@@ -1872,10 +1945,10 @@ abstract class UtValueTestCaseChecker(
         generateWithNested: Boolean = false,
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
-        val failed = mutableListOf<TestFrameworkConfiguration>()
-        val succeeded = mutableListOf<TestFrameworkConfiguration>()
+        val failed = mutableListOf<TestInfrastructureConfiguration>()
+        val succeeded = mutableListOf<TestInfrastructureConfiguration>()
 
-        allTestFrameworkConfigurations
+        allTestInfrastructureConfigurations
             .filterNot { it.isDisabled }
             .forEach { config ->
                 runCatching {
@@ -1901,12 +1974,12 @@ abstract class UtValueTestCaseChecker(
     @Suppress("ControlFlowWithEmptyBody", "UNUSED_VARIABLE")
     private fun internalCheckForCodeGeneration(
         method: KFunction<*>,
-        testFrameworkConfiguration: TestFrameworkConfiguration,
+        testInfrastructureConfiguration: TestInfrastructureConfiguration,
         generateWithNested: Boolean,
         additionalMockAlwaysClasses: Set<ClassId> = emptySet()
     ) {
-        withSettingsFromTestFrameworkConfiguration(testFrameworkConfiguration) {
-            with(testFrameworkConfiguration) {
+        withSettingsFromTestFrameworkConfiguration(testInfrastructureConfiguration) {
+            with(testInfrastructureConfiguration) {
 
                 val executableId = method.executableId
                 computeAdditionalDependenciesClasspathAndBuildDir(method.declaringClazz, emptyArray())
@@ -1924,7 +1997,7 @@ abstract class UtValueTestCaseChecker(
 
                     // if force mocking took place in parametrized test generation,
                     // we do not need to process this [testSet]
-                    if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+                    if (TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration.isParametrizedAndMocked) {
                         conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                         return
                     }
@@ -1941,9 +2014,9 @@ abstract class UtValueTestCaseChecker(
                         lastStage = TestExecution,
                         status = ExecutionStatus.SUCCESS
                     )
-                    val classStages = listOf(ClassStages(classUnderTest, stageStatusCheck, listOf(testSet)))
+                    val classStages = ClassStages(classUnderTest, stageStatusCheck, listOf(testSet))
 
-                    TestCodeGeneratorPipeline(testFrameworkConfiguration).runClassesCodeGenerationTests(classStages)
+                    TestCodeGeneratorPipeline(testInfrastructureConfiguration, applicationContext).runClassesCodeGenerationTests(classStages)
                 }
             }
         }
@@ -1993,7 +2066,7 @@ abstract class UtValueTestCaseChecker(
 
             // if force mocking took place in parametrized test generation,
             // we do not need to process this [testSet]
-            if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+            if (TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration.isParametrizedAndMocked) {
                 conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                 return
             }
@@ -2010,7 +2083,7 @@ abstract class UtValueTestCaseChecker(
                 "Coverage matcher '$coverageMatcher' fails for $coverage (at least: ${coverage.toAtLeast()})"
             }
 
-            processTestCase(testSet)
+            processTestSet(testSet)
         }
     }
 
@@ -2087,7 +2160,8 @@ abstract class UtValueTestCaseChecker(
             TestSpecificTestCaseGenerator(
                 buildInfo.buildDir,
                 buildInfo.dependencyPath,
-                System.getProperty("java.class.path")
+                System.getProperty("java.class.path"),
+                applicationContext = applicationContext
             )
         }
 
@@ -2236,6 +2310,9 @@ fun withMocks(ex: UtValueExecution<*>) = ex.paramsBefore + listOf(ex.mocks) + ex
 fun withMocksAndInstrumentation(ex: UtValueExecution<*>) =
     ex.paramsBefore + listOf(ex.mocks) + listOf(ex.instrumentation) + ex.evaluatedResult
 
+fun withThisMocksAndExceptions(ex: UtValueExecution<*>) =
+    listOf(ex.callerBefore) + ex.paramsBefore + listOf(ex.mocks) + ex.returnValue
+
 fun withMocksInstrumentationAndThis(ex: UtValueExecution<*>) =
     listOf(ex.callerBefore) + ex.paramsBefore + listOf(ex.mocks) + listOf(ex.instrumentation) + ex.evaluatedResult
 
@@ -2277,19 +2354,19 @@ private typealias Mocks = List<MockInfo>
 private typealias Instrumentation = List<UtInstrumentation>
 
 inline fun <reified T> withSettingsFromTestFrameworkConfiguration(
-    config: TestFrameworkConfiguration,
+    config: TestInfrastructureConfiguration,
     block: () -> T
 ): T {
     val substituteStaticsWithSymbolicVariable = UtSettings.substituteStaticsWithSymbolicVariable
     UtSettings.substituteStaticsWithSymbolicVariable = config.resetNonFinalFieldsAfterClinit
 
-    val previousConfig = TestCodeGeneratorPipeline.currentTestFrameworkConfiguration
-    TestCodeGeneratorPipeline.currentTestFrameworkConfiguration = config
+    val previousConfig = TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration
+    TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration = config
     try {
         return block()
     } finally {
         UtSettings.substituteStaticsWithSymbolicVariable = substituteStaticsWithSymbolicVariable
-        TestCodeGeneratorPipeline.currentTestFrameworkConfiguration = previousConfig
+        TestCodeGeneratorPipeline.currentTestInfrastructureConfiguration = previousConfig
     }
 }
 

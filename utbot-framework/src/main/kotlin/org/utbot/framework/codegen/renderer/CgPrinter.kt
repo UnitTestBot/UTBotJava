@@ -1,5 +1,7 @@
 package org.utbot.framework.codegen.renderer
 
+import org.utbot.framework.plugin.api.util.IndentUtil
+
 interface CgPrinter {
     fun print(text: String)
     fun println(text: String = "")
@@ -58,6 +60,6 @@ class CgPrinterImpl(
     private operator fun String.times(n: Int): String = repeat(n)
 
     companion object {
-        private const val TAB = "    "
+        private const val TAB = IndentUtil.TAB
     }
 }

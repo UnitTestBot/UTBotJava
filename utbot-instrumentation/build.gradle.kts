@@ -1,5 +1,11 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
 
+val projectType: String by rootProject
+val ultimateEdition: String by rootProject
+val springEdition: String by rootProject
+val languagesEdition: String by rootProject
+val pureJavaEdition: String by rootProject
+
 val asmVersion: String by rootProject
 val kryoVersion: String by rootProject
 val kryoSerializersVersion: String by rootProject
@@ -7,7 +13,6 @@ val kotlinLoggingVersion: String by rootProject
 val rdVersion: String by rootProject
 val mockitoVersion: String by rootProject
 val mockitoInlineVersion: String by rootProject
-val springBootVersion: String by rootProject
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
@@ -44,14 +49,9 @@ val fetchSpringCommonsJar: Configuration by configurations.creating {
 dependencies {
     implementation(project(":utbot-framework-api"))
     implementation(project(":utbot-rd"))
-    implementation(project(":utbot-spring-commons-api"))
-
 
     implementation("org.ow2.asm:asm:$asmVersion")
     implementation("org.ow2.asm:asm-commons:$asmVersion")
-    implementation("com.esotericsoftware.kryo:kryo5:$kryoVersion")
-    // this is necessary for serialization of some collections
-    implementation("de.javakaffee:kryo-serializers:$kryoSerializersVersion")
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
     implementation("com.jetbrains.rd:rd-framework:$rdVersion")
@@ -62,7 +62,10 @@ dependencies {
     implementation("org.mockito:mockito-core:$mockitoVersion")
     implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
 
-    fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
+    implementation(project(":utbot-spring-commons-api"))
+    if (projectType == springEdition || projectType == ultimateEdition) {
+        fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
+    }
 }
 
 /**

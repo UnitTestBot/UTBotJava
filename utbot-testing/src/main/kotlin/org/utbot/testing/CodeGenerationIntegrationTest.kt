@@ -22,6 +22,7 @@ import org.junit.jupiter.api.fail
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor
 import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.context.ApplicationContext
 import java.nio.file.Path
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -30,20 +31,12 @@ import java.nio.file.Path
 abstract class CodeGenerationIntegrationTest(
     private val testClass: KClass<*>,
     private var testCodeGeneration: Boolean = true,
-    private val languagesLastStages: List<TestLastStage> = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
+    private val configurationsToTest: List<AbstractConfiguration>,
+    private val applicationContext: ApplicationContext = defaultApplicationContext,
 ) {
     private val testSets: MutableList<UtMethodTestSet> = arrayListOf()
 
-    data class TestLastStage(
-        val language: CodegenLanguage,
-        val lastStage: Stage = TestExecution,
-        val parameterizedModeLastStage: Stage = lastStage,
-    )
-
-    fun processTestCase(testSet: UtMethodTestSet) {
+    fun processTestSet(testSet: UtMethodTestSet) {
         if (testCodeGeneration) testSets += testSet
     }
 
@@ -59,12 +52,12 @@ abstract class CodeGenerationIntegrationTest(
     }
 
     // save all generated test cases from current class to test code generation
-    private fun addTestCase(pkg: Package) {
+    private fun addTestScenario(pkg: Package) {
         if (testCodeGeneration) {
-            packageResult.getOrPut(pkg) { mutableListOf() } += CodeGenerationTestCases(
+            packageResult.getOrPut(pkg) { mutableListOf() } += TestScenario(
                 testClass,
                 testSets,
-                languagesLastStages
+                configurationsToTest
             )
         }
     }
@@ -82,7 +75,7 @@ abstract class CodeGenerationIntegrationTest(
     @Order(Int.MAX_VALUE)
     fun processTestCases(testInfo: TestInfo) {
         val pkg = testInfo.testClass.get().`package`
-        addTestCase(pkg)
+        addTestScenario(pkg)
 
         // check if tests are inside package and current test is not the last one
         if (runningTestsNumber > 1 && !isPackageFullyProcessed(testInfo.testClass.get())) {
@@ -93,54 +86,29 @@ abstract class CodeGenerationIntegrationTest(
 
         FileUtil.clearTempDirectory(UtSettings.daysLimitForTempFiles)
 
-        val result = packageResult[pkg] ?: return
+        val testScenarios = packageResult[pkg] ?: return
         try {
             val pipelineErrors = mutableListOf<String?>()
 
-            // TODO: leave kotlin & parameterized mode configuration alone for now
-            val pipelineConfigurations = languages
-                .flatMap { language -> parameterizationModes.map { mode -> language to mode } }
-                .filterNot { it == CodegenLanguage.KOTLIN to ParametrizedTestSource.PARAMETRIZE }
-
-            for ((language, parameterizationMode) in pipelineConfigurations) {
-                try {
-                    // choose all test cases that should be tested with current language
-                    val languageSpecificResults = result.filter { codeGenerationTestCases ->
-                        codeGenerationTestCases.lastStages.any { it.language == language }
-                    }
-
-                    // for each test class choose code generation pipeline stages
-                    val classStages = languageSpecificResults.map { codeGenerationTestCases ->
-                        val codeGenerationConfiguration =
-                            codeGenerationTestCases.lastStages.single { it.language == language }
-
-                        val lastStage = when (parameterizationMode) {
-                            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
-                                codeGenerationConfiguration.lastStage
-                            }
-
-                            ParametrizedTestSource.PARAMETRIZE -> {
-                                codeGenerationConfiguration.parameterizedModeLastStage
-                            }
-                        }
-
-                        ClassStages(
-                            codeGenerationTestCases.testClass,
+            for (testScenarioForClass in testScenarios) {
+                for (configuration in testScenarioForClass.checkedConfigurations) {
+                    try {
+                        val classStages = ClassStages(
+                            testScenarioForClass.testClass,
                             StageStatusCheck(
                                 firstStage = CodeGeneration,
-                                lastStage = lastStage,
-                                status = ExecutionStatus.SUCCESS
+                                lastStage = configuration.lastStage,
+                                status = ExecutionStatus.SUCCESS,
                             ),
-                            codeGenerationTestCases.testSets
+                            testScenarioForClass.testSets,
                         )
-                    }
 
-                    val config =
-                        TestCodeGeneratorPipeline.defaultTestFrameworkConfiguration(language, parameterizationMode)
-                    TestCodeGeneratorPipeline(config).runClassesCodeGenerationTests(classStages)
-                } catch (e: RuntimeException) {
-                    logger.warn(e) { "error in test pipeline" }
-                    pipelineErrors.add(e.message)
+                        val pipelineConfig = TestCodeGeneratorPipeline.configurePipeline(configuration)
+                        TestCodeGeneratorPipeline(pipelineConfig, applicationContext).runClassesCodeGenerationTests(classStages)
+                    } catch (e: RuntimeException) {
+                        logger.warn(e) { "error in test pipeline" }
+                        pipelineErrors.add(e.message)
+                    }
                 }
             }
 
@@ -158,18 +126,26 @@ abstract class CodeGenerationIntegrationTest(
             FileUtil.OldTempFileDeleter
         }
 
-        private val packageResult: MutableMap<Package, MutableList<CodeGenerationTestCases>> = mutableMapOf()
+        private val packageResult: MutableMap<Package, MutableList<TestScenario>> = mutableMapOf()
 
         private var allRunningTestClasses: List<ClassTestDescriptor> = mutableListOf()
 
-        private val languages = listOf(CodegenLanguage.JAVA, CodegenLanguage.KOTLIN)
-
-        private val parameterizationModes = listOf(ParametrizedTestSource.DO_NOT_PARAMETRIZE, ParametrizedTestSource.PARAMETRIZE)
-
-        data class CodeGenerationTestCases(
+        data class TestScenario(
             val testClass: KClass<*>,
             val testSets: List<UtMethodTestSet>,
-            val lastStages: List<TestLastStage>
+            val checkedConfigurations: List<AbstractConfiguration>,
+        )
+
+        val standardTestingConfigurations = listOf(
+            Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, TestExecution),
+            Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.PARAMETRIZE, TestExecution),
+            Configuration(CodegenLanguage.KOTLIN, ParametrizedTestSource.DO_NOT_PARAMETRIZE, TestExecution),
+        )
+
+        val ignoreKotlinCompilationConfigurations = listOf(
+            Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, TestExecution),
+            Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.PARAMETRIZE, TestExecution),
+            Configuration(CodegenLanguage.KOTLIN, ParametrizedTestSource.DO_NOT_PARAMETRIZE, CodeGeneration),
         )
 
         class ReadRunningTestsNumberBeforeAllTestsCallback : BeforeAllCallback {
@@ -197,6 +173,7 @@ abstract class CodeGenerationIntegrationTest(
 
         @JvmStatic
         protected val testCaseGeneratorCache = mutableMapOf<BuildInfo, TestSpecificTestCaseGenerator>()
+
         data class BuildInfo(val buildDir: Path, val dependencyPath: String?)
 
         private fun getTestPackageSize(packageName: String): Int =

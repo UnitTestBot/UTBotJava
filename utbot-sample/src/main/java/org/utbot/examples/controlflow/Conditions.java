@@ -31,4 +31,10 @@ public class Conditions {
             // do nothing
         }
     }
+
+    public int elseIf(int id) throws RuntimeException {
+        if (id > 0) return 0;
+        else if (id == 0) throw new RuntimeException("Exception message");
+        else return 1;
+    }
 }

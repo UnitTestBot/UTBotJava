@@ -212,6 +212,7 @@ object PythonTree {
         var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
+        var customState: Boolean = false,  // if this field is true, state must have structure {'state': <PythonTreeNode>}
     ) : PythonTreeNode(id, type) {
         constructor(
             type: PythonClassId,

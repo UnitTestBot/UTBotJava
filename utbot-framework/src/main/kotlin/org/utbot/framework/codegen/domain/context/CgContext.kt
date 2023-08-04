@@ -7,14 +7,6 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgExecutableCall
-import org.utbot.framework.codegen.domain.models.CgStatement
-import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
-import org.utbot.framework.codegen.domain.models.CgTestMethod
-import org.utbot.framework.codegen.domain.models.CgThisInstance
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
@@ -23,12 +15,10 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
-import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
-import org.utbot.framework.codegen.domain.models.CgParameterKind
+import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.services.access.Block
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
@@ -55,7 +45,7 @@ import org.utbot.framework.plugin.api.util.jClass
  * Although, some of the properties are declared as 'var' so that
  * they can be reassigned as well as modified
  *
- * For example, [outerMostTestClass] and [currentExecutable] can be reassigned
+ * For example, [outerMostTestClass] and [currentExecution] can be reassigned
  * when we start generating another method or test class
  *
  * [existingVariableNames] is a 'var' property
@@ -80,7 +70,13 @@ interface CgContextOwner {
     val utilMethodProvider: UtilMethodProvider
 
     // current executable under test
-    var currentExecutable: ExecutableId?
+    // NOTE: may differ from `executableToCall`
+    var currentExecutableUnderTest: ExecutableId?
+
+    // executable that is called in the current test method body and whose result is used in asserts as `actual`
+    // NOTE: may differ from `executableUnderTest`
+    val currentExecutableToCall: ExecutableId? get() =
+        currentExecution?.stateBefore?.executableToCall ?: currentExecutableUnderTest
 
     // ClassInfo for the outermost class currently being generated
     val outerMostTestClassContext: TestClassContext
@@ -269,8 +265,8 @@ interface CgContextOwner {
             currentBlock = currentBlock.add(it)
         }
 
-    fun updateCurrentExecutable(executableId: ExecutableId) {
-        currentExecutable = executableId
+    fun updateExecutableUnderTest(executableId: ExecutableId) {
+        currentExecutableUnderTest = executableId
     }
 
     fun <R> withTestSetIdScope(testSetId: Int, block: () -> R): R {
@@ -304,11 +300,13 @@ interface CgContextOwner {
         }
     }
 
-    fun addAnnotation(annotation: CgAnnotation) {
-        if (collectedMethodAnnotations.add(annotation)) {
-            importIfNeeded(annotation.classId) // TODO: check how JUnit annotations are loaded
+    fun createGetClassExpression(id: ClassId, codegenLanguage: CodegenLanguage): CgGetClass =
+        when (codegenLanguage) {
+            CodegenLanguage.JAVA -> CgGetJavaClass(id)
+            CodegenLanguage.KOTLIN -> CgGetKotlinClass(id)
+        }.also {
+            importIfNeeded(id)
         }
-    }
 
     /**
      * This method sets up context for a new test class file generation and executes the given [block].
@@ -459,7 +457,12 @@ interface CgContextOwner {
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
 
-    fun UtModel.wrap(): UtModelWrapper
+    fun UtModel.wrap(): UtModelWrapper =
+        UtModelWrapper(
+            testSetId = currentTestSetId,
+            executionId = currentExecutionId,
+            model = this,
+        )
 }
 
 /**
@@ -469,7 +472,7 @@ class CgContext(
     override val classUnderTest: ClassId,
     override val projectType: ProjectType,
     val generateUtilClassFile: Boolean = false,
-    override var currentExecutable: ExecutableId? = null,
+    override var currentExecutableUnderTest: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
@@ -588,13 +591,6 @@ class CgContext(
         }
     }
 
-    override fun UtModel.wrap(): UtModelWrapper =
-        UtModelWrapper(
-            testSetId = currentTestSetId,
-            executionId = currentExecutionId,
-            model = this
-        )
-
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
@@ -635,7 +631,7 @@ class CgContext(
         classUnderTest = this.classUnderTest,
         projectType = this.projectType,
         generateUtilClassFile = this.generateUtilClassFile,
-        currentExecutable = this.currentExecutable,
+        currentExecutableUnderTest = this.currentExecutableUnderTest,
         collectedExceptions =this.collectedExceptions,
         collectedMethodAnnotations = this.collectedMethodAnnotations,
         collectedImports = this.collectedImports,

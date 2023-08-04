@@ -2,8 +2,8 @@ package org.utbot.instrumentation.instrumentation.execution.phases
 
 import org.utbot.framework.plugin.api.*
 import java.util.IdentityHashMap
-import org.utbot.instrumentation.instrumentation.execution.constructors.MockValueConstructor
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.constructors.InstrumentationContextAwareValueConstructor
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 
@@ -24,15 +24,19 @@ class ValueConstructionPhase(
     instrumentationContext: InstrumentationContext
 ) : ExecutionPhase {
 
-    override fun wrapError(e: Throwable): ExecutionPhaseException {
-        val message = this.javaClass.simpleName
-        return when(e) {
-            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
-            else -> ExecutionPhaseError(message, e)
-        }
-    }
+    override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseStop(
+        phase = this.javaClass.simpleName,
+        result = UtConcreteExecutionResult(
+            stateAfter = MissingState,
+            result = when(e) {
+                is TimeoutException -> UtTimeoutException(e)
+                else -> UtConcreteExecutionProcessedFailure(e)
+            },
+            coverage = Coverage()
+        )
+    )
 
-    private val constructor = MockValueConstructor(instrumentationContext)
+    private val constructor = InstrumentationContextAwareValueConstructor(instrumentationContext)
 
     fun getCache(): ConstructedCache {
         return constructor.objectToModelCache

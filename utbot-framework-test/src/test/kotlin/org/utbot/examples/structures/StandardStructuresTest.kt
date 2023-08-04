@@ -4,18 +4,13 @@ import java.util.LinkedList
 import java.util.TreeMap
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 
 internal class StandardStructuresTest : UtValueTestCaseChecker(
     testClass = StandardStructures::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     @Disabled("TODO down cast for object wrapper JIRA:1480")

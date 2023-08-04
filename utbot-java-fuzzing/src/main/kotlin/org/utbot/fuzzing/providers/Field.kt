@@ -8,6 +8,7 @@ import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.replaceWithWrapperIfPrimitive
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
@@ -26,7 +27,9 @@ class FieldValueProvider(
         private val logger = KotlinLogging.logger {}
     }
 
-    override fun accept(type: FuzzedType): Boolean = type.classId == fieldId.type
+    override fun accept(type: FuzzedType): Boolean =
+        replaceWithWrapperIfPrimitive(type.classId).jClass
+            .isAssignableFrom(replaceWithWrapperIfPrimitive(fieldId.type).jClass)
 
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> = sequenceOf(
         Seed.Recursive(
@@ -36,10 +39,10 @@ class FieldValueProvider(
                 val thisInstanceValue = values.single()
                 val thisInstanceModel = when (val model = thisInstanceValue.model) {
                     is UtReferenceModel -> model
-                    is UtNullModel -> return@Create nullFuzzedValue(type.classId)
+                    is UtNullModel -> return@Create defaultFuzzedValue(type.classId)
                     else -> {
                         logger.warn { "This instance model can be only UtReferenceModel or UtNullModel, but $model is met" }
-                        return@Create nullFuzzedValue(type.classId)
+                        return@Create defaultFuzzedValue(type.classId)
                     }
                 }
                 UtAssembleModel(
@@ -59,7 +62,7 @@ class FieldValueProvider(
                 }
             },
             modify = emptySequence(),
-            empty = nullRoutine(type.classId)
+            empty = defaultValueRoutine(type.classId)
         )
     )
 }

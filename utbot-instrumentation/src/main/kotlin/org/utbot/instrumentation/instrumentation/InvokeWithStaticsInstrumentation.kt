@@ -89,6 +89,10 @@ class InvokeWithStaticsInstrumentation : Instrumentation<Result<*>> {
                 .forEach { it.withAccessibility { it.set(null, savedFields[it.name]) } }
         }
     }
+
+    object Factory : Instrumentation.Factory<Result<*>, InvokeWithStaticsInstrumentation> {
+        override fun create(): InvokeWithStaticsInstrumentation = InvokeWithStaticsInstrumentation()
+    }
 }
 
 private fun checkField(field: Field) = Modifier.isStatic(field.modifiers)

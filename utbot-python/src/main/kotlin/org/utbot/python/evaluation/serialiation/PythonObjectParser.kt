@@ -147,9 +147,13 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump): String {
         }
 
         is PythonTree.ReduceNode -> {
-            val stateObjId = PythonTree.DictNode(this.state.entries.associate {
-                PythonTree.fromString(it.key) to it.value
-            }.toMutableMap())
+            val stateObjId = if (this.customState) {
+                this.state["state"]!!
+            } else {
+                PythonTree.DictNode(this.state.entries.associate {
+                    PythonTree.fromString(it.key) to it.value
+                }.toMutableMap())
+            }
             val argsIds = PythonTree.ListNode(this.args.withIndex().associate { it.index to it.value }.toMutableMap())
             val listItemsIds =
                 PythonTree.ListNode(this.listitems.withIndex().associate { it.index to it.value }.toMutableMap())
@@ -226,7 +230,9 @@ fun MemoryObject.toPythonTree(
             }
 
             is ReduceMemoryObject -> {
-                val stateObjs = memoryDump.getById(state) as DictMemoryObject
+                val stateObjsDraft = memoryDump.getById(state)
+                val customState = stateObjsDraft !is DictMemoryObject
+
                 val arguments = memoryDump.getById(args) as ListMemoryObject
                 val listitemsObjs = memoryDump.getById(listitems) as ListMemoryObject
                 val dictitemsObjs = memoryDump.getById(dictitems) as DictMemoryObject
@@ -236,13 +242,20 @@ fun MemoryObject.toPythonTree(
                     PythonClassId(this.constructor.module, this.constructor.kind),
                     arguments.items.map { memoryDump.getById(it).toPythonTree(memoryDump, visited) },
                 )
+                prevObj.customState = customState
                 visited[this.id] = prevObj
 
-                prevObj.state = stateObjs.items.entries.associate {
-                    (memoryDump.getById(it.key).toPythonTree(memoryDump, visited) as PythonTree.PrimitiveNode)
-                        .repr.drop(1).dropLast(1) to
-                            memoryDump.getById(it.value).toPythonTree(memoryDump, visited)
-                }.toMutableMap()
+                prevObj.state = if (prevObj.customState) {
+                    val stateObjs = memoryDump.getById(state)
+                    mutableMapOf("state" to stateObjs.toPythonTree(memoryDump, visited))
+                } else {
+                    val stateObjs = memoryDump.getById(state) as DictMemoryObject
+                    stateObjs.items.entries.associate {
+                        (memoryDump.getById(it.key).toPythonTree(memoryDump, visited) as PythonTree.PrimitiveNode)
+                            .repr.drop(1).dropLast(1) to
+                                memoryDump.getById(it.value).toPythonTree(memoryDump, visited)
+                    }.toMutableMap()
+                }
                 prevObj.listitems = listitemsObjs.items.map { memoryDump.getById(it).toPythonTree(memoryDump, visited) }
                 prevObj.dictitems = dictitemsObjs.items.entries.associate {
                     memoryDump.getById(it.key).toPythonTree(memoryDump, visited) to

@@ -1,12 +1,20 @@
 package org.utbot.python.framework.codegen.model.tree
 
+import org.utbot.framework.codegen.domain.models.CgAnnotation
+import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgElement
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMethod
+import org.utbot.framework.codegen.domain.models.CgMethodCall
+import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgStatement
+import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.renderer.CgVisitor
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
@@ -28,6 +36,7 @@ interface CgPythonElement : CgElement {
                 is CgPythonTuple -> visitor.visit(element)
                 is CgPythonTree -> visitor.visit(element)
                 is CgPythonWith -> visitor.visit(element)
+                is CgPythonNamedArgument -> visitor.visit(element)
                 else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
             }
         } else {
@@ -115,3 +124,10 @@ data class CgPythonWith(
     val target: CgExpression?,
     val statements: List<CgStatement>,
 ) : CgStatement, CgPythonElement
+
+class CgPythonNamedArgument(
+    val name: String?,
+    val value: CgExpression,
+) : CgValue, CgPythonElement {
+    override val type: ClassId = value.type
+}

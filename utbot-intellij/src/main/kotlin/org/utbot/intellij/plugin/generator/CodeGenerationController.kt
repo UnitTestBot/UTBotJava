@@ -684,23 +684,13 @@ object CodeGenerationController {
                     return@run
                 }
                 proc.render(
-                    model.springTestsType,
+                    model,
                     testSetsId,
                     classUnderTest,
-                    model.projectType,
                     paramNames.toMutableMap(),
                     generateUtilClassFile = true,
-                    model.testFramework,
-                    model.mockFramework,
-                    model.staticsMocking,
-                    model.forceStaticMocking,
-                    model.generateWarningsForStaticMocking,
-                    model.codegenLanguage,
-                    model.parametrizedTestSource,
-                    model.runtimeExceptionTestsBehaviour,
-                    model.hangingTestsTimeout,
                     enableTestsTimeout = true,
-                    testPackageName
+                    testPackageName,
                 )
             } catch (e: Exception) {
                 logger.warn(e) { "Cannot render test class ${testClass.name}" }

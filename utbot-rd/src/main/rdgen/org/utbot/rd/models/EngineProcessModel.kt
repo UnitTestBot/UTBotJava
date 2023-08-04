@@ -33,7 +33,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("path", PredefinedType.string)
         field("version", PredefinedType.int)
     }
-
     val testGeneratorParams = structdef {
         field("buildDir", array(PredefinedType.string))
         field("classpath", PredefinedType.string.nullable)
@@ -62,7 +61,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("testSetsId", PredefinedType.long)
     }
     val renderParams = structdef {
-        field("springTestsType", PredefinedType.string)
         field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
         field("projectType", PredefinedType.string)
@@ -89,9 +87,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     }
     val getSpringBeanDefinitions = structdef {
         field("classpath", array(PredefinedType.string))
-        field("config", PredefinedType.string)
-        field("fileStorage", array(PredefinedType.string))
-        field("profileExpression", PredefinedType.string.nullable)
+        field("springSettings", array(PredefinedType.byte))
     }
     val methodDescription = structdef {
         field("name", PredefinedType.string)
@@ -134,7 +130,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val beanAdditionalData = structdef {
         field("factoryMethodName", PredefinedType.string)
         field("parameterTypes", immutableList(PredefinedType.string))
-        field("configClassFqn", PredefinedType.string)
+        field("configClassName", PredefinedType.string)
     }
     val beanDefinitionData = structdef {
         field("beanName", PredefinedType.string)

@@ -3,6 +3,7 @@ package org.utbot.instrumentation.instrumentation.execution.mock
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.jClass
 import org.objectweb.asm.Type
+import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 
 class InstanceMockController(
     clazz: ClassId,

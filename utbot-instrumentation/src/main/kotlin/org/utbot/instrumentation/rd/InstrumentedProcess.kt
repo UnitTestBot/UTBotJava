@@ -10,6 +10,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.DISABLE_SANDBOX_OPTION
 import org.utbot.instrumentation.process.generated.AddPathsParams
@@ -17,7 +18,6 @@ import org.utbot.instrumentation.process.generated.GetSpringBeanParams
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.SetInstrumentationParams
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
-import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.LoggerModel
@@ -87,14 +87,16 @@ class InstrumentedProcess private constructor(
 
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
             parent: Lifetime,
-            instrumentation: TInstrumentation,
+            instrumentationFactory: Instrumentation.Factory<TIResult, TInstrumentation>,
             pathsToUserClasses: String,
             classLoader: ClassLoader?
         ): InstrumentedProcess = parent.createNested().terminateOnException { lifetime ->
             val rdProcess: ProcessWithRdServer = startUtProcessWithRdServer(
                 lifetime = lifetime
             ) { port ->
-                val cmd = obtainProcessCommandLine(port)
+                val cmd = obtainProcessCommandLine(port) + listOfNotNull(
+                    DISABLE_SANDBOX_OPTION.takeIf { instrumentationFactory.forceDisableSandbox }
+                )
                 logger.debug { "Starting instrumented process: $cmd" }
                 val directory = WorkingDirService.provide().toFile()
                 val processBuilder = ProcessBuilder(cmd)
@@ -130,7 +132,8 @@ class InstrumentedProcess private constructor(
             logger.trace("sending instrumentation")
             proc.instrumentedProcessModel.setInstrumentation.startSuspending(
                 proc.lifetime, SetInstrumentationParams(
-                    proc.kryoHelper.writeObject(instrumentation)
+                    proc.kryoHelper.writeObject(instrumentationFactory),
+                    UtSettings.useBytecodeTransformation
                 )
             )
             logger.trace("start commands sent")

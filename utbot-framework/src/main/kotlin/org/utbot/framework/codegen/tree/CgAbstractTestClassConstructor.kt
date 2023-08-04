@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import mu.KotlinLogging
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -29,7 +30,11 @@ import org.utbot.framework.plugin.api.util.description
 
 abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: CgContext):
     CgContextOwner by context,
-    CgStatementConstructor by CgComponents.getStatementConstructorBy(context){
+    CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     init {
         CgComponents.clearContextRelatedStorage()
@@ -61,9 +66,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
             if (currentTestClass != outerMostTestClass) {
                 isNested = true
                 isStatic = testFramework.nestedClassesShouldBeStatic
-                testFrameworkManager.annotationForNestedClasses?.let {
-                    currentTestClassContext.collectedTestClassAnnotations += it
-                }
+                testFrameworkManager.addAnnotationForNestedClasses()
             }
 
             body = constructTestClassBody(testClassModel)
@@ -86,7 +89,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
         testSet: CgMethodTestSet,
         regions: MutableList<CgRegion<CgMethod>>
     ) {
-        val (methodUnderTest, _, clustersInfo) = testSet
+        val (_, _, clustersInfo) = testSet
 
         for ((clusterSummary, executionIndices) in clustersInfo) {
             val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
@@ -99,7 +102,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
 
             for (i in checkedRange) {
                 withExecutionIdScope(i) {
-                    currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
+                    currentTestCaseTestMethods += methodConstructor.createTestMethod(testSet, testSet.executions[i])
                 }
             }
 
@@ -120,6 +123,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
     }
 
     protected fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
+        logger.warn(failure) { "Code generation error" }
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)

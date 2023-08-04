@@ -1,24 +1,12 @@
 package org.utbot.framework.codegen.tree
 
+import mu.KotlinLogging
 import org.utbot.common.isStatic
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
-import org.utbot.framework.codegen.domain.models.CgAllocateArray
-import org.utbot.framework.codegen.domain.models.CgAssignment
-import org.utbot.framework.codegen.domain.models.CgDeclaration
-import org.utbot.framework.codegen.domain.models.CgEnumConstantAccess
-import org.utbot.framework.codegen.domain.models.CgExecutableCall
-import org.utbot.framework.codegen.domain.models.CgExpression
-import org.utbot.framework.codegen.domain.models.CgFieldAccess
-import org.utbot.framework.codegen.domain.models.CgGetJavaClass
-import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgMethodCall
-import org.utbot.framework.codegen.domain.models.CgStatement
-import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getMockFrameworkManagerBy
@@ -35,6 +23,7 @@ import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
@@ -42,6 +31,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -53,6 +43,8 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.booleanWrapperClassId
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.jField
@@ -63,6 +55,8 @@ import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
 import org.utbot.framework.plugin.api.util.isStatic
+import org.utbot.framework.plugin.api.util.primitiveWrappers
+import org.utbot.framework.plugin.api.util.primitives
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
@@ -75,8 +69,12 @@ open class CgVariableConstructor(val context: CgContext) :
     CgCallableAccessManager by getCallableAccessManagerBy(context),
     CgStatementConstructor by getStatementConstructorBy(context) {
 
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
     private val nameGenerator = getNameGeneratorBy(context)
-    protected val mockFrameworkManager = getMockFrameworkManagerBy(context)
+    private val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
     /**
      * Take already created CgValue or construct either a new [CgVariable] or new [CgLiteral] for the given model.
@@ -119,6 +117,12 @@ open class CgVariableConstructor(val context: CgContext) :
             is UtLambdaModel -> constructLambda(model, baseName)
             is UtNullModel -> nullLiteral()
             is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
+            is UtCustomModel -> {
+                logger.error { "Unexpected behaviour: value for UtCustomModel [$model] is constructed by base CgVariableConstructor" }
+                constructValueByModel(
+                    model.origin ?: error("Can't construct value for UtCustomModel without origin [$model]"), name
+                )
+            }
             is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
             is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
             else -> error("Unexpected UtModel: ${model::class}")
@@ -182,28 +186,46 @@ open class CgVariableConstructor(val context: CgContext) :
         }
 
         for ((fieldId, fieldModel) in model.fields) {
-            val field = fieldId.jField
             val variableForField = getOrCreateVariable(fieldModel)
-            val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
-
-            // we cannot set field directly if variable declared type does not have such field
-            // or we cannot directly create variable for field with the specified type (it is private, for example)
-            // Example:
-            // Object heapByteBuffer = createInstance("java.nio.HeapByteBuffer");
-            // branchRegisterRequest.byteBuffer = heapByteBuffer;
-            // byteBuffer is field of type ByteBuffer and upper line is incorrect
-            val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
-                fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
-            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context, obj.type)) {
-                // TODO: check if it is correct to use declaringClass of a field here
-                val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
-                fieldAccess `=` variableForField
-            } else {
-                // composite models must not have info about static fields, hence only non-static fields are set here
-                +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, variableForField)
-            }
+            if (!variableForField.hasDefaultValue())
+                setFieldValue(obj, fieldId, variableForField)
         }
         return obj
+    }
+
+    fun setFieldValue(obj: CgValue, fieldId: FieldId, valueForField: CgValue) {
+        val field = fieldId.jField
+        val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
+
+        // we cannot set field directly if variable declared type does not have such field
+        // or we cannot directly create variable for field with the specified type (it is private, for example)
+        // Example:
+        // Object heapByteBuffer = createInstance("java.nio.HeapByteBuffer");
+        // branchRegisterRequest.byteBuffer = heapByteBuffer;
+        // byteBuffer is field of type ByteBuffer and upper line is incorrect
+        val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
+            fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == valueForField.type
+        if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context, obj.type)) {
+            // TODO: check if it is correct to use declaringClass of a field here
+            val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
+            fieldAccess `=` valueForField
+        } else {
+            // composite models must not have info about static fields, hence only non-static fields are set here
+            +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, valueForField)
+        }
+    }
+
+    private fun CgValue.hasDefaultValue(): Boolean {
+        if (this !is CgLiteral) {
+            return false;
+        }
+
+        return when {
+            this.value == null -> true
+            (this.type == booleanClassId || this.type == booleanWrapperClassId) && this.value == false -> true
+            (this.type in primitives || this.type in primitiveWrappers) && this.value == 0 -> true
+            else -> false
+        }
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
@@ -227,7 +249,7 @@ open class CgVariableConstructor(val context: CgContext) :
             .also { valueByUtModelWrapper[model.wrap()] = it }
     }
 
-    protected fun constructAssembleForVariable(model: UtAssembleModel): CgValue {
+    fun constructAssembleForVariable(model: UtAssembleModel): CgValue {
         for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
@@ -467,7 +489,7 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructClassRef(model: UtClassRefModel, baseName: String?): CgVariable {
-        val classId = model.value.id
+        val classId = model.value
         val init = if (classId.isAccessibleFrom(testClassPackageName)) {
             CgGetJavaClass(classId)
         } else {

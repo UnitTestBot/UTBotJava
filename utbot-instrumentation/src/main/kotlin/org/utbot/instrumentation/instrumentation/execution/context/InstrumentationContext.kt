@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
+import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhase
 import java.lang.reflect.Method
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
@@ -33,6 +34,15 @@ interface InstrumentationContext {
      * construct models for instances of specified [class][classId].
      */
     fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor?
+
+    /**
+     * Called when [failedPhase] fails while being executed under timeout.
+     * This method is executed in the same thread that [failedPhase] was run in.
+     * Implementor are expected to only perform some clean up operations (e.g. rollback transactions in Spring).
+     *
+     * In case of timeout [throwable] can be [ThreadDeath], [InterruptedException], or any other [Throwable].
+     */
+    fun onPhaseUnderTimeoutFailure(failedPhase: ExecutionPhase, throwable: Throwable)
 
     object MockGetter {
         data class MockContainer(private val values: List<*>) {

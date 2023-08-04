@@ -8,7 +8,12 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.*
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.fuzzing.provider.utils.isCallable
 import org.utbot.python.fuzzing.provider.utils.isConcreteType
+import org.utbot.python.fuzzing.provider.utils.isMagic
+import org.utbot.python.fuzzing.provider.utils.isPrivate
+import org.utbot.python.fuzzing.provider.utils.isProperty
+import org.utbot.python.fuzzing.provider.utils.isProtected
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
@@ -36,11 +41,36 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+        val fields = findFields(description, type)
+        findConstructors(description, type)
+            .forEach {
+                val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
+                modifications.addAll(fields.map { field ->
+                    Routine.Call(listOf(field.type)) { instance, arguments ->
+                        val obj = instance.tree as PythonTree.ReduceNode
+                        obj.state[field.meta.name] = arguments.first().tree
+                    }
+                })
+                yieldAll(callConstructors(type, it, modifications.asSequence()))
+            }
+    }
+
+    private fun findFields(description: PythonMethodDescription, type: Type): List<PythonDefinition> {
+        // TODO: here we need to use same as .getPythonAttributeByName but without name
+        // TODO: now we do not have fields from parents
+        // TODO: here we should use only attributes from __slots__
+        return type.getPythonAttributes().filter { attr ->
+            !attr.isMagic() && !attr.isProtected() && !attr.isPrivate() && !attr.isProperty() && !attr.isCallable(
+                description.pythonTypeStorage
+            )
+        }
+    }
+
+    private fun findConstructors(description: PythonMethodDescription, type: Type): List<PythonDefinition> {
         val initMethodName = "__init__"
         val newMethodName = "__new__"
         val typeDescr = type.pythonDescription()
-        val constructors =
-            if (typeDescr is PythonCompositeTypeDescription) {
+        return if (typeDescr is PythonCompositeTypeDescription) {
                 val mro = typeDescr.mro(description.pythonTypeStorage, type)
                 val initParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == initMethodName } }
                 val newParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == newMethodName } }
@@ -55,29 +85,6 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
                 }
             } else {
                 emptyList()
-            }
-        constructors
-            .forEach {
-                // TODO: here we need to use same as .getPythonAttributeByName but without name
-                // TODO: now we do not have fields from parents
-                // TODO: here we should use only attributes from __slots__
-                val fields = type.getPythonAttributes()
-                    .filter { attr ->
-                        !(attr.meta.name.startsWith("__") && attr.meta.name.endsWith("__") && attr.meta.name.length >= 4) &&
-                                (attr.meta as? PythonVariableDescription)?.isProperty != true && attr.type.getPythonAttributeByName(
-                            description.pythonTypeStorage,
-                            "__call__"
-                        ) == null
-                    }
-
-                val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
-                modifications.addAll(fields.map { field ->
-                    Routine.Call(listOf(field.type)) { instance, arguments ->
-                        val obj = instance.tree as PythonTree.ReduceNode
-                        obj.state[field.meta.name] = arguments.first().tree
-                    }
-                })
-                yieldAll(callConstructors(type, it, modifications.asSequence()))
             }
     }
 

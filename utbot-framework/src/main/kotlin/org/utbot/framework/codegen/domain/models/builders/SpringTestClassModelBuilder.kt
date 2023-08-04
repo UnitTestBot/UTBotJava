@@ -56,8 +56,10 @@ class SpringTestClassModelBuilder(val context: CgContext) :
                             .filterNotNull()
                             .forEach { model ->
                                 thisInstanceModels += model.wrap()
-                                thisInstancesDependentModels += collectDependentModels(model)
-
+                                thisInstancesDependentModels += collectImmediateDependentModels(
+                                    model,
+                                    skipModificationChains = true
+                                )
                             }
 
                         (execution.stateBefore.parameters + execution.stateBefore.thisInstance)
@@ -107,10 +109,12 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         if(!allDependentModels.add(model.wrap())){
             return
         }
-        collectDependentModels(model).forEach { collectRecursively(it.model, allDependentModels) }
+        collectImmediateDependentModels(model, skipModificationChains = false).forEach {
+            collectRecursively(it.model, allDependentModels)
+        }
     }
 
-    private fun collectDependentModels(model: UtModel): Set<UtModelWrapper> {
+    private fun collectImmediateDependentModels(model: UtModel, skipModificationChains: Boolean): Set<UtModelWrapper> {
         val dependentModels = mutableSetOf<UtModelWrapper>()
 
         when (model) {
@@ -139,7 +143,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
                 model.instantiationCall.instance?.let { dependentModels.add(it.wrap()) }
                 model.instantiationCall.params.forEach { dependentModels.add(it.wrap()) }
 
-                if(model.isAutowiredFromContext()) {
+                if(!skipModificationChains) {
                     model.modificationsChain.forEach { stmt ->
                         stmt.instance?.let { dependentModels.add(it.wrap()) }
                         when (stmt) {

@@ -62,7 +62,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
 
                         (execution.stateBefore.parameters + execution.stateBefore.thisInstance)
                             .filterNotNull()
-                            .forEach { model -> stateBeforeDependentModels += collectAutowiredModels(model) }
+                            .forEach { model -> stateBeforeDependentModels += collectRecursively(model) }
                     }
                 }
             }
@@ -95,7 +95,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         )
     }
 
-    private fun collectAutowiredModels(model: UtModel): Set<UtModelWrapper> {
+    private fun collectRecursively(model: UtModel): Set<UtModelWrapper> {
         val allDependentModels = mutableSetOf<UtModelWrapper>()
 
         collectRecursively(model, allDependentModels)

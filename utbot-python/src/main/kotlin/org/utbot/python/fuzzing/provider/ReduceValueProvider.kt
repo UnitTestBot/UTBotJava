@@ -15,6 +15,7 @@ import org.utbot.python.newtyping.general.Type
 
 object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     private val unsupportedTypes = listOf(
+        pythonRePatternClassId.canonicalName,
         pythonListClassId.canonicalName,
         pythonSetClassId.canonicalName,
         pythonTupleClassId.canonicalName,

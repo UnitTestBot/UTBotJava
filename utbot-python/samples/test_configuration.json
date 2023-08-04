@@ -168,6 +168,17 @@
           ]
         },
         {
+          "name": "recursive",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 30,
+              "coverage": 100
+            }
+          ]
+        },
+        {
           "name": "sets",
           "groups": [
             {

@@ -2,7 +2,6 @@ package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
-import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgValue
@@ -13,9 +12,10 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.comparePythonTree
+import org.utbot.python.framework.api.python.util.pythonDictClassId
+import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
-import org.utbot.python.framework.codegen.model.constructor.util.dropBuiltins
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(cgContext) {
@@ -35,15 +35,30 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
         }
     }
 
-    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null): Pair<CgValue, List<CgStatement>> {
+    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null, depth: Int = 6): Pair<CgValue, List<CgStatement>> {
+        val id = objectNode.id
+        val assistant = (context.cgLanguageAssistant as PythonCgLanguageAssistant)
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 Pair(CgPythonRepr(objectNode.type, objectNode.repr), emptyList())
             }
 
             is PythonTree.ListNode -> {
-                val items = objectNode.items.values.map { pythonBuildObject(it) }
-                Pair(CgPythonList(items.map {it.first}), items.flatMap { it.second })
+                if (PythonTree.isRecursiveObject(objectNode)) {
+                    val obj = PythonTree.ReduceNode(
+                        id,
+                        pythonListClassId,
+                        PythonClassId("builtins.list"),
+                        emptyList(),
+                        mutableMapOf(),
+                        objectNode.items.values.toList(),
+                        emptyMap(),
+                    )
+                    pythonBuildObject(obj)
+                } else {
+                    val items = objectNode.items.values.map { pythonBuildObject(it) }
+                    Pair(CgPythonList(items.map { it.first }), items.flatMap { it.second })
+                }
             }
 
             is PythonTree.TupleNode -> {
@@ -57,21 +72,32 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
             }
 
             is PythonTree.DictNode -> {
-                val keys = objectNode.items.keys.map { pythonBuildObject(it) }
-                val values = objectNode.items.values.map { pythonBuildObject(it) }
-                Pair(
-                    CgPythonDict(
-                        keys.zip(values).associate { (key, value) ->
-                            key.first to value.first
-                        }
-                    ),
-                    keys.flatMap { it.second } + values.flatMap { it.second }
-                )
+                if (PythonTree.isRecursiveObject(objectNode)) {
+                    val obj = PythonTree.ReduceNode(
+                        id,
+                        pythonDictClassId,
+                        PythonClassId("builtins.dict"),
+                        emptyList(),
+                        mutableMapOf(),
+                        emptyList(),
+                        objectNode.items,
+                    )
+                    pythonBuildObject(obj)
+                } else {
+                    val keys = objectNode.items.keys.map { pythonBuildObject(it) }
+                    val values = objectNode.items.values.map { pythonBuildObject(it) }
+                    Pair(
+                        CgPythonDict(
+                            keys.zip(values).associate { (key, value) ->
+                                key.first to value.first
+                            }
+                        ),
+                        keys.flatMap { it.second } + values.flatMap { it.second }
+                    )
+                }
             }
 
             is PythonTree.ReduceNode -> {
-                val id = objectNode.id
-                val assistant = (context.cgLanguageAssistant as PythonCgLanguageAssistant)
                 if (assistant.memoryObjects.containsKey(id)) {
                     val tree = assistant.memoryObjectsModels[id]
                     val savedObj = assistant.memoryObjects[id]
@@ -92,8 +118,8 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                     constructorCall
                 }
 
-                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
-                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjectsModels[id] = objectNode
+                assistant.memoryObjects[id] = obj
+                assistant.memoryObjectsModels[id] = objectNode
 
                 val state = objectNode.state.map { (key, value) ->
                     key to getOrCreateVariable(PythonTreeModel(value, value.type))

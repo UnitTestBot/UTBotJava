@@ -172,7 +172,7 @@ class EngineProcess private constructor(val project: Project, private val classN
             }
     }
 
-    private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String =
+    private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String? =
         DumbService.getInstance(project).runReadActionInSmartMode<String?> {
             val scope = GlobalSearchScope.allScope(project)
             // JavaFileManager requires canonical name as it is said in import

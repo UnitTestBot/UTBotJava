@@ -1,6 +1,7 @@
 package org.utbot.spring.dummy
 
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTestContextBootstrapper
 import org.springframework.test.context.BootstrapWith
@@ -11,3 +12,10 @@ open class DummySpringBootIntegrationTestClass : DummySpringIntegrationTestClass
 
 @AutoConfigureTestDatabase
 class DummySpringBootIntegrationTestClassAutoconfigTestDB : DummySpringBootIntegrationTestClass()
+
+@AutoConfigureMockMvc
+class DummySpringBootIntegrationTestClassAutoconfigMockMvc : DummySpringBootIntegrationTestClass()
+
+@AutoConfigureMockMvc
+@AutoConfigureTestDatabase
+class DummySpringBootIntegrationTestClassAutoconfigMockMvcAndTestDB : DummySpringBootIntegrationTestClass()

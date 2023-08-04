@@ -10,11 +10,14 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.execution.ResultOfInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
@@ -65,7 +68,6 @@ class SpringUtExecutionInstrumentation(
         phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
-
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             phasesWrapper {
                 // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
@@ -99,7 +101,13 @@ class SpringUtExecutionInstrumentation(
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
     }
 
-    fun getBean(beanName: String): Any = springApi.getBean(beanName)
+    fun getBeanModel(beanName: String, classpathToConstruct: Set<String>): UtModel {
+        val bean = springApi.getBean(beanName)
+        return UtModelConstructor.createOnlyUserClassesConstructor(
+            pathsToUserClasses = classpathToConstruct,
+            utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
+        ).construct(bean, bean::class.java.id)
+    }
 
     fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
         val relevantBeanNames = getRelevantBeans(classId.jClass)
@@ -119,17 +127,21 @@ class SpringUtExecutionInstrumentation(
         classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain,
         classfileBuffer: ByteArray
-    ): ByteArray? =
+    ): ByteArray? {
+        // always transform `MockMvc` to avoid empty coverage when testing controllers
+        val isMockMvc = className == "org/springframework/test/web/servlet/MockMvc"
+
         // we do not transform Spring classes as it takes too much time
 
         // maybe we should still transform classes related to data validation
         // (e.g. from packages "javax/persistence" and "jakarta/persistence"),
         // since traces from such classes can be particularly useful for feedback to fuzzer
-        if (userSourcesClassLoader.hasOnClasspath(className.replace("/", "."))) {
+        return if (isMockMvc || userSourcesClassLoader.hasOnClasspath(className.replace("/", "."))) {
             delegateInstrumentation.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
         } else {
             null
         }
+    }
 
     class Factory(
         private val delegateInstrumentationFactory: UtExecutionInstrumentation.Factory<*>,
@@ -143,6 +155,12 @@ class SpringUtExecutionInstrumentation(
                 jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
                 targetDirectoryName = "spring-commons"
             ).path
+
+        // TODO may be we can use some alternative sandbox that has more permissions
+        //  (at the very least we need `ReflectPermission("suppressAccessChecks")`
+        //  to let Jackson work with private fields when `@RequestBody` is used)
+        override val forceDisableSandbox: Boolean
+            get() = true
 
         override fun create(instrumentationContext: InstrumentationContext): SpringUtExecutionInstrumentation =
             SpringUtExecutionInstrumentation(

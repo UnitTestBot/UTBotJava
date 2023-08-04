@@ -45,7 +45,6 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.getInstrumentationResult
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -316,10 +315,7 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation, UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
 
-                            concreteExecutionResult.processedFailure()?.let { failure ->
-                                emitFailedConcreteExecutionResult(stateBefore, failure.exception)
-
-                                logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+                            if (failureCanBeProcessedGracefully(concreteExecutionResult, executionToRollbackOn = null)) {
                                 return@measureTime
                             }
 
@@ -478,7 +474,13 @@ class UtBotSymbolicEngine(
                 return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
             }
 
-            val stateBefore = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
+            val stateBefore = concreteExecutionContext.createStateBefore(
+                thisInstance = thisInstance?.model,
+                parameters = values.map { it.model },
+                statics = emptyMap(),
+                executableToCall = methodUnderTest,
+                idGenerator = defaultIdGenerator
+            )
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
                 val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)
@@ -667,10 +669,7 @@ class UtBotSymbolicEngine(
                     UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis
                 )
 
-                concreteExecutionResult.processedFailure()?.let { failure ->
-                    emitFailedConcreteExecutionResult(stateBefore, failure.exception)
-
-                    logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+                if (failureCanBeProcessedGracefully(concreteExecutionResult, symbolicUtExecution)) {
                     return
                 }
 
@@ -696,6 +695,29 @@ class UtBotSymbolicEngine(
         } catch (e: Throwable) {
             emit(UtError("Default concrete execution failed", e))
         }
+    }
+
+    private suspend fun FlowCollector<UtResult>.failureCanBeProcessedGracefully(
+        concreteExecutionResult: UtConcreteExecutionResult,
+        executionToRollbackOn: UtExecution?,
+    ): Boolean {
+        concreteExecutionResult.processedFailure()?.let { failure ->
+            // If concrete execution failed to some reasons that are not process death or cancellation
+            // when we call something that is processed successfully by symbolic engine,
+            // we should:
+            // - roll back to symbolic execution data ignoring failing concrete (is symbolic execution exists);
+            // - do not emit an execution if there is nothing to roll back on.
+
+            // Note that this situation is suspicious anyway, so we log a WARN message about the failure.
+            executionToRollbackOn?.let {
+                emit(it)
+            }
+
+            logger.warn { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
+            return true
+        }
+
+        return false
     }
 
     /**
@@ -756,7 +778,7 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
         methodUnderTest.isConstructor -> null to parameters.drop(1)
         else -> parameters.first() to parameters.drop(1)
     }
-    return EnvironmentModels(thisInstanceBefore, paramsBefore, statics)
+    return EnvironmentModels(thisInstanceBefore, paramsBefore, statics, methodUnderTest)
 }
 
 private suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<UtConcreteExecutionResult>>.executeConcretely(

@@ -207,7 +207,13 @@ enum class ExecutionGroup {
     EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS,
     OVERFLOWS,
     TIMEOUTS,
+
+    /**
+     * Executions that caused by `InstrumentedProcessDeath` exception.
+     * Generated tests will be disabled du to possible JVM crash.
+     */
     CRASH_SUITE,
+
     TAINT_ANALYSIS,
     SECURITY;
 
@@ -221,10 +227,11 @@ private fun UtExecutionResult.clusterKind() = when (this) {
     is UtStreamConsumingFailure -> ExecutionGroup.ERROR_SUITE
     is UtOverflowFailure -> ExecutionGroup.OVERFLOWS
     is UtTimeoutException -> ExecutionGroup.TIMEOUTS
-    is UtConcreteExecutionProcessedFailure -> ExecutionGroup.CRASH_SUITE
     is UtConcreteExecutionFailure -> ExecutionGroup.CRASH_SUITE
     is UtSandboxFailure -> ExecutionGroup.SECURITY
     is UtTaintAnalysisFailure -> ExecutionGroup.TAINT_ANALYSIS
+    is UtConcreteExecutionProcessedFailure ->
+        error("Processed failure must not be found in generated tests, it can just happen on intermediate phases of tests generation")
 }
 
 /**

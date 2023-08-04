@@ -12,6 +12,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
 
     val SetInstrumentationParams = structdef {
         field("instrumentation", array(PredefinedType.byte))
+        field("useBytecodeTransformation", PredefinedType.bool)
     }
 
     val GetResultOfInstrumentationParams = structdef {

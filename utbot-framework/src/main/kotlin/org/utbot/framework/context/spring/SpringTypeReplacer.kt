@@ -13,14 +13,13 @@ class SpringTypeReplacer(
     private val springApplicationContext: SpringApplicationContext
 ) : TypeReplacer {
     override val typeReplacementMode: TypeReplacementMode =
-        // TODO add ` || delegateTypeReplacer.typeReplacementMode == TypeReplacementMode.KnownImplementor`
-        //  (TODO is added as a part of only equivalent transformations refactoring PR and should be completed in the follow up PR)
-        if (springApplicationContext.beanDefinitions.isNotEmpty()) TypeReplacementMode.KnownImplementor
-        else TypeReplacementMode.NoImplementors
+        if (springApplicationContext.beanDefinitions.isNotEmpty() ||
+            delegateTypeReplacer.typeReplacementMode == TypeReplacementMode.KnownImplementor)
+            TypeReplacementMode.KnownImplementor
+        else
+            TypeReplacementMode.NoImplementors
 
     override fun replaceTypeIfNeeded(type: RefType): ClassId? =
-        // TODO add `delegateTypeReplacer.replaceTypeIfNeeded(type) ?: `
-        //  (TODO is added as a part of only equivalent transformations refactoring PR and should be completed in the follow up PR)
         if (type.isAbstractType) springApplicationContext.injectedTypes.singleOrNull { it.isSubtypeOf(type.id) }
-        else null
+        else delegateTypeReplacer.replaceTypeIfNeeded(type)
 }

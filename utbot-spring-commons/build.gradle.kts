@@ -23,7 +23,9 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-test-autoconfigure:$springBootVersion")
     compileOnly("org.springframework:spring-test:$springVersion")
     compileOnly("org.springframework:spring-tx:$springVersion")
+    compileOnly("org.springframework:spring-web:$springVersion")
     compileOnly("org.springframework.data:spring-data-commons:$springBootVersion")
+
     implementation("com.jetbrains.rd:rd-core:$rdVersion") { exclude(group = "org.slf4j", module = "slf4j-api") }
 }
 

@@ -3,30 +3,38 @@ package org.utbot.framework.codegen.tree
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
 import org.utbot.framework.codegen.domain.builtin.mockClassId
+import org.utbot.framework.codegen.domain.builtin.spyClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.services.framework.SpyFrameworkManager
+import org.utbot.framework.codegen.tree.MockitoInjectionUtils.canBeInjectedByTypeInto
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtModelWithCompositeOrigin
 import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.canBeSpied
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
-import java.util.Collections.max
-import kotlin.collections.HashMap
+import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 
 sealed interface CgClassFieldManager : CgContextOwner {
 
     val annotationType: ClassId
 
-    fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue
+    fun constructFieldsForVariable(model: UtModel, variable: CgValue)
 
-    fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean
+    fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean
+
+    fun constructBaseVarName(model: UtModel): String?
 }
 
-abstract class CgClassFieldManagerImpl(context: CgContext) :
+abstract class CgAbstractClassFieldManager(context: CgContext) :
     CgClassFieldManager,
     CgContextOwner by context {
 
@@ -34,20 +42,24 @@ abstract class CgClassFieldManagerImpl(context: CgContext) :
         CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
     }
 
+    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
+
     fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
         val key = setOfModels?.find { it == model.wrap() } ?: return null
         return valueByUtModelWrapper[key]
     }
+
+    override fun constructBaseVarName(model: UtModel): String? = nameGenerator.nameFrom(model.classId)
 }
 
-class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManagerImpl(context) {
+class CgInjectingMocksFieldsManager(val context: CgContext) : CgAbstractClassFieldManager(context) {
 
     override val annotationType = injectMocksClassId
 
-    override fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue {
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
         val modelFields = when (model) {
             is UtCompositeModel -> model.fields
-            is UtAssembleModel -> model.origin?.fields
+            is UtModelWithCompositeOrigin -> model.origin?.fields
             else -> null
         }
 
@@ -58,56 +70,74 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgClassFieldManage
             // is variable mocked by @Mock annotation
             val isMocked = findCgValueByModel(fieldModel, variableConstructor.annotatedModelGroups[mockClassId]) != null
 
-            // If field model is a mock model and is mocked by @Mock annotation in classFields, it is set in the connected with instance under test automatically via @InjectMocks;
-            // Otherwise we need to set this field manually.
-            if (!fieldModel.isMockModel() || !isMocked) {
-                variableConstructor.setFieldValue(modelVariable, fieldId, variableForField)
+            // is variable spied by @Spy annotation
+            val isSpied = findCgValueByModel(fieldModel, variableConstructor.annotatedModelGroups[spyClassId]) != null
+
+            // If field model is a mock model and is mocked by @Mock annotation in classFields or is spied by @Spy annotation,
+            // it is set in the connected with instance under test automatically via @InjectMocks.
+            // Otherwise, we need to set this field manually.
+            if ((!fieldModel.isMockModel() || !isMocked) && !isSpied) {
+                variableConstructor.setFieldValue(variable, fieldId, variableForField)
             }
         }
-
-        return modelVariable
     }
 
-    override fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean = true
+    override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean = true
 }
 
-class CgMockedFieldsManager(context: CgContext) : CgClassFieldManagerImpl(context) {
+class CgMockedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(context) {
+
+    private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
 
     override val annotationType = mockClassId
 
-    override fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue {
-        if (model.isMockModel()) {
-            variableConstructor.mockFrameworkManager.createMockForVariable(
-                model as UtCompositeModel,
-                modelVariable as CgVariable,
-            )
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
+        if (!model.isMockModel()) {
+            error("$model does not represent a mock")
         }
-        return modelVariable
+
+        mockFrameworkManager.createMockForVariable(
+            model as UtCompositeModel,
+            variable as CgVariable,
+        )
+
+        for ((fieldId, fieldModel) in model.fields) {
+            val variableForField = variableConstructor.getOrCreateVariable(fieldModel)
+            variableConstructor.setFieldValue(variable, fieldId, variableForField)
+        }
     }
 
-    override fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean {
-        // group [listOfUtModels] by `testSetId` and `executionId`
-        // to check how many instances of one type are used in each execution
-        val modelWrappersByExecutions = modelWrappers
-            .groupByTo(HashMap()) { Pair(it.testSetId, it.executionId) }
-
-        // maximal count of instances of the same type amount in one execution
-        // we use `modelTagName` in order to distinguish mock models by their name
-        val maxCountOfInstancesOfTheSameTypeByExecution = max(modelWrappersByExecutions.map { (_, modelsList) -> modelsList.size })
-
-        // if [maxCountOfInstancesOfTheSameTypeByExecution] is 1, then we mock variable by @Mock annotation
-        // Otherwise we will mock variable by simple mock later
-        return maxCountOfInstancesOfTheSameTypeByExecution == 1
-    }
-
+    override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean =
+        classId.canBeInjectedByTypeInto(classUnderTest)
 }
 
-class CgAutowiredFieldsManager(context: CgContext) : CgClassFieldManagerImpl(context) {
+class CgSpiedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(context) {
+
+    private val spyFrameworkManager = SpyFrameworkManager(context)
+
+    override val annotationType = spyClassId
+
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
+        if (!model.canBeSpied()) {
+            error("$model does not represent a spy")
+        }
+        spyFrameworkManager.spyForVariable(
+            model as UtAssembleModel,
+        )
+    }
+
+    override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean =
+        classId.canBeInjectedByTypeInto(classUnderTest)
+
+    override fun constructBaseVarName(model: UtModel): String = super.constructBaseVarName(model) + "Spy"
+}
+
+class CgAutowiredFieldsManager(context: CgContext) : CgAbstractClassFieldManager(context) {
 
     override val annotationType = autowiredClassId
 
-    override fun constructVariableForField(model: UtModel, modelVariable: CgValue): CgValue {
-        return when {
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
+        when {
             model.isAutowiredFromContext() -> {
                 variableConstructor.constructAssembleForVariable(model as UtAssembleModel)
             }
@@ -116,19 +146,23 @@ class CgAutowiredFieldsManager(context: CgContext) : CgClassFieldManagerImpl(con
         }
     }
 
-    override fun fieldWithAnnotationIsRequired(modelWrappers: Set<UtModelWrapper>): Boolean = true
+    override fun constructBaseVarName(model: UtModel): String? = model.getBeanNameOrNull()
+
+    override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean = true
 }
 
 class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 
     private val injectingMocksFieldsManager = CgInjectingMocksFieldsManager(context)
     private val mockedFieldsManager = CgMockedFieldsManager(context)
+    private val spiedFieldsManager = CgSpiedFieldsManager(context)
     private val autowiredFieldsManager = CgAutowiredFieldsManager(context)
 
     fun constructVariableForField(
         model: UtModel,
     ): CgValue? {
-        val annotationManagers = listOf(injectingMocksFieldsManager, mockedFieldsManager, autowiredFieldsManager)
+        val annotationManagers =
+            listOf(injectingMocksFieldsManager, mockedFieldsManager, spiedFieldsManager, autowiredFieldsManager)
 
         annotationManagers.forEach { manager ->
             val annotatedModelGroups = manager.variableConstructor.annotatedModelGroups
@@ -136,10 +170,20 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
             val alreadyCreatedVariable = manager.findCgValueByModel(model, annotatedModelGroups[manager.annotationType])
 
             if (alreadyCreatedVariable != null) {
-                return manager.constructVariableForField(model, alreadyCreatedVariable)
+                manager.constructFieldsForVariable(model, alreadyCreatedVariable)
+                return alreadyCreatedVariable
             }
         }
 
         return null
     }
+}
+
+object MockitoInjectionUtils {
+    /*
+     * If count of fields of the same type is 1, then we mock/spy variable by @Mock/@Spy annotation,
+     * otherwise we will create this variable by simple variable constructor.
+     */
+    fun ClassId.canBeInjectedByTypeInto(classToInjectInto: ClassId): Boolean =
+        classToInjectInto.allDeclaredFieldIds.filter { isSubtypeOf(it.type) }.toList().size == 1
 }

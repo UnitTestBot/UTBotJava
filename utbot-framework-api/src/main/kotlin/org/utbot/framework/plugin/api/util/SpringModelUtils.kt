@@ -24,6 +24,7 @@ object SpringModelUtils {
     val transactionalClassId = ClassId("org.springframework.transaction.annotation.Transactional")
     val autoConfigureTestDbClassId = ClassId("org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase")
     val autoConfigureMockMvcClassId = ClassId("org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc")
+    val withMockUserClassId = ClassId("org.springframework.security.test.context.support.WithMockUser")
 
     val runWithClassId = ClassId("org.junit.runner.RunWith")
     val springRunnerClassId = ClassId("org.springframework.test.context.junit4.SpringRunner")

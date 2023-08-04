@@ -162,9 +162,9 @@ class CgPersistenceContextFieldsManager private constructor(
             ?.let { persistenceContextClassId -> CgPersistenceContextFieldsManager(context, persistenceContextClassId) }
     }
 
-    override fun constructFieldsForVariable(model: UtModel, modelVariable: CgValue): CgValue {
+    override fun constructFieldsForVariable(model: UtModel, modelVariable: CgValue) {
         return when(model) {
-            is UtSpringEntityManagerModel -> modelVariable
+            is UtSpringEntityManagerModel -> {}
             else -> error("Trying to use @PersistenceContext for model $model but it is not appropriate")
         }
     }

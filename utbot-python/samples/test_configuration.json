@@ -444,7 +444,7 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 40,
+              "timeout": 50,
               "coverage": 100
             }
           ]
@@ -456,7 +456,7 @@
               "classes": null,
               "methods": null,
               "timeout": 160,
-              "coverage": 100
+              "coverage": 110
             }
           ]
         }

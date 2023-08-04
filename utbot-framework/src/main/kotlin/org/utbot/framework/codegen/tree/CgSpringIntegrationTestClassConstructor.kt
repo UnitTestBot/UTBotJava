@@ -34,6 +34,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestContex
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springExtensionClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springRunnerClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.transactionalClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.withMockUserClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.spring.api.UTSpringContextLoadingException
 
@@ -206,5 +207,8 @@ class CgSpringIntegrationTestClassConstructor(
 
         if (mockMvcClassId in testClassModel.springSpecificInformation.autowiredFromContextModels)
             addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
+
+        if (utContext.classLoader.tryLoadClass(withMockUserClassId.name) != null)
+            addAnnotation(withMockUserClassId, Class)
     }
 }

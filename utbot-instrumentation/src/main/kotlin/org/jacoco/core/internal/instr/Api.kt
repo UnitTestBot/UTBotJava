@@ -2,7 +2,6 @@ package org.jacoco.core.internal.instr
 
 import org.jacoco.core.internal.flow.ClassProbesAdapter
 import org.jacoco.core.internal.flow.MethodProbesCollector
-import org.jacoco.core.internal.flow.TraceClassProbesAdapter
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.util.TraceClassVisitor
 import org.utbot.instrumentation.Settings
@@ -32,14 +31,13 @@ fun createClassVisitorForTracingBranchInstructions(
     className: String,
     storage: ProcessingStorage,
     writer: ClassWriter
-): TraceClassProbesAdapter {
+): ClassProbesAdapter {
     val strategy = TraceStrategy()
     val tcv = TraceClassVisitor(writer, PrintWriter(sw)) // TODO: remove
-    return TraceClassProbesAdapter(
-        TraceClassInstrumenter(strategy, tcv) { id ->
+    return ClassProbesAdapter(
+        TraceClassInstrumenter(className, storage, strategy, tcv) { id ->
             storage.computeId(className, id)
         },
-        className,
-        storage
+        false
     )
 }

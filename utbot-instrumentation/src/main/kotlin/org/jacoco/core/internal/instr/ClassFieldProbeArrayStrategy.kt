@@ -5,6 +5,7 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.utbot.instrumentation.Settings
 
+// TODO: rename
 class ClassFieldProbeArrayStrategy(private val className: String) : IProbeArrayStrategy {
 
     override fun storeInstance(mv: MethodVisitor, clinit: Boolean, variable: Int): Int {
@@ -14,6 +15,7 @@ class ClassFieldProbeArrayStrategy(private val className: String) : IProbeArrayS
     }
 
     override fun addMembers(cv: ClassVisitor, probeCount: Int) {
+        // nothing to do
     }
 
 }

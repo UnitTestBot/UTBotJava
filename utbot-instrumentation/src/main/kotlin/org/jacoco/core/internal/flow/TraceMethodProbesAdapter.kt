@@ -3,7 +3,6 @@ package org.jacoco.core.internal.flow
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
-import org.objectweb.asm.commons.AnalyzerAdapter
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.et.CommonInstruction
 import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
@@ -20,14 +19,9 @@ class TraceMethodProbesAdapter(
     descriptor: String,
 ) : MethodVisitor(Settings.ASM_API, probesVisitor) {
 
-    private var analyzer: AnalyzerAdapter? = null
     private val tryCatchProbeLabels: HashMap<Label, Label> = hashMapOf()
     private var currentLineNumber: Int = 0
     private val currentMethodSignature: String = methodName + descriptor
-
-    fun setAnalyzer(analyzer: AnalyzerAdapter) {
-        this.analyzer = analyzer
-    }
 
     override fun visitTryCatchBlock(start: Label, end: Label, handler: Label, type: String) {
         probesVisitor.visitTryCatchBlock(getTryCatchLabel(start), getTryCatchLabel(end), handler, type)
@@ -165,7 +159,7 @@ class TraceMethodProbesAdapter(
     }
 
     private fun frame(popCount: Int): IFrame {
-        return FrameSnapshot.create(analyzer, popCount)
+        return FrameSnapshot.create(null, popCount)
     }
 
     // === MethodProbesVisitor ===

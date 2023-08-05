@@ -2,13 +2,11 @@ package org.jacoco.core.internal.flow
 
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.commons.AnalyzerAdapter
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.et.ProcessingStorage
 
 class TraceClassProbesAdapter(
     val cv: ClassProbesVisitor,
-    private val trackFrames: Boolean,
     private val className: String,
     private val storage: ProcessingStorage
 ) : IProbeIdGenerator, ClassVisitor(Settings.ASM_API, cv) {
@@ -37,16 +35,7 @@ class TraceClassProbesAdapter(
                     methodProbes, this@TraceClassProbesAdapter,
                     storage, className, name, desc
                 )
-                if (trackFrames) {
-                    val analyzer = AnalyzerAdapter(
-                        this@TraceClassProbesAdapter.className, access, name, desc,
-                        probesAdapter
-                    )
-                    probesAdapter.setAnalyzer(analyzer)
-                    methodProbes.accept(this, analyzer)
-                } else {
-                    methodProbes.accept(this, probesAdapter)
-                }
+                methodProbes.accept(this, probesAdapter)
             }
         }
     }

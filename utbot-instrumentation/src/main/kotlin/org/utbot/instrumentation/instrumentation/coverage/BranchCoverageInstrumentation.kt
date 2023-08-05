@@ -27,16 +27,9 @@ class BranchCoverageInstrumentation : CoverageInstrumentation() {
     ): ByteArray {
         val instrumenter = Instrumenter(classfileBuffer)
 
-        val cv = instrumenter.visitClass(object : ClassVisitorBuilder<ClassProbesAdapter> {
-            override val writerFlags: Int
-                get() = 0
-
-            override val readerParsingOptions: Int
-                get() = ClassReader.EXPAND_FRAMES
-
-            override fun build(writer: ClassWriter): ClassProbesAdapter =
-                createClassVisitorForBranchCoverageInstrumentation(writer, className)
-        })
+        val cv = instrumenter.visitClass { writer ->
+            createClassVisitorForBranchCoverageInstrumentation(writer, className)
+        }
 
         // TODO exceptions
         val probesCountField = ClassProbesAdapter::class.java.declaredFields.firstOrNull { it.name == "counter" }
@@ -47,6 +40,7 @@ class BranchCoverageInstrumentation : CoverageInstrumentation() {
 
         instrumenter.addStaticField(StaticArrayFieldInitializer(className, Settings.PROBES_ARRAY_NAME, probeCount))
 
+        // TODO remove
         val result = sw.toString()
         println(result)
 

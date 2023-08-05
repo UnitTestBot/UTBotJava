@@ -10,19 +10,21 @@ import org.utbot.instrumentation.instrumentation.et.ProcessingStorage
 import java.io.PrintWriter
 import java.io.StringWriter
 
+// TODO: remove
 val sw: StringWriter = StringWriter()
 
 fun createClassVisitorForBranchCoverageInstrumentation(writer: ClassWriter, className: String): ClassProbesAdapter {
     val strategy = ClassFieldProbeArrayStrategy(className)
+    val tcv = TraceClassVisitor(writer, PrintWriter(sw)) // TODO: remove
     return ClassProbesAdapter(
-        ClassInstrumenter(strategy, writer),
-        true
+        ClassInstrumenter(strategy, tcv),
+        false
     )
 }
 
 fun createClassVisitorForComputeMapOfRangesForBranchCoverage(writer: ClassWriter): MethodProbesCollector {
     val strategy = NoneProbeArrayStrategy()
-    val tcv = TraceClassVisitor(writer, PrintWriter(sw))
+    val tcv = TraceClassVisitor(writer, PrintWriter(sw)) // TODO: remove
     return MethodProbesCollector(Settings.ASM_API, strategy, tcv)
 }
 
@@ -32,12 +34,11 @@ fun createClassVisitorForTracingBranchInstructions(
     writer: ClassWriter
 ): TraceClassProbesAdapter {
     val strategy = TraceStrategy()
-    val tcv = TraceClassVisitor(writer, PrintWriter(sw))
+    val tcv = TraceClassVisitor(writer, PrintWriter(sw)) // TODO: remove
     return TraceClassProbesAdapter(
         TraceClassInstrumenter(strategy, tcv) { id ->
             storage.computeId(className, id)
         },
-        true,
         className,
         storage
     )

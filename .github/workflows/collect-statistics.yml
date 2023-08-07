@@ -118,6 +118,22 @@ jobs:
           ref: ${{ env.data_branch }}
           path: ${{ env.data_path }}
 
+      - name: Expand system swap
+        shell: bash
+        run: |
+          docker run -ti \
+                     --privileged \
+                     --net=host \
+                     --pid=host \
+                     --ipc=host \
+                     --volume /:/host \
+                     busybox \
+                     chroot /host
+          swapoff /mnt/swapfile
+          dd if=/dev/zero of=/mnt/swapfile bs=1M count=1024 oflag=append conv=notrunc
+          mkswap /mnt/swapfile
+          swapon /mnt/swapfile
+
       - name: Run system monitoring
         # secret uploaded using base64 encoding to have one-line output:
         # cat file | base64 -w 0

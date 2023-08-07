@@ -5,13 +5,11 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
-import org.objectweb.asm.util.TraceClassVisitor
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.MethodToProbesVisitor
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.*
 import org.utbot.instrumentation.process.HandlerClassesLoader
 import java.io.IOException
 import java.io.InputStream
-import java.io.PrintWriter
 
 
 // TODO: handle with flags EXPAND_FRAMES, etc.
@@ -66,8 +64,7 @@ class Instrumenter(classByteCode: ByteArray, val classLoader: ClassLoader? = nul
 
     fun addStaticField(staticFieldInitializer: StaticFieldInitializer) {
         visitClass { writer ->
-            val tcv = TraceClassVisitor(writer, PrintWriter(sw))
-            AddStaticFieldAdapter(tcv, staticFieldInitializer)
+            AddStaticFieldAdapter(writer, staticFieldInitializer)
         }
     }
 

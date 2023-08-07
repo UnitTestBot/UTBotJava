@@ -152,6 +152,10 @@ class SpringApiImpl(
     }
 
     override fun afterTestMethod() {
+        if (!isInsideTestMethod) {
+            logger.warn { "afterTestMethod() was probably called twice, ignoring second call" }
+            return
+        }
         testContextManager.afterTestExecution(dummyTestClassInstance, dummyTestMethod, null)
         testContextManager.afterTestMethod(dummyTestClassInstance, dummyTestMethod, null)
         isInsideTestMethod = false

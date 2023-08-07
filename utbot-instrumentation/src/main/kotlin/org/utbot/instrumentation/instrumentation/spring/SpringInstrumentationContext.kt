@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhase
 import org.utbot.spring.api.SpringApi
 import org.utbot.spring.api.provider.SpringApiProviderFacade
 import org.utbot.spring.api.provider.InstantiationSettings
@@ -52,4 +53,7 @@ class SpringInstrumentationContext(
     override fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor? =
         if (classId.isSubtypeOf(resultActionsClassId)) UtMockMvcResultActionsModelConstructor()
         else delegateInstrumentationContext.findUtModelWithCompositeOriginConstructor(classId)
+
+    override fun onPhaseTimeout(timedOutedPhase: ExecutionPhase) =
+        springApi.afterTestMethod()
 }

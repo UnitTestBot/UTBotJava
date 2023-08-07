@@ -13,8 +13,8 @@ import org.utbot.framework.codegen.domain.models.CgRegion
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
+import org.utbot.framework.codegen.tree.fieldmanager.ClassFieldManagerFacade
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.id
 
 abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
@@ -98,8 +98,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
      * but it will take very long time to do it now.
      */
     private fun clearUnwantedVariableModels() {
-        val trustedListOfModels =
-            variableConstructor.annotatedModelGroups.values.flatten() + listOf(UtSpringContextModel.wrap())
+        val trustedListOfModels = ClassFieldManagerFacade(context).findTrustedModels()
 
         valueByUtModelWrapper
             .filterNot { it.key in trustedListOfModels }

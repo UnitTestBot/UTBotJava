@@ -55,6 +55,8 @@ abstract class CgAbstractClassFieldManager(context: CgContext) :
 
     protected val fieldManagerUtils = FieldManagerUtils(context)
 
+    val annotatedModelGroups: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
+
     fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
         val key = setOfModels?.find { it == model.wrap() } ?: return null
         return valueByUtModelWrapper[key]
@@ -88,14 +90,10 @@ abstract class CgAbstractClassFieldManager(context: CgContext) :
                 annotation
             )
 
-            modelWrappers
-                .forEach { modelWrapper ->
-
-                    valueByUtModelWrapper[modelWrapper] = createdVariable
-
-                    variableConstructor.annotatedModelGroups
-                        .getOrPut(annotationType) { mutableSetOf() } += modelWrapper
-                }
+            modelWrappers.forEach { modelWrapper ->
+                valueByUtModelWrapper[modelWrapper] = createdVariable
+                annotatedModelGroups.getOrPut(annotationType) { mutableSetOf() } += modelWrapper
+            }
         }
 
         return constructedDeclarations
@@ -137,10 +135,10 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgAbstractClassFie
             val variableForField = variableConstructor.getOrCreateVariable(fieldModel)
 
             // is variable mocked by @Mock annotation
-            val isMocked = findCgValueByModel(fieldModel, variableConstructor.annotatedModelGroups[mockClassId]) != null
+            val isMocked = findCgValueByModel(fieldModel, annotatedModelGroups[mockClassId]) != null
 
             // is variable spied by @Spy annotation
-            val isSpied = findCgValueByModel(fieldModel, variableConstructor.annotatedModelGroups[spyClassId]) != null
+            val isSpied = findCgValueByModel(fieldModel, annotatedModelGroups[spyClassId]) != null
 
             // If field model is a mock model and is mocked by @Mock annotation in classFields or is spied by @Spy annotation,
             // it is set in the connected with instance under test automatically via @InjectMocks.

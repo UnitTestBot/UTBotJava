@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.junit.Test
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.testcheckers.eq
 import org.utbot.testing.UtModelTestCaseChecker
 
@@ -17,6 +18,7 @@ internal class CompositeModelMinimizationChecker : UtModelTestCaseChecker(
     private fun UtModel.getFieldsOrNull(): Map<FieldId, UtModel>? = when(this) {
         is UtAssembleModel -> origin?.fields
         is UtCompositeModel -> fields
+        is UtCustomModel -> origin?.fields
         else -> null
     }
 

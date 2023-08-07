@@ -13,7 +13,6 @@ import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.process.generated.CollectCoverageResult
 import org.utbot.instrumentation.process.generated.GetSpringBeanResult
 import org.utbot.instrumentation.process.generated.GetSpringRepositoriesResult
@@ -43,9 +42,8 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     }
 
     /**
-     * System classloader can find org.slf4j and org.utbot.spring thus
-     *  - when we want to mock something from org.slf4j we also want this class will be loaded by [HandlerClassesLoader]
-     *  - we want org.utbot.spring to be loaded by [HandlerClassesLoader] so it can use Spring directly
+     * System classloader can find org.slf4j thus when we want to mock something from org.slf4j
+     * we also want this class will be loaded by [HandlerClassesLoader]
      */
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
         if (name.startsWith("org.slf4j")) {
@@ -148,6 +146,7 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         HandlerClassesLoader.addUrls(instrumentationFactory.additionalRuntimeClasspath)
         instrumentation = instrumentationFactory.create()
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
+        Agent.dynamicClassTransformer.useBytecodeTransformation = params.useBytecodeTransformation
         Agent.dynamicClassTransformer.transformer = instrumentation
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
     }
@@ -164,11 +163,9 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         CollectCoverageResult(kryoHelper.writeObject(result))
     }
     watchdog.measureTimeForActiveCall(getSpringBean, "Getting Spring bean") { params ->
-        val bean = (instrumentation as SpringUtExecutionInstrumentation).getBean(params.beanName)
-        val model = UtModelConstructor.createOnlyUserClassesConstructor(pathsToUserClasses).construct(
-            bean, ClassId(bean.javaClass.name)
-        )
-        GetSpringBeanResult(kryoHelper.writeObject(model))
+        val springUtExecutionInstrumentation = instrumentation as SpringUtExecutionInstrumentation
+        val beanModel = springUtExecutionInstrumentation.getBeanModel(params.beanName, pathsToUserClasses)
+        GetSpringBeanResult(kryoHelper.writeObject(beanModel))
     }
     watchdog.measureTimeForActiveCall(getRelevantSpringRepositories, "Getting Spring repositories") { params ->
         val classId: ClassId = kryoHelper.readObject(params.classId)

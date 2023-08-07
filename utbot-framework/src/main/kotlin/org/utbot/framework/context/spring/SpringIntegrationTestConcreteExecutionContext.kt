@@ -5,22 +5,34 @@ import org.utbot.common.tryLoadClass
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils
+import org.utbot.framework.plugin.api.util.SpringModelUtils.createMockMvcModel
+import org.utbot.framework.plugin.api.util.SpringModelUtils.createRequestBuilderModelOrNull
+import org.utbot.framework.plugin.api.util.SpringModelUtils.mockMvcPerformMethodId
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
-import org.utbot.fuzzing.providers.FieldValueProvider
-import org.utbot.fuzzing.providers.ObjectValueProvider
-import org.utbot.fuzzing.providers.anyObjectValueProvider
-import org.utbot.fuzzing.spring.SavedEntityValueProvider
+import org.utbot.fuzzing.spring.GeneratedFieldValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
+import org.utbot.fuzzing.spring.preserveProperties
+import org.utbot.fuzzing.spring.valid.EmailValueProvider
+import org.utbot.fuzzing.spring.valid.NotBlankStringValueProvider
+import org.utbot.fuzzing.spring.valid.NotEmptyStringValueProvider
+import org.utbot.fuzzing.spring.valid.ValidEntityValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.getRelevantSpringRepositories
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -80,29 +92,29 @@ class SpringIntegrationTestConcreteExecutionContext(
         val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(classUnderTest)
         logger.info { "Detected relevant repositories for class $classUnderTest: $relevantRepositories" }
 
-        // spring should try to generate bean values, but if it fails, then object value provider is used for it
         val springBeanValueProvider = SpringBeanValueProvider(
             idGenerator,
             beanNameProvider = { classId ->
                 springApplicationContext.getBeansAssignableTo(classId).map { it.beanName }
             },
             relevantRepositories = relevantRepositories
-        ).withFallback(anyObjectValueProvider(idGenerator))
+        )
 
-        return delegateContext.tryCreateValueProvider(concreteExecutor, classUnderTest, idGenerator)
-            .except { p -> p is ObjectValueProvider }
-            .with(springBeanValueProvider)
-            .with(createSavedEntityValueProviders(relevantRepositories, idGenerator))
-            .with(createFieldValueProviders(relevantRepositories, idGenerator))
-            .withFallback(AnyDepthNullValueProvider)
+        return springBeanValueProvider
+            .withFallback(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = true))
+            .withFallback(EmailValueProvider())
+            .withFallback(NotBlankStringValueProvider())
+            .withFallback(NotEmptyStringValueProvider())
+            .withFallback(
+                delegateContext.tryCreateValueProvider(concreteExecutor, classUnderTest, idGenerator)
+                    .with(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
+                    .with(createGeneratedFieldValueProviders(relevantRepositories, idGenerator))
+                    .withFallback(AnyDepthNullValueProvider)
+            )
+            .preserveProperties()
     }
 
-    private fun createSavedEntityValueProviders(
-        relevantRepositories: Set<SpringRepositoryId>,
-        idGenerator: IdentityPreservingIdGenerator<Int>
-    ) = ValueProvider.of(relevantRepositories.map { SavedEntityValueProvider(idGenerator, it) })
-
-    private fun createFieldValueProviders(
+    private fun createGeneratedFieldValueProviders(
         relevantRepositories: Set<SpringRepositoryId>,
         idGenerator: IdentityPreservingIdGenerator<Int>
     ): JavaValueProvider {
@@ -111,12 +123,44 @@ class SpringIntegrationTestConcreteExecutionContext(
             utContext.classLoader.tryLoadClass(it.name) as Class<out Annotation>?
         }
 
-        val generatedValueFieldIds =
+        val generatedValueFields =
             relevantRepositories
-                .flatMap { it.entityClassId.allDeclaredFieldIds }
-                .filter { fieldId -> generatedValueAnnotationClasses.any { fieldId.jField.isAnnotationPresent(it) } }
-        logger.info { "Detected @GeneratedValue fields: $generatedValueFieldIds" }
+                .flatMap { springRepositoryId ->
+                    val entityClassId = springRepositoryId.entityClassId
+                    entityClassId.allDeclaredFieldIds
+                        .filter { fieldId -> generatedValueAnnotationClasses.any { fieldId.jField.isAnnotationPresent(it) } }
+                        .map { entityClassId to it }
+                }
 
-        return ValueProvider.of(generatedValueFieldIds.map { FieldValueProvider(idGenerator, it) })
+        logger.info { "Detected @GeneratedValue fields: $generatedValueFields" }
+
+        return ValueProvider.of(generatedValueFields.map { (entityClassId, fieldId) ->
+            GeneratedFieldValueProvider(idGenerator, entityClassId, fieldId)
+        })
+    }
+
+    override fun createStateBefore(
+        thisInstance: UtModel?,
+        parameters: List<UtModel>,
+        statics: Map<FieldId, UtModel>,
+        executableToCall: ExecutableId,
+        idGenerator: IdGenerator<Int>
+    ): EnvironmentModels {
+        val delegateStateBefore = delegateContext.createStateBefore(thisInstance, parameters, statics, executableToCall, idGenerator)
+        return when (executableToCall) {
+            is ConstructorId -> delegateStateBefore
+            is MethodId -> {
+                val requestBuilderModel = createRequestBuilderModelOrNull(
+                    methodId = executableToCall,
+                    arguments = parameters,
+                    idGenerator = { idGenerator.createId() }
+                ) ?: return delegateStateBefore
+                delegateStateBefore.copy(
+                    thisInstance = createMockMvcModel { idGenerator.createId() },
+                    parameters = listOf(requestBuilderModel),
+                    executableToCall = mockMvcPerformMethodId,
+                )
+            }
+        }
     }
 }

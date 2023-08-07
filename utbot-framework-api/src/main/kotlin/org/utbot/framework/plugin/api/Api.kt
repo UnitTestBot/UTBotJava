@@ -8,7 +8,6 @@
 
 package org.utbot.framework.plugin.api
 
-import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
@@ -142,6 +141,8 @@ abstract class UtExecution(
         testMethodName: String? = this.testMethodName,
         displayName: String? = this.displayName,
     ): UtExecution
+
+    val executableToCall get() = stateBefore.executableToCall
 }
 
 /**
@@ -287,11 +288,33 @@ class UtFailedExecution(
     }
 }
 
+/**
+ * @property executableToCall executable that is called in the test body and whose result is used in asserts as `actual`.
+ *
+ * Most often [executableToCall] is just method under test, but it may be changed to different executable if more
+ * appropriate way of calling specific method is found (for example, Spring controller methods are called via `MockMvc`).
+ *
+ * `null` value of [executableToCall] indicates that method under test should be called in the test body.
+ */
 open class EnvironmentModels(
     val thisInstance: UtModel?,
     val parameters: List<UtModel>,
-    val statics: Map<FieldId, UtModel>
+    val statics: Map<FieldId, UtModel>,
+    val executableToCall: ExecutableId?,
 ) {
+    @Deprecated("Now `executableToCall` also need to be passed to `EnvironmentModels` constructor " +
+            "(see more details in `EnvironmentModels` class documentation)", level = DeprecationLevel.ERROR)
+    constructor(
+        thisInstance: UtModel?,
+        parameters: List<UtModel>,
+        statics: Map<FieldId, UtModel>,
+    ) : this(
+        thisInstance = thisInstance,
+        parameters = parameters,
+        statics = statics,
+        executableToCall = null,
+    )
+
     override fun toString() = buildString {
         append("this=$thisInstance")
         appendOptional("parameters", parameters)
@@ -305,8 +328,9 @@ open class EnvironmentModels(
     fun copy(
         thisInstance: UtModel? = this.thisInstance,
         parameters: List<UtModel> = this.parameters,
-        statics: Map<FieldId, UtModel> = this.statics
-    ) = EnvironmentModels(thisInstance, parameters, statics)
+        statics: Map<FieldId, UtModel> = this.statics,
+        executableToCall: ExecutableId? = this.executableToCall,
+    ) = EnvironmentModels(thisInstance, parameters, statics, executableToCall)
 }
 
 /**
@@ -315,7 +339,8 @@ open class EnvironmentModels(
 object MissingState : EnvironmentModels(
     thisInstance = null,
     parameters = emptyList(),
-    statics = emptyMap()
+    statics = emptyMap(),
+    executableToCall = null,
 )
 
 /**
@@ -371,6 +396,18 @@ fun UtModel.hasDefaultValue() =
  * Checks if [UtModel] is a mock.
  */
 fun UtModel.isMockModel() = this is UtCompositeModel && isMock
+
+/**
+ * Checks that this [UtModel] must be constructed with @Spy annotation in generated tests.
+ * Used only for construct variables with @Spy annotation.
+ */
+fun UtModel.canBeSpied(): Boolean {
+    val javaClass = this.classId.jClass
+
+    return this is UtAssembleModel &&
+            (Collection::class.java.isAssignableFrom(javaClass)
+                    || Map::class.java.isAssignableFrom(javaClass))
+}
 
 /**
  * Get model id (symbolic null value for UtNullModel)
@@ -551,6 +588,21 @@ data class UtArrayModel(
 }
 
 /**
+ * Wrapper of [origin] model, that can be handled in a different
+ * way in some situations (e.g. during value construction).
+ */
+sealed class UtModelWithCompositeOrigin(
+    id: Int?,
+    classId: ClassId,
+    modelName: String = id.toString(),
+    open val origin: UtCompositeModel?,
+) : UtReferenceModel(
+    id = id,
+    classId = classId,
+    modelName = modelName
+)
+
+/**
  * Model for complex objects with assemble instructions.
  *
  * The default constructor is made private to enforce using a safe constructor.
@@ -564,8 +616,8 @@ data class UtAssembleModel private constructor(
     override val modelName: String,
     val instantiationCall: UtStatementCallModel,
     val modificationsChain: List<UtStatementModel>,
-    val origin: UtCompositeModel?
-) : UtReferenceModel(id, classId, modelName) {
+    override val origin: UtCompositeModel?
+) : UtModelWithCompositeOrigin(id, classId, modelName, origin) {
 
     /**
      * Creates a new [UtAssembleModel].
@@ -703,7 +755,17 @@ class UtLambdaModel(
     }
 }
 
-object UtSpringContextModel : UtReferenceModel(
+/**
+ * Common parent of all framework-specific models (e.g. Spring-specific models)
+ */
+abstract class UtCustomModel(
+    id: Int?,
+    classId: ClassId,
+    modelName: String = id.toString(),
+    override val origin: UtCompositeModel? = null,
+) : UtModelWithCompositeOrigin(id, classId, modelName, origin)
+
+object UtSpringContextModel : UtCustomModel(
     id = null,
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
@@ -715,10 +777,39 @@ object UtSpringContextModel : UtReferenceModel(
     override fun hashCode(): Int = 0
 }
 
+class UtSpringEntityManagerModel : UtCustomModel(
+    id = null,
+    classId = SpringModelUtils.entityManagerClassIds.first(),
+    modelName = "entityManager"
+) {
+    // NOTE that overriding equals is required just because without it
+    // we will lose equality for objects after deserialization
+    override fun equals(other: Any?): Boolean = other is UtSpringEntityManagerModel
+
+    override fun hashCode(): Int = 0
+}
+
 data class SpringRepositoryId(
     val repositoryBeanName: String,
     val repositoryClassId: ClassId,
     val entityClassId: ClassId,
+)
+
+data class UtSpringMockMvcResultActionsModel(
+    override val id: Int?,
+    override val origin: UtCompositeModel?,
+    val status: Int,
+    val errorMessage: String?,
+    val contentAsString: String,
+    val viewName: String?,
+    // model for mvcResult.modelAndView?.model
+    val model: UtModel?
+    // TODO add headers and other data
+) : UtCustomModel(
+    origin = origin,
+    classId = SpringModelUtils.resultActionsClassId,
+    id = id,
+    modelName = "mockMvcResultActions@$id"
 )
 
 /**

@@ -1,5 +1,7 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
+import com.jetbrains.rd.util.error
+import com.jetbrains.rd.util.getLogger
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.framework.plugin.api.Coverage
@@ -17,7 +19,7 @@ import org.utbot.instrumentation.instrumentation.execution.context.Instrumentati
 import java.security.AccessControlException
 
 class PhasesController(
-    instrumentationContext: InstrumentationContext,
+    private val instrumentationContext: InstrumentationContext,
     traceHandler: TraceHandler,
     delegateInstrumentation: Instrumentation<Result<*>>,
     private val timeout: Long
@@ -31,7 +33,10 @@ class PhasesController(
 
     val statisticsCollectionPhase = StatisticsCollectionPhase(traceHandler)
 
-    val modelConstructionPhase = ModelConstructionPhase(traceHandler)
+    val modelConstructionPhase = ModelConstructionPhase(
+        traceHandler = traceHandler,
+        utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
+    )
 
     val postprocessingPhase = PostprocessingPhase()
 
@@ -53,13 +58,23 @@ class PhasesController(
         }
     }
 
+    companion object {
+        private val logger = getLogger<PhasesController>()
+    }
+
     fun <T, R : ExecutionPhase> executePhaseInTimeout(phase: R, block: R.() -> T): T = phase.start {
         val stopWatch = StopWatch()
         val context = UtContext(utContext.classLoader, stopWatch)
         val timeoutForCurrentPhase = timeout - currentlyElapsed
-        val result = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout - currentlyElapsed, stopWatch) {
+        val executor = ThreadBasedExecutor.threadLocal
+        val result = executor.invokeWithTimeout(timeout - currentlyElapsed, stopWatch) {
             withUtContext(context) {
-                phase.block()
+                try {
+                    phase.block()
+                } finally {
+                    if (executor.isCurrentThreadTimedOut())
+                        instrumentationContext.onPhaseTimeout(phase)
+                }
             }
         } ?: throw TimeoutException("Timeout $timeoutForCurrentPhase ms for phase ${phase.javaClass.simpleName} elapsed, controller timeout - $timeout")
 

@@ -1,7 +1,7 @@
 package org.utbot.spring.utils
 
 import org.springframework.core.GenericTypeResolver
-import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.Repository
 
 /**
  * This util class allows to obtain some data from Spring repository.
@@ -12,7 +12,7 @@ import org.springframework.data.repository.CrudRepository
 object RepositoryUtils {
 
     fun getEntityClass(repositoryClass: Class<*>): Class<*>? =
-        getGenericType(repositoryClass, CrudRepository::class.java, 0)
+        getGenericType(repositoryClass, Repository::class.java, 0)
 
     private fun getGenericType(classInstance: Class<*>, classToGetGenerics: Class<*>, genericPosition: Int): Class<*>? {
         val typeArguments = getGenericType(classInstance, classToGetGenerics)

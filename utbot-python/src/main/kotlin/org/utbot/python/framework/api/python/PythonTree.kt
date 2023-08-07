@@ -53,6 +53,10 @@ object PythonTree {
 
         open val children: List<PythonTreeNode> = emptyList()
 
+        fun isRecursive(): Boolean {
+            return isRecursiveObject(this)
+        }
+
         override fun toString(): String {
             return type.name + children.toString()
         }

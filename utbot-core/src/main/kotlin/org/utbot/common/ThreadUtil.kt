@@ -1,5 +1,6 @@
 package org.utbot.common
 
+import java.util.WeakHashMap
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -24,11 +25,15 @@ class ThreadBasedExecutor {
         val threadLocal by threadLocalLazy { ThreadBasedExecutor() }
     }
 
+    // there's no `WeakHashSet`, so we use `WeakHashMap` with dummy values
+    private val timedOutThreads = WeakHashMap<Thread, Unit>()
     private var thread: Thread? = null
 
     private var requestQueue = ArrayBlockingQueue<() -> Any?>(1)
     private var responseQueue = ArrayBlockingQueue<Result<Any?>>(1)
 
+    fun isCurrentThreadTimedOut(): Boolean =
+        Thread.currentThread() in timedOutThreads
 
     /**
      * Invoke [action] with timeout.
@@ -59,6 +64,7 @@ class ThreadBasedExecutor {
         if (res == null) {
             try {
                 val t = thread ?: return res
+                timedOutThreads[t] = Unit
                 t.interrupt()
                 t.join(10)
                 if (t.isAlive)

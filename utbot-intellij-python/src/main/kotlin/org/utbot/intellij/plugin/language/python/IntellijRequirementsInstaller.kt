@@ -12,6 +12,7 @@ import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.RequirementsUtils
 import javax.swing.JComponent
+import org.jetbrains.concurrency.runAsync
 
 
 class IntellijRequirementsInstaller(
@@ -24,20 +25,24 @@ class IntellijRequirementsInstaller(
     override fun installRequirements(pythonPath: String, requirements: List<String>) {
         invokeLater {
             if (InstallRequirementsDialog(requirements).showAndGet()) {
-                val installResult = RequirementsUtils.installRequirements(pythonPath, requirements)
-                if (installResult.exitValue != 0) {
-                    showErrorDialogLater(
-                        project,
-                        "Requirements installing failed.<br>" +
-                                "${installResult.stderr}<br><br>" +
-                                "Try to install with pip:<br>" +
-                                " ${requirements.joinToString("<br>")}",
-                        "Requirements error"
-                    )
-                } else {
+                runAsync {
+                    val installResult = RequirementsUtils.installRequirements(pythonPath, requirements)
                     invokeLater {
-                        runReadAction {
-                            PythonNotifier.notify("Requirements installation is complete")
+                        if (installResult.exitValue != 0) {
+                            showErrorDialogLater(
+                                project,
+                                "Requirements installing failed.<br>" +
+                                        "${installResult.stderr}<br><br>" +
+                                        "Try to install with pip:<br>" +
+                                        " ${requirements.joinToString("<br>")}",
+                                "Requirements error"
+                            )
+                        } else {
+                            invokeLater {
+                                runReadAction {
+                                    PythonNotifier.notify("Requirements installation is complete")
+                                }
+                            }
                         }
                     }
                 }

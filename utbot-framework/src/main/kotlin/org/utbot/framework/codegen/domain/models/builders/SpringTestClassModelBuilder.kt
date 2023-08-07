@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.domain.models.builders
 
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.SpringSpecificInformation
 import org.utbot.framework.codegen.domain.models.SpringTestClassModel
@@ -10,21 +11,25 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtSpringContextModel
-import org.utbot.framework.plugin.api.UtStatementCallModel
+import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
+import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
+import org.utbot.framework.plugin.api.canBeSpied
 
 typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
 
-class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder() {
+class SpringTestClassModelBuilder(val context: CgContext) :
+    TestClassModelBuilder(),
+    CgContextOwner by context {
 
     override fun createTestClassModel(classUnderTest: ClassId, testSets: List<CgMethodTestSet>): SpringTestClassModel {
         val baseModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
@@ -43,23 +48,23 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
         val thisInstancesDependentModels = mutableSetOf<UtModelWrapper>()
         val stateBeforeDependentModels = mutableSetOf<UtModelWrapper>()
 
-        with(context) {
-            for ((testSetIndex, testSet) in testSets.withIndex()) {
-                withTestSetIdScope(testSetIndex) {
-                    for ((executionIndex, execution) in testSet.executions.withIndex()) {
-                        withExecutionIdScope(executionIndex) {
-                            setOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
-                                .filterNotNull()
-                                .forEach { model ->
-                                    thisInstanceModels += model.wrap()
-                                    thisInstancesDependentModels += collectByModel(model)
+        for ((testSetIndex, testSet) in testSets.withIndex()) {
+            withTestSetIdScope(testSetIndex) {
+                for ((executionIndex, execution) in testSet.executions.withIndex()) {
+                    withExecutionIdScope(executionIndex) {
+                        setOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
+                            .filterNotNull()
+                            .forEach { model ->
+                                thisInstanceModels += model.wrap()
+                                thisInstancesDependentModels += collectImmediateDependentModels(
+                                    model,
+                                    skipModificationChains = true
+                                )
+                            }
 
-                                }
-
-                            (execution.stateBefore.parameters + execution.stateBefore.thisInstance)
-                                .filterNotNull()
-                                .forEach { model -> stateBeforeDependentModels += collectByModel(model) }
-                        }
+                        (execution.stateBefore.parameters + execution.stateBefore.thisInstance)
+                            .filterNotNull()
+                            .forEach { model -> stateBeforeDependentModels += collectRecursively(model) }
                     }
                 }
             }
@@ -71,25 +76,88 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
                     cgModel.model.isMockModel() && cgModel !in thisInstanceModels
                 }
 
+        val dependentSpyModels =
+            thisInstancesDependentModels
+                .filterTo(mutableSetOf()) { cgModel ->
+                    cgModel.model.canBeSpied() && cgModel !in thisInstanceModels && cgModel !in dependentMockModels
+                }
+
         val autowiredFromContextModels =
             stateBeforeDependentModels.filterTo(HashSet()) { it.model.isAutowiredFromContext() }
+
+        val entityManagerModels =
+            stateBeforeDependentModels.filterTo(HashSet()) { it.model is UtSpringEntityManagerModel }
 
         return SpringSpecificInformation(
             thisInstanceModels.groupByClassId(),
             dependentMockModels.groupByClassId(),
+            dependentSpyModels.groupByClassId(),
             autowiredFromContextModels.groupByClassId(),
+            entityManagerModels.groupByClassId(),
         )
     }
 
-    private fun collectByModel(model: UtModel): Set<UtModelWrapper> {
+    private fun collectRecursively(model: UtModel): Set<UtModelWrapper> {
+        val allDependentModels = mutableSetOf<UtModelWrapper>()
+
+        collectRecursively(model, allDependentModels)
+
+        return allDependentModels
+    }
+
+    private fun collectRecursively(model: UtModel, allDependentModels: MutableSet<UtModelWrapper>){
+        if(!allDependentModels.add(model.wrap())){
+            return
+        }
+        collectImmediateDependentModels(model, skipModificationChains = false).forEach {
+            collectRecursively(it.model, allDependentModels)
+        }
+    }
+
+    private fun collectImmediateDependentModels(model: UtModel, skipModificationChains: Boolean): Set<UtModelWrapper> {
         val dependentModels = mutableSetOf<UtModelWrapper>()
 
-        with(context){
-            collectRecursively(model.wrap(), dependentModels)
+        when (model) {
+            is UtNullModel,
+            is UtPrimitiveModel,
+            is UtClassRefModel,
+            is UtVoidModel,
+            is UtEnumConstantModel,
+            is UtCustomModel -> {}
+            is UtLambdaModel -> {
+                model.capturedValues.forEach { dependentModels.add(it.wrap()) }
+            }
+            is UtArrayModel -> {
+                model.stores.values.forEach { dependentModels.add(it.wrap()) }
+                if (model.stores.count() < model.length) {
+                    dependentModels.add(model.constModel.wrap())
+                }
+            }
+            is UtCompositeModel -> {
+                // Here we traverse fields only.
+                // Traversing mocks as well will result in wrong models playing
+                // a role of class fields with @Mock annotation.
+                model.fields.forEach { (_, model) -> dependentModels.add(model.wrap()) }
+            }
+            is UtAssembleModel -> {
+                model.instantiationCall.instance?.let { dependentModels.add(it.wrap()) }
+                model.instantiationCall.params.forEach { dependentModels.add(it.wrap()) }
+
+                if(!skipModificationChains) {
+                    model.modificationsChain.forEach { stmt ->
+                        stmt.instance?.let { dependentModels.add(it.wrap()) }
+                        when (stmt) {
+                            is UtStatementCallModel -> stmt.params.forEach { dependentModels.add(it.wrap()) }
+                            is UtDirectSetFieldModel -> dependentModels.add(stmt.fieldModel.wrap())
+                        }
+                    }
+                }
+            }
         }
 
         return dependentModels
     }
+
 
     private fun Set<UtModelWrapper>.groupByClassId(): TypedModelWrappers {
         val classModels = mutableMapOf<ClassId, Set<UtModelWrapper>>()
@@ -101,54 +169,4 @@ class SpringTestClassModelBuilder(val context: CgContext): TestClassModelBuilder
         return classModels
     }
 
-    private fun collectRecursively(currentModelWrapper: UtModelWrapper, allModels: MutableSet<UtModelWrapper>) {
-        if (!allModels.add(currentModelWrapper)) {
-            return
-        }
-
-        with(context) {
-            when (val currentModel = currentModelWrapper.model) {
-                is UtNullModel,
-                is UtPrimitiveModel,
-                is UtClassRefModel,
-                is UtVoidModel,
-                is UtEnumConstantModel,
-                is UtSpringContextModel -> {}
-                is UtLambdaModel -> {
-                    currentModel.capturedValues.forEach { collectRecursively(it.wrap(), allModels) }
-                }
-                is UtArrayModel -> {
-                    currentModel.stores.values.forEach { collectRecursively(it.wrap(), allModels) }
-                    if (currentModel.stores.count() < currentModel.length) {
-                        collectRecursively(currentModel.constModel.wrap(), allModels)
-                    }
-                }
-                is UtCompositeModel -> {
-                    // Here we traverse fields only.
-                    // Traversing mocks as well will result in wrong models playing
-                    // a role of class fields with @Mock annotation.
-                    currentModel.fields.forEach { (fieldId, model) ->
-                        // We use `modelTagName` in order to distinguish mock models
-                        val modeTagName = if(model.isMockModel()) fieldId.name else null
-                        collectRecursively(model.wrap(modeTagName), allModels)
-                    }
-                }
-                is UtAssembleModel -> {
-                    currentModel.origin?.let { collectRecursively(it.wrap(), allModels) }
-
-                    currentModel.instantiationCall.instance?.let { collectRecursively(it.wrap(), allModels) }
-                    currentModel.instantiationCall.params.forEach { collectRecursively(it.wrap(), allModels) }
-
-                    currentModel.modificationsChain.forEach { stmt ->
-                        stmt.instance?.let { collectRecursively(it.wrap(), allModels) }
-                        when (stmt) {
-                            is UtStatementCallModel -> stmt.params.forEach { collectRecursively(it.wrap(), allModels) }
-                            is UtDirectSetFieldModel -> collectRecursively(stmt.fieldModel.wrap(), allModels)
-                        }
-                    }
-                }
-                //Python, JavaScript, Go models are not required in Spring
-            }
-        }
-    }
 }

@@ -118,17 +118,26 @@ jobs:
           ref: ${{ env.data_branch }}
           path: ${{ env.data_path }}
 
+      - name: Run system monitoring
+        # secret uploaded using base64 encoding to have one-line output:
+        # cat file | base64 -w 0
+        continue-on-error: true
+        run: |
+          chmod +x ./scripts/project/monitoring.sh
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # temporary debug
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          sudo: false
-          limit-access-to-actor: false
-      # /temporary debug
+#      # temporary debug
+#      - name: Setup tmate session
+#        uses: mxschmitt/action-tmate@v3
+#        with:
+#          sudo: false
+#          limit-access-to-actor: false
+#      # /temporary debug
 
       - name: Build and run monitoring UTBot Java
         run: |

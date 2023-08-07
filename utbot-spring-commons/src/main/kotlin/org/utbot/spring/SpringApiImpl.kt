@@ -4,7 +4,7 @@ import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.warn
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.Repository
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestContextManager
@@ -45,6 +45,8 @@ class SpringApiImpl(
 
     private val context get() = getOrLoadSpringApplicationContext()
 
+    override fun getEntityManager(): Any = dummyTestClassInstance.entityManager
+
     override fun getOrLoadSpringApplicationContext() = try {
         testContextManager.testContext.applicationContext as ConfigurableApplicationContext
     } catch (e: Throwable) {
@@ -55,17 +57,16 @@ class SpringApiImpl(
 
     override fun getDependenciesForBean(beanName: String, userSourcesClassLoader: URLClassLoader): Set<String> {
         val analyzedBeanNames = mutableSetOf<String>()
-        return getDependenciesForBeanInternal(beanName, analyzedBeanNames, userSourcesClassLoader)
+        collectDependenciesForBeanRecursively(beanName, analyzedBeanNames, userSourcesClassLoader)
+        return analyzedBeanNames
     }
 
-    private fun getDependenciesForBeanInternal(
+    private fun collectDependenciesForBeanRecursively(
         beanName: String,
         analyzedBeanNames: MutableSet<String>,
         userSourcesClassLoader: URLClassLoader,
-        ): Set<String> {
-        if (beanName in analyzedBeanNames) {
-            return emptySet()
-        }
+    ) {
+        if (beanName in analyzedBeanNames) return
 
         analyzedBeanNames.add(beanName)
 
@@ -81,7 +82,7 @@ class SpringApiImpl(
             }
             .toSet()
 
-        return setOf(beanName) + dependencyBeanNames.flatMap { getDependenciesForBean(it, userSourcesClassLoader) }
+        dependencyBeanNames.forEach { collectDependenciesForBeanRecursively(it, analyzedBeanNames, userSourcesClassLoader) }
     }
 
     override fun resetBean(beanName: String) {
@@ -106,9 +107,9 @@ class SpringApiImpl(
             val repositoryClassName = repositoryClass
                 .interfaces
                 .filter { clazz -> userSourcesClassLoader.hasOnClasspath(clazz.name) }
-                .filter { CrudRepository::class.java.isAssignableFrom(it) }
+                .filter { Repository::class.java.isAssignableFrom(it) }
                 .map { it.name }
-                .firstOrNull() ?: CrudRepository::class.java.name
+                .firstOrNull() ?: Repository::class.java.name
 
             val entity = RepositoryUtils.getEntityClass(repositoryClass)
 
@@ -163,7 +164,7 @@ class SpringApiImpl(
 
     private fun describesRepository(bean: Any): Boolean =
         try {
-            bean is CrudRepository<*, *>
+            bean is Repository<*, *>
         } catch (e: ClassNotFoundException) {
             false
         }

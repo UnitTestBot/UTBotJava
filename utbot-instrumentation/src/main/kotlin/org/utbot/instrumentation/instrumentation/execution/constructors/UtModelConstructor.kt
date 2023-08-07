@@ -113,7 +113,10 @@ class UtModelConstructor(
             is Long,
             is Float,
             is Double,
-            is Boolean -> if (classId.isPrimitive) UtPrimitiveModel(value) else constructFromAny(value, remainingDepth)
+            is Boolean -> {
+                if (classId.isPrimitive) UtPrimitiveModel(value)
+                else constructFromAny(value, classId, remainingDepth)
+            }
 
             is ByteArray -> constructFromByteArray(value, remainingDepth)
             is ShortArray -> constructFromShortArray(value, remainingDepth)
@@ -127,7 +130,7 @@ class UtModelConstructor(
             is Enum<*> -> constructFromEnum(value)
             is Class<*> -> constructFromClass(value)
             is BaseStream<*, *> -> constructFromStream(value)
-            else -> constructFromAny(value, remainingDepth)
+            else -> constructFromAny(value, classId, remainingDepth)
         }
     }
 
@@ -287,10 +290,21 @@ class UtModelConstructor(
     /**
      * First tries to construct UtAssembleModel. If failure, constructs UtCompositeModel.
      */
-    private fun constructFromAny(value: Any, remainingDepth: Long): UtModel =
+    private fun constructFromAny(value: Any, classId: ClassId, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(value) {
-            tryConstructCustomModel(value, remainingDepth) ?: constructCompositeModel(value, remainingDepth)
+            tryConstructCustomModel(value, remainingDepth)
+                ?: findEqualValueOfWellKnownType(value)
+                    ?.takeIf { classId.jClass.isInstance(it) }
+                    ?.let { tryConstructCustomModel(it, remainingDepth) }
+                ?: constructCompositeModel(value, remainingDepth)
         }
+
+    private fun findEqualValueOfWellKnownType(value: Any): Any? = when (value) {
+        is List<*> -> ArrayList(value)
+        is Set<*> -> LinkedHashSet(value)
+        is Map<*, *> -> LinkedHashMap(value)
+        else -> null
+    }
 
     /**
      * Constructs custom UtModel but does it only for predefined list of classes.

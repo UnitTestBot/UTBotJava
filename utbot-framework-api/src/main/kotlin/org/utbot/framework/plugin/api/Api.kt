@@ -8,7 +8,6 @@
 
 package org.utbot.framework.plugin.api
 
-import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
@@ -778,15 +777,27 @@ object UtSpringContextModel : UtCustomModel(
     override fun hashCode(): Int = 0
 }
 
+class UtSpringEntityManagerModel : UtCustomModel(
+    id = null,
+    classId = SpringModelUtils.entityManagerClassIds.first(),
+    modelName = "entityManager"
+) {
+    // NOTE that overriding equals is required just because without it
+    // we will lose equality for objects after deserialization
+    override fun equals(other: Any?): Boolean = other is UtSpringEntityManagerModel
+
+    override fun hashCode(): Int = 0
+}
+
 data class SpringRepositoryId(
     val repositoryBeanName: String,
     val repositoryClassId: ClassId,
     val entityClassId: ClassId,
 )
 
-class UtSpringMockMvcResultActionsModel(
-    id: Int?,
-    origin: UtCompositeModel?,
+data class UtSpringMockMvcResultActionsModel(
+    override val id: Int?,
+    override val origin: UtCompositeModel?,
     val status: Int,
     val errorMessage: String?,
     val contentAsString: String,

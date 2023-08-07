@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.SpringConfiguration.*
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils.resultActionsClassId
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
@@ -47,6 +48,7 @@ class SpringInstrumentationContext(
 
     override fun constructContextDependentValue(model: UtModel): UtConcreteValue<*>? = when (model) {
         is UtSpringContextModel -> UtConcreteValue(springApi.getOrLoadSpringApplicationContext())
+        is UtSpringEntityManagerModel -> UtConcreteValue(springApi.getEntityManager())
         else -> delegateInstrumentationContext.constructContextDependentValue(model)
     }
 

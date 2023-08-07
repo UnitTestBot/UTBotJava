@@ -15,7 +15,7 @@ data class Configuration(
     /**
      * Choose between already generated values and new generation of values.
      */
-    var probSeedRetrievingInsteadGenerating: Int = 70,
+    var probSeedRetrievingInsteadGenerating: Int = 100,
 
     /**
      * Choose between generation and mutation.
@@ -100,6 +100,8 @@ data class Configuration(
      * Limits maximum number of recursive seed modifications
      */
     var maxNumberOfRecursiveSeedModifications: Int = 10,
+
+    val singleValueSelectionStrategy: SingleValueSelectionStrategy = SingleValueSelectionStrategy.LAST
 )
 
 enum class SingleValueSelectionStrategy { FIRST, LAST }

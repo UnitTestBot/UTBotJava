@@ -7,7 +7,7 @@ import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import kotlin.random.Random
 
-fun Map<Mutation<KnownValue<*>>, Float>.randomMutation(random: Random): Mutation<KnownValue<*>>? {
+fun Map<Mutation<*>, Float>.randomMutation(random: Random): Mutation<*>? {
     val weightsSum = entries.sumOf { it.value.toDouble() }
 
     if (weightsSum == 0.0) {
@@ -52,8 +52,10 @@ class MutationFactory<TYPE, RESULT> {
                     mutations.random(random)
                 }
 
+//                val mutation = mutations.random(random)
+
                 if (mutations.isNotEmpty()) {
-                    resultToMutate.mutate(mutation, random, configuration)
+                    resultToMutate.mutate(mutation as Mutation<out KnownValue<*>>, random, configuration)
                 } else {
                     resultToMutate
                 }

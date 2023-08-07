@@ -25,11 +25,9 @@ interface SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESU
     override var totalRuns: Long
     fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) : MinsetEvent
     fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>
+    fun getMutationsEfficiencies(): Map<Mutation<*>, Float> { return emptyMap() }
     fun isNotEmpty() : Boolean
-    fun getMinsetSize() : Int
-    fun getMutationsEfficiencies(): Map<Mutation<KnownValue<*>>, Float> {
-        return emptyMap()
-    }
+    fun size() : Int
 }
 
 open class BaseStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
@@ -85,7 +83,8 @@ open class BaseStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
     }
 
     override fun isNotEmpty() = seeds.isNotEmpty()
-    override fun getMinsetSize(): Int {
+
+    override fun size(): Int {
         return seeds.size
     }
 }
@@ -131,7 +130,7 @@ open class SingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
     }
 
     override fun isNotEmpty() = minset.isNotEmpty()
-    override fun getMinsetSize(): Int {
+    override fun size(): Int {
         return minset.getSize()
     }
 }
@@ -176,22 +175,15 @@ open class MutationsCountingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : 
     )
 }
 
-class LastKeepingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
+
+open class SingleSeedKeepingStatistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
     override var totalRuns: Long = 0,
     override val startTime: Long = System.nanoTime(),
     override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
     override val random: Random,
-    override val configuration: Configuration,
-) : BasicSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK>(
-    totalRuns, startTime, missedTypes, random, configuration, SingleValueSelectionStrategy.LAST
-) {
-    private val successCumSums: HashMap<Mutation<*>, Int> = hashMapOf()
-    private val overallCumSums: HashMap<Mutation<*>, Int> = hashMapOf()
-    private val knownValueMutationsEfficiencies: HashMap<Mutation<KnownValue<*>>, Float> = hashMapOf()
-
-    private var lastSeed: Node<TYPE, RESULT>? = null
-
-    constructor(source: Statistic<TYPE, RESULT>) : this (
+    override val configuration: Configuration
+): SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK> {
+    constructor(source: Statistic<TYPE, RESULT>) : this(
         totalRuns = source.totalRuns,
         startTime = source.startTime,
         missedTypes = source.missedTypes,
@@ -199,14 +191,20 @@ class LastKeepingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TY
         configuration = source.configuration.copy()
     )
 
-    override fun put(
-        random: Random,
-        configuration: Configuration,
-        feedback: FEEDBACK,
-        seed: Node<TYPE, RESULT>
-    ): MinsetEvent {
-        lastSeed = seed
-        val event = super.put(random, configuration, feedback, seed)
+    override val elapsedTime: Long
+        get() = System.nanoTime() - startTime
+
+    private val storedSeed = SingleValueStorage<TYPE, RESULT>(configuration.singleValueSelectionStrategy)
+    private val feedbacksCount: LinkedHashMap<FEEDBACK, Long> = linkedMapOf()
+    private val successCumSums: HashMap<Mutation<*>, Int> = hashMapOf()
+    private val overallCumSums: HashMap<Mutation<*>, Int> = hashMapOf()
+    private val mutationsEfficiencies: HashMap<Mutation<*>, Float> = hashMapOf()
+
+
+    override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>): MinsetEvent {
+        storedSeed.put(seed, feedback)
+        feedbacksCount.merge(feedback, 1L, Long::plus)
+        val event = if (feedbacksCount[feedback] == 1L) MinsetEvent.NEW_FEEDBACK else MinsetEvent.NOTHING_NEW
 
         seed.result.forEach { result ->
             when(result) {
@@ -226,7 +224,7 @@ class LastKeepingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TY
                         result.lastMutation.let {
                             it?.let {
                                 successCumSums[it] = successCumSums.getOrDefault(it, 0) + 1
-                                knownValueMutationsEfficiencies[it as Mutation<KnownValue<*>>] =
+                                mutationsEfficiencies[it] =
                                     successCumSums[it]!!.toFloat() / overallCumSums[it]!!.toFloat()
                             }
                         }
@@ -239,18 +237,54 @@ class LastKeepingSingleValueMinsetStatistic<TYPE, RESULT, FEEDBACK : Feedback<TY
         return event
     }
 
-    override fun getMutationsEfficiencies() : Map<Mutation<KnownValue<*>>, Float> {
-        return knownValueMutationsEfficiencies
+    override fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
+        return storedSeed.next()
     }
 
-    override fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
-        if (lastSeed == null) {
-            error("Seed requested but no seed stored")
-        }
-        return lastSeed!!
+    override fun getMutationsEfficiencies(): Map<Mutation<*>, Float> {
+        return mutationsEfficiencies
+    }
+
+    override fun isNotEmpty(): Boolean {
+        return feedbacksCount.isNotEmpty()
+    }
+
+    override fun size(): Int {
+        return feedbacksCount.size
     }
 }
 
+class FirstSeedKeepingStatistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
+    override var totalRuns: Long = 0,
+    override val startTime: Long = System.nanoTime(),
+    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
+    override val random: Random,
+    override val configuration: Configuration,
+) : SingleSeedKeepingStatistics<TYPE, RESULT, FEEDBACK>(totalRuns, startTime, missedTypes, random, configuration) {
+    constructor(source: Statistic<TYPE, RESULT>) : this(
+        totalRuns = source.totalRuns,
+        startTime = source.startTime,
+        missedTypes = source.missedTypes,
+        random = source.random,
+        configuration = source.configuration.copy()
+    )
+}
+
+class LastSeedKeepingStatistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
+    override var totalRuns: Long = 0,
+    override val startTime: Long = System.nanoTime(),
+    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
+    override val random: Random,
+    override val configuration: Configuration,
+) : SingleSeedKeepingStatistics<TYPE, RESULT, FEEDBACK>(totalRuns, startTime, missedTypes, random, configuration) {
+    constructor(source: Statistic<TYPE, RESULT>) : this(
+        totalRuns = source.totalRuns,
+        startTime = source.startTime,
+        missedTypes = source.missedTypes,
+        random = source.random,
+        configuration = source.configuration.copy()
+    )
+}
 ///endregion
 
 ///region Minset
@@ -316,12 +350,7 @@ open class SingleValueStorage<TYPE, RESULT> (
 
     private var storedValue: Node<TYPE, RESULT>? = null
     override fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) : Boolean {
-
-        var result = false;
-
-        if(storedValue == null) {
-            result = true
-        }
+        val result = storedValue == null
 
         storedValue = when (strategy) {
             SingleValueSelectionStrategy.FIRST -> storedValue ?: value
@@ -365,25 +394,5 @@ class MutationsCountingSingleValueStorage<TYPE, RESULT>(strategy: SingleValueSel
         return super.put(value, feedback)
     }
 }
-
-//@Suppress("UNCHECKED_CAST")
-//class SingleDistributableValueStorage<TYPE, RESULT: Comparable<RESULT>>(
-//    strategy: SingleValueSelectionStrategy,
-//    var distributionTree: DistributionNode<RESULT>
-//) : SingleValueStorage<TYPE, RESULT>(strategy) {
-//    fun put(value: Node<TYPE, RESULT>, feedback: BaseWeightedFeedback<*, TYPE, RESULT, *>) {
-//        super.put(value, feedback)
-//        value.result.forEach {
-////            distributionTree.put(it)
-//            when(it) {
-//                is Result.Empty -> {}
-//                is Result.Simple -> distributionTree.put(it as RESULT)
-//                is Result.Collection -> distributionTree.put(it as RESULT)
-//                is Result.Known<*, *, *> -> distributionTree.put(it as RESULT)
-//                is Result.Recursive -> distributionTree.put(it as RESULT)
-//            }
-//        }
-//    }
-//}
 
 ///endregion

@@ -62,9 +62,8 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-//        fuzz(description, LastKeepingSingleValueMinsetStatistic(statistics))
-//        fuzz(description, BasicSingleValueMinsetStatistic(statistics, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
-        fuzz(description, MutationsCountingSingleValueMinsetStatistic(statistics, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
+        fuzz(description, SingleSeedKeepingStatistics(statistics))
+//        fuzz(description, BasicSingleValueMinsetStatistic(statistics))
     }
 
     /**
@@ -187,7 +186,7 @@ class LoggingReporter<TYPE, RESULT>(
             out.println("Total runs: ${statistic.totalRuns}")
 
             if (statistic is SeedsMaintainingStatistic<*, *, *>) {
-                out.println("Final minset size: ${statistic.getMinsetSize()}")
+                out.println("Final minset size: ${statistic.size()}")
             }
 
             val seconds = statistic.elapsedTime / 1_000_000_000
@@ -446,9 +445,10 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-//    fuzz(description, LastKeepingSingleValueMinsetStatistic(random = random, configuration = configuration))
-//    fuzz(description, BasicSingleValueMinsetStatistic(random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
-    fuzz(description, MutationsCountingSingleValueMinsetStatistic(random = random, configuration = configuration, seedSelectionStrategy = SingleValueSelectionStrategy.LAST))
+    val seed = 0
+    val tmpRandom = Random(seed)
+//    fuzz(description, BasicSingleValueMinsetStatistic(random = random, configuration = configuration))
+    fuzz(description, SingleSeedKeepingStatistics(random = tmpRandom, configuration = configuration))
 }
 
 /**

@@ -75,7 +75,7 @@ class JavaFeedback(
 
     override fun toString(): String {
         if (result.count == 0) {
-            return " FAIL | EMPTY TRACE"
+            return " FAIL | trace hash: ${result.hashCode()} | trace count: ${String.format("%4s", result.count)}"
         }
         return "$result | trace hash: ${result.hashCode()} | trace count: ${String.format("%4s", result.count)}"
     }

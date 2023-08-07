@@ -122,6 +122,14 @@ jobs:
         with:
           python-version: '3.9'
 
+      # temporary debug
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          sudo: false
+          limit-access-to-actor: false
+      # /temporary debug
+
       - name: Build and run monitoring UTBot Java
         run: |
           gradle :utbot-junit-contest:monitoringJar
@@ -198,14 +206,6 @@ jobs:
           echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "branch=$(git name-rev --name-only HEAD)" >> $GITHUB_OUTPUT
           echo "build=$(date +'%Y.%-m')" >> $GITHUB_OUTPUT
-
-# temporary debug
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          sudo: false
-          limit-access-to-actor: false
-# /temporary debug
 
       - name: Insert metadata
         id: insert

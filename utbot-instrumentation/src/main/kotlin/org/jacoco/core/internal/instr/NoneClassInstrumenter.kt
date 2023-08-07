@@ -3,6 +3,10 @@ package org.jacoco.core.internal.instr
 import org.jacoco.core.internal.flow.MethodProbesVisitor
 import org.objectweb.asm.ClassVisitor
 
+/**
+ * Just a copy of [ClassInstrumenter] with one overridden method.
+ * This class is used to replace probe inserter.
+ */
 class NoneClassInstrumenter(
     probeArrayStrategy: IProbeArrayStrategy,
     cv: ClassVisitor,

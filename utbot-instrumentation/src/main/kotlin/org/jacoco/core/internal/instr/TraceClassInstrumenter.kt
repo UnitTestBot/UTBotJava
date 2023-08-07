@@ -4,12 +4,15 @@ import org.jacoco.core.internal.flow.MethodProbesVisitor
 import org.objectweb.asm.ClassVisitor
 import org.utbot.instrumentation.instrumentation.et.ProcessingStorage
 
+/**
+ * Just a copy of [ClassInstrumenter] with one overridden method.
+ * This class is used to replace probe inserter and method instrumenter.
+ */
 class TraceClassInstrumenter(
-    private val className: String,
-    private val storage: ProcessingStorage,
     private val probeArrayStrategy: IProbeArrayStrategy,
     cv: ClassVisitor,
-    private val nextIdGenerator: (id: Int) -> Long
+    private val storage: ProcessingStorage,
+    private val nextIdGenerator: (localId: Int) -> Long
 ) : ClassInstrumenter(probeArrayStrategy, cv) {
 
     override fun visitMethod(
@@ -25,7 +28,9 @@ class TraceClassInstrumenter(
         val probeVariableInserter = TraceProbeInserter(
             access, name, desc, frameEliminator, probeArrayStrategy, nextIdGenerator
         )
-        return TraceMethodInstrumenter(className, storage, name, desc, probeVariableInserter, probeVariableInserter)
+        return TraceMethodInstrumenter(
+            name, desc, probeVariableInserter, probeVariableInserter, storage, nextIdGenerator
+        )
     }
 
 }

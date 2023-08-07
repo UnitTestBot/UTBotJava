@@ -1,30 +1,39 @@
 package org.jacoco.core.internal.instr
 
 import org.jacoco.core.internal.flow.ClassProbesAdapter
-import org.jacoco.core.internal.flow.MethodProbesCollector
+import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.util.TraceClassVisitor
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.et.ProcessingStorage
-import java.io.PrintWriter
-import java.io.StringWriter
 
-// TODO: remove
-val sw: StringWriter = StringWriter()
-
-fun createClassVisitorForBranchCoverageInstrumentation(writer: ClassWriter, className: String): ClassProbesAdapter {
+fun createClassVisitorForBranchCoverageInstrumentation(
+    writer: ClassWriter,
+    className: String
+): ClassProbesAdapter {
     val strategy = ClassFieldProbeArrayStrategy(className)
-    val tcv = TraceClassVisitor(writer, PrintWriter(sw)) // TODO: remove
     return ClassProbesAdapter(
-        ClassInstrumenter(strategy, tcv),
+        ClassInstrumenter(strategy, writer),
         false
     )
 }
 
-fun createClassVisitorForComputeMapOfRangesForBranchCoverage(writer: ClassWriter): MethodProbesCollector {
+class MethodProbesCollector(
+    strategy: IProbeArrayStrategy,
+    writer: ClassVisitor,
+    val methodToProbes: MutableMap<String, MutableList<Int>> = mutableMapOf()
+) : ClassVisitor(
+    Settings.ASM_API,
+    ClassProbesAdapter(
+        NoneClassInstrumenter(strategy, writer, methodToProbes),
+        false
+    )
+)
+
+fun createClassVisitorForComputeMapOfRangesForBranchCoverage(
+    writer: ClassWriter
+): MethodProbesCollector {
     val strategy = NoneProbeArrayStrategy()
-    val tcv = TraceClassVisitor(writer, PrintWriter(sw)) // TODO: remove
-    return MethodProbesCollector(Settings.ASM_API, strategy, tcv)
+    return MethodProbesCollector(strategy, writer)
 }
 
 fun createClassVisitorForTracingBranchInstructions(
@@ -33,10 +42,9 @@ fun createClassVisitorForTracingBranchInstructions(
     writer: ClassWriter
 ): ClassProbesAdapter {
     val strategy = TraceStrategy()
-    val tcv = TraceClassVisitor(writer, PrintWriter(sw)) // TODO: remove
     return ClassProbesAdapter(
-        TraceClassInstrumenter(className, storage, strategy, tcv) { id ->
-            storage.computeId(className, id)
+        TraceClassInstrumenter(strategy, writer, storage) { localId ->
+            storage.computeId(className, localId)
         },
         false
     )

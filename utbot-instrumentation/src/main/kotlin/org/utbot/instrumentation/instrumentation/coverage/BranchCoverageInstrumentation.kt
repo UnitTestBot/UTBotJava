@@ -2,14 +2,12 @@ package org.utbot.instrumentation.instrumentation.coverage
 
 import org.jacoco.core.internal.flow.ClassProbesAdapter
 import org.jacoco.core.internal.instr.createClassVisitorForBranchCoverageInstrumentation
-import org.jacoco.core.internal.instr.sw
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.ClassWriter
 import org.utbot.common.withAccessibility
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.instrumentation.instrumenter.ClassVisitorBuilder
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
+import org.utbot.instrumentation.util.CastProbeCounterException
+import org.utbot.instrumentation.util.NoProbeCounterException
 import java.security.ProtectionDomain
 
 class BranchCoverageInstrumentation : CoverageInstrumentation() {
@@ -31,18 +29,13 @@ class BranchCoverageInstrumentation : CoverageInstrumentation() {
             createClassVisitorForBranchCoverageInstrumentation(writer, className)
         }
 
-        // TODO exceptions
-        val probesCountField = ClassProbesAdapter::class.java.declaredFields.firstOrNull { it.name == "counter" }
-            ?: throw IllegalStateException()
-        val probeCount = probesCountField.withAccessibility {
-            this.get(cv) as? Int ?: throw ClassCastException()
+        val probeCounterField = ClassProbesAdapter::class.java.declaredFields.firstOrNull { it.name == "counter" }
+            ?: throw NoProbeCounterException(ClassProbesAdapter::class.java, "counter")
+        val probeCounter = probeCounterField.withAccessibility {
+            this.get(cv) as? Int ?: throw CastProbeCounterException()
         }
 
-        instrumenter.addStaticField(StaticArrayFieldInitializer(className, Settings.PROBES_ARRAY_NAME, probeCount))
-
-        // TODO remove
-        val result = sw.toString()
-        println(result)
+        instrumenter.addStaticField(StaticArrayFieldInitializer(className, Settings.PROBES_ARRAY_NAME, probeCounter))
 
         return instrumenter.classByteCode
     }

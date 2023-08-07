@@ -18,13 +18,13 @@ class TraceStrategy : IProbeArrayStrategy {
         mv.visitInsn(Opcodes.ICONST_1)
         mv.visitInsn(Opcodes.IADD)
         mv.visitInsn(Opcodes.DUP)
-
         mv.visitFieldInsn(Opcodes.PUTSTATIC, internalName, counterCallIdName, RuntimeTraceStorage.DESC_CALL_ID_COUNTER)
         mv.visitVarInsn(Opcodes.ISTORE, variable)
         return 2
     }
 
     override fun addMembers(cv: ClassVisitor?, probeCount: Int) {
+        // nothing to do
     }
 
 }

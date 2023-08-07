@@ -12,17 +12,14 @@ internal class TraceProbeInserter(
     desc: String,
     mv: MethodVisitor,
     arrayStrategy: IProbeArrayStrategy,
-    private val nextIdGenerator: (id: Int) -> Long,
+    private val nextIdGenerator: (localId: Int) -> Long,
 ) : ProbeInserter(access, name, desc, mv, arrayStrategy) {
 
     private val internalName = Type.getInternalName(RuntimeTraceStorage::class.java)
     private val visitMethodDescriptor = Type.getMethodDescriptor(RuntimeTraceStorage::visit.javaMethod)
-
-    private val clinit: Boolean
     private val variable: Int
 
     init {
-        clinit = InstrSupport.CLINIT_NAME == name
         var pos = if (Opcodes.ACC_STATIC and access == 0) 1 else 0
         for (t in Type.getArgumentTypes(desc)) {
             pos += t.size

@@ -35,4 +35,5 @@ class SpringSpecificInformation(
     val thisInstanceDependentMocks: TypedModelWrappers,
     val thisInstanceDependentSpies: TypedModelWrappers,
     val autowiredFromContextModels: TypedModelWrappers,
+    val entityManagerModels: TypedModelWrappers,
 )

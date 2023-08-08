@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
@@ -55,13 +56,15 @@ class SpringTestClassModelBuilder(val context: CgContext) :
                             .filterNotNull()
                             .forEach { model ->
                                 thisInstanceModels += model.wrap()
-                                thisInstancesDependentModels += collectDependentModels(model)
-
+                                thisInstancesDependentModels += collectImmediateDependentModels(
+                                    model,
+                                    skipModificationChains = true
+                                )
                             }
 
                         (execution.stateBefore.parameters + execution.stateBefore.thisInstance)
                             .filterNotNull()
-                            .forEach { model -> stateBeforeDependentModels += collectAutowiredModels(model) }
+                            .forEach { model -> stateBeforeDependentModels += collectRecursively(model) }
                     }
                 }
             }
@@ -82,15 +85,19 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         val autowiredFromContextModels =
             stateBeforeDependentModels.filterTo(HashSet()) { it.model.isAutowiredFromContext() }
 
+        val entityManagerModels =
+            stateBeforeDependentModels.filterTo(HashSet()) { it.model is UtSpringEntityManagerModel }
+
         return SpringSpecificInformation(
             thisInstanceModels.groupByClassId(),
             dependentMockModels.groupByClassId(),
             dependentSpyModels.groupByClassId(),
             autowiredFromContextModels.groupByClassId(),
+            entityManagerModels.groupByClassId(),
         )
     }
 
-    private fun collectAutowiredModels(model: UtModel): Set<UtModelWrapper> {
+    private fun collectRecursively(model: UtModel): Set<UtModelWrapper> {
         val allDependentModels = mutableSetOf<UtModelWrapper>()
 
         collectRecursively(model, allDependentModels)
@@ -102,10 +109,12 @@ class SpringTestClassModelBuilder(val context: CgContext) :
         if(!allDependentModels.add(model.wrap())){
             return
         }
-        collectDependentModels(model).forEach { collectRecursively(it.model, allDependentModels) }
+        collectImmediateDependentModels(model, skipModificationChains = false).forEach {
+            collectRecursively(it.model, allDependentModels)
+        }
     }
 
-    private fun collectDependentModels(model: UtModel): Set<UtModelWrapper> {
+    private fun collectImmediateDependentModels(model: UtModel, skipModificationChains: Boolean): Set<UtModelWrapper> {
         val dependentModels = mutableSetOf<UtModelWrapper>()
 
         when (model) {
@@ -134,7 +143,7 @@ class SpringTestClassModelBuilder(val context: CgContext) :
                 model.instantiationCall.instance?.let { dependentModels.add(it.wrap()) }
                 model.instantiationCall.params.forEach { dependentModels.add(it.wrap()) }
 
-                if(model.isAutowiredFromContext()) {
+                if(!skipModificationChains) {
                     model.modificationsChain.forEach { stmt ->
                         stmt.instance?.let { dependentModels.add(it.wrap()) }
                         when (stmt) {

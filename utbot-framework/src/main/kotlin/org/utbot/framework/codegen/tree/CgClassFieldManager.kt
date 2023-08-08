@@ -15,15 +15,17 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtModelWithCompositeOrigin
+import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.canBeSpied
 import org.utbot.framework.plugin.api.util.SpringModelUtils.autowiredClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.getBeanNameOrNull
 import org.utbot.framework.plugin.api.util.SpringModelUtils.isAutowiredFromContext
+import org.utbot.framework.plugin.api.util.SpringModelUtils.persistenceContextClassIds
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 
-sealed interface CgClassFieldManager : CgContextOwner {
+interface CgClassFieldManager : CgContextOwner {
 
     val annotationType: ClassId
 
@@ -151,18 +153,43 @@ class CgAutowiredFieldsManager(context: CgContext) : CgAbstractClassFieldManager
     override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean = true
 }
 
+class CgPersistenceContextFieldsManager private constructor(
+    context: CgContext,
+    override val annotationType: ClassId,
+) : CgAbstractClassFieldManager(context) {
+    companion object {
+        fun createIfPossible(context: CgContext): CgPersistenceContextFieldsManager? = persistenceContextClassIds.firstOrNull()
+            ?.let { persistenceContextClassId -> CgPersistenceContextFieldsManager(context, persistenceContextClassId) }
+    }
+
+    override fun constructFieldsForVariable(model: UtModel, variable: CgValue) {
+        return when(model) {
+            is UtSpringEntityManagerModel -> {}
+            else -> error("Trying to use @PersistenceContext for model $model but it is not appropriate")
+        }
+    }
+
+    override fun fieldWithAnnotationIsRequired(classId: ClassId): Boolean = true
+}
+
 class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 
     private val injectingMocksFieldsManager = CgInjectingMocksFieldsManager(context)
     private val mockedFieldsManager = CgMockedFieldsManager(context)
     private val spiedFieldsManager = CgSpiedFieldsManager(context)
     private val autowiredFieldsManager = CgAutowiredFieldsManager(context)
+    private val persistenceContextFieldsManager = CgPersistenceContextFieldsManager.createIfPossible(context)
 
     fun constructVariableForField(
         model: UtModel,
     ): CgValue? {
-        val annotationManagers =
-            listOf(injectingMocksFieldsManager, mockedFieldsManager, spiedFieldsManager, autowiredFieldsManager)
+        val annotationManagers = listOfNotNull(
+            injectingMocksFieldsManager,
+            mockedFieldsManager,
+            spiedFieldsManager,
+            autowiredFieldsManager,
+            persistenceContextFieldsManager,
+        )
 
         annotationManagers.forEach { manager ->
             val annotatedModelGroups = manager.variableConstructor.annotatedModelGroups

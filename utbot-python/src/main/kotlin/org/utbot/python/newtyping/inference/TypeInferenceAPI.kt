@@ -1,13 +1,13 @@
 package org.utbot.python.newtyping.inference
 
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorResult
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 
 abstract class TypeInferenceAlgorithm {
     abstract suspend fun run(
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
-        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+        annotationHandler: suspend (UtType) -> InferredTypeFeedback,
     ): Int
 }
 
@@ -17,7 +17,7 @@ object SuccessFeedback : InferredTypeFeedback
 object InvalidTypeFeedback : InferredTypeFeedback
 
 interface TypeInferenceNode {
-    val partialType: Type
+    val partialType: UtType
     val ingoingEdges: Collection<TypeInferenceEdge>
     val outgoingEdges: Collection<TypeInferenceEdge>
 }
@@ -33,7 +33,7 @@ interface TypeInferenceEdgeWithValue: TypeInferenceEdge {
 
 interface TypeInferenceEdgeWithBound: TypeInferenceEdge {
     val boundType: BoundType
-    val dependency: (Type) -> List<Type>
+    val dependency: (UtType) -> List<UtType>
     enum class BoundType {
         Lower,
         Upper

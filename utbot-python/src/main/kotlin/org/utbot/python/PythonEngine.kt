@@ -19,7 +19,7 @@ import org.utbot.python.framework.api.python.PythonTreeWrapper
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.PythonTypeStorage
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
@@ -122,7 +122,7 @@ class PythonEngine(
     }
     private fun handleSuccessResult(
         arguments: List<PythonFuzzedValue>,
-        types: List<Type>,
+        types: List<UtType>,
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
     ): FuzzingExecutionFeedback {
@@ -190,7 +190,7 @@ class PythonEngine(
     private fun fuzzingResultHandler(
         description: PythonMethodDescription,
         arguments: List<PythonFuzzedValue>,
-        parameters: List<Type>,
+        parameters: List<UtType>,
         manager: PythonWorkerManager,
     ): PythonExecutionResult? {
         val additionalModules = parameters.flatMap { it.pythonModules() }
@@ -274,7 +274,7 @@ class PythonEngine(
         }
     }
 
-    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
+    fun fuzzing(parameters: List<UtType>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
             val manager = try {

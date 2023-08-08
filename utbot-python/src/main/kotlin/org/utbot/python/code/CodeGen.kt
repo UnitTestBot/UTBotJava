@@ -1,20 +1,19 @@
 package org.utbot.python.code
 
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.python.PythonMethod
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 
 
 object PythonCodeGenerator {
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, Type>,
+        methodAnnotations: Map<String, UtType>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         namesInModule: Collection<String>,

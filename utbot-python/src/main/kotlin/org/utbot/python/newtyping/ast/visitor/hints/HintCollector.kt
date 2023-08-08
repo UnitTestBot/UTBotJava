@@ -7,9 +7,8 @@ import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.*
 import org.utbot.python.newtyping.ast.visitor.Collector
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.FunctionTypeCreator
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
@@ -18,7 +17,7 @@ import java.util.*
 class HintCollector(
     private val function: PythonFunctionDefinition,
     private val storage: PythonTypeStorage,
-    private val mypyTypes: Map<Pair<Int, Int>, Type>,
+    private val mypyTypes: Map<Pair<Int, Int>, UtType>,
     private val globalNamesStorage: GlobalNamesStorage,
     private val moduleOfSources: String
 ) : Collector() {
@@ -517,7 +516,7 @@ class HintCollector(
         astNodeToHintCollectorNode[node] = hintCollectorNode
     }
 
-    private fun addProtocol(node: HintCollectorNode, protocol: Type) {
+    private fun addProtocol(node: HintCollectorNode, protocol: UtType) {
         node.upperBounds.add(protocol)
     }
 

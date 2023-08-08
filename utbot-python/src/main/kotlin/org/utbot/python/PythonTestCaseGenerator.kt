@@ -18,7 +18,7 @@ import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
-import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
+import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
@@ -44,15 +44,14 @@ class PythonTestCaseGenerator(
     private val isCancelled: () -> Boolean,
     private val timeoutForRun: Long = 0,
     private val sourceFileContent: String,
-    private val mypyStorage: MypyAnnotationStorage,
-    private val mypyReportLine: List<MypyReportLine>,
-    private val mypyConfigFile: File,
+    private val mypyStorage: MypyInfoBuild,
+    private val mypyReportLine: List<MypyReportLine>
 ) {
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
     private fun constructCollectors(
-        mypyStorage: MypyAnnotationStorage,
+        mypyStorage: MypyInfoBuild,
         typeStorage: PythonTypeStorage,
         method: PythonMethod
     ): Pair<HintCollector, ConstantCollector> {
@@ -71,7 +70,7 @@ class PythonTestCaseGenerator(
         return Pair(hintCollector, constantCollector)
     }
 
-    private fun getCandidates(param: TypeParameter, typeStorage: PythonTypeStorage): List<Type> {
+    private fun getCandidates(param: TypeParameter, typeStorage: PythonTypeStorage): List<UtType> {
         val meta = param.pythonDescription() as PythonTypeVarDescription
         return when (meta.parameterKind) {
             PythonTypeVarDescription.ParameterKind.WithConcreteValues -> {
@@ -88,7 +87,7 @@ class PythonTestCaseGenerator(
         }
     }
 
-    private fun generateTypesAfterSubstitution(type: Type, typeStorage: PythonTypeStorage): List<Type> {
+    private fun generateTypesAfterSubstitution(type: UtType, typeStorage: PythonTypeStorage): List<UtType> {
         val params = type.getBoundedParameters()
         return PriorityCartesianProduct(params.map { getCandidates(it, typeStorage) }).getSequence().map { subst ->
             DefaultSubstitutionProvider.substitute(type, (params zip subst).associate { it })
@@ -148,7 +147,6 @@ class PythonTestCaseGenerator(
             typeStorage,
             hintCollector,
             mypyReportLine,
-            mypyConfigFile,
             limitManager,
             additionalVars
         ) { functionType ->
@@ -286,14 +284,13 @@ class PythonTestCaseGenerator(
 
     private fun inferAnnotations(
         method: PythonMethod,
-        mypyStorage: MypyAnnotationStorage,
+        mypyStorage: MypyInfoBuild,
         typeStorage: PythonTypeStorage,
         hintCollector: HintCollector,
         report: List<MypyReportLine>,
-        mypyConfigFile: File,
         limitManager: TestGenerationLimitManager,
         additionalVars: String,
-        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+        annotationHandler: suspend (UtType) -> InferredTypeFeedback,
     ) {
         val namesInModule = mypyStorage.names
             .getOrDefault(curModule, emptyList())
@@ -316,7 +313,7 @@ class PythonTestCaseGenerator(
                 getOffsetLine(sourceFileContent, method.ast.beginOffset),
                 getOffsetLine(sourceFileContent, method.ast.endOffset)
             ),
-            mypyConfigFile,
+            mypyStorage.buildRoot.configFile,
             additionalVars,
             randomTypeFrequency = RANDOM_TYPE_FREQUENCY
         )

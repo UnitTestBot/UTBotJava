@@ -13,23 +13,22 @@ import org.utbot.python.newtyping.ast.parseSliceExpression
 import org.utbot.python.newtyping.ast.typeOfNumericalLiteral
 import org.utbot.python.newtyping.ast.visitor.Collector
 import org.utbot.python.newtyping.createPythonTupleType
-import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.typesAreEqual
+import org.utbot.python.newtyping.general.UtType
 import java.math.BigDecimal
 import java.math.BigInteger
 
 class ConstantCollector(private val storage: PythonTypeStorage) : Collector() {
-    private val knownConstants = mutableMapOf<Pair<Int, Int>, Pair<Type, Any>>()
+    private val knownConstants = mutableMapOf<Pair<Int, Int>, Pair<UtType, Any>>()
 
-    private fun add(node: Node, type: Type, value: Any) {
+    private fun add(node: Node, type: UtType, value: Any) {
         knownConstants[Pair(node.beginOffset, node.endOffset)] = Pair(type, value)
     }
 
-    private fun get(node: Node): Pair<Type, Any>? {
+    private fun get(node: Node): Pair<UtType, Any>? {
         return knownConstants[Pair(node.beginOffset, node.endOffset)]
     }
 
-    val result: List<Pair<Type, Any>>
+    val result: List<Pair<UtType, Any>>
         get() = knownConstants.map { it.value }
 
     override fun collectFromNodeAfterRecursion(node: Node) {

@@ -16,15 +16,15 @@ import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.fuzzing.provider.utils.makeRawString
 import org.utbot.python.fuzzing.provider.utils.transformRawString
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 
-object RePatternValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription>{
-    override fun accept(type: Type): Boolean {
+object RePatternValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription>{
+    override fun accept(type: UtType): Boolean {
         return type.pythonTypeName() == pythonRePatternClassId.canonicalName
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         yield(Seed.Recursive(
             construct = Routine.Create(
                 listOf(

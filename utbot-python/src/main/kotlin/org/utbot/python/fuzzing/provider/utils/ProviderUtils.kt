@@ -10,14 +10,14 @@ import org.utbot.python.newtyping.PythonDefinition
 import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.PythonVariableDescription
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.getPythonAttributeByName
 
-fun Type.isAny(): Boolean {
+fun UtType.isAny(): Boolean {
     return meta is PythonAnyTypeDescription
 }
 
-fun getSuitableConstantsFromCode(description: PythonMethodDescription, type: Type): List<Seed<Type, PythonFuzzedValue>> {
+fun getSuitableConstantsFromCode(description: PythonMethodDescription, type: UtType): List<Seed<UtType, PythonFuzzedValue>> {
     return description.concreteValues.filter {
         PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, it.type, description.pythonTypeStorage)
     }.mapNotNull { value ->
@@ -27,7 +27,7 @@ fun getSuitableConstantsFromCode(description: PythonMethodDescription, type: Typ
     }
 }
 
-fun isConcreteType(type: Type): Boolean {
+fun isConcreteType(type: UtType): Boolean {
     return (type.meta as? PythonConcreteCompositeTypeDescription)?.isAbstract == false
 }
 

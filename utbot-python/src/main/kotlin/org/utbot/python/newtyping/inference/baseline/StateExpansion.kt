@@ -1,7 +1,7 @@
 package org.utbot.python.newtyping.inference.baseline
 
 import org.utbot.python.newtyping.PythonTypeStorage
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.addEdge
 import org.utbot.python.newtyping.pythonAnnotationParameters
 import org.utbot.python.newtyping.pythonDescription
@@ -15,7 +15,7 @@ fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage): 
     return expandState(state, typeStorage, types)
 }
 
-fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage, types: List<Type>): BaselineAlgorithmState? {
+fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage, types: List<UtType>): BaselineAlgorithmState? {
     if (types.isEmpty())
         return null
     val substitution = (state.anyNodes zip types).associate { it }
@@ -24,8 +24,8 @@ fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage, t
 
 private fun expandNodes(
     state: BaselineAlgorithmState,
-    substitution: Map<AnyTypeNode, Type>,
-    generalRating: List<Type>,
+    substitution: Map<AnyTypeNode, UtType>,
+    generalRating: List<UtType>,
     storage: PythonTypeStorage
 ): BaselineAlgorithmState {
     val (newAnyNodeMap, allNewNodes) = substitution.entries.fold(
@@ -52,11 +52,11 @@ private fun expandNodes(
 }
 
 private fun expansionBFS(
-    substitution: Map<AnyTypeNode, Type>,
+    substitution: Map<AnyTypeNode, UtType>,
     nodeMap: Map<AnyTypeNode, BaselineAlgorithmNode>
 ): Map<BaselineAlgorithmNode, BaselineAlgorithmNode> {
     val queue: Queue<Pair<BaselineAlgorithmNode, Int>> = LinkedList(substitution.keys.map { Pair(it, 0) })
-    val newParams: MutableMap<BaselineAlgorithmNode, MutableList<Type>> = mutableMapOf()
+    val newParams: MutableMap<BaselineAlgorithmNode, MutableList<UtType>> = mutableMapOf()
     val newNodes: MutableMap<BaselineAlgorithmNode, BaselineAlgorithmNode> = nodeMap.toMutableMap()
     val lastModified: MutableMap<BaselineAlgorithmNode, Int> = mutableMapOf()
     var timer = 0

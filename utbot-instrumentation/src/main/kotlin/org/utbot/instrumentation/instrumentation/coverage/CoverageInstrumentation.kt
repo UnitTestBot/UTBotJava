@@ -2,27 +2,22 @@ package org.utbot.instrumentation.instrumentation.coverage
 
 import kotlinx.coroutines.runBlocking
 import org.utbot.common.withAccessibility
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeWithStaticsInstrumentation
-import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
+import org.utbot.instrumentation.process.generated.CollectCoverageParams
 import org.utbot.instrumentation.util.CastProbesArrayException
 import org.utbot.instrumentation.util.NoProbesArrayException
-import java.security.ProtectionDomain
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.instrumentation.process.generated.CollectCoverageParams
 
 data class CoverageInfo(
     val methodToInstrRange: Map<String, IntRange>,
     val visitedInstrs: List<Int>
 )
 
-/**
- * This instrumentation allows collecting coverage after several calls.
- */
-open class CoverageInstrumentation : Instrumentation<Result<*>> {
+abstract class CoverageInstrumentation : Instrumentation<Result<*>> {
     private val invokeWithStatics = InvokeWithStaticsInstrumentation()
 
     /**
@@ -53,7 +48,7 @@ open class CoverageInstrumentation : Instrumentation<Result<*>> {
     /**
      * Collects coverage from the given [clazz] via reflection.
      */
-    open fun <T : Any> collectCoverageInfo(clazz: Class<out T>): CoverageInfo {
+    fun <T : Any> collectCoverageInfo(clazz: Class<out T>): CoverageInfo {
         val probesFieldName: String = Settings.PROBES_ARRAY_NAME
         val visitedLinesField = clazz.fields.firstOrNull { it.name == probesFieldName }
             ?: throw NoProbesArrayException(clazz, Settings.PROBES_ARRAY_NAME)
@@ -74,34 +69,8 @@ open class CoverageInstrumentation : Instrumentation<Result<*>> {
         }
     }
 
-    protected open fun <T : Any> computeMapOfRanges(clazz: Class<out T>): Map<String, IntRange> {
-        return Instrumenter(clazz).computeMapOfRanges()
-    }
+    abstract fun <T : Any> computeMapOfRanges(clazz: Class<out T>): Map<String, IntRange>
 
-    /**
-     * Transforms bytecode such way that it becomes possible to get a coverage.
-     *
-     * Adds set of instructions which marks the executed instruction as completed. Uses static boolean array for this.
-     */
-    override fun transform(
-        loader: ClassLoader?,
-        className: String,
-        classBeingRedefined: Class<*>?,
-        protectionDomain: ProtectionDomain?,
-        classfileBuffer: ByteArray
-    ): ByteArray {
-        val instrumenter = Instrumenter(classfileBuffer)
-
-        val staticArrayStrategy = StaticArrayStrategy(className, Settings.PROBES_ARRAY_NAME)
-        instrumenter.visitInstructions(staticArrayStrategy)
-        instrumenter.addStaticField(staticArrayStrategy)
-
-        return instrumenter.classByteCode
-    }
-
-    object Factory : Instrumentation.Factory<Result<*>, CoverageInstrumentation> {
-        override fun create(): CoverageInstrumentation = CoverageInstrumentation()
-    }
 }
 
 /**
@@ -111,6 +80,8 @@ fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.collectCoverage(clazz: 
     withProcess {
         val clazzByteArray = kryoHelper.writeObject(clazz)
 
-        kryoHelper.readObject(instrumentedProcessModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo)
+        kryoHelper.readObject(
+            instrumentedProcessModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo
+        )
     }
 }

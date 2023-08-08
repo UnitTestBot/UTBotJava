@@ -1,19 +1,19 @@
 package org.utbot.framework.coverage
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInfo
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.util.StaticEnvironment
-import kotlinx.coroutines.runBlocking
 
 fun methodCoverage(executable: ExecutableId, executions: List<UtValueExecution<*>>, classpath: String): Coverage {
     val methodSignature = executable.signature
     val classId = executable.classId
-    return ConcreteExecutor(CoverageInstrumentation.Factory, classpath).let { executor ->
+    return ConcreteExecutor(InstructionCoverageInstrumentation.Factory, classpath).let { executor ->
         for (execution in executions) {
             val args = execution.stateBefore.params.map { it.value }.toMutableList()
             val caller = execution.stateBefore.caller

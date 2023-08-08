@@ -10,7 +10,7 @@ fun createClassVisitorForBranchCoverageInstrumentation(
     writer: ClassWriter,
     className: String
 ): ClassProbesAdapter {
-    val strategy = ClassFieldProbeArrayStrategy(className)
+    val strategy = ProbeArrayStrategy(className)
     return ClassProbesAdapter(
         ClassInstrumenter(strategy, writer),
         false

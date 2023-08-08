@@ -4,7 +4,7 @@ import org.utbot.examples.samples.staticenvironment.StaticExampleClass
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -17,7 +17,7 @@ class TestStaticMethods {
     @Test
     fun testStaticMethodCall() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(StaticExampleClass::inc, arrayOf())
@@ -44,7 +44,7 @@ class TestStaticMethods {
     @Test
     fun testNullableMethod() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(
@@ -75,7 +75,7 @@ class TestStaticMethods {
     @Test
     fun testNullableMethodWithoutAnnotations() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val res1 = it.execute(

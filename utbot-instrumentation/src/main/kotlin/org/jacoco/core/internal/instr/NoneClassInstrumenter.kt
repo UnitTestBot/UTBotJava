@@ -23,7 +23,7 @@ class NoneClassInstrumenter(
         val mv = cv.visitMethod(access, name, desc, signature, exceptions)
 
         val frameEliminator = DuplicateFrameEliminator(mv)
-        val probeVariableInserter = NoneProbeInserter(name, methodToProbes, frameEliminator)
+        val probeVariableInserter = NoneProbeInserter(name, desc, methodToProbes, frameEliminator)
         return MethodInstrumenter(probeVariableInserter, probeVariableInserter)
     }
 

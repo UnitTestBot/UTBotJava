@@ -36,7 +36,7 @@ class Instrumenter(classByteCode: ByteArray, val classLoader: ClassLoader? = nul
         return classVisitor
     }
 
-    fun computeMapOfRanges(methodName: String? = null): Map<String, IntRange> {
+    fun computeMapOfRangesForInstructionCoverage(methodName: String? = null): Map<String, IntRange> {
         val methodToListOfProbesInserter = MethodToProbesVisitor()
 
         visitClass(object : ClassVisitorBuilder<InstructionVisitorAdapter> {

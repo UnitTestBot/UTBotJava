@@ -10,12 +10,20 @@ import org.utbot.instrumentation.util.CastProbeCounterException
 import org.utbot.instrumentation.util.NoProbeCounterException
 import java.security.ProtectionDomain
 
+/**
+ * This instrumentation allows collecting branch coverage after several calls.
+ */
 class BranchCoverageInstrumentation : CoverageInstrumentation() {
 
     override fun <T : Any> computeMapOfRanges(clazz: Class<out T>): Map<String, IntRange> {
         return Instrumenter(clazz).computeMapOfRangesForBranchCoverage()
     }
 
+    /**
+     * Transforms bytecode such way that it becomes possible to get a branch coverage by JaCoCo.
+     *
+     * Adds set of instructions which marks the executed instruction as completed. Uses static boolean array for this.
+     */
     override fun transform(
         loader: ClassLoader?,
         className: String,

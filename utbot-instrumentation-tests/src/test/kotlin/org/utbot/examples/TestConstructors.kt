@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.instrumentation.et.ExecutionTraceInstrumentation
 import org.utbot.instrumentation.instrumentation.et.convert
@@ -86,7 +86,7 @@ class TestConstructors {
     @Test
     fun testCoverageConstructor() {
         withInstrumentation(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             CLASSPATH
         ) { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors

@@ -16,6 +16,7 @@ import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.util.at
 import org.utbot.framework.codegen.util.isAccessibleFrom
+import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.fields.ArrayElementAccess
 import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
@@ -44,6 +45,7 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -287,6 +289,13 @@ internal fun CgContextOwner.typeCast(
     isSafetyCast: Boolean = false
 ): CgExpression {
     val denotableTargetType = targetType.denotableType
+
+    // Casting null expressions to the abstract types leads to a compilation error.
+    // It may happen sometimes because of generic processing troubles: see issue 2420.
+    if (denotableTargetType.isAbstract && expression == nullLiteral()) {
+        return expression
+    }
+
     importIfNeeded(denotableTargetType)
     return CgTypeCast(denotableTargetType, expression, isSafetyCast)
 }

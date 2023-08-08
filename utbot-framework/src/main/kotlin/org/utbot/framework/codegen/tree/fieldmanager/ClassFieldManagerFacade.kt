@@ -9,27 +9,13 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 
 class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 
-    private val injectingMocksFieldsManager = CgInjectingMocksFieldsManager(context)
-    private val mockedFieldsManager = CgMockedFieldsManager(context)
-    private val spiedFieldsManager = CgSpiedFieldsManager(context)
-    private val autowiredFieldsManager = CgAutowiredFieldsManager(context)
-    private val persistenceContextFieldsManager = CgPersistenceContextFieldsManager.createIfPossible(context)
-
-    private val annotationManagers = listOfNotNull(
-        injectingMocksFieldsManager,
-        mockedFieldsManager,
-        spiedFieldsManager,
-        autowiredFieldsManager,
-        persistenceContextFieldsManager,
-    )
-
     fun constructVariableForField(model: UtModel): CgValue? {
-        annotationManagers.forEach { manager ->
-            val managedModels = manager.annotatedModelGroups[manager.annotationType]
+        relevantFieldManagers.forEach { manager ->
+            val managedModels = manager.getManagedModels()
 
             val alreadyCreatedVariable = manager.findCgValueByModel(model, managedModels)
             if (alreadyCreatedVariable != null) {
-                manager.constructFieldsForVariable(model, alreadyCreatedVariable)
+                manager.useVariableForModel(model, alreadyCreatedVariable)
                 return alreadyCreatedVariable
             }
         }
@@ -38,13 +24,11 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
     }
 
     fun findTrustedModels(): List<UtModelWrapper> {
-        val trustedModels = mutableListOf<UtModelWrapper>()
-         annotationManagers.forEach { manager ->
-            val managedModels = manager.annotatedModelGroups[manager.annotationType]
-            trustedModels += managedModels ?: emptyList()
-        }
+        val trustedModels = mutableListOf(UtSpringContextModel.wrap())
 
-        trustedModels += listOf(UtSpringContextModel.wrap())
+         relevantFieldManagers.forEach { manager ->
+            trustedModels += manager.getManagedModels()
+        }
 
         return trustedModels
     }

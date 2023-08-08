@@ -24,7 +24,7 @@ data class ModelsByOrigin(
     val stateBeforeDependentModels: Set<UtModelWrapper>,
 )
 
-class FieldManagerUtils(val context: CgContext): CgContextOwner by context {
+class ModelGroupsProvider(val context: CgContext): CgContextOwner by context {
 
     private val modelsCache = mutableMapOf<TestClassModel, ModelsByOrigin>()
 

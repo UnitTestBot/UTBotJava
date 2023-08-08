@@ -120,6 +120,7 @@ jobs:
 
       - name: Expand system swap
         shell: bash
+        # trying to configure swap on host from running container
         run: |
           docker run -d --rm --name busybox --privileged --net=host --pid=host --ipc=host --volume /:/host busybox sleep infinity
           docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "swapoff /mnt/swapfile"'
@@ -139,14 +140,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
-      # temporary debug
-#      - name: Setup tmate session
-#        uses: mxschmitt/action-tmate@v3
-#        with:
-#          sudo: false
-#          limit-access-to-actor: false
-      # /temporary debug
 
       - name: Build and run monitoring UTBot Java
         run: |

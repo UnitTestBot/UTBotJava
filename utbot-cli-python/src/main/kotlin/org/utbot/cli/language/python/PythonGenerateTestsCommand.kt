@@ -230,12 +230,12 @@ class PythonGenerateTestsCommand : CliktCommand(
         val config = PythonTestGenerationConfig(
             pythonPath = pythonPath,
             testFileInformation = TestFileInformation(sourceFile.toAbsolutePath(), sourceFileContent, currentPythonModule.dropInitFile()),
-            sysPathDirectories = directoriesForSysPath.toSet(),
+            sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
             testedMethods = pythonMethods,
             timeout = timeout,
             timeoutForRun = timeoutForRun,
             testFramework = testFramework,
-            testSourceRootPath = Paths.get(output).parent.toAbsolutePath(),
+            testSourceRootPath = Paths.get(output.toAbsolutePath()).parent.toAbsolutePath(),
             withMinimization = !doNotMinimize,
             isCanceled = { false },
             runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour)
@@ -243,7 +243,7 @@ class PythonGenerateTestsCommand : CliktCommand(
 
         val processor = PythonCliProcessor(
             config,
-            output,
+            output.toAbsolutePath(),
             logger,
             coverageOutput,
         )

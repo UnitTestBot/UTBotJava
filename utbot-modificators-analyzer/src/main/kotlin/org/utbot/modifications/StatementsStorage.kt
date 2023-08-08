@@ -19,7 +19,9 @@ import org.utbot.framework.plugin.api.StatementId
  * - cleanup all statements of deleted or modified classes
  * - build invocation graph (with nested calls) and find field modificators on request
  */
-class StatementsStorage {
+class StatementsStorage(
+    private val modificationsPredicate: (Any) -> Any?
+) {
     /** Statements with their detailed information */
     val items: MutableMap<StatementId, StatementInfo> = mutableMapOf()
 
@@ -43,7 +45,7 @@ class StatementsStorage {
             items[executableId] = StatementInfo(
                 isRoot = true,
                 executablesAnalyzer.findDeclaringClass(executableId),
-                executablesAnalyzer.findModificationsInJimple(executableId),
+                executablesAnalyzer.findModificationsInJimple(executableId, modificationsPredicate),
                 executablesAnalyzer.findInvocationsInJimple(executableId),
                 storageDataVersion,
             )
@@ -155,7 +157,7 @@ class StatementsStorage {
 
             val executableId = statementId as? ExecutableId ?: return
 
-            val modifications = executablesAnalyzer.findModificationsInJimple(executableId)
+            val modifications = executablesAnalyzer.findModificationsInJimple(executableId, modificationsPredicate)
             val successors = executablesAnalyzer.findInvocationsInJimple(executableId)
 
             for (successor in successors) {

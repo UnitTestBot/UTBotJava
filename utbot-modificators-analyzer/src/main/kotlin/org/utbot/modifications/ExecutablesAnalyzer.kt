@@ -56,15 +56,17 @@ class ExecutablesAnalyzer {
     /**
      * Finds fields modified in Jimple code of this method.
      */
-    fun findModificationsInJimple(executableId: ExecutableId): Set<FieldId> {
+    fun findModificationsInJimple(
+        executableId: ExecutableId,
+        predicate: (Any) -> Any?
+    ): Set<FieldId> {
         val sootMethod = executablesCache[executableId] ?: error("No method ${executableId.name} in soot cache")
 
         val jimpleBody = retrieveJimpleBody(sootMethod) ?: return emptySet()
         return jimpleBody.units
             .filterIsInstance<JAssignStmt>()
-            .mapNotNull { it.leftOp as? JInstanceFieldRef }
-            .map { it.field.fieldId }
-            .toSet()
+            .mapNotNull { predicate(it) as? JInstanceFieldRef }
+            .mapTo(mutableSetOf()) { it.field.fieldId }
     }
 
     /**

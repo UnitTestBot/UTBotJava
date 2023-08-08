@@ -12,13 +12,11 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
-import org.utbot.fuzzing.providers.MethodDescription
 import org.utbot.fuzzing.providers.SPRING_BEAN_PROP
 import org.utbot.fuzzing.providers.findAllAvailableMethods
 import org.utbot.fuzzing.providers.nullRoutine
 import org.utbot.fuzzing.spring.valid.EntityLifecycleState
 import org.utbot.fuzzing.spring.valid.EntityLifecycleStateProperty
-import org.utbot.fuzzing.providers.removeSetters
 
 class SpringBeanValueProvider(
     private val idGenerator: IdGenerator<Int>,

@@ -24,9 +24,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.utbot.common.nameOfPackage
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
+import soot.jimple.internal.JAssignStmt
+import soot.jimple.internal.JInstanceFieldRef
 
 internal class UtBotFieldModificatorsTest {
     private lateinit var fieldsModificatorsSearcher: UtBotFieldsModificatorsSearcher
@@ -176,7 +177,9 @@ internal class UtBotFieldModificatorsTest {
             forceReload = false,
             jdkInfo = JdkInfoDefaultProvider().info
         )
-        fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher()
+        fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher(
+            modificationsPredicate = { (it as JAssignStmt).leftOp as? JInstanceFieldRef }
+        )
     }
 
     private fun runUpdate(classes: Set<KClass<*>>) {

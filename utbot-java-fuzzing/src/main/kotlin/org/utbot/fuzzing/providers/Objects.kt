@@ -16,6 +16,8 @@ import java.lang.reflect.Modifier
 import java.lang.reflect.TypeVariable
 import org.utbot.modifications.AnalysisMode
 import org.utbot.modifications.UtBotFieldsModificatorsSearcher
+import soot.jimple.internal.JAssignStmt
+import soot.jimple.internal.JInstanceFieldRef
 
 private val logger = KotlinLogging.logger {}
 
@@ -264,11 +266,12 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
 }
 
 internal fun findAllAvailableMethods(
-    description: FuzzedDescription?,
+    description: FuzzedDescription,
     classId: ClassId,
     packageName: String?
 ): List<MethodDescription> {
-    val modifyingMethods = findModifyingMethodNames(classId)
+    val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
+    val modifyingMethods = findModifyingMethodNames(methodUnderTestName, classId)
     return classId.jClass.declaredMethods.mapNotNull { method ->
         if (isAccessible(method, packageName)) {
             if (method.name !in modifyingMethods) return@mapNotNull null
@@ -278,12 +281,7 @@ internal fun findAllAvailableMethods(
                 method
                     .parameterTypes
                     .map {
-                        if (description != null) {
-                            toFuzzerType(
-                                it,
-                                description.typeCache
-                            )
-                        } else FuzzedType(it.id)
+                        toFuzzerType(it, description.typeCache)
                     }
 
             MethodDescription(
@@ -327,13 +325,22 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
 
-private fun findModifyingMethodNames(classId: ClassId) =
-    UtBotFieldsModificatorsSearcher()
+private fun findModifyingMethodNames(methodUnderTestName: String, classId: ClassId) =
+    UtBotFieldsModificatorsSearcher(
+        modificationsPredicate = { (it as JAssignStmt).leftOp as? JInstanceFieldRef ?: it.rightOp as? JInstanceFieldRef }
+    )
         .let { searcher ->
             searcher.update(setOf(classId))
-            searcher.getModificatorToFields(AnalysisMode.Methods)
-                .keys
-                .mapTo(mutableSetOf()) { it.name }
+            val modificatorsToFields = searcher.getModificatorToFields(AnalysisMode.Methods)
+
+            modificatorsToFields[methodUnderTestName]
+                ?.let { fieldsModifiedByMUT ->
+                    modificatorsToFields.mapNotNull {
+                        if (it.key == methodUnderTestName || it.value.intersect(fieldsModifiedByMUT).isEmpty()) null
+                        else it.key
+                    }
+                }
+                ?: setOf()
         }
 
 private fun isNotPrivateOrProtected(modifiers: Int): Boolean {

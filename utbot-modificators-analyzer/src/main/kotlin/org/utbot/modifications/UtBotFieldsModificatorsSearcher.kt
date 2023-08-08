@@ -4,9 +4,11 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.StatementId
 
-class UtBotFieldsModificatorsSearcher {
+class UtBotFieldsModificatorsSearcher(
+    modificationsPredicate: (Any) -> Any?
+) {
 
-    private var statementsStorage = StatementsStorage()
+    private var statementsStorage = StatementsStorage(modificationsPredicate)
 
     fun update(classIds: Set<ClassId>) = statementsStorage.update(classIds)
 
@@ -22,7 +24,7 @@ class UtBotFieldsModificatorsSearcher {
         return findModificatorsInCacheInverted(analysisMode)
     }
 
-    fun getModificatorToFields(analysisMode: AnalysisMode): Map<StatementId, Set<FieldId>> {
+    fun getModificatorToFields(analysisMode: AnalysisMode): Map<String, Set<FieldId>> {
         statementsStorage.updateCaches()
         return findModificatorsInCache(analysisMode)
     }
@@ -47,7 +49,7 @@ class UtBotFieldsModificatorsSearcher {
         return modifications
     }
 
-    private fun findModificatorsInCache(analysisMode: AnalysisMode): Map<StatementId, Set<FieldId>> =
+    private fun findModificatorsInCache(analysisMode: AnalysisMode): Map<String, Set<FieldId>> =
         statementsStorage
             .items
             .mapNotNull {
@@ -56,7 +58,7 @@ class UtBotFieldsModificatorsSearcher {
                 statementsStorage.find(it.key, analysisMode)
                     .let { modifiedFields ->
                         if (modifiedFields.isEmpty()) return@mapNotNull null
-                        else it.key to modifiedFields
+                        else it.key.name to modifiedFields
                     }
             }.toMap()
 }

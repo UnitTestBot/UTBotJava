@@ -61,7 +61,6 @@ def generate_tests(
         command += f" -m {','.join(method_names)}"
     print(command)
     code = os.system(command)
-    print(code)
     return code
 
 
@@ -89,12 +88,15 @@ def check_coverage(
                 expected_coverage = group.get('coverage', 0)
 
                 file_suffix = f"{part['path'].replace('/', '_')}_{file['name']}"
-                coverage_output_file = pathlib.PurePath(coverage_output_dir, f"coverage_{file_suffix}.json")
-                with open(coverage_output_file, "rt") as fin:
-                    actual_coverage_json = json.loads(fin.readline())
-                actual_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['covered'])
-                actual_not_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['notCovered'])
-                actual_coverage = round(actual_covered / (actual_not_covered + actual_covered) * 100)
+                coverage_output_file = pathlib.Path(coverage_output_dir, f"coverage_{file_suffix}.json")
+                if coverage_output_file.exists():
+                    with open(coverage_output_file, "rt") as fin:
+                        actual_coverage_json = json.loads(fin.readline())
+                    actual_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['covered'])
+                    actual_not_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['notCovered'])
+                    actual_coverage = round(actual_covered / (actual_not_covered + actual_covered) * 100)
+                else:
+                    actual_coverage = 0
 
                 coverage[file_suffix] = (actual_coverage, expected_coverage)
                 report[file_suffix] = actual_coverage >= expected_coverage

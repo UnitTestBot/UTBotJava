@@ -1,7 +1,7 @@
 package org.utbot.modifications
 
 /**
- * Restrictions on demanded modifications
+ * Restrictions on demanded modificators
  */
 enum class AnalysisMode {
 

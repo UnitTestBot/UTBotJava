@@ -105,7 +105,7 @@ class ObjectValueProvider(
                         }
                     }
                 }
-                if (true || shouldMutateWithMethods) {
+                if (shouldMutateWithMethods) {
                     findAllAvailableMethods(description, classId, description.description.packageName).forEach { md ->
                         yield(Routine.Call(md.parameterTypes) { self, values ->
                             val model = self.model as UtAssembleModel

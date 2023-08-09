@@ -17,24 +17,24 @@ import pathlib
 def parse_arguments():
     parser = argparse.ArgumentParser(
         prog='UtBot Python test',
-        description='Generage tests for example files'
+        description='Generate tests for example files'
     )
     subparsers = parser.add_subparsers(dest="command")
     parser_generate = subparsers.add_parser('generate', help='Generate tests')
-    parser_generate.add_argument('java')
-    parser_generate.add_argument('jar')
-    parser_generate.add_argument('path_to_test_dir')
-    parser_generate.add_argument('-c', '--config_file')
-    parser_generate.add_argument('-p', '--python_path')
-    parser_generate.add_argument('-o', '--output_dir')
-    parser_generate.add_argument('-i', '--coverage_output_dir')
+    parser_generate.add_argument('java', required=True)
+    parser_generate.add_argument('jar', required=True)
+    parser_generate.add_argument('path_to_test_dir', required=True)
+    parser_generate.add_argument('-c', '--config_file', required=True)
+    parser_generate.add_argument('-p', '--python_path', required=True)
+    parser_generate.add_argument('-o', '--output_dir', required=True)
+    parser_generate.add_argument('-i', '--coverage_output_dir', required=True)
     parser_run = subparsers.add_parser('run', help='Run tests')
-    parser_run.add_argument('-p', '--python_path')
-    parser_run.add_argument('-t', '--test_directory')
-    parser_run.add_argument('-c', '--code_directory')
+    parser_run.add_argument('-p', '--python_path', required=True)
+    parser_run.add_argument('-t', '--test_directory', required=True)
+    parser_run.add_argument('-c', '--code_directory', required=True)
     parser_coverage = subparsers.add_parser('check_coverage', help='Check coverage')
-    parser_coverage.add_argument('-i', '--coverage_output_dir')
-    parser_coverage.add_argument('-c', '--config_file')
+    parser_coverage.add_argument('-i', '--coverage_output_dir', required=True)
+    parser_coverage.add_argument('-c', '--config_file', required=True)
     return parser.parse_args()
 
 

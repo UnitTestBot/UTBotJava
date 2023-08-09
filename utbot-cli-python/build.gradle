@@ -15,6 +15,7 @@ configurations {
 }
 
 dependencies {
+    implementation project(':utbot-framework')
     implementation project(':utbot-cli')
     implementation project(':utbot-python')
 

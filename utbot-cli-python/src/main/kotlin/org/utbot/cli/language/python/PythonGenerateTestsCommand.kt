@@ -62,9 +62,12 @@ class PythonGenerateTestsCommand : CliktCommand(
     ).required()
 
     private val output by option(
-        "-o", "--output",
-        help = "(required) File for generated tests."
-    ).required()
+        "-o", "--output", help = "(required) File for generated tests."
+    )
+        .required()
+        .check("Must end with .py suffix") {
+            it.endsWith(".py")
+        }
 
     private val coverageOutput by option(
         "--coverage",
@@ -245,7 +248,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             config,
             output.toAbsolutePath(),
             logger,
-            coverageOutput,
+            coverageOutput?.toAbsolutePath(),
         )
 
         logger.info("Loading information about Python types...")

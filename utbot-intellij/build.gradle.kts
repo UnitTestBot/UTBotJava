@@ -1,8 +1,6 @@
 val projectType: String by rootProject
+val communityEdition: String by rootProject
 val ultimateEdition: String by rootProject
-val springEdition: String by rootProject
-val languagesEdition: String by rootProject
-val pureJavaEdition: String by rootProject
 
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
@@ -72,16 +70,16 @@ intellij {
     val basePluginSet = jvmPlugins + kotlinPlugins + mavenUtilsPlugins + androidPlugins
 
     plugins.set(
-        if (projectType == languagesEdition || projectType == ultimateEdition) {
-            when (ideType) {
+        when (projectType) {
+            communityEdition -> basePluginSet + pythonCommunityPlugins
+            ultimateEdition -> when (ideType) {
                 "IC" -> basePluginSet + pythonCommunityPlugins
                 "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
                 "PC" -> pythonCommunityPlugins
                 "PY" -> pythonUltimatePlugins // something else, JS?
                 else -> basePluginSet
             }
-        } else {
-            basePluginSet
+            else -> basePluginSet
         }
     )
 
@@ -167,12 +165,13 @@ dependencies {
     implementation(project(":utbot-ui-commons"))
 
     //Family
-    if (projectType == languagesEdition || projectType == ultimateEdition) {
-        if (pythonIde?.split(',')?.contains(ideType) == true) {
-            implementation(project(":utbot-python"))
-            implementation(project(":utbot-intellij-python"))
-        }
 
+    if (pythonIde?.split(',')?.contains(ideType) == true) {
+        implementation(project(":utbot-python"))
+        implementation(project(":utbot-intellij-python"))
+    }
+
+    if (projectType == ultimateEdition) {
         if (jsIde?.split(',')?.contains(ideType) == true) {
             implementation(project(":utbot-js"))
             implementation(project(":utbot-intellij-js"))

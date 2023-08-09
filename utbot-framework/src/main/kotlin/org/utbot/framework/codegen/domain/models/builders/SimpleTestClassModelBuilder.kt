@@ -1,12 +1,14 @@
 package org.utbot.framework.codegen.domain.models.builders
 
-import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.enclosingClass
 
-open class SimpleTestClassModelBuilder(context: CgContext): TestClassModelBuilder() {
+typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
+
+open class SimpleTestClassModelBuilder: TestClassModelBuilder() {
     override fun createTestClassModel(
         classUnderTest: ClassId,
         testSets: List<CgMethodTestSet>,

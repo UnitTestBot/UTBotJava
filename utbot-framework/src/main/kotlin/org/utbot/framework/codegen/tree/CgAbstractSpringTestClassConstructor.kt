@@ -2,9 +2,8 @@ package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
-import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
+import org.utbot.framework.codegen.domain.models.AnnotationTarget.Method
 import org.utbot.framework.codegen.domain.models.CgClassBody
-import org.utbot.framework.codegen.domain.models.CgDeclaration
 import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgMethod
@@ -13,21 +12,18 @@ import org.utbot.framework.codegen.domain.models.CgMethodsCluster
 import org.utbot.framework.codegen.domain.models.CgRegion
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
-import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.domain.models.SpringTestClassModel
-import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
+import org.utbot.framework.codegen.tree.fieldmanager.ClassFieldManagerFacade
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.util.id
-import java.lang.Exception
 
 abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
-    CgAbstractTestClassConstructor<SpringTestClassModel>(context) {
+    CgAbstractTestClassConstructor<SimpleTestClassModel>(context) {
 
     protected val variableConstructor: CgSpringVariableConstructor =
         CgComponents.getVariableConstructorBy(context) as CgSpringVariableConstructor
 
-    override fun constructTestClassBody(testClassModel: SpringTestClassModel): CgClassBody {
+    override fun constructTestClassBody(testClassModel: SimpleTestClassModel): CgClassBody {
         return buildClassBody(currentTestClass) {
 
             // TODO: support inner classes here
@@ -80,7 +76,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
         return if (regions.any()) regions else null
     }
 
-    abstract fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration>
+    abstract fun constructClassFields(testClassModel: SimpleTestClassModel): List<CgFieldDeclaration>
 
     /**
      * Here "additional" means that these tests are not obtained from
@@ -90,49 +86,6 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
 
     open fun constructAdditionalUtilMethods(): CgMethodsCluster? = null
 
-    protected fun constructFieldsWithAnnotation(
-        fieldManager: CgClassFieldManager,
-        groupedModelsByClassId: TypedModelWrappers,
-    ): List<CgFieldDeclaration> {
-        val annotationClassId = fieldManager.annotationType
-        val annotation = addAnnotation(annotationClassId, Field)
-
-        val constructedDeclarations = mutableListOf<CgFieldDeclaration>()
-        for ((classId, modelWrappers) in groupedModelsByClassId) {
-
-            val modelWrapper = modelWrappers.firstOrNull() ?: continue
-            val model = modelWrapper.model
-
-            val fieldWithAnnotationIsRequired = fieldManager.fieldWithAnnotationIsRequired(model.classId)
-            if (!fieldWithAnnotationIsRequired) {
-                continue
-            }
-
-            val baseVarName = fieldManager.constructBaseVarName(model)
-
-            val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                ?: error("`CgVariable` cannot be constructed from a $model model")
-
-            val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
-
-            constructedDeclarations += CgFieldDeclaration(
-                ownerClassId = currentTestClass,
-                declaration,
-                annotation
-            )
-
-            modelWrappers
-                .forEach { modelWrapper ->
-
-                    valueByUtModelWrapper[modelWrapper] = createdVariable
-
-                    variableConstructor.annotatedModelGroups
-                        .getOrPut(annotationClassId) { mutableSetOf() } += modelWrapper
-                }
-        }
-
-        return constructedDeclarations
-    }
 
     /**
      * Clears the results of variable instantiations that occurred
@@ -145,8 +98,7 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
      * but it will take very long time to do it now.
      */
     private fun clearUnwantedVariableModels() {
-        val trustedListOfModels =
-            variableConstructor.annotatedModelGroups.values.flatten() + listOf(UtSpringContextModel.wrap())
+        val trustedListOfModels = ClassFieldManagerFacade(context).findTrustedModels()
 
         valueByUtModelWrapper
             .filterNot { it.key in trustedListOfModels }

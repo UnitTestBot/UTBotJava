@@ -20,20 +20,3 @@ class SimpleTestClassModel(
     nestedClasses: List<SimpleTestClassModel> = listOf(),
 ): TestClassModel(classUnderTest, methodTestSets, nestedClasses)
 
-/**
- * Extended [SimpleTestClassModel] for Spring analysis reasons
- */
-class SpringTestClassModel(
-    classUnderTest: ClassId,
-    methodTestSets: List<CgMethodTestSet>,
-    nestedClasses: List<SimpleTestClassModel>,
-    val springSpecificInformation: SpringSpecificInformation,
-): TestClassModel(classUnderTest, methodTestSets, nestedClasses)
-
-class SpringSpecificInformation(
-    val thisInstanceModels: TypedModelWrappers,
-    val thisInstanceDependentMocks: TypedModelWrappers,
-    val thisInstanceDependentSpies: TypedModelWrappers,
-    val autowiredFromContextModels: TypedModelWrappers,
-    val entityManagerModels: TypedModelWrappers,
-)

@@ -10,7 +10,8 @@ import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.domain.models.AnnotationTarget.*
 import org.utbot.framework.codegen.domain.models.CgTestMethodType.FAILING
 import org.utbot.framework.codegen.domain.models.CgTestMethodType.SUCCESSFUL
-import org.utbot.framework.codegen.domain.models.SpringTestClassModel
+import org.utbot.framework.codegen.tree.fieldmanager.CgAutowiredFieldsManager
+import org.utbot.framework.codegen.tree.fieldmanager.CgPersistenceContextFieldsManager
 import org.utbot.framework.codegen.util.escapeControlChars
 import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.ClassId
@@ -51,21 +52,18 @@ class CgSpringIntegrationTestClassConstructor(
         private val logger = KotlinLogging.logger {}
     }
 
-    override fun constructTestClass(testClassModel: SpringTestClassModel): CgClass {
+    override fun constructTestClass(testClassModel: SimpleTestClassModel): CgClass {
         addNecessarySpringSpecificAnnotations(testClassModel)
         return super.constructTestClass(testClassModel)
     }
 
-    override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
-        return constructFieldsWithAnnotation(
-            autowiredFieldManager,
-            testClassModel.springSpecificInformation.autowiredFromContextModels
-        ) + persistenceContextFieldsManager?.let { persistenceContextFieldsManager ->
-            constructFieldsWithAnnotation(
-                persistenceContextFieldsManager,
-                testClassModel.springSpecificInformation.entityManagerModels
-            )
-        }.orEmpty()
+    override fun constructClassFields(testClassModel: SimpleTestClassModel): List<CgFieldDeclaration> {
+        val autowiredFields = autowiredFieldManager.createFieldDeclarations(testClassModel)
+        val persistentContextFields = persistenceContextFieldsManager
+            ?.let { fieldsManager -> fieldsManager.createFieldDeclarations(testClassModel) }
+            .orEmpty()
+
+        return autowiredFields + persistentContextFields
     }
 
     override fun constructAdditionalTestMethods() =
@@ -113,7 +111,7 @@ class CgSpringIntegrationTestClassConstructor(
             .map { it.escapeControlChars() }
     )
 
-    private fun addNecessarySpringSpecificAnnotations(testClassModel: SpringTestClassModel) {
+    private fun addNecessarySpringSpecificAnnotations(testClassModel: SimpleTestClassModel) {
         val isSpringBootTestAccessible = utContext.classLoader.tryLoadClass(springBootTestClassId.name) != null
         if (isSpringBootTestAccessible) {
             addAnnotation(springBootTestClassId, Class)
@@ -205,8 +203,9 @@ class CgSpringIntegrationTestClassConstructor(
         if (utContext.classLoader.tryLoadClass(repositoryClassId.name) != null)
             addAnnotation(autoConfigureTestDbClassId, Class)
 
-        if (mockMvcClassId in testClassModel.springSpecificInformation.autowiredFromContextModels)
-            addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
+        //TODO: revert a check that this annotation is really required
+        addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
+
 
         if (utContext.classLoader.tryLoadClass(withMockUserClassId.name) != null)
             addAnnotation(withMockUserClassId, Class)

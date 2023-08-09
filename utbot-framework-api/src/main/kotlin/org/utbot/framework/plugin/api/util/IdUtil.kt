@@ -307,6 +307,8 @@ val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
 val collectionClassId = java.util.Collection::class.id
 
+val listClassId = List::class.id
+
 val baseStreamClassId = java.util.stream.BaseStream::class.id
 val streamClassId = java.util.stream.Stream::class.id
 val intStreamClassId = java.util.stream.IntStream::class.id

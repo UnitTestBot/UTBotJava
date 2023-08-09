@@ -2,7 +2,7 @@ package org.utbot.framework.codegen.generator
 
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
-import org.utbot.framework.codegen.domain.models.builders.SpringTestClassModelBuilder
+import org.utbot.framework.codegen.domain.models.builders.SimpleTestClassModelBuilder
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.CgCustomAssertConstructor
 import org.utbot.framework.codegen.tree.CgSpringIntegrationTestClassConstructor
@@ -39,7 +39,7 @@ class SpringCodeGenerator(
     private val classUnderTest: ClassId = params.classUnderTest
 
     override fun generate(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
-        val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
+        val testClassModel = SimpleTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
         val astConstructor = when (springTestType) {

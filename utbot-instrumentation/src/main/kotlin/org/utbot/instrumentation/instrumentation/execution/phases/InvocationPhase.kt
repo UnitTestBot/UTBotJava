@@ -17,8 +17,17 @@ class InvocationPhase(
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
         val message = this.javaClass.simpleName
-        return when(e) {
-            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, MissingState, UtTimeoutException(e), Coverage()))
+        return when (e) {
+            is TimeoutException -> ExecutionPhaseStop(
+                message,
+                UtConcreteExecutionResult(
+                    stateBefore = MissingState,
+                    stateAfter = MissingState,
+                    result = UtTimeoutException(e),
+                    coverage = Coverage()
+                )
+            )
+
             else -> ExecutionPhaseError(message, e)
         }
     }

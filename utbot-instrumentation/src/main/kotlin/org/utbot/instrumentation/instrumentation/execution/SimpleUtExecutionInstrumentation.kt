@@ -127,7 +127,7 @@ class SimpleUtExecutionInstrumentation(
                     applyPostprocessing()
                 }
             }
-        }.copy(stateBefore = parameters.stateBefore)
+        }
     }
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =

@@ -20,7 +20,7 @@ import org.utbot.framework.plugin.api.StatementId
  * - build invocation graph (with nested calls) and find field modificators on request
  */
 class StatementsStorage(
-    private val modificationsPredicate: (Any) -> Any?
+    private val modificationsTransformationMode: ModificationTransformationMode
 ) {
     /** Statements with their detailed information */
     val items: MutableMap<StatementId, StatementInfo> = mutableMapOf()
@@ -45,7 +45,7 @@ class StatementsStorage(
             items[executableId] = StatementInfo(
                 isRoot = true,
                 executablesAnalyzer.findDeclaringClass(executableId),
-                executablesAnalyzer.findModificationsInJimple(executableId, modificationsPredicate),
+                executablesAnalyzer.findModificationsInJimple(executableId, modificationsTransformationMode),
                 executablesAnalyzer.findInvocationsInJimple(executableId),
                 storageDataVersion,
             )
@@ -95,15 +95,12 @@ class StatementsStorage(
         statementId: StatementId,
         analysisMode: AnalysisMode,
     ): Set<FieldId> {
-        fun isSetterOrDirectAccessor(statementId: StatementId, fields: Set<FieldId>): Boolean =
-            isSetterOrDirectAccessor(statementId) && fields.size == 1
-
         val fields = items[statementId]?.allModifiedFields ?: return emptySet()
 
         return when (analysisMode) {
             AllModificators -> fields
-            Methods -> if (statementId is MethodId && !isSetterOrDirectAccessor(statementId, fields)) fields else emptySet()
-            SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId, fields)) fields else emptySet()
+            Methods -> if (statementId is MethodId && !isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
+            SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
             Constructors -> if (statementId is ConstructorId) fields else emptySet()
         }
     }
@@ -157,7 +154,7 @@ class StatementsStorage(
 
             val executableId = statementId as? ExecutableId ?: return
 
-            val modifications = executablesAnalyzer.findModificationsInJimple(executableId, modificationsPredicate)
+            val modifications = executablesAnalyzer.findModificationsInJimple(executableId, modificationsTransformationMode)
             val successors = executablesAnalyzer.findInvocationsInJimple(executableId)
 
             for (successor in successors) {

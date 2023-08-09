@@ -48,8 +48,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import java.lang.reflect.Constructor
 import java.util.IdentityHashMap
-import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JInstanceFieldRef
+import org.utbot.modifications.ModificationTransformationMode
 
 /**
  * Creates [UtAssembleModel] from any [UtModel] or it's inner models if possible
@@ -76,7 +75,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
     private val modificatorsSearcher =
         UtBotFieldsModificatorsSearcher(
-            modificationsPredicate = { (it as JAssignStmt).leftOp as? JInstanceFieldRef }
+            modificationTransformationMode = ModificationTransformationMode.WriteOnly
         )
     private val constructorAnalyzer = ConstructorAnalyzer()
 

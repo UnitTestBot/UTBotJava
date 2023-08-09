@@ -15,9 +15,8 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.lang.reflect.TypeVariable
 import org.utbot.modifications.AnalysisMode
+import org.utbot.modifications.ModificationTransformationMode
 import org.utbot.modifications.UtBotFieldsModificatorsSearcher
-import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JInstanceFieldRef
 
 private val logger = KotlinLogging.logger {}
 
@@ -36,7 +35,7 @@ private fun isIgnored(type: ClassId): Boolean {
             || (type.isInner && !type.isStatic)
 }
 
-fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, shouldMutateWithMethods: Boolean = false) =
+fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, shouldMutateWithMethods: Boolean) =
     ObjectValueProvider(idGenerator, shouldMutateWithMethods).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
         ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
     }
@@ -106,7 +105,7 @@ class ObjectValueProvider(
                         }
                     }
                 }
-                if (shouldMutateWithMethods) {
+                if (true || shouldMutateWithMethods) {
                     findAllAvailableMethods(description, classId, description.description.packageName).forEach { md ->
                         yield(Routine.Call(md.parameterTypes) { self, values ->
                             val model = self.model as UtAssembleModel
@@ -280,9 +279,7 @@ internal fun findAllAvailableMethods(
             val parameterTypes =
                 method
                     .parameterTypes
-                    .map {
-                        toFuzzerType(it, description.typeCache)
-                    }
+                    .map { toFuzzerType(it, description.typeCache) }
 
             MethodDescription(
                 name = method.name,
@@ -327,11 +324,11 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
 
 private fun findModifyingMethodNames(methodUnderTestName: String, classId: ClassId) =
     UtBotFieldsModificatorsSearcher(
-        modificationsPredicate = { (it as JAssignStmt).leftOp as? JInstanceFieldRef ?: it.rightOp as? JInstanceFieldRef }
+        modificationTransformationMode = ModificationTransformationMode.ReadAndWrite
     )
         .let { searcher ->
             searcher.update(setOf(classId))
-            val modificatorsToFields = searcher.getModificatorToFields(AnalysisMode.Methods)
+            val modificatorsToFields = searcher.getModificatorToFields(analysisMode = AnalysisMode.Methods)
 
             modificatorsToFields[methodUnderTestName]
                 ?.let { fieldsModifiedByMUT ->

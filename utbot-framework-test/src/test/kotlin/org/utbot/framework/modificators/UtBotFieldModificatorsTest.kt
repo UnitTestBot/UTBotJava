@@ -26,8 +26,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
-import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JInstanceFieldRef
+import org.utbot.modifications.ModificationTransformationMode
 
 internal class UtBotFieldModificatorsTest {
     private lateinit var fieldsModificatorsSearcher: UtBotFieldsModificatorsSearcher
@@ -178,7 +177,7 @@ internal class UtBotFieldModificatorsTest {
             jdkInfo = JdkInfoDefaultProvider().info
         )
         fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher(
-            modificationsPredicate = { (it as JAssignStmt).leftOp as? JInstanceFieldRef }
+            modificationTransformationMode = ModificationTransformationMode.WriteOnly
         )
     }
 

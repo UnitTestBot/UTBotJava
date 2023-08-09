@@ -12,7 +12,7 @@ internal class TraceProbeInserter(
     desc: String,
     mv: MethodVisitor,
     arrayStrategy: IProbeArrayStrategy,
-    private val nextIdGenerator: (localId: Int) -> Long,
+    private val probeIdGenerator: ProbeIdGenerator,
 ) : ProbeInserter(access, name, desc, mv, arrayStrategy) {
 
     private val internalName = Type.getInternalName(RuntimeTraceStorage::class.java)
@@ -27,11 +27,16 @@ internal class TraceProbeInserter(
         variable = pos
     }
 
-    override fun insertProbe(localId: Int) {
+    override fun insertProbe(ignored: Int) {
         mv.visitVarInsn(Opcodes.ILOAD, variable)
-        val id = nextIdGenerator.invoke(localId)
+        val id = probeIdGenerator.nextId()
         mv.visitLdcInsn(id)
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, internalName, "visit", visitMethodDescriptor, false)
+    }
+
+    override fun visitCode() {
+        super.visitCode()
+        insertProbe(0)
     }
 
 }

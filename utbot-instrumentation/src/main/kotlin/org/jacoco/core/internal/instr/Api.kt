@@ -36,16 +36,27 @@ fun createClassVisitorForComputeMapOfRangesForBranchCoverage(
     return MethodProbesCollector(strategy, writer)
 }
 
+class ProbeIdGenerator(private val f: (Int) -> Long) {
+
+    private var localId: Int = 0
+
+    fun currentId(): Long = f(localId)
+
+    fun nextId(): Long = f(localId++)
+
+}
+
 fun createClassVisitorForTracingBranchInstructions(
     className: String,
     storage: ProcessingStorage,
     writer: ClassWriter
 ): ClassProbesAdapter {
     val strategy = TraceStrategy()
+    val probeIdGenerator = ProbeIdGenerator { localId ->
+        storage.computeId(className, localId)
+    }
     return ClassProbesAdapter(
-        TraceClassInstrumenter(strategy, writer, storage) { localId ->
-            storage.computeId(className, localId)
-        },
+        TraceClassInstrumenter(strategy, writer, storage, probeIdGenerator),
         false
     )
 }

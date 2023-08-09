@@ -14,13 +14,18 @@ internal class TraceMethodInstrumenter(
     mv: MethodVisitor,
     private val probeInserter: IProbeInserter,
     private val storage: ProcessingStorage,
-    private val nextIdGenerator: (localId: Int) -> Long
+    private val probeIdGenerator: ProbeIdGenerator
 ) : MethodInstrumenter(mv, probeInserter) {
 
     private var currentLineNumber: Int = 0
     private val currentMethodSignature: String = methodName + descriptor
 
     // === MethodVisitor ===
+
+    override fun visitCode() {
+        storeInstruction(CommonInstruction(currentLineNumber, currentMethodSignature))
+        super.visitCode()
+    }
 
     override fun visitLineNumber(line: Int, start: Label?) {
         currentLineNumber = line
@@ -29,31 +34,31 @@ internal class TraceMethodInstrumenter(
 
     // === MethodInstrumenter ===
 
-    private fun storeInstruction(localId: Int, instructionData: InstructionData) {
-        val id = nextIdGenerator.invoke(localId)
+    private fun storeInstruction(instructionData: InstructionData) {
+        val id = probeIdGenerator.currentId()
         storage.addInstruction(id, instructionData)
     }
 
     override fun visitProbe(localId: Int) {
-        storeInstruction(localId, CommonInstruction(currentLineNumber, currentMethodSignature))
+        storeInstruction(CommonInstruction(currentLineNumber, currentMethodSignature))
         super.visitProbe(localId)
     }
 
     override fun visitInsnWithProbe(opcode: Int, localId: Int) {
         when (opcode) {
             in returnInsns -> {
-                storeInstruction(localId, ReturnInstruction(currentLineNumber, currentMethodSignature))
+                storeInstruction(ReturnInstruction(currentLineNumber, currentMethodSignature))
             }
 
             Opcodes.ATHROW -> {
-                storeInstruction(localId, ExplicitThrowInstruction(currentLineNumber, currentMethodSignature))
+                storeInstruction(ExplicitThrowInstruction(currentLineNumber, currentMethodSignature))
             }
         }
         super.visitInsnWithProbe(opcode, localId)
     }
 
     override fun visitJumpInsnWithProbe(opcode: Int, label: Label?, localId: Int, frame: IFrame?) {
-        storeInstruction(localId, CommonInstruction(currentLineNumber, currentMethodSignature))
+        storeInstruction(CommonInstruction(currentLineNumber, currentMethodSignature))
         super.visitJumpInsnWithProbe(opcode, label, localId, frame)
     }
 
@@ -119,7 +124,7 @@ internal class TraceMethodInstrumenter(
         if (localId != LabelInfo.NO_PROBE && !LabelInfo.isDone(label)) {
             mv.visitLabel(LabelInfo.getIntermediateLabel(label))
             frame.accept(mv)
-            storeInstruction(localId, CommonInstruction(currentLineNumber, currentMethodSignature))
+            storeInstruction(CommonInstruction(currentLineNumber, currentMethodSignature))
             probeInserter.insertProbe(localId)
             mv.visitJumpInsn(Opcodes.GOTO, label)
             LabelInfo.setDone(label)

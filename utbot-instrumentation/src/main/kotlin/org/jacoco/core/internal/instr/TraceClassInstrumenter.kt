@@ -12,7 +12,7 @@ class TraceClassInstrumenter(
     private val probeArrayStrategy: IProbeArrayStrategy,
     cv: ClassVisitor,
     private val storage: ProcessingStorage,
-    private val nextIdGenerator: (localId: Int) -> Long
+    private val probeIdGenerator: ProbeIdGenerator
 ) : ClassInstrumenter(probeArrayStrategy, cv) {
 
     override fun visitMethod(
@@ -26,10 +26,10 @@ class TraceClassInstrumenter(
 
         val frameEliminator = DuplicateFrameEliminator(mv)
         val probeVariableInserter = TraceProbeInserter(
-            access, name, desc, frameEliminator, probeArrayStrategy, nextIdGenerator
+            access, name, desc, frameEliminator, probeArrayStrategy, probeIdGenerator
         )
         return TraceMethodInstrumenter(
-            name, desc, probeVariableInserter, probeVariableInserter, storage, nextIdGenerator
+            name, desc, probeVariableInserter, probeVariableInserter, storage, probeIdGenerator
         )
     }
 

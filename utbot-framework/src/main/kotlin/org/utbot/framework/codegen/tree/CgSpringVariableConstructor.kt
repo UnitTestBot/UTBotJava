@@ -1,18 +1,16 @@
 package org.utbot.framework.codegen.tree
 
-import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.codegen.tree.fieldmanager.ClassFieldManagerFacade
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
 import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.util.stringClassId
 
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
-    val annotatedModelGroups: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
 
     private val fieldManagerFacade = ClassFieldManagerFacade(context)
 

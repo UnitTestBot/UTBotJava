@@ -125,7 +125,7 @@ jobs:
         run: |
           docker run -d --rm --name busybox --privileged --net=host --pid=host --ipc=host --volume /:/host busybox sleep infinity
           docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "swapoff /mnt/swapfile"'
-          docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "dd if=/dev/zero of=/mnt/swapfile bs=1M count=4096 oflag=append conv=notrunc"'
+          docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "dd if=/dev/zero of=/mnt/swapfile bs=1M count=8192 oflag=append conv=notrunc"'
           docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "mkswap /mnt/swapfile"'
           docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "swapon /mnt/swapfile"'
 

@@ -50,7 +50,6 @@ class GenerateTestsCommand :
         "-s", "--source",
         help = "Specifies source code file for a generated test"
     )
-        .required()
         .check("Must exist and end with .java or .kt suffix") {
             (it.endsWith(".java") || it.endsWith(".kt")) && Files.exists(Paths.get(it))
         }
@@ -113,7 +112,7 @@ class GenerateTestsCommand :
                 val testSets = generateTestSets(
                     testCaseGenerator,
                     targetMethods,
-                    Paths.get(sourceCodeFile),
+                    sourceCodeFile?.let(Paths::get),
                     searchDirectory = workingDirectory,
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
                         .mapTo(mutableSetOf()) { ClassId(it) }
@@ -149,9 +148,12 @@ class GenerateTestsCommand :
             projectRootPath == null -> {
                 println("The path to the project root is required to generate a report. Please, specify \"--project-root\" option.")
             }
+            sourceCodeFile == null -> {
+                println("The source file is not found. Please, specify \"--source\" option.")
+            }
             else -> {
                 val sourceFinding =
-                    SourceFindingStrategyDefault(classFqn, sourceCodeFile, testsFilePath, projectRootPath)
+                    SourceFindingStrategyDefault(classFqn, sourceCodeFile!!, testsFilePath, projectRootPath)
                 val report = SarifReport(testSets, testClassBody, sourceFinding).createReport().toJson()
                 saveToFile(report, sarifReport)
                 println("The report was saved to \"$sarifReport\".")

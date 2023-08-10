@@ -96,7 +96,8 @@ jobs:
     needs: setup_matrix
     continue-on-error: true
     strategy:
-      max-parallel: 3
+      # temporary commented, remove completely after 10.23 if all pipelines worked well
+      #max-parallel: 3
       matrix:
         project: ${{ fromJson(needs.setup_matrix.outputs.projects) }}
         value: ${{ fromJson(needs.setup_matrix.outputs.matrix) }}

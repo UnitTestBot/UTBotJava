@@ -29,7 +29,7 @@ class PythonMethodDescription(
     val pythonTypeStorage: PythonTypeStorage,
     val tracer: Trie<Instruction, *>,
     val random: Random,
-) : Description<Type>(parameters)
+) : Description<Type, PythonFuzzedValue>(parameters)
 
 sealed interface FuzzingExecutionFeedback
 class ValidExecution(val utFuzzedExecution: PythonUtExecution): FuzzingExecutionFeedback

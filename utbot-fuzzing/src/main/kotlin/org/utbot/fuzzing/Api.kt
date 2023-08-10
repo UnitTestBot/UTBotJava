@@ -5,10 +5,15 @@ import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.utils.MissedSeed
-import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import org.utbot.fuzzing.utils.transformIfNotEmpty
+import java.io.File
+import java.io.FileOutputStream
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.random.Random
+import java.nio.charset.Charset
+
 
 private val logger by lazy { KotlinLogging.logger {} }
 
@@ -19,7 +24,7 @@ private val logger by lazy { KotlinLogging.logger {} }
  * @see [org.utbot.fuzzing.demo.JavaFuzzing]
  * @see [org.utbot.fuzzing.demo.JsonFuzzingKt]
  */
-interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> {
+interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> {
 
     /**
      * Before producing seeds, this method is called to recognize,
@@ -59,7 +64,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-        fuzz(description, StatisticImpl(statistics))
+        fuzz(description, MainStatisticImpl(statistics))
     }
 
     /**
@@ -73,18 +78,128 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
     suspend fun afterIteration(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) { }
 }
 
+///region Description
 /**
  * Some description of the current fuzzing run. Usually, it contains the name of the target method and its parameter list.
  */
-open class Description<TYPE>(
+open class Description<TYPE, RESULT>(
     parameters: List<TYPE>
 ) {
     val parameters: List<TYPE> = parameters.toList()
 
-    open fun clone(scope: Scope): Description<TYPE> {
+    open fun clone(scope: Scope): Description<TYPE, RESULT> {
         error("Scope was changed for $this, but method clone is not specified")
     }
+
+    open fun setUp() {}
+
+    open fun updatePerIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event: MinsetEvent) {}
+
+    open fun finalizeReport(statistic: Statistic<TYPE, RESULT>) {}
 }
+
+abstract class ReportingDescription<TYPE, RESULT> (
+    parameters: List<TYPE>,
+    private val reporter: Reporter<TYPE, RESULT>
+) : Description<TYPE, RESULT>(parameters) {
+
+    override fun setUp() {
+        reporter.setUp(this)
+    }
+
+    override fun updatePerIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event: MinsetEvent) {
+        reporter.update(values, feedback, event)
+    }
+
+    override fun finalizeReport(statistic: Statistic<TYPE, RESULT>) {
+        reporter.conclude(statistic)
+    }
+}
+
+open class LoggingDescription<TYPE, RESULT> (
+    parameters: List<TYPE>,
+    path: String
+) : ReportingDescription<TYPE, RESULT>(
+    parameters,
+    LoggingReporter(path = path)
+)
+
+
+///region Reporter
+abstract class Reporter<TYPE, RESULT>(
+    private val reportPath : String,
+) {
+    abstract fun clone() : Reporter<TYPE, RESULT>
+
+    private lateinit var description: Description<TYPE, RESULT>
+    fun setUp(description: Description<TYPE, RESULT>) {
+        this.description = description
+    }
+    abstract fun update(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event : MinsetEvent, additionalMessage: String = "")
+    abstract fun conclude(statistic: Statistic<TYPE, RESULT>)
+}
+
+
+class LoggingReporter<TYPE, RESULT>(
+    val path: String
+) : Reporter<TYPE, RESULT>(path) {
+
+    override fun clone() : LoggingReporter<TYPE, RESULT> {
+        return LoggingReporter(path)
+    }
+
+    private val actualPath = if (path.startsWith("~/")) {
+        System.getProperty("user.home") + path.drop(1)
+    } else {
+        path
+    }
+
+    private val logFile = File("$actualPath/log")
+    private val overviewFile = File("$actualPath/overview.txt")
+
+    init {
+        File(actualPath).mkdirs()
+    }
+
+    override fun update(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event : MinsetEvent, additionalMessage: String) {
+        val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
+
+        FileOutputStream(logFile, true).bufferedWriter().use {
+
+            val printableValues = buildString {
+                values.toString()
+                    .toByteArray(Charsets.UTF_8)
+                    .forEach {
+                        byte -> val hexString = byte.toInt().toString(16).padStart(2, '0')
+                            append("\\u").append(hexString)
+                    }
+            }
+
+            it.write("[$time]\t$printableValues\t$feedback\t$event\t$additionalMessage\n")
+        }
+    }
+
+    override fun conclude(statistic: Statistic<TYPE, RESULT>) {
+        File(actualPath).mkdirs()
+        overviewFile.apply{ createNewFile() }.printWriter().use { out ->
+            out.println("Total runs: ${statistic.totalRuns}")
+
+            if (statistic is SeedsMaintainingStatistic<*, *, *>) {
+                out.println("Final minset size: ${statistic.size()}")
+            }
+
+            val seconds = statistic.elapsedTime / 1_000_000_000
+            val minutes = (seconds % 3600) / 60
+            val remainingSeconds = (seconds % 3600) % 60
+            val formattedTime = String.format("%02d min %02d.%03d sec", minutes, remainingSeconds, statistic.elapsedTime % 1_000_000)
+            out.println("Elapsed time: $formattedTime")
+        }
+    }
+}
+///endregion
+///endregion
+
+
 
 class Scope(
     val parameterIndex: Int,
@@ -245,7 +360,29 @@ interface Feedback<TYPE, RESULT> : AsKey {
 data class BaseFeedback<VALUE, TYPE, RESULT>(
     val result: VALUE,
     override val control: Control,
-) : Feedback<TYPE, RESULT>
+) : Feedback<TYPE, RESULT> {
+    override fun toString(): String {
+        return "$result"
+    }
+}
+
+interface WeightedFeedback<TYPE, RESULT, WEIGHT : Comparable<WEIGHT>> : Feedback<TYPE, RESULT> {
+    val weight: WEIGHT
+}
+
+data class BaseWeightedFeedback<VALUE, TYPE, RESULT, WEIGHT : Comparable<WEIGHT>>(
+    val result: VALUE,
+    override val weight: WEIGHT,
+    override val control: Control,
+) : WeightedFeedback<TYPE, RESULT, WEIGHT>, Comparable<WeightedFeedback<TYPE, RESULT, WEIGHT>> {
+    override fun compareTo(other: WeightedFeedback<TYPE, RESULT, WEIGHT>): Int {
+        return weight.compareTo(other.weight)
+    }
+    override fun toString(): String {
+        return "$result with weight $weight"
+    }
+}
+
 
 /**
  * Controls fuzzing execution.
@@ -284,6 +421,10 @@ private object EmptyFeedback : Feedback<Nothing, Nothing> {
     override fun hashCode(): Int {
         return 0
     }
+
+    override fun toString(): String {
+        return "EMPTY_FEEDBACK"
+    }
 }
 
 class NoSeedValueException internal constructor(
@@ -298,12 +439,12 @@ class NoSeedValueException internal constructor(
         get() = "No seed candidates generated for type: $type"
 }
 
-suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
+suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-    fuzz(description, StatisticImpl(random = random, configuration = configuration))
+    fuzz(description, MainStatisticImpl(random = random, configuration = configuration))
 }
 
 /**
@@ -311,9 +452,9 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
  *
  * This is an entry point for every fuzzing.
  */
-private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
+private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.fuzz(
     description: D,
-    statistic: StatisticImpl<T, R, F>,
+    statistic: SeedsMaintainingStatistic<T, R, F>,
 ) {
     val random = statistic.random
     val configuration = statistic.configuration
@@ -330,18 +471,20 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
         state = State(typeCache, statistic.missedTypes),
     )
 
+    description.setUp()
+
     while (!fuzzing.isCancelled(description, statistic)) {
         beforeIteration(description, statistic)
         val values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
-            statistic.getRandomSeed(random, configuration).let {
-                mutationFactory.mutate(it, random, configuration)
+            statistic.getSeed(random, configuration).let {
+                mutationFactory.mutate(it, random, configuration, statistic)
             }
         } else {
             val actualParameters = description.parameters
             // fuzz one value, seems to be bad, when have only a few and simple values
             fuzzOne(actualParameters).let {
                 if (random.flipCoin(configuration.probMutationRate)) {
-                    mutationFactory.mutate(it, random, configuration)
+                    mutationFactory.mutate(it, random, configuration, statistic)
                 } else {
                     it
                 }
@@ -357,22 +500,27 @@ private suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R,
         val valuesCache = mutableMapOf<Result<T, R>, R>()
         val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
         val feedback = fuzzing.handle(description, result)
+
+        val minsetResponse = statistic.put(random, configuration, feedback, values)
+
         when (feedback.control) {
             Control.CONTINUE -> {
-                statistic.put(random, configuration, feedback, values)
+                description.updatePerIteration(values, feedback, minsetResponse)
+                description.finalizeReport(statistic)
             }
             Control.STOP -> {
+                description.finalizeReport(statistic)
                 break
             }
-            Control.PASS -> {}
+            Control.PASS -> {
+                description.finalizeReport(statistic)
+            }
         }
     }
 }
-
-
 ///region Implementation of the fuzzing and non-public functions.
 
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> fuzz(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> fuzz(
     parameters: List<TYPE>,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,
@@ -399,7 +547,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     return Node(result, parameters, builder)
 }
 
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> produce(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> produce(
     type: TYPE,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,
@@ -436,7 +584,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
  * reduces [Seed.Collection] type. When `configuration.recursionTreeDepth` limit is reached it creates
  * an empty collection and doesn't do any modification to it.
  */
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>>  reduce(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>>  reduce(
     task: Seed.Collection<TYPE, RESULT>,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,
@@ -496,7 +644,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
  *  reduces [Seed.Recursive] type.  When `configuration.recursionTreeDepth` limit is reached it calls
  *  `Seed.Recursive#empty` routine to create an empty object.
  */
-private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> reduce(
+private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> reduce(
     task: Seed.Recursive<TYPE, RESULT>,
     fuzzing: Fuzzing<TYPE, RESULT, DESCRIPTION, FEEDBACK>,
     description: DESCRIPTION,
@@ -652,13 +800,18 @@ sealed interface Result<TYPE, RESULT> {
     /**
      * Known value.
      */
-    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT) : Result<TYPE, RESULT>
+    class Known<TYPE, RESULT, V : KnownValue<V>>(val value: V, val build: (V) -> RESULT, val lastMutation: Mutation<V>? = null) : Result<TYPE, RESULT> {
+        override fun toString(): String {
+            return this.value.toString()
+        }
+    }
     /**
      * A tree of object that has constructor and some modifications.
      */
     class Recursive<TYPE, RESULT>(
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
+        val lastMutation: RecursiveMutations<TYPE, RESULT>? = null,
     ) : Result<TYPE, RESULT>
 
     /**
@@ -668,6 +821,7 @@ sealed interface Result<TYPE, RESULT> {
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
         val iterations: Int,
+        val lastMutation: CollectionMutations<TYPE, RESULT>? = null,
     ) : Result<TYPE, RESULT>
 
     /**
@@ -684,52 +838,33 @@ sealed interface Result<TYPE, RESULT> {
 class Node<TYPE, RESULT>(
     val result: List<Result<TYPE, RESULT>>,
     val parameters: List<TYPE>,
-    val builder: Routine<TYPE, RESULT>,
-)
-
-private class StatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>(
-    override var totalRuns: Long = 0,
-    override val startTime: Long = System.nanoTime(),
-    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
-    override val random: Random,
-    override val configuration: Configuration,
-) : Statistic<TYPE, RESULT> {
-
-    constructor(source: Statistic<TYPE, RESULT>) : this(
-        totalRuns = source.totalRuns,
-        startTime = source.startTime,
-        missedTypes = source.missedTypes,
-        random = source.random,
-        configuration = source.configuration.copy(),
-    )
-
-    override val elapsedTime: Long
-        get() = System.nanoTime() - startTime
-    private val seeds = linkedMapOf<FEEDBACK, Node<TYPE, RESULT>>()
-    private val count = linkedMapOf<FEEDBACK, Long>()
-
-    fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) {
-        if (random.flipCoin(configuration.probUpdateSeedInsteadOfKeepOld)) {
-            seeds[feedback] = seed
-        } else {
-            seeds.putIfAbsent(feedback, seed)
-        }
-        count[feedback] = count.getOrDefault(feedback, 0L) + 1L
-    }
-
-    fun getRandomSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
-        if (seeds.isEmpty()) error("Call `isNotEmpty` before getting the seed")
-        val entries = seeds.entries.toList()
-        val frequencies = DoubleArray(seeds.size).also { f ->
-            entries.forEachIndexed { index, (key, _) ->
-                f[index] = configuration.energyFunction(count.getOrDefault(key, 0L))
+    val builder: Routine<TYPE, RESULT>
+) {
+    override fun toString() : String {
+        return result.map {
+            when(it) {
+                is Result.Empty -> "_"
+                is Result.Simple -> it.result
+                is Result.Known<*, *, *> -> {
+                    if (it.lastMutation != null) {
+                        "${it.value} : ${it.lastMutation.toString().substringAfter("$").substringBefore('@')}"
+                    } else { it.value.toString() }
+                }
+                is Result.Collection -> {
+                    if (it.lastMutation != null) {
+                        "${it.modify.joinToString(", ", "[", "]")} : ${it.lastMutation.toString().substringAfter("$").substringBefore('@')}"
+                    } else { it.modify.joinToString(", ", "[", "]") }
+                }
+                is Result.Recursive -> {
+                    if (it.lastMutation != null) {
+                        "${it.modify.joinToString(", ", "{", "}")} : ${it.lastMutation.toString().substringAfter("$").substringBefore('@')}"
+                    } else {
+                        it.modify.joinToString(", ", "{", "}")
+                    }
+                }
             }
-        }
-        val index = random.chooseOne(frequencies)
-        return entries[index].value
+        }.joinToString(", ")
     }
-
-    fun isNotEmpty() = seeds.isNotEmpty()
 }
 ///endregion
 

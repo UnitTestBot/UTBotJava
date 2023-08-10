@@ -17,6 +17,10 @@ data class Instruction(
     val id: Long
 ) {
     val className: String get() = internalName.replace('/', '.')
+
+    override fun toString(): String {
+        return "class name: ${className.split(".").last()}; method: $methodSignature; line number: $lineNumber"
+    }
 }
 
 /**

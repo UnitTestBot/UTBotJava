@@ -11,15 +11,15 @@ private enum class Type {
 
 fun main(): Unit = runBlocking {
     launch {
-        object : Fuzzing<Type, String, Description<Type>, Feedback<Type, String>> {
+        object : Fuzzing<Type, String, Description<Type, String>, Feedback<Type, String>> {
 
             private val runs = mutableMapOf<Type, AtomicLong>()
 
-            override fun generate(description: Description<Type>, type: Type): Sequence<Seed<Type, String>> {
+            override fun generate(description: Description<Type, String>, type: Type): Sequence<Seed<Type, String>> {
                 return sequenceOf(Seed.Simple(type.name))
             }
 
-            override suspend fun handle(description: Description<Type>, values: List<String>): Feedback<Type, String> {
+            override suspend fun handle(description: Description<Type, String>, values: List<String>): Feedback<Type, String> {
                 description.parameters.forEach {
                     runs[it]!!.incrementAndGet()
                 }
@@ -28,7 +28,7 @@ fun main(): Unit = runBlocking {
             }
 
             override suspend fun afterIteration(
-                description: Description<Type>,
+                description: Description<Type, String>,
                 stats: Statistic<Type, String>,
             ) {
                 if (stats.totalRuns % 10 == 0L && description.parameters.size == 1) {
@@ -38,7 +38,7 @@ fun main(): Unit = runBlocking {
                         Type.MORE_CONCRETE -> listOf()
                     }
                     if (newTypes.isNotEmpty()) {
-                        val d = Description(newTypes)
+                        val d = Description<Type, String>(newTypes)
                         fork(d, stats)
                         // Description can be used as a transfer object,
                         // that collects information about the current running.
@@ -47,7 +47,7 @@ fun main(): Unit = runBlocking {
                 }
             }
 
-            override suspend fun isCancelled(description: Description<Type>, stats: Statistic<Type, String>): Boolean {
+            override suspend fun isCancelled(description: Description<Type, String>, stats: Statistic<Type, String>): Boolean {
                 println("info: ${description.parameters} runs ${stats.totalRuns}")
                 return description.parameters.all { runs.computeIfAbsent(it) { AtomicLong(0) }.get() >= 10 }
             }

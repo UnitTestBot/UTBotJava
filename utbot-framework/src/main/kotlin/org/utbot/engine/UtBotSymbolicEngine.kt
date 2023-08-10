@@ -465,13 +465,13 @@ class UtBotSymbolicEngine(
             if (controller.job?.isActive == false || diff <= thresholdMillisForFuzzingOperation) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 logger.info { "Test created by fuzzer: $testEmittedByFuzzer" }
-                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                return@runJavaFuzzing JavaFeedback(result = Trie.emptyNode(), control = Control.STOP)
             }
 
             if (thisInstance?.model is UtNullModel) {
                 // We should not try to run concretely any models with null-this.
                 // But fuzzer does generate such values, because it can fail to generate any "good" values.
-                return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
+                return@runJavaFuzzing JavaFeedback(Trie.emptyNode(), Control.PASS)
             }
 
             val stateBefore = concreteExecutionContext.createStateBefore(
@@ -494,17 +494,17 @@ class UtBotSymbolicEngine(
             }
 
             // in case an exception occurred from the concrete execution
-            concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+            concreteExecutionResult ?: return@runJavaFuzzing JavaFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
             // in case of processed failure in the concrete execution
             concreteExecutionResult.processedFailure()?.let { failure ->
                 logger.debug { "Instrumented process failed with exception ${failure.exception} before concrete execution started" }
-                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+                return@runJavaFuzzing JavaFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
 
             if (concreteExecutionResult.violatesUtMockAssumption()) {
                 logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
-                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+                return@runJavaFuzzing JavaFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
 
             val result = concreteExecutionResult.result
@@ -521,16 +521,16 @@ class UtBotSymbolicEngine(
                     coverageToMinStateBeforeSize[trieNode] = curStateBeforeSize
                 else {
                     if (++attempts >= attemptsLimit) {
-                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                        return@runJavaFuzzing JavaFeedback(result = Trie.emptyNode(), control = Control.STOP)
                     }
-                    return@runJavaFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                    return@runJavaFuzzing JavaFeedback(result = trieNode, control = Control.CONTINUE)
                 }
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with $values" }
                 if (result is UtSandboxFailure) {
                     val stackTraceElements = result.exception.stackTrace.reversed()
                     if (errorStackTraceTracker.add(stackTraceElements).count > 1) {
-                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+                        return@runJavaFuzzing JavaFeedback(result = Trie.emptyNode(), control = Control.PASS)
                     }
                 }
             }
@@ -548,7 +548,7 @@ class UtBotSymbolicEngine(
             )
 
             testEmittedByFuzzer++
-            BaseFeedback(result = trieNode ?: Trie.emptyNode(), control = Control.CONTINUE)
+            JavaFeedback(result = trieNode ?: Trie.emptyNode(), control = Control.CONTINUE)
         }
     }
 

@@ -197,7 +197,6 @@ jobs:
               --add-opens java.base/jdk.internal.vm=ALL-UNNAMED \
               --add-opens java.base/jdk.internal.vm.annotation=ALL-UNNAMED \
               -Dutbot.monitoring.settings.path=$monitoring_projects/${{ matrix.project }}/monitoring.properties \
-              -Xmx512M \
               utbot-junit-contest/build/libs/monitoring.jar \
               stats-$i.json
             mv logs/utbot.log logs/utbot-$i.log

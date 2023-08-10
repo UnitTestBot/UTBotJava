@@ -8,14 +8,26 @@ import kotlin.math.pow
 data class Configuration(
 
     /**
+     * Configuration used by minset to accumulate and use statistics.
+     *
+     * TODO: This part of configuration tend to be changing through runtime tuning or evolutionary algorithm.
+     */
+    var minsetConfiguration: MinsetConfiguration = MinsetConfiguration(),
+
+    /**
+     * Number of continuous iterations for each value.
+     */
+    var runsPerValue: Long = 100,
+
+    /**
      * Number of iterations before mutations probabilities correction.
      */
-    var investigationPeriodIterations: Int = 500,
+    var investigationPeriodPerValue: Int = 50,
 
     /**
      * Choose between already generated values and new generation of values.
      */
-    var probSeedRetrievingInsteadGenerating: Int = 100,
+    var probSeedRetrievingInsteadGenerating: Int = 75,
 
     /**
      * Choose between generation and mutation.
@@ -100,8 +112,18 @@ data class Configuration(
      * Limits maximum number of recursive seed modifications
      */
     var maxNumberOfRecursiveSeedModifications: Int = 10,
-
-    val singleValueSelectionStrategy: SingleValueSelectionStrategy = SingleValueSelectionStrategy.LAST
 )
 
-enum class SingleValueSelectionStrategy { FIRST, LAST }
+/**
+ * Configuration used by minset to accumulate and use statistics.
+ */
+data class MinsetConfiguration (
+    var obsolescenceMultiplier: Double = 1.0,
+    var rewardMultiplier: Double = 1.0,
+    var rewardWeight: Double = 1.0,
+    var penaltyMultiplier: Double = 1.0,
+    var penaltyWeight: Double = 0.0,
+    val valueStoragingStrategy: ValueStoragingStrategy = ValueStoragingStrategy.LAST
+)
+
+enum class ValueStoragingStrategy { FIRST, LAST }

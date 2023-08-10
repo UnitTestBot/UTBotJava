@@ -26,6 +26,6 @@ open class StringValue(
     }
 
     override fun toString(): String {
-        return "\"" + value + "\""
+        return "\"$value\""
     }
 }

@@ -12,6 +12,8 @@ import java.io.FileOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.random.Random
+import java.nio.charset.Charset
+
 
 private val logger by lazy { KotlinLogging.logger {} }
 
@@ -62,8 +64,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBAC
      * Starts fuzzing with new description but with copy of [Statistic].
      */
     suspend fun fork(description: DESCRIPTION, statistics: Statistic<TYPE, RESULT>) {
-        fuzz(description, SingleSeedKeepingStatistics(statistics))
-//        fuzz(description, BasicSingleValueMinsetStatistic(statistics))
+        fuzz(description, MainStatisticImpl(statistics))
     }
 
     /**
@@ -158,25 +159,23 @@ class LoggingReporter<TYPE, RESULT>(
 
     init {
         File(actualPath).mkdirs()
-//        logFile.apply { delete(); createNewFile() }
-//        overviewFile.apply { delete(); createNewFile() }
     }
 
     override fun update(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event : MinsetEvent, additionalMessage: String) {
-
-        fun alignString(obj: Any, length: Int) : String {
-            val aligned = obj.toString().replace("\n", "/")
-            return if (aligned.length > length) {
-                aligned.take((length-1)/2) + ".." + aligned.takeLast((length-1)/2)
-            } else {
-                aligned + " ".repeat(length - aligned.length)
-            }
-        }
-
         val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
 
         FileOutputStream(logFile, true).bufferedWriter().use {
-            it.write("[$time] | $values | $feedback | $event | $additionalMessage\n")
+
+            val printableValues = buildString {
+                values.toString()
+                    .toByteArray(Charsets.UTF_8)
+                    .forEach {
+                        byte -> val hexString = byte.toInt().toString(16).padStart(2, '0')
+                            append("\\u").append(hexString)
+                    }
+            }
+
+            it.write("[$time]\t$printableValues\t$feedback\t$event\t$additionalMessage\n")
         }
     }
 
@@ -445,10 +444,7 @@ suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T, R, D, F
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
-    val seed = 0
-    val tmpRandom = Random(seed)
-//    fuzz(description, BasicSingleValueMinsetStatistic(random = random, configuration = configuration))
-    fuzz(description, SingleSeedKeepingStatistics(random = tmpRandom, configuration = configuration))
+    fuzz(description, MainStatisticImpl(random = random, configuration = configuration))
 }
 
 /**
@@ -480,7 +476,7 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
     while (!fuzzing.isCancelled(description, statistic)) {
         beforeIteration(description, statistic)
         val values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
-            statistic.getRandomSeed(random, configuration).let {
+            statistic.getSeed(random, configuration).let {
                 mutationFactory.mutate(it, random, configuration, statistic)
             }
         } else {
@@ -842,7 +838,7 @@ sealed interface Result<TYPE, RESULT> {
 class Node<TYPE, RESULT>(
     val result: List<Result<TYPE, RESULT>>,
     val parameters: List<TYPE>,
-    val builder: Routine<TYPE, RESULT>,
+    val builder: Routine<TYPE, RESULT>
 ) {
     override fun toString() : String {
         return result.map {

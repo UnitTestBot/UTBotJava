@@ -19,7 +19,7 @@ data class Instruction(
     val className: String get() = internalName.replace('/', '.')
 
     override fun toString(): String {
-        return "class name: ${className.split(".").last()} | method: $methodSignature | line number: $lineNumber"
+        return "class name: ${className.split(".").last()}; method: $methodSignature; line number: $lineNumber"
     }
 }
 

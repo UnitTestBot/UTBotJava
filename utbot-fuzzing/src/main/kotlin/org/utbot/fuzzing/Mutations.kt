@@ -7,19 +7,16 @@ import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import kotlin.random.Random
 
-fun Map<Mutation<*>, Float>.randomMutation(random: Random): Mutation<*>? {
-    val weightsSum = entries.sumOf { it.value.toDouble() }
+fun Map<Mutation<*>, Double>.getRandomMutation(random: Random): Mutation<*>? {
+    val sum = values.sum()
 
-    if (weightsSum == 0.0) {
-        return null
-    }
-
-    var randomWeight = random.nextDouble( weightsSum )
-
-    for (entry in entries) {
-        randomWeight -= entry.value.toDouble()
-        if (randomWeight <= 0) {
-            return entry.key
+    if (sum > 0) {
+        var value = random.nextDouble(sum)
+        for ((mutation, weight) in entries) {
+            value -= weight
+            if (value <= 0) {
+                return mutation
+            }
         }
     }
 
@@ -46,13 +43,13 @@ class MutationFactory<TYPE, RESULT> {
             is Result.Known<TYPE, RESULT, *> -> {
                 val mutations = resultToMutate.value.mutations()
 
-                val mutation = if (configuration.investigationPeriodIterations > 0 && statistic.totalRuns > configuration.investigationPeriodIterations) {
-                    statistic.getMutationsEfficiencies().randomMutation(random) ?: mutations.random(random)
-                } else {
-                    mutations.random(random)
-                }
-
-//                val mutation = mutations.random(random)
+                val mutation = if (
+                    configuration.investigationPeriodPerValue > 0 && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue
+                    ) {
+                        statistic.getMutationsEfficiencies().getRandomMutation(random) ?: mutations.random(random)
+                    } else {
+                            mutations.random(random)
+                    }
 
                 if (mutations.isNotEmpty()) {
                     resultToMutate.mutate(mutation as Mutation<out KnownValue<*>>, random, configuration)
@@ -68,8 +65,7 @@ class MutationFactory<TYPE, RESULT> {
                     random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation) ->
                         RecursiveMutations.ShuffleAndCutModifications()
 
-                    else ->
-                        RecursiveMutations.Mutate()
+                    else -> RecursiveMutations.Mutate()
                 }.mutate(resultToMutate, recursive, random, configuration)
             }
             is Result.Collection<TYPE, RESULT> -> if (resultToMutate.modify.isNotEmpty()) {
@@ -80,7 +76,6 @@ class MutationFactory<TYPE, RESULT> {
                     else ->
                         CollectionMutations.Shuffle<TYPE, RESULT>()
                 }.mutate(resultToMutate, recursive, random, configuration)
-
             } else {
                 resultToMutate
             }

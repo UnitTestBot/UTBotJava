@@ -1,5 +1,7 @@
 package org.utbot.instrumentation.instrumentation.execution
 
+import org.jacoco.core.internal.instr.createClassVisitorForTracingBranchInstructions
+import org.utbot.framework.TraceInstrumentationType
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
@@ -153,7 +155,15 @@ class SimpleUtExecutionInstrumentation(
         }
 
         traceHandler.registerClass(className)
-        instrumenter.visitInstructions(traceHandler.computeInstructionVisitor(className))
+        when (Agent.dynamicClassTransformer.traceInstrumentationType) {
+            TraceInstrumentationType.INSTRUCTION -> instrumenter.visitInstructions(
+                traceHandler.computeInstructionVisitor(className)
+            )
+
+            TraceInstrumentationType.BRANCH -> instrumenter.visitClass { writer ->
+                createClassVisitorForTracingBranchInstructions(className, traceHandler.processingStorage, writer)
+            }
+        }
 
         instrumenter.visitClass { writer ->
             NonDeterministicClassVisitor(writer, ndDetector)

@@ -17,12 +17,12 @@ data class Configuration(
     /**
      * Number of continuous iterations for each value.
      */
-    var runsPerValue: Long = 100,
+    var runsPerValue: Long = 250,
 
     /**
      * Number of iterations before mutations probabilities correction.
      */
-    var investigationPeriodPerValue: Int = 50,
+    var investigationPeriodPerValue: Int = 100,
 
     /**
      * Choose between already generated values and new generation of values.

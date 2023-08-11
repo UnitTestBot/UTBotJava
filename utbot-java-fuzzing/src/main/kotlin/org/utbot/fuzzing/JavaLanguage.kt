@@ -25,12 +25,17 @@ class FuzzedDescription(
     val typeCache: MutableMap<Type, FuzzedType>,
     val random: Random,
     val scope: Scope? = null,
-) : LoggingDescription<FuzzedType, FuzzedValue>(
+) : Description<FuzzedType, FuzzedValue>(
     description.parameters.mapIndexed { index, classId ->
         description.fuzzerType(index) ?: FuzzedType(classId)
-    },
-    "~/.utbot/JavaFuzzing"
+    }
 ) {
+    // To turn on logging, use this implementation of Description:
+    //LoggingDescription<FuzzedType, FuzzedValue>(
+    // description.parameters.mapIndexed { index, classId ->
+    //    description.fuzzerType(index) ?: FuzzedType(classId)
+    //}, "~/.utbot/JavaFuzzing") { ... }
+
     val constants: Sequence<FuzzedConcreteValue>
         get() = description.concreteValues.asSequence()
 
@@ -38,7 +43,6 @@ class FuzzedDescription(
         return FuzzedDescription(description, tracer, typeCache, random, scope)
     }
 }
-
 
 fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = listOf(
     BooleanValueProvider,
@@ -58,26 +62,12 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
 )
 
 
-class JavaFeedback(
+data class JavaFeedback(
     val result: Trie.Node<Instruction>,
     override val control: Control,
     ) : Feedback<FuzzedType, FuzzedValue> {
-    override fun equals(other: Any?): Boolean {
-        if (other is JavaFeedback) {
-            return this.result == other.result && this.control == other.control
-        }
-        return false
-    }
-
-    override fun hashCode(): Int {
-        return result.hashCode() * 31 + control.hashCode()
-    }
-
     override fun toString(): String {
-        if (result.count == 0) {
-            return "$result | FAIL | trace hash: ${result.hashCode()} | trace count: ${String.format("%4s", result.count)}"
-        }
-        return "$result | trace hash: ${result.hashCode()} | trace count: ${String.format("%4s", result.count)}"
+        return "$result; trace hash: ${result.hashCode()}; trace count: ${result.count}"
     }
 }
 

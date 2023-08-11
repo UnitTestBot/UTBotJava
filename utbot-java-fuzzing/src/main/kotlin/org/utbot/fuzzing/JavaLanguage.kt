@@ -28,8 +28,7 @@ class FuzzedDescription(
 ) : Description<FuzzedType, FuzzedValue>(
     description.parameters.mapIndexed { index, classId ->
         description.fuzzerType(index) ?: FuzzedType(classId)
-    },
-    "~/.utbot/JavaFuzzing"
+    }
 ) {
     // To turn on logging, use this implementation of Description:
     //LoggingDescription<FuzzedType, FuzzedValue>(

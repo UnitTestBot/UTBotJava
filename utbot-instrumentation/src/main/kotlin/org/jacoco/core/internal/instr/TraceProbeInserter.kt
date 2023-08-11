@@ -39,4 +39,15 @@ internal class TraceProbeInserter(
         insertProbe(0)
     }
 
+    override fun visitMethodInsn(
+        opcode: Int,
+        owner: String?,
+        name: String?,
+        descriptor: String?,
+        isInterface: Boolean
+    ) {
+        insertProbe(0)
+        super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
+    }
+
 }

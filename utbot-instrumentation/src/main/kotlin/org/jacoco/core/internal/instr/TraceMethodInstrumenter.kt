@@ -27,6 +27,17 @@ internal class TraceMethodInstrumenter(
         super.visitCode()
     }
 
+    override fun visitMethodInsn(
+        opcode: Int,
+        owner: String?,
+        name: String?,
+        descriptor: String?,
+        isInterface: Boolean
+    ) {
+        storeInstruction(InvokeInstruction(currentLineNumber, currentMethodSignature))
+        super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
+    }
+
     override fun visitLineNumber(line: Int, start: Label?) {
         currentLineNumber = line
         super.visitLineNumber(line, start)

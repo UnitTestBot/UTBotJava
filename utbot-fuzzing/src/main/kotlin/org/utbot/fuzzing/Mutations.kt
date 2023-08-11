@@ -7,21 +7,6 @@ import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import kotlin.random.Random
 
-fun Map<Mutation<*>, Double>.getRandomMutation(random: Random): Mutation<*>? {
-    val sum = values.sum()
-
-    if (sum > 0) {
-        var value = random.nextDouble(sum)
-        for ((mutation, weight) in entries) {
-            value -= weight
-            if (value <= 0) {
-                return mutation
-            }
-        }
-    }
-
-    return null
-}
 
 class MutationFactory<TYPE, RESULT> {
     fun mutate(
@@ -43,16 +28,20 @@ class MutationFactory<TYPE, RESULT> {
             is Result.Known<TYPE, RESULT, *> -> {
                 val mutations = resultToMutate.value.mutations()
 
+                val mutationsEffieciencies =  statistic.getMutationsEfficiencies()
+
                 val mutation = if (
-                    configuration.investigationPeriodPerValue > 0 && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue
-                    ) {
-                        statistic.getMutationsEfficiencies().getRandomMutation(random) ?: mutations.random(random)
-                    } else {
-                            mutations.random(random)
-                    }
+                    configuration.investigationPeriodPerValue > 0 &&
+                    statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue &&
+                    mutationsEffieciencies.values.sum() >= 0
+                ) {
+                    mutations[random.chooseOne(mutationsEffieciencies.values.toDoubleArray())]
+                } else {
+                    mutations.random(random)
+                }
 
                 if (mutations.isNotEmpty()) {
-                    resultToMutate.mutate(mutation as Mutation<out KnownValue<*>>, random, configuration)
+                    resultToMutate.mutate(mutation, random, configuration)
                 } else {
                     resultToMutate
                 }

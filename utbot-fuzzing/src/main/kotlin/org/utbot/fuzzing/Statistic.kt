@@ -25,9 +25,9 @@ interface SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESU
     override var totalRuns: Long
     fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) : MinsetEvent
     fun getSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>
-    fun getMutationsEfficiencies(): Map<Mutation<*>, Double> { return emptyMap() }
-    fun isNotEmpty() : Boolean
+    fun getMutationsEfficiencies(): Map<Mutation<*>, Double>
     fun size() : Int
+    fun isNotEmpty() : Boolean { return size() > 0 }
 }
 
 
@@ -58,7 +58,6 @@ open class SingleSeedKeepingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
 
     private val mutationsCounts = mutableMapOf<Mutation<*>, Long>()
     private val mutationsSuccessCounts = mutableMapOf<Mutation<*>, Double>()
-    private val mutationsEfficiencies = mutableMapOf<Mutation<*>, Double>()
 
 
     override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>): MinsetEvent {
@@ -75,24 +74,28 @@ open class SingleSeedKeepingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
             when(result) {
                 is Result.Known<TYPE, RESULT, *> -> {
                     result.lastMutation?.let { mutation ->
-                        mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
-
-                        with(mutationsEfficiencies) {
-                            forEach { (key, value) ->
-                                this[key] = value * configuration.minsetConfiguration.obsolescenceMultiplier
-                            }
-                            this[mutation] = getOrDefault(mutation, 0.0) / mutationsCounts[mutation]!!
+                        mutationsSuccessCounts.forEach{ (key, value) ->
+                            mutationsSuccessCounts[key] = value * configuration.minsetConfiguration.obsolescenceMultiplier
                         }
+
+                        mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
 
                         mutationsSuccessCounts[mutation] = when (event) {
                             MinsetEvent.NEW_FEEDBACK -> {
                                 if (this.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue) {
-                                    mutationsSuccessCounts.getOrDefault(mutation, 0.0) * configuration.minsetConfiguration.rewardMultiplier + configuration.minsetConfiguration.rewardWeight
+                                    mutationsSuccessCounts.getOrDefault(
+                                        mutation,
+                                        0.0
+                                    ) * configuration.minsetConfiguration.rewardMultiplier + configuration.minsetConfiguration.rewardWeight
                                 } else {
                                     mutationsSuccessCounts.getOrDefault(mutation, 0.0) + 1
                                 }
                             }
-                            else -> mutationsSuccessCounts.getOrDefault(mutation, 0.0) * configuration.minsetConfiguration.penaltyMultiplier + configuration.minsetConfiguration.penaltyWeight
+
+                            else -> mutationsSuccessCounts.getOrDefault(
+                                mutation,
+                                0.0
+                            ) * configuration.minsetConfiguration.penaltyMultiplier + configuration.minsetConfiguration.penaltyWeight
                         }
                     }
                 }
@@ -108,11 +111,9 @@ open class SingleSeedKeepingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RE
     }
 
     override fun getMutationsEfficiencies(): Map<Mutation<*>, Double> {
-        return mutationsEfficiencies
-    }
-
-    override fun isNotEmpty(): Boolean {
-        return feedbacksCounts.isNotEmpty()
+        return mutationsCounts.mapValues { (key, value) ->
+            (mutationsSuccessCounts[key] ?: 0.0) / value
+        }
     }
 
     override fun size(): Int {
@@ -151,7 +152,6 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
 
     private val mutationsCounts = mutableMapOf<Mutation<*>, Long>()
     private val mutationsSuccessCounts = mutableMapOf<Mutation<*>, Double>()
-    private val mutationsEfficiencies = mutableMapOf<Mutation<*>, Double>()
 
 
     override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>): MinsetEvent {
@@ -161,14 +161,11 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
             when (result) {
                 is Result.Known<TYPE, RESULT, *> -> {
                     result.lastMutation?.let { mutation ->
-                        mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
-
-                        with(mutationsEfficiencies) {
-                            forEach { (key, value) ->
-                                this[key] = value * configuration.minsetConfiguration.obsolescenceMultiplier
-                            }
-                            this[mutation] = getOrDefault(mutation, 0.0) / mutationsCounts[mutation]!!
+                        mutationsSuccessCounts.forEach{ (key, value) ->
+                            mutationsSuccessCounts[key] = value * configuration.minsetConfiguration.obsolescenceMultiplier
                         }
+
+                        mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
 
                         mutationsSuccessCounts[mutation] = when (event) {
                             MinsetEvent.NEW_FEEDBACK -> {
@@ -218,7 +215,6 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
 
                         mutationsCounts.clear()
                         mutationsSuccessCounts.clear()
-                        mutationsEfficiencies.clear()
                     }
                 }
                 else -> {}
@@ -244,8 +240,10 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
         return currentValue!!
     }
 
-    override fun isNotEmpty(): Boolean {
-        return minset.isNotEmpty()
+    override fun getMutationsEfficiencies(): Map<Mutation<*>, Double> {
+        return mutationsCounts.mapValues { (key, value) ->
+            (mutationsSuccessCounts[key] ?: 0.0) / value
+        }
     }
 
     override fun size(): Int {

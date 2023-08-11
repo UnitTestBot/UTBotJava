@@ -9,6 +9,7 @@ import org.utbot.framework.codegen.generator.SpringCodeGenerator
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.NonNullSpeculator
+import org.utbot.framework.context.StaticInitializerConcreteProcessor
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.plugin.api.BeanDefinitionData
@@ -34,6 +35,7 @@ class SpringApplicationContextImpl(
 
     override val typeReplacer: TypeReplacer = SpringTypeReplacer(delegateContext.typeReplacer, this)
     override val nonNullSpeculator: NonNullSpeculator = SpringNonNullSpeculator(delegateContext.nonNullSpeculator, this)
+    override val staticInitializerConcreteProcessor: StaticInitializerConcreteProcessor = SpringStaticInitializerConcreteProcessor
 
     override var concreteContextLoadingResult: ConcreteContextLoadingResult? = null
 

@@ -7,6 +7,7 @@ import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.MockerContext
 import org.utbot.framework.context.NonNullSpeculator
+import org.utbot.framework.context.StaticInitializerConcreteProcessor
 import org.utbot.framework.context.TypeReplacer
 
 /**
@@ -15,7 +16,8 @@ import org.utbot.framework.context.TypeReplacer
 class SimpleApplicationContext(
     override val mockerContext: MockerContext,
     override val typeReplacer: TypeReplacer = SimpleTypeReplacer(),
-    override val nonNullSpeculator: NonNullSpeculator = SimpleNonNullSpeculator()
+    override val nonNullSpeculator: NonNullSpeculator = SimpleNonNullSpeculator(),
+    override val staticInitializerConcreteProcessor: StaticInitializerConcreteProcessor = SimpleStaticInitializerConcreteProcessor
 ) : ApplicationContext {
     override fun createConcreteExecutionContext(
         fullClasspath: String,

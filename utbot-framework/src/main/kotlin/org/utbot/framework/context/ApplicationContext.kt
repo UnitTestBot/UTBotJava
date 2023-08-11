@@ -7,6 +7,7 @@ interface ApplicationContext {
     val mockerContext: MockerContext
     val typeReplacer: TypeReplacer
     val nonNullSpeculator: NonNullSpeculator
+    val staticInitializerConcreteProcessor: StaticInitializerConcreteProcessor
 
     fun createConcreteExecutionContext(
         fullClasspath: String,

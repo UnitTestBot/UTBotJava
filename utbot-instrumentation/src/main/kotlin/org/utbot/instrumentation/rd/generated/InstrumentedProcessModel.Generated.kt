@@ -70,7 +70,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = -7487216533584583779L
+        const val serializationHash = 5470408548487674098L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -505,7 +505,7 @@ data class ComputeStaticFieldResult (
  */
 data class GetResultOfInstrumentationParams (
     val className: String,
-    val methodName: String
+    val methodSignature: String
 ) : IPrintable {
     //companion
     
@@ -515,13 +515,13 @@ data class GetResultOfInstrumentationParams (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetResultOfInstrumentationParams  {
             val className = buffer.readString()
-            val methodName = buffer.readString()
-            return GetResultOfInstrumentationParams(className, methodName)
+            val methodSignature = buffer.readString()
+            return GetResultOfInstrumentationParams(className, methodSignature)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetResultOfInstrumentationParams)  {
             buffer.writeString(value.className)
-            buffer.writeString(value.methodName)
+            buffer.writeString(value.methodSignature)
         }
         
         
@@ -538,7 +538,7 @@ data class GetResultOfInstrumentationParams (
         other as GetResultOfInstrumentationParams
         
         if (className != other.className) return false
-        if (methodName != other.methodName) return false
+        if (methodSignature != other.methodSignature) return false
         
         return true
     }
@@ -546,7 +546,7 @@ data class GetResultOfInstrumentationParams (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + className.hashCode()
-        __r = __r*31 + methodName.hashCode()
+        __r = __r*31 + methodSignature.hashCode()
         return __r
     }
     //pretty print
@@ -554,7 +554,7 @@ data class GetResultOfInstrumentationParams (
         printer.println("GetResultOfInstrumentationParams (")
         printer.indent {
             print("className = "); className.print(printer); println()
-            print("methodName = "); methodName.print(printer); println()
+            print("methodSignature = "); methodSignature.print(printer); println()
         }
         printer.print(")")
     }

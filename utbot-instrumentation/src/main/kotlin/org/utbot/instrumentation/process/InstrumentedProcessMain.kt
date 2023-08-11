@@ -155,8 +155,9 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
     }
     watchdog.measureTimeForActiveCall(getResultOfInstrumentation, "Getting instrumentation result") { params ->
         HandlerClassesLoader.loadClass(params.className)
-        val result = (instrumentation as UtExecutionInstrumentation)
-            .getResultOfInstrumentation(params.className, params.methodName)
+        val result = (instrumentation as UtExecutionInstrumentation).getResultOfInstrumentation(
+            params.className, params.methodSignature
+        )
         GetResultOfInstrumentationResult(kryoHelper.writeObject(result))
     }
     watchdog.measureTimeForActiveCall(addPaths, "User and dependency classpath setup") { params ->

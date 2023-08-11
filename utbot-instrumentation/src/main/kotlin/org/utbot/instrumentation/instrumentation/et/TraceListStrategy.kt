@@ -27,7 +27,7 @@ class TraceListStrategy(
         methodVisitor: MethodVisitor
     ) {
         currentMethodSignature = name + descriptor
-        currentClassMethodId = storage.addClassMethod(className, name)
+        currentClassMethodId = storage.addClassMethod(className, currentMethodSignature)
     }
 
     override fun visitCode(mv: MethodVisitor, lvs: LocalVariablesSorter) {

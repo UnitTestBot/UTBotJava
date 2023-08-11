@@ -52,7 +52,7 @@ data class PutStaticInstruction(
 
 private data class ClassToMethod(
     val className: String,
-    val methodName: String
+    val methodSignature: String
 )
 
 class ProcessingStorage {
@@ -77,8 +77,8 @@ class ProcessingStorage {
         return classToId[className]!!.toLong() * SHIFT + localId
     }
 
-    fun addClassMethod(className: String, methodName: String): Int {
-        val classToMethod = ClassToMethod(className, methodName)
+    fun addClassMethod(className: String, methodSignature: String): Int {
+        val classToMethod = ClassToMethod(className, methodSignature)
         val id = classMethodToId.getOrPut(classToMethod) { classMethodToId.size }
         idToClassMethod.putIfAbsent(id, classToMethod)
         return id
@@ -106,8 +106,8 @@ class ProcessingStorage {
         return instructionsData.getValue(id)
     }
 
-    fun getInstructionsIds(className: String, methodName: String): List<Long>? {
-        val methodId = classMethodToId[ClassToMethod(className, methodName)]
+    fun getInstructionsIds(className: String, methodSignature: String): List<Long>? {
+        val methodId = classMethodToId[ClassToMethod(className, methodSignature)]
         return methodIdToInstructionsIds[methodId]
     }
 

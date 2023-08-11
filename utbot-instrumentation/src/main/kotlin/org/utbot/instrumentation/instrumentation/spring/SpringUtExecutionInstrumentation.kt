@@ -85,8 +85,8 @@ class SpringUtExecutionInstrumentation(
         }
     }
 
-    override fun getResultOfInstrumentation(className: String, methodName: String): ResultOfInstrumentation =
-        delegateInstrumentation.getResultOfInstrumentation(className, methodName)
+    override fun getResultOfInstrumentation(className: String, methodSignature: String): ResultOfInstrumentation =
+        delegateInstrumentation.getResultOfInstrumentation(className, methodSignature)
 
     override fun getStaticField(fieldId: FieldId): Result<*> = delegateInstrumentation.getStaticField(fieldId)
 

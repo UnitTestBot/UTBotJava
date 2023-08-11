@@ -320,7 +320,7 @@ fun <T> ConcreteExecutor<*, *>.computeStaticField(fieldId: FieldId): Result<T> =
 fun ConcreteExecutor<*, *>.getInstrumentationResult(methodUnderTest: ExecutableId): ResultOfInstrumentation =
     runBlocking {
         withProcess {
-            val params = GetResultOfInstrumentationParams(methodUnderTest.classId.name, methodUnderTest.name)
+            val params = GetResultOfInstrumentationParams(methodUnderTest.classId.name, methodUnderTest.signature)
             val result = instrumentedProcessModel.getResultOfInstrumentation.startSuspending(lifetime, params)
             kryoHelper.readObject(result.result)
         }

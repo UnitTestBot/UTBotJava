@@ -17,7 +17,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
 
     val GetResultOfInstrumentationParams = structdef {
         field("className", PredefinedType.string)
-        field("methodName", PredefinedType.string)
+        field("methodSignature", PredefinedType.string)
     }
 
     val GetResultOfInstrumentationResult = structdef {

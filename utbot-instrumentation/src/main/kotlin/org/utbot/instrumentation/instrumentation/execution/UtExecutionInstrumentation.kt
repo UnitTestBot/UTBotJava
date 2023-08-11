@@ -56,7 +56,7 @@ interface UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult
         phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
     ): UtConcreteExecutionResult
 
-    fun getResultOfInstrumentation(className: String, methodName: String): ResultOfInstrumentation
+    fun getResultOfInstrumentation(className: String, methodSignature: String): ResultOfInstrumentation
 
     interface Factory<out TInstrumentation : UtExecutionInstrumentation> : Instrumentation.Factory<UtConcreteExecutionResult, TInstrumentation> {
         override fun create(): TInstrumentation = create(SimpleInstrumentationContext())

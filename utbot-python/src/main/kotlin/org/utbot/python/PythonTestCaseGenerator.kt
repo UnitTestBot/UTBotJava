@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.framework.api.python.PythonUtExecution
+import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
@@ -137,10 +138,15 @@ class PythonTestCaseGenerator(
         var missingLines = initMissingLines
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
-        val constants = constantCollector.result.map { (type, value) ->
-            logger.debug { "Collected constant: ${type.pythonTypeRepresentation()}: $value" }
-            PythonFuzzedConcreteValue(type, value)
-        }
+        val constants = constantCollector.result
+            .mapNotNull { (type, value) ->
+                if (type.pythonTypeName() == pythonStrClassId.name && value is String) {
+                    // Filter doctests
+                    if (value.contains(">>>")) return@mapNotNull null
+                }
+                logger.debug { "Collected constant: ${type.pythonTypeRepresentation()}: $value" }
+                PythonFuzzedConcreteValue(type, value)
+            }
 
         inferAnnotations(
             method,
@@ -222,7 +228,7 @@ class PythonTestCaseGenerator(
         val errors = mutableListOf<UtError>()
         val coveredLines = mutableSetOf<Int>()
 
-        logger.info("Start test generation for ${method.name}")
+        logger.info { "Start test generation for ${method.name}" }
         try {
             val methodModifications = mutableSetOf<Pair<PythonMethod, String>>()  // Set of pairs <PythonMethod, additionalVars>
 
@@ -247,10 +253,10 @@ class PythonTestCaseGenerator(
                 )
             }
         } catch (_: OutOfMemoryError) {
-            logger.info { "Out of memory error. Stop test generation process" }
+            logger.debug { "Out of memory error. Stop test generation process" }
         }
 
-        logger.info("Collect all test executions for ${method.name}")
+        logger.info { "Collect all test executions for ${method.name}" }
         val (emptyCoverageExecutions, coverageExecutions) = executions.partition { it.coverage == null }
         val (successfulExecutions, failedExecutions) = coverageExecutions.partition { it.result is UtExecutionSuccess }
 

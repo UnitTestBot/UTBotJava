@@ -143,7 +143,7 @@ class PythonEngine(
                 types.joinToString { it.pythonTypeRepresentation() }
             }. Exception type: ${resultModel.type.name}"
 
-            logger.info(errorMessage)
+            logger.error { errorMessage }
             return TypeErrorFeedback(errorMessage)
         }
 
@@ -269,14 +269,14 @@ class PythonEngine(
                 }
             }
         } catch (_: TimeoutException) {
-            logger.info { "Fuzzing process was interrupted by timeout" }
+            logger.debug { "Fuzzing process was interrupted by timeout" }
             return null
         }
     }
 
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         ServerSocket(0).use { serverSocket ->
-            logger.info { "Server port: ${serverSocket.localPort}" }
+            logger.debug { "Server port: ${serverSocket.localPort}" }
             val manager = try {
                 PythonWorkerManager(
                     serverSocket,
@@ -286,7 +286,7 @@ class PythonEngine(
             } catch (_: TimeoutException) {
                 return@flow
             }
-            logger.info { "Executor manager was created successfully" }
+            logger.debug { "Executor manager was created successfully" }
 
             val pmd = PythonMethodDescription(
                 methodUnderTest.name,
@@ -307,18 +307,18 @@ class PythonEngine(
                     try {
                         PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
                             if (isCancelled()) {
-                                logger.info { "Fuzzing process was interrupted" }
+                                logger.debug { "Fuzzing process was interrupted" }
                                 manager.disconnect()
                                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
                             }
                             if (System.currentTimeMillis() >= until) {
-                                logger.info { "Fuzzing process was interrupted by timeout" }
+                                logger.debug { "Fuzzing process was interrupted by timeout" }
                                 manager.disconnect()
                                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
                             }
 
                             if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
-                                logger.debug("FakeNode in Python model")
+                                logger.debug { "FakeNode in Python model" }
                                 emit(FakeNodeFeedback)
                                 return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                             }

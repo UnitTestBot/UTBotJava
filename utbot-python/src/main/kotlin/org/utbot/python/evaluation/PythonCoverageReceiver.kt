@@ -33,9 +33,9 @@ class PythonCoverageReceiver(
                 coverageStorage.getOrPut(id) { mutableSetOf() } .add(lineNumber)
             }
         } catch (ex: SocketException) {
-            logger.error(ex.message)
+            logger.error { ex.message }
         } catch (ex: IOException) {
-            logger.error("IO error: " + ex.message)
+            logger.error { "IO error: " + ex.message }
         }
     }
 }

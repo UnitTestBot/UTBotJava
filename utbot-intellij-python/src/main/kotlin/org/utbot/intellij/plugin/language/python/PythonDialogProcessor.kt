@@ -25,8 +25,8 @@ import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.resolve.QualifiedNameFinder
 import mu.KotlinLogging
-import org.jetbrains.kotlin.idea.util.module
-import org.jetbrains.kotlin.idea.util.projectStructure.sdk
+import org.jetbrains.kotlin.idea.base.util.module
+import org.jetbrains.kotlin.idea.base.util.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.settings.Settings
@@ -183,7 +183,7 @@ object PythonDialogProcessor {
                     .mapNotNull {
                         val functionName = it.name ?: return@mapNotNull null
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
-                        val containingClassId = it.containingClass?.name?.let{ cls -> PythonClassId(cls) }
+                        val containingClassId = it.containingClass?.qualifiedName?.let{ cls -> PythonClassId(cls) }
                         PythonMethodHeader(
                                 functionName,
                                 moduleFilename,

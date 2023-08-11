@@ -24,6 +24,7 @@ import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.GenericArrayType
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.time.LocalDateTime
 import java.util.IdentityHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.jvm.javaMethod
@@ -175,6 +176,31 @@ class JavaFuzzingTest {
         val seenStrings = seenStringListHolders.flatMap { it.strings.orEmpty().filterNotNull() }
         assertNotEquals(emptyList<String>(), seenStrings)
         seenStrings.forEach { assertInstanceOf(String::class.java, it) }
+    }
+
+    @Test
+    fun `fuzzer can create instances of classes without public constructors but with static factory method in their class`() {
+        var seenLocalDateTime = false
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = LocalDateTime::getMinute.javaMethod!!.executableId,
+                constants = emptyList(),
+                names = emptyList(),
+            ) { thisInstance, _, _ ->
+                val control = runCatching {
+                    ValueConstructor()
+                        .construct(listOfNotNull(thisInstance?.model))
+                        .singleOrNull()?.value
+                }.getOrNull()?.let { constructedThisInstance ->
+                    assertInstanceOf(LocalDateTime::class.java, constructedThisInstance)
+                    seenLocalDateTime = true
+                    Control.STOP
+                } ?: Control.CONTINUE
+                BaseFeedback(Trie.emptyNode(), control)
+            }
+        }
+        assertTrue(seenLocalDateTime) { "No value was generated for type LocalDateTime" }
     }
 
     @Test

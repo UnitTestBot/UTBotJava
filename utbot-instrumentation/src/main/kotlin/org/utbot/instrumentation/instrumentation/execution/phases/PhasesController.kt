@@ -1,6 +1,5 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
-import com.jetbrains.rd.util.error
 import com.jetbrains.rd.util.getLogger
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
@@ -48,9 +47,10 @@ class PhasesController(
         } catch (e: ExecutionPhaseError) {
             if (e.cause.cause is AccessControlException) {
                 return UtConcreteExecutionResult(
-                    MissingState,
-                    UtSandboxFailure(e.cause.cause!!),
-                    Coverage()
+                    stateBefore = MissingState,
+                    stateAfter = MissingState,
+                    result = UtSandboxFailure(e.cause.cause!!),
+                    coverage = Coverage()
                 )
             }
 

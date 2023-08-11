@@ -1,4 +1,4 @@
-package org.utbot.framework.modifications
+package org.utbot.modifications
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.DirectFieldAccessId

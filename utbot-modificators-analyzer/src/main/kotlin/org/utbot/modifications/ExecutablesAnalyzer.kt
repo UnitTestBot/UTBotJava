@@ -1,16 +1,15 @@
-package org.utbot.framework.modifications
+package org.utbot.modifications
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.util.executableId
+import org.utbot.modifications.util.retrieveJimpleBody
 import soot.Scene
 import soot.SootMethod
 import soot.jimple.InvokeExpr
 import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JInstanceFieldRef
 import soot.jimple.internal.JInvokeStmt
 
 /**
@@ -55,15 +54,16 @@ class ExecutablesAnalyzer {
     /**
      * Finds fields modified in Jimple code of this method.
      */
-    fun findModificationsInJimple(executableId: ExecutableId): Set<FieldId> {
+    fun findModificationsInJimple(
+        executableId: ExecutableId,
+        transformationMode: ModificationTransformationMode
+    ): Set<FieldId> {
         val sootMethod = executablesCache[executableId] ?: error("No method ${executableId.name} in soot cache")
 
         val jimpleBody = retrieveJimpleBody(sootMethod) ?: return emptySet()
-        return jimpleBody.units
-            .filterIsInstance<JAssignStmt>()
-            .mapNotNull { it.leftOp as? JInstanceFieldRef }
-            .map { it.field.fieldId }
-            .toSet()
+        return jimpleBody
+            .units
+            .mapNotNullTo(mutableSetOf()) { transformationMode.transformer(it) }
     }
 
     /**

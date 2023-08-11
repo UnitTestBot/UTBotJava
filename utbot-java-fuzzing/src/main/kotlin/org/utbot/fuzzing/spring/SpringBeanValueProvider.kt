@@ -5,6 +5,7 @@ import org.utbot.common.withValue
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.persistMethodIdOrNull
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
@@ -12,6 +13,7 @@ import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.SPRING_BEAN_PROP
+import org.utbot.fuzzing.providers.findAllAvailableMethods
 import org.utbot.fuzzing.providers.nullRoutine
 import org.utbot.fuzzing.spring.valid.EntityLifecycleState
 import org.utbot.fuzzing.spring.valid.EntityLifecycleStateProperty
@@ -76,6 +78,18 @@ class SpringBeanValueProvider(
                                 }
                             })
                         }
+                        findAllAvailableMethods(description, type.classId, description.description.packageName)
+                            .forEach { md ->
+                                yield(Routine.Call(md.parameterTypes) { self, values ->
+                                    val model = self.model as UtAssembleModel
+                                    model.modificationsChain as MutableList +=
+                                        UtExecutableCallModel(
+                                            model,
+                                            md.method.executableId,
+                                            values.map { it.model }
+                                        )
+                                })
+                            }
                     },
                     empty = nullRoutine(type.classId)
                 )

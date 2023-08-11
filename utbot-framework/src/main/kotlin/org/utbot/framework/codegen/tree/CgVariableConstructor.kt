@@ -260,10 +260,13 @@ open class CgVariableConstructor(val context: CgContext) :
                 is UtStatementCallModel -> {
                     val call = createCgExecutableCallFromUtExecutableCall(statementModel)
                     val equivalentFieldAccess = replaceCgExecutableCallWithFieldAccessIfNeeded(call)
-                    if (equivalentFieldAccess != null)
-                        +equivalentFieldAccess
-                    else
-                        +call
+                    val thrownException = statementModel.thrownConcreteException
+
+                    if (equivalentFieldAccess != null) +equivalentFieldAccess
+                    else if (thrownException != null) {
+                        +tryBlock { +call }
+                            .catch(thrownException) { /* do nothing */ }
+                    } else +call
                 }
             }
         }

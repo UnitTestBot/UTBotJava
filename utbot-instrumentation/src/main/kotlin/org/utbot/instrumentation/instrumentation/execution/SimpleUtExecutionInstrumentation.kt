@@ -116,6 +116,7 @@ class SimpleUtExecutionInstrumentation(
                     }
 
                     UtConcreteExecutionResult(
+                        parameters.stateBefore,
                         stateAfter,
                         executionResult,
                         coverage,

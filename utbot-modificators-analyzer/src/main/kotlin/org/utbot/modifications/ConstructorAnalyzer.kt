@@ -1,4 +1,4 @@
-package org.utbot.framework.modifications
+package org.utbot.modifications
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -7,7 +7,8 @@ import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.util.kotlinIntrinsicsClassId
+import org.utbot.modifications.util.kotlinIntrinsicsClassId
+import org.utbot.modifications.util.retrieveJimpleBody
 import soot.Scene
 import soot.SootMethod
 import soot.Type

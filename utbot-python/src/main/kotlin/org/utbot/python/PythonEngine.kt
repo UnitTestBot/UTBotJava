@@ -18,7 +18,7 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
@@ -36,7 +36,7 @@ class PythonEngine(
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
-    private val pythonTypeStorage: PythonTypeStorage,
+    private val pythonTypeStorage: PythonTypeHintsStorage,
 ) {
 
     private val cache = EvaluationCache()

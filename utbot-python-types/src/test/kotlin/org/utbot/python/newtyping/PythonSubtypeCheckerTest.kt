@@ -14,12 +14,12 @@ import org.utbot.python.newtyping.mypy.readMypyInfoBuildWithoutRoot
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PythonSubtypeCheckerTest {
     lateinit var storage: MypyInfoBuild
-    lateinit var pythonTypeStorage: PythonTypeStorage
+    lateinit var pythonTypeStorage: PythonTypeHintsStorage
     @BeforeAll
     fun setup() {
         val sample = PythonSubtypeCheckerTest::class.java.getResource("/subtypes_sample.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
-        pythonTypeStorage = PythonTypeStorage.get(storage)
+        pythonTypeStorage = PythonTypeHintsStorage.get(storage)
     }
 
     @Test

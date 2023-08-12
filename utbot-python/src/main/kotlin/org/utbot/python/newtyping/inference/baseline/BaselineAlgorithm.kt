@@ -24,7 +24,7 @@ private val EDGES_TO_LINK = listOf(
 private val logger = KotlinLogging.logger {}
 
 class BaselineAlgorithm(
-    private val storage: PythonTypeStorage,
+    private val storage: PythonTypeHintsStorage,
     private val pythonPath: String,
     private val pythonMethodCopy: PythonMethod,
     private val directoriesForSysPath: Set<String>,

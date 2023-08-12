@@ -13,7 +13,7 @@ import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.UtType
 
 class SubtypeValueProvider(
-    private val typeStorage: PythonTypeStorage
+    private val typeStorage: PythonTypeHintsStorage
 ) : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: UtType): Boolean {
         return type.meta is PythonProtocolDescription ||

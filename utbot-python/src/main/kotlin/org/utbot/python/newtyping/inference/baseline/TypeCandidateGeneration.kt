@@ -37,7 +37,7 @@ data class TypeRatingPosition(
 class CandidateGraph(
     anyNodes: List<AnyTypeNode>,
     initialRating: List<UtType>,
-    storage: PythonTypeStorage,
+    storage: PythonTypeHintsStorage,
 ) {
     private val typeRatings: List<TypeRating> =
         anyNodes.map { createTypeRating(initialRating, it.lowerBounds, it.upperBounds, storage, it.nestedLevel) }
@@ -105,7 +105,7 @@ private const val MAX_NESTING = 3
 
 private fun changeScores(
     initialRating: List<UtType>,
-    storage: PythonTypeStorage,
+    storage: PythonTypeHintsStorage,
     bounds: List<UtType>,
     hintScores: MutableMap<PythonTypeWrapperForEqualityCheck, Double>,
     withPenalty: Boolean,
@@ -138,7 +138,7 @@ fun createTypeRating(
     initialRating: List<UtType>,
     lowerBounds: List<UtType>,
     upperBounds: List<UtType>,
-    storage: PythonTypeStorage,
+    storage: PythonTypeHintsStorage,
     level: Int,
     withPenalty: Boolean = true
 ): TypeRating {
@@ -158,7 +158,7 @@ fun createTypeRating(
     return TypeRating(scores)
 }
 
-fun simplestTypes(storage: PythonTypeStorage): List<UtType> {
+fun simplestTypes(storage: PythonTypeHintsStorage): List<UtType> {
     val int = storage.pythonInt
     val listOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonList, listOf(pythonAnyType))
     val str = storage.pythonStr
@@ -168,7 +168,7 @@ fun simplestTypes(storage: PythonTypeStorage): List<UtType> {
     return listOf(int, listOfAny, str, bool, float, dictOfAny)
 }
 
-fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeStorage): List<UtType> {
+fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeHintsStorage): List<UtType> {
     val allLowerBounds: MutableList<UtType> = mutableListOf()
     val allUpperBounds: MutableList<UtType> = mutableListOf()
     hintCollectorResult.allNodes.forEach { node ->

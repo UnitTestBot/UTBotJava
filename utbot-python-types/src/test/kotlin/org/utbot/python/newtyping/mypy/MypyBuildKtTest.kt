@@ -8,16 +8,16 @@ import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class MypyStorageKtTest {
+internal class MypyBuildKtTest {
     lateinit var storage: MypyInfoBuild
-    lateinit var typeStorage: PythonTypeStorage
+    lateinit var typeStorage: PythonTypeHintsStorage
     lateinit var storageBoruvka: MypyInfoBuild
     @BeforeAll
     fun setup() {
-        val sample = MypyStorageKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = this::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
-        typeStorage = PythonTypeStorage.get(storage)
-        val sample1 = MypyStorageKtTest::class.java.getResource("/boruvka.json")!!.readText()
+        typeStorage = PythonTypeHintsStorage.get(storage)
+        val sample1 = this::class.java.getResource("/boruvka.json")!!.readText()
         storageBoruvka = readMypyInfoBuildWithoutRoot(sample1)
     }
 

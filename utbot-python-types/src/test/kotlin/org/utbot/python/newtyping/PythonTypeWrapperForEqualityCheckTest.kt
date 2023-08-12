@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.TypeParameter
-import org.utbot.python.newtyping.mypy.MypyStorageKtTest
+import org.utbot.python.newtyping.mypy.MypyBuildKtTest
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.readMypyInfoBuildWithoutRoot
 
@@ -15,7 +15,7 @@ internal class PythonTypeWrapperForEqualityCheckTest {
     lateinit var storage: MypyInfoBuild
     @BeforeAll
     fun setup() {
-        val sample = MypyStorageKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = MypyBuildKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
     }
 

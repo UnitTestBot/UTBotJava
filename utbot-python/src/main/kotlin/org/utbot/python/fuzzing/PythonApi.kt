@@ -26,7 +26,7 @@ class PythonMethodDescription(
     val name: String,
     parameters: List<UtType>,
     val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
-    val pythonTypeStorage: PythonTypeStorage,
+    val pythonTypeStorage: PythonTypeHintsStorage,
     val tracer: Trie<Instruction, *>,
     val random: Random,
 ) : Description<UtType>(parameters)
@@ -54,7 +54,7 @@ class PythonFuzzedValue(
     val summary: String? = null,
 )
 
-fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
+fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     NoneValueProvider,
     BoolValueProvider,
     IntValueProvider,
@@ -77,7 +77,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
 )
 
 class PythonFuzzing(
-    private val pythonTypeStorage: PythonTypeStorage,
+    private val pythonTypeStorage: PythonTypeHintsStorage,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
 ) : Fuzzing<UtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 

@@ -3,7 +3,6 @@ package org.utbot.python.newtyping.mypy
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
-import java.io.File
 
 fun readMypyInfoBuild(mypyBuildDir: MypyBuildDirectory): MypyInfoBuild {
     val result = readMypyInfoBuildWithoutRoot(mypyBuildDir.fileForAnnotationStorage.readText())

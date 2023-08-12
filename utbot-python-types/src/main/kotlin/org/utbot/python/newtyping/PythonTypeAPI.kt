@@ -14,7 +14,7 @@ fun UtType.getPythonAttributes(): List<PythonDefinition> {
     return pythonDescription().getNamedMembers(this)
 }
 
-fun UtType.getPythonAttributeByName(storage: PythonTypeStorage, name: String): PythonDefinition? {
+fun UtType.getPythonAttributeByName(storage: PythonTypeHintsStorage, name: String): PythonDefinition? {
     return pythonDescription().getMemberByName(storage, this, name)
 }
 

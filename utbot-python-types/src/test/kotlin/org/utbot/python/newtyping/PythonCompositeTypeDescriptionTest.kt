@@ -4,19 +4,18 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.utbot.python.newtyping.mypy.MypyStorageKtTest
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.readMypyInfoBuildWithoutRoot
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PythonCompositeTypeDescriptionTest {
     lateinit var storage: MypyInfoBuild
-    private lateinit var pythonTypeStorage: PythonTypeStorage
+    private lateinit var pythonTypeStorage: PythonTypeHintsStorage
     @BeforeAll
     fun setup() {
-        val sample = MypyStorageKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = this::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
-        pythonTypeStorage = PythonTypeStorage.get(storage)
+        pythonTypeStorage = PythonTypeHintsStorage.get(storage)
     }
 
     @Test

@@ -14,7 +14,7 @@ fun decompose(
     lowerBounds: List<UtType>,
     upperBounds: List<UtType>,
     level: Int,
-    storage: PythonTypeStorage
+    storage: PythonTypeHintsStorage
 ): DecompositionResult {
     if (typesAreEqual(partialType, pythonAnyType)) {
         val root = AnyTypeNode(

@@ -16,7 +16,7 @@ import java.util.*
 
 class HintCollector(
     private val function: PythonFunctionDefinition,
-    private val storage: PythonTypeStorage,
+    private val storage: PythonTypeHintsStorage,
     private val mypyTypes: Map<Pair<Int, Int>, UtType>,
     private val globalNamesStorage: GlobalNamesStorage,
     private val moduleOfSources: String

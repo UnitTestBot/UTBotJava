@@ -6,7 +6,7 @@ import org.parsers.python.ast.NumericalLiteral
 import org.parsers.python.ast.SliceExpression
 import org.parsers.python.ast.StringLiteral
 import org.parsers.python.ast.UnaryExpression
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.ast.SimpleSlice
 import org.utbot.python.newtyping.ast.TupleSlice
 import org.utbot.python.newtyping.ast.parseSliceExpression
@@ -17,7 +17,7 @@ import org.utbot.python.newtyping.general.UtType
 import java.math.BigDecimal
 import java.math.BigInteger
 
-class ConstantCollector(private val storage: PythonTypeStorage) : Collector() {
+class ConstantCollector(private val storage: PythonTypeHintsStorage) : Collector() {
     private val knownConstants = mutableMapOf<Pair<Int, Int>, Pair<UtType, Any>>()
 
     private fun add(node: Node, type: UtType, value: Any) {

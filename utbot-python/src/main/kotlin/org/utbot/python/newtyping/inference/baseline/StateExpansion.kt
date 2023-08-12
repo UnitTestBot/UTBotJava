@@ -1,6 +1,6 @@
 package org.utbot.python.newtyping.inference.baseline
 
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.addEdge
 import org.utbot.python.newtyping.pythonAnnotationParameters
@@ -8,14 +8,14 @@ import org.utbot.python.newtyping.pythonDescription
 import java.util.LinkedList
 import java.util.Queue
 
-fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage): BaselineAlgorithmState? {
+fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeHintsStorage): BaselineAlgorithmState? {
     if (state.anyNodes.isEmpty())
         return null
     val types = state.candidateGraph.getNext() ?: return null
     return expandState(state, typeStorage, types)
 }
 
-fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage, types: List<UtType>): BaselineAlgorithmState? {
+fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeHintsStorage, types: List<UtType>): BaselineAlgorithmState? {
     if (types.isEmpty())
         return null
     val substitution = (state.anyNodes zip types).associate { it }
@@ -26,7 +26,7 @@ private fun expandNodes(
     state: BaselineAlgorithmState,
     substitution: Map<AnyTypeNode, UtType>,
     generalRating: List<UtType>,
-    storage: PythonTypeStorage
+    storage: PythonTypeHintsStorage
 ): BaselineAlgorithmState {
     val (newAnyNodeMap, allNewNodes) = substitution.entries.fold(
         Pair(emptyMap<AnyTypeNode, BaselineAlgorithmNode>(), emptySet<BaselineAlgorithmNode>())

@@ -8,7 +8,7 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
     open fun castToCompatibleTypeApi(type: UtType): UtType = type
     open fun getNamedMembers(type: UtType): List<PythonDefinition> = emptyList()  // direct members (without inheritance)
     open fun getAnnotationParameters(type: UtType): List<UtType> = emptyList()
-    open fun getMemberByName(storage: PythonTypeStorage, type: UtType, name: String): PythonDefinition? =
+    open fun getMemberByName(storage: PythonTypeHintsStorage, type: UtType, name: String): PythonDefinition? =
         // overridden for some types
         getNamedMembers(type).find { it.meta.name == name }
     open fun createTypeWithNewAnnotationParameters(like: UtType, newParams: List<UtType>): UtType =  // overriden for Callable
@@ -67,7 +67,7 @@ sealed class PythonCompositeTypeDescription(
     }
 
     override fun getAnnotationParameters(type: UtType): List<UtType> = type.parameters
-    fun mro(storage: PythonTypeStorage, type: UtType): List<UtType> {
+    fun mro(storage: PythonTypeHintsStorage, type: UtType): List<UtType> {
         val compositeType = castToCompatibleTypeApi(type)
         var bases = compositeType.supertypes
         if (bases.isEmpty() && !type.isPythonObjectType())
@@ -102,7 +102,7 @@ sealed class PythonCompositeTypeDescription(
         return result
     }
 
-    override fun getMemberByName(storage: PythonTypeStorage, type: UtType, name: String): PythonDefinition? {
+    override fun getMemberByName(storage: PythonTypeHintsStorage, type: UtType, name: String): PythonDefinition? {
         for (parent in mro(storage, type)) {
             val cur = parent.getPythonAttributes().find { it.meta.name == name }
             if (cur != null)
@@ -250,7 +250,7 @@ class PythonCallableTypeDescription(
 
 // Special Python annotations
 object PythonAnyTypeDescription : PythonSpecialAnnotation(pythonAnyName) {
-    override fun getMemberByName(storage: PythonTypeStorage, type: UtType, name: String): PythonDefinition {
+    override fun getMemberByName(storage: PythonTypeHintsStorage, type: UtType, name: String): PythonDefinition {
         return PythonDefinition(PythonVariableDescription(name), pythonAnyType)
     }
 }
@@ -260,7 +260,7 @@ object PythonNoneTypeDescription : PythonSpecialAnnotation(pythonNoneName) {
 }
 
 object PythonUnionTypeDescription : PythonSpecialAnnotation(pythonUnionName) {
-    override fun getMemberByName(storage: PythonTypeStorage, type: UtType, name: String): PythonDefinition? {
+    override fun getMemberByName(storage: PythonTypeHintsStorage, type: UtType, name: String): PythonDefinition? {
         val children = type.parameters.mapNotNull {
             it.getPythonAttributeByName(storage, name)?.type
         }

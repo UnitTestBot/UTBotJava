@@ -25,7 +25,7 @@ data class TypeConstraint(
 )
 
 // key of returned Map: index of annotationParameter
-fun propagateConstraint(type: UtType, constraint: TypeConstraint, storage: PythonTypeStorage): Map<Int, TypeConstraint> {
+fun propagateConstraint(type: UtType, constraint: TypeConstraint, storage: PythonTypeHintsStorage): Map<Int, TypeConstraint> {
     return when (val description = type.pythonDescription()) {
         is PythonAnyTypeDescription, is PythonNoneTypeDescription, is PythonTypeVarDescription -> emptyMap()
         is PythonOverloadTypeDescription -> emptyMap() // TODO
@@ -44,7 +44,7 @@ private fun propagateConstraintForCompositeType(
     type: UtType,
     description: PythonCompositeTypeDescription,
     constraint: TypeConstraint,
-    storage: PythonTypeStorage
+    storage: PythonTypeHintsStorage
 ): Map<Int, TypeConstraint> {
     return when (val constraintDescription = constraint.type.pythonDescription()) {
         is PythonConcreteCompositeTypeDescription -> {

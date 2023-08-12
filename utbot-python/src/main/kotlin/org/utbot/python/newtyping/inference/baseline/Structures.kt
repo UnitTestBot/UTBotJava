@@ -1,6 +1,6 @@
 package org.utbot.python.newtyping.inference.baseline
 
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithValue
 import org.utbot.python.newtyping.inference.TypeInferenceNode
@@ -31,7 +31,7 @@ class BaselineAlgorithmEdge(
 class BaselineAlgorithmState(
     val nodes: Set<BaselineAlgorithmNode>,
     val generalRating: List<UtType>,
-    typeStorage: PythonTypeStorage
+    typeStorage: PythonTypeHintsStorage
 ) {
     val signature: UtType
         get() = nodes.find { it.isRoot }!!.partialType

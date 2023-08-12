@@ -70,7 +70,7 @@ class TypeInferenceProcessor(
 
             analyzingCodeAction()
 
-            val typeStorage = PythonTypeStorage.get(mypyBuild)
+            val typeStorage = PythonTypeHintsStorage.get(mypyBuild)
             val pythonMethodOpt = getPythonMethod(mypyBuild, typeStorage)
             if (pythonMethodOpt is Fail) {
                 pythonMethodExtractionFailAction(pythonMethodOpt.message)
@@ -120,7 +120,7 @@ class TypeInferenceProcessor(
         }
     }
 
-    private fun getPythonMethod(mypyInfoBuild: MypyInfoBuild, typeStorage: PythonTypeStorage): Optional<PythonMethod> {
+    private fun getPythonMethod(mypyInfoBuild: MypyInfoBuild, typeStorage: PythonTypeHintsStorage): Optional<PythonMethod> {
         if (className == null) {
             val funcDef = parsedFile.children().firstNotNullOfOrNull { node ->
                 val res = (node as? FunctionDefinition)?.let { parseFunctionDefinition(it) }

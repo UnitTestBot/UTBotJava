@@ -9,7 +9,7 @@ import org.utbot.python.newtyping.general.UtType
 fun createIterableWithCustomReturn(returnType: UtType): UtType =
     createUnaryProtocolWithCustomReturn("__iter__", returnType)
 
-fun supportsBoolProtocol(storage: PythonTypeStorage): UtType =
+fun supportsBoolProtocol(storage: PythonTypeHintsStorage): UtType =
     createUnaryProtocolWithCustomReturn("__bool__", storage.pythonBool)
 
 fun createProtocolWithAttribute(attributeName: String, attributeType: UtType): UtType =

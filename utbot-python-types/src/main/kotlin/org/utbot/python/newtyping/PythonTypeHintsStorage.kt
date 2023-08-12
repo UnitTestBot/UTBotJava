@@ -8,7 +8,7 @@ import org.utbot.python.newtyping.mypy.CompositeAnnotationNode
 import org.utbot.python.newtyping.mypy.MypyAnnotation
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 
-class PythonTypeStorage(
+class PythonTypeHintsStorage(
     val pythonObject: UtType,
     val pythonBool: UtType,
     val pythonList: UtType,
@@ -44,7 +44,7 @@ class PythonTypeStorage(
                 }
             }
         }
-        fun get(mypyStorage: MypyInfoBuild): PythonTypeStorage {
+        fun get(mypyStorage: MypyInfoBuild): PythonTypeHintsStorage {
             val module = mypyStorage.definitions["builtins"]!!
             val allTypes: MutableSet<UtType> = mutableSetOf()
             mypyStorage.definitions.forEach { (_, curModule) ->
@@ -55,7 +55,7 @@ class PythonTypeStorage(
             }
             val tuple = module["tuple"]!!.type.asUtBotType
             val tupleOfAny = DefaultSubstitutionProvider.substituteAll(tuple, listOf(pythonAnyType))
-            return PythonTypeStorage(
+            return PythonTypeHintsStorage(
                 pythonObject = module["object"]!!.type.asUtBotType,
                 pythonBool = module["bool"]!!.type.asUtBotType,
                 pythonList = module["list"]!!.type.asUtBotType,

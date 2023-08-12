@@ -4,14 +4,8 @@ import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.PythonAnyTypeDescription
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
-import org.utbot.python.newtyping.PythonDefinition
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.PythonTypeStorage
-import org.utbot.python.newtyping.PythonVariableDescription
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.getPythonAttributeByName
 
 fun UtType.isAny(): Boolean {
     return meta is PythonAnyTypeDescription
@@ -49,6 +43,6 @@ fun PythonDefinition.isProperty(): Boolean {
     return (this.meta as? PythonVariableDescription)?.isProperty == true
 }
 
-fun PythonDefinition.isCallable(typeStorage: PythonTypeStorage): Boolean {
+fun PythonDefinition.isCallable(typeStorage: PythonTypeHintsStorage): Boolean {
     return this.type.getPythonAttributeByName(typeStorage, "__call__") != null
 }

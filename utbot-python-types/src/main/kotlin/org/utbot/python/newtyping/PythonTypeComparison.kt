@@ -194,6 +194,7 @@ class PythonSubtypeChecker(
         }
     }
 
+    @Suppress("unused_parameter")
     private fun caseOfLeftTypeAlias(leftMeta: PythonTypeAliasDescription): Boolean {
         return PythonSubtypeChecker(
             left = PythonTypeAliasDescription.getInterior(left),
@@ -329,6 +330,7 @@ class PythonSubtypeChecker(
         }
     }
 
+    @Suppress("unused_parameter")
     private fun caseOfLeftUnion(leftMeta: PythonUnionTypeDescription): Boolean {
         val children = PythonUnionTypeDescription.getAnnotationParameters(left)
         return children.any { childType ->

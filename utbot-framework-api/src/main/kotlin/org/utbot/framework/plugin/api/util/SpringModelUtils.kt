@@ -593,7 +593,7 @@ object SpringModelUtils {
 
     /**
      * Converts the model into a form that is understandable for annotations
-     * Example:
+     * Example: UtArrayModel([UtPrimitiveModel("a"), UtPrimitiveModel("b"), UtPrimitiveModel("c")]) -> UtPrimitiveModel("a, b, c")
      */
     private fun convertModelValueToString(model: UtModel): UtModel {
         return UtPrimitiveModel(

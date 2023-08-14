@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api.util
 
 import org.utbot.common.tryLoadClass
+import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -121,6 +122,7 @@ object SpringModelUtils {
     ///region spring-web
     private val requestMappingClassId = ClassId("org.springframework.web.bind.annotation.RequestMapping")
     private val pathVariableClassId = ClassId("org.springframework.web.bind.annotation.PathVariable")
+    private val requestHeaderClassId = ClassId("org.springframework.web.bind.annotation.RequestHeader")
     private val requestBodyClassId = ClassId("org.springframework.web.bind.annotation.RequestBody")
     private val requestParamClassId = ClassId("org.springframework.web.bind.annotation.RequestParam")
     private val uriComponentsBuilderClassId = ClassId("org.springframework.web.util.UriComponentsBuilder")
@@ -141,6 +143,7 @@ object SpringModelUtils {
     private val viewResultMatchersClassId = ClassId("org.springframework.test.web.servlet.result.ViewResultMatchers")
     private val mockHttpServletRequestBuilderClassId = ClassId("org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder")
     private val modelAndViewClassId = ClassId("org.springframework.web.servlet.ModelAndView")
+    private val httpHeaderClassId = ClassId("org.springframework.http.HttpHeaders")
 
     private val objectMapperClassId = ClassId("com.fasterxml.jackson.databind.ObjectMapper")
 
@@ -314,8 +317,68 @@ object SpringModelUtils {
             )
         )
 
-        // TODO #2462 (support @RequestParam, @RequestHeader, @CookieValue, @RequestAttribute, ...)
+        val headersContentModel = createHeadersContentModel(methodId, arguments, idGenerator)
+
+        requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
+
+        // TODO #2462 (support @CookieValue, @RequestAttribute, ...)
         return addContentToRequestBuilderModel(methodId, arguments, requestBuilderModel, idGenerator)
+    }
+
+    private fun addHeadersToRequestBuilderModel(
+        headersContentModel: UtAssembleModel,
+        requestBuilderModel: UtAssembleModel,
+        idGenerator: () -> Int
+    ): UtAssembleModel {
+        @Suppress("NAME_SHADOWING")
+        var requestBuilderModel = requestBuilderModel
+
+        if (headersContentModel.modificationsChain.isEmpty()) {
+            return requestBuilderModel
+        }
+
+        val headers = UtAssembleModel(
+            id = idGenerator(),
+            classId = httpHeaderClassId,
+            modelName = "headers",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = constructorId(httpHeaderClassId),
+                params = emptyList(),
+            ),
+            modificationsChainProvider = {
+                listOf(
+                    UtExecutableCallModel(
+                        instance = this,
+                        executable = methodId(
+                            classId = httpHeaderClassId,
+                            name = "setAll",
+                            returnType = voidClassId,
+                            arguments = arrayOf(Map::class.java.id),
+                        ),
+                        params = listOf(headersContentModel)
+                    )
+                )
+            }
+        )
+
+        requestBuilderModel = UtAssembleModel(
+            id = idGenerator(),
+            classId = mockHttpServletRequestBuilderClassId,
+            modelName = "requestBuilder",
+            instantiationCall = UtExecutableCallModel(
+                instance = requestBuilderModel,
+                executable = MethodId(
+                    classId = mockHttpServletRequestBuilderClassId,
+                    name = "headers",
+                    returnType = mockHttpServletRequestBuilderClassId,
+                    parameters = listOf(httpHeaderClassId)
+                ),
+                params = listOf(headers)
+            )
+        )
+
+        return requestBuilderModel
     }
 
     private fun addContentToRequestBuilderModel(
@@ -401,6 +464,41 @@ object SpringModelUtils {
             )
         }
         return requestBuilderModel
+    }
+
+    private fun createHeadersContentModel(
+        methodId: MethodId,
+        arguments: List<UtModel>,
+        idGenerator: () -> Int,
+    ): UtAssembleModel {
+        // Converts Map models values to String because `HttpHeaders.setAll(...)` method takes `Map<String, String>`
+        val headersContent = collectArgumentsWithAnnotationModels(methodId, requestHeaderClassId, arguments)
+            .mapValues { (_, model) -> convertModelValueToString(model) }
+
+        // TODO filter out `null` and `Optional.empty()` values of `arg`
+        return UtAssembleModel(
+            id = idGenerator(),
+            classId = Map::class.java.id,
+            modelName = "headersContent",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = HashMap::class.java.getConstructor().executableId,
+                params = emptyList()
+            ),
+            modificationsChainProvider = {
+                headersContent.map { (name, value) ->
+                    UtExecutableCallModel(
+                        instance = this,
+                        executable = Map::class.java.getMethod(
+                            "put",
+                            Object::class.java,
+                            Object::class.java
+                        ).executableId,
+                        params = listOf(UtPrimitiveModel(name), value)
+                    )
+                }
+            }
+        )
     }
 
     private fun createPathVariablesModel(
@@ -491,6 +589,21 @@ object SpringModelUtils {
         }
 
         return argumentsModels
+    }
+
+    /**
+     * Converts the model into a form that is understandable for annotations
+     * Example:
+     */
+    private fun convertModelValueToString(model: UtModel): UtModel {
+        return UtPrimitiveModel(
+            when(model){
+                is UtArrayModel -> withToStringThreadLocalReentrancyGuard {
+                    (0 until model.length).map { model.stores[it] ?: model.constModel }.joinToString(", ")
+                }
+                else -> model.toString()
+            }
+        )
     }
 
     private fun createUrlTemplateModel(

@@ -70,7 +70,7 @@ def run_tests(
         tests_dir: str,
         samples_dir: str,
 ):
-    command = f'{python_path} -m coverage run --source={samples_dir} -m unittest {tests_dir} -p "utbot_*"'
+    command = f'{python_path} -m coverage run --source={samples_dir} -m unittest discover -p "utbot_*" {tests_dir}'
     print(command)
     code = os.system(command)
     return code
@@ -95,7 +95,10 @@ def check_coverage(
                         actual_coverage_json = json.loads(fin.readline())
                     actual_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['covered'])
                     actual_not_covered = sum(lines['end'] - lines['start'] + 1 for lines in actual_coverage_json['notCovered'])
-                    actual_coverage = round(actual_covered / (actual_not_covered + actual_covered) * 100)
+                    if actual_covered + actual_not_covered == 0:
+                        actual_coverage = 0
+                    else:
+                        actual_coverage = round(actual_covered / (actual_not_covered + actual_covered) * 100)
                 else:
                     actual_coverage = 0
 

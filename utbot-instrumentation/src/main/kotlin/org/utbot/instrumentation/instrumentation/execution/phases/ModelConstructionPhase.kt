@@ -7,7 +7,7 @@ import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
@@ -27,8 +27,7 @@ class ModelConstructionPhase(
         return when (e) {
             is TimeoutException -> ExecutionPhaseStop(
                 message,
-                UtConcreteExecutionResult(
-                    stateBefore = MissingState,
+                PreliminaryUtConcreteExecutionResult(
                     stateAfter = MissingState,
                     result = UtTimeoutException(e),
                     coverage = Coverage()

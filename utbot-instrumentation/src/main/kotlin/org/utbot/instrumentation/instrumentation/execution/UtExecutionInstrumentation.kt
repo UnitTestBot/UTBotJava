@@ -22,6 +22,26 @@ data class UtConcreteExecutionData(
     val timeout: Long
 )
 
+/**
+ * [UtConcreteExecutionResult] that has not yet been populated with extra data, e.g.:
+ *  - updated `stateBefore: EnvironmentModels`
+ *  - `detectedMockingCandidates: Set<ExecutableId>` (not yet implemented, see #2321)
+ */
+data class PreliminaryUtConcreteExecutionResult(
+    val stateAfter: EnvironmentModels,
+    val result: UtExecutionResult,
+    val coverage: Coverage,
+    val newInstrumentation: List<UtInstrumentation>? = null,
+) {
+    fun toCompleteUtConcreteExecutionResult(stateBefore: EnvironmentModels) = UtConcreteExecutionResult(
+        stateBefore,
+        stateAfter,
+        result,
+        coverage,
+        newInstrumentation,
+    )
+}
+
 data class UtConcreteExecutionResult(
     val stateBefore: EnvironmentModels,
     val stateAfter: EnvironmentModels,
@@ -31,6 +51,7 @@ data class UtConcreteExecutionResult(
 ) {
     override fun toString(): String = buildString {
         appendLine("UtConcreteExecutionResult(")
+        appendLine("stateBefore=$stateBefore")
         appendLine("stateAfter=$stateAfter")
         appendLine("result=$result")
         appendLine("coverage=$coverage)")
@@ -52,7 +73,7 @@ interface UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?,
-        phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
+        phasesWrapper: PhasesController.(invokeBasePhases: () -> PreliminaryUtConcreteExecutionResult) -> PreliminaryUtConcreteExecutionResult
     ): UtConcreteExecutionResult
 
     interface Factory<out TInstrumentation : UtExecutionInstrumentation> : Instrumentation.Factory<UtConcreteExecutionResult, TInstrumentation> {

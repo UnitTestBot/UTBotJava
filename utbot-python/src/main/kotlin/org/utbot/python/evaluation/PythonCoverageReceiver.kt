@@ -35,7 +35,7 @@ class PythonCoverageReceiver(
         } catch (ex: SocketException) {
             logger.debug { ex.message }
         } catch (ex: IOException) {
-            logger.error { "IO error: " + ex.message }
+            logger.debug { "IO error: " + ex.message }
         }
     }
 }

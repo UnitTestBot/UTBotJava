@@ -160,7 +160,7 @@ class PythonTestCaseGenerator(
         ) { functionType ->
             val args = (functionType as FunctionType).arguments
 
-            logger.info { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
+            logger.debug { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
 
             val engine = PythonEngine(
                 method,

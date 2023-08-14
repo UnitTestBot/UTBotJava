@@ -143,7 +143,7 @@ class PythonEngine(
                 types.joinToString { it.pythonTypeRepresentation() }
             }. Exception type: ${resultModel.type.name}"
 
-            logger.error { errorMessage }
+            logger.debug { errorMessage }
             return TypeErrorFeedback(errorMessage)
         }
 
@@ -341,7 +341,7 @@ class PythonEngine(
                             return@PythonFuzzing result.fuzzingPlatformFeedback
                         }.fuzz(pmd)
                     } catch (_: NoSeedValueException) {
-                        logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
+                        logger.debug { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
                     }
                 }
             } finally {

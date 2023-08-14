@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.kryo5.io.Input
 import com.esotericsoftware.kryo.kryo5.io.Output
 import com.esotericsoftware.kryo.kryo5.objenesis.instantiator.ObjectInstantiator
 import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy
+import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
 import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
@@ -108,6 +109,8 @@ internal class TunedKryo : Kryo() {
         // Kryo cannot (at least, the current used version) deserialize stacktraces that are required for SARIF reports.
         // TODO: JIRA:1492
         addDefaultSerializer(java.lang.Throwable::class.java, ThrowableSerializer())
+
+        addDefaultSerializer(java.lang.StackTraceElement::class.java, JavaSerializer())
 
         val factory = object : SerializerFactory.FieldSerializerFactory() {}
         factory.config.ignoreSyntheticFields = true

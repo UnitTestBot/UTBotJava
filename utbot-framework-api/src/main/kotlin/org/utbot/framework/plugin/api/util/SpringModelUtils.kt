@@ -2,6 +2,7 @@ package org.utbot.framework.plugin.api.util
 
 import org.utbot.common.tryLoadClass
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
+import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -11,6 +12,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import java.util.Optional
 
 object SpringModelUtils {
     val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
@@ -393,7 +395,6 @@ object SpringModelUtils {
             @Suppress("UNCHECKED_CAST")
             param.getAnnotation(requestBodyClassId.jClass as Class<out Annotation>) ?: return@forEach
 
-            // TODO filter out `null` and `Optional.empty()` values of `arg`
             val mediaTypeModel = UtAssembleModel(
                 id = idGenerator(),
                 classId = mediaTypeClassId,
@@ -475,7 +476,6 @@ object SpringModelUtils {
         val headersContent = collectArgumentsWithAnnotationModels(methodId, requestHeaderClassId, arguments)
             .mapValues { (_, model) -> convertModelValueToString(model) }
 
-        // TODO filter out `null` and `Optional.empty()` values of `arg`
         return UtAssembleModel(
             id = idGenerator(),
             classId = Map::class.java.id,
@@ -489,6 +489,7 @@ object SpringModelUtils {
                 headersContent.map { (name, value) ->
                     UtExecutableCallModel(
                         instance = this,
+                        // Actually it is a `Map<String, String>`, but we use `Object::class.java` to avoid concrete failures
                         executable = Map::class.java.getMethod(
                             "put",
                             Object::class.java,
@@ -508,7 +509,6 @@ object SpringModelUtils {
     ): UtAssembleModel {
         val pathVariables = collectArgumentsWithAnnotationModels(methodId, pathVariableClassId, arguments)
 
-        // TODO filter out `null` and `Optional.empty()` values of `arg`
         return UtAssembleModel(
             id = idGenerator(),
             classId = Map::class.java.id,
@@ -541,7 +541,6 @@ object SpringModelUtils {
     ): List< Pair<UtPrimitiveModel, UtAssembleModel> > {
         val requestParams = collectArgumentsWithAnnotationModels(methodId, requestParamClassId, arguments)
 
-        // TODO filter out `null` and `Optional.empty()` values of `arg`
         return requestParams.map { (name, value) ->
             Pair(UtPrimitiveModel(name),
                 UtAssembleModel(
@@ -577,23 +576,34 @@ object SpringModelUtils {
         annotationClassId: ClassId,
         arguments: List<UtModel>
     ): MutableMap<String, UtModel> {
-        val argumentsModels = mutableMapOf<String, UtModel>()
+        fun UtModel.isEmptyOptional(): Boolean {
+            return classId == Optional::class.java.id && this is UtAssembleModel &&
+                    instantiationCall is UtExecutableCallModel && instantiationCall.executable.name == "empty"
+        }
 
+        val argumentsModels = mutableMapOf<String, UtModel>()
         methodId.method.parameters.zip(arguments).forEach { (param, arg) ->
             @Suppress("UNCHECKED_CAST") val paramAnnotation =
                 param.getAnnotation(annotationClassId.jClass as Class<out Annotation>) ?: return@forEach
             val name = (annotationClassId.jClass.getMethod("name").invoke(paramAnnotation) as? String).orEmpty()
                 .ifEmpty { annotationClassId.jClass.getMethod("value").invoke(paramAnnotation) as? String }.orEmpty()
                 .ifEmpty { param.name }
-            argumentsModels[name] = arg
+
+            if (arg.isNotNull() && !arg.isEmptyOptional()) {
+                argumentsModels[name] = arg
+            }
         }
 
         return argumentsModels
     }
 
     /**
-     * Converts the model into a form that is understandable for annotations
+     * Converts the model into a form that is understandable for annotations.
      * Example: UtArrayModel([UtPrimitiveModel("a"), UtPrimitiveModel("b"), UtPrimitiveModel("c")]) -> UtPrimitiveModel("a, b, c")
+     *
+     * There is known issue when using `model.toString()` is not reliable:
+     *              https://github.com/UnitTestBot/UTBotJava/issues/2505
+     * This issue may be improved in the future.
      */
     private fun convertModelValueToString(model: UtModel): UtModel {
         return UtPrimitiveModel(

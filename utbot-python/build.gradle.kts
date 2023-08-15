@@ -5,6 +5,7 @@ val jacksonVersion: String? by rootProject
 val ideType: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
+val log4j2Version: String? by rootProject
 
 tasks {
     compileKotlin {
@@ -41,4 +42,6 @@ dependencies {
     implementation("org.functionaljava:functionaljava-quickcheck:5.0")
     implementation("org.functionaljava:functionaljava-java-core:5.0")
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
+    implementation(group = "org.apache.logging.log4j", name = "log4j-core", version = log4j2Version)
+    implementation(group = "org.apache.logging.log4j", name = "log4j-api", version = log4j2Version)
 }

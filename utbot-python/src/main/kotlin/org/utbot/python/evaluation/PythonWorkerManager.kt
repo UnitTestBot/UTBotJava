@@ -10,6 +10,7 @@ import java.lang.Long.max
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
+import org.apache.logging.log4j.LogManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -19,8 +20,6 @@ class PythonWorkerManager(
     val until: Long,
     val pythonCodeExecutorConstructor: (PythonWorker) -> PythonCodeExecutor,
 ) {
-    private val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor.log", "log", true)
-
     var timeout: Long = 0
     lateinit var process: Process
     private lateinit var workerSocket: Socket
@@ -35,6 +34,11 @@ class PythonWorkerManager(
 
     private fun connect() {
         val processStartTime = System.currentTimeMillis()
+        if (this::process.isInitialized && process.isAlive) {
+            process.destroy()
+            logger.warn { "Destroy process" }
+        }
+        val logLevel = LogManager.getRootLogger().level.name()
         process = startProcess(listOf(
             pythonPath,
             "-m", "utbot_executor",
@@ -43,9 +47,12 @@ class PythonWorkerManager(
             coverageReceiver.address().first,
             coverageReceiver.address().second,
             "--logfile", logfile.absolutePath,
-            "--loglevel", "INFO",  // "DEBUG", "INFO", "WARNING", "ERROR"
+            "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
         ))
         timeout = max(until - processStartTime, 0)
+        if (this::workerSocket.isInitialized && !workerSocket.isClosed) {
+            workerSocket.close()
+        }
         workerSocket = try {
             serverSocket.soTimeout = timeout.toInt()
             serverSocket.accept()
@@ -110,5 +117,9 @@ class PythonWorkerManager(
             reconnect()
         }
         return evaluationResult
+    }
+
+    companion object {
+        val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor.log", "log", true)
     }
 }

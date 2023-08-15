@@ -25,6 +25,7 @@ import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utbot.python.utils.*
 import java.io.File
 import java.nio.file.Paths
+import kotlin.system.exitProcess
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
 private const val DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS = 2000L
@@ -282,5 +283,6 @@ class PythonGenerateTestsCommand : CliktCommand(
                 testSets.joinToString { it.method.name }
             }"
         )
+        exitProcess(0)  // TODO: Why sometimes I need to use this string? For example, TheAlgorithms/matrix/count_negative_numbers_in_sorted_matrix.py
     }
 }

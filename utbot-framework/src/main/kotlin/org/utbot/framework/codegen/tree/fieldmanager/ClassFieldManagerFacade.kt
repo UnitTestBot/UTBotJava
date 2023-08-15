@@ -11,9 +11,7 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 
     fun constructVariableForField(model: UtModel): CgValue? {
         relevantFieldManagers.forEach { manager ->
-            val managedModels = manager.getManagedModels()
-
-            val alreadyCreatedVariable = manager.findCgValueByModel(model, managedModels)
+            val alreadyCreatedVariable = manager.findCgValueByModel(model, manager.annotatedModels)
             if (alreadyCreatedVariable != null) {
                 manager.useVariableForModel(model, alreadyCreatedVariable)
                 return alreadyCreatedVariable
@@ -27,7 +25,7 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
         val trustedModels = mutableListOf(UtSpringContextModel.wrap())
 
          relevantFieldManagers.forEach { manager ->
-            trustedModels += manager.getManagedModels()
+            trustedModels += manager.annotatedModels
         }
 
         return trustedModels

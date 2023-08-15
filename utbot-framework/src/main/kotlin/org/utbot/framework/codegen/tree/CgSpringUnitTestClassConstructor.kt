@@ -27,9 +27,10 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
     private lateinit var mockitoCloseableVariable: CgValue
     private lateinit var spyClearVariables: List<CgValue>
 
-    private val injectingMocksFieldsManager = CgInjectingMocksFieldsManager(context)
     private val mocksFieldsManager = CgMockedFieldsManager(context)
     private val spiesFieldsManager = CgSpiedFieldsManager(context)
+    private val injectingMocksFieldsManager =
+        CgInjectingMocksFieldsManager(context, mocksFieldsManager, spiesFieldsManager)
 
     override fun constructClassFields(testClassModel: SimpleTestClassModel): List<CgFieldDeclaration> {
         val fields = mutableListOf<CgFieldDeclaration>()

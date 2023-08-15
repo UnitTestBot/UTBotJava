@@ -72,8 +72,9 @@ class PhasesController(
                 try {
                     phase.block()
                 } finally {
-                    if (executor.isCurrentThreadTimedOut())
+                    executor.runCleanUpIfTimedOut {
                         instrumentationContext.onPhaseTimeout(phase)
+                    }
                 }
             }
         } ?: throw TimeoutException("Timeout $timeoutForCurrentPhase ms for phase ${phase.javaClass.simpleName} elapsed, controller timeout - $timeout")

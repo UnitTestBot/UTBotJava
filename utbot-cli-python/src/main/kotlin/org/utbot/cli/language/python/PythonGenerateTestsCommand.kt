@@ -283,6 +283,5 @@ class PythonGenerateTestsCommand : CliktCommand(
                 testSets.joinToString { it.method.name }
             }"
         )
-        exitProcess(0)  // TODO: Why sometimes I need to use this string? For example, TheAlgorithms/matrix/count_negative_numbers_in_sorted_matrix.py
     }
 }

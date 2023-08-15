@@ -344,15 +344,19 @@ class UtModelConstructor(
         constructedObjects.getOrElse(value) {
             tryConstructCustomModel(value, remainingDepth)
                 ?: findEqualValueOfWellKnownType(value)
-                    ?.takeIf { classId.jClass.isInstance(it) }
-                    ?.let { tryConstructCustomModel(it, remainingDepth) }
+                    ?.takeIf { (_, replacementClassId) -> replacementClassId isSubtypeOf classId }
+                    ?.let { (replacement, replacementClassId) ->
+                        // right now replacements only work with `UtAssembleModel`
+                        (tryConstructCustomModel(replacement, remainingDepth) as? UtAssembleModel)
+                            ?.copy(classId = replacementClassId)
+                    }
                 ?: constructCompositeModel(value, remainingDepth)
         }
 
-    private fun findEqualValueOfWellKnownType(value: Any): Any? = when (value) {
-        is List<*> -> ArrayList(value)
-        is Set<*> -> LinkedHashSet(value)
-        is Map<*, *> -> LinkedHashMap(value)
+    private fun findEqualValueOfWellKnownType(value: Any): Pair<Any, ClassId>? = when (value) {
+        is List<*> -> ArrayList(value) to listClassId
+        is Set<*> -> LinkedHashSet(value) to setClassId
+        is Map<*, *> -> LinkedHashMap(value) to mapClassId
         else -> null
     }
 

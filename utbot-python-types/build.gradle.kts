@@ -6,3 +6,9 @@ dependencies {
     implementation("com.squareup.moshi:moshi-adapters:1.11.0")
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
 }
+
+publishing {
+    create<MavenPublication>("maven") {
+        from(components["java"])
+    }
+}

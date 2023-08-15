@@ -257,7 +257,7 @@ object SpringModelUtils {
     )
 
     val resultMatchersViewMethodId = MethodId(
-        classId = contentResultMatchersClassId,
+        classId = mockMvcResultMatchersClassId,
         name = "view",
         parameters = listOf(),
         returnType = viewResultMatchersClassId

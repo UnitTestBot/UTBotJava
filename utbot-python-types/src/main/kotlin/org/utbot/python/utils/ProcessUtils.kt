@@ -11,7 +11,15 @@ data class CmdResult(
     val terminatedByTimeout: Boolean = false
 )
 
-fun startProcess(command: List<String>): Process = ProcessBuilder(command).start()
+fun startProcess(
+    command: List<String>,
+    environmentVariables: Map<String, String> = emptyMap()
+): Process {
+    val pb = ProcessBuilder(command)
+    val env = pb.environment()
+    env += environmentVariables
+    return pb.start()
+}
 
 fun getResult(process: Process, timeout: Long? = null): CmdResult {
     if (timeout != null) {
@@ -36,7 +44,7 @@ fun getResult(process: Process, timeout: Long? = null): CmdResult {
     return CmdResult(stdout.trimIndent(), stderr, process.exitValue())
 }
 
-fun runCommand(command: List<String>, timeout: Long? = null): CmdResult {
-    val process = startProcess(command)
+fun runCommand(command: List<String>, timeout: Long? = null, environmentVariables: Map<String, String> = emptyMap()): CmdResult {
+    val process = startProcess(command, environmentVariables)
     return getResult(process, timeout)
 }

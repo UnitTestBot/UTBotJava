@@ -74,10 +74,13 @@ private var idCounter: Long = 0
 private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog, realProtocol: IProtocol) {
     val model = this
     watchdog.measureTimeForActiveCall(setupUtContext, "UtContext setup") { params ->
-        // we use parent classloader with null to disable autoload classes from system classloader
+        // - We use `ClassLoader.getSystemClassLoader().parent` as parent to let
+        //   classes like `javax.sql.DataSource` load from URLs like `jrt:/java.sql`.
+        // - We do not use `ClassLoader.getSystemClassLoader()` itself to avoid utbot dependencies like Jackson
+        //   being used instead of user's dependencies, which is important, since they may have different versions.
         UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
             File(it).toURI().toURL()
-        }.toTypedArray(), null)))
+        }.toTypedArray(), ClassLoader.getSystemClassLoader().parent)))
     }
     watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
         try {

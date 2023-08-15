@@ -7,10 +7,10 @@ import org.utbot.python.newtyping.general.UtType
 
 
 fun createIterableWithCustomReturn(returnType: UtType): UtType =
-    createUnaryProtocolWithCustomReturn("__iter__", returnType)
+    createUnaryProtocol("__iter__", returnType)
 
 fun supportsBoolProtocol(storage: PythonTypeHintsStorage): UtType =
-    createUnaryProtocolWithCustomReturn("__bool__", storage.pythonBool)
+    createUnaryProtocol("__bool__", storage.pythonBool)
 
 fun createProtocolWithAttribute(attributeName: String, attributeType: UtType): UtType =
     createPythonProtocol(
@@ -25,7 +25,8 @@ fun createProtocolWithAttribute(attributeName: String, attributeType: UtType): U
         )
     }
 
-fun createBinaryProtocol(methodName: String, argType: UtType, returnType: UtType): UtType =
+
+fun createProtocolWithFunction(methodName: String, argTypes: List<UtType>, returnType: UtType): UtType =
     createPythonProtocol(
         Name(emptyList(), "Supports_$methodName"),
         0,
@@ -36,11 +37,11 @@ fun createBinaryProtocol(methodName: String, argType: UtType, returnType: UtType
             members = listOf(
                 createPythonCallableType(
                     0,
-                    listOf(PythonCallableTypeDescription.ArgKind.ARG_POS, PythonCallableTypeDescription.ArgKind.ARG_POS),
-                    listOf("self", "")
+                    List(argTypes.size + 1) { PythonCallableTypeDescription.ArgKind.ARG_POS },
+                    listOf("self") + List(argTypes.size) { "" }
                 ) {
                     FunctionTypeCreator.InitializationData(
-                        arguments = listOf(self, argType),
+                        arguments = listOf(self) + argTypes,
                         returnValue = returnType
                     )
                 }
@@ -49,29 +50,11 @@ fun createBinaryProtocol(methodName: String, argType: UtType, returnType: UtType
         )
     }
 
-fun createUnaryProtocolWithCustomReturn(methodName: String, returnType: UtType): UtType =
-    createPythonProtocol(
-        Name(emptyList(), "Supports_$methodName"),
-        0,
-        listOf(PythonVariableDescription(methodName)),
-        listOf(methodName)
-    ) { self ->
-        CompositeTypeCreator.InitializationData(
-            members = listOf(
-                createPythonCallableType(
-                    0,
-                    listOf(PythonCallableTypeDescription.ArgKind.ARG_POS),
-                    listOf("self")
-                ) {
-                    FunctionTypeCreator.InitializationData(
-                        arguments = listOf(self),
-                        returnType
-                    )
-                }
-            ),
-            supertypes = emptyList()
-        )
-    }
+fun createBinaryProtocol(methodName: String, argType: UtType, returnType: UtType): UtType =
+    createProtocolWithFunction(methodName, listOf(argType), returnType)
+
+fun createUnaryProtocol(methodName: String, returnType: UtType): UtType =
+    createProtocolWithFunction(methodName, emptyList(), returnType)
 
 fun createCallableProtocol(argBounds: List<UtType>, returnBound: UtType): UtType =
     createPythonProtocol(

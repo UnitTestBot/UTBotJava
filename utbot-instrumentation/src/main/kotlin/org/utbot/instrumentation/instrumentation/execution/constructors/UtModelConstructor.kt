@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import java.lang.reflect.Modifier
+import java.lang.reflect.Proxy
 import java.util.*
 import java.util.stream.BaseStream
 
@@ -85,6 +86,52 @@ class UtModelConstructor(
         return UtLambdaModel.createFake(handleId(value), classId, baseClass)
     }
 
+    private fun isProxy(value: Any?): Boolean =
+        value != null && Proxy.isProxyClass(value::class.java)
+
+    /**
+     * Using `UtAssembleModel` for dynamic proxies helps to avoid exceptions like
+     * `java.lang.ClassNotFoundException: jdk.proxy3.$Proxy184` during code generation.
+     */
+    private fun constructProxy(value: Any, classId: ClassId): UtAssembleModel {
+        val newProxyInstanceExecutableId = java.lang.reflect.Proxy::newProxyInstance.executableId
+
+        // we don't want to construct deep models for invocationHandlers, since they can be quite large
+        val argsRemainingDepth = 0L
+
+        val classLoader = UtAssembleModel(
+            id = computeUnusedIdAndUpdate(),
+            classId = newProxyInstanceExecutableId.parameters[0],
+            modelName = "systemClassLoader",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = ClassLoader::getSystemClassLoader.executableId,
+                params = emptyList()
+            )
+        )
+        val interfaces = construct(
+            value::class.java.interfaces,
+            newProxyInstanceExecutableId.parameters[1],
+            remainingDepth = argsRemainingDepth
+        )
+        val invocationHandler = construct(
+            Proxy.getInvocationHandler(value),
+            newProxyInstanceExecutableId.parameters[2],
+            remainingDepth = argsRemainingDepth
+        )
+
+        return UtAssembleModel(
+            id = handleId(value),
+            classId = classId,
+            modelName = "dynamicProxy",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = newProxyInstanceExecutableId,
+                params = listOf(classLoader, interfaces, invocationHandler)
+            )
+        )
+    }
+
     /**
      * Constructs a UtModel from a concrete [value] with a specific [classId]. The result can be a [UtAssembleModel]
      * as well.
@@ -102,6 +149,9 @@ class UtModelConstructor(
         }
         if (isProxyLambda(value)) {
             return constructFakeLambda(value!!, classId)
+        }
+        if (isProxy(value)) {
+            return constructProxy(value!!, classId)
         }
         return when (value) {
             null -> UtNullModel(classId)

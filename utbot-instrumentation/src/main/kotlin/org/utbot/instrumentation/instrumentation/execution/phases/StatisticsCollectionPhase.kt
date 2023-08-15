@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.et.EtInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.ndd.NonDeterministicResultStorage
 import java.util.*
 
@@ -22,8 +22,7 @@ class StatisticsCollectionPhase(
         return when (e) {
             is TimeoutException -> ExecutionPhaseStop(
                 message,
-                UtConcreteExecutionResult(
-                    stateBefore = MissingState,
+                PreliminaryUtConcreteExecutionResult(
                     stateAfter = MissingState,
                     result = UtTimeoutException(e),
                     coverage = Coverage()

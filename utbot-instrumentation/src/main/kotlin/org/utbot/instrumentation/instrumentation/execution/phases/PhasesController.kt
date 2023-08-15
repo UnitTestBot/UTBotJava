@@ -12,8 +12,8 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import java.security.AccessControlException
 
@@ -39,15 +39,14 @@ class PhasesController(
 
     val postprocessingPhase = PostprocessingPhase()
 
-    inline fun computeConcreteExecutionResult(block: PhasesController.() -> UtConcreteExecutionResult): UtConcreteExecutionResult {
+    inline fun computeConcreteExecutionResult(block: PhasesController.() -> PreliminaryUtConcreteExecutionResult): PreliminaryUtConcreteExecutionResult {
         try {
             return this.block()
         } catch (e: ExecutionPhaseStop) {
             return e.result
         } catch (e: ExecutionPhaseError) {
             if (e.cause.cause is AccessControlException) {
-                return UtConcreteExecutionResult(
-                    stateBefore = MissingState,
+                return PreliminaryUtConcreteExecutionResult(
                     stateAfter = MissingState,
                     result = UtSandboxFailure(e.cause.cause!!),
                     coverage = Coverage()

@@ -14,6 +14,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.ArgumentList
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
@@ -64,7 +65,7 @@ class SpringUtExecutionInstrumentation(
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?,
-        phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
+        phasesWrapper: PhasesController.(invokeBasePhases: () -> PreliminaryUtConcreteExecutionResult) -> PreliminaryUtConcreteExecutionResult
     ): UtConcreteExecutionResult = synchronized(this) {
         getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->

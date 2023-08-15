@@ -5,7 +5,7 @@ import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 
 
 /**
@@ -20,8 +20,7 @@ class InvocationPhase(
         return when (e) {
             is TimeoutException -> ExecutionPhaseStop(
                 message,
-                UtConcreteExecutionResult(
-                    stateBefore = MissingState,
+                PreliminaryUtConcreteExecutionResult(
                     stateAfter = MissingState,
                     result = UtTimeoutException(e),
                     coverage = Coverage()

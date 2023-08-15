@@ -2,7 +2,7 @@ package org.utbot.instrumentation.instrumentation.execution.phases
 
 import com.jetbrains.rd.util.getLogger
 import org.utbot.common.measureTime
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.rd.loggers.debug
 
 private val logger = getLogger<ExecutionPhase>()
@@ -13,7 +13,7 @@ abstract class ExecutionPhaseException(override val message: String) : Exception
 class ExecutionPhaseError(phase: String, override val cause: Throwable) : ExecutionPhaseException(phase)
 
 // Execution will be stopped, but considered successful, result will be returned
-class ExecutionPhaseStop(phase: String, val result: UtConcreteExecutionResult) : ExecutionPhaseException(phase)
+class ExecutionPhaseStop(phase: String, val result: PreliminaryUtConcreteExecutionResult) : ExecutionPhaseException(phase)
 
 interface ExecutionPhase {
     fun wrapError(e: Throwable): ExecutionPhaseException

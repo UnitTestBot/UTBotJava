@@ -1,5 +1,6 @@
 python_path=$1
 
+rm -r utbot_coverage utbot_tests RUN_RESULT COVERAGE_RESULT
 mkdir utbot_coverage
 $python_path run_tests.py generate java ../../utbot-cli-python/build/libs/utbot-cli-python*.jar . -c test_configuration.json -p $python_path -o utbot_tests -i utbot_coverage
 

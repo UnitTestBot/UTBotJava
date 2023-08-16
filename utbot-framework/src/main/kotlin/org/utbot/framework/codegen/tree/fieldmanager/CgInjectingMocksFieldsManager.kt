@@ -13,7 +13,11 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtModelWithCompositeOrigin
 import org.utbot.framework.plugin.api.isMockModel
 
-class CgInjectingMocksFieldsManager(val context: CgContext) : CgAbstractClassFieldManager(context) {
+class CgInjectingMocksFieldsManager(
+    val context: CgContext,
+    private val mocksFieldsManager: CgMockedFieldsManager,
+    private val spiesFieldsManager: CgSpiedFieldsManager,
+    ) : CgAbstractClassFieldManager(context) {
     init {
         relevantFieldManagers += this
     }
@@ -37,10 +41,10 @@ class CgInjectingMocksFieldsManager(val context: CgContext) : CgAbstractClassFie
             val variableForField = variableConstructor.getOrCreateVariable(fieldModel)
 
             // is variable mocked by @Mock annotation
-            val isMocked = findCgValueByModel(fieldModel, annotatedModelGroups[mockClassId]) != null
+            val isMocked = findCgValueByModel(fieldModel, mocksFieldsManager.annotatedModels) != null
 
             // is variable spied by @Spy annotation
-            val isSpied = findCgValueByModel(fieldModel, annotatedModelGroups[spyClassId]) != null
+            val isSpied = findCgValueByModel(fieldModel, spiesFieldsManager.annotatedModels) != null
 
             // If field model is a mock model and is mocked by @Mock annotation in classFields or is spied by @Spy annotation,
             // it is set in the connected with instance under test automatically via @InjectMocks.

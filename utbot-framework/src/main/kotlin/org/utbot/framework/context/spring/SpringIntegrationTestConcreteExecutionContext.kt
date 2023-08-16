@@ -40,6 +40,8 @@ import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrument
 import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.tryLoadingSpringContext
 import java.io.File
+import org.utbot.fuzzing.providers.ObjectValueProvider
+import org.utbot.fuzzing.providers.anyObjectValueProvider
 
 class SpringIntegrationTestConcreteExecutionContext(
     private val delegateContext: ConcreteExecutionContext,
@@ -107,6 +109,8 @@ class SpringIntegrationTestConcreteExecutionContext(
             .withFallback(NotEmptyStringValueProvider())
             .withFallback(
                 delegateContext.tryCreateValueProvider(concreteExecutor, classUnderTest, idGenerator)
+                    .except { p -> p is ObjectValueProvider }
+                    .with(anyObjectValueProvider(idGenerator, shouldMutateWithMethods = true))
                     .with(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
                     .with(createGeneratedFieldValueProviders(relevantRepositories, idGenerator))
                     .withFallback(AnyDepthNullValueProvider)

@@ -42,7 +42,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     FloatValueProvider,
     StringValueProvider,
     NumberValueProvider,
-    anyObjectValueProvider(idGenerator),
+    anyObjectValueProvider(idGenerator, shouldMutateWithMethods = false),
     ArrayValueProvider(idGenerator),
     EnumValueProvider(idGenerator),
     ListSetValueProvider(idGenerator),

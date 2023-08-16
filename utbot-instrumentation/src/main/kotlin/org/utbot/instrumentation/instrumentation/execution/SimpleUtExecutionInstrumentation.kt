@@ -48,7 +48,7 @@ class SimpleUtExecutionInstrumentation(
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?,
-        phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
+        phasesWrapper: PhasesController.(invokeBasePhases: () -> PreliminaryUtConcreteExecutionResult) -> PreliminaryUtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
@@ -117,7 +117,7 @@ class SimpleUtExecutionInstrumentation(
                         Triple(executionResult, stateAfter, newInstrumentation)
                     }
 
-                    UtConcreteExecutionResult(
+                    PreliminaryUtConcreteExecutionResult(
                         stateAfter,
                         executionResult,
                         coverage,
@@ -128,7 +128,7 @@ class SimpleUtExecutionInstrumentation(
                     applyPostprocessing()
                 }
             }
-        }
+        }.toCompleteUtConcreteExecutionResult(stateBefore = stateBefore)
     }
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =

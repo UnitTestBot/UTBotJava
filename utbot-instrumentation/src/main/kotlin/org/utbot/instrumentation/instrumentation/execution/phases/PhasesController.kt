@@ -1,6 +1,5 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
-import com.jetbrains.rd.util.error
 import com.jetbrains.rd.util.getLogger
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
@@ -13,8 +12,8 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import java.security.AccessControlException
 
@@ -40,17 +39,17 @@ class PhasesController(
 
     val postprocessingPhase = PostprocessingPhase()
 
-    inline fun computeConcreteExecutionResult(block: PhasesController.() -> UtConcreteExecutionResult): UtConcreteExecutionResult {
+    inline fun computeConcreteExecutionResult(block: PhasesController.() -> PreliminaryUtConcreteExecutionResult): PreliminaryUtConcreteExecutionResult {
         try {
             return this.block()
         } catch (e: ExecutionPhaseStop) {
             return e.result
         } catch (e: ExecutionPhaseError) {
             if (e.cause.cause is AccessControlException) {
-                return UtConcreteExecutionResult(
-                    MissingState,
-                    UtSandboxFailure(e.cause.cause!!),
-                    Coverage()
+                return PreliminaryUtConcreteExecutionResult(
+                    stateAfter = MissingState,
+                    result = UtSandboxFailure(e.cause.cause!!),
+                    coverage = Coverage()
                 )
             }
 
@@ -72,8 +71,9 @@ class PhasesController(
                 try {
                     phase.block()
                 } finally {
-                    if (executor.isCurrentThreadTimedOut())
+                    executor.runCleanUpIfTimedOut {
                         instrumentationContext.onPhaseTimeout(phase)
+                    }
                 }
             }
         } ?: throw TimeoutException("Timeout $timeoutForCurrentPhase ms for phase ${phase.javaClass.simpleName} elapsed, controller timeout - $timeout")

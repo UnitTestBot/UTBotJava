@@ -1,4 +1,4 @@
-package org.utbot.framework.modifications
+package org.utbot.modifications
 
 /**
  * Restrictions on demanded modificators
@@ -19,4 +19,10 @@ enum class AnalysisMode {
      * Search constructors only
      */
     Constructors,
+
+    /**
+     * Look for methods that modify fields.
+     * Setters are excluded.
+     */
+    Methods,
 }

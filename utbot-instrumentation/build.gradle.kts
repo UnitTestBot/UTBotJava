@@ -1,11 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer
 
-val projectType: String by rootProject
-val ultimateEdition: String by rootProject
-val springEdition: String by rootProject
-val languagesEdition: String by rootProject
-val pureJavaEdition: String by rootProject
-
 val asmVersion: String by rootProject
 val kryoVersion: String by rootProject
 val kryoSerializersVersion: String by rootProject
@@ -67,9 +61,7 @@ dependencies {
     implementation("org.jacoco:org.jacoco.core:$jacocoVersion")
 
     implementation(project(":utbot-spring-commons-api"))
-    if (projectType == springEdition || projectType == ultimateEdition) {
-        fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
-    }
+    fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))
 }
 
 /**

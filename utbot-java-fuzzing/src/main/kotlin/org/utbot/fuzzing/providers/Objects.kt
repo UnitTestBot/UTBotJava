@@ -13,6 +13,10 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.lang.reflect.TypeVariable
+import org.utbot.modifications.AnalysisMode
+import org.utbot.modifications.ModificationTransformationMode
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 
 private val logger = KotlinLogging.logger {}
 
@@ -31,13 +35,14 @@ private fun isIgnored(type: ClassId): Boolean {
             || (type.isInner && !type.isStatic)
 }
 
-fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
-    ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
+fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, shouldMutateWithMethods: Boolean) =
+    ObjectValueProvider(idGenerator, shouldMutateWithMethods).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
         ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
     }
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
+    private val shouldMutateWithMethods: Boolean,
 ) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
@@ -98,6 +103,19 @@ class ObjectValueProvider(
                                     values.map { it.model })
                             })
                         }
+                    }
+                }
+                if (shouldMutateWithMethods) {
+                    findAllAvailableMethods(description, classId, description.description.packageName).forEach { md ->
+                        yield(Routine.Call(md.parameterTypes) { self, values ->
+                            val model = self.model as UtAssembleModel
+                            model.modificationsChain as MutableList +=
+                                UtExecutableCallModel(
+                                    model,
+                                    md.method.executableId,
+                                    values.map { it.model }
+                                )
+                        })
                     }
                 }
             },
@@ -219,6 +237,12 @@ internal class FieldDescription(
     val getter: Method?
 )
 
+internal class MethodDescription(
+    val name: String,
+    val parameterTypes: List<FuzzedType>,
+    val method: Method
+)
+
 internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
     return generateSequence(classId.jClass) { it.superclass }.flatMap { jClass ->
         jClass.declaredFields.map { field ->
@@ -238,6 +262,32 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
             )
         }
     }.toList()
+}
+
+internal fun findAllAvailableMethods(
+    description: FuzzedDescription,
+    classId: ClassId,
+    packageName: String?
+): List<MethodDescription> {
+    val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
+    val modifyingMethods = findModifyingMethodNames(methodUnderTestName, classId)
+    return classId.jClass.declaredMethods.mapNotNull { method ->
+        if (isAccessible(method, packageName)) {
+            if (method.name !in modifyingMethods) return@mapNotNull null
+            if (method.genericParameterTypes.any { it is TypeVariable<*> }) return@mapNotNull null
+
+            val parameterTypes =
+                method
+                    .parameterTypes
+                    .map { toFuzzerType(it, description.typeCache) }
+
+            MethodDescription(
+                name = method.name,
+                parameterTypes = parameterTypes,
+                method = method
+            )
+        } else null
+    }
 }
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {
@@ -271,6 +321,24 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
     return Modifier.isPublic(clazz.modifiers) ||
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
+
+private fun findModifyingMethodNames(methodUnderTestName: String, classId: ClassId) =
+    UtBotFieldsModificatorsSearcher(
+        modificationTransformationMode = ModificationTransformationMode.ReadAndWrite
+    )
+        .let { searcher ->
+            searcher.update(setOf(classId))
+            val modificatorsToFields = searcher.getModificatorToFields(analysisMode = AnalysisMode.Methods)
+
+            modificatorsToFields[methodUnderTestName]
+                ?.let { fieldsModifiedByMUT ->
+                    modificatorsToFields.mapNotNull {
+                        if (it.key == methodUnderTestName || it.value.intersect(fieldsModifiedByMUT).isEmpty()) null
+                        else it.key
+                    }
+                }
+                ?: setOf()
+        }
 
 private fun isNotPrivateOrProtected(modifiers: Int): Boolean {
     val hasAnyAccessModifier = Modifier.isPrivate(modifiers) || Modifier.isProtected(modifiers)

@@ -1,8 +1,6 @@
 val projectType: String by settings
+val communityEdition: String by settings
 val ultimateEdition: String by settings
-val springEdition: String by settings
-val languagesEdition: String by settings
-val pureJavaEdition: String by settings
 
 val ideType: String by settings
 val buildType: String by settings
@@ -28,6 +26,7 @@ rootProject.name = "utbot"
 include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
+include("utbot-modificators-analyzer")
 include("utbot-intellij")
 include("utbot-sample")
 include("utbot-java-fuzzing")
@@ -61,14 +60,17 @@ include("utbot-spring-commons-api")
 include("utbot-spring-commons")
 include("utbot-spring-analyzer")
 
-if (projectType == languagesEdition || projectType == ultimateEdition) {
-    if (pythonIde.split(",").contains(ideType)) {
-        include("utbot-python")
-        include("utbot-cli-python")
-        include("utbot-intellij-python")
-        include("utbot-python-parser")
-    }
+if (pythonIde.split(",").contains(ideType)) {
+    include("utbot-python")
+    include("utbot-cli-python")
+    include("utbot-intellij-python")
+    include("utbot-python-parser")
+}
 
+include("utbot-spring-sample")
+include("utbot-spring-test")
+
+if (projectType == ultimateEdition) {
     if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
         include("utbot-js")
         include("utbot-cli-js")
@@ -81,13 +83,6 @@ if (projectType == languagesEdition || projectType == ultimateEdition) {
         include("utbot-intellij-go")
     }
 }
-
-if (projectType == springEdition || projectType == ultimateEdition) {
-    include("utbot-spring-sample")
-    include("utbot-spring-test")
-}
-
-
 
 include("utbot-light")
 

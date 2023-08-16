@@ -23,7 +23,7 @@ class PythonCliProcessor(
     }
 
     override fun processCoverageInfo(testSets: List<PythonTestSet>) {
-        val coverageReport = getCoverageInfo(testSets)
+        val coverageReport = getStringCoverageInfo(testSets)
         val output = coverageOutput ?: return
         writeToFileAndSave(output, coverageReport)
     }

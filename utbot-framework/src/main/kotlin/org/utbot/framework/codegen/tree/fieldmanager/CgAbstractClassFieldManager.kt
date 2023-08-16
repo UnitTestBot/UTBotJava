@@ -18,10 +18,8 @@ abstract class CgAbstractClassFieldManager(context: CgContext) :
     CgClassFieldManager,
     CgContextOwner by context {
 
-    protected val annotatedModelGroups: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
+    val annotatedModels: MutableSet<UtModelWrapper> = mutableSetOf()
     protected val modelGroupsProvider = ModelGroupsProvider(context)
-
-    fun getManagedModels(): Set<UtModelWrapper> = annotatedModelGroups[annotationType] ?: emptySet()
 
     fun findCgValueByModel(model: UtModel, setOfModels: Set<UtModelWrapper>?): CgValue? {
         val key = setOfModels?.find { it == model.wrap() } ?: return null
@@ -60,7 +58,7 @@ abstract class CgAbstractClassFieldManager(context: CgContext) :
 
             modelWrappers.forEach { modelWrapper ->
                 valueByUtModelWrapper[modelWrapper] = createdVariable
-                annotatedModelGroups.getOrPut(annotationType) { mutableSetOf() } += modelWrapper
+                annotatedModels += modelWrapper
             }
         }
 

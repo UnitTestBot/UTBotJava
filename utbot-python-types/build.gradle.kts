@@ -8,31 +8,41 @@ dependencies {
 }
 
 val utbotMypyRunnerVersion = File(project.projectDir, "src/main/resources/utbot_mypy_runner_version").readText()
+// these two properties --- from GRADLE_USER_HOME/gradle.properties
 val pipToken: String? by project
 val pythonInterpreter: String? by project
 val utbotMypyRunnerPath = File(project.projectDir, "src/main/python/utbot_mypy_runner")
 val localMypyPath = File(utbotMypyRunnerPath, "dist")
-val localMypyPathText = File(project.projectDir, "src/main/resources/local_mypy_path")
 
+tasks.register<Exec>("cleanDist") {
+    group = "python"
+    commandLine("rm", "-r", localMypyPath.canonicalPath)
+}
 
 val setMypyRunnerVersion = tasks.register<Exec>("setVersion") {
     group = "python"
     workingDir = utbotMypyRunnerPath
-    commandLine(pythonInterpreter!!, "-m", "poetry", "version", utbotMypyRunnerVersion)
+    commandLine(pythonInterpreter ?: error("Python interpreter not specified"), "-m", "poetry", "version", utbotMypyRunnerVersion)
 }
 
 val buildMypyRunner = tasks.register<Exec>("buildUtbotMypyRunner") {
     dependsOn(setMypyRunnerVersion)
     group = "python"
     workingDir = utbotMypyRunnerPath
-    commandLine(pythonInterpreter!!, "-m", "poetry", "build")
-    localMypyPathText.writeText(localMypyPath.canonicalPath)
-    localMypyPathText.createNewFile()
+    commandLine(pythonInterpreter ?: error("Python interpreter not specified"), "-m", "poetry", "build")
 }
 
 tasks.register<Exec>("publishUtbotMypyRunner") {
     dependsOn(buildMypyRunner)
     group = "python"
     workingDir = utbotMypyRunnerPath
-    commandLine(pythonInterpreter!!, "-m", "poetry", "publish", "-u", "__token__", "-p", pipToken!!)
+    commandLine(
+        pythonInterpreter ?: error("Python interpreter not specified"),
+        "-m",
+        "poetry",
+        "publish",
+        "-u",
+        "__token__",
+        "-p", pipToken ?: error("Pip token not specified")
+    )
 }

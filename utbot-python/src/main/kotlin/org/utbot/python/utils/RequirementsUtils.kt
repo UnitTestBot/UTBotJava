@@ -6,10 +6,10 @@ object RequirementsUtils {
     private val utbotMypyRunnerVersion =
         MypyInfoBuild::class.java.getResource("/utbot_mypy_runner_version")!!.readText()
     private val useLocalPythonPackages =  // "true" must be set only for debugging
-        this::class.java.getResource("/use_local_python_packages")?.readText()?.toBoolean() ?: false
+        this::class.java.getResource("/local_pip_setup/use_local_python_packages")?.readText()?.toBoolean() ?: false
     private val localMypyRunnerPath =
-        MypyInfoBuild::class.java.getResource("/local_mypy_path")?.readText()
-    private val findLinks: List<String> =  // for pip
+        this::class.java.getResource("/local_pip_setup/local_utbot_mypy_path")?.readText()
+    private val pipFindLinks: List<String> =
         if (useLocalPythonPackages) listOf(localMypyRunnerPath!!) else emptyList()
     val requirements: List<String> = listOf(
         "mypy==1.0.0",
@@ -51,7 +51,7 @@ object RequirementsUtils {
                 "pip",
                 "install"
             ) + moduleNames,
-            environmentVariables = mapOf("PIP_FIND_LINKS" to findLinks.joinToString(" "))
+            environmentVariables = mapOf("PIP_FIND_LINKS" to pipFindLinks.joinToString(" "))
         )
     }
 }

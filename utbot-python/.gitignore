@@ -1,2 +1,2 @@
 *.swp
-use_local_python_packages
+local_pip_setup/

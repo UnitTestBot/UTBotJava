@@ -90,6 +90,7 @@ import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.EDT_LATER
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.THREAD_POOL
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.WRITE_ACTION
@@ -153,7 +154,9 @@ object CodeGenerationController {
                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.CODEGEN, "Write test cases for class ${srcClass.name}", index.toDouble() / classesWithTests.size)
                 val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
-                val testClass = createTestClass(classUnderTest, testDirectory, model) ?: continue
+                val testClassName = process.findTestClassName(classUnderTest)
+
+                val testClass = createTestClass(testClassName, testDirectory, model) ?: continue
                 val testFilePointer = SmartPointerManager.getInstance(model.project)
                     .createSmartPsiElementPointer(testClass.containingFile)
                 runWriteCommandAction(model.project, "Generate tests with UnitTestBot", null, {
@@ -612,8 +615,7 @@ object CodeGenerationController {
         }
     }
 
-    private fun createTestClass(classUnderTest: ClassId, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
-        val testClassName = withUtContext(utContext) { generateTestClassShortName(classUnderTest) }
+    private fun createTestClass(testClassName: String, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
         val aPackage = JavaDirectoryService.getInstance().getPackage(testDirectory)
 
         if (aPackage != null) {

@@ -125,6 +125,7 @@ object SpringModelUtils {
     private val requestMappingClassId = ClassId("org.springframework.web.bind.annotation.RequestMapping")
     private val pathVariableClassId = ClassId("org.springframework.web.bind.annotation.PathVariable")
     private val requestHeaderClassId = ClassId("org.springframework.web.bind.annotation.RequestHeader")
+    private val cookieValueClassId = ClassId("org.springframework.web.bind.annotation.CookieValue")
     private val requestBodyClassId = ClassId("org.springframework.web.bind.annotation.RequestBody")
     private val requestParamClassId = ClassId("org.springframework.web.bind.annotation.RequestParam")
     private val uriComponentsBuilderClassId = ClassId("org.springframework.web.util.UriComponentsBuilder")
@@ -148,6 +149,7 @@ object SpringModelUtils {
     private val httpHeaderClassId = ClassId("org.springframework.http.HttpHeaders")
 
     private val objectMapperClassId = ClassId("com.fasterxml.jackson.databind.ObjectMapper")
+    private val cookieClassId = ClassId("javax.servlet.http.Cookie")
 
     val mockMvcPerformMethodId = MethodId(
         classId = mockMvcClassId,
@@ -323,8 +325,43 @@ object SpringModelUtils {
 
         requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
 
-        // TODO #2462 (support @CookieValue, @RequestAttribute, ...)
+        val cookieClass = utContext.classLoader.loadClass(cookieClassId.name)
+        val cookieArrayClassId = java.lang.reflect.Array.newInstance(cookieClass,0)::class.java.id
+        val cookieValuesModel = createCookieValuesModel(cookieArrayClassId, methodId, arguments, idGenerator)
+
+        requestBuilderModel =
+            addCookiesToRequestBuilderModel(cookieValuesModel, cookieArrayClassId, requestBuilderModel, idGenerator)
+
         return addContentToRequestBuilderModel(methodId, arguments, requestBuilderModel, idGenerator)
+    }
+
+    private fun addCookiesToRequestBuilderModel(
+        cookieValuesModel: UtArrayModel,
+        cookieArrayClassId: ClassId,
+        requestBuilderModel: UtAssembleModel,
+        idGenerator: () -> Int
+    ): UtAssembleModel {
+        @Suppress("NAME_SHADOWING")
+        var requestBuilderModel = requestBuilderModel
+
+        if(cookieValuesModel.length > 0) {
+            requestBuilderModel = UtAssembleModel(
+                id = idGenerator(),
+                classId = mockHttpServletRequestBuilderClassId,
+                modelName = "requestBuilder",
+                instantiationCall = UtExecutableCallModel(
+                    instance = requestBuilderModel,
+                    executable = MethodId(
+                        classId = mockHttpServletRequestBuilderClassId,
+                        name = "cookie",
+                        returnType = mockHttpServletRequestBuilderClassId,
+                        parameters = listOf(cookieArrayClassId)
+                    ),
+                    params = listOf(cookieValuesModel)
+                )
+            )
+        }
+        return requestBuilderModel
     }
 
     private fun addHeadersToRequestBuilderModel(
@@ -465,6 +502,39 @@ object SpringModelUtils {
             )
         }
         return requestBuilderModel
+    }
+
+    private fun createCookieValuesModel(
+        cookieArrayClassId: ClassId,
+        methodId: MethodId,
+        arguments: List<UtModel>,
+        idGenerator: () -> Int,
+    ): UtArrayModel {
+        val cookieValues = collectArgumentsWithAnnotationModels(methodId, cookieValueClassId, arguments)
+            .mapValues { (_, model) -> convertModelValueToString(model) }.toList()
+
+        // Creating an indexed Map for `UtArrayModel.stores`
+        val indexedCookieValues = HashMap<Int, UtModel>()
+        cookieValues.indices.forEach { ind ->
+            indexedCookieValues[ind] = UtAssembleModel(
+                id = idGenerator(),
+                classId = cookieClassId,
+                modelName = "cookie",
+                instantiationCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = constructorId(cookieClassId, stringClassId, stringClassId),
+                    params = listOf(UtPrimitiveModel(cookieValues[ind].first), cookieValues[ind].second),
+                )
+            )
+        }
+
+        return UtArrayModel(
+            id = idGenerator(),
+            classId = cookieArrayClassId,
+            length = cookieValues.size,
+            constModel = UtNullModel(cookieClassId),
+            stores = indexedCookieValues,
+        )
     }
 
     private fun createHeadersContentModel(

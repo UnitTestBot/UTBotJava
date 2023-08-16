@@ -173,7 +173,7 @@ object CodeGenerationController {
             } catch (e : CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showCreatingClassError(model.project, generateTestClassShortName(classUnderTest))
+                showCreatingClassError(model.project, classUnderTest.name)
             } finally {
                 index++
             }

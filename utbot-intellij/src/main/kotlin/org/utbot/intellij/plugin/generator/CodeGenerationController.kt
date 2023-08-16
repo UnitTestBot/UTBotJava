@@ -72,6 +72,8 @@ import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.utils.ClassNameUtils.generateTestClassShortName
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
 import org.utbot.intellij.plugin.models.GenerateTestsModel
@@ -611,7 +613,7 @@ object CodeGenerationController {
     }
 
     private fun createTestClass(classUnderTest: ClassId, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
-        val testClassName = generateTestClassShortName(classUnderTest)
+        val testClassName = withUtContext(utContext) { generateTestClassShortName(classUnderTest) }
         val aPackage = JavaDirectoryService.getInstance().getPackage(testDirectory)
 
         if (aPackage != null) {

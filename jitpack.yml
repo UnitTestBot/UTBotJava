@@ -1,4 +1,6 @@
 jdk:
   - openjdk11
+before_install:
+  - sdk install kotlin 1.7.0
   - sdk install java 17.0.5-oracle
   - sdk use java 17.0.5-oracle

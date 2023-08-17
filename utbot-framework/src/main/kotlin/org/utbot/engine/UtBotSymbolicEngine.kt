@@ -439,12 +439,12 @@ class UtBotSymbolicEngine(
         val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
         var testEmittedByFuzzer = 0
 
-        val valueProviders = try {
-            concreteExecutionContext.tryCreateValueProvider(concreteExecutor, classUnderTest, defaultIdGenerator)
+        val fuzzingContext = try {
+            concreteExecutionContext.tryCreateFuzzingContext(concreteExecutor, classUnderTest, defaultIdGenerator)
         } catch (e: Exception) {
             emit(UtError(e.message ?: "Failed to create ValueProvider", e))
             return@flow
-        }.let(transform)
+        }
 
         val coverageToMinStateBeforeSize = mutableMapOf<Trie.Node<Instruction>, Int>()
 
@@ -453,7 +453,7 @@ class UtBotSymbolicEngine(
             methodUnderTest,
             constants = collectConstantsForFuzzer(graph),
             names = names,
-            providers = listOf(valueProviders),
+            providers = listOf(transform(fuzzingContext.valueProvider)),
         ) { thisInstance, descr, values ->
             val diff = until - System.currentTimeMillis()
             val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
@@ -474,12 +474,11 @@ class UtBotSymbolicEngine(
                 return@runJavaFuzzing BaseFeedback(Trie.emptyNode(), Control.PASS)
             }
 
-            val stateBefore = concreteExecutionContext.createStateBefore(
+            val stateBefore = fuzzingContext.createStateBefore(
                 thisInstance = thisInstance?.model,
                 parameters = values.map { it.model },
                 statics = emptyMap(),
                 executableToCall = methodUnderTest,
-                idGenerator = defaultIdGenerator
             )
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
@@ -495,6 +494,8 @@ class UtBotSymbolicEngine(
 
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+
+            fuzzingContext.handleFuzzedConcreteExecutionResult(concreteExecutionResult)
 
             // in case of processed failure in the concrete execution
             concreteExecutionResult.processedFailure()?.let { failure ->

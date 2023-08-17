@@ -149,12 +149,12 @@ object CodeGenerationController {
             }
 
             val classUnderTest = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
+            val testClassName = process.findTestClassName(classUnderTest)
 
             try {
                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.CODEGEN, "Write test cases for class ${srcClass.name}", index.toDouble() / classesWithTests.size)
                 val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
-                val testClassName = process.findTestClassName(classUnderTest)
 
                 val testClass = createTestClass(testClassName, testDirectory, model) ?: continue
                 val testFilePointer = SmartPointerManager.getInstance(model.project)
@@ -178,7 +178,7 @@ object CodeGenerationController {
             } catch (e : CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showCreatingClassError(model.project, classUnderTest.name)
+                showCreatingClassError(model.project, testClassName)
             } finally {
                 index++
             }

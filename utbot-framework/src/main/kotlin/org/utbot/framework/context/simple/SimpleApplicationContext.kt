@@ -13,7 +13,10 @@ import org.utbot.framework.context.TypeReplacer
  * A context to use when no specific data is required.
  */
 class SimpleApplicationContext(
-    override val mockerContext: MockerContext,
+    override val mockerContext: MockerContext = SimpleMockerContext(
+        mockFrameworkInstalled = true,
+        staticsMockingIsConfigured = true
+    ),
     override val typeReplacer: TypeReplacer = SimpleTypeReplacer(),
     override val nonNullSpeculator: NonNullSpeculator = SimpleNonNullSpeculator()
 ) : ApplicationContext {

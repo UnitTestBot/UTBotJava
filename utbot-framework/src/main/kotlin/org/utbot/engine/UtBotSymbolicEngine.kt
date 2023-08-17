@@ -425,7 +425,7 @@ class UtBotSymbolicEngine(
      * @param until is used by fuzzer to cancel all tasks if the current time is over this value
      * @param transform provides model values for a method
      */
-    fun fuzzing(until: Long = Long.MAX_VALUE, transform: (JavaValueProvider) -> JavaValueProvider = { it }) = flow {
+    fun fuzzing(until: Long = Long.MAX_VALUE) = flow {
         val isFuzzable = methodUnderTest.parameters.all { classId ->
             classId != Method::class.java.id && // causes the instrumented process crash at invocation
                 classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
@@ -453,7 +453,7 @@ class UtBotSymbolicEngine(
             methodUnderTest,
             constants = collectConstantsForFuzzer(graph),
             names = names,
-            providers = listOf(transform(fuzzingContext.valueProvider)),
+            providers = listOf(fuzzingContext.valueProvider),
         ) { thisInstance, descr, values ->
             val diff = until - System.currentTimeMillis()
             val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible

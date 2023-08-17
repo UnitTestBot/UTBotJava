@@ -9,14 +9,14 @@ import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.getSuitableConstantsFromCode
 import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 
-object TupleValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: Type): Boolean {
+object TupleValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
+    override fun accept(type: UtType): Boolean {
         return type.pythonTypeName() == pythonTupleClassId.canonicalName
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         yieldAll(getConstants(description, type))
         val param = type.pythonAnnotationParameters()
         yield(
@@ -35,7 +35,7 @@ object TupleValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
             ))
     }
 
-    private fun getConstants(description: PythonMethodDescription, type: Type): List<Seed<Type, PythonFuzzedValue>> {
+    private fun getConstants(description: PythonMethodDescription, type: UtType): List<Seed<UtType, PythonFuzzedValue>> {
         if (!typesAreEqual(type.parameters.first(), pythonAnyType))
             return getSuitableConstantsFromCode(description, type)
         return emptyList()

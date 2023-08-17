@@ -1,7 +1,7 @@
 package org.utbot.python.newtyping.inference.baseline
 
 import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.addEdge
 
 data class DecompositionResult(
@@ -10,11 +10,11 @@ data class DecompositionResult(
 )
 
 fun decompose(
-    partialType: Type,
-    lowerBounds: List<Type>,
-    upperBounds: List<Type>,
+    partialType: UtType,
+    lowerBounds: List<UtType>,
+    upperBounds: List<UtType>,
     level: Int,
-    storage: PythonTypeStorage
+    storage: PythonTypeHintsStorage
 ): DecompositionResult {
     if (typesAreEqual(partialType, pythonAnyType)) {
         val root = AnyTypeNode(
@@ -39,8 +39,8 @@ fun decompose(
         cur.forEach { constraints[it.key]!!.add(it.value) }
     }
     constraints.forEach { (index, constraintList) ->
-        val childLowerBounds: MutableList<Type> = mutableListOf()
-        val childUpperBounds: MutableList<Type> = mutableListOf()
+        val childLowerBounds: MutableList<UtType> = mutableListOf()
+        val childUpperBounds: MutableList<UtType> = mutableListOf()
         constraintList.forEach { constraint ->
             when (constraint.kind) {
                 ConstraintKind.LowerBound -> childLowerBounds.add(constraint.type)

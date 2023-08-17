@@ -7,29 +7,11 @@ val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 val log4j2Version: String? by rootProject
 
-tasks {
-    compileKotlin {
-        kotlinOptions {
-            jvmTarget = "17"
-            freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
-            allWarningsAsErrors = false
-        }
-    }
-
-    java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    test {
-        useJUnitPlatform()
-    }
-}
-
 dependencies {
     api(project(":utbot-fuzzing"))
     api(project(":utbot-framework"))
     api(project(":utbot-python-parser"))
+    api(project(":utbot-python-types"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation(group = "org.apache.commons", name = "commons-lang3", version = "3.12.0")

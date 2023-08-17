@@ -4,16 +4,16 @@ import mu.KotlinLogging
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorResult
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.general.getBoundedParameters
 import org.utbot.python.newtyping.general.getOrigin
 import org.utbot.python.newtyping.inference.collectBoundsFromEdges
 
 private val logger = KotlinLogging.logger {}
 
-class TypeRating(scores: List<Pair<Type, Double>>) {
-    val typesInOrder: List<Pair<Double, Type>> = scores.map { Pair(it.second, it.first) }.sortedBy { -it.first }
-    val types: List<Type> = typesInOrder.map { it.second }
+class TypeRating(scores: List<Pair<UtType, Double>>) {
+    val typesInOrder: List<Pair<Double, UtType>> = scores.map { Pair(it.second, it.first) }.sortedBy { -it.first }
+    val types: List<UtType> = typesInOrder.map { it.second }
 }
 
 data class TypeRatingPosition(
@@ -24,7 +24,7 @@ data class TypeRatingPosition(
         get() = pos < typeRating.types.size - 1
     val curPenalty: Double
         get() = typeRating.typesInOrder.first().first - typeRating.typesInOrder[pos].first
-    val type: Type
+    val type: UtType
         get() = typeRating.types[pos]
 
     fun makeMove(): TypeRatingPosition {
@@ -36,8 +36,8 @@ data class TypeRatingPosition(
 // TODO: memory usage can be reduced
 class CandidateGraph(
     anyNodes: List<AnyTypeNode>,
-    initialRating: List<Type>,
-    storage: PythonTypeStorage,
+    initialRating: List<UtType>,
+    storage: PythonTypeHintsStorage,
 ) {
     private val typeRatings: List<TypeRating> =
         anyNodes.map { createTypeRating(initialRating, it.lowerBounds, it.upperBounds, storage, it.nestedLevel) }
@@ -46,7 +46,7 @@ class CandidateGraph(
     private var lastUsed: Int = -1
     private var lastExpanded: Int = -1
 
-    fun getNext(): List<Type>? {
+    fun getNext(): List<UtType>? {
         if (lastUsed < lastExpanded) {
             lastUsed += 1
             return vertices[lastUsed].types
@@ -104,9 +104,9 @@ data class CandidateGraphVertex(val positions: List<TypeRatingPosition>) {
 private const val MAX_NESTING = 3
 
 private fun changeScores(
-    initialRating: List<Type>,
-    storage: PythonTypeStorage,
-    bounds: List<Type>,
+    initialRating: List<UtType>,
+    storage: PythonTypeHintsStorage,
+    bounds: List<UtType>,
     hintScores: MutableMap<PythonTypeWrapperForEqualityCheck, Double>,
     withPenalty: Boolean,
     isUpper: Boolean
@@ -135,17 +135,17 @@ private fun changeScores(
 }
 
 fun createTypeRating(
-    initialRating: List<Type>,
-    lowerBounds: List<Type>,
-    upperBounds: List<Type>,
-    storage: PythonTypeStorage,
+    initialRating: List<UtType>,
+    lowerBounds: List<UtType>,
+    upperBounds: List<UtType>,
+    storage: PythonTypeHintsStorage,
     level: Int,
     withPenalty: Boolean = true
 ): TypeRating {
     val hintScores = mutableMapOf<PythonTypeWrapperForEqualityCheck, Double>()
     changeScores(initialRating, storage, lowerBounds, hintScores, withPenalty, isUpper = false)
     changeScores(initialRating, storage, upperBounds, hintScores, withPenalty, isUpper = true)
-    val scores: List<Pair<Type, Double>> = initialRating.mapNotNull { typeFromList ->
+    val scores: List<Pair<UtType, Double>> = initialRating.mapNotNull { typeFromList ->
         if (level == MAX_NESTING && typeFromList.getBoundedParameters().isNotEmpty())
             return@mapNotNull null
         val type = DefaultSubstitutionProvider.substitute(
@@ -158,7 +158,7 @@ fun createTypeRating(
     return TypeRating(scores)
 }
 
-fun simplestTypes(storage: PythonTypeStorage): List<Type> {
+fun simplestTypes(storage: PythonTypeHintsStorage): List<UtType> {
     val int = storage.pythonInt
     val listOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonList, listOf(pythonAnyType))
     val str = storage.pythonStr
@@ -168,9 +168,9 @@ fun simplestTypes(storage: PythonTypeStorage): List<Type> {
     return listOf(int, listOfAny, str, bool, float, dictOfAny)
 }
 
-fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeStorage): List<Type> {
-    val allLowerBounds: MutableList<Type> = mutableListOf()
-    val allUpperBounds: MutableList<Type> = mutableListOf()
+fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeHintsStorage): List<UtType> {
+    val allLowerBounds: MutableList<UtType> = mutableListOf()
+    val allUpperBounds: MutableList<UtType> = mutableListOf()
     hintCollectorResult.allNodes.forEach { node ->
         val (lowerFromEdges, upperFromEdges) = collectBoundsFromEdges(node)
         allLowerBounds.addAll((lowerFromEdges + node.lowerBounds + node.partialType).filter {

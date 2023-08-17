@@ -14,16 +14,16 @@ import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigInteger
 import kotlin.random.Random
 
-object IntValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
+object IntValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
     private val randomStubWithNoUsage = Random(0)
     private val configurationStubWithNoUsage = Configuration()
 
-    override fun accept(type: Type): Boolean {
+    override fun accept(type: UtType): Boolean {
         return type.pythonTypeName() == pythonIntClassId.canonicalName || type.isAny()
     }
 
@@ -43,7 +43,7 @@ object IntValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
             }
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence<Seed<Type, PythonFuzzedValue>> {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence<Seed<UtType, PythonFuzzedValue>> {
         val bits = 128
         val integerConstants = getIntConstants(description.concreteValues)
         val modifiedConstants = integerConstants.flatMap { value ->

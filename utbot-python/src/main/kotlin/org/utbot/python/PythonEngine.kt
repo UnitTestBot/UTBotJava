@@ -18,8 +18,8 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
-import org.utbot.python.newtyping.PythonTypeStorage
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
@@ -36,7 +36,7 @@ class PythonEngine(
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
-    private val pythonTypeStorage: PythonTypeStorage,
+    private val pythonTypeStorage: PythonTypeHintsStorage,
 ) {
 
     private val cache = EvaluationCache()
@@ -122,7 +122,7 @@ class PythonEngine(
     }
     private fun handleSuccessResult(
         arguments: List<PythonFuzzedValue>,
-        types: List<Type>,
+        types: List<UtType>,
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
     ): FuzzingExecutionFeedback {
@@ -190,7 +190,7 @@ class PythonEngine(
     private fun fuzzingResultHandler(
         description: PythonMethodDescription,
         arguments: List<PythonFuzzedValue>,
-        parameters: List<Type>,
+        parameters: List<UtType>,
         manager: PythonWorkerManager,
     ): PythonExecutionResult? {
         val additionalModules = parameters.flatMap { it.pythonModules() }
@@ -274,7 +274,7 @@ class PythonEngine(
         }
     }
 
-    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
+    fun fuzzing(parameters: List<UtType>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         ServerSocket(0).use { serverSocket ->
             logger.debug { "Server port: ${serverSocket.localPort}" }
             val manager = try {

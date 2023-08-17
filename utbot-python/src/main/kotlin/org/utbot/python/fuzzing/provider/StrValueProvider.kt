@@ -14,11 +14,11 @@ import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isPattern
 import org.utbot.python.fuzzing.provider.utils.transformQuotationMarks
 import org.utbot.python.fuzzing.provider.utils.transformRawString
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 
-object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: Type): Boolean {
+object StrValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
+    override fun accept(type: UtType): Boolean {
         return type.pythonTypeName() == pythonStrClassId.canonicalName
     }
 
@@ -40,7 +40,7 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
             .map { it.transformRawString().transformQuotationMarks() }
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         val strConstants = getStrConstants(description.concreteValues) + listOf(
             "pythön",
             "foo",
@@ -54,7 +54,7 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
         }
     }
 
-    private suspend fun <T : KnownValue<T>> SequenceScope<Seed<Type, PythonFuzzedValue>>.yieldStrings(value: T, block: T.() -> Any) {
+    private suspend fun <T : KnownValue<T>> SequenceScope<Seed<UtType, PythonFuzzedValue>>.yieldStrings(value: T, block: T.() -> Any) {
         yield(Seed.Known(value) {
             PythonFuzzedValue(
                 PythonTree.fromString(block(it).toString()),

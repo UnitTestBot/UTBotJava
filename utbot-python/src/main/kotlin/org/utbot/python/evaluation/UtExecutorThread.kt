@@ -1,42 +1,43 @@
 package org.utbot.python.evaluation
 
 import java.net.SocketException
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
-class UtExecutorThread : Thread() {
-    override fun run() {
-        response = try {
-            pythonWorker?.receiveMessage()
-        } catch (ex: SocketException) {
-            null
-        }
-    }
 
+class UtExecutorThread {
     enum class Status {
         TIMEOUT,
         OK,
     }
 
     companion object {
-        var pythonWorker: PythonWorker? = null
-        var response: String? = null
-
         fun run(worker: PythonWorker, executionTimeout: Long): Pair<Status, String?> {
-            pythonWorker = worker
-            response = null
-            val thread = UtExecutorThread()
-            thread.start()
-            // Wait for the thread to finish
-            val finishTime = System.currentTimeMillis() + executionTimeout
-            while (thread.isAlive && System.currentTimeMillis() < finishTime) {
-                sleep(1)
+            val executor = Executors.newSingleThreadExecutor()
+            val future = executor.submit(Task(worker))
+
+            val result = try {
+                Status.OK to future.get(executionTimeout, TimeUnit.MILLISECONDS)
+            } catch (ex: TimeoutException) {
+                future.cancel(true)
+                Status.TIMEOUT to null
             }
-            val status = if (thread.isAlive) {
-                thread.interrupt()
-                Status.TIMEOUT
-            } else {
-                Status.OK
-            }
-            return status to response
+            executor.shutdown()
+            return result
+        }
+    }
+}
+
+class Task(
+    private val worker: PythonWorker
+) : Callable<String?> {
+    override fun call(): String? {
+        return try {
+            worker.receiveMessage()
+        } catch (ex: SocketException) {
+            null
         }
     }
 }

@@ -12,9 +12,8 @@ object RequirementsUtils {
     private val pipFindLinks: List<String> =
         if (useLocalPythonPackages) listOf(localMypyRunnerPath!!) else emptyList()
     val requirements: List<String> = listOf(
-        "mypy==1.0.0",
-        "utbot-executor==1.4.36",
-        "utbot-mypy-runner==$utbotMypyRunnerVersion",
+        "utbot-mypy-runner==$utbotMypyRunnerVersion"
+        "utbot-executor==1.4.37",
     )
 
     private val requirementsScriptContent: String =

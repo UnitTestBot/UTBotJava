@@ -155,7 +155,7 @@ abstract class PythonTestGenerationProcessor {
     private fun collectImports(notEmptyTests: List<PythonTestSet>): Set<PythonImport> {
         val importParamModules = notEmptyTests.flatMap { testSet ->
             testSet.executions.flatMap { execution ->
-                val params = (execution.stateAfter.parameters + execution.stateBefore.parameters).toMutableSet()
+                val params = (execution.stateAfter.parameters + execution.stateBefore.parameters).toMutableList()
                 val self = mutableListOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
                 if (execution is PythonUtExecution) {
                     params.addAll(execution.stateInit.parameters)
@@ -171,7 +171,7 @@ abstract class PythonTestGenerationProcessor {
                         }
                     }
             }
-        }
+        }.toSet()
         val importResultModules = notEmptyTests.flatMap { testSet ->
             testSet.executions.mapNotNull { execution ->
                 if (execution.result is UtExecutionSuccess) {
@@ -184,7 +184,7 @@ abstract class PythonTestGenerationProcessor {
                     }
                 } else null
             }.flatten()
-        }
+        }.toSet()
         val rootModule = configuration.testFileInformation.moduleName.split(".").first()
         val testRootModule = PythonUserImport(importName_ = rootModule)
         val sysImport = PythonSystemImport("sys")

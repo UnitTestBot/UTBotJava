@@ -63,7 +63,7 @@ class BaselineAlgorithm(
                     val state = weightedRandom(states, weights, random)
                     val newState = expandState(state, storage, state.anyNodes.map { mixtureType })
                     if (newState != null) {
-                        logger.info { "Random type: ${newState.signature.pythonTypeRepresentation()}" }
+                        logger.info("Random type: ${newState.signature.pythonTypeRepresentation()}")
                         annotationHandler(newState.signature)
                     }
                 }
@@ -74,9 +74,11 @@ class BaselineAlgorithm(
                     if (iterationCounter == 1) {
                         annotationHandler(initialState.signature)
                     }
-                    logger.info { "Checking ${newState.signature.pythonTypeRepresentation()}" }
+                    logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
                     if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
-                        logger.debug { "Found new state!" }
+                        logger.debug("Found new state!")
+//                        annotationHandler(newState.signature)
+//                        states.add(newState)
                         when (annotationHandler(newState.signature)) {
                             SuccessFeedback -> {
                                 states.add(newState)

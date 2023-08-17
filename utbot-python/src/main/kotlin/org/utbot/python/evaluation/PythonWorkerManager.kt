@@ -58,7 +58,7 @@ class PythonWorkerManager(
             serverSocket.accept()
         } catch (e: SocketTimeoutException) {
             val result = getResult(process, max(until - processStartTime, 0))
-            logger.warn { "utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}, stdout: ${result.stdout}." }
+            logger.debug { "utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}, stdout: ${result.stdout}." }
             process.destroy()
             throw TimeoutException("Worker not connected")
         }
@@ -120,6 +120,6 @@ class PythonWorkerManager(
     }
 
     companion object {
-        val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor.log", "log", true)
+        val logfile = TemporaryFileManager.createTemporaryFile("", "utbot_executor.log", "log", true)
     }
 }

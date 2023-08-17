@@ -8,6 +8,7 @@ import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
@@ -20,6 +21,7 @@ import java.util.*
 class ModelConstructionPhase(
     private val traceHandler: TraceHandler,
     private val utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?,
+    private val idGenerator: StateBeforeAwareIdGenerator,
 ) : ExecutionPhase {
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
@@ -52,6 +54,7 @@ class ModelConstructionPhase(
                 objectToModelCache = cache,
                 utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
                 compositeModelStrategy = strategy,
+                idGenerator = idGenerator,
             )
         }
     }

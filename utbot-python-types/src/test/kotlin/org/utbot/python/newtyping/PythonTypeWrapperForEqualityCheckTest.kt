@@ -15,7 +15,7 @@ internal class PythonTypeWrapperForEqualityCheckTest {
     lateinit var storage: MypyInfoBuild
     @BeforeAll
     fun setup() {
-        val sample = MypyBuildKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = MypyBuildKtTest::class.java.getResource("/annotation_tests.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
     }
 

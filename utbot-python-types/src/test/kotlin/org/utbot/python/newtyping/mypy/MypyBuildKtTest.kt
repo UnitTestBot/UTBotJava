@@ -14,7 +14,7 @@ internal class MypyBuildKtTest {
     lateinit var storageBoruvka: MypyInfoBuild
     @BeforeAll
     fun setup() {
-        val sample = this::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = this::class.java.getResource("/annotation_tests.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
         typeStorage = PythonTypeHintsStorage.get(storage)
         val sample1 = this::class.java.getResource("/boruvka.json")!!.readText()
@@ -136,7 +136,7 @@ internal class MypyBuildKtTest {
 
     @Test
     fun testTypeAlias() {
-        val isinstance = storageBoruvka.types["boruvka"]!!.find { it.startOffset == 3731L }!!.type.asUtBotType
+        val isinstance = storageBoruvka.types["boruvka"]!!.find { it.startOffset == 3701L }!!.type.asUtBotType
         val func = isinstance as FunctionType
         val classInfo = func.arguments[1]
         assertTrue(classInfo.pythonDescription() is PythonTypeAliasDescription)

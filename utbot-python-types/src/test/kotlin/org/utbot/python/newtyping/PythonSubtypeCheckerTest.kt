@@ -17,7 +17,7 @@ internal class PythonSubtypeCheckerTest {
     lateinit var pythonTypeStorage: PythonTypeHintsStorage
     @BeforeAll
     fun setup() {
-        val sample = PythonSubtypeCheckerTest::class.java.getResource("/subtypes_sample.json")!!.readText()
+        val sample = PythonSubtypeCheckerTest::class.java.getResource("/subtypes.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
         pythonTypeStorage = PythonTypeHintsStorage.get(storage)
     }

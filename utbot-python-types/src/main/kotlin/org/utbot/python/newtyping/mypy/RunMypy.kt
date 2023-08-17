@@ -45,7 +45,8 @@ fun buildMypyInfo(
     sourcePaths: List<String>,
     modules: List<String>,
     mypyBuildDir: MypyBuildDirectory,
-    moduleForTypes: String? = null
+    moduleForTypes: String? = null,
+    indent: Int? = null
 ) {
     val cmdPrefix = listOf(
         pythonPath,
@@ -62,12 +63,13 @@ fun buildMypyInfo(
         "--mypy_stderr",
         mypyBuildDir.fileForMypyStderr.absolutePath,
         "--mypy_exit_status",
-        mypyBuildDir.fileForMypyExitStatus.absolutePath
+        mypyBuildDir.fileForMypyExitStatus.absolutePath,
     )
+    val cmdIndent = if (indent != null) listOf("--indent", indent.toString()) else emptyList()
     val cmdSources = listOf("--sources") + sourcePaths.map { it.modifyWindowsPath() }
     val cmdModules = listOf("--modules") + modules
     val cmdModuleForTypes = if (moduleForTypes != null) listOf("--module_for_types", moduleForTypes) else emptyList()
-    val cmd = cmdPrefix + cmdSources + cmdModules + cmdModuleForTypes
+    val cmd = cmdPrefix + cmdIndent + cmdSources + cmdModules + cmdModuleForTypes
     val result = runCommand(cmd)
     val stderr = if (mypyBuildDir.fileForMypyStderr.exists()) mypyBuildDir.fileForMypyStderr.readText() else null
     val stdout = if (mypyBuildDir.fileForMypyStdout.exists()) mypyBuildDir.fileForMypyStdout.readText() else null

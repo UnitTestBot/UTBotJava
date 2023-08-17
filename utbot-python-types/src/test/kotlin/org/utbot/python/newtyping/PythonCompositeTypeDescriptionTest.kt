@@ -13,7 +13,7 @@ internal class PythonCompositeTypeDescriptionTest {
     private lateinit var pythonTypeStorage: PythonTypeHintsStorage
     @BeforeAll
     fun setup() {
-        val sample = this::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = this::class.java.getResource("/annotation_tests.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
         pythonTypeStorage = PythonTypeHintsStorage.get(storage)
     }

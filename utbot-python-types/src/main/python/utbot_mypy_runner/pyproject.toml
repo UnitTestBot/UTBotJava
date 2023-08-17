@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "utbot_mypy_runner"
-version = "0.2.13"
+version = "0.2.11"
 description = ""
 authors = ["Ekaterina Tochilina <katerina_t_n@mail.ru>"]
 readme = "README.md"

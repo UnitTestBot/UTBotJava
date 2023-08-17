@@ -13,7 +13,7 @@ internal class GlobalNamesStorageTest {
     lateinit var namesStorage: GlobalNamesStorage
     @BeforeAll
     fun setup() {
-        val sample = MypyBuildKtTest::class.java.getResource("/imports_sample.json")!!.readText()
+        val sample = MypyBuildKtTest::class.java.getResource("/import_test.json")!!.readText()
         namesStorage = GlobalNamesStorage(readMypyInfoBuildWithoutRoot(sample))
     }
 

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.mypy.MypyBuildKtTest
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.readMypyInfoBuildWithoutRoot
 
@@ -15,7 +14,7 @@ internal class PythonTypeConstraintPropagationKtTest {
     lateinit var pythonTypeStorage: PythonTypeHintsStorage
     @BeforeAll
     fun setup() {
-        val sample = this::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = this::class.java.getResource("/annotation_tests.json")!!.readText()
         storage = readMypyInfoBuildWithoutRoot(sample)
         pythonTypeStorage = PythonTypeHintsStorage.get(storage)
     }

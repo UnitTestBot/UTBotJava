@@ -6,16 +6,21 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.SocketException
 import java.net.SocketTimeoutException
+import kotlin.math.max
 
 class PythonCoverageReceiver(
-    until: Long,
+    val until: Long,
 ) : Thread() {
     val coverageStorage = mutableMapOf<String, MutableSet<Int>>()
     private val socket = DatagramSocket()
     private val logger = KotlinLogging.logger {}
 
     init {
-        socket.soTimeout = (until - System.currentTimeMillis()).toInt()
+        updateSoTimeout()
+    }
+
+    private fun updateSoTimeout() {
+        socket.soTimeout = max((until - System.currentTimeMillis()).toInt(), 0)
     }
 
     fun address(): Pair<String, String> {
@@ -30,6 +35,7 @@ class PythonCoverageReceiver(
     override fun run() {
         try {
             while (true) {
+                updateSoTimeout()
                 val buf = ByteArray(256)
                 val request = DatagramPacket(buf, buf.size)
                 socket.receive(request)

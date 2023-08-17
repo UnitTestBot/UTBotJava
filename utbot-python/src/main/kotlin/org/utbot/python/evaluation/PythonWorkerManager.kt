@@ -36,7 +36,6 @@ class PythonWorkerManager(
         val processStartTime = System.currentTimeMillis()
         if (this::process.isInitialized && process.isAlive) {
             process.destroy()
-            logger.warn { "Destroy process" }
         }
         val logLevel = LogManager.getRootLogger().level.name()
         process = startProcess(listOf(

@@ -9,40 +9,52 @@ dependencies {
 
 val utbotMypyRunnerVersion = File(project.projectDir, "src/main/resources/utbot_mypy_runner_version").readText()
 // these two properties --- from GRADLE_USER_HOME/gradle.properties
-val pipToken: String? by project
+val pypiToken: String? by project
 val pythonInterpreter: String? by project
 val utbotMypyRunnerPath = File(project.projectDir, "src/main/python/utbot_mypy_runner")
 val localMypyPath = File(utbotMypyRunnerPath, "dist")
 
-tasks.register<Exec>("cleanDist") {
+tasks.register("cleanDist") {
     group = "python"
-    commandLine("rm", "-r", localMypyPath.canonicalPath)
+    delete(localMypyPath.canonicalPath)
 }
 
-val setMypyRunnerVersion = tasks.register<Exec>("setVersion") {
-    group = "python"
-    workingDir = utbotMypyRunnerPath
-    commandLine(pythonInterpreter ?: error("Python interpreter not specified"), "-m", "poetry", "version", utbotMypyRunnerVersion)
-}
+val setMypyRunnerVersion =
+    if (pythonInterpreter != null)
+        tasks.register<Exec>("setVersion") {
+        group = "python"
+        workingDir = utbotMypyRunnerPath
+        commandLine(pythonInterpreter, "-m", "poetry", "version", utbotMypyRunnerVersion)
+    } else {
+        null
+    }
 
-val buildMypyRunner = tasks.register<Exec>("buildUtbotMypyRunner") {
-    dependsOn(setMypyRunnerVersion)
-    group = "python"
-    workingDir = utbotMypyRunnerPath
-    commandLine(pythonInterpreter ?: error("Python interpreter not specified"), "-m", "poetry", "build")
-}
+val buildMypyRunner =
+    if (pythonInterpreter != null) {
+        tasks.register<Exec>("buildUtbotMypyRunner") {
+            dependsOn(setMypyRunnerVersion!!)
+            group = "python"
+            workingDir = utbotMypyRunnerPath
+            commandLine(pythonInterpreter, "-m", "poetry", "build")
+        }
+    } else {
+        null
+    }
 
-tasks.register<Exec>("publishUtbotMypyRunner") {
-    dependsOn(buildMypyRunner)
-    group = "python"
-    workingDir = utbotMypyRunnerPath
-    commandLine(
-        pythonInterpreter ?: error("Python interpreter not specified"),
-        "-m",
-        "poetry",
-        "publish",
-        "-u",
-        "__token__",
-        "-p", pipToken ?: error("Pip token not specified")
-    )
+if (pythonInterpreter != null && pypiToken != null) {
+    tasks.register<Exec>("publishUtbotMypyRunner") {
+        dependsOn(buildMypyRunner)
+        group = "python"
+        workingDir = utbotMypyRunnerPath
+        commandLine(
+            pythonInterpreter,
+            "-m",
+            "poetry",
+            "publish",
+            "-u",
+            "__token__",
+            "-p",
+            pypiToken
+        )
+    }
 }

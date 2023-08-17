@@ -100,7 +100,6 @@ class PythonCodeSocketExecutor(
         try {
             pythonWorker.sendData(message)
         } catch (_: SocketException) {
-            logger.info { "Send data error" }
             return parseExecutionResult(FailExecution("Send data error"))
         }
 

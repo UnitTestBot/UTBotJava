@@ -2,6 +2,7 @@ package org.utbot.fuzzing.providers
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedContext.Comparison.*
@@ -236,4 +237,9 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId, java.lang.Cha
             else -> false
         }
     }
+}
+
+object VoidValueProvider : PrimitiveValueProvider(voidClassId) {
+    override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> =
+        sequenceOf(Seed.Simple(UtVoidModel.fuzzed { summary = "%var% = void" }))
 }

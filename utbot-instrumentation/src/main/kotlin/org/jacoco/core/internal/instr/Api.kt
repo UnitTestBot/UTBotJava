@@ -56,7 +56,7 @@ fun createClassVisitorForTracingBranchInstructions(
         storage.computeId(className, localId)
     }
     return ClassProbesAdapter(
-        TraceClassInstrumenter(strategy, writer, storage, probeIdGenerator),
+        TraceClassInstrumenter(strategy, writer, className, storage, probeIdGenerator),
         false
     )
 }

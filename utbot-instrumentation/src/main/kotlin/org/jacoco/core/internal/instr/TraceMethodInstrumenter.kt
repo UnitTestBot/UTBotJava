@@ -9,8 +9,7 @@ import org.utbot.instrumentation.instrumentation.et.*
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.InstructionVisitorMethodAdapter.Companion.returnInsns
 
 internal class TraceMethodInstrumenter(
-    methodName: String,
-    descriptor: String,
+    private val currentMethodSignature: String,
     mv: MethodVisitor,
     private val probeInserter: IProbeInserter,
     private val storage: ProcessingStorage,
@@ -18,7 +17,6 @@ internal class TraceMethodInstrumenter(
 ) : MethodInstrumenter(mv, probeInserter) {
 
     private var currentLineNumber: Int = 0
-    private val currentMethodSignature: String = methodName + descriptor
 
     // === MethodVisitor ===
 

@@ -11,6 +11,7 @@ import org.utbot.instrumentation.instrumentation.et.ProcessingStorage
 class TraceClassInstrumenter(
     private val probeArrayStrategy: IProbeArrayStrategy,
     cv: ClassVisitor,
+    private val className: String,
     private val storage: ProcessingStorage,
     private val probeIdGenerator: ProbeIdGenerator
 ) : ClassInstrumenter(probeArrayStrategy, cv) {
@@ -24,12 +25,15 @@ class TraceClassInstrumenter(
     ): MethodProbesVisitor {
         val mv = cv.visitMethod(access, name, desc, signature, exceptions)
 
+        val currentMethodSignature = name + desc
+        storage.addClassMethod(className, currentMethodSignature)
+
         val frameEliminator = DuplicateFrameEliminator(mv)
         val probeVariableInserter = TraceProbeInserter(
             access, name, desc, frameEliminator, probeArrayStrategy, probeIdGenerator
         )
         return TraceMethodInstrumenter(
-            name, desc, probeVariableInserter, probeVariableInserter, storage, probeIdGenerator
+            currentMethodSignature, probeVariableInserter, probeVariableInserter, storage, probeIdGenerator
         )
     }
 

@@ -322,6 +322,11 @@ val streamToArrayMethodId = methodId(streamClassId, "toArray", objectArrayClassI
 
 val dateClassId = java.util.Date::class.id
 
+fun getArrayClassIdByElementClassId(elementClassId: ClassId): ClassId{
+    val elementClass = utContext.classLoader.loadClass(elementClassId.name)
+    return java.lang.reflect.Array.newInstance(elementClass,0)::class.java.id
+}
+
 @Suppress("RemoveRedundantQualifierName")
 val primitiveToId: Map<Class<*>, ClassId> = mapOf(
     java.lang.Void.TYPE to voidClassId,

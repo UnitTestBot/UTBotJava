@@ -175,6 +175,34 @@ object SpringModelUtils {
         parameters = listOf(stringClassId, objectClassId)
     )
 
+    private val mockHttpServletHeadersMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "headers",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(httpHeaderClassId)
+    )
+
+    private val mockHttpServletCookieMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "cookie",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(getArrayClassIdByElementClassId(cookieClassId))
+    )
+
+    private val mockHttpServletContentTypeMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "contentType",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(mediaTypeClassId)
+    )
+
+    private val mockHttpServletContentMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "content",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(stringClassId)
+    )
+
     val mockMvcPerformMethodId = MethodId(
         classId = mockMvcClassId,
         name = "perform",
@@ -348,11 +376,9 @@ object SpringModelUtils {
         val headersContentModel = createHeadersContentModel(methodId, arguments, idGenerator)
         requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
 
-        val cookieClass = utContext.classLoader.loadClass(cookieClassId.name)
-        val cookieArrayClassId = java.lang.reflect.Array.newInstance(cookieClass,0)::class.java.id
-        val cookieValuesModel = createCookieValuesModel(cookieArrayClassId, methodId, arguments, idGenerator)
+        val cookieValuesModel = createCookieValuesModel(methodId, arguments, idGenerator)
         requestBuilderModel =
-            addCookiesToRequestBuilderModel(cookieValuesModel, cookieArrayClassId, requestBuilderModel, idGenerator)
+            addCookiesToRequestBuilderModel(cookieValuesModel, requestBuilderModel, idGenerator)
 
         val requestAttributes = collectArgumentsWithAnnotationModels(methodId, requestAttributesClassId, arguments)
         requestBuilderModel =
@@ -373,7 +399,7 @@ object SpringModelUtils {
         requestAttributes: Map<String, UtModel>,
         requestBuilderModel: UtAssembleModel,
         idGenerator: () -> Int
-    ): UtAssembleModel = addAttributesModelToRequestBuilderModel(
+    ): UtAssembleModel = addAttributesToRequestBuilderModel(
         requestAttributes,
         requestAttributesMethodId,
         requestBuilderModel,
@@ -382,29 +408,29 @@ object SpringModelUtils {
 
 
     private fun addSessionAttributesToRequestModelBuilder(
-        requestAttributes: Map<String, UtModel>,
+        sessionAttributes: Map<String, UtModel>,
         requestBuilderModel: UtAssembleModel,
         idGenerator: () -> Int
-    ): UtAssembleModel = addAttributesModelToRequestBuilderModel(
-        requestAttributes,
+    ): UtAssembleModel = addAttributesToRequestBuilderModel(
+        sessionAttributes,
         sessionAttributesMethodId,
         requestBuilderModel,
         idGenerator
     )
 
     private fun addModelAttributesToRequestModelBuilder(
-        requestAttributes: Map<String, UtModel>,
+        modelAttributes: Map<String, UtModel>,
         requestBuilderModel: UtAssembleModel,
         idGenerator: () -> Int
-    ): UtAssembleModel = addAttributesModelToRequestBuilderModel(
-        requestAttributes,
+    ): UtAssembleModel = addAttributesToRequestBuilderModel(
+        modelAttributes,
         modelAttributesMethodId,
         requestBuilderModel,
         idGenerator
     )
 
 
-    private fun addAttributesModelToRequestBuilderModel(
+    private fun addAttributesToRequestBuilderModel(
         attributes: Map<String, UtModel>,
         addAttributesMethodId: MethodId,
         requestBuilderModel: UtAssembleModel,
@@ -431,7 +457,6 @@ object SpringModelUtils {
 
     private fun addCookiesToRequestBuilderModel(
         cookieValuesModel: UtArrayModel,
-        cookieArrayClassId: ClassId,
         requestBuilderModel: UtAssembleModel,
         idGenerator: () -> Int
     ): UtAssembleModel {
@@ -445,12 +470,7 @@ object SpringModelUtils {
                 modelName = "requestBuilder",
                 instantiationCall = UtExecutableCallModel(
                     instance = requestBuilderModel,
-                    executable = MethodId(
-                        classId = mockHttpServletRequestBuilderClassId,
-                        name = "cookie",
-                        returnType = mockHttpServletRequestBuilderClassId,
-                        parameters = listOf(cookieArrayClassId)
-                    ),
+                    executable = mockHttpServletCookieMethodId,
                     params = listOf(cookieValuesModel)
                 )
             )
@@ -501,12 +521,7 @@ object SpringModelUtils {
             modelName = "requestBuilder",
             instantiationCall = UtExecutableCallModel(
                 instance = requestBuilderModel,
-                executable = MethodId(
-                    classId = mockHttpServletRequestBuilderClassId,
-                    name = "headers",
-                    returnType = mockHttpServletRequestBuilderClassId,
-                    parameters = listOf(httpHeaderClassId)
-                ),
+                executable = mockHttpServletHeadersMethodId,
                 params = listOf(headers)
             )
         )
@@ -548,12 +563,7 @@ object SpringModelUtils {
                 modelName = "requestBuilder",
                 instantiationCall = UtExecutableCallModel(
                     instance = requestBuilderModel,
-                    executable = MethodId(
-                        classId = mockHttpServletRequestBuilderClassId,
-                        name = "contentType",
-                        returnType = mockHttpServletRequestBuilderClassId,
-                        parameters = listOf(mediaTypeClassId)
-                    ),
+                    executable = mockHttpServletContentTypeMethodId,
                     params = listOf(
                         mediaTypeModel
                     )
@@ -585,12 +595,7 @@ object SpringModelUtils {
                 modelName = "requestBuilder",
                 instantiationCall = UtExecutableCallModel(
                     instance = requestBuilderModel,
-                    executable = MethodId(
-                        classId = mockHttpServletRequestBuilderClassId,
-                        name = "content",
-                        returnType = mockHttpServletRequestBuilderClassId,
-                        parameters = listOf(stringClassId)
-                    ),
+                    executable = mockHttpServletContentMethodId,
                     params = listOf(content)
                 )
             )
@@ -599,7 +604,6 @@ object SpringModelUtils {
     }
 
     private fun createCookieValuesModel(
-        cookieArrayClassId: ClassId,
         methodId: MethodId,
         arguments: List<UtModel>,
         idGenerator: () -> Int,
@@ -624,7 +628,7 @@ object SpringModelUtils {
 
         return UtArrayModel(
             id = idGenerator(),
-            classId = cookieArrayClassId,
+            classId = getArrayClassIdByElementClassId(cookieClassId),
             length = cookieValues.size,
             constModel = UtNullModel(cookieClassId),
             stores = indexedCookieValues,

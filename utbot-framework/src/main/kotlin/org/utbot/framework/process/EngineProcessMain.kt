@@ -25,6 +25,7 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.utils.ClassNameUtils
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.BeanAdditionalData
@@ -120,6 +121,11 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 }
             }
         )
+    }
+    watchdog.measureTimeForActiveCall(findTestClassName, "Creating test class name") { params ->
+        val classUnderTest: ClassId = kryoHelper.readObject(params.classUnderTest)
+        val testClassName = ClassNameUtils.generateTestClassShortName(classUnderTest)
+        TestClassNameResult(testClassName)
     }
     watchdog.measureTimeForActiveCall(generate, "Generating tests") { params ->
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)

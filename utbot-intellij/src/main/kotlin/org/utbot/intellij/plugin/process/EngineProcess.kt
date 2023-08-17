@@ -312,6 +312,12 @@ class EngineProcess private constructor(val project: Project, private val classN
         return result.generatedCode to realUtilClassKind
     }
 
+    fun findTestClassName(classUnderTest: ClassId): String {
+        val params = TestClassNameParams(kryoHelper.writeObject(classUnderTest))
+        val result = engineModel.findTestClassName.startBlocking(params)
+        return result.testClassName
+    }
+
     private fun makeParams(
         model: GenerateTestsModel,
         testSetsId: Long,

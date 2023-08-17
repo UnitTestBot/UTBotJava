@@ -145,11 +145,19 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
             return
         }
 
+        val isNegativeNumber = element.expression is CgLiteral
+                && element.expression.value is Number && element.expression.value.toDouble() < 0
+
         print("(")
+
         print("(")
         print(wrappedTargetType.asString())
         print(") ")
+
+        if (isNegativeNumber) print("(")
         element.expression.accept(this)
+        if (isNegativeNumber) print(")")
+
         print(")")
     }
 

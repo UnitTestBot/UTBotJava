@@ -308,6 +308,7 @@ val mapClassId = java.util.Map::class.id
 val collectionClassId = java.util.Collection::class.id
 
 val listClassId = List::class.id
+val setClassId = Set::class.id
 
 val baseStreamClassId = java.util.stream.BaseStream::class.id
 val streamClassId = java.util.stream.Stream::class.id

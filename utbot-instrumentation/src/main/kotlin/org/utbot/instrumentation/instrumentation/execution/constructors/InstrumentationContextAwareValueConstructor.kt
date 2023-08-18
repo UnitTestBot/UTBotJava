@@ -51,7 +51,6 @@ import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockCont
 import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockController
 import org.utbot.instrumentation.instrumentation.execution.mock.MockController
 import org.utbot.instrumentation.process.runSandbox
-import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.security.AccessController
 import java.security.PrivilegedAction
@@ -129,6 +128,14 @@ class InstrumentationContextAwareValueConstructor(
                     throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
             }
         }
+
+    /**
+     * Use this method if you need to use [construct], while being in a sandbox.
+     *
+     * Permission elevation is required, because [construct] heavily uses reflection and Mockito.
+     */
+    private fun constructPrivileged(model: UtModel): UtConcreteValue<*> =
+        AccessController.doPrivileged(PrivilegedAction { construct(model) })
 
     /**
      * Constructs an Enum<*> instance by model, uses reference-equality cache.
@@ -242,16 +249,18 @@ class InstrumentationContextAwareValueConstructor(
             with(invocation.method) {
                 mockedExecutables.getOrPut(executableId) {
                     detectedMockingCandidates.add(executableId)
-                    val answerModel = generateNewAnswerModel()
+                    var answerModel = generateNewAnswerModel(executableId)
+                    val answerValue = runCatching { constructPrivileged(answerModel) }.getOrElse {
+                        // fallback is used, so we still get some value (null) for types
+                        // that can't be mocked, e.g. arrays and sealed interfaces
+                        answerModel = executableId.returnType.defaultValueModel()
+                        constructPrivileged(answerModel)
+                    }
 
                     MockedExecutable(
                         executableId = executableId,
-                        answerValues = listOf(
-                            // `construct()` heavily uses reflection and Mockito,
-                            // so it can't run in sandbox and we need to elevate permissions
-                            AccessController.doPrivileged(PrivilegedAction { construct(answerModel) })
-                                .value.takeUnless { it == Unit }
-                        ),
+                        // `Unit` is replaced with `null`, because in Java `void` methods actually return `null`
+                        answerValues = listOf(answerValue.value.takeUnless { it == Unit }),
                         answerModels = listOf(answerModel)
                     )
                 }.nextAnswer()
@@ -259,7 +268,7 @@ class InstrumentationContextAwareValueConstructor(
         }
     }
 
-    private fun Method.generateNewAnswerModel() =
+    private fun generateNewAnswerModel(executableId: ExecutableId) =
         executableId.returnType.defaultValueModel().takeUnless { it.isNull() } ?: when (executableId.returnType) {
             // mockito can't mock `String` and `Class`
             stringClassId -> UtNullModel(stringClassId)

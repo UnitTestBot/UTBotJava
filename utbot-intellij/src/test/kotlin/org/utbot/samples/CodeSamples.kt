@@ -32,7 +32,7 @@ fun TextEditorFixture.typeDivisionFunction(className: String) : String {
         key(KeyEvent.VK_END)
         enterText("{")
         enter()
-        enterText("// UTBot UI ${TEST_RUN_NUMBER} test")
+        enterText("// ${TEST_RUN_NUMBER}")
         enter()
         enterText("return a / b;")
     }

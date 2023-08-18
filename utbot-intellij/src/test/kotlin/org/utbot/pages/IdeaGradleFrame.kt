@@ -14,8 +14,8 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
 
     override fun waitProjectIsCreated() {
         super.waitProjectIsOpened()
-        waitForIgnoringError (ofSeconds(60)) {
-            statusTextPanel.hasText { it.text.contains("Gradle sync finished") }
+        repeat (120) {
+            inlineProgressTextPanel.isShowing.not()
         }
     }
 

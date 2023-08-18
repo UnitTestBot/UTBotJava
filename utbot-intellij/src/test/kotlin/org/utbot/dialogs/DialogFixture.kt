@@ -31,6 +31,6 @@ open class DialogFixture(
 
     val closeButton
         get() = button(
-            byXpath("//div[@class='DialogHeader']//div[@class='JButton']"))
+            byXpath("//div[@class='DialogRootPane']//div[@class='JButton']"))
 
 }

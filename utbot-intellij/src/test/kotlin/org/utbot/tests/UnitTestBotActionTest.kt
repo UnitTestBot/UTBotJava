@@ -29,7 +29,7 @@ class UnitTestBotActionTest : BaseTest() {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         with (ideaFrame) {
             val newClassName = "Arithmetic"
-            createNewJavaClass(newClassName, "org.example")
+            createNewJavaClass(newClassName, "Main")
             val returnsFromTagBody = textEditor().typeDivisionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             unitTestBotDialog.generateTestsButton.click()
@@ -67,7 +67,7 @@ class UnitTestBotActionTest : BaseTest() {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         with (ideaFrame) {
             val newClassName = "Arithmetic"
-            createNewJavaClass(newClassName, "org.example")
+            createNewJavaClass(newClassName, "Main")
             textEditor().typeAdditionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             assertThat(unitTestBotDialog.generateTestsButton.isEnabled().not())

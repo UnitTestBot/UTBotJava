@@ -540,7 +540,7 @@ open class CgVariableConstructor(val context: CgContext) :
     ): Pair<CgVariable, CgDeclaration> {
         val declaration = CgDeclaration(variableType, baseVariableName.toVarName(), initializer.resolve())
         val variable = declaration.variable
-        updateVariableScope(variable)
+        rememberVariableForModel(variable)
         return variable to declaration
     }
 

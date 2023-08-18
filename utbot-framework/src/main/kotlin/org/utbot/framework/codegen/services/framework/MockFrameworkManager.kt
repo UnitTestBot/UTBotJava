@@ -185,7 +185,8 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
 
     override fun createMock(model: UtCompositeModel, baseName: String): CgVariable {
         val modelClass = getClassOf(model.classId)
-        val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
+        val mockObject =
+            newVar(model.classId, model = model, baseName = baseName, isMock = true) { mock(modelClass) }
 
         mockForVariable(model, mockObject)
 

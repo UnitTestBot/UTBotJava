@@ -20,14 +20,12 @@ import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.services.access.Block
-import org.utbot.framework.codegen.services.access.CgFieldStateManager
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.fieldmanager.CgAbstractClassFieldManager
-import org.utbot.framework.codegen.tree.fieldmanager.CgClassFieldManager
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -35,7 +33,6 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -344,14 +341,9 @@ interface CgContextOwner {
         return result
     }
 
-    fun updateVariableScope(variable: CgVariable, model: UtModel? = null) {
+    fun rememberVariableForModel(variable: CgVariable, model: UtModel? = null) {
         model?.let {
             valueByUtModelWrapper[it.wrap()] = variable
-            (model as UtReferenceModel).let { refModel ->
-                refModel.id.let {
-                    valueByUtModelWrapper[model.wrap()] = variable
-                }
-            }
         }
     }
 

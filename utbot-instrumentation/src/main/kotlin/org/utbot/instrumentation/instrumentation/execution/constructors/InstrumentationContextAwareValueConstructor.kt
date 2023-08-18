@@ -72,6 +72,10 @@ class InstrumentationContextAwareValueConstructor(
     private val instrumentationContext: InstrumentationContext,
     private val idGenerator: StateBeforeAwareIdGenerator,
 ) {
+    companion object {
+        private const val MAX_DYNAMIC_MOCK_DEPTH = 5
+    }
+
     private val classLoader: ClassLoader
         get() = utContext.classLoader
 
@@ -249,7 +253,7 @@ class InstrumentationContextAwareValueConstructor(
             with(invocation.method) {
                 mockedExecutables.getOrPut(executableId) {
                     detectedMockingCandidates.add(executableId)
-                    var answerModel = generateNewAnswerModel(executableId)
+                    var answerModel = generateNewAnswerModel(executableId, dynamicMockModelToDepth[mockModel] ?: 0)
                     val answerValue = runCatching { constructPrivileged(answerModel) }.getOrElse {
                         // fallback is used, so we still get some value (null) for types
                         // that can't be mocked, e.g. arrays and sealed interfaces
@@ -268,15 +272,18 @@ class InstrumentationContextAwareValueConstructor(
         }
     }
 
-    private fun generateNewAnswerModel(executableId: ExecutableId) =
-        executableId.returnType.defaultValueModel().takeUnless { it.isNull() } ?: when (executableId.returnType) {
+    private val dynamicMockModelToDepth = mutableMapOf<UtCompositeModel, Int>()
+
+    private fun generateNewAnswerModel(executableId: ExecutableId, depth: Int) =
+        executableId.returnType.defaultValueModel().takeUnless { it.isNull() } ?: when {
             // mockito can't mock `String` and `Class`
-            stringClassId -> UtNullModel(stringClassId)
-            classClassId -> UtClassRefModel(
+            executableId.returnType == stringClassId -> UtNullModel(stringClassId)
+            executableId.returnType == classClassId -> UtClassRefModel(
                 id = idGenerator.createId(),
                 classId = classClassId,
                 value = classClassId,
             )
+            depth > MAX_DYNAMIC_MOCK_DEPTH -> UtNullModel(executableId.classId)
 
             else -> UtCompositeModel(
                 id = idGenerator.createId(),
@@ -285,7 +292,7 @@ class InstrumentationContextAwareValueConstructor(
                 classId = executableId.returnType,
                 isMock = true,
                 canHaveRedundantOrMissingMocks = true,
-            )
+            ).also { dynamicMockModelToDepth[it] = depth + 1 }
         }
 
     private fun generateMockitoMock(

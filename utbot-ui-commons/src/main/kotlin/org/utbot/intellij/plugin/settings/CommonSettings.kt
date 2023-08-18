@@ -70,6 +70,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var summariesGenerationType: SummariesGenerationType = UtSettings.summaryGenerationType,
         var generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
         var enableExperimentalLanguagesSupport: Boolean = false,
+        var isSpringHandled: Boolean = false,
     ) {
 
         override fun equals(other: Any?): Boolean {
@@ -177,6 +178,16 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
 
     var enableSummariesGeneration = state.summariesGenerationType
+
+    /**
+     * Defaults in Spring are slightly different, so for every Spring project we update settings, but only
+     * do it once so user is not stuck with defaults, hence this flag is needed to avoid repeated updates.
+     */
+    var isSpringHandled: Boolean
+        get() = state.isSpringHandled
+        set(value) {
+            state.isSpringHandled = value
+        }
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()

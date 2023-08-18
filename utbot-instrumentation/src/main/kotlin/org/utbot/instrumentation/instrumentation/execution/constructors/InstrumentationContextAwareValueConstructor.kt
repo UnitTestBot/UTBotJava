@@ -236,7 +236,13 @@ class InstrumentationContextAwareValueConstructor(
                 val answerValue = answerValues[pointer]
                 val answerModel = answerModels[pointer]
                 pointer = (pointer + 1) % answerValues.size
-                (mockModel.mocks.getOrPut(executableId) { mutableListOf() } as MutableList).add(answerModel)
+
+                // Record mock answers into `mockModel.mocks` as these answers are used.
+                // Avoid recording multiple answers if same answer is reused over and over again.
+                if (answerValues.size > 1 || executableId !in mockModel.mocks) {
+                    (mockModel.mocks.getOrPut(executableId) { mutableListOf() } as MutableList).add(answerModel)
+                }
+
                 return answerValue
             }
         }

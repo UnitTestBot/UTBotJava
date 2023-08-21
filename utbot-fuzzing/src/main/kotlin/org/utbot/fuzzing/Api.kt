@@ -12,7 +12,6 @@ import java.io.FileOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.random.Random
-import java.nio.charset.Charset
 
 
 private val logger by lazy { KotlinLogging.logger {} }
@@ -366,16 +365,16 @@ data class BaseFeedback<VALUE, TYPE, RESULT>(
     }
 }
 
-interface WeightedFeedback<TYPE, RESULT, WEIGHT : Comparable<WEIGHT>> : Feedback<TYPE, RESULT> {
-    val weight: WEIGHT
+interface WeightedFeedback<TYPE, RESULT> : Feedback<TYPE, RESULT> {
+    val weight: Int
 }
 
-data class BaseWeightedFeedback<VALUE, TYPE, RESULT, WEIGHT : Comparable<WEIGHT>>(
+data class BaseWeightedFeedback<VALUE, TYPE, RESULT>(
     val result: VALUE,
-    override val weight: WEIGHT,
+    override val weight: Int,
     override val control: Control,
-) : WeightedFeedback<TYPE, RESULT, WEIGHT>, Comparable<WeightedFeedback<TYPE, RESULT, WEIGHT>> {
-    override fun compareTo(other: WeightedFeedback<TYPE, RESULT, WEIGHT>): Int {
+) : WeightedFeedback<TYPE, RESULT>, Comparable<WeightedFeedback<TYPE, RESULT>> {
+    override fun compareTo(other: WeightedFeedback<TYPE, RESULT>): Int {
         return weight.compareTo(other.weight)
     }
     override fun toString(): String {
@@ -474,34 +473,56 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
     description.setUp()
 
     while (!fuzzing.isCancelled(description, statistic)) {
+
         beforeIteration(description, statistic)
-        val values = if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+
+        val values =
+
+        if (configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > 0) {
+
             statistic.getSeed(random, configuration).let {
                 mutationFactory.mutate(it, random, configuration, statistic)
             }
+
         } else {
-            val actualParameters = description.parameters
-            // fuzz one value, seems to be bad, when have only a few and simple values
-            fuzzOne(actualParameters).let {
-                if (random.flipCoin(configuration.probMutationRate)) {
+
+            if (random.flipCoin(50)) {
+                carrot
+            } else {
+                stick
+            }
+
+            if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+                statistic.getSeed(random, configuration).let {
                     mutationFactory.mutate(it, random, configuration, statistic)
-                } else {
-                    it
+                }
+            } else {
+                val actualParameters = description.parameters
+                // fuzz one value, seems to be bad, when have only a few and simple values
+                fuzzOne(actualParameters).let {
+                    if (random.flipCoin(configuration.probMutationRate)) {
+                        mutationFactory.mutate(it, random, configuration, statistic)
+                    } else {
+                        it
+                    }
                 }
             }
+
         }
+
         afterIteration(description, statistic)
 
-        yield()
-        statistic.apply {
-            totalRuns++
-        }
         check(values.parameters.size == values.result.size) { "Cannot create value for ${values.parameters}" }
         val valuesCache = mutableMapOf<Result<T, R>, R>()
         val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
         val feedback = fuzzing.handle(description, result)
 
         val minsetResponse = statistic.put(random, configuration, feedback, values)
+
+        yield()
+        statistic.apply {
+            totalRuns++
+        }
 
         when (feedback.control) {
             Control.CONTINUE -> {

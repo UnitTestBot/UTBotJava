@@ -7,27 +7,46 @@ import kotlin.math.pow
  */
 data class Configuration(
 
+    var tuneKnownValueMutations: Boolean = true,
+    var tuneCollectionMutations: Boolean = true,
+    var tuneRecursiveMutations: Boolean = false,
+
+    /**
+     * When true, fuzzer selects one value and runs it for [runsPerValue] times, first [investigationPeriodPerValue] of which
+     * are investigational. When false, fuzzer investigates mutations efficiencies for [globalInvestigationPeriod] runs and
+     * tunes it for next [globalExploitationPeriod] runs, then drops statistics and starts over.
+     */
+    var rotateValues: Boolean = false,
+
+    /**
+     * Number of iterations before mutations probabilities correction when [rotateValues] is false.
+     */
+    var globalInvestigationPeriod: Long = 1000,
+
+    /**
+     * Number of iterations before dropping statistics when [rotateValues] is false.
+     */
+    var globalExploitationPeriod: Long = 1500,
+
     /**
      * Configuration used by minset to accumulate and use statistics.
-     *
-     * TODO: This part of configuration tend to be changing through runtime tuning or evolutionary algorithm.
      */
     var minsetConfiguration: MinsetConfiguration = MinsetConfiguration(),
 
     /**
-     * Number of continuous iterations for each value.
+     * Number of continuous iterations for each value when [rotateValues] is true.
      */
-    var runsPerValue: Long = 250,
+    var runsPerValue: Long = 50,
 
     /**
-     * Number of iterations before mutations probabilities correction.
+     * Number of iterations before mutations probabilities correction when [rotateValues] is true.
      */
-    var investigationPeriodPerValue: Int = 100,
+    var investigationPeriodPerValue: Int = 25,
 
     /**
      * Choose between already generated values and new generation of values.
      */
-    var probSeedRetrievingInsteadGenerating: Int = 75,
+    var probSeedRetrievingInsteadGenerating: Int = 70,
 
     /**
      * Choose between generation and mutation.
@@ -118,12 +137,22 @@ data class Configuration(
  * Configuration used by minset to accumulate and use statistics.
  */
 data class MinsetConfiguration (
-    var obsolescenceMultiplier: Double = 1.0,
     var rewardMultiplier: Double = 1.0,
-    var rewardWeight: Double = 1.0,
+    var rewardWeight: Double = 0.0,
     var penaltyMultiplier: Double = 1.0,
-    var penaltyWeight: Double = 0.0,
-    val valueStoragingStrategy: ValueStoragingStrategy = ValueStoragingStrategy.LAST
+    var penaltyWeight: Double = 0.0
 )
 
-enum class ValueStoragingStrategy { FIRST, LAST }
+val carrot = MinsetConfiguration(
+    rewardMultiplier = 1.1,
+    rewardWeight = 1.25,
+    penaltyMultiplier = 1.0,
+    penaltyWeight = 0.0
+)
+
+val stick = MinsetConfiguration(
+    rewardMultiplier = 0.0,
+    rewardWeight = 0.0,
+    penaltyMultiplier = 1.1,
+    penaltyWeight = 1.0
+)

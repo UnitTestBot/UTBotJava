@@ -28,14 +28,20 @@ class MutationFactory<TYPE, RESULT> {
             is Result.Known<TYPE, RESULT, *> -> {
                 val mutations = resultToMutate.value.mutations()
 
-                val mutationsEffieciencies =  statistic.getMutationsEfficiencies()
+                val mutationsEfficiencies = statistic.getMutationsEfficiencies()
+                    .filter { (k, _) -> mutations.contains(k) } as Map<Mutation<KnownValue<*>>, Double>
 
                 val mutation = if (
-                    configuration.investigationPeriodPerValue > 0 &&
-                    statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue &&
-                    mutationsEffieciencies.values.sum() >= 0
+                    configuration.tuneKnownValueMutations &&
+                    (
+                        configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue ||
+                        !configuration.rotateValues &&
+                            statistic.totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) > configuration.globalInvestigationPeriod
+                    ) &&
+                    mutationsEfficiencies.isNotEmpty() &&
+                    mutationsEfficiencies.values.sum() >= 0
                 ) {
-                    mutations[random.chooseOne(mutationsEffieciencies.values.toDoubleArray())]
+                    mutationsEfficiencies.keys.toTypedArray()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
                 } else {
                     mutations.random(random)
                 }
@@ -47,24 +53,62 @@ class MutationFactory<TYPE, RESULT> {
                 }
             }
             is Result.Recursive<TYPE, RESULT> -> {
-                when {
-                    resultToMutate.modify.isEmpty() || random.flipCoin(configuration.probConstructorMutationInsteadModificationMutation) ->
-                        RecursiveMutations.Constructor<TYPE, RESULT>()
+                val mutationsEfficiencies = statistic.getMutationsEfficiencies()
+                    .filter { (k, _) -> k is RecursiveMutations<*, *> } as Map<RecursiveMutations<TYPE, RESULT>, Double>
 
-                    random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation) ->
-                        RecursiveMutations.ShuffleAndCutModifications()
+                val mutation = if (
+                    configuration.tuneRecursiveMutations &&
+                    (
+                            configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue ||
+                                    !configuration.rotateValues &&
+                                    statistic.totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) > configuration.globalInvestigationPeriod
+                            ) &&
+                    statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue &&
+                    mutationsEfficiencies.isNotEmpty() &&
+                    mutationsEfficiencies.values.sum() >= 0
+                ) {
+                    mutationsEfficiencies.keys.toTypedArray()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
+                } else {
+                    when {
+                        resultToMutate.modify.isEmpty() || random.flipCoin(configuration.probConstructorMutationInsteadModificationMutation) ->
+                            RecursiveMutations.Constructor()
 
-                    else -> RecursiveMutations.Mutate()
-                }.mutate(resultToMutate, recursive, random, configuration)
+                        random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation) ->
+                            RecursiveMutations.ShuffleAndCutModifications()
+
+                        else -> RecursiveMutations.Mutate()
+                    }
+                }
+
+                mutation.mutate(resultToMutate, recursive, random, configuration)
             }
             is Result.Collection<TYPE, RESULT> -> if (resultToMutate.modify.isNotEmpty()) {
-                when {
-                    random.flipCoin(100 - configuration.probCollectionShuffleInsteadResultMutation) ->
-                        CollectionMutations.Mutate()
+                val mutationsEfficiencies = statistic.getMutationsEfficiencies()
+                    .filter { (k, _) -> k is CollectionMutations<*, *> } as Map<CollectionMutations<TYPE, RESULT>, Double>
 
-                    else ->
-                        CollectionMutations.Shuffle<TYPE, RESULT>()
-                }.mutate(resultToMutate, recursive, random, configuration)
+                val mutation = if (
+                    configuration.tuneCollectionMutations &&
+                    (
+                            configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue ||
+                                    !configuration.rotateValues &&
+                                    statistic.totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) > configuration.globalInvestigationPeriod
+                            ) &&
+                    mutationsEfficiencies.isNotEmpty() &&
+                    statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue &&
+                    mutationsEfficiencies.values.sum() >= 0
+                ) {
+                    mutationsEfficiencies.keys.toList()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
+                } else {
+                    when {
+                        random.flipCoin(100 - configuration.probCollectionShuffleInsteadResultMutation) ->
+                            CollectionMutations.Mutate()
+
+                        else ->
+                            CollectionMutations.Shuffle()
+                    }
+                }
+
+                mutation.mutate(resultToMutate, recursive, random, configuration)
             } else {
                 resultToMutate
             }
@@ -276,6 +320,16 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
                 lastMutation = this,
             )
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other == null || javaClass != other.javaClass) return false
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return javaClass.hashCode()
+        }
     }
 
     class Mutate<TYPE, RESULT> : CollectionMutations<TYPE, RESULT> {
@@ -294,6 +348,16 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
                 iterations = source.iterations,
                 lastMutation = this,
             )
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other == null || javaClass != other.javaClass) return false
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return javaClass.hashCode()
         }
     }
 }

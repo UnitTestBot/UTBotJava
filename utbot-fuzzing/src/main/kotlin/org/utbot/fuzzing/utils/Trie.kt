@@ -151,6 +151,9 @@ open class Trie<T, K>(
     }
 
     interface Node<T> {
+        fun setTraceLen(len: Int)
+        fun getTraceLen(): Int
+
         val data: T
         val count: Int
     }
@@ -168,13 +171,27 @@ open class Trie<T, K>(
         val parent: NodeImpl<T, K>?,
         override var count: Int = 0,
         val children: MutableMap<K, NodeImpl<T, K>> = HashMap(),
+        private var traceLen: Int = -1
     ) : Node<T> {
+        override fun setTraceLen(len: Int) {
+            traceLen = len
+        }
+
+        override fun getTraceLen(): Int {
+            return traceLen
+        }
+
         override fun toString(): String {
             return "$data"
         }
     }
 
     private object EmptyNode : Node<Any> {
+        override fun setTraceLen(len: Int) {}
+        override fun getTraceLen(): Int {
+            return -1
+        }
+
         override val data: Any
             get() = error("empty node has no data")
         override val count: Int

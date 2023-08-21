@@ -512,7 +512,8 @@ class UtBotSymbolicEngine(
             var trieNode: Trie.Node<Instruction>? = null
 
             if (coveredInstructions.isNotEmpty()) {
-                trieNode = descr.tracer.add(coveredInstructions)
+                trieNode = descr.tracer.add( coveredInstructions )
+                trieNode.setTraceLen( coveredInstructions.size )
 
                 val earlierStateBeforeSize = coverageToMinStateBeforeSize[trieNode]
                 val curStateBeforeSize = stateBefore.calculateSize()

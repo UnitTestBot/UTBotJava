@@ -27,99 +27,10 @@ interface SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESU
     fun getSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>
     fun getMutationsEfficiencies(): Map<Mutation<*>, Double>
     fun size() : Int
+    fun isEmpty() : Boolean { return size() == 0 }
     fun isNotEmpty() : Boolean { return size() > 0 }
 }
 
-
-/**
- * Statistic implementation used for experiments with single seed.
- * Keeps [Minset] with all feedbacks but [getSeed] returns only one seed, saved from last run.
- */
-open class SingleSeedKeepingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
-    override var totalRuns: Long = 0,
-    override val startTime: Long = System.nanoTime(),
-    override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
-    override val random: Random,
-    override val configuration: Configuration
-): SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK> {
-    constructor(source: Statistic<TYPE, RESULT>) : this(
-        totalRuns = source.totalRuns,
-        startTime = source.startTime,
-        missedTypes = source.missedTypes,
-        random = source.random,
-        configuration = source.configuration.copy()
-    )
-
-    override val elapsedTime: Long
-        get() = System.nanoTime() - startTime
-
-    private val storedSeed = SingleValueStorage<TYPE, RESULT>(configuration.minsetConfiguration.valueStoragingStrategy)
-    private val feedbacksCounts: LinkedHashMap<FEEDBACK, Long> = linkedMapOf()
-
-    private val mutationsCounts = mutableMapOf<Mutation<*>, Long>()
-    private val mutationsSuccessCounts = mutableMapOf<Mutation<*>, Double>()
-
-
-    override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>): MinsetEvent {
-        storedSeed.put(seed, feedback)
-        feedbacksCounts.merge(feedback, 1L, Long::plus)
-
-        val event = when {
-            feedbacksCounts[feedback] == 1L -> MinsetEvent.NEW_FEEDBACK
-            configuration.minsetConfiguration.valueStoragingStrategy == ValueStoragingStrategy.LAST -> MinsetEvent.NOTHING_NEW
-            else -> MinsetEvent.NOTHING_NEW
-        }
-
-        seed.result.forEach { result ->
-            when(result) {
-                is Result.Known<TYPE, RESULT, *> -> {
-                    result.lastMutation?.let { mutation ->
-                        mutationsSuccessCounts.forEach{ (key, value) ->
-                            mutationsSuccessCounts[key] = value * configuration.minsetConfiguration.obsolescenceMultiplier
-                        }
-
-                        mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
-
-                        mutationsSuccessCounts[mutation] = when (event) {
-                            MinsetEvent.NEW_FEEDBACK -> {
-                                if (this.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue) {
-                                    mutationsSuccessCounts.getOrDefault(
-                                        mutation,
-                                        0.0
-                                    ) * configuration.minsetConfiguration.rewardMultiplier + configuration.minsetConfiguration.rewardWeight
-                                } else {
-                                    mutationsSuccessCounts.getOrDefault(mutation, 0.0) + 1
-                                }
-                            }
-
-                            else -> mutationsSuccessCounts.getOrDefault(
-                                mutation,
-                                0.0
-                            ) * configuration.minsetConfiguration.penaltyMultiplier + configuration.minsetConfiguration.penaltyWeight
-                        }
-                    }
-                }
-                else -> {}
-            }
-        }
-
-        return event
-    }
-
-    override fun getSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
-        return storedSeed.next()
-    }
-
-    override fun getMutationsEfficiencies(): Map<Mutation<*>, Double> {
-        return mutationsCounts.mapValues { (key, value) ->
-            (mutationsSuccessCounts[key] ?: 0.0) / value
-        }
-    }
-
-    override fun size(): Int {
-        return feedbacksCounts.size
-    }
-}
 
 /**
  * Main implementation of [SeedsMaintainingStatistic]. Implements
@@ -144,9 +55,8 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
     override val elapsedTime: Long
         get() = System.nanoTime() - startTime
 
-    private val minset: Minset<TYPE, RESULT, FEEDBACK, SingleValueStorage<TYPE, RESULT>> = Minset(
-        { SingleValueStorage(configuration.minsetConfiguration.valueStoragingStrategy) }
-    )
+    private val minset: Minset<TYPE, RESULT, FEEDBACK, SingleValueStorage<TYPE, RESULT>> = Minset( { SingleValueStorage() } )
+    private val minsetConfiguration: MinsetConfiguration = configuration.minsetConfiguration
 
     private var currentValue: Node<TYPE, RESULT>? = null
 
@@ -161,28 +71,63 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
             when (result) {
                 is Result.Known<TYPE, RESULT, *> -> {
                     result.lastMutation?.let { mutation ->
-                        mutationsSuccessCounts.forEach{ (key, value) ->
-                            mutationsSuccessCounts[key] = value * configuration.minsetConfiguration.obsolescenceMultiplier
-                        }
 
                         mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
 
                         mutationsSuccessCounts[mutation] = when (event) {
                             MinsetEvent.NEW_FEEDBACK -> {
-                                if (this.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue) {
-                                    mutationsSuccessCounts.getOrDefault(
-                                        mutation,
-                                        0.0
-                                    ) * configuration.minsetConfiguration.rewardMultiplier + configuration.minsetConfiguration.rewardWeight
-                                } else {
-                                    mutationsSuccessCounts.getOrDefault(mutation, 0.0) + 1
-                                }
+                                mutationsSuccessCounts.getOrDefault(
+                                    mutation,
+                                    0.0
+                                ) * minsetConfiguration.rewardMultiplier + minsetConfiguration.rewardWeight
                             }
 
                             else -> mutationsSuccessCounts.getOrDefault(
                                 mutation,
                                 0.0
-                            ) * configuration.minsetConfiguration.penaltyMultiplier + configuration.minsetConfiguration.penaltyWeight
+                            ) * minsetConfiguration.penaltyMultiplier + minsetConfiguration.penaltyWeight
+                        }
+                    }
+                }
+
+                is Result.Collection<TYPE, RESULT> -> {
+                    result.lastMutation?.let { mutation ->
+
+                        mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
+
+                        mutationsSuccessCounts[mutation] = when (event) {
+                            MinsetEvent.NEW_FEEDBACK -> {
+                                mutationsSuccessCounts.getOrDefault(
+                                    mutation,
+                                    0.0
+                                ) * minsetConfiguration.rewardMultiplier + minsetConfiguration.rewardWeight
+                            }
+
+                            else -> mutationsSuccessCounts.getOrDefault(
+                                mutation,
+                                0.0
+                            ) * minsetConfiguration.penaltyMultiplier + minsetConfiguration.penaltyWeight
+                        }
+                    }
+                }
+
+                is Result.Recursive<TYPE, RESULT> -> {
+                    result.lastMutation?.let { mutation ->
+
+                        mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
+
+                        mutationsSuccessCounts[mutation] = when (event) {
+                            MinsetEvent.NEW_FEEDBACK -> {
+                                mutationsSuccessCounts.getOrDefault(
+                                    mutation,
+                                    0.0
+                                ) * minsetConfiguration.rewardMultiplier + minsetConfiguration.rewardWeight
+                            }
+
+                            else -> mutationsSuccessCounts.getOrDefault(
+                                mutation,
+                                0.0
+                            ) * minsetConfiguration.penaltyMultiplier + minsetConfiguration.penaltyWeight
                         }
                     }
                 }
@@ -198,52 +143,37 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
     override fun getSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT> {
         if (minset.isEmpty()) error("Call `isNotEmpty` before getting the seed")
 
-        currentValue?.result?.forEach {
-            when (it) {
-                is Result.Known<TYPE, RESULT, *> -> {
-                    if (this.totalRuns % configuration.runsPerValue == 1L) {
+        if (configuration.rotateValues && totalRuns % configuration.runsPerValue > 0 && currentValue != null) {
+            return currentValue!!
+        } else {
+            currentValue = minset.getNextSeed(random, configuration.energyFunction)
 
-                        // the law of Demeter is violated because seed selection and power schedule will be significantly reworked
-                        val entries = minset.seeds.entries.toList()
-                        val frequencies = DoubleArray(minset.size()).also { f ->
-                            entries.forEachIndexed { index, (key, _) ->
-                                f[index] = configuration.energyFunction(minset.count.getOrDefault(key, 0L))
-                            }
-                        }
-
-                        currentValue = entries[random.chooseOne(frequencies)].value.next()
-
-                        mutationsCounts.clear()
-                        mutationsSuccessCounts.clear()
-                    }
-                }
-                else -> {}
+            if (
+                configuration.rotateValues && totalRuns % configuration.runsPerValue == 0L ||
+                !configuration.rotateValues && totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) == 0L
+            ) {
+                mutationsCounts.clear()
+                mutationsSuccessCounts.clear()
             }
-        }
-
-        // This variable is used for dirty way to turn off sequential running on once chosen value for debugging.
-        // Breakpoint below evaluates "enabled = false", so currentValue is chosen again independently
-        val enabled = true
-
-        if (currentValue == null || !enabled) {
-            // the law of Demeter is violated because seed selection and power schedule will be significantly reworked
-            val entries = minset.seeds.entries.toList()
-            val frequencies = DoubleArray(minset.size()).also { f ->
-                entries.forEachIndexed { index, (key, _) ->
-                    f[index] = configuration.energyFunction(minset.count.getOrDefault(key, 0L))
-                }
-            }
-
-            currentValue = entries[random.chooseOne(frequencies)].value.next()
         }
 
         return currentValue!!
     }
 
     override fun getMutationsEfficiencies(): Map<Mutation<*>, Double> {
-        return mutationsCounts.mapValues { (key, value) ->
+        val efficiencies = mutationsCounts.mapValues { (key, value) ->
             (mutationsSuccessCounts[key] ?: 0.0) / value
         }
+
+        if (efficiencies.isNotEmpty()) {
+            val minValue = efficiencies.minBy { (_, v) -> v }.value
+
+            if (minValue < 0) {
+                return efficiencies.mapValues { (_, v) -> v + minValue }
+            }
+        }
+
+        return efficiencies
     }
 
     override fun size(): Int {
@@ -273,6 +203,29 @@ open class Minset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : Val
     val seeds: LinkedHashMap<FEEDBACK, STORAGE> = linkedMapOf(),
     val count: LinkedHashMap<FEEDBACK, Long> = linkedMapOf()
 ) {
+    fun getNextSeed(random: Random, energyFunction: (x: Long) -> Double): Node<TYPE, RESULT> {
+
+        val entries = seeds.entries.toList()
+
+        var frequencies = DoubleArray(size()).also { f ->
+            entries.forEachIndexed { index, (key, _) ->
+                f[index] = energyFunction(count.getOrDefault(key, 0L))
+            }
+        }
+
+        val currentFeedback = entries[random.chooseOne(frequencies)].key
+        if (currentFeedback is WeightedFeedback<*, *>) {
+//            return seeds[seeds.keys.maxBy { (it as WeightedFeedback<*, *>).weight}]!!.next()
+            frequencies = DoubleArray(size()).also { f ->
+                seeds.entries.forEachIndexed { index, (key, _) ->
+                    f[index] = (key as WeightedFeedback<*, *>).weight.toDouble()
+                }
+            }
+        }
+
+        return entries[random.chooseOne(frequencies)].value.next()
+    }
+
     operator fun get(feedback: FEEDBACK): STORAGE? {
         return seeds[feedback]
     }
@@ -325,24 +278,39 @@ interface ValueStorage<TYPE, RESULT> : InfiniteIterator<Node<TYPE, RESULT>> {
     fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) : Boolean
 }
 
+
 /**
  * Base implementation of [ValueStorage] that keeps only one (first or last, according to [strategy])
  * value for each single feedback.
  */
-open class SingleValueStorage<TYPE, RESULT> (
-    private val strategy : ValueStoragingStrategy
-) : ValueStorage<TYPE, RESULT> {
+open class SingleValueStorage<TYPE, RESULT> : ValueStorage<TYPE, RESULT> {
 
-    private var storedValue: Node<TYPE, RESULT>? = null
+    protected var storedValue: Node<TYPE, RESULT>? = null
+
+    var storedWeight: Int = -1
     override fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) : Boolean {
-        val result = storedValue == null
 
-        storedValue = when (strategy) {
-            ValueStoragingStrategy.FIRST -> storedValue ?: value
-            ValueStoragingStrategy.LAST -> value
+        when (feedback) {
+            is WeightedFeedback<TYPE, RESULT> -> {}
+            else -> {}
         }
 
-        return result || (strategy == ValueStoragingStrategy.LAST)
+        if (feedback is WeightedFeedback<*, *>) {
+
+            val result = storedValue == null || storedWeight <= ((feedback as WeightedFeedback<*, *>).weight)
+
+//            if (storedValue == null || storedWeight <= ((feedback as WeightedFeedback<*, *>).weight)) {
+            if (storedValue == null || storedWeight > ((feedback as WeightedFeedback<*, *>).weight)) {
+                storedValue = value
+                storedWeight = (feedback as WeightedFeedback<*, *>).weight
+            }
+
+            return result
+
+        } else {
+            storedValue =  value
+            return true
+        }
     }
 
     override fun next(): Node<TYPE, RESULT> {
@@ -362,8 +330,7 @@ open class SingleValueStorage<TYPE, RESULT> (
  * [SingleValueStorage] implementation that counts mutations for each feedback stored.
  * Can be used in the future for trying to reach rare feedbacks.
  */
-class MutationsCountingSingleValueStorage<TYPE, RESULT>(strategy: ValueStoragingStrategy) :
-    SingleValueStorage<TYPE, RESULT>(strategy) {
+class MutationsCountingSingleValueStorage<TYPE, RESULT> : SingleValueStorage<TYPE, RESULT>() {
     private val knownValueMutationsCount: HashMap<Mutation<*>, Int> = hashMapOf()
 
     override fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>): Boolean {

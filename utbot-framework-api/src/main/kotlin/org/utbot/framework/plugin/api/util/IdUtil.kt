@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.id
 import soot.SootField
 import java.lang.reflect.Constructor
@@ -449,6 +450,7 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
     doubleClassId -> UtPrimitiveModel(0.0)
     booleanClassId -> UtPrimitiveModel(false)
     charClassId -> UtPrimitiveModel('\u0000')
+    voidClassId -> UtVoidModel
     else -> UtNullModel(this)
 }
 

@@ -11,6 +11,9 @@ import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
+import org.utbot.framework.context.custom.mockAllTypesWithoutSpecificValueProvider
+import org.utbot.framework.context.utils.transformJavaFuzzingContext
+import org.utbot.framework.context.utils.withValueProvider
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
@@ -21,6 +24,7 @@ import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
 
 class SpringApplicationContextImpl(
     private val delegateContext: ApplicationContext,
@@ -58,7 +62,16 @@ class SpringApplicationContextImpl(
             )
 
         return when (springTestType) {
-            SpringTestType.UNIT_TEST -> delegateConcreteExecutionContext
+            SpringTestType.UNIT_TEST -> delegateConcreteExecutionContext.transformJavaFuzzingContext { fuzzingContext ->
+                fuzzingContext
+                    .withValueProvider(
+                        InjectMockValueProvider(
+                            idGenerator = fuzzingContext.idGenerator,
+                            classToUseCompositeModelFor = fuzzingContext.classUnderTest
+                        )
+                    )
+                    .mockAllTypesWithoutSpecificValueProvider()
+            }
             SpringTestType.INTEGRATION_TEST -> SpringIntegrationTestConcreteExecutionContext(
                 delegateConcreteExecutionContext,
                 classpathWithoutDependencies,

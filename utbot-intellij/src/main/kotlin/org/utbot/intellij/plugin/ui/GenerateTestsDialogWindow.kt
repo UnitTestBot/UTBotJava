@@ -860,6 +860,18 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         val settings = model.project.service<Settings>()
 
+        when (model.projectType) {
+            ProjectType.Spring -> {
+                if (!settings.isSpringHandled) {
+                    settings.isSpringHandled = true
+                    settings.fuzzingValue =
+                        if (settings.fuzzingValue == 0.0) 0.0
+                        else settings.fuzzingValue.coerceAtLeast(0.3)
+                }
+            }
+            else -> {}
+        }
+
         mockStrategies.item = when (model.projectType) {
             ProjectType.Spring -> MockStrategyApi.springDefaultItem
             else -> settings.mockStrategy

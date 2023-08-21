@@ -498,6 +498,8 @@ data class UtClassRefModel(
  * - isMock flag
  * - calculated field values (models)
  * - mocks for methods with return values
+ * - [canHaveRedundantOrMissingMocks] flag, which is set to `true` for mocks
+ *   created by fuzzer without knowing which methods will actually be called
  *
  * [fields] contains non-static fields
  */
@@ -507,6 +509,7 @@ data class UtCompositeModel(
     val isMock: Boolean,
     val fields: MutableMap<FieldId, UtModel> = mutableMapOf(),
     val mocks: MutableMap<ExecutableId, List<UtModel>> = mutableMapOf(),
+    val canHaveRedundantOrMissingMocks: Boolean = false,
 ) : UtReferenceModel(id, classId) {
     //TODO: SAT-891 - rewrite toString() method
     override fun toString() = withToStringThreadLocalReentrancyGuard {
@@ -763,13 +766,17 @@ abstract class UtCustomModel(
     classId: ClassId,
     modelName: String = id.toString(),
     override val origin: UtCompositeModel? = null,
-) : UtModelWithCompositeOrigin(id, classId, modelName, origin)
+) : UtModelWithCompositeOrigin(id, classId, modelName, origin) {
+    abstract val dependencies: Collection<UtModel>
+}
 
 object UtSpringContextModel : UtCustomModel(
     id = null,
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
 ) {
+    override val dependencies: Collection<UtModel> get() = emptySet()
+
     // NOTE that overriding equals is required just because without it
     // we will lose equality for objects after deserialization
     override fun equals(other: Any?): Boolean = other is UtSpringContextModel
@@ -782,6 +789,8 @@ class UtSpringEntityManagerModel : UtCustomModel(
     classId = SpringModelUtils.entityManagerClassIds.first(),
     modelName = "entityManager"
 ) {
+    override val dependencies: Collection<UtModel> get() = emptySet()
+
     // NOTE that overriding equals is required just because without it
     // we will lose equality for objects after deserialization
     override fun equals(other: Any?): Boolean = other is UtSpringEntityManagerModel
@@ -810,7 +819,9 @@ data class UtSpringMockMvcResultActionsModel(
     classId = SpringModelUtils.resultActionsClassId,
     id = id,
     modelName = "mockMvcResultActions@$id"
-)
+) {
+    override val dependencies: Collection<UtModel> get() = emptySet()
+}
 
 /**
  * Model for a step to obtain [UtAssembleModel].

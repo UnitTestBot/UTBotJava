@@ -21,12 +21,9 @@ private fun UtConcreteExecutionResult.updateWithAssembleModels(
     val resolvedResult =
         (result as? UtExecutionSuccess)?.model?.let { UtExecutionSuccess(toAssemble(it)) } ?: result
 
-    return UtConcreteExecutionResult(
-        stateBefore,
-        resolvedStateAfter,
-        resolvedResult,
-        coverage,
-        newInstrumentation
+    return copy(
+        stateAfter = resolvedStateAfter,
+        result = resolvedResult,
     )
 }
 

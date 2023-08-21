@@ -30,7 +30,7 @@ private const val searchString =
 
 suspend fun main() {
     // Define fuzzing description to start searching.
-    object : Fuzzing<Unit, String, Description<Unit, String>, BaseWeightedFeedback<Int, Unit, String, Int>> {
+    object : Fuzzing<Unit, String, Description<Unit, String>, BaseWeightedFeedback<Int, Unit, String>> {
         /**
          * Generate method returns several samples or seeds which are used as a base for fuzzing.
          *
@@ -47,7 +47,7 @@ suspend fun main() {
          * This implementation just calls the target function and returns a result. After it returns an empty feedback.
          * If some returned value equals to the length of the source string then feedback returns 'stop' signal.
          */
-        override suspend fun handle(description: Description<Unit, String>, values: List<String>): BaseWeightedFeedback<Int, Unit, String, Int> {
+        override suspend fun handle(description: Description<Unit, String>, values: List<String>): BaseWeightedFeedback<Int, Unit, String> {
             check(values.size == 1) {
                 "Only one value must be generated because of `description.parameters.size = ${description.parameters.size}`"
             }

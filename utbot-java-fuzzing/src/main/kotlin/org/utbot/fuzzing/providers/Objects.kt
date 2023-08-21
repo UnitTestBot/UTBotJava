@@ -15,7 +15,7 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.lang.reflect.TypeVariable
 import org.utbot.modifications.AnalysisMode
-import org.utbot.modifications.ModificationTransformationMode
+import org.utbot.modifications.FieldInvolvementMode
 import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 
 private val logger = KotlinLogging.logger {}
@@ -323,9 +323,7 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
 }
 
 private fun findModifyingMethodNames(methodUnderTestName: String, classId: ClassId) =
-    UtBotFieldsModificatorsSearcher(
-        modificationTransformationMode = ModificationTransformationMode.ReadAndWrite
-    )
+    UtBotFieldsModificatorsSearcher(fieldInvolvementMode = FieldInvolvementMode.ReadAndWrite)
         .let { searcher ->
             searcher.update(setOf(classId))
             val modificatorsToFields = searcher.getModificatorToFields(analysisMode = AnalysisMode.Methods)

@@ -99,7 +99,7 @@ class StatementsStorage(
 
         return when (analysisMode) {
             AllModificators -> fields
-            Methods -> if (statementId is MethodId && !isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
+            Methods -> if (statementId is MethodId && !isSetterOrDirectAccessor(statementId)) fields else emptySet()
             SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
             Constructors -> if (statementId is ConstructorId) fields else emptySet()
         }

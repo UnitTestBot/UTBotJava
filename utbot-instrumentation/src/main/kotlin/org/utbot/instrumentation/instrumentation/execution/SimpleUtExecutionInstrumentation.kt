@@ -2,6 +2,7 @@ package org.utbot.instrumentation.instrumentation.execution
 
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.signature
@@ -11,6 +12,7 @@ import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.context.SimpleInstrumentationContext
@@ -53,12 +55,17 @@ class SimpleUtExecutionInstrumentation(
         }
         val (stateBefore, instrumentations, timeout) = parameters // smart cast to UtConcreteExecutionData
 
+        lateinit var detectedMockingCandidates: Set<MethodId>
+
         return PhasesController(
             instrumentationContext,
             traceHandler,
             delegateInstrumentation,
-            timeout
+            timeout,
+            idGenerator = StateBeforeAwareIdGenerator.fromUtConcreteExecutionData(parameters)
         ).computeConcreteExecutionResult {
+            detectedMockingCandidates = valueConstructionPhase.detectedMockingCandidates
+
             phasesWrapper {
                 try {
                     // some preparation actions for concrete execution
@@ -126,7 +133,10 @@ class SimpleUtExecutionInstrumentation(
                     applyPostprocessing()
                 }
             }
-        }.toCompleteUtConcreteExecutionResult(stateBefore = stateBefore)
+        }.toCompleteUtConcreteExecutionResult(
+            stateBefore = stateBefore,
+            detectedMockingCandidates = detectedMockingCandidates,
+        )
     }
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =

@@ -94,7 +94,7 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
             variableName = name
             initializer = expr
         }
-        updateVariableScope(declaration.variable, model)
+        rememberVariableForModel(declaration.variable, model)
         return Either.left(declaration)
     }
 
@@ -280,7 +280,7 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
 
     override fun declareVariable(type: ClassId, name: String): CgVariable =
         CgVariable(name, type).also {
-            updateVariableScope(it)
+            rememberVariableForModel(it)
         }
 
     override fun guardExpression(baseType: ClassId, expression: CgExpression): ExpressionWithType {

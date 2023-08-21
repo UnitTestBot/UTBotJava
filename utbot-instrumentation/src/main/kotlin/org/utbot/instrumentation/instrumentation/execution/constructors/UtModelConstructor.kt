@@ -33,17 +33,12 @@ interface UtModelConstructorInterface {
  */
 class UtModelConstructor(
     private val objectToModelCache: IdentityHashMap<Any, UtModel>,
+    private val idGenerator: StateBeforeAwareIdGenerator,
     private val utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?,
     private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy,
     private val maxDepth: Long = DEFAULT_MAX_DEPTH
 ) : UtModelConstructorInterface {
     private val constructedObjects = IdentityHashMap<Any, UtModel>()
-
-    private var unusedId = 0
-    private val usedIds = objectToModelCache.values
-        .filterIsInstance<UtReferenceModel>()
-        .mapNotNull { it.id }
-        .toMutableSet()
 
     companion object {
         private const val DEFAULT_MAX_DEPTH = 7L
@@ -56,16 +51,16 @@ class UtModelConstructor(
             val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
                 pathsToUserClasses, cache
             )
-            return UtModelConstructor(cache, utModelWithCompositeOriginConstructorFinder, strategy)
+            return UtModelConstructor(
+                objectToModelCache = cache,
+                idGenerator = StateBeforeAwareIdGenerator(preExistingModels = emptySet()),
+                utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
+                compositeModelStrategy = strategy
+            )
         }
     }
 
-    private fun computeUnusedIdAndUpdate(): Int {
-        while (unusedId in usedIds) {
-            unusedId++
-        }
-        return unusedId.also { usedIds += it }
-    }
+    private fun computeUnusedIdAndUpdate(): Int = idGenerator.createId()
 
     private fun handleId(value: Any): Int {
         return objectToModelCache[value]?.let { (it as? UtReferenceModel)?.id } ?: computeUnusedIdAndUpdate()

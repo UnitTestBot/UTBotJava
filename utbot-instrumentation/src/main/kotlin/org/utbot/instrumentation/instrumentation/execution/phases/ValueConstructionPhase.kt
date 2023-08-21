@@ -6,6 +6,7 @@ import org.utbot.instrumentation.instrumentation.execution.constructors.Instrume
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 
 typealias ConstructedParameters = List<UtConcreteValue<*>>
 typealias ConstructedStatics = Map<FieldId, UtConcreteValue<*>>
@@ -21,7 +22,8 @@ data class ConstructedData(
  * This phase of values instantiation from given models.
  */
 class ValueConstructionPhase(
-    instrumentationContext: InstrumentationContext
+    instrumentationContext: InstrumentationContext,
+    idGenerator: StateBeforeAwareIdGenerator,
 ) : ExecutionPhase {
 
     override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseStop(
@@ -36,7 +38,11 @@ class ValueConstructionPhase(
         )
     )
 
-    private val constructor = InstrumentationContextAwareValueConstructor(instrumentationContext)
+    private val constructor = InstrumentationContextAwareValueConstructor(
+        instrumentationContext,
+        idGenerator,
+    )
+    val detectedMockingCandidates: Set<MethodId> get() = constructor.detectedMockingCandidates
 
     fun getCache(): ConstructedCache {
         return constructor.objectToModelCache

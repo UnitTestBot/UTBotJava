@@ -24,8 +24,8 @@ data class UtConcreteExecutionData(
 
 /**
  * [UtConcreteExecutionResult] that has not yet been populated with extra data, e.g.:
- *  - updated `stateBefore: EnvironmentModels`
- *  - `detectedMockingCandidates: Set<ExecutableId>` (not yet implemented, see #2321)
+ *  - updated [UtConcreteExecutionResult.stateBefore]
+ *  - [UtConcreteExecutionResult.detectedMockingCandidates]
  */
 data class PreliminaryUtConcreteExecutionResult(
     val stateAfter: EnvironmentModels,
@@ -33,12 +33,16 @@ data class PreliminaryUtConcreteExecutionResult(
     val coverage: Coverage,
     val newInstrumentation: List<UtInstrumentation>? = null,
 ) {
-    fun toCompleteUtConcreteExecutionResult(stateBefore: EnvironmentModels) = UtConcreteExecutionResult(
-        stateBefore,
-        stateAfter,
-        result,
-        coverage,
-        newInstrumentation,
+    fun toCompleteUtConcreteExecutionResult(
+        stateBefore: EnvironmentModels,
+        detectedMockingCandidates: Set<MethodId>
+    ) = UtConcreteExecutionResult(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        coverage = coverage,
+        newInstrumentation = newInstrumentation,
+        detectedMockingCandidates = detectedMockingCandidates,
     )
 }
 
@@ -48,6 +52,7 @@ data class UtConcreteExecutionResult(
     val result: UtExecutionResult,
     val coverage: Coverage,
     val newInstrumentation: List<UtInstrumentation>? = null,
+    val detectedMockingCandidates: Set<MethodId>,
 ) {
     override fun toString(): String = buildString {
         appendLine("UtConcreteExecutionResult(")

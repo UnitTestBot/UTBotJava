@@ -479,17 +479,19 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         val values =
 
         if (configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > 0) {
-
             statistic.getSeed(random, configuration).let {
                 mutationFactory.mutate(it, random, configuration, statistic)
             }
 
         } else {
 
-            if (random.flipCoin(50)) {
-                carrot
-            } else {
-                stick
+            if (configuration.rotateValues) {
+                configuration.minsetConfiguration =
+                    if (random.flipCoin(50)) {
+                        carrot
+                    } else {
+                        stick
+                    }
             }
 
             if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {

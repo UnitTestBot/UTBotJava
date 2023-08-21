@@ -14,6 +14,7 @@ import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.util.at
 import org.utbot.framework.codegen.util.canBeSetFrom
+import org.utbot.framework.codegen.util.canBeSetViaSetterFrom
 import org.utbot.framework.codegen.util.fieldThatIsGotWith
 import org.utbot.framework.codegen.util.fieldThatIsSetWith
 import org.utbot.framework.codegen.util.inc
@@ -21,6 +22,7 @@ import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.codegen.util.lessThan
 import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.codegen.util.resolve
+import org.utbot.framework.codegen.util.setter
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
@@ -209,6 +211,10 @@ open class CgVariableConstructor(val context: CgContext) :
             // TODO: check if it is correct to use declaringClass of a field here
             val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
             fieldAccess `=` valueForField
+        } else if (context.codegenLanguage == CodegenLanguage.JAVA &&
+            !field.isStatic && fieldId.canBeSetViaSetterFrom(context)
+        ) {
+            +CgMethodCall(obj, fieldId.setter, listOf(valueForField))
         } else {
             // composite models must not have info about static fields, hence only non-static fields are set here
             +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, valueForField)

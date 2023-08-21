@@ -64,9 +64,11 @@ import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.util.canBeReadFrom
+import org.utbot.framework.codegen.util.canBeReadViaGetterFrom
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.equalTo
 import org.utbot.framework.codegen.util.escapeControlChars
+import org.utbot.framework.codegen.util.getter
 import org.utbot.framework.codegen.util.inc
 import org.utbot.framework.codegen.util.length
 import org.utbot.framework.codegen.util.lessThan
@@ -1154,6 +1156,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         // and is accessible from current package
         if (variable.type.hasField(this) && canBeReadFrom(context, variable.type)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
+        } else if (context.codegenLanguage == CodegenLanguage.JAVA &&
+            !jField.isStatic && canBeReadViaGetterFrom(context)
+        ) {
+            CgMethodCall(variable, getter, emptyList())
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
         }

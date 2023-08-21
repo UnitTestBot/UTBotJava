@@ -22,6 +22,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.jimpleBody
+import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.taint.TaintConfigurationProvider
 import java.nio.file.Path
 
@@ -70,32 +71,35 @@ class TestSpecificTestCaseGenerator(
         val forceMockListener = ForceMockListener.create(this, conflictTriggers)
         val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
 
-        runBlocking {
-            val controller = EngineController()
-            controller.job = launch {
-                super
-                    .generateAsync(
-                        controller,
-                        method,
-                        mockStrategy,
-                        mockAlwaysDefaults,
-                        defaultTimeEstimator,
-                        taintConfigurationProvider
-                    )
-                    .collect {
-                        when (it) {
-                            is UtExecution -> {
-                                if (it is UtSymbolicExecution &&
-                                    (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
-                                            conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
-                                ) {
-                                    it.containsMocking = true
+        ConcreteExecutor.defaultPool.use {
+            runBlocking {
+                val controller = EngineController()
+                controller.job = launch {
+                    super
+                        .generateAsync(
+                            controller,
+                            method,
+                            mockStrategy,
+                            mockAlwaysDefaults,
+                            defaultTimeEstimator,
+                            taintConfigurationProvider
+                        )
+                        .collect {
+                            when (it) {
+                                is UtExecution -> {
+                                    if (it is UtSymbolicExecution &&
+                                        (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                                conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                                    ) {
+                                        it.containsMocking = true
+                                    }
+                                    executions += it
                                 }
-                                executions += it
+
+                                is UtError -> errors.merge(it.description, 1, Int::plus)
                             }
-                            is UtError -> errors.merge(it.description, 1, Int::plus)
                         }
-                    }
+                }
             }
         }
 

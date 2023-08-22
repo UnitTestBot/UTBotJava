@@ -59,6 +59,7 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
+import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.process.EngineProcess
@@ -261,7 +262,11 @@ object UtTestsDialogProcessor {
                         val process = EngineProcess.createBlocking(project, classNameToPath)
 
                         process.terminateOnException { _ ->
-                            val classpathForClassLoader = buildDirs + classpathList
+                            val classpathForClassLoader = buildDirs + classpathList + when (model.projectType) {
+                                Spring -> listOf(SpringUtExecutionInstrumentation.springCommonsJar.path)
+                                else -> emptyList<String>()
+                            }
+
                             process.setupUtContext(classpathForClassLoader)
                             val simpleApplicationContext = SimpleApplicationContext(
                                 SimpleMockerContext(mockFrameworkInstalled, staticMockingConfigured)

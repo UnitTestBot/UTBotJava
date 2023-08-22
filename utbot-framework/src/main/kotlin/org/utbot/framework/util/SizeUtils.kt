@@ -28,12 +28,12 @@ fun EnvironmentModels.calculateSize(): Int {
 
 /**
  * We assume that "size" for "common" models is 1, 0 for [UtVoidModel] (as they do not return anything) and
- * [UtPrimitiveModel] and 3 for [UtNullModel] (we use them as literals in codegen), summarising for
+ * [UtPrimitiveModel] and 2 for [UtNullModel] (we use them as literals in codegen), summarising for
  * all statements for [UtAssembleModel] and summarising for all fields and mocks for [UtCompositeModel].
  *
- * As [UtCompositeModel] could be recursive, we need to store it in [used]. Moreover, if we already
- * calculate size for [this], it means that we will use already created variable by this model and do not
- * need to create it again, so size should be equal to 0.
+ * As [UtReferenceModel] could be recursive, we need to store it in [used]. Moreover, if we have already
+ * calculated the size for [this] model and [this] is [UtReferenceModel], then in codegen we would have already
+ * created variable for [this] model and do not need to create it again, so size should be equal to 0.
  */
 private fun UtModel.calculateSize(used: MutableSet<UtReferenceModel> = mutableSetOf()): Int {
     if (this in used) return 0
@@ -42,8 +42,8 @@ private fun UtModel.calculateSize(used: MutableSet<UtReferenceModel> = mutableSe
         used += this
 
     return when (this) {
-        // `null` is assigned positive size to encourage use of non-null values
-        is UtNullModel -> 3
+        // `null` is assigned size of `2` to encourage use of empty mocks which have size of `1` over `null`s
+        is UtNullModel -> 2
         is UtPrimitiveModel, UtVoidModel -> 0
         is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel, is UtCustomModel -> 1
         is UtAssembleModel -> {

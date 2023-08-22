@@ -10,7 +10,7 @@ import java.lang.reflect.Type
 
 val Type.typeToken: TypeToken<*> get() = TypeToken.of(this)
 
-val FuzzedType.jType: Type get() = toType(mutableMapOf())
+val FuzzedType.jType: Type get() = toType(cache = mutableMapOf())
 
 private fun FuzzedType.toType(cache: MutableMap<FuzzedType, Type>): Type = cache.getOrPut(this) {
     when {

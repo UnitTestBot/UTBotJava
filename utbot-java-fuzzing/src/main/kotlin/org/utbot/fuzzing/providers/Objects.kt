@@ -124,6 +124,14 @@ class ObjectValueProvider(
     }
 }
 
+class Modifying(
+    private val classUnderTest: ClassId,
+    private val delegate: JavaValueProvider
+) : JavaValueProvider by delegate {
+    override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) =
+        delegate.enrich(description, type, scope)
+}
+
 @Suppress("unused")
 object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
 
@@ -264,12 +272,12 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
     }.toList()
 }
 
-internal fun findMethodsToModifyWith(description: FuzzedDescription, classId: ClassId): List<MethodDescription> {
+internal fun findMethodsToModifyWith(description: FuzzedDescription, valueClassId: ClassId): List<MethodDescription> {
     val packageName = description.description.packageName
 
     val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
-    val modifyingMethods = findModifyingMethodNames(methodUnderTestName, classId)
-    return classId.jClass.declaredMethods.mapNotNull { method ->
+    val modifyingMethods = findModifyingMethodNames(methodUnderTestName, valueClassId)
+    return valueClassId.jClass.declaredMethods.mapNotNull { method ->
         if (isAccessible(method, packageName)) {
             if (method.name !in modifyingMethods) return@mapNotNull null
             if (method.genericParameterTypes.any { it is TypeVariable<*> }) return@mapNotNull null
@@ -320,10 +328,12 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
 
-private fun findModifyingMethodNames(methodUnderTestName: String, classUnderTest: ClassId) : Set<String> =
+private fun findModifyingMethodNames(methodUnderTestName: String, valueClassId: ClassId) : Set<String> =
     UtBotFieldsModificatorsSearcher(fieldInvolvementMode = FieldInvolvementMode.ReadAndWrite)
         .let { searcher ->
-            searcher.update(setOf(classUnderTest))
+            //TODO: change
+            val classUnderTest = valueClassId
+            searcher.update(setOf(valueClassId, classUnderTest))
             val modificatorsToFields = searcher.getModificatorToFields(analysisMode = AnalysisMode.Methods)
 
             modificatorsToFields[methodUnderTestName]?.let { fieldsModifiedByMut ->

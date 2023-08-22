@@ -18,6 +18,7 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
+import org.utbot.fuzzing.providers.Modifying
 import org.utbot.fuzzing.providers.ObjectValueProvider
 import org.utbot.fuzzing.providers.anyObjectValueProvider
 import org.utbot.fuzzing.spring.GeneratedFieldValueProvider
@@ -45,15 +46,25 @@ class SpringIntegrationTestJavaFuzzingContext(
             },
             relevantRepositories = relevantRepositories
         )
+            .with(
+                Modifying(classUnderTest, SpringBeanValueProvider(
+                    idGenerator,
+                    beanNameProvider = { classId ->
+                        springApplicationContext.getBeansAssignableTo(classId).map { it.beanName }
+                    },
+                    relevantRepositories = relevantRepositories
+                ))
+            )
             .withFallback(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = true))
             .withFallback(EmailValueProvider())
             .withFallback(NotBlankStringValueProvider())
             .withFallback(NotEmptyStringValueProvider())
             .withFallback(
                 delegateContext.valueProvider
-                    .except { p -> p is ObjectValueProvider }
-                    .with(anyObjectValueProvider(idGenerator, shouldMutateWithMethods = true))
+//                    .except { p -> p is ObjectValueProvider }
+                    .with(Modifying(classUnderTest, anyObjectValueProvider(idGenerator, shouldMutateWithMethods = true)))
                     .with(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
+                    .with(Modifying(classUnderTest, ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false)))
                     .with(createGeneratedFieldValueProviders(relevantRepositories, idGenerator))
                     .withFallback(AnyDepthNullValueProvider)
             )

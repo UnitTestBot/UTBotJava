@@ -78,7 +78,7 @@ class SpringBeanValueProvider(
                                 }
                             })
                         }
-                        findMethodsToModifyWith(description, type.classId, description.description.packageName)
+                        findMethodsToModifyWith(description, type.classId)
                             .forEach { md ->
                                 yield(Routine.Call(md.parameterTypes) { self, values ->
                                     val model = self.model as UtAssembleModel

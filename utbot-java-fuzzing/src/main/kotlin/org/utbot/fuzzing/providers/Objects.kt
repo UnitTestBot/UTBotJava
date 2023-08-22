@@ -106,7 +106,7 @@ class ObjectValueProvider(
                     }
                 }
                 if (shouldMutateWithMethods) {
-                    findMethodsToModifyWith(description, classId, description.description.packageName).forEach { md ->
+                    findMethodsToModifyWith(description, classId).forEach { md ->
                         yield(Routine.Call(md.parameterTypes) { self, values ->
                             val model = self.model as UtAssembleModel
                             model.modificationsChain as MutableList +=
@@ -264,11 +264,9 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
     }.toList()
 }
 
-internal fun findMethodsToModifyWith(
-    description: FuzzedDescription,
-    classId: ClassId,
-    packageName: String?
-): List<MethodDescription> {
+internal fun findMethodsToModifyWith(description: FuzzedDescription, classId: ClassId): List<MethodDescription> {
+    val packageName = description.description.packageName
+
     val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
     val modifyingMethods = findModifyingMethodNames(methodUnderTestName, classId)
     return classId.jClass.declaredMethods.mapNotNull { method ->

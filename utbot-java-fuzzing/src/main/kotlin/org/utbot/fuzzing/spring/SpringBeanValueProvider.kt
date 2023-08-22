@@ -13,7 +13,7 @@ import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.SPRING_BEAN_PROP
-import org.utbot.fuzzing.providers.findAllAvailableMethods
+import org.utbot.fuzzing.providers.findMethodsToModifyWith
 import org.utbot.fuzzing.providers.nullRoutine
 import org.utbot.fuzzing.spring.valid.EntityLifecycleState
 import org.utbot.fuzzing.spring.valid.EntityLifecycleStateProperty
@@ -78,7 +78,7 @@ class SpringBeanValueProvider(
                                 }
                             })
                         }
-                        findAllAvailableMethods(description, type.classId, description.description.packageName)
+                        findMethodsToModifyWith(description, type.classId, description.description.packageName)
                             .forEach { md ->
                                 yield(Routine.Call(md.parameterTypes) { self, values ->
                                     val model = self.model as UtAssembleModel

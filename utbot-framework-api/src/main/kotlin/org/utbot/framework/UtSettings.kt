@@ -242,6 +242,11 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var fuzzingImplementationOfAbstractClasses: Boolean by getBooleanProperty(true)
 
     /**
+     * Use methods to mutate fields of classes different from class under test or not.
+     */
+    var tryMutateOtherClassesFieldsWithMethods: Boolean by getBooleanProperty(false)
+
+    /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
      * that throw Arithmetic Exception.
      */

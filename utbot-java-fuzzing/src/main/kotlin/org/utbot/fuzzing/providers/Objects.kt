@@ -106,7 +106,7 @@ class ObjectValueProvider(
                     }
                 }
                 if (shouldMutateWithMethods) {
-                    findAllAvailableMethods(description, classId, description.description.packageName).forEach { md ->
+                    findMethodsToModifyWith(description, classId, description.description.packageName).forEach { md ->
                         yield(Routine.Call(md.parameterTypes) { self, values ->
                             val model = self.model as UtAssembleModel
                             model.modificationsChain as MutableList +=
@@ -264,7 +264,7 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
     }.toList()
 }
 
-internal fun findAllAvailableMethods(
+internal fun findMethodsToModifyWith(
     description: FuzzedDescription,
     classId: ClassId,
     packageName: String?
@@ -322,19 +322,29 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
 
-private fun findModifyingMethodNames(methodUnderTestName: String, classId: ClassId) =
+private fun findModifyingMethodNames(methodUnderTestName: String, classUnderTest: ClassId) : Set<String> =
     UtBotFieldsModificatorsSearcher(fieldInvolvementMode = FieldInvolvementMode.ReadAndWrite)
         .let { searcher ->
-            searcher.update(setOf(classId))
+            searcher.update(setOf(classUnderTest))
             val modificatorsToFields = searcher.getModificatorToFields(analysisMode = AnalysisMode.Methods)
 
-            modificatorsToFields[methodUnderTestName]
-                ?.let { fieldsModifiedByMUT ->
-                    modificatorsToFields.mapNotNull {
-                        if (it.key == methodUnderTestName || it.value.intersect(fieldsModifiedByMUT).isEmpty()) null
-                        else it.key
+            modificatorsToFields[methodUnderTestName]?.let { fieldsModifiedByMut ->
+                modificatorsToFields
+                    .mapNotNull { (methodName, fieldSet) ->
+                        val relevantFields = if (UtSettings.tryMutateOtherClassesFieldsWithMethods) {
+                            fieldsModifiedByMut
+                        } else {
+                            fieldsModifiedByMut
+                                .filter { field -> field.declaringClass == classUnderTest }
+                                .toSet()
+                        }
+
+                        val methodIsModifying = fieldSet.intersect(relevantFields).isNotEmpty()
+                                && methodName != methodUnderTestName
+                        if (methodIsModifying) methodName else null
                     }
-                }
+                    .toSet()
+            }
                 ?: setOf()
         }
 

@@ -1,4 +1,4 @@
-package org.utbot.python.evaluation.serialiation
+package org.utbot.python.evaluation.serialization
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory

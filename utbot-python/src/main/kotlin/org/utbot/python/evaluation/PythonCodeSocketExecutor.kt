@@ -5,13 +5,13 @@ import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
-import org.utbot.python.evaluation.serialiation.ExecutionRequest
-import org.utbot.python.evaluation.serialiation.ExecutionRequestSerializer
-import org.utbot.python.evaluation.serialiation.ExecutionResultDeserializer
-import org.utbot.python.evaluation.serialiation.FailExecution
-import org.utbot.python.evaluation.serialiation.PythonExecutionResult
-import org.utbot.python.evaluation.serialiation.SuccessExecution
-import org.utbot.python.evaluation.serialiation.serializeObjects
+import org.utbot.python.evaluation.serialization.ExecutionRequest
+import org.utbot.python.evaluation.serialization.ExecutionRequestSerializer
+import org.utbot.python.evaluation.serialization.ExecutionResultDeserializer
+import org.utbot.python.evaluation.serialization.FailExecution
+import org.utbot.python.evaluation.serialization.PythonExecutionResult
+import org.utbot.python.evaluation.serialization.SuccessExecution
+import org.utbot.python.evaluation.serialization.serializeObjects
 import org.utbot.python.evaluation.utils.CoverageIdGenerator
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.PythonCallableTypeDescription
@@ -19,7 +19,6 @@ import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.newtyping.utils.isNamed
-import org.utbot.python.newtyping.utils.isRequired
 import java.net.SocketException
 
 private val logger = KotlinLogging.logger {}

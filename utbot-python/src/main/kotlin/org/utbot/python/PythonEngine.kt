@@ -9,8 +9,8 @@ import org.utbot.fuzzing.NoSeedValueException
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.*
-import org.utbot.python.evaluation.serialiation.MemoryDump
-import org.utbot.python.evaluation.serialiation.toPythonTree
+import org.utbot.python.evaluation.serialization.MemoryDump
+import org.utbot.python.evaluation.serialization.toPythonTree
 import org.utbot.python.evaluation.utils.CoverageIdGenerator
 import org.utbot.python.evaluation.utils.coveredLinesToInstructions
 import org.utbot.python.framework.api.python.PythonTree

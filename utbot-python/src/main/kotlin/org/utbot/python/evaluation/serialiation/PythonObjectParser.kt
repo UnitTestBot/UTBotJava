@@ -240,7 +240,14 @@ fun MemoryObject.toPythonTree(
                 val stateObjsDraft = memoryDump.getById(state)
                 val customState = stateObjsDraft !is DictMemoryObject
 
-                val arguments = memoryDump.getById(args) as ListMemoryObject
+                val argumentsDump = memoryDump.getById(args)
+                if (argumentsDump is ReprMemoryObject && argumentsDump.value == "None") {  // This is global variable
+                    return@getOrPut PythonTree.PrimitiveNode(
+                        PythonClassId(this.constructor.module, this.constructor.kind),
+                        this.constructor.qualname
+                    )
+                }
+                val arguments = argumentsDump as ListMemoryObject
                 val listitemsObjs = memoryDump.getById(listitems) as ListMemoryObject
                 val dictitemsObjs = memoryDump.getById(dictitems) as DictMemoryObject
                 val prevObj = PythonTree.ReduceNode(

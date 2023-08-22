@@ -39,9 +39,12 @@ class PythonCoverageReceiver(
                 val buf = ByteArray(256)
                 val request = DatagramPacket(buf, buf.size)
                 socket.receive(request)
-                val (id, line) = request.data.decodeToString().take(request.length).split(":")
-                val lineNumber = line.toInt()
-                coverageStorage.getOrPut(id) { mutableSetOf() }.add(lineNumber)
+                val requestData = request.data.decodeToString().take(request.length).split(":")
+                if (requestData.size == 2) {
+                    val (id, line) = requestData
+                    val lineNumber = line.toInt()
+                    coverageStorage.getOrPut(id) { mutableSetOf() }.add(lineNumber)
+                }
             }
         } catch (ex: SocketException) {
             logger.debug { ex.message }

@@ -34,3 +34,24 @@ Add the following files locally (they are listed in `.gitignore`):
 - `utbot-python/src/main/resources/local_pip_setup/use_local_python_packages`
 
     Write here `true` if you want to build `utbot-python` that uses local versions of UTBot Python packages.
+ 
+## utbot_executor
+
+### Version
+
+Write version in file `utbot-python-executor/src/main/resources/utbot_executor_version`.
+
+Gradle task `utbot-python-executor:setVersion` will update `pyproject.toml`.
+
+### Usage of local version
+
+Add the following files locally (they are listed in `.gitignore`):
+
+- `utbot-python/src/main/resources/local_pip_setup/local_utbot_executor_path`
+
+  Add here absolute path to `utbot_executor/dist` directory.
+
+
+- `utbot-python/src/main/resources/local_pip_setup/use_local_python_packages`
+
+  Write here `true` if you want to build `utbot-python` that uses local versions of UTBot Python packages.

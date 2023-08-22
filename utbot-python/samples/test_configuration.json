@@ -569,7 +569,7 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 120,
+              "timeout": 140,
               "coverage": 100
             }
           ]

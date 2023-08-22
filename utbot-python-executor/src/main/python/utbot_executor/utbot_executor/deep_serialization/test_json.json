@@ -1,0 +1,202 @@
+{
+ "objects": {
+  "140571957551616": {
+   "strategy": "list",
+   "id": "140571957551616",
+   "typeinfo": {
+    "kind": "list",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": [
+    "94401662884064"
+   ]
+  },
+  "94401662884064": {
+   "strategy": "repr",
+   "id": "94401662884064",
+   "typeinfo": {
+    "kind": "Node",
+    "module": "__main__"
+   },
+   "comparable": true,
+   "value": "__main__.Node"
+  },
+  "140571958508416": {
+   "strategy": "reduce",
+   "id": "140571958508416",
+   "typeinfo": {
+    "kind": "Node",
+    "module": "__main__"
+   },
+   "comparable": true,
+   "constructor": {
+    "kind": "object.__new__",
+    "module": "builtins"
+   },
+   "args": "140571957551616",
+   "state": "140571959370880",
+   "listitems": "140571956166528",
+   "dictitems": "140571956216128"
+  },
+  "140571959370880": {
+   "strategy": "dict",
+   "id": "140571959370880",
+   "typeinfo": {
+    "kind": "dict",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": {
+    "140571963755248": "140571964146736",
+    "140571963755632": "140571957549760"
+   }
+  },
+  "140571963755248": {
+   "strategy": "repr",
+   "id": "140571963755248",
+   "typeinfo": {
+    "kind": "str",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "value": "'name'"
+  },
+  "140571964146736": {
+   "strategy": "repr",
+   "id": "140571964146736",
+   "typeinfo": {
+    "kind": "str",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "value": "'x'"
+  },
+  "140571963755632": {
+   "strategy": "repr",
+   "id": "140571963755632",
+   "typeinfo": {
+    "kind": "str",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "value": "'children'"
+  },
+  "140571957549760": {
+   "strategy": "list",
+   "id": "140571957549760",
+   "typeinfo": {
+    "kind": "list",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": [
+    "140571958508320"
+   ]
+  },
+  "140571955997632": {
+   "strategy": "list",
+   "id": "140571955997632",
+   "typeinfo": {
+    "kind": "list",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": [
+    "94401662884064"
+   ]
+  },
+  "140571958508320": {
+   "strategy": "reduce",
+   "id": "140571958508320",
+   "typeinfo": {
+    "kind": "Node",
+    "module": "__main__"
+   },
+   "comparable": true,
+   "constructor": {
+    "kind": "object.__new__",
+    "module": "builtins"
+   },
+   "args": "140571955997632",
+   "state": "140571956156480",
+   "listitems": "140571956165504",
+   "dictitems": "140571956165888"
+  },
+  "140571956156480": {
+   "strategy": "dict",
+   "id": "140571956156480",
+   "typeinfo": {
+    "kind": "dict",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": {
+    "140571963755248": "140571958388272",
+    "140571963755632": "140571957550016"
+   }
+  },
+  "140571958388272": {
+   "strategy": "repr",
+   "id": "140571958388272",
+   "typeinfo": {
+    "kind": "str",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "value": "'y'"
+  },
+  "140571957550016": {
+   "strategy": "list",
+   "id": "140571957550016",
+   "typeinfo": {
+    "kind": "list",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": [
+    "140571958508416"
+   ]
+  },
+  "140571956165504": {
+   "strategy": "list",
+   "id": "140571956165504",
+   "typeinfo": {
+    "kind": "list",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": []
+  },
+  "140571956165888": {
+   "strategy": "dict",
+   "id": "140571956165888",
+   "typeinfo": {
+    "kind": "dict",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": {}
+  },
+  "140571956166528": {
+   "strategy": "list",
+   "id": "140571956166528",
+   "typeinfo": {
+    "kind": "list",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": []
+  },
+  "140571956216128": {
+   "strategy": "dict",
+   "id": "140571956216128",
+   "typeinfo": {
+    "kind": "dict",
+    "module": "builtins"
+   },
+   "comparable": true,
+   "items": {}
+  }
+ }
+}

@@ -82,18 +82,6 @@ class SpringBeanValueProvider(
                         }
                     })
                 }
-                findMethodsToModifyWith(description, classId)
-                    .forEach { md ->
-                        yield(Routine.Call(md.parameterTypes) { self, values ->
-                            val model = self.model as UtAssembleModel
-                            model.modificationsChain as MutableList +=
-                                UtExecutableCallModel(
-                                    model,
-                                    md.method.executableId,
-                                    values.map { it.model }
-                                )
-                        })
-                    }
             },
             empty = nullRoutine(classId)
         )

@@ -55,14 +55,14 @@ class SpringIntegrationTestJavaFuzzingContext(
             .withFallback(NotEmptyStringValueProvider())
             .withFallback(
                 delegateContext.valueProvider
-                    .withProviderAndModifyingMethods(anyObjectValueProvider(idGenerator, shouldMutateWithMethods = true))
-                    .withProviderAndModifyingMethods(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
+                    .withProviderAndModifyingMethodsBuddy(anyObjectValueProvider(idGenerator))
+                    .withProviderAndModifyingMethodsBuddy(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
                     .with(createGeneratedFieldValueProviders(relevantRepositories, idGenerator))
                     .withFallback(AnyDepthNullValueProvider)
             )
             .preserveProperties()
 
-    private fun JavaValueProvider.withProviderAndModifyingMethods(provider: JavaValueProvider): JavaValueProvider =
+    private fun JavaValueProvider.withProviderAndModifyingMethodsBuddy(provider: JavaValueProvider): JavaValueProvider =
         this.with(provider)
             .with(ModifyingWithMethodsProviderWrapper(classUnderTest, this))
 

@@ -64,14 +64,13 @@ private fun isIgnored(type: ClassId): Boolean {
             || (type.isInner && !type.isStatic)
 }
 
-fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, shouldMutateWithMethods: Boolean) =
-    ObjectValueProvider(idGenerator, shouldMutateWithMethods).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
+fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
+    ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
         ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
     }
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-    private val shouldMutateWithMethods: Boolean,
 ) : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
@@ -132,19 +131,6 @@ class ObjectValueProvider(
                                     values.map { it.model })
                             })
                         }
-                    }
-                }
-                if (shouldMutateWithMethods) {
-                    findMethodsToModifyWith(description, classId).forEach { md ->
-                        yield(Routine.Call(md.parameterTypes) { self, values ->
-                            val model = self.model as UtAssembleModel
-                            model.modificationsChain as MutableList +=
-                                UtExecutableCallModel(
-                                    model,
-                                    md.method.executableId,
-                                    values.map { it.model }
-                                )
-                        })
                     }
                 }
             },
@@ -292,11 +278,15 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
     }.toList()
 }
 
-internal fun findMethodsToModifyWith(description: FuzzedDescription, valueClassId: ClassId): List<MethodDescription> {
+internal fun findMethodsToModifyWith(
+    description: FuzzedDescription,
+    valueClassId: ClassId,
+    classUnderTest: ClassId,
+    ): List<MethodDescription> {
     val packageName = description.description.packageName
 
     val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
-    val modifyingMethods = findModifyingMethodNames(methodUnderTestName, valueClassId)
+    val modifyingMethods = findModifyingMethodNames(methodUnderTestName, valueClassId, classUnderTest)
     return valueClassId.jClass.declaredMethods.mapNotNull { method ->
         if (isAccessible(method, packageName)) {
             if (method.name !in modifyingMethods) return@mapNotNull null
@@ -348,11 +338,13 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
 
-private fun findModifyingMethodNames(methodUnderTestName: String, valueClassId: ClassId) : Set<String> =
+private fun findModifyingMethodNames(
+    methodUnderTestName: String,
+    valueClassId: ClassId,
+    classUnderTest: ClassId,
+    ) : Set<String> =
     UtBotFieldsModificatorsSearcher(fieldInvolvementMode = FieldInvolvementMode.ReadAndWrite)
         .let { searcher ->
-            //TODO: change
-            val classUnderTest = valueClassId
             searcher.update(setOf(valueClassId, classUnderTest))
             val modificatorsToFields = searcher.getModificatorToFields(analysisMode = AnalysisMode.Methods)
 

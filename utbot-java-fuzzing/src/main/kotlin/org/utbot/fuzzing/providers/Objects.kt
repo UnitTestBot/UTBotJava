@@ -2,11 +2,43 @@ package org.utbot.fuzzing.providers
 
 import mu.KotlinLogging
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.*
-import org.utbot.fuzzer.*
-import org.utbot.fuzzing.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtDirectSetFieldModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.classClassId
+import org.utbot.framework.plugin.api.util.constructor
+import org.utbot.framework.plugin.api.util.dateClassId
+import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isAbstract
+import org.utbot.framework.plugin.api.util.isCollectionOrMap
+import org.utbot.framework.plugin.api.util.isEnum
+import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
+import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.framework.plugin.api.util.isStatic
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.fuzzer.FuzzedType
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.IdGenerator
+import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.fuzzed
+import org.utbot.fuzzing.FuzzedDescription
+import org.utbot.fuzzing.JavaValueProvider
+import org.utbot.fuzzing.Routine
+import org.utbot.fuzzing.Scope
+import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.toFuzzerType
+import org.utbot.fuzzing.traverseHierarchy
 import org.utbot.fuzzing.utils.hex
+import org.utbot.modifications.AnalysisMode
+import org.utbot.modifications.FieldInvolvementMode
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import soot.Scene
 import soot.SootClass
 import java.lang.reflect.Field
@@ -14,9 +46,6 @@ import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.lang.reflect.TypeVariable
-import org.utbot.modifications.AnalysisMode
-import org.utbot.modifications.FieldInvolvementMode
-import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 
 private val logger = KotlinLogging.logger {}
 
@@ -122,20 +151,6 @@ class ObjectValueProvider(
             empty = nullRoutine(classId)
         )
     }
-}
-
-class ModifyingWithMethodsValueProvider(
-    private val classUnderTest: ClassId,
-    private val delegate: JavaValueProvider
-) : JavaValueProvider {
-    override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) =
-        delegate.enrich(description, type, scope)
-
-    override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> {
-        TODO("Not yet implemented")
-    }
-
-
 }
 
 @Suppress("unused")

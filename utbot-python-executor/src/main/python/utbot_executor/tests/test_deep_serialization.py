@@ -192,6 +192,28 @@ def test_comparable():
     assert memory_dump.objects[serialized_obj_ids[0]].comparable
 
 
+def test_complex():
+    obj = complex(real=float('-inf'), imag=float('nan'))
+    serialized_obj_ids, _, serialized_memory_dump = serialize_objects_dump([obj], True)
+    memory_dump = json_converter.deserialize_memory_objects(serialized_memory_dump)
+    assert not memory_dump.objects[serialized_obj_ids[0]].comparable
+
+
+def test_complex_state():
+    class A:
+        def __init__(self, c):
+            self.c = c
+
+    obj = A(complex(real=float('-inf'), imag=float('nan')))
+    serialized_obj_ids, _, serialized_memory_dump = serialize_objects_dump([obj], True)
+    memory_dump = json_converter.deserialize_memory_objects(serialized_memory_dump)
+    deserialized_obj = memory_dump.objects[serialized_obj_ids[0]]
+    assert not deserialized_obj.comparable
+    state = memory_dump.objects[deserialized_obj.state].items
+    field_value = memory_dump.objects[list(state.values())[0]]
+    assert not field_value.comparable
+
+
 class IncomparableClass:
     pass
 

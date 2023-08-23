@@ -42,7 +42,7 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
                     hasText("src").and(hasText("main")).and(hasText("java"))
                 }
             }
-            if (hasText("org.example").not()) {
+            if (hasText("Main").not()) {
                 findText("java").doubleClick()
             }
         }

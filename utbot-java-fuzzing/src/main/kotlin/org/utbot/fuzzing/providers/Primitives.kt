@@ -17,7 +17,7 @@ import kotlin.random.Random
 
 abstract class PrimitiveValueProvider(
     vararg acceptableTypes: ClassId
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
     protected val acceptableTypes = acceptableTypes.toSet()
 
     final override fun accept(type: FuzzedType) = type.classId in acceptableTypes

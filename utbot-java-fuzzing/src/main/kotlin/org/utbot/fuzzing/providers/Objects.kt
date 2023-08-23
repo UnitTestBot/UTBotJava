@@ -43,7 +43,7 @@ fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>, shou
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
     private val shouldMutateWithMethods: Boolean,
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
 
@@ -124,16 +124,22 @@ class ObjectValueProvider(
     }
 }
 
-class Modifying(
+class ModifyingWithMethodsValueProvider(
     private val classUnderTest: ClassId,
     private val delegate: JavaValueProvider
-) : JavaValueProvider by delegate {
+) : JavaValueProvider {
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) =
         delegate.enrich(description, type, scope)
+
+    override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> {
+        TODO("Not yet implemented")
+    }
+
+
 }
 
 @Suppress("unused")
-object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+object NullValueProvider : JavaValueProvider {
 
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
         // any value in static function is ok to fuzz
@@ -163,7 +169,7 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
  *
  * Intended to be used as a last fallback.
  */
-object AnyDepthNullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+object AnyDepthNullValueProvider : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = type.classId.isRefType
 
@@ -178,7 +184,7 @@ object AnyDepthNullValueProvider : ValueProvider<FuzzedType, FuzzedValue, Fuzzed
  */
 class AbstractsObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = type.classId.isRefType && !isKnownTypes(type.classId)
 

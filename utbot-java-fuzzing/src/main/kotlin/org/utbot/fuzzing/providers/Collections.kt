@@ -12,7 +12,7 @@ import kotlin.reflect.KClass
 
 class EmptyCollectionValueProvider(
     val idGenerator: IdGenerator<Int>
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
     private class Info(val classId: ClassId, val methodName: String, val returnType: ClassId = classId)
 
     private val unmodifiableCollections = listOf(
@@ -150,7 +150,7 @@ class ListSetValueProvider(
 abstract class CollectionValueProvider(
     private val idGenerator: IdGenerator<Int>,
     vararg acceptableCollectionTypes: ClassId
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
 
     private val acceptableCollectionTypes = acceptableCollectionTypes.toList()
 
@@ -216,7 +216,7 @@ abstract class CollectionValueProvider(
     }
 }
 
-class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : JavaValueProvider {
     override fun accept(type: FuzzedType): Boolean {
         return type.classId == Iterator::class.id
     }

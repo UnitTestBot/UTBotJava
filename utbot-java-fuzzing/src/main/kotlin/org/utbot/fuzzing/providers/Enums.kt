@@ -8,12 +8,12 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.FuzzedDescription
+import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
 
 class EnumValueProvider(
     val idGenerator: IdentityPreservingIdGenerator<Int>,
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
     override fun accept(type: FuzzedType) = type.classId.isEnum
 
     override fun generate(

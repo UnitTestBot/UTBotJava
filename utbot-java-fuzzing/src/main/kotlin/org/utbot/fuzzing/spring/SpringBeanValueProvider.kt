@@ -22,7 +22,7 @@ class SpringBeanValueProvider(
     private val idGenerator: IdGenerator<Int>,
     private val beanNameProvider: (ClassId) -> List<String>,
     private val relevantRepositories: Set<SpringRepositoryId>
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
 
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
         if (description.description.isStatic == false

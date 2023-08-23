@@ -18,8 +18,7 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
-import org.utbot.fuzzing.providers.Modifying
-import org.utbot.fuzzing.providers.ObjectValueProvider
+import org.utbot.fuzzing.providers.ModifyingWithMethodsProviderWrapper
 import org.utbot.fuzzing.providers.anyObjectValueProvider
 import org.utbot.fuzzing.spring.GeneratedFieldValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
@@ -38,7 +37,7 @@ class SpringIntegrationTestJavaFuzzingContext(
         private val logger = KotlinLogging.logger {}
     }
 
-    override val valueProvider: JavaValueProvider =
+    private val springBeanValueProvider: JavaValueProvider =
         SpringBeanValueProvider(
             idGenerator,
             beanNameProvider = { classId ->
@@ -46,29 +45,26 @@ class SpringIntegrationTestJavaFuzzingContext(
             },
             relevantRepositories = relevantRepositories
         )
-            .with(
-                Modifying(classUnderTest, SpringBeanValueProvider(
-                    idGenerator,
-                    beanNameProvider = { classId ->
-                        springApplicationContext.getBeansAssignableTo(classId).map { it.beanName }
-                    },
-                    relevantRepositories = relevantRepositories
-                ))
-            )
+
+    override val valueProvider: JavaValueProvider =
+        springBeanValueProvider
+            .with(ModifyingWithMethodsProviderWrapper(classUnderTest, springBeanValueProvider))
             .withFallback(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = true))
             .withFallback(EmailValueProvider())
             .withFallback(NotBlankStringValueProvider())
             .withFallback(NotEmptyStringValueProvider())
             .withFallback(
                 delegateContext.valueProvider
-//                    .except { p -> p is ObjectValueProvider }
-                    .with(Modifying(classUnderTest, anyObjectValueProvider(idGenerator, shouldMutateWithMethods = true)))
-                    .with(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
-                    .with(Modifying(classUnderTest, ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false)))
+                    .withProviderAndModifyingMethods(anyObjectValueProvider(idGenerator, shouldMutateWithMethods = true))
+                    .withProviderAndModifyingMethods(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
                     .with(createGeneratedFieldValueProviders(relevantRepositories, idGenerator))
                     .withFallback(AnyDepthNullValueProvider)
             )
             .preserveProperties()
+
+    private fun JavaValueProvider.withProviderAndModifyingMethods(provider: JavaValueProvider): JavaValueProvider =
+        this.with(provider)
+            .with(ModifyingWithMethodsProviderWrapper(classUnderTest, this))
 
     private fun createGeneratedFieldValueProviders(
         relevantRepositories: Set<SpringRepositoryId>,

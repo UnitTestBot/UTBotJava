@@ -90,8 +90,8 @@ class ObjectValueProvider(
         }
     }
 
-    private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
-        return Seed.Recursive(
+    private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> =
+        Seed.Recursive(
             construct = Routine.Create(constructorId.executable.genericParameterTypes.map {
                 toFuzzerType(it, description.typeCache)
             }) { values ->
@@ -150,7 +150,6 @@ class ObjectValueProvider(
             },
             empty = nullRoutine(classId)
         )
-    }
 }
 
 @Suppress("unused")

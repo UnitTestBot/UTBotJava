@@ -202,7 +202,7 @@ class ReduceMemoryObject(MemoryObject):
 
             constructor_arguments, callable_constructor = self.constructor_builder()
 
-            self.constructor = get_constructor_info(callable_constructor)
+            self.constructor = get_constructor_info(callable_constructor, self.obj)
             logging.debug("Object: %s", self.obj)
             logging.debug("Type: %s", type(self.obj))
             logging.debug("Constructor: %s", callable_constructor)
@@ -267,15 +267,7 @@ class ReduceMemoryObject(MemoryObject):
         if is_newobj:
             constructor_arguments = self.reduce_value[1]
             callable_constructor = getattr(obj_type, "__new__")
-            try:
-                if callable_constructor.__module__ == self.obj.__class__.__module__:
-                    return constructor_arguments, callable_constructor
-            except Exception:
-                pass
-            if constructor_kind.qualname == "copyreg.__newobj__":
-                return constructor_arguments, copyreg.__newobj__
-            else:
-                return constructor_arguments, copyreg.__newobj_ex__
+            return constructor_arguments, callable_constructor
 
         if is_reconstructor and is_user_type:
             constructor_arguments = self.reduce_value[1]

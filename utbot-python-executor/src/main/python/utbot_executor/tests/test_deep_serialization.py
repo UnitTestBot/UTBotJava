@@ -1,6 +1,7 @@
 import collections
 import dataclasses
 import datetime
+import importlib.metadata
 import json
 import re
 import sys
@@ -361,6 +362,10 @@ def test_strategy(obj: typing.Any, strategy: str):
                     "collections",
                     "collections.abc",
                 ],
+        ),
+        (
+                importlib.metadata.SelectableGroups([["1", "2"]]),
+                ["tests.test_deep_serialization", "importlib.metadata"],
         ),
     ],
 )

@@ -76,14 +76,21 @@ def get_constructor_kind(py_object: object) -> TypeInfo:
     return TypeInfo(module, qualname)
 
 
-def get_constructor_info(constructor: object) -> TypeInfo:
+def get_constructor_info(constructor: object, obj: object) -> TypeInfo:
     if constructor == object.__init__:
-        return TypeInfo("builtins", "object.__new__")
-    if constructor == object.__new__:
-        return TypeInfo("builtins", "object.__new__")
-    if constructor is None:
-        return TypeInfo("types", "NoneType")
-    return TypeInfo(constructor.__module__, constructor.__qualname__)
+        result = TypeInfo("builtins", "object.__new__")
+    elif constructor == object.__new__:
+        result = TypeInfo("builtins", "object.__new__")
+    elif constructor.__module__ is None:
+        result = TypeInfo("builtins", "object.__new__")
+    elif constructor is None:
+        result = TypeInfo("types", "NoneType")
+    else:
+        result = TypeInfo(constructor.__module__, constructor.__qualname__)
+
+    if result.kind == "object.__new__" and obj.__new__.__module__ is None:
+        result = TypeInfo(obj.__module__, f"{obj.__class__.__name__}.__new__")
+    return result
 
 
 def has_reduce(py_object: object) -> bool:

@@ -177,7 +177,7 @@ class AbstractsObjectValueProvider(
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
         val t = try {
             Scene.v().getRefType(type.classId.name).sootClass
-        } catch (ignore: NoClassDefFoundError) {
+        } catch (ignore: Throwable) {
             logger.error(ignore) { "Soot may be not initialized" }
             return@sequence
         }

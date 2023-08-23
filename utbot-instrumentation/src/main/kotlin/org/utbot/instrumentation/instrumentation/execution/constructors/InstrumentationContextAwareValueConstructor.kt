@@ -52,6 +52,7 @@ import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockContro
 import org.utbot.instrumentation.instrumentation.execution.mock.MockController
 import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Modifier
+import java.lang.reflect.TypeVariable
 import java.security.AccessController
 import java.security.PrivilegedAction
 import java.util.*
@@ -280,22 +281,25 @@ class InstrumentationContextAwareValueConstructor(
 
     private val dynamicMockModelToDepth = mutableMapOf<UtCompositeModel, Int>()
 
-    private fun generateNewAnswerModel(executableId: ExecutableId, depth: Int) =
-        executableId.returnType.defaultValueModel().takeUnless { it.isNull() } ?: when {
+    private fun generateNewAnswerModel(methodId: MethodId, depth: Int) =
+        methodId.returnType.defaultValueModel().takeUnless { it.isNull() } ?: when {
+            // use `null` to avoid false positive `ClassCastException`
+            methodId.method.genericReturnType is TypeVariable<*> -> UtNullModel(methodId.returnType)
+
             // mockito can't mock `String` and `Class`
-            executableId.returnType == stringClassId -> UtNullModel(stringClassId)
-            executableId.returnType == classClassId -> UtClassRefModel(
+            methodId.returnType == stringClassId -> UtNullModel(stringClassId)
+            methodId.returnType == classClassId -> UtClassRefModel(
                 id = idGenerator.createId(),
                 classId = classClassId,
                 value = classClassId,
             )
-            depth > MAX_DYNAMIC_MOCK_DEPTH -> UtNullModel(executableId.classId)
+            depth > MAX_DYNAMIC_MOCK_DEPTH -> UtNullModel(methodId.classId)
 
             else -> UtCompositeModel(
                 id = idGenerator.createId(),
                 // TODO mockito can't mock sealed interfaces,
                 //  we have to mock their implementations or use null
-                classId = executableId.returnType,
+                classId = methodId.returnType,
                 isMock = true,
                 canHaveRedundantOrMissingMocks = true,
             ).also { dynamicMockModelToDepth[it] = depth + 1 }

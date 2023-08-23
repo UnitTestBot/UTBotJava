@@ -69,6 +69,17 @@ object SpringModelUtils {
             )
         }
 
+    val flushMethodIdOrNull: MethodId?
+        get() {
+            return MethodId(
+                classId = entityManagerClassIds.firstOrNull() ?: return null,
+                name = "flush",
+                returnType = voidClassId,
+                parameters = listOf(),
+                bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+            )
+        }
+
     val detachMethodIdOrNull: MethodId?
         get() {
             return MethodId(
@@ -376,9 +387,10 @@ object SpringModelUtils {
         val headersContentModel = createHeadersContentModel(methodId, arguments, idGenerator)
         requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
 
-        val cookieValuesModel = createCookieValuesModel(methodId, arguments, idGenerator)
-        requestBuilderModel =
-            addCookiesToRequestBuilderModel(cookieValuesModel, requestBuilderModel, idGenerator)
+//      // TODO uncomment when #2542 is fixed
+//        val cookieValuesModel = createCookieValuesModel(methodId, arguments, idGenerator)
+//        requestBuilderModel =
+//            addCookiesToRequestBuilderModel(cookieValuesModel, requestBuilderModel, idGenerator)
 
         val requestAttributes = collectArgumentsWithAnnotationModels(methodId, requestAttributesClassId, arguments)
         requestBuilderModel =

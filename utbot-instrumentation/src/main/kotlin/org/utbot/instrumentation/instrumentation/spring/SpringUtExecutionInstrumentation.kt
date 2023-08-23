@@ -10,17 +10,19 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.process.generated.GetSpringRepositoriesResult
+import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
+import org.utbot.instrumentation.process.generated.TryLoadingSpringContextResult
+import org.utbot.rd.IdleWatchdog
 import org.utbot.spring.api.SpringApi
 import java.io.File
 import java.net.URL
@@ -147,6 +149,24 @@ class SpringUtExecutionInstrumentation(
         } else {
             null
         }
+    }
+
+    override fun InstrumentedProcessModel.setupAdditionalRdResponses(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
+        watchdog.measureTimeForActiveCall(getSpringBean, "Getting Spring bean") { params ->
+            val springUtExecutionInstrumentation = instrumentation as SpringUtExecutionInstrumentation
+            val beanModel = springUtExecutionInstrumentation.getBeanModel(params.beanName, pathsToUserClasses)
+            GetSpringBeanResult(kryoHelper.writeObject(beanModel))
+        }
+        watchdog.measureTimeForActiveCall(getRelevantSpringRepositories, "Getting Spring repositories") { params ->
+            val classId: ClassId = kryoHelper.readObject(params.classId)
+            val repositoryDescriptions = getRepositoryDescriptions(classId)
+            GetSpringRepositoriesResult(kryoHelper.writeObject(repositoryDescriptions))
+        }
+        watchdog.measureTimeForActiveCall(tryLoadingSpringContext, "Trying to load Spring application context") { params ->
+            val contextLoadingResult = tryLoadingSpringContext()
+            TryLoadingSpringContextResult(kryoHelper.writeObject(contextLoadingResult))
+        }
+        delegateInstrumentation.run { setupAdditionalRdResponses(kryoHelper, watchdog) }
     }
 
     class Factory(

@@ -39,6 +39,8 @@ class PythonGenerateTestsCommand : CliktCommand(
         help = "File with Python code to generate tests for."
     )
 
+    private fun absSourceFile() = sourceFile.toAbsolutePath()
+
     private val pythonClass by option(
         "-c", "--class",
         help = "Specify top-level (ordinary, not nested) class under test. " +
@@ -132,7 +134,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                 Success(
                     topLevelFunctions
                         .mapNotNull { parseFunctionDefinition(it) }
-                        .map { PythonMethodHeader(it.name.toString(), sourceFile, null) }
+                        .map { PythonMethodHeader(it.name.toString(), absSourceFile(), null) }
                 )
             else {
                 val topLevelClassMethods = topLevelClasses
@@ -142,7 +144,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                             .mapNotNull { parseFunctionDefinition(it) }
                             .map { function ->
                                 val parsedClassName = PythonClassId(cls.name.toString())
-                                PythonMethodHeader(function.name.toString(), sourceFile, parsedClassName)
+                                PythonMethodHeader(function.name.toString(), absSourceFile(), parsedClassName)
                             }
                     }
                 if (topLevelClassMethods.isNotEmpty()) {
@@ -154,7 +156,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             val pythonMethodsOpt = selectedMethods.map { functionName ->
                 topLevelFunctions
                     .mapNotNull { parseFunctionDefinition(it) }
-                    .map { PythonMethodHeader(it.name.toString(), sourceFile, null) }
+                    .map { PythonMethodHeader(it.name.toString(), absSourceFile(), null) }
                     .find { it.name == functionName }
                     ?.let { Success(it) }
                     ?: Fail("Couldn't find top-level function $functionName in the source file.")
@@ -174,7 +176,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             val fineMethods = methods
                 .filter { !forbiddenMethods.contains(it.name.toString()) }
                 .map {
-                    PythonMethodHeader(it.name.toString(), sourceFile, parsedClassId)
+                    PythonMethodHeader(it.name.toString(), absSourceFile(), parsedClassId)
                 }
             if (fineMethods.isNotEmpty())
                 Success(fineMethods)
@@ -201,8 +203,8 @@ class PythonGenerateTestsCommand : CliktCommand(
 
     @Suppress("UNCHECKED_CAST")
     private fun calculateValues(): Optional<Unit> {
-        val currentPythonModuleOpt = findCurrentPythonModule(directoriesForSysPath, sourceFile)
-        sourceFileContent = File(sourceFile).readText()
+        val currentPythonModuleOpt = findCurrentPythonModule(directoriesForSysPath, absSourceFile())
+        sourceFileContent = File(absSourceFile()).readText()
         val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods() }
 
         return bind(pack(currentPythonModuleOpt, pythonMethodsOpt)) {
@@ -232,7 +234,7 @@ class PythonGenerateTestsCommand : CliktCommand(
 
         val config = PythonTestGenerationConfig(
             pythonPath = pythonPath,
-            testFileInformation = TestFileInformation(sourceFile.toAbsolutePath(), sourceFileContent, currentPythonModule.dropInitFile()),
+            testFileInformation = TestFileInformation(absSourceFile(), sourceFileContent, currentPythonModule.dropInitFile()),
             sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
             testedMethods = pythonMethods,
             timeout = timeout,

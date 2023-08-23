@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copyreg
 import inspect
 import logging
 import re
@@ -202,6 +203,8 @@ class ReduceMemoryObject(MemoryObject):
             constructor_arguments, callable_constructor = self.constructor_builder()
 
             self.constructor = get_constructor_info(callable_constructor)
+            logging.debug("Object: %s", self.obj)
+            logging.debug("Type: %s", type(self.obj))
             logging.debug("Constructor: %s", callable_constructor)
             logging.debug("Constructor info: %s", self.constructor)
             logging.debug("Constructor args: %s", constructor_arguments)
@@ -264,7 +267,15 @@ class ReduceMemoryObject(MemoryObject):
         if is_newobj:
             constructor_arguments = self.reduce_value[1]
             callable_constructor = getattr(obj_type, "__new__")
-            return constructor_arguments, callable_constructor
+            try:
+                if callable_constructor.__module__ == self.obj.__class__.__module__:
+                    return constructor_arguments, callable_constructor
+            except Exception:
+                pass
+            if constructor_kind.qualname == "copyreg.__newobj__":
+                return constructor_arguments, copyreg.__newobj__
+            else:
+                return constructor_arguments, copyreg.__newobj_ex__
 
         if is_reconstructor and is_user_type:
             constructor_arguments = self.reduce_value[1]

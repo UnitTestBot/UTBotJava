@@ -1,6 +1,7 @@
 from __future__ import annotations
 import dataclasses
 import importlib
+import logging
 import pickle
 from typing import NewType
 
@@ -13,6 +14,12 @@ PythonId = NewType("PythonId", str)
 class TypeInfo:
     module: str
     kind: str
+
+    def __init__(self, module: str, kind: str):
+        if module is None:
+            logging.error("Module is None")
+        self.module = module
+        self.kind = kind
 
     @property
     def qualname(self):

@@ -55,6 +55,9 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
+import org.utbot.framework.plugin.api.mapper.map
+import org.utbot.framework.plugin.api.mapper.mapPreservingType
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootMethod
@@ -767,7 +770,7 @@ abstract class UtCustomModel(
     modelName: String = id.toString(),
     override val origin: UtCompositeModel? = null,
 ) : UtModelWithCompositeOrigin(id, classId, modelName, origin) {
-    abstract val dependencies: Collection<UtModel>
+    abstract fun shallowMap(mapper: UtModelMapper): UtCustomModel
 }
 
 object UtSpringContextModel : UtCustomModel(
@@ -775,7 +778,7 @@ object UtSpringContextModel : UtCustomModel(
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
 ) {
-    override val dependencies: Collection<UtModel> get() = emptySet()
+    override fun shallowMap(mapper: UtModelMapper) = this
 
     // NOTE that overriding equals is required just because without it
     // we will lose equality for objects after deserialization
@@ -789,7 +792,7 @@ class UtSpringEntityManagerModel : UtCustomModel(
     classId = SpringModelUtils.entityManagerClassIds.first(),
     modelName = "entityManager"
 ) {
-    override val dependencies: Collection<UtModel> get() = emptySet()
+    override fun shallowMap(mapper: UtModelMapper) = this
 
     // NOTE that overriding equals is required just because without it
     // we will lose equality for objects after deserialization
@@ -820,7 +823,10 @@ data class UtSpringMockMvcResultActionsModel(
     id = id,
     modelName = "mockMvcResultActions@$id"
 ) {
-    override val dependencies: Collection<UtModel> get() = emptySet()
+    override fun shallowMap(mapper: UtModelMapper) = copy(
+        origin = origin?.mapPreservingType<UtCompositeModel>(mapper),
+        model = model?.map(mapper)
+    )
 }
 
 /**

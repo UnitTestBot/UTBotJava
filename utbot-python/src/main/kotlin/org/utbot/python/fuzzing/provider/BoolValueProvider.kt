@@ -9,13 +9,12 @@ import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 
 object BoolValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription>{
     override fun accept(type: UtType): Boolean {
-        return type.pythonTypeName() == pythonBoolClassId.canonicalName || type.isAny()
+        return type.pythonTypeName() == pythonBoolClassId.canonicalName
     }
 
     override fun generate(description: PythonMethodDescription, type: UtType) = sequence {

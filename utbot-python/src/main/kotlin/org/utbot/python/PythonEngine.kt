@@ -20,8 +20,13 @@ import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.inference.InvalidTypeFeedback
+import org.utbot.python.newtyping.inference.SuccessFeedback
+import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.utils.ExecutionWithTimoutMode
+import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
@@ -120,6 +125,7 @@ class PythonEngine(
         )
         return ValidExecution(utFuzzedExecution)
     }
+
     private fun handleSuccessResult(
         arguments: List<PythonFuzzedValue>,
         types: List<UtType>,
@@ -203,8 +209,7 @@ class PythonEngine(
             .filterNot { it.startsWith(moduleToImport) }
         val localAdditionalModules = (additionalModules + argumentModules + moduleToImport).toSet()
 
-        val (thisObject, modelList) =
-            if (methodUnderTest.hasThisArgument)
+        val (thisObject, modelList) = if (methodUnderTest.hasThisArgument)
                 Pair(argumentValues[0], argumentValues.drop(1))
             else
                 Pair(null, argumentValues)
@@ -219,11 +224,13 @@ class PythonEngine(
             return when (val evaluationResult =
                 manager.runWithCoverage(functionArguments, localAdditionalModules, coverageId)) {
                 is PythonEvaluationError -> {
+                    val stackTraceMessage = evaluationResult.stackTrace.joinToString("\n")
                     val utError = UtError(
-                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
-                        Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}\n${stackTraceMessage}",
+                        Throwable(stackTraceMessage)
                     )
-                    logger.debug(evaluationResult.stackTrace.joinToString("\n"))
+                    description.limitManager.addInvalidExecution()
+                    logger.debug(stackTraceMessage)
                     PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
                 }
 
@@ -237,33 +244,39 @@ class PythonEngine(
                             Trie.emptyNode()
                         else
                             description.tracer.add(coveredInstructions)
+                    description.limitManager.addInvalidExecution()
                     PythonExecutionResult(
                         utTimeoutException,
-                        PythonFeedback(control = Control.PASS, result = trieNode)
+                        PythonFeedback(control = Control.PASS, result = trieNode, SuccessFeedback)
                     )
                 }
 
                 is PythonEvaluationSuccess -> {
                     val coveredInstructions = evaluationResult.coverage.coveredInstructions
 
-                    when (val result = handleSuccessResult(
+                     val result = handleSuccessResult(
                         arguments,
                         parameters,
                         evaluationResult,
                         description,
-                    )) {
+                     )
+                    val typeInferenceFeedback = if (result is ValidExecution) SuccessFeedback else InvalidTypeFeedback
+                    when (result) {
                         is ValidExecution -> {
                             val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
+                            description.limitManager.addSuccessExecution()
                             PythonExecutionResult(
                                 result,
-                                PythonFeedback(control = Control.CONTINUE, result = trieNode)
+                                PythonFeedback(Control.CONTINUE, trieNode, typeInferenceFeedback)
                             )
                         }
                         is InvalidExecution -> {
-                            PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
+                            description.limitManager.addInvalidExecution()
+                            PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE, typeInferenceFeedback = typeInferenceFeedback))
                         }
                         else -> {
-                            PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
+                            description.limitManager.addInvalidExecution()
+                            PythonExecutionResult(result, PythonFeedback(control = Control.PASS, typeInferenceFeedback = typeInferenceFeedback))
                         }
                     }
                 }
@@ -274,7 +287,12 @@ class PythonEngine(
         }
     }
 
-    fun fuzzing(parameters: List<UtType>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
+    fun fuzzing(
+        parameters: List<UtType>,
+        typeInferenceAlgorithm: BaselineAlgorithm,
+        isCancelled: () -> Boolean,
+        until: Long
+    ): Flow<FuzzingExecutionFeedback> = flow {
         ServerSocket(0).use { serverSocket ->
             logger.debug { "Server port: ${serverSocket.localPort}" }
             val manager = try {
@@ -295,6 +313,8 @@ class PythonEngine(
                 pythonTypeStorage,
                 Trie(Instruction::id),
                 Random(0),
+                TestGenerationLimitManager(ExecutionWithTimoutMode, until, isRootManager = true),
+                methodUnderTest.definition.type,
             )
 
             try {
@@ -305,7 +325,7 @@ class PythonEngine(
                     }
                 } else {
                     try {
-                        PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
+                        PythonFuzzing(pythonTypeStorage, typeInferenceAlgorithm) { description, arguments ->
                             if (isCancelled()) {
                                 logger.debug { "Fuzzing process was interrupted" }
                                 manager.disconnect()
@@ -319,6 +339,7 @@ class PythonEngine(
 
                             if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
                                 logger.debug { "FakeNode in Python model" }
+                                description.limitManager.addFakeNodeExecutions()
                                 emit(FakeNodeFeedback)
                                 return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                             }
@@ -327,6 +348,7 @@ class PythonEngine(
                             val mem = cache.get(pair)
                             if (mem != null) {
                                 logger.debug("Repeat in fuzzing")
+                                description.limitManager.addSuccessExecution()
                                 emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
                                 return@PythonFuzzing mem.fuzzingPlatformFeedback
                             }

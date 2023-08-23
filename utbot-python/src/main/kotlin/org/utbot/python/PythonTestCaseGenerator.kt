@@ -15,8 +15,6 @@ import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.*
 import org.utbot.python.newtyping.inference.InferredTypeFeedback
-import org.utbot.python.newtyping.inference.InvalidTypeFeedback
-import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
@@ -24,7 +22,7 @@ import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.newtyping.utils.isRequired
-import org.utbot.python.utils.ExecutionWithTimeoutMode
+import org.utbot.python.utils.ExecutionWithTimoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.PriorityCartesianProduct
 import org.utbot.python.utils.TimeoutMode
@@ -134,7 +132,7 @@ class PythonTestCaseGenerator(
         additionalVars: String = "",
     ): Set<Int>? {  // returns missing lines
         val limitManager = TestGenerationLimitManager(
-            ExecutionWithTimeoutMode,
+            TimeoutMode,
             until,
         )
         var missingLines = initMissingLines
@@ -150,52 +148,65 @@ class PythonTestCaseGenerator(
                 PythonFuzzedConcreteValue(type, value)
             }
 
-        inferAnnotations(
+        val engine = PythonEngine(
             method,
-            mypyStorage,
+            directoriesForSysPath,
+            curModule,
+            pythonPath,
+            constants,
+            timeoutForRun,
+            PythonTypeHintsStorage.get(mypyStorage)
+        )
+        val namesInModule = mypyStorage.names
+            .getOrDefault(curModule, emptyList())
+            .map { it.name }
+            .filter {
+                it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
+            }
+
+        val algo = BaselineAlgorithm(
             typeStorage,
-            hintCollector,
-            mypyReportLine,
-            limitManager,
-            additionalVars
-        ) { functionType ->
-            val args = (functionType as FunctionType).arguments
+            hintCollector.result,
+            pythonPath,
+            method,
+            directoriesForSysPath,
+            curModule,
+            namesInModule,
+            getErrorNumber(
+                mypyReportLine,
+                fileOfMethod,
+                getOffsetLine(sourceFileContent, method.ast.beginOffset),
+                getOffsetLine(sourceFileContent, method.ast.endOffset)
+            ),
+            mypyStorage.buildRoot.configFile,
+            additionalVars,
+            randomTypeFrequency = RANDOM_TYPE_FREQUENCY
+        )
 
-            logger.debug { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
+        val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
 
-            val engine = PythonEngine(
-                method,
-                directoriesForSysPath,
-                curModule,
-                pythonPath,
-                constants,
-                timeoutForRun,
-                PythonTypeHintsStorage.get(mypyStorage)
-            )
-
-            var feedback: InferredTypeFeedback = SuccessFeedback
-
-            val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
-
-            engine.fuzzing(args, fuzzerCancellation, until).collect {
+        val initFunctionType = method.definition.type.arguments
+        runBlocking {
+            engine.fuzzing(
+                initFunctionType,
+                algo,
+                fuzzerCancellation,
+                until
+            ).collect {
                 when (it) {
                     is ValidExecution -> {
                         executions += it.utFuzzedExecution
                         missingLines = updateMissingLines(it.utFuzzedExecution, coveredLines, missingLines)
-                        feedback = SuccessFeedback
                         limitManager.addSuccessExecution()
                     }
                     is InvalidExecution -> {
                         errors += it.utError
-                        feedback = InvalidTypeFeedback
                         limitManager.addInvalidExecution()
                     }
                     is ArgumentsTypeErrorFeedback -> {
-                        feedback = InvalidTypeFeedback
                         limitManager.addInvalidExecution()
                     }
                     is TypeErrorFeedback -> {
-                        feedback = InvalidTypeFeedback
                         limitManager.addInvalidExecution()
                     }
                     is CachedExecutionFeedback -> {
@@ -209,14 +220,13 @@ class PythonTestCaseGenerator(
                         }
                     }
                     is FakeNodeFeedback -> {
-                       limitManager.addFakeNodeExecutions()
+                        limitManager.addFakeNodeExecutions()
                     }
                 }
                 limitManager.missedLines = missingLines?.size
             }
-            limitManager.restart()
-            feedback
         }
+
         return missingLines
     }
 
@@ -311,6 +321,7 @@ class PythonTestCaseGenerator(
 
         val algo = BaselineAlgorithm(
             typeStorage,
+            hintCollector.result,
             pythonPath,
             method,
             directoriesForSysPath,
@@ -333,7 +344,7 @@ class PythonTestCaseGenerator(
                 return@breaking
             }
 
-            val iterationNumber = algo.run(hintCollector.result, typeInferenceCancellation, annotationHandler)
+            val iterationNumber = algo.run(typeInferenceCancellation, annotationHandler)
 
             if (iterationNumber == 1) {  // Initial annotation can't be substituted
                 limitManager.mode = TimeoutMode

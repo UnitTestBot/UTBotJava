@@ -109,14 +109,6 @@ class SpringUtExecutionInstrumentation(
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
     }
 
-    fun getBeanModel(beanName: String, classpathToConstruct: Set<String>): UtModel {
-        val bean = springApi.getBean(beanName)
-        return UtModelConstructor.createOnlyUserClassesConstructor(
-            pathsToUserClasses = classpathToConstruct,
-            utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
-        ).construct(bean, bean::class.java.id)
-    }
-
     fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
         val relevantBeanNames = getRelevantBeans(classId.jClass)
         val repositoryDescriptions = springApi.resolveRepositories(relevantBeanNames.toSet(), userSourcesClassLoader)
@@ -152,11 +144,6 @@ class SpringUtExecutionInstrumentation(
     }
 
     override fun InstrumentedProcessModel.setupAdditionalRdResponses(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
-        watchdog.measureTimeForActiveCall(getSpringBean, "Getting Spring bean") { params ->
-            val springUtExecutionInstrumentation = instrumentation as SpringUtExecutionInstrumentation
-            val beanModel = springUtExecutionInstrumentation.getBeanModel(params.beanName, pathsToUserClasses)
-            GetSpringBeanResult(kryoHelper.writeObject(beanModel))
-        }
         watchdog.measureTimeForActiveCall(getRelevantSpringRepositories, "Getting Spring repositories") { params ->
             val classId: ClassId = kryoHelper.readObject(params.classId)
             val repositoryDescriptions = getRepositoryDescriptions(classId)

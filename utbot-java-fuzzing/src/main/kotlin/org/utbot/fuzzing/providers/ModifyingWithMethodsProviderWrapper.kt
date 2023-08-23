@@ -12,6 +12,14 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Scope
 import org.utbot.fuzzing.Seed
 
+/**
+ * Value provider that is a buddy for another provider
+ * that keeps all it's functionality and also allows
+ * to use methods to mutate field states of an object.
+ *
+ * NOTE!!!
+ * Instances represented by [UtAssembleModel] only can be mutated with methods.
+ */
 class ModifyingWithMethodsProviderWrapper(
     private val classUnderTest: ClassId,
     private val delegate: JavaValueProvider

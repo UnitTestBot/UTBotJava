@@ -19,9 +19,16 @@ java {
 
 dependencies {
     implementation(project(":utbot-spring-commons-api"))
-    implementation(project(":utbot-core"))
 
-    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
+
+    // these dependencies are compilieOnly, because they should
+    // already be present on the classpath in all utbot processes
+    compileOnly(project(":utbot-core"))
+    compileOnly("com.jetbrains.rd:rd-core:$rdVersion") { exclude(group = "org.slf4j", module = "slf4j-api") }
+
+
+    // these dependencies are compilieOnly, because they should
+    // be picked up from user classpath if they are present there
     compileOnly("org.springframework.boot:spring-boot:$springBootVersion")
     compileOnly("org.springframework.boot:spring-boot-test-autoconfigure:$springBootVersion")
     compileOnly("org.springframework:spring-test:$springVersion")
@@ -32,8 +39,6 @@ dependencies {
 
     compileOnly("javax.persistence:javax.persistence-api:$javaxVersion")
     compileOnly("jakarta.persistence:jakarta.persistence-api:$jakartaVersion")
-
-    implementation("com.jetbrains.rd:rd-core:$rdVersion") { exclude(group = "org.slf4j", module = "slf4j-api") }
 }
 
 tasks.shadowJar {

@@ -22,6 +22,7 @@ import org.utbot.instrumentation.instrumentation.execution.context.Instrumentati
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
 import org.utbot.spring.api.SpringApi
+import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
 import java.security.ProtectionDomain
@@ -50,6 +51,14 @@ class SpringUtExecutionInstrumentation(
     companion object {
         private val logger = getLogger<SpringUtExecutionInstrumentation>()
         private const val SPRING_COMMONS_JAR_FILENAME = "utbot-spring-commons-shadow.jar"
+
+        val springCommonsJar: File by lazy {
+            JarUtils.extractJarFileFromResources(
+                jarFileName = SPRING_COMMONS_JAR_FILENAME,
+                jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
+                targetDirectoryName = "spring-commons"
+            )
+        }
     }
 
     fun tryLoadingSpringContext(): ConcreteContextLoadingResult {
@@ -147,11 +156,7 @@ class SpringUtExecutionInstrumentation(
         private val buildDirs: Array<URL>,
     ) : UtExecutionInstrumentation.Factory<SpringUtExecutionInstrumentation> {
         override val additionalRuntimeClasspath: Set<String>
-            get() = super.additionalRuntimeClasspath + JarUtils.extractJarFileFromResources(
-                jarFileName = SPRING_COMMONS_JAR_FILENAME,
-                jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
-                targetDirectoryName = "spring-commons"
-            ).path
+            get() = super.additionalRuntimeClasspath + springCommonsJar.path
 
         // TODO may be we can use some alternative sandbox that has more permissions
         //  (at the very least we need `ReflectPermission("suppressAccessChecks")`

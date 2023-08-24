@@ -193,12 +193,13 @@ object SpringModelUtils {
         parameters = listOf(httpHeaderClassId)
     )
 
-    private val mockHttpServletCookieMethodId = MethodId(
-        classId = mockHttpServletRequestBuilderClassId,
-        name = "cookie",
-        returnType = mockHttpServletRequestBuilderClassId,
-        parameters = listOf(getArrayClassIdByElementClassId(cookieClassId))
-    )
+//    // TODO uncomment when #2542 is fixed
+//    private val mockHttpServletCookieMethodId = MethodId(
+//        classId = mockHttpServletRequestBuilderClassId,
+//        name = "cookie",
+//        returnType = mockHttpServletRequestBuilderClassId,
+//        parameters = listOf(getArrayClassIdByElementClassId(cookieClassId))
+//    )
 
     private val mockHttpServletContentTypeMethodId = MethodId(
         classId = mockHttpServletRequestBuilderClassId,
@@ -467,28 +468,29 @@ object SpringModelUtils {
         return requestBuilderModel
     }
 
-    private fun addCookiesToRequestBuilderModel(
-        cookieValuesModel: UtArrayModel,
-        requestBuilderModel: UtAssembleModel,
-        idGenerator: () -> Int
-    ): UtAssembleModel {
-        @Suppress("NAME_SHADOWING")
-        var requestBuilderModel = requestBuilderModel
-
-        if(cookieValuesModel.length > 0) {
-            requestBuilderModel = UtAssembleModel(
-                id = idGenerator(),
-                classId = mockHttpServletRequestBuilderClassId,
-                modelName = "requestBuilder",
-                instantiationCall = UtExecutableCallModel(
-                    instance = requestBuilderModel,
-                    executable = mockHttpServletCookieMethodId,
-                    params = listOf(cookieValuesModel)
-                )
-            )
-        }
-        return requestBuilderModel
-    }
+//    // TODO uncomment when #2542 is fixed
+//    private fun addCookiesToRequestBuilderModel(
+//        cookieValuesModel: UtArrayModel,
+//        requestBuilderModel: UtAssembleModel,
+//        idGenerator: () -> Int
+//    ): UtAssembleModel {
+//        @Suppress("NAME_SHADOWING")
+//        var requestBuilderModel = requestBuilderModel
+//
+//        if(cookieValuesModel.length > 0) {
+//            requestBuilderModel = UtAssembleModel(
+//                id = idGenerator(),
+//                classId = mockHttpServletRequestBuilderClassId,
+//                modelName = "requestBuilder",
+//                instantiationCall = UtExecutableCallModel(
+//                    instance = requestBuilderModel,
+//                    executable = mockHttpServletCookieMethodId,
+//                    params = listOf(cookieValuesModel)
+//                )
+//            )
+//        }
+//        return requestBuilderModel
+//    }
 
     private fun addHeadersToRequestBuilderModel(
         headersContentModel: UtAssembleModel,

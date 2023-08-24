@@ -287,7 +287,7 @@ internal fun findMethodsToModifyWith(
 
     val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
     val modifyingMethods = findModifyingMethodNames(methodUnderTestName, valueClassId, classUnderTest)
-    return valueClassId.jClass.declaredMethods.mapNotNull { method ->
+    return valueClassId.jClass.methods.mapNotNull { method ->
         if (isAccessible(method, packageName)) {
             if (method.name !in modifyingMethods) return@mapNotNull null
             if (method.genericParameterTypes.any { it is TypeVariable<*> }) return@mapNotNull null

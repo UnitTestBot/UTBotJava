@@ -8,12 +8,18 @@ import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.plugin.api.UtConcreteExecutionProcessedFailure
+import org.utbot.framework.plugin.api.isNull
+import org.utbot.framework.plugin.api.util.SpringModelUtils.mockMvcPerformMethodId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
@@ -78,6 +84,18 @@ class SpringUtExecutionInstrumentation(
         parameters: Any?,
         phasesWrapper: PhasesController.(invokeBasePhases: () -> PreliminaryUtConcreteExecutionResult) -> PreliminaryUtConcreteExecutionResult
     ): UtConcreteExecutionResult = synchronized(this) {
+        if (parameters !is UtConcreteExecutionData) {
+            throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
+        }
+        if (parameters.stateBefore.executableToCall == mockMvcPerformMethodId && parameters.stateBefore.parameters.single().isNull())
+            return UtConcreteExecutionResult(
+                stateBefore = parameters.stateBefore,
+                stateAfter = MissingState,
+                result = UtConcreteExecutionProcessedFailure(IllegalStateException("requestBuilder can't be null")),
+                coverage = Coverage(),
+                detectedMockingCandidates = emptySet()
+            )
+
         getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             phasesWrapper {

@@ -28,12 +28,19 @@ class StopWatch {
             startTime = System.currentTimeMillis()
         }
     }
-    
-    fun stop() {
+
+    /**
+     * @param compensationMillis the duration in millis that should be subtracted from [elapsedMillis] to compensate
+     * for stopping and restarting [StopWatch] taking some time, can also be used to compensate for some activities,
+     * that are hard to directly detect (e.g. class loading).
+     *
+     * NOTE: [compensationMillis] will never cause [elapsedMillis] become negative.
+     */
+    fun stop(compensationMillis: Long = 0) {
         lock.withLockInterruptibly {
-            startTime?.let {
-                elapsedMillis += (System.currentTimeMillis() - it)
-                startTime = null
+            startTime?.let { startTime ->
+                elapsedMillis += ((System.currentTimeMillis() - startTime) - compensationMillis).coerceAtLeast(0)
+                this.startTime = null
             }
         }
     }

@@ -48,19 +48,15 @@ class SpringIntegrationTestJavaFuzzingContext(
         )
 
     override val valueProvider: JavaValueProvider =
-        springBeanValueProvider
-            .withModifyingMethodsBuddy()
-            .withFallback(modifyingMethodsBuddy(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = true)))
+        springBeanValueProvider.withModifyingMethodsBuddy()
+            .withFallback(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = true).withModifyingMethodsBuddy())
             .withFallback(EmailValueProvider())
             .withFallback(NotBlankStringValueProvider())
             .withFallback(NotEmptyStringValueProvider())
             .withFallback(
                 delegateContext.valueProvider
-                    .with(ObjectValueProvider(idGenerator))
-                    .withModifyingMethodsBuddy()
-                    .with(AbstractsObjectValueProvider(idGenerator))
-                    .with(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false))
-                    .withModifyingMethodsBuddy()
+                    .with(ObjectValueProvider(idGenerator).withModifyingMethodsBuddy())
+                    .with(ValidEntityValueProvider(idGenerator, onlyAcceptWhenValidIsRequired = false).withModifyingMethodsBuddy())
                     .with(createGeneratedFieldValueProviders(relevantRepositories, idGenerator))
                     .withFallback(AnyDepthNullValueProvider)
             )

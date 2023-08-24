@@ -105,6 +105,8 @@ class PhasesController(
             // here static methods and instances are mocked
             mock(parameters.instrumentation)
 
+            lastCaughtException?.let { instrumentationContext.handleLastCaughtConstructionException(it) }
+
             ConstructedData(params, statics, getCache())
         }
 

@@ -91,6 +91,9 @@ class InstrumentationContextAwareValueConstructor(
 
     val detectedMockingCandidates: MutableSet<MethodId> = mutableSetOf()
 
+    var lastCaughtException: Throwable? = null
+        private set
+
     // TODO: JIRA:1379 -- replace UtReferenceModel with Int
     private val constructedObjects = HashMap<UtReferenceModel, Any>()
 
@@ -532,7 +535,10 @@ class InstrumentationContextAwareValueConstructor(
             .also { result ->
                 result
                     .exceptionOrNull()
-                    ?.let { callModel.thrownConcreteException = it.javaClass.id }
+                    ?.let {
+                        lastCaughtException = it
+                        callModel.thrownConcreteException = it.javaClass.id
+                    }
             }
 
 

@@ -22,6 +22,7 @@ import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
@@ -287,23 +288,26 @@ internal fun findMethodsToModifyWith(
 
     val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
     val modifyingMethods = findModifyingMethodNames(methodUnderTestName, valueClassId, classUnderTest)
-    return valueClassId.jClass.methods.mapNotNull { method ->
-        if (isAccessible(method, packageName)) {
-            if (method.name !in modifyingMethods) return@mapNotNull null
-            if (method.genericParameterTypes.any { it is TypeVariable<*> }) return@mapNotNull null
+    return valueClassId.allMethods
+        .map { it.method }
+        .mapNotNull { method ->
+            if (isAccessible(method, packageName)) {
+                if (method.name !in modifyingMethods) return@mapNotNull null
+                if (method.genericParameterTypes.any { it is TypeVariable<*> }) return@mapNotNull null
 
-            val parameterTypes =
-                method
-                    .parameterTypes
-                    .map { toFuzzerType(it, description.typeCache) }
+                val parameterTypes =
+                    method
+                        .parameterTypes
+                        .map { toFuzzerType(it, description.typeCache) }
 
-            MethodDescription(
-                name = method.name,
-                parameterTypes = parameterTypes,
-                method = method
-            )
-        } else null
-    }
+                MethodDescription(
+                    name = method.name,
+                    parameterTypes = parameterTypes,
+                    method = method
+                )
+            } else null
+        }
+        .toList()
 }
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {

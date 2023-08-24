@@ -6,7 +6,13 @@ import soot.Unit
 import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JInstanceFieldRef
 
-enum class ModificationTransformationMode(val transformer: (Unit) -> FieldId?) {
+/**
+ * Describes the type of field involvement meaningful for the current analysis type.
+ * For example, we can be interested on modifications only or in read attempts too.
+ *
+ * @param projector shows the rule to collect a set of [FieldId]s from the statements
+ */
+enum class FieldInvolvementMode(val projector: (Unit) -> FieldId?) {
     WriteOnly(
         {
             when (it) {

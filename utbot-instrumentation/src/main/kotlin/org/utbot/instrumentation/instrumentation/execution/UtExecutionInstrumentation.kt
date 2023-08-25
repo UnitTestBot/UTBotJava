@@ -2,6 +2,8 @@ package org.utbot.instrumentation.instrumentation.execution
 
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
+import org.utbot.framework.plugin.api.mapper.mapModels
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
@@ -20,6 +22,11 @@ data class UtConcreteExecutionData(
     val stateBefore: EnvironmentModels,
     val instrumentation: List<UtInstrumentation>,
     val timeout: Long
+)
+
+fun UtConcreteExecutionData.mapModels(mapper: UtModelMapper) = copy(
+    stateBefore = stateBefore.mapModels(mapper),
+    instrumentation = instrumentation.map { it.mapModels(mapper) }
 )
 
 /**

@@ -135,6 +135,6 @@ data class CgMethodTestSet(
         return substituteExecutions(symbolicExecutionsWithoutMocking)
     }
 
-    private fun substituteExecutions(newExecutions: List<UtExecution>): CgMethodTestSet =
+    fun substituteExecutions(newExecutions: List<UtExecution>): CgMethodTestSet =
         copy().apply { executions = newExecutions }
 }

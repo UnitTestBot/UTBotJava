@@ -2,6 +2,9 @@ package org.utbot.instrumentation.instrumentation
 
 import java.lang.instrument.ClassFileTransformer
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.process.kryo.KryoHelper
+import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
+import org.utbot.rd.IdleWatchdog
 
 /**
  * Abstract class for the instrumentation.
@@ -26,6 +29,8 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
     ): TInvocationInstrumentation
 
     fun getStaticField(fieldId: FieldId): Result<*>
+
+    fun InstrumentedProcessModel.setupAdditionalRdResponses(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {}
 
     interface Factory<out TIResult, out TInstrumentation : Instrumentation<TIResult>> {
         val additionalRuntimeClasspath: Set<String> get() = emptySet()

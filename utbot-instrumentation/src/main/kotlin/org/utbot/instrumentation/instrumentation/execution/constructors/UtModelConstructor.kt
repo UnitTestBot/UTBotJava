@@ -53,7 +53,7 @@ class UtModelConstructor(
             )
             return UtModelConstructor(
                 objectToModelCache = cache,
-                idGenerator = StateBeforeAwareIdGenerator(preExistingModels = emptySet()),
+                idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
                 utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
                 compositeModelStrategy = strategy
             )

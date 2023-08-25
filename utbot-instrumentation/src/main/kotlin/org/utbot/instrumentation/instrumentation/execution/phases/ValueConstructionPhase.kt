@@ -43,6 +43,7 @@ class ValueConstructionPhase(
         idGenerator,
     )
     val detectedMockingCandidates: Set<MethodId> get() = constructor.detectedMockingCandidates
+    val lastCaughtException: Throwable? get() = constructor.lastCaughtException
 
     fun getCache(): ConstructedCache {
         return constructor.objectToModelCache

@@ -69,6 +69,17 @@ object SpringModelUtils {
             )
         }
 
+    val flushMethodIdOrNull: MethodId?
+        get() {
+            return MethodId(
+                classId = entityManagerClassIds.firstOrNull() ?: return null,
+                name = "flush",
+                returnType = voidClassId,
+                parameters = listOf(),
+                bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+            )
+        }
+
     val detachMethodIdOrNull: MethodId?
         get() {
             return MethodId(
@@ -182,12 +193,13 @@ object SpringModelUtils {
         parameters = listOf(httpHeaderClassId)
     )
 
-    private val mockHttpServletCookieMethodId = MethodId(
-        classId = mockHttpServletRequestBuilderClassId,
-        name = "cookie",
-        returnType = mockHttpServletRequestBuilderClassId,
-        parameters = listOf(getArrayClassIdByElementClassId(cookieClassId))
-    )
+//    // TODO uncomment when #2542 is fixed
+//    private val mockHttpServletCookieMethodId = MethodId(
+//        classId = mockHttpServletRequestBuilderClassId,
+//        name = "cookie",
+//        returnType = mockHttpServletRequestBuilderClassId,
+//        parameters = listOf(getArrayClassIdByElementClassId(cookieClassId))
+//    )
 
     private val mockHttpServletContentTypeMethodId = MethodId(
         classId = mockHttpServletRequestBuilderClassId,
@@ -376,9 +388,10 @@ object SpringModelUtils {
         val headersContentModel = createHeadersContentModel(methodId, arguments, idGenerator)
         requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
 
-        val cookieValuesModel = createCookieValuesModel(methodId, arguments, idGenerator)
-        requestBuilderModel =
-            addCookiesToRequestBuilderModel(cookieValuesModel, requestBuilderModel, idGenerator)
+//      // TODO uncomment when #2542 is fixed
+//        val cookieValuesModel = createCookieValuesModel(methodId, arguments, idGenerator)
+//        requestBuilderModel =
+//            addCookiesToRequestBuilderModel(cookieValuesModel, requestBuilderModel, idGenerator)
 
         val requestAttributes = collectArgumentsWithAnnotationModels(methodId, requestAttributesClassId, arguments)
         requestBuilderModel =
@@ -455,28 +468,29 @@ object SpringModelUtils {
         return requestBuilderModel
     }
 
-    private fun addCookiesToRequestBuilderModel(
-        cookieValuesModel: UtArrayModel,
-        requestBuilderModel: UtAssembleModel,
-        idGenerator: () -> Int
-    ): UtAssembleModel {
-        @Suppress("NAME_SHADOWING")
-        var requestBuilderModel = requestBuilderModel
-
-        if(cookieValuesModel.length > 0) {
-            requestBuilderModel = UtAssembleModel(
-                id = idGenerator(),
-                classId = mockHttpServletRequestBuilderClassId,
-                modelName = "requestBuilder",
-                instantiationCall = UtExecutableCallModel(
-                    instance = requestBuilderModel,
-                    executable = mockHttpServletCookieMethodId,
-                    params = listOf(cookieValuesModel)
-                )
-            )
-        }
-        return requestBuilderModel
-    }
+//    // TODO uncomment when #2542 is fixed
+//    private fun addCookiesToRequestBuilderModel(
+//        cookieValuesModel: UtArrayModel,
+//        requestBuilderModel: UtAssembleModel,
+//        idGenerator: () -> Int
+//    ): UtAssembleModel {
+//        @Suppress("NAME_SHADOWING")
+//        var requestBuilderModel = requestBuilderModel
+//
+//        if(cookieValuesModel.length > 0) {
+//            requestBuilderModel = UtAssembleModel(
+//                id = idGenerator(),
+//                classId = mockHttpServletRequestBuilderClassId,
+//                modelName = "requestBuilder",
+//                instantiationCall = UtExecutableCallModel(
+//                    instance = requestBuilderModel,
+//                    executable = mockHttpServletCookieMethodId,
+//                    params = listOf(cookieValuesModel)
+//                )
+//            )
+//        }
+//        return requestBuilderModel
+//    }
 
     private fun addHeadersToRequestBuilderModel(
         headersContentModel: UtAssembleModel,

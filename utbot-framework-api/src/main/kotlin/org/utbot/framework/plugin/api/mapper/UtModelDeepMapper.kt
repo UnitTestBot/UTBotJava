@@ -20,9 +20,11 @@ import org.utbot.framework.plugin.api.UtVoidModel
  *  - [shallowMapper] is invoked on models **before** mapping their sub models.
  *  - [shallowMapper] is responsible for caching own results (it may be called repeatedly on same models).
  */
-class UtModelDeepMapper(
+class UtModelDeepMapper private constructor(
     private val shallowMapper: UtModelMapper
 ) : UtModelMapper {
+    constructor(shallowMapper: (UtModel) -> UtModel) : this(UtModelSafeCastingCachingShallowMapper(shallowMapper))
+
     /**
      * Keys are models that have been shallowly mapped by [shallowMapper].
      * Values are models that have been deeply mapped by this [UtModelDeepMapper].
@@ -30,8 +32,8 @@ class UtModelDeepMapper(
      */
     private val cache = mutableMapOf<UtModel, UtModel>()
 
-    val allInputtedModels get() = cache.keys
-    val allOutputtedModels get() = cache.values
+    private val allInputtedModels get() = cache.keys
+    private val allOutputtedModels get() = cache.values
 
     override fun <T : UtModel> map(model: T, clazz: Class<T>): T =
         clazz.cast(mapNestedModels(shallowMapper.map(model, clazz)))
@@ -111,8 +113,11 @@ class UtModelDeepMapper(
         model.shallowMap(this)
 
     companion object {
-        fun fromSimpleShallowMapper(shallowMapper: (UtModel) -> UtModel) = UtModelDeepMapper(
-            UtModelSafeCastingCachingShallowMapper(shallowMapper)
-        )
+        /**
+         * Creates identity deep mapper, runs [block] on it, and returns the set of all models that
+         * were mapped (i.e. deeply collects all models reachable from models passed to `collector`).
+         */
+        fun collectAllModels(block: (collector: UtModelDeepMapper) -> Unit): Set<UtModel> =
+            UtModelDeepMapper(UtModelNoopMapper).also(block).allInputtedModels
     }
 }

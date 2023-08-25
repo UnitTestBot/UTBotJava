@@ -72,7 +72,7 @@ class RemovingConstructFailsUtExecutionInstrumentation(
                 if (res.result !is UtConcreteExecutionProcessedFailure)
                     return res
 
-                parameters = parameters.mapModels(UtModelDeepMapper.fromSimpleShallowMapper { model ->
+                parameters = parameters.mapModels(UtModelDeepMapper { model ->
                     shallowlyRemoveFailingCalls(model)
                 })
 

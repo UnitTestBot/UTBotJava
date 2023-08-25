@@ -24,6 +24,7 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper.Companion.collectAllModels
 import org.utbot.framework.plugin.api.util.IndentUtil.TAB
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.activeProfilesClassId
@@ -34,6 +35,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassI
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.extendWithClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.flushMethodIdOrNull
+import org.utbot.framework.plugin.api.util.SpringModelUtils.mockMvcClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.repositoryClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.runWithClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.springBootTestClassId
@@ -60,7 +62,7 @@ class CgSpringIntegrationTestClassConstructor(
 
     override fun construct(testClassModel: SimpleTestClassModel): CgClassFile = super.construct(
         flushMethodIdOrNull?.let { flushMethodId ->
-            testClassModel.mapStateBeforeModels { UtModelDeepMapper.fromSimpleShallowMapper { model ->
+            testClassModel.mapStateBeforeModels { UtModelDeepMapper { model ->
                 shallowlyAddFlushes(model, flushMethodId)
             } }
         } ?: testClassModel
@@ -235,9 +237,9 @@ class CgSpringIntegrationTestClassConstructor(
         if (utContext.classLoader.tryLoadClass(repositoryClassId.name) != null)
             addAnnotation(autoConfigureTestDbClassId, Class)
 
-        //TODO: revert a check that this annotation is really required
-        addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
-
+        val allStateBeforeModels = collectAllModels { collector -> testClassModel.mapStateBeforeModels { collector } }
+        if (allStateBeforeModels.any { it.classId == mockMvcClassId })
+            addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
 
         if (utContext.classLoader.tryLoadClass(withMockUserClassId.name) != null)
             addAnnotation(withMockUserClassId, Class)

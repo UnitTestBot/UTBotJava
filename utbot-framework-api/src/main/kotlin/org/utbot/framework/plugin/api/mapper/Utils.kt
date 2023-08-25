@@ -13,12 +13,6 @@ import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 
-fun collectNestedModels(topLevelModels: Iterable<UtModel>): MutableSet<UtModel> {
-    val deepMapper = UtModelDeepMapper(shallowMapper = UtModelNoopMapper)
-    topLevelModels.forEach { it.map(deepMapper) }
-    return deepMapper.allInputtedModels
-}
-
 inline fun <reified T : UtModel> T.mapPreservingType(mapper: UtModelMapper): T =
     mapper.map(this, T::class.java)
 

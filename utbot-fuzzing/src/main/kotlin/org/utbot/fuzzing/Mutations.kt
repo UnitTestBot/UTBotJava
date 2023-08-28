@@ -20,6 +20,17 @@ class MutationFactory<TYPE, RESULT> {
         val recursive: NodeMutation<TYPE, RESULT> = NodeMutation { n, r, c ->
             mutate(n, r, c, statistic)
         }
+
+        // Turn on mutations tuning in two cases:
+        // - if value rotation is turned on, and it's time according to runsPerValue and investigationPeriodPerValue
+        // - if value rotation is turned off, and it's time according to globalInvestigationPeriod and globalExploitationPeriod
+        val tuningMode =
+            configuration.rotateValues &&
+                            statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue ||
+                        !configuration.rotateValues &&
+                        statistic.totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) > configuration.globalInvestigationPeriod
+
+
         val mutated = when (val resultToMutate = node.result[indexOfMutatedResult]) {
             is Result.Simple<TYPE, RESULT> -> Result.Simple(
                 resultToMutate.mutation(resultToMutate.result, random),
@@ -28,18 +39,12 @@ class MutationFactory<TYPE, RESULT> {
             is Result.Known<TYPE, RESULT, *> -> {
                 val mutations = resultToMutate.value.mutations()
 
-                val mutationsEfficiencies = statistic.getMutationsEfficiencies()
+                val mutationsEfficiencies = statistic.getMutationsRatings(configuration)
                     .filter { (k, _) -> mutations.contains(k) } as Map<Mutation<KnownValue<*>>, Double>
 
-                val mutation = if (
+                val mutation = if (tuningMode &&
                     configuration.tuneKnownValueMutations &&
-                    (
-                        configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue ||
-                        !configuration.rotateValues &&
-                            statistic.totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) > configuration.globalInvestigationPeriod
-                    ) &&
-                    mutationsEfficiencies.isNotEmpty() &&
-                    mutationsEfficiencies.values.sum() >= 0
+                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() >= 0
                 ) {
                     mutationsEfficiencies.keys.toTypedArray()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
                 } else {
@@ -53,19 +58,11 @@ class MutationFactory<TYPE, RESULT> {
                 }
             }
             is Result.Recursive<TYPE, RESULT> -> {
-                val mutationsEfficiencies = statistic.getMutationsEfficiencies()
+                val mutationsEfficiencies = statistic.getMutationsRatings(configuration)
                     .filter { (k, _) -> k is RecursiveMutations<*, *> } as Map<RecursiveMutations<TYPE, RESULT>, Double>
 
-                val mutation = if (
-                    configuration.tuneRecursiveMutations &&
-                    (
-                            configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue ||
-                                    !configuration.rotateValues &&
-                                    statistic.totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) > configuration.globalInvestigationPeriod
-                            ) &&
-                    statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue &&
-                    mutationsEfficiencies.isNotEmpty() &&
-                    mutationsEfficiencies.values.sum() >= 0
+                val mutation = if (tuningMode && configuration.tuneRecursiveMutations &&
+                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() >= 0
                 ) {
                     mutationsEfficiencies.keys.toTypedArray()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
                 } else {
@@ -83,19 +80,11 @@ class MutationFactory<TYPE, RESULT> {
                 mutation.mutate(resultToMutate, recursive, random, configuration)
             }
             is Result.Collection<TYPE, RESULT> -> if (resultToMutate.modify.isNotEmpty()) {
-                val mutationsEfficiencies = statistic.getMutationsEfficiencies()
+                val mutationsEfficiencies = statistic.getMutationsRatings(configuration)
                     .filter { (k, _) -> k is CollectionMutations<*, *> } as Map<CollectionMutations<TYPE, RESULT>, Double>
 
-                val mutation = if (
-                    configuration.tuneCollectionMutations &&
-                    (
-                            configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue ||
-                                    !configuration.rotateValues &&
-                                    statistic.totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) > configuration.globalInvestigationPeriod
-                            ) &&
-                    mutationsEfficiencies.isNotEmpty() &&
-                    statistic.totalRuns % configuration.runsPerValue > configuration.investigationPeriodPerValue &&
-                    mutationsEfficiencies.values.sum() >= 0
+                val mutation = if (tuningMode && configuration.tuneCollectionMutations &&
+                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() >= 0
                 ) {
                     mutationsEfficiencies.keys.toList()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
                 } else {
@@ -114,6 +103,8 @@ class MutationFactory<TYPE, RESULT> {
             }
             is Result.Empty -> resultToMutate
         }
+
+
         return Node(node.result.toMutableList().apply {
             set(indexOfMutatedResult, mutated)
         }, node.parameters, node.builder)

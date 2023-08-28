@@ -9,7 +9,7 @@ data class Configuration(
 
     var tuneKnownValueMutations: Boolean = true,
     var tuneCollectionMutations: Boolean = true,
-    var tuneRecursiveMutations: Boolean = false,
+    var tuneRecursiveMutations: Boolean = true,
 
     /**
      * When true, fuzzer selects one value and runs it for [runsPerValue] times, first [investigationPeriodPerValue] of which
@@ -21,27 +21,22 @@ data class Configuration(
     /**
      * Number of iterations before mutations probabilities correction when [rotateValues] is false.
      */
-    var globalInvestigationPeriod: Long = 1000,
+    var globalInvestigationPeriod: Long = 100,
 
     /**
      * Number of iterations before dropping statistics when [rotateValues] is false.
      */
-    var globalExploitationPeriod: Long = 1500,
-
-    /**
-     * Configuration used by minset to accumulate and use statistics.
-     */
-    var minsetConfiguration: MinsetConfiguration = MinsetConfiguration(),
+    var globalExploitationPeriod: Long = 900,
 
     /**
      * Number of continuous iterations for each value when [rotateValues] is true.
      */
-    var runsPerValue: Long = 50,
+    var runsPerValue: Long = 500,
 
     /**
      * Number of iterations before mutations probabilities correction when [rotateValues] is true.
      */
-    var investigationPeriodPerValue: Int = 25,
+    var investigationPeriodPerValue: Int = 250,
 
     /**
      * Choose between already generated values and new generation of values.
@@ -68,7 +63,14 @@ data class Configuration(
     /**
      * Energy function that is used to choose seeded value.
      */
-    var energyFunction: (x: Long) -> Double = { x -> 1 / x.coerceAtLeast(1L).toDouble().pow(2) },
+    var energyFunction: (feedbackCount: Long, runDuration: Long) -> Double = {
+        // x, _ -> 1 / x.coerceAtLeast(1L).toDouble().pow(2)
+        feedbackCount, runDuration -> 1000 /
+            feedbackCount.coerceAtLeast(1L).toDouble().pow(2) /
+            runDuration.coerceAtLeast(1L).toDouble().pow(2)
+    },
+
+    var mutationRatingFunction: (successProbability: Double) -> Double = { runsPerSuccess -> runsPerSuccess.pow(2) },
 
     /**
      * Probability to prefer shuffling collection instead of mutation one value from modification
@@ -133,26 +135,3 @@ data class Configuration(
     var maxNumberOfRecursiveSeedModifications: Int = 10,
 )
 
-/**
- * Configuration used by minset to accumulate and use statistics.
- */
-data class MinsetConfiguration (
-    var rewardMultiplier: Double = 1.0,
-    var rewardWeight: Double = 0.0,
-    var penaltyMultiplier: Double = 1.0,
-    var penaltyWeight: Double = 0.0
-)
-
-val carrot = MinsetConfiguration(
-    rewardMultiplier = 1.1,
-    rewardWeight = 1.25,
-    penaltyMultiplier = 1.0,
-    penaltyWeight = 0.0
-)
-
-val stick = MinsetConfiguration(
-    rewardMultiplier = 0.0,
-    rewardWeight = 0.0,
-    penaltyMultiplier = 1.1,
-    penaltyWeight = 1.0
-)

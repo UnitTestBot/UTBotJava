@@ -23,12 +23,14 @@ interface Statistic<TYPE, RESULT> {
  */
 interface SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>>: Statistic<TYPE, RESULT> {
     override var totalRuns: Long
+    var lastNewFeedbackIter: Long
     fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) : MinsetEvent
     fun getSeed(random: Random, configuration: Configuration): Node<TYPE, RESULT>
-    fun getMutationsEfficiencies(): Map<Mutation<*>, Double>
+    fun getMutationsRatings(configuration: Configuration): Map<Mutation<*>, Double>
     fun size() : Int
     fun isEmpty() : Boolean { return size() == 0 }
     fun isNotEmpty() : Boolean { return size() > 0 }
+    fun dropMutationsStats()
 }
 
 
@@ -42,7 +44,8 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
     override val startTime: Long = System.nanoTime(),
     override var missedTypes: MissedSeed<TYPE, RESULT> = MissedSeed(),
     override val random: Random,
-    override val configuration: Configuration
+    override val configuration: Configuration,
+    override var lastNewFeedbackIter: Long = 0
 ): SeedsMaintainingStatistic<TYPE, RESULT, FEEDBACK> {
     constructor(source: Statistic<TYPE, RESULT>) : this(
         totalRuns = source.totalRuns,
@@ -56,79 +59,43 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
         get() = System.nanoTime() - startTime
 
     private val minset: Minset<TYPE, RESULT, FEEDBACK, SingleValueStorage<TYPE, RESULT>> = Minset( { SingleValueStorage() } )
-    private val minsetConfiguration: MinsetConfiguration = configuration.minsetConfiguration
 
     private var currentValue: Node<TYPE, RESULT>? = null
 
-    private val mutationsCounts = mutableMapOf<Mutation<*>, Long>()
-    private val mutationsSuccessCounts = mutableMapOf<Mutation<*>, Double>()
+    val mutationsCounts = mutableMapOf<Mutation<*>, Long>()
+    val mutationsSuccessCounts = mutableMapOf<Mutation<*>, Double>()
 
 
     override fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>): MinsetEvent {
         val event = minset.put(seed, feedback)
 
+        if (event == MinsetEvent.NEW_FEEDBACK) {
+            lastNewFeedbackIter = totalRuns
+        }
+
         seed.result.forEach { result ->
             when (result) {
                 is Result.Known<TYPE, RESULT, *> -> {
                     result.lastMutation?.let { mutation ->
-
                         mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
-
-                        mutationsSuccessCounts[mutation] = when (event) {
-                            MinsetEvent.NEW_FEEDBACK -> {
-                                mutationsSuccessCounts.getOrDefault(
-                                    mutation,
-                                    0.0
-                                ) * minsetConfiguration.rewardMultiplier + minsetConfiguration.rewardWeight
-                            }
-
-                            else -> mutationsSuccessCounts.getOrDefault(
-                                mutation,
-                                0.0
-                            ) * minsetConfiguration.penaltyMultiplier + minsetConfiguration.penaltyWeight
-                        }
+                        mutationsSuccessCounts[mutation] = mutationsSuccessCounts.getOrDefault(mutation, 0.0) +
+                                if (event == MinsetEvent.NEW_FEEDBACK) 1.0 else 0.0
                     }
                 }
 
                 is Result.Collection<TYPE, RESULT> -> {
                     result.lastMutation?.let { mutation ->
-
                         mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
-
-                        mutationsSuccessCounts[mutation] = when (event) {
-                            MinsetEvent.NEW_FEEDBACK -> {
-                                mutationsSuccessCounts.getOrDefault(
-                                    mutation,
-                                    0.0
-                                ) * minsetConfiguration.rewardMultiplier + minsetConfiguration.rewardWeight
-                            }
-
-                            else -> mutationsSuccessCounts.getOrDefault(
-                                mutation,
-                                0.0
-                            ) * minsetConfiguration.penaltyMultiplier + minsetConfiguration.penaltyWeight
-                        }
+                        mutationsSuccessCounts[mutation] = mutationsSuccessCounts.getOrDefault(mutation, 0.0) +
+                                if (event == MinsetEvent.NEW_FEEDBACK) 1.0 else 0.0
                     }
                 }
 
                 is Result.Recursive<TYPE, RESULT> -> {
                     result.lastMutation?.let { mutation ->
-
                         mutationsCounts[mutation] = mutationsCounts.getOrDefault(mutation, 0) + 1
-
-                        mutationsSuccessCounts[mutation] = when (event) {
-                            MinsetEvent.NEW_FEEDBACK -> {
-                                mutationsSuccessCounts.getOrDefault(
-                                    mutation,
-                                    0.0
-                                ) * minsetConfiguration.rewardMultiplier + minsetConfiguration.rewardWeight
-                            }
-
-                            else -> mutationsSuccessCounts.getOrDefault(
-                                mutation,
-                                0.0
-                            ) * minsetConfiguration.penaltyMultiplier + minsetConfiguration.penaltyWeight
-                        }
+                        mutationsSuccessCounts[mutation] = mutationsSuccessCounts.getOrDefault(mutation, 0.0) +
+                                if (event == MinsetEvent.NEW_FEEDBACK) 1.0 else 0.0
                     }
                 }
 
@@ -152,32 +119,30 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
                 configuration.rotateValues && totalRuns % configuration.runsPerValue == 0L ||
                 !configuration.rotateValues && totalRuns % (configuration.globalInvestigationPeriod + configuration.globalExploitationPeriod) == 0L
             ) {
-                mutationsCounts.clear()
-                mutationsSuccessCounts.clear()
+                dropMutationsStats()
             }
         }
 
         return currentValue!!
     }
 
-    override fun getMutationsEfficiencies(): Map<Mutation<*>, Double> {
-        val efficiencies = mutationsCounts.mapValues { (key, value) ->
-            (mutationsSuccessCounts[key] ?: 0.0) / value
+    override fun getMutationsRatings(configuration: Configuration): Map<Mutation<*>, Double> {
+        val ratings = mutationsCounts.mapValues { (key, _) ->
+            configuration.mutationRatingFunction(
+                ( (mutationsSuccessCounts[key] ?: 0.01) / mutationsCounts[key]!! )
+            )
         }
 
-        if (efficiencies.isNotEmpty()) {
-            val minValue = efficiencies.minBy { (_, v) -> v }.value
-
-            if (minValue < 0) {
-                return efficiencies.mapValues { (_, v) -> v + minValue }
-            }
-        }
-
-        return efficiencies
+        return ratings
     }
 
     override fun size(): Int {
         return minset.size()
+    }
+
+    override fun dropMutationsStats() {
+        mutationsCounts.clear()
+        mutationsSuccessCounts.clear()
     }
 }
 ///endregion
@@ -203,27 +168,16 @@ open class Minset<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>, STORAGE : Val
     val seeds: LinkedHashMap<FEEDBACK, STORAGE> = linkedMapOf(),
     val count: LinkedHashMap<FEEDBACK, Long> = linkedMapOf()
 ) {
-    fun getNextSeed(random: Random, energyFunction: (x: Long) -> Double): Node<TYPE, RESULT> {
-
+    fun getNextSeed(random: Random, energyFunction: (feedbackCount: Long, runDuration: Long) -> Double): Node<TYPE, RESULT> {
         val entries = seeds.entries.toList()
 
-        var frequencies = DoubleArray(size()).also { f ->
+        val energy = DoubleArray(size()).also { f ->
             entries.forEachIndexed { index, (key, _) ->
-                f[index] = energyFunction(count.getOrDefault(key, 0L))
+                f[index] = energyFunction(count.getOrDefault(key, 0L), key.runDuration ?: 0)
             }
         }
 
-        val currentFeedback = entries[random.chooseOne(frequencies)].key
-        if (currentFeedback is WeightedFeedback<*, *>) {
-//            return seeds[seeds.keys.maxBy { (it as WeightedFeedback<*, *>).weight}]!!.next()
-            frequencies = DoubleArray(size()).also { f ->
-                seeds.entries.forEachIndexed { index, (key, _) ->
-                    f[index] = (key as WeightedFeedback<*, *>).weight.toDouble()
-                }
-            }
-        }
-
-        return entries[random.chooseOne(frequencies)].value.next()
+        return entries[random.chooseOne(energy)].value.next()
     }
 
     operator fun get(feedback: FEEDBACK): STORAGE? {
@@ -285,31 +239,25 @@ interface ValueStorage<TYPE, RESULT> : InfiniteIterator<Node<TYPE, RESULT>> {
  */
 open class SingleValueStorage<TYPE, RESULT> : ValueStorage<TYPE, RESULT> {
 
-    protected var storedValue: Node<TYPE, RESULT>? = null
+    private var storedValue: Node<TYPE, RESULT>? = null
 
-    var storedWeight: Int = -1
+    private var storedWeight: Int = -1
     override fun put(value: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>) : Boolean {
 
-        when (feedback) {
-            is WeightedFeedback<TYPE, RESULT> -> {}
-            else -> {}
-        }
-
-        if (feedback is WeightedFeedback<*, *>) {
+        return if (feedback is WeightedFeedback<*, *>) {
 
             val result = storedValue == null || storedWeight <= ((feedback as WeightedFeedback<*, *>).weight)
 
-//            if (storedValue == null || storedWeight <= ((feedback as WeightedFeedback<*, *>).weight)) {
             if (storedValue == null || storedWeight > ((feedback as WeightedFeedback<*, *>).weight)) {
                 storedValue = value
                 storedWeight = (feedback as WeightedFeedback<*, *>).weight
             }
 
-            return result
+            result
 
         } else {
             storedValue =  value
-            return true
+            true
         }
     }
 

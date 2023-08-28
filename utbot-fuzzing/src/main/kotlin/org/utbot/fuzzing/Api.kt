@@ -92,7 +92,11 @@ open class Description<TYPE, RESULT>(
 
     open fun setUp() {}
 
-    open fun updatePerIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event: MinsetEvent) {}
+    open fun beforeIteration() {}
+    open fun beforeRun() {}
+    open fun afterRun() {}
+
+    open fun afterIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event: MinsetEvent) {}
 
     open fun finalizeReport(statistic: Statistic<TYPE, RESULT>) {}
 }
@@ -106,7 +110,22 @@ abstract class ReportingDescription<TYPE, RESULT> (
         reporter.setUp(this)
     }
 
-    override fun updatePerIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event: MinsetEvent) {
+    override fun beforeIteration() {
+        // TODO: Use beforeIteration, beforeRun, afterRun and afterIteration to analyze fuzzer's overhead
+        super.beforeIteration()
+    }
+
+    override fun beforeRun() {
+        // TODO: Use beforeIteration, beforeRun, afterRun and afterIteration to analyze fuzzer's overhead
+        super.beforeIteration()
+    }
+
+    override fun afterRun() {
+        // TODO: Use beforeIteration, beforeRun, afterRun and afterIteration to analyze fuzzer's overhead
+        super.beforeIteration()
+    }
+
+    override fun afterIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event: MinsetEvent) {
         reporter.update(values, feedback, event)
     }
 
@@ -348,6 +367,7 @@ interface Feedback<TYPE, RESULT> : AsKey {
      * @see [Control]
      */
     val control: Control
+    var runDuration: Long?
 }
 
 /**
@@ -360,6 +380,8 @@ data class BaseFeedback<VALUE, TYPE, RESULT>(
     val result: VALUE,
     override val control: Control,
 ) : Feedback<TYPE, RESULT> {
+    override var runDuration: Long? = null
+
     override fun toString(): String {
         return "$result"
     }
@@ -377,6 +399,9 @@ data class BaseWeightedFeedback<VALUE, TYPE, RESULT>(
     override fun compareTo(other: WeightedFeedback<TYPE, RESULT>): Int {
         return weight.compareTo(other.weight)
     }
+
+    override var runDuration: Long? = null
+
     override fun toString(): String {
         return "$result with weight $weight"
     }
@@ -412,6 +437,7 @@ fun <T, I> emptyFeedback(): Feedback<T, I> = (EmptyFeedback as Feedback<T, I>)
 private object EmptyFeedback : Feedback<Nothing, Nothing> {
     override val control: Control
         get() = Control.CONTINUE
+    override var runDuration: Long? = null
 
     override fun equals(other: Any?): Boolean {
         return true
@@ -475,6 +501,12 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
     while (!fuzzing.isCancelled(description, statistic)) {
 
         beforeIteration(description, statistic)
+        description.beforeIteration()
+
+//        TODO: Experiment with changing configuration based on some runtime conditions, for example:
+//        if(statistic.lastNewFeedbackIter > 100) {
+//            configuration.rotateValues = true
+//        }
 
         val values =
 
@@ -482,18 +514,7 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
             statistic.getSeed(random, configuration).let {
                 mutationFactory.mutate(it, random, configuration, statistic)
             }
-
         } else {
-
-            if (configuration.rotateValues) {
-                configuration.minsetConfiguration =
-                    if (random.flipCoin(50)) {
-                        carrot
-                    } else {
-                        stick
-                    }
-            }
-
             if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
                 statistic.getSeed(random, configuration).let {
                     mutationFactory.mutate(it, random, configuration, statistic)
@@ -517,7 +538,14 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         check(values.parameters.size == values.result.size) { "Cannot create value for ${values.parameters}" }
         val valuesCache = mutableMapOf<Result<T, R>, R>()
         val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
+
+        description.beforeRun()
+
+        val timeBeforeHandle = System.nanoTime()
         val feedback = fuzzing.handle(description, result)
+        feedback.runDuration = System.nanoTime() - timeBeforeHandle % 100
+
+        description.afterRun()
 
         val minsetResponse = statistic.put(random, configuration, feedback, values)
 
@@ -528,7 +556,7 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
 
         when (feedback.control) {
             Control.CONTINUE -> {
-                description.updatePerIteration(values, feedback, minsetResponse)
+                description.afterIteration(values, feedback, minsetResponse)
                 description.finalizeReport(statistic)
             }
             Control.STOP -> {

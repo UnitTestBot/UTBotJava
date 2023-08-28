@@ -47,7 +47,9 @@ data class PythonExecutionResult(
 data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<Instruction> = Trie.emptyNode(),
-) : Feedback<Type, PythonFuzzedValue>
+) : Feedback<Type, PythonFuzzedValue> {
+    override var runDuration: Long? = null
+}
 
 class PythonFuzzedValue(
     val tree: PythonTree.PythonTreeNode,

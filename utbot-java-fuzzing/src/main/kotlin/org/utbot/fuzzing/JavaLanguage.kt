@@ -66,8 +66,8 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
 data class JavaFeedback(
     val result: Trie.Node<Instruction>,
     override val control: Control,
-    override val weight: Int = result.getTraceLen(),
-    ) : WeightedFeedback<FuzzedType, FuzzedValue> {
+    ) : Feedback<FuzzedType, FuzzedValue> {
+    override var runDuration: Long? = null
     override fun toString(): String {
         return "$result; trace hash: ${result.hashCode()}; trace count: ${result.count}"
     }

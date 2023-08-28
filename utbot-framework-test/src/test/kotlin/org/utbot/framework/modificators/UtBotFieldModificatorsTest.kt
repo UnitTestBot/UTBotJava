@@ -26,7 +26,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
-import org.utbot.modifications.ModificationTransformationMode
+import org.utbot.modifications.FieldInvolvementMode
 
 internal class UtBotFieldModificatorsTest {
     private lateinit var fieldsModificatorsSearcher: UtBotFieldsModificatorsSearcher
@@ -177,7 +177,7 @@ internal class UtBotFieldModificatorsTest {
             jdkInfo = JdkInfoDefaultProvider().info
         )
         fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher(
-            modificationTransformationMode = ModificationTransformationMode.WriteOnly
+            fieldInvolvementMode = FieldInvolvementMode.WriteOnly
         )
     }
 

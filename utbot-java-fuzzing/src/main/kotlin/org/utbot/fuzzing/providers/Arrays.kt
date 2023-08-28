@@ -11,7 +11,7 @@ import org.utbot.fuzzing.*
 
 class ArrayValueProvider(
     val idGenerator: IdGenerator<Int>,
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = type.classId.isArray
 

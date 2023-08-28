@@ -209,7 +209,7 @@ class JavaFuzzingTest {
         `value providers override every function of fuzzing`(provided, provider2)
     }
 
-    private fun `value providers override every function of fuzzing`(provided: ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>, valueProvider: MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>) {
+    private fun `value providers override every function of fuzzing`(provided: JavaValueProvider, valueProvider: MarkerValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>) {
         var executions = 0
         runBlockingWithContext {
             runJavaFuzzing(

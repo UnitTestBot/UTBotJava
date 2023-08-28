@@ -53,7 +53,7 @@ class UtModelConstructor(
             )
             return UtModelConstructor(
                 objectToModelCache = cache,
-                idGenerator = StateBeforeAwareIdGenerator(preExistingModels = emptySet()),
+                idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
                 utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
                 compositeModelStrategy = strategy
             )
@@ -348,12 +348,14 @@ class UtModelConstructor(
                 ?: constructCompositeModel(value, remainingDepth)
         }
 
-    private fun findEqualValueOfWellKnownType(value: Any): Pair<Any, ClassId>? = when (value) {
-        is List<*> -> ArrayList(value) to listClassId
-        is Set<*> -> LinkedHashSet(value) to setClassId
-        is Map<*, *> -> LinkedHashMap(value) to mapClassId
-        else -> null
-    }
+    private fun findEqualValueOfWellKnownType(value: Any): Pair<Any, ClassId>? = runCatching {
+        when (value) {
+            is List<*> -> ArrayList(value) to listClassId
+            is Set<*> -> LinkedHashSet(value) to setClassId
+            is Map<*, *> -> LinkedHashMap(value) to mapClassId
+            else -> null
+        }
+    }.getOrNull()
 
     /**
      * Constructs custom UtModel but does it only for predefined list of classes.

@@ -16,8 +16,15 @@ import org.utbot.framework.codegen.util.escapeControlChars
 import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringConfiguration.*
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper.Companion.collectAllModels
 import org.utbot.framework.plugin.api.util.IndentUtil.TAB
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.activeProfilesClassId
@@ -27,6 +34,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.contextConfiguration
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.dirtiesContextClassModeClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.extendWithClassId
+import org.utbot.framework.plugin.api.util.SpringModelUtils.flushMethodIdOrNull
 import org.utbot.framework.plugin.api.util.SpringModelUtils.mockMvcClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.repositoryClassId
 import org.utbot.framework.plugin.api.util.SpringModelUtils.runWithClassId
@@ -52,6 +60,33 @@ class CgSpringIntegrationTestClassConstructor(
         private val logger = KotlinLogging.logger {}
     }
 
+    override fun construct(testClassModel: SimpleTestClassModel): CgClassFile = super.construct(
+        flushMethodIdOrNull?.let { flushMethodId ->
+            testClassModel.mapStateBeforeModels { UtModelDeepMapper { model ->
+                shallowlyAddFlushes(model, flushMethodId)
+            } }
+        } ?: testClassModel
+    )
+
+    private fun shallowlyAddFlushes(model: UtModel, flushMethodId: MethodId): UtModel =
+        when (model) {
+            is UtAssembleModel -> model.copy(
+                modificationsChain = model.modificationsChain.flatMap { modification ->
+                    if (modification.instance is UtSpringEntityManagerModel)
+                        listOf(
+                            modification,
+                            UtExecutableCallModel(
+                                instance = UtSpringEntityManagerModel(),
+                                executable = flushMethodId,
+                                params = emptyList()
+                            )
+                        )
+                    else listOf(modification)
+                }
+            )
+            else -> model
+        }
+
     override fun constructTestClass(testClassModel: SimpleTestClassModel): CgClass {
         addNecessarySpringSpecificAnnotations(testClassModel)
         return super.constructTestClass(testClassModel)
@@ -59,8 +94,7 @@ class CgSpringIntegrationTestClassConstructor(
 
     override fun constructClassFields(testClassModel: SimpleTestClassModel): List<CgFieldDeclaration> {
         val autowiredFields = autowiredFieldManager.createFieldDeclarations(testClassModel)
-        val persistentContextFields = persistenceContextFieldsManager
-            ?.let { fieldsManager -> fieldsManager.createFieldDeclarations(testClassModel) }
+        val persistentContextFields = persistenceContextFieldsManager?.createFieldDeclarations(testClassModel)
             .orEmpty()
 
         return autowiredFields + persistentContextFields
@@ -203,9 +237,9 @@ class CgSpringIntegrationTestClassConstructor(
         if (utContext.classLoader.tryLoadClass(repositoryClassId.name) != null)
             addAnnotation(autoConfigureTestDbClassId, Class)
 
-        //TODO: revert a check that this annotation is really required
-        addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
-
+        val allStateBeforeModels = collectAllModels { collector -> testClassModel.mapStateBeforeModels { collector } }
+        if (allStateBeforeModels.any { it.classId == mockMvcClassId })
+            addAnnotation(SpringModelUtils.autoConfigureMockMvcClassId, Class)
 
         if (utContext.classLoader.tryLoadClass(withMockUserClassId.name) != null)
             addAnnotation(withMockUserClassId, Class)

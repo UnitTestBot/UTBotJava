@@ -5,10 +5,10 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.StatementId
 
 class UtBotFieldsModificatorsSearcher(
-    modificationTransformationMode: ModificationTransformationMode
+    fieldInvolvementMode: FieldInvolvementMode
 ) {
 
-    private var statementsStorage = StatementsStorage(modificationTransformationMode)
+    private var statementsStorage = StatementsStorage(fieldInvolvementMode)
 
     fun update(classIds: Set<ClassId>) = statementsStorage.update(classIds)
 

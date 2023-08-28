@@ -55,6 +55,9 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
+import org.utbot.framework.plugin.api.mapper.map
+import org.utbot.framework.plugin.api.mapper.mapPreservingType
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootMethod
@@ -499,7 +502,11 @@ data class UtClassRefModel(
  * - calculated field values (models)
  * - mocks for methods with return values
  * - [canHaveRedundantOrMissingMocks] flag, which is set to `true` for mocks
- *   created by fuzzer without knowing which methods will actually be called
+ *   created by:
+ *    - fuzzer which doesn't know which methods will actually be called
+ *    - engine which also doesn't know which methods will actually be
+ *      called during concrete execution that may be only **partially**
+ *      backed up by the symbolic analysis
  *
  * [fields] contains non-static fields
  */
@@ -509,7 +516,7 @@ data class UtCompositeModel(
     val isMock: Boolean,
     val fields: MutableMap<FieldId, UtModel> = mutableMapOf(),
     val mocks: MutableMap<ExecutableId, List<UtModel>> = mutableMapOf(),
-    val canHaveRedundantOrMissingMocks: Boolean = false,
+    val canHaveRedundantOrMissingMocks: Boolean = true,
 ) : UtReferenceModel(id, classId) {
     //TODO: SAT-891 - rewrite toString() method
     override fun toString() = withToStringThreadLocalReentrancyGuard {
@@ -767,7 +774,7 @@ abstract class UtCustomModel(
     modelName: String = id.toString(),
     override val origin: UtCompositeModel? = null,
 ) : UtModelWithCompositeOrigin(id, classId, modelName, origin) {
-    abstract val dependencies: Collection<UtModel>
+    abstract fun shallowMap(mapper: UtModelMapper): UtCustomModel
 }
 
 object UtSpringContextModel : UtCustomModel(
@@ -775,7 +782,7 @@ object UtSpringContextModel : UtCustomModel(
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
 ) {
-    override val dependencies: Collection<UtModel> get() = emptySet()
+    override fun shallowMap(mapper: UtModelMapper) = this
 
     // NOTE that overriding equals is required just because without it
     // we will lose equality for objects after deserialization
@@ -789,7 +796,7 @@ class UtSpringEntityManagerModel : UtCustomModel(
     classId = SpringModelUtils.entityManagerClassIds.first(),
     modelName = "entityManager"
 ) {
-    override val dependencies: Collection<UtModel> get() = emptySet()
+    override fun shallowMap(mapper: UtModelMapper) = this
 
     // NOTE that overriding equals is required just because without it
     // we will lose equality for objects after deserialization
@@ -820,7 +827,10 @@ data class UtSpringMockMvcResultActionsModel(
     id = id,
     modelName = "mockMvcResultActions@$id"
 ) {
-    override val dependencies: Collection<UtModel> get() = emptySet()
+    override fun shallowMap(mapper: UtModelMapper) = copy(
+        origin = origin?.mapPreservingType<UtCompositeModel>(mapper),
+        model = model?.map(mapper)
+    )
 }
 
 /**

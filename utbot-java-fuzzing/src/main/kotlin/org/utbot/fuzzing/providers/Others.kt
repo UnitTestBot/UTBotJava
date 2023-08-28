@@ -13,7 +13,7 @@ import java.util.*
 
 abstract class ClassValueProvider(
     val classId: ClassId
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
     override fun accept(type: FuzzedType) = type.classId == classId
 }
 

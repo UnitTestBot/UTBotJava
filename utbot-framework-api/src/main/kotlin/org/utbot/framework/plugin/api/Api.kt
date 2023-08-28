@@ -502,7 +502,11 @@ data class UtClassRefModel(
  * - calculated field values (models)
  * - mocks for methods with return values
  * - [canHaveRedundantOrMissingMocks] flag, which is set to `true` for mocks
- *   created by fuzzer without knowing which methods will actually be called
+ *   created by:
+ *    - fuzzer which doesn't know which methods will actually be called
+ *    - engine which also doesn't know which methods will actually be
+ *      called during concrete execution that may be only **partially**
+ *      backed up by the symbolic analysis
  *
  * [fields] contains non-static fields
  */
@@ -512,7 +516,7 @@ data class UtCompositeModel(
     val isMock: Boolean,
     val fields: MutableMap<FieldId, UtModel> = mutableMapOf(),
     val mocks: MutableMap<ExecutableId, List<UtModel>> = mutableMapOf(),
-    val canHaveRedundantOrMissingMocks: Boolean = false,
+    val canHaveRedundantOrMissingMocks: Boolean = true,
 ) : UtReferenceModel(id, classId) {
     //TODO: SAT-891 - rewrite toString() method
     override fun toString() = withToStringThreadLocalReentrancyGuard {

@@ -17,7 +17,6 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
-import org.utbot.fuzzing.providers.AbstractsObjectValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
 import org.utbot.fuzzing.providers.ModifyingWithMethodsProviderWrapper
 import org.utbot.fuzzing.providers.ObjectValueProvider
@@ -110,7 +109,7 @@ class SpringIntegrationTestJavaFuzzingContext(
                     idGenerator = { idGenerator.createId() }
                 ) ?: return delegateStateBefore
                 delegateStateBefore.copy(
-                    thisInstance = SpringModelUtils.createMockMvcModel { idGenerator.createId() },
+                    thisInstance = SpringModelUtils.createMockMvcModel(controller = thisInstance) { idGenerator.createId() },
                     parameters = listOf(requestBuilderModel),
                     executableToCall = SpringModelUtils.mockMvcPerformMethodId,
                 )

@@ -12,6 +12,9 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.mapModels
 import java.util.Optional
 
 object SpringModelUtils {
@@ -108,7 +111,12 @@ object SpringModelUtils {
         bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
 
-    fun createBeanModel(beanName: String, id: Int, classId: ClassId) = UtAssembleModel(
+    fun createBeanModel(
+        beanName: String,
+        id: Int,
+        classId: ClassId,
+        modificationChainProvider: UtAssembleModel.() -> List<UtStatementModel> = { mutableListOf() },
+    ) = UtAssembleModel(
         id = id,
         classId = classId,
         modelName = "@Autowired $beanName",
@@ -117,7 +125,7 @@ object SpringModelUtils {
             executable = getBeanMethodId,
             params = listOf(UtPrimitiveModel(beanName))
         ),
-        modificationsChainProvider = { mutableListOf() }
+        modificationsChainProvider = modificationChainProvider
     )
 
     fun UtModel.isAutowiredFromContext(): Boolean =
@@ -341,8 +349,19 @@ object SpringModelUtils {
         returnType = resultMatcherClassId
     )
 
-    fun createMockMvcModel(idGenerator: () -> Int) =
-        createBeanModel("mockMvc", idGenerator(), mockMvcClassId)
+    fun createMockMvcModel(controller: UtModel?, idGenerator: () -> Int) =
+        createBeanModel("mockMvc", idGenerator(), mockMvcClassId, modificationChainProvider = {
+            // we need to keep controller modifications if there are any, so we add them to mockMvc
+            (controller as? UtAssembleModel)?.let { assembledController ->
+                val controllerModificationRemover = UtModelDeepMapper { model ->
+                    if (model == assembledController) assembledController.copy(modificationsChain = emptyList())
+                    else model
+                }
+                // modificationsChain may mention controller, causing controller modifications to evaluate twice:
+                // once for mockMvc and once for controller itself, to avoid that we remove modifications from controller
+                assembledController.modificationsChain.map { it.mapModels(controllerModificationRemover) }
+            } ?: mutableListOf()
+        })
 
     fun createRequestBuilderModelOrNull(methodId: MethodId, arguments: List<UtModel>, idGenerator: () -> Int): UtModel? {
         check(methodId.parameters.size == arguments.size)

@@ -12,9 +12,9 @@ import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.context.custom.RerunningConcreteExecutionContext
-import org.utbot.framework.context.custom.mockAllTypesWithoutSpecificValueProvider
+import org.utbot.framework.context.custom.allowMocks
 import org.utbot.framework.context.utils.transformJavaFuzzingContext
-import org.utbot.framework.context.utils.withValueProvider
+import org.utbot.framework.context.utils.transformValueProvider
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
@@ -25,7 +25,9 @@ import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzing.spring.decorators.replaceTypes
 import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
+import org.utbot.fuzzing.toFuzzerType
 
 class SpringApplicationContextImpl(
     private val delegateContext: ApplicationContext,
@@ -65,13 +67,20 @@ class SpringApplicationContextImpl(
         return when (springTestType) {
             SpringTestType.UNIT_TEST -> delegateConcreteExecutionContext.transformJavaFuzzingContext { fuzzingContext ->
                 fuzzingContext
-                    .withValueProvider(
+                    .allowMocks()
+                    .transformValueProvider { origValueProvider ->
                         InjectMockValueProvider(
                             idGenerator = fuzzingContext.idGenerator,
                             classToUseCompositeModelFor = fuzzingContext.classUnderTest
                         )
-                    )
-                    .mockAllTypesWithoutSpecificValueProvider()
+                            .withFallback(origValueProvider)
+                            .replaceTypes { description, type ->
+                                typeReplacer.replaceTypeIfNeeded(type.classId)?.let { replacement ->
+                                    // TODO infer generic type
+                                    toFuzzerType(replacement.jClass, description.typeCache)
+                                } ?: type
+                            }
+                    }
             }
             SpringTestType.INTEGRATION_TEST ->
                 RerunningConcreteExecutionContext(

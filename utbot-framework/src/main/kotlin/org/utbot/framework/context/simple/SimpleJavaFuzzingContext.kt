@@ -1,5 +1,6 @@
 package org.utbot.framework.context.simple
 
+import org.utbot.engine.MockStrategy
 import org.utbot.framework.context.JavaFuzzingContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.EnvironmentModels
@@ -14,6 +15,7 @@ import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionRe
 
 class SimpleJavaFuzzingContext(
     override val classUnderTest: ClassId,
+    override val mockStrategy: MockStrategy,
     override val idGenerator: IdentityPreservingIdGenerator<Int>,
 ) : JavaFuzzingContext {
     override val valueProvider: JavaValueProvider =

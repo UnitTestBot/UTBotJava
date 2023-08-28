@@ -6,8 +6,8 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Routine
-import org.utbot.fuzzing.Scope
 import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.spring.decorators.ValueProviderDecorator
 
 /**
  * @see preserveProperties
@@ -25,14 +25,14 @@ interface PreservableFuzzedTypeProperty<T> : FuzzedTypeProperty<T>
 fun JavaValueProvider.preserveProperties() : JavaValueProvider =
     PropertyPreservingValueProvider(this)
 
-class PropertyPreservingValueProvider(private val delegateProvider: JavaValueProvider) : JavaValueProvider {
-    override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) =
-        delegateProvider.enrich(description, type, scope)
-
-    override fun accept(type: FuzzedType): Boolean = delegateProvider.accept(type)
+class PropertyPreservingValueProvider(
+    delegate: JavaValueProvider
+) : ValueProviderDecorator<FuzzedType, FuzzedValue, FuzzedDescription>(delegate) {
+    override fun wrap(provider: JavaValueProvider): JavaValueProvider =
+        provider.preserveProperties()
 
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> {
-        val delegateSeeds = delegateProvider.generate(description, type)
+        val delegateSeeds = delegate.generate(description, type)
 
         val preservedProperties = type.properties.entries
             .filter { it.property is PreservableFuzzedTypeProperty }
@@ -67,10 +67,4 @@ class PropertyPreservingValueProvider(private val delegateProvider: JavaValuePro
             }
         }
     }
-
-    override fun map(transform: (JavaValueProvider) -> JavaValueProvider): JavaValueProvider =
-        delegateProvider.map(transform).preserveProperties()
-
-    override fun except(filter: (JavaValueProvider) -> Boolean): JavaValueProvider =
-        delegateProvider.except(filter).preserveProperties()
 }

@@ -2,7 +2,6 @@ package org.utbot.framework.context
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeReplacementMode
-import soot.RefType
 
 interface TypeReplacer {
     /**
@@ -14,5 +13,5 @@ interface TypeReplacer {
      * Finds a type to replace the original abstract type
      * if it is guided with some additional information.
      */
-    fun replaceTypeIfNeeded(type: RefType): ClassId?
+    fun replaceTypeIfNeeded(classId: ClassId): ClassId?
 }

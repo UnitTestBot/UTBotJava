@@ -1397,7 +1397,7 @@ class Traverser(
         // from Spring bean definitions, for example), we can just create a symbolic object
         // with hard constraint on the mentioned type.
         val replacedClassId = when (typeReplacer.typeReplacementMode) {
-            KnownImplementor -> typeReplacer.replaceTypeIfNeeded(type)
+            KnownImplementor -> typeReplacer.replaceTypeIfNeeded(type.id)
             AnyImplementor,
             NoImplementors -> null
         }

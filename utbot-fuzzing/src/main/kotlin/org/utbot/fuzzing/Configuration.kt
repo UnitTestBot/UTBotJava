@@ -70,7 +70,10 @@ data class Configuration(
             runDuration.coerceAtLeast(1L).toDouble().pow(2)
     },
 
-    var mutationRatingFunction: (successProbability: Double) -> Double = { runsPerSuccess -> runsPerSuccess.pow(2) },
+    /**
+     * Rating function that is used to manipulate mutations probabilities while tuning.
+     */
+    var mutationRatingFunction: (successProbability: Double) -> Double = { successProbability -> successProbability.pow(2) },
 
     /**
      * Probability to prefer shuffling collection instead of mutation one value from modification

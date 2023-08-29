@@ -32,7 +32,7 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.providers.findAccessibleModifiableFields
 import org.utbot.fuzzing.providers.nullRoutine
-import org.utbot.fuzzing.spring.PreservableFuzzedTypeProperty
+import org.utbot.fuzzing.spring.decorators.PreservableFuzzedTypeProperty
 import org.utbot.fuzzing.spring.addProperties
 import org.utbot.fuzzing.spring.properties
 import org.utbot.fuzzing.utils.hex

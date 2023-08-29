@@ -1,4 +1,4 @@
-package org.utbot.fuzzing.spring
+package org.utbot.fuzzing.spring.decorators
 
 import org.utbot.common.toDynamicProperties
 import org.utbot.fuzzer.FuzzedType
@@ -7,7 +7,9 @@ import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.spring.decorators.ValueProviderDecorator
+import org.utbot.fuzzing.spring.FuzzedTypeProperty
+import org.utbot.fuzzing.spring.addProperties
+import org.utbot.fuzzing.spring.properties
 
 /**
  * @see preserveProperties

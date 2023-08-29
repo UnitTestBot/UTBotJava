@@ -1,4 +1,4 @@
-package org.utbot.fuzzing.providers
+package org.utbot.fuzzing.spring.decorators
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -10,7 +10,7 @@ import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.spring.decorators.ValueProviderDecorator
+import org.utbot.fuzzing.providers.findMethodsToModifyWith
 
 /**
  * Value provider that is a buddy for another provider

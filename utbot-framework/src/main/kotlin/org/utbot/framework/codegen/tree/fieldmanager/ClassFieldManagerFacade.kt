@@ -9,13 +9,13 @@ import org.utbot.framework.plugin.api.UtSpringContextModel
 
 class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 
-    private val alreadyInitialisedModels = mutableSetOf<UtModelWrapper>()
+    private val alreadyInitializedModels = mutableSetOf<UtModelWrapper>()
 
     fun constructVariableForField(model: UtModel): CgValue? {
         relevantFieldManagers.forEach { manager ->
             val alreadyCreatedVariable = manager.findCgValueByModel(model, manager.annotatedModels)
             if (alreadyCreatedVariable != null) {
-                if (alreadyInitialisedModels.add(model.wrap()))
+                if (alreadyInitializedModels.add(model.wrap()))
                     manager.useVariableForModel(model, alreadyCreatedVariable)
                 return alreadyCreatedVariable
             }

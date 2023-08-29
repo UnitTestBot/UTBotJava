@@ -43,7 +43,6 @@ import org.utbot.spring.process.SpringAnalyzerProcess
 import org.utbot.summary.summarizeAll
 import org.utbot.taint.TaintConfigurationProviderUserRules
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Paths
 import kotlin.reflect.jvm.kotlinFunction
 import kotlin.time.Duration.Companion.seconds
@@ -75,13 +74,21 @@ private var idCounter: Long = 0
 private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog, realProtocol: IProtocol) {
     val model = this
     watchdog.measureTimeForActiveCall(setupUtContext, "UtContext setup") { params ->
-        // - We use `ClassLoader.getSystemClassLoader().parent` as parent to let
-        //   classes like `javax.sql.DataSource` load from URLs like `jrt:/java.sql`.
-        // - We do not use `ClassLoader.getSystemClassLoader()` itself to avoid utbot dependencies like Jackson
-        //   being used instead of user's dependencies, which is important, since they may have different versions.
-        UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
-            File(it).toURI().toURL()
-        }.toTypedArray(), ClassLoader.getSystemClassLoader().parent)))
+        val urls = params.classpathForUrlsClassloader.map { File(it).toURI().toURL() }.toTypedArray()
+        // - First, we try to load class/resource with platform class loader `ClassLoader.getSystemClassLoader().parent`
+        //     - at this step we load classes like
+        //        - `java.util.ArrayList` (from boostrap classloader)
+        //        - `javax.sql.DataSource` (from platform classloader)
+        // - Next, we try to load class/resource from user class path
+        //     - at this step we load classes like class under test and other classes from user project and its dependencies
+        // - Finally, if all else fails we try to load class/resource from UtBot classpath
+        //     - at this step we load classes from UtBot project and its dependencies (e.g. Mockito if user doesn't have it, see #2545)
+        val classLoader = FallbackClassLoader(
+            urls = urls,
+            fallback = ClassLoader.getSystemClassLoader(),
+            commonParent = ClassLoader.getSystemClassLoader().parent,
+        )
+        UtContext.setUtContext(UtContext(classLoader))
     }
     watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
         try {

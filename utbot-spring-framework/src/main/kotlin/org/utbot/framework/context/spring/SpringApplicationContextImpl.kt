@@ -89,10 +89,12 @@ class SpringApplicationContextImpl(
                             .withFallback(origValueProvider)
                             .replaceTypes { description, type ->
                                 typeReplacer.replaceTypeIfNeeded(type.classId)
-                                    ?.takeIf { it != type.classId }
-                                    ?.let { replacement ->
+                                    ?.let { replacementClassId ->
                                         // TODO infer generic type of replacement
-                                        toFuzzerType(replacement.jClass, description.typeCache).addProperties(
+                                        val replacement =
+                                            if (type.classId == replacementClassId) type
+                                            else toFuzzerType(replacementClassId.jClass, description.typeCache)
+                                        replacement.addProperties(
                                             dynamicPropertiesOf(ReplacedFuzzedTypeFlag.withValue(Unit))
                                         )
                                     } ?: type

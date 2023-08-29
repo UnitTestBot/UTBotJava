@@ -75,7 +75,7 @@ class SpringApplicationContextImpl(
                     .transformValueProvider { origValueProvider ->
                         InjectMockValueProvider(
                             idGenerator = fuzzingContext.idGenerator,
-                            classToUseCompositeModelFor = fuzzingContext.classUnderTest
+                            classUnderTest = fuzzingContext.classUnderTest
                         )
                             .withFallback(origValueProvider)
                             .replaceTypes { description, type ->

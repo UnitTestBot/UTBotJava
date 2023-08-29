@@ -94,7 +94,7 @@ object SpringModelUtils {
             )
         }
 
-    private val validationLibraries = listOf("jakarta.validation.constraints")
+    private val validationLibraries = listOf("javax.validation.constraints", "jakarta.validation.constraints")
     private fun validationClassIds(simpleName: String) = getClassIdFromEachAvailablePackage(validationLibraries, simpleName)
         .filter { utContext.classLoader.tryLoadClass(it.name) != null }
 

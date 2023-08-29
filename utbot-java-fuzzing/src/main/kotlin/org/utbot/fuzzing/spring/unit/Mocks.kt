@@ -18,14 +18,10 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Scope
 import org.utbot.fuzzing.ScopeProperty
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.spring.FuzzedTypeFlag
-import org.utbot.fuzzing.spring.properties
 import org.utbot.fuzzing.spring.utils.jType
 import org.utbot.fuzzing.spring.utils.toTypeParametrizedByTypeVariables
 import org.utbot.fuzzing.spring.utils.typeToken
 import org.utbot.fuzzing.toFuzzerType
-
-object NeverMockFlag : FuzzedTypeFlag
 
 val methodsToMockProperty = ScopeProperty<Set<MethodId>>(
     description = "Method ids that can be mocked by `MockValueProvider`"
@@ -40,8 +36,6 @@ class MockValueProvider(private val idGenerator: IdGenerator<Int>) : JavaValuePr
     }
 
     private val methodsToMock = mutableSetOf<MethodId>()
-
-    override fun accept(type: FuzzedType) = NeverMockFlag !in type.properties
 
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
         val publicMethods = type.classId.jClass.methods.map { it.executableId }

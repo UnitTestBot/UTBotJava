@@ -2,6 +2,7 @@ package org.utbot.framework.context.custom
 
 import org.utbot.framework.context.JavaFuzzingContext
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
 import org.utbot.fuzzing.providers.MapValueProvider
@@ -14,17 +15,19 @@ import org.utbot.fuzzing.spring.decorators.filterTypes
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 
 /**
- * Allows fuzzer to use mocks in accordance with [JavaFuzzingContext.mockStrategy].
+ * Makes fuzzer to use mocks in accordance with [mockPredicate].
  *
  * NOTE:
  *   - fuzzer won't mock types, that have *specific* value providers (e.g. [MapValueProvider] and [StringValueProvider])
  *   - [ObjectValueProvider] and [NullValueProvider] do not count as *specific* value providers
+ *   - fuzzer may still resort to mocks despite [mockPredicate] if it can't create other non-null values or at runtime
  */
-fun JavaFuzzingContext.allowMocks() =
-    MockingJavaFuzzingContext(delegateContext = this)
+fun JavaFuzzingContext.useMocks(mockPredicate: (FuzzedType) -> Boolean) =
+    MockingJavaFuzzingContext(delegateContext = this, mockPredicate)
 
 class MockingJavaFuzzingContext(
     val delegateContext: JavaFuzzingContext,
+    val mockPredicate: (FuzzedType) -> Boolean,
 ) : JavaFuzzingContext by delegateContext {
     private val mockValueProvider = MockValueProvider(delegateContext.idGenerator)
 
@@ -36,14 +39,8 @@ class MockingJavaFuzzingContext(
             .except { it is NullValueProvider }
             .except { it is ObjectValueProvider }
             .withFallback(
-                mockValueProvider
-                    .filterTypes { type ->
-                        mockStrategy.eligibleToMock(
-                            classToMock = type.classId,
-                            classUnderTest = classUnderTest
-                        )
-                    }
-                    .with(anyObjectValueProvider(idGenerator))
+                mockValueProvider.filterTypes(mockPredicate)
+                    .with(anyObjectValueProvider(idGenerator).filterTypes { !mockPredicate(it) })
                     .withFallback(mockValueProvider.with(AnyDepthNullValueProvider))
                     .with(NullValueProvider)
             )

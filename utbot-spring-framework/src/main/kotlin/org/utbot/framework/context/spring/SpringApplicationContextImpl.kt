@@ -14,7 +14,7 @@ import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.context.custom.RerunningConcreteExecutionContext
-import org.utbot.framework.context.custom.allowMocks
+import org.utbot.framework.context.custom.useMocks
 import org.utbot.framework.context.utils.transformJavaFuzzingContext
 import org.utbot.framework.context.utils.transformValueProvider
 import org.utbot.framework.plugin.api.BeanDefinitionData
@@ -27,10 +27,11 @@ import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzing.spring.FuzzedTypeFlag
 import org.utbot.fuzzing.spring.addProperties
 import org.utbot.fuzzing.spring.decorators.replaceTypes
+import org.utbot.fuzzing.spring.properties
 import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
-import org.utbot.fuzzing.spring.unit.NeverMockFlag
 import org.utbot.fuzzing.toFuzzerType
 
 class SpringApplicationContextImpl(
@@ -42,6 +43,8 @@ class SpringApplicationContextImpl(
     companion object {
         private val logger = KotlinLogging.logger {}
     }
+
+    private object ReplacedFuzzedTypeFlag : FuzzedTypeFlag
 
     override val typeReplacer: TypeReplacer = SpringTypeReplacer(delegateContext.typeReplacer, this)
     override val nonNullSpeculator: NonNullSpeculator = SpringNonNullSpeculator(delegateContext.nonNullSpeculator, this)
@@ -71,7 +74,13 @@ class SpringApplicationContextImpl(
         return when (springTestType) {
             SpringTestType.UNIT_TEST -> delegateConcreteExecutionContext.transformJavaFuzzingContext { fuzzingContext ->
                 fuzzingContext
-                    .allowMocks()
+                    .useMocks { type ->
+                        ReplacedFuzzedTypeFlag !in type.properties &&
+                                fuzzingContext.mockStrategy.eligibleToMock(
+                                    classToMock = type.classId,
+                                    classUnderTest = fuzzingContext.classUnderTest
+                                )
+                    }
                     .transformValueProvider { origValueProvider ->
                         InjectMockValueProvider(
                             idGenerator = fuzzingContext.idGenerator,
@@ -84,7 +93,7 @@ class SpringApplicationContextImpl(
                                     ?.let { replacement ->
                                         // TODO infer generic type of replacement
                                         toFuzzerType(replacement.jClass, description.typeCache).addProperties(
-                                            dynamicPropertiesOf(NeverMockFlag.withValue(Unit))
+                                            dynamicPropertiesOf(ReplacedFuzzedTypeFlag.withValue(Unit))
                                         )
                                     } ?: type
                             }

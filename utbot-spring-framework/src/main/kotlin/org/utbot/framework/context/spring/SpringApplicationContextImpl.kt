@@ -1,8 +1,10 @@
 package org.utbot.framework.context.spring
 
 import mu.KotlinLogging
+import org.utbot.common.dynamicPropertiesOf
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
+import org.utbot.common.withValue
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.generator.SpringCodeGenerator
@@ -25,8 +27,10 @@ import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzing.spring.addProperties
 import org.utbot.fuzzing.spring.decorators.replaceTypes
 import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
+import org.utbot.fuzzing.spring.unit.NeverMockFlag
 import org.utbot.fuzzing.toFuzzerType
 
 class SpringApplicationContextImpl(
@@ -75,10 +79,14 @@ class SpringApplicationContextImpl(
                         )
                             .withFallback(origValueProvider)
                             .replaceTypes { description, type ->
-                                typeReplacer.replaceTypeIfNeeded(type.classId)?.let { replacement ->
-                                    // TODO infer generic type
-                                    toFuzzerType(replacement.jClass, description.typeCache)
-                                } ?: type
+                                typeReplacer.replaceTypeIfNeeded(type.classId)
+                                    ?.takeIf { it != type.classId }
+                                    ?.let { replacement ->
+                                        // TODO infer generic type of replacement
+                                        toFuzzerType(replacement.jClass, description.typeCache).addProperties(
+                                            dynamicPropertiesOf(NeverMockFlag.withValue(Unit))
+                                        )
+                                    } ?: type
                             }
                     }
             }

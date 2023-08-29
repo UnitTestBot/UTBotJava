@@ -260,9 +260,9 @@ open class CgVariableConstructor(val context: CgContext) :
         for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
-                    val instance = declareOrGet(statementModel.instance)
+                    val instance = getOrCreateVariable(statementModel.instance)
                     // fields here are supposed to be accessible, so we assign them directly without any checks
-                    instance[statementModel.fieldId] `=` declareOrGet(
+                    instance[statementModel.fieldId] `=` getOrCreateVariable(
                         model = statementModel.fieldModel,
                         name = statementModel.fieldId.name,
                     )
@@ -292,9 +292,9 @@ open class CgVariableConstructor(val context: CgContext) :
                     executable.executable.parameters.map { if (it.isNamePresent) it.name else null }
                 }.getOrNull()
                 val params = statementModel.params
-                val caller = statementModel.instance?.let { declareOrGet(it) }
+                val caller = statementModel.instance?.let { getOrCreateVariable(it) }
                 val args = params.mapIndexed { i, param ->
-                    declareOrGet(param, name = paramNames?.getOrNull(i))
+                    getOrCreateVariable(param, name = paramNames?.getOrNull(i))
                 }
 
                 when (executable) {
@@ -303,7 +303,7 @@ open class CgVariableConstructor(val context: CgContext) :
                 }
             }
             is UtDirectGetFieldModel -> {
-                val instance = declareOrGet(statementModel.instance)
+                val instance = getOrCreateVariable(statementModel.instance)
                 val fieldAccess = statementModel.fieldAccess
                 utilsClassId[getFieldValue](instance, fieldAccess.fieldId.declaringClass.canonicalName, fieldAccess.fieldId.name)
             }
@@ -510,13 +510,6 @@ open class CgVariableConstructor(val context: CgContext) :
 
         return newVar(Class::class.id, baseName) { init }
     }
-
-    /**
-     * Either declares a new variable or gets it from context's cache
-     * Returns the obtained variable
-     */
-    private fun declareOrGet(model: UtModel, name: String? = null): CgValue =
-        valueByUtModelWrapper[model.wrap()] ?: getOrCreateVariable(model, name)
 
     private fun basicForLoop(start: Any, until: Any, body: (i: CgExpression) -> Unit) {
         forLoop {

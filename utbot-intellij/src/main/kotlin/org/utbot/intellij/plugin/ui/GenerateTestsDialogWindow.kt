@@ -78,7 +78,7 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.DependencyInjectionFramework
+import org.utbot.framework.codegen.domain.SpringModule
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
@@ -361,10 +361,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
 
-        DependencyInjectionFramework.allItems.forEach {
+        SpringModule.allItems.forEach {
             it.isInstalled = findDependencyInjectionLibrary(model.srcModule, it) != null
         }
-        DependencyInjectionFramework.installedItems.forEach {
+        SpringModule.installedItems.forEach {
             it.testFrameworkInstalled = findDependencyInjectionTestLibrary(model.testModule, it) != null
         }
 
@@ -372,7 +372,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.projectType =
             // TODO show some warning, when we see Spring project, but don't have `utBotSpringRuntime`
-            if (isUtBotSpringRuntimePresent && DependencyInjectionFramework.installedItems.isNotEmpty()) ProjectType.Spring
+            if (isUtBotSpringRuntimePresent && SpringModule.installedItems.isNotEmpty()) ProjectType.Spring
             else ProjectType.PureJvm
 
         // Configure notification urls callbacks
@@ -963,7 +963,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun configureSpringTestFrameworkIfRequired() {
         if (springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
 
-            DependencyInjectionFramework.installedItems
+            SpringModule.installedItems
                 .filter { it.isInstalled }
                 .forEach { configureSpringTestDependency(it) }
         }
@@ -992,11 +992,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             .onError { selectedTestFramework.isInstalled = false }
     }
 
-    private fun configureSpringTestDependency(framework: DependencyInjectionFramework) {
+    private fun configureSpringTestDependency(springModule: SpringModule) {
         val frameworkLibrary =
-            findDependencyInjectionLibrary(model.srcModule, framework, LibrarySearchScope.Project)
+            findDependencyInjectionLibrary(model.srcModule, springModule, LibrarySearchScope.Project)
         val frameworkTestLibrary =
-            findDependencyInjectionTestLibrary(model.testModule, framework, LibrarySearchScope.Project)
+            findDependencyInjectionTestLibrary(model.testModule, springModule, LibrarySearchScope.Project)
 
         val frameworkVersionInProject = frameworkLibrary?.libraryName?.parseVersion()
             ?: error("Trying to install Spring test framework, but Spring framework is not found in module ${model.srcModule.name}")
@@ -1005,16 +1005,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (frameworkTestVersionInProject == null ||
             !frameworkTestVersionInProject.isCompatibleWith(frameworkVersionInProject)
 ) {
-            val libraryDescriptor = when (framework) {
+            val libraryDescriptor = when (springModule) {
                 SpringBoot -> springBootTestLibraryDescriptor(frameworkVersionInProject)
                 SpringBeans -> springTestLibraryDescriptor(frameworkVersionInProject)
-                else -> error("Unsupported DI framework type $framework")
+                else -> error("Unsupported DI framework type $springModule")
             }
 
             model.preClasspathCollectionPromises += addDependency(model.testModule, libraryDescriptor)
         }
 
-        framework.testFrameworkInstalled = true
+        springModule.testFrameworkInstalled = true
     }
 
     private fun configureMockFramework() {
@@ -1308,7 +1308,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             ) {
                 this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
                 if (springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
-                    DependencyInjectionFramework.installedItems
+                    SpringModule.installedItems
                         // only first missing test framework is shown to avoid overflowing ComboBox
                         .firstOrNull { !it.testFrameworkInstalled }
                         ?.let { diFramework ->

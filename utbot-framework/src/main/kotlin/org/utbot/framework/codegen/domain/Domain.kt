@@ -711,10 +711,7 @@ enum class ProjectType {
     JavaScript,
 }
 
-abstract class DependencyInjectionFramework(
-    override val id: String,
-    override val displayName: String,
-    override val description: String = "Use $displayName as dependency injection framework",
+abstract class SpringModule(
     val testFrameworkDisplayName: String,
     /**
      * Generation Spring specific tests requires special spring test framework being installed,
@@ -722,33 +719,21 @@ abstract class DependencyInjectionFramework(
      * spring-analyzer and to run integration tests.
      */
     var testFrameworkInstalled: Boolean = false
-) : CodeGenerationSettingItem {
+) {
     var isInstalled = false
 
-    companion object : CodeGenerationSettingBox {
-        override val defaultItem: DependencyInjectionFramework get() = SpringBoot
-        override val allItems: List<DependencyInjectionFramework> get() = listOf(SpringBoot, SpringBeans)
+    companion object {
+        val allItems: List<SpringModule> get() = listOf(SpringBoot, SpringBeans)
 
         val installedItems get() = allItems.filter { it.isInstalled }
-
-        /**
-         * Generation Spring specific tests requires special spring test framework being installed,
-         * so we can use `TestContextManager` from `spring-test` to configure test context in
-         * spring-analyzer and to run integration tests.
-         */
-        var testFrameworkInstalled: Boolean = false
     }
 }
 
-object SpringBeans : DependencyInjectionFramework(
-    id = "spring-beans",
-    displayName = "Spring Beans",
+object SpringBeans : SpringModule(
     testFrameworkDisplayName = "spring-test",
 )
 
-object SpringBoot : DependencyInjectionFramework(
-    id = "spring-boot",
-    displayName = "Spring Boot",
+object SpringBoot : SpringModule(
     testFrameworkDisplayName = "spring-boot-test",
 )
 

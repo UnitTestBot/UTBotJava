@@ -1,6 +1,6 @@
 package org.utbot.framework.plugin.api.utils
 
-import org.utbot.framework.codegen.domain.DependencyInjectionFramework
+import org.utbot.framework.codegen.domain.SpringModule
 import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.SpringBeans
@@ -61,7 +61,7 @@ fun MockFramework.patterns(): Patterns {
     return Patterns(moduleLibraryPatterns, libraryPatterns)
 }
 
-fun DependencyInjectionFramework.patterns(): Patterns {
+fun SpringModule.patterns(): Patterns {
     val moduleLibraryPatterns = when (this) {
         SpringBoot -> springBootModulePatterns
         SpringBeans -> springBeansModulePatterns
@@ -76,7 +76,7 @@ fun DependencyInjectionFramework.patterns(): Patterns {
     return Patterns(moduleLibraryPatterns, libraryPatterns)
 }
 
-fun DependencyInjectionFramework.testPatterns(): Patterns {
+fun SpringModule.testPatterns(): Patterns {
     val moduleLibraryPatterns = when (this) {
         SpringBoot -> springBootTestModulePatterns
         SpringBeans -> springBeansTestModulePatterns

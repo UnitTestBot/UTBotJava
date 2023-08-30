@@ -59,6 +59,7 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
+import org.utbot.framework.process.SpringAnalyzerTask
 import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
@@ -279,9 +280,11 @@ object UtTestsDialogProcessor {
                                         when (val settings = model.springSettings) {
                                             is AbsentSpringSettings -> emptyList()
                                             is PresentSpringSettings -> {
-                                                process.getSpringBeanDefinitions(
-                                                    classpathForClassLoader,
-                                                    settings
+                                                process.perform(
+                                                    SpringAnalyzerTask(
+                                                        classpath = classpathForClassLoader,
+                                                        settings = settings
+                                                    )
                                                 )
                                             }
                                         }

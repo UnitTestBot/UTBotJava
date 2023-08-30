@@ -91,10 +91,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
     }
-    val getSpringBeanDefinitions = structdef {
-        field("classpath", array(PredefinedType.string))
-        field("springSettings", array(PredefinedType.byte))
-    }
     val methodDescription = structdef {
         field("name", PredefinedType.string)
         field("containingClass", PredefinedType.string.nullable)
@@ -133,26 +129,12 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("statistics", PredefinedType.string.nullable)
         field("hasWarnings", PredefinedType.bool)
     }
-    val beanAdditionalData = structdef {
-        field("factoryMethodName", PredefinedType.string)
-        field("parameterTypes", immutableList(PredefinedType.string))
-        field("configClassName", PredefinedType.string)
-    }
-    val beanDefinitionData = structdef {
-        field("beanName", PredefinedType.string)
-        field("beanTypeFqn", PredefinedType.string)
-        field("additionalData", beanAdditionalData.nullable)
-    }
-    val springAnalyzerResult = structdef {
-        field("beanDefinitions", array(beanDefinitionData))
-    }
     val performParams = structdef {
         field("engineProcessTask", array(PredefinedType.byte))
     }
 
     init {
         call("setupUtContext", setupContextParams, PredefinedType.void).async
-        call("getSpringBeanDefinitions", getSpringBeanDefinitions, springAnalyzerResult).async
         call("createTestGenerator", testGeneratorParams, PredefinedType.void).async
         call("isCancelled", PredefinedType.void, PredefinedType.bool).async
         call("findTestClassName", testClassNameParams, testClassNameResult).async

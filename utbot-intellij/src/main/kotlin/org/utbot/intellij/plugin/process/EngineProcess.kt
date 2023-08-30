@@ -13,14 +13,11 @@ import com.jetbrains.rd.util.ConcurrentHashMap
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.BeanAdditionalData
-import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
@@ -143,34 +140,6 @@ class EngineProcess private constructor(val project: Project, private val classN
     fun setupUtContext(classpathForUrlsClassloader: List<String>) {
         assertReadAccessNotAllowed()
         engineModel.setupUtContext.startBlocking(SetupContextParams(classpathForUrlsClassloader))
-    }
-
-    fun getSpringBeanDefinitions(
-        classpathList: List<String>,
-        springSettings: PresentSpringSettings
-    ): List<BeanDefinitionData> {
-        assertReadAccessNotAllowed()
-        val result = engineModel.getSpringBeanDefinitions.startBlocking(
-            GetSpringBeanDefinitions(
-                classpathList.toTypedArray(),
-                kryoHelper.writeObject(springSettings)
-            )
-        )
-        return result.beanDefinitions
-            .map { data ->
-                BeanDefinitionData(
-                    beanName = data.beanName,
-                    beanTypeName = data.beanTypeFqn,
-                    additionalData = data.additionalData
-                        ?.let {
-                            BeanAdditionalData(
-                                it.factoryMethodName,
-                                it.parameterTypes,
-                                it.configClassName
-                            )
-                        }
-                )
-            }
     }
 
     private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String? =

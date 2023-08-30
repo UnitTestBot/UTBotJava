@@ -146,6 +146,9 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val springAnalyzerResult = structdef {
         field("beanDefinitions", array(beanDefinitionData))
     }
+    val performParams = structdef {
+        field("engineProcessTask", array(PredefinedType.byte))
+    }
 
     init {
         call("setupUtContext", setupContextParams, PredefinedType.void).async
@@ -160,5 +163,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         call("findMethodParamNames", findMethodParamNamesArguments, findMethodParamNamesResult).async
         call("writeSarifReport", writeSarifReportArguments, PredefinedType.string).async
         call("generateTestReport", generateTestReportArgs, generateTestReportResult).async
+        call("perform", performParams, array(PredefinedType.byte)).async
     }
 }

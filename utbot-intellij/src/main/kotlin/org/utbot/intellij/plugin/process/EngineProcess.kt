@@ -24,6 +24,7 @@ import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
+import org.utbot.framework.process.EngineProcessTask
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.MethodDescription
 import org.utbot.framework.process.kryo.KryoHelper
@@ -414,6 +415,13 @@ class EngineProcess private constructor(val project: Project, private val classN
         val result = engineModel.generateTestReport.startBlocking(params)
 
         return Triple(result.notifyMessage, result.statistics, result.hasWarnings)
+    }
+
+    fun <R> perform(engineProcessTask: EngineProcessTask<R>): R {
+        assertReadAccessNotAllowed()
+        return kryoHelper.readObject(
+            engineModel.perform.startBlocking(PerformParams(kryoHelper.writeObject(engineProcessTask)))
+        )
     }
 
     init {

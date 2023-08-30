@@ -30,7 +30,8 @@ class EngineProcessModel private constructor(
     private val _findMethodsInClassMatchingSelected: RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>,
     private val _findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>,
     private val _writeSarifReport: RdCall<WriteSarifReportArguments, String>,
-    private val _generateTestReport: RdCall<GenerateTestReportArgs, GenerateTestReportResult>
+    private val _generateTestReport: RdCall<GenerateTestReportArgs, GenerateTestReportResult>,
+    private val _perform: RdCall<PerformParams, ByteArray>
 ) : RdExtBase() {
     //companion
     
@@ -58,6 +59,7 @@ class EngineProcessModel private constructor(
             serializers.register(BeanAdditionalData)
             serializers.register(BeanDefinitionData)
             serializers.register(SpringAnalyzerResult)
+            serializers.register(PerformParams)
         }
         
         
@@ -78,7 +80,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = -271702162812013897L
+        const val serializationHash = 1643215834533745881L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -97,6 +99,7 @@ class EngineProcessModel private constructor(
     val findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult> get() = _findMethodParamNames
     val writeSarifReport: RdCall<WriteSarifReportArguments, String> get() = _writeSarifReport
     val generateTestReport: RdCall<GenerateTestReportArgs, GenerateTestReportResult> get() = _generateTestReport
+    val perform: RdCall<PerformParams, ByteArray> get() = _perform
     //methods
     //initializer
     init {
@@ -112,6 +115,7 @@ class EngineProcessModel private constructor(
         _findMethodParamNames.async = true
         _writeSarifReport.async = true
         _generateTestReport.async = true
+        _perform.async = true
     }
     
     init {
@@ -127,6 +131,7 @@ class EngineProcessModel private constructor(
         bindableChildren.add("findMethodParamNames" to _findMethodParamNames)
         bindableChildren.add("writeSarifReport" to _writeSarifReport)
         bindableChildren.add("generateTestReport" to _generateTestReport)
+        bindableChildren.add("perform" to _perform)
     }
     
     //secondary constructor
@@ -143,7 +148,8 @@ class EngineProcessModel private constructor(
         RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>(FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult),
         RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>(FindMethodParamNamesArguments, FindMethodParamNamesResult),
         RdCall<WriteSarifReportArguments, String>(WriteSarifReportArguments, FrameworkMarshallers.String),
-        RdCall<GenerateTestReportArgs, GenerateTestReportResult>(GenerateTestReportArgs, GenerateTestReportResult)
+        RdCall<GenerateTestReportArgs, GenerateTestReportResult>(GenerateTestReportArgs, GenerateTestReportResult),
+        RdCall<PerformParams, ByteArray>(PerformParams, FrameworkMarshallers.ByteArray)
     )
     
     //equals trait
@@ -164,6 +170,7 @@ class EngineProcessModel private constructor(
             print("findMethodParamNames = "); _findMethodParamNames.print(printer); println()
             print("writeSarifReport = "); _writeSarifReport.print(printer); println()
             print("generateTestReport = "); _generateTestReport.print(printer); println()
+            print("perform = "); _perform.print(printer); println()
         }
         printer.print(")")
     }
@@ -181,7 +188,8 @@ class EngineProcessModel private constructor(
             _findMethodsInClassMatchingSelected.deepClonePolymorphic(),
             _findMethodParamNames.deepClonePolymorphic(),
             _writeSarifReport.deepClonePolymorphic(),
-            _generateTestReport.deepClonePolymorphic()
+            _generateTestReport.deepClonePolymorphic(),
+            _perform.deepClonePolymorphic()
         )
     }
     //contexts
@@ -1091,6 +1099,63 @@ data class MethodDescription (
             print("name = "); name.print(printer); println()
             print("containingClass = "); containingClass.print(printer); println()
             print("parametersTypes = "); parametersTypes.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:149]
+ */
+data class PerformParams (
+    val engineProcessTask: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<PerformParams> {
+        override val _type: KClass<PerformParams> = PerformParams::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): PerformParams  {
+            val engineProcessTask = buffer.readByteArray()
+            return PerformParams(engineProcessTask)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: PerformParams)  {
+            buffer.writeByteArray(value.engineProcessTask)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as PerformParams
+        
+        if (!(engineProcessTask contentEquals other.engineProcessTask)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + engineProcessTask.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("PerformParams (")
+        printer.indent {
+            print("engineProcessTask = "); engineProcessTask.print(printer); println()
         }
         printer.print(")")
     }

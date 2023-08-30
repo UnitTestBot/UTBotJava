@@ -273,6 +273,11 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         }
         GenerateTestReportResult(notifyMessage, statistics, hasWarnings)
     }
+    watchdog.measureTimeForActiveCall(perform, "Performing dynamic task") { params ->
+        val task = kryoHelper.readObject<EngineProcessTask<Any?>>(params.engineProcessTask)
+        val result = task.perform(kryoHelper)
+        kryoHelper.writeObject(result)
+    }
 }
 
 private fun processInitialWarnings(report: TestsGenerationReport, params: GenerateTestReportArgs) {

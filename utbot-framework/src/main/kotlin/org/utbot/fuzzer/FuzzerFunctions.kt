@@ -83,6 +83,10 @@ private object ConstantsFromIfStatement: ConstantsFinder {
         // 1. compare (result = local compare constant)
         // 2. if result
         if (unit is JAssignStmt) {
+            // Accepts only those assignments statements that uses compare operation on the right
+            if (unit.rightOp !is JCmpExpr) {
+                return emptyList()
+            }
             useBoxes = unit.rightOp.useBoxes.mapNotNull { (it as? ImmediateBox)?.value }
             ifStatement = nextDirectUnit(graph, unit) as? JIfStmt
         }

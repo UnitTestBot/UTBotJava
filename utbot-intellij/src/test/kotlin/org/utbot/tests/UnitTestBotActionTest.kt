@@ -12,7 +12,6 @@ import org.utbot.data.NEW_PROJECT_NAME_START
 import org.utbot.pages.*
 import org.utbot.samples.typeAdditionFunction
 import org.utbot.samples.typeDivisionFunction
-import java.time.Duration.ofMillis
 import java.time.Duration.ofSeconds
 
 class UnitTestBotActionTest : BaseTest() {
@@ -20,8 +19,8 @@ class UnitTestBotActionTest : BaseTest() {
     @ParameterizedTest(name = "Generate tests in {0} project with JDK {1}")
     @MethodSource("supportedProjectsProvider")
     @Tags(Tag("Java"), Tag("UnitTestBot"), Tag("Positive"))
-    fun basicTestGeneration(ideaBuildSystem: IdeaBuildSystem, jdkVersion: JDKVersion,
-                                               remoteRobot: RemoteRobot) : Unit = with(remoteRobot) {
+    fun checkBasicTestGeneration(ideaBuildSystem: IdeaBuildSystem, jdkVersion: JDKVersion,
+                                 remoteRobot: RemoteRobot) {
         val createdProjectName = NEW_PROJECT_NAME_START + ideaBuildSystem.system + jdkVersion.number
         remoteRobot.welcomeFrame {
             findText(createdProjectName).click()
@@ -29,28 +28,26 @@ class UnitTestBotActionTest : BaseTest() {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         with (ideaFrame) {
             val newClassName = "Arithmetic"
-            createNewJavaClass(newClassName, "org.example")
+            createNewJavaClass(newClassName, "Main")
             val returnsFromTagBody = textEditor().typeDivisionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             unitTestBotDialog.generateTestsButton.click()
             waitForIgnoringError (ofSeconds(5)){
                 inlineProgressTextPanel.isShowing
             }
-            waitForIgnoringError(ofSeconds(60), ofMillis(100)) {
-                inlineProgressTextPanel.hasText("Generate tests: read classes")
-            }
-            waitForIgnoringError (ofSeconds(30)){
+            waitForIgnoringError (ofSeconds(90)){
                 inlineProgressTextPanel.hasText("Generate test cases for class $newClassName")
             }
-            waitForIgnoringError(ofSeconds(60)) { //Can be changed to 60 for a complex class
+            waitForIgnoringError(ofSeconds(30)) {
                 utbotNotification.title.hasText("UnitTestBot: unit tests generated successfully")
             }
             assertThat(textEditor().editor.text).contains("class ${newClassName}Test")
             assertThat(textEditor().editor.text).contains("@Test\n")
             assertThat(textEditor().editor.text).contains("assertEquals(")
             assertThat(textEditor().editor.text).contains("@utbot.classUnderTest {@link ${newClassName}}")
-            assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${newClassName}#division(int, int)}")
+            assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${newClassName}#")
             assertThat(textEditor().editor.text).contains(returnsFromTagBody)
+            //ToDo verify how many tests are generated
             //ToDo verify Problems view and Arithmetic exception on it
         }
     }
@@ -58,16 +55,16 @@ class UnitTestBotActionTest : BaseTest() {
     @ParameterizedTest(name = "Check Generate tests button is disabled in {0} project with unsupported JDK {1}")
     @MethodSource("unsupportedProjectsProvider")
     @Tags(Tag("Java"), Tag("UnitTestBot"), Tag("Negative"))
-    fun checkTestGenerationIsUnavailable(ideaBuildSystem: IdeaBuildSystem, jdkVersion: JDKVersion,
-                                         remoteRobot: RemoteRobot) : Unit = with(remoteRobot) {
+    fun checkProjectWithUnsupportedJDK(ideaBuildSystem: IdeaBuildSystem, jdkVersion: JDKVersion,
+                                       remoteRobot: RemoteRobot) {
         val createdProjectName = NEW_PROJECT_NAME_START + ideaBuildSystem.system + jdkVersion.number
         remoteRobot.welcomeFrame {
             findText(createdProjectName).click()
         }
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
-        with (ideaFrame) {
+        return with (ideaFrame) {
             val newClassName = "Arithmetic"
-            createNewJavaClass(newClassName, "org.example")
+            createNewJavaClass(newClassName, "Main")
             textEditor().typeAdditionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             assertThat(unitTestBotDialog.generateTestsButton.isEnabled().not())

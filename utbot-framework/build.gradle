@@ -3,9 +3,8 @@ plugins {
 }
 
 configurations {
-    fetchSpringAnalyzerJar
-    fetchSpringCommonsJar
     fetchInstrumentationJar
+    fetchSpringAnalyzerJar
 }
 
 dependencies {
@@ -52,7 +51,6 @@ dependencies {
     implementation project(':utbot-spring-commons-api')
     implementation project(':utbot-spring-analyzer')
     fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
-    fetchSpringCommonsJar project(path: ':utbot-spring-commons', configuration: 'springCommonsJar')
 }
 
 processResources {
@@ -61,10 +59,6 @@ processResources {
     }
 
     from(configurations.fetchSpringAnalyzerJar) {
-        into "lib"
-    }
-
-    from(configurations.fetchSpringCommonsJar) {
         into "lib"
     }
 }

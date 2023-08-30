@@ -4,11 +4,8 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.context.simple.SimpleApplicationContext
 import org.utbot.framework.context.simple.SimpleMockerContext
-import org.utbot.framework.context.spring.SpringApplicationContextImpl
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.SpringSettings
-import org.utbot.framework.plugin.api.SpringTestType
 
 interface AbstractConfiguration {
     val projectType: ProjectType
@@ -47,11 +44,4 @@ val defaultApplicationContext = SimpleApplicationContext(
         mockFrameworkInstalled = true,
         staticsMockingIsConfigured = true,
     )
-)
-
-val springNoConfigApplicationContext = SpringApplicationContextImpl(
-    delegateContext = defaultApplicationContext,
-    springTestType = SpringTestType.UNIT_TEST,
-    springSettings = SpringSettings.AbsentSpringSettings,
-    beanDefinitions = emptyList()
 )

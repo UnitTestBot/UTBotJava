@@ -5,14 +5,13 @@ import org.parsers.python.PythonParser
 import org.parsers.python.ast.ClassDefinition
 import org.parsers.python.ast.FunctionDefinition
 import org.utbot.python.PythonMethod
-import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.mypy.*
 import org.utbot.python.newtyping.utils.getOffsetLine
@@ -36,14 +35,14 @@ class TypeInferenceProcessor(
 
     fun inferTypes(
         cancel: () -> Boolean,
-        processSignature: (Type) -> Unit = {},
+        processSignature: (UtType) -> Unit = {},
         checkRequirementsAction: () -> Unit = {},
         missingRequirementsAction: () -> Unit = {},
         loadingInfoAboutTypesAction: () -> Unit = {},
         analyzingCodeAction: () -> Unit = {},
         pythonMethodExtractionFailAction: (String) -> Unit = {},
         startingTypeInferenceAction: () -> Unit = {}
-    ): List<Type> {
+    ): List<UtType> {
         Cleaner.restart()
         try {
             checkRequirementsAction()
@@ -53,25 +52,26 @@ class TypeInferenceProcessor(
                 return emptyList()
             }
 
-            val configFile = setConfigFile(directoriesForSysPath)
-
             loadingInfoAboutTypesAction()
 
-            val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
+            val (mypyBuild, report) = readMypyAnnotationStorageAndInitialErrors(
                 pythonPath,
                 path.toString(),
                 moduleOfSourceFile.dropInitFile(),
-                configFile
+                MypyBuildDirectory(
+                    TemporaryFileManager.assignTemporaryFile(tag = "mypyBuildRoot"),
+                    directoriesForSysPath
+                )
             )
 
-            val namesInModule = mypyStorage.names[moduleOfSourceFile]!!.map { it.name }.filter {
+            val namesInModule = mypyBuild.names[moduleOfSourceFile]!!.map { it.name }.filter {
                 it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
             }
 
             analyzingCodeAction()
 
-            val typeStorage = PythonTypeStorage.get(mypyStorage)
-            val pythonMethodOpt = getPythonMethod(mypyStorage, typeStorage)
+            val typeStorage = PythonTypeHintsStorage.get(mypyBuild)
+            val pythonMethodOpt = getPythonMethod(mypyBuild, typeStorage)
             if (pythonMethodOpt is Fail) {
                 pythonMethodExtractionFailAction(pythonMethodOpt.message)
                 return emptyList()
@@ -79,10 +79,10 @@ class TypeInferenceProcessor(
 
             val pythonMethod = (pythonMethodOpt as Success).value
 
-            val mypyExpressionTypes = mypyStorage.types[moduleOfSourceFile]!!.associate {
+            val mypyExpressionTypes = mypyBuild.types[moduleOfSourceFile]!!.associate {
                 Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
             }
-            val namesStorage = GlobalNamesStorage(mypyStorage)
+            val namesStorage = GlobalNamesStorage(mypyBuild)
             val collector =
                 HintCollector(pythonMethod.definition, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
             val visitor = Visitor(listOf(collector))
@@ -101,12 +101,12 @@ class TypeInferenceProcessor(
                     getOffsetLine(sourceFileContent, pythonMethod.ast.beginOffset),
                     getOffsetLine(sourceFileContent, pythonMethod.ast.endOffset)
                 ),
-                configFile,
+                mypyBuild.buildRoot.configFile,
                 ""
             )
 
             startingTypeInferenceAction()
-            val annotations = emptyList<Type>().toMutableList()
+            val annotations = emptyList<UtType>().toMutableList()
             runBlocking {
                 algo.run(collector.result, cancel) {
                     annotations.add(it)
@@ -120,7 +120,7 @@ class TypeInferenceProcessor(
         }
     }
 
-    private fun getPythonMethod(mypyAnnotationStorage: MypyAnnotationStorage, typeStorage: PythonTypeStorage): Optional<PythonMethod> {
+    private fun getPythonMethod(mypyInfoBuild: MypyInfoBuild, typeStorage: PythonTypeHintsStorage): Optional<PythonMethod> {
         if (className == null) {
             val funcDef = parsedFile.children().firstNotNullOfOrNull { node ->
                 val res = (node as? FunctionDefinition)?.let { parseFunctionDefinition(it) }
@@ -128,7 +128,7 @@ class TypeInferenceProcessor(
             } ?: return Fail("Couldn't find top-level function $functionName")
 
             val def =
-                mypyAnnotationStorage.definitions[moduleOfSourceFile]!![functionName]!!.getUtBotDefinition() as? PythonFunctionDefinition
+                mypyInfoBuild.definitions[moduleOfSourceFile]!![functionName]!!.getUtBotDefinition() as? PythonFunctionDefinition
                     ?: return Fail("$functionName is not a function")
 
             val result = PythonMethod(
@@ -150,7 +150,7 @@ class TypeInferenceProcessor(
             if (res?.name?.toString() == functionName) res else null
         } ?: return Fail("Couldn't find method $functionName in class $className")
 
-        val typeOfClass = mypyAnnotationStorage.definitions[moduleOfSourceFile]!![className]!!.getUtBotType()
+        val typeOfClass = mypyInfoBuild.definitions[moduleOfSourceFile]!![className]!!.getUtBotType()
             as? CompositeType ?: return Fail("$className is not a class")
 
         val defOfFunc = typeOfClass.getPythonAttributeByName(typeStorage, functionName) as? PythonFunctionDefinition

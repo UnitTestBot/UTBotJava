@@ -3,7 +3,7 @@ package org.utbot.python.newtyping.inference
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorNode
 import org.utbot.python.newtyping.ast.visitor.hints.HintEdge
 import org.utbot.python.newtyping.ast.visitor.hints.HintEdgeWithBound
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonAnyType
 
 fun visitNodesByReverseEdges(
@@ -18,9 +18,9 @@ fun visitNodesByReverseEdges(
     }
 }
 
-fun collectBoundsFromEdges(node: HintCollectorNode): Pair<List<Type>, List<Type>> {
-    val lowerBounds: MutableList<Type> = mutableListOf()
-    val upperBounds: MutableList<Type> = mutableListOf()
+fun collectBoundsFromEdges(node: HintCollectorNode): Pair<List<UtType>, List<UtType>> {
+    val lowerBounds: MutableList<UtType> = mutableListOf()
+    val upperBounds: MutableList<UtType> = mutableListOf()
     node.ingoingEdges.forEach { edge ->
         if (edge !is HintEdgeWithBound)
             return@forEach
@@ -33,9 +33,9 @@ fun collectBoundsFromEdges(node: HintCollectorNode): Pair<List<Type>, List<Type>
     return Pair(lowerBounds, upperBounds)
 }
 
-fun collectBoundsFromComponent(component: Collection<HintCollectorNode>): Pair<List<Type>, List<Type>> {
-    val lowerBounds: MutableList<Type> = mutableListOf()
-    val upperBounds: MutableList<Type> = mutableListOf()
+fun collectBoundsFromComponent(component: Collection<HintCollectorNode>): Pair<List<UtType>, List<UtType>> {
+    val lowerBounds: MutableList<UtType> = mutableListOf()
+    val upperBounds: MutableList<UtType> = mutableListOf()
     component.forEach { visitedNode ->
         val (lowerFromEdges, upperFromEdges) = collectBoundsFromEdges(visitedNode)
         lowerBounds.addAll(visitedNode.lowerBounds + lowerFromEdges + visitedNode.partialType)

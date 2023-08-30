@@ -1,6 +1,8 @@
 package org.utbot.framework.plugin.api.util
 
 import org.utbot.common.tryLoadClass
+import org.utbot.common.withToStringThreadLocalReentrancyGuard
+import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -10,6 +12,10 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.mapModels
+import java.util.Optional
 
 object SpringModelUtils {
     val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
@@ -66,6 +72,17 @@ object SpringModelUtils {
             )
         }
 
+    val flushMethodIdOrNull: MethodId?
+        get() {
+            return MethodId(
+                classId = entityManagerClassIds.firstOrNull() ?: return null,
+                name = "flush",
+                returnType = voidClassId,
+                parameters = listOf(),
+                bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+            )
+        }
+
     val detachMethodIdOrNull: MethodId?
         get() {
             return MethodId(
@@ -77,7 +94,7 @@ object SpringModelUtils {
             )
         }
 
-    private val validationLibraries = listOf("jakarta.validation.constraints")
+    private val validationLibraries = listOf("javax.validation.constraints", "jakarta.validation.constraints")
     private fun validationClassIds(simpleName: String) = getClassIdFromEachAvailablePackage(validationLibraries, simpleName)
         .filter { utContext.classLoader.tryLoadClass(it.name) != null }
 
@@ -94,7 +111,12 @@ object SpringModelUtils {
         bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
 
-    fun createBeanModel(beanName: String, id: Int, classId: ClassId) = UtAssembleModel(
+    fun createBeanModel(
+        beanName: String,
+        id: Int,
+        classId: ClassId,
+        modificationChainProvider: UtAssembleModel.() -> List<UtStatementModel> = { mutableListOf() },
+    ) = UtAssembleModel(
         id = id,
         classId = classId,
         modelName = "@Autowired $beanName",
@@ -103,7 +125,7 @@ object SpringModelUtils {
             executable = getBeanMethodId,
             params = listOf(UtPrimitiveModel(beanName))
         ),
-        modificationsChainProvider = { mutableListOf() }
+        modificationsChainProvider = modificationChainProvider
     )
 
     fun UtModel.isAutowiredFromContext(): Boolean =
@@ -121,6 +143,11 @@ object SpringModelUtils {
     ///region spring-web
     private val requestMappingClassId = ClassId("org.springframework.web.bind.annotation.RequestMapping")
     private val pathVariableClassId = ClassId("org.springframework.web.bind.annotation.PathVariable")
+    private val requestHeaderClassId = ClassId("org.springframework.web.bind.annotation.RequestHeader")
+    private val cookieValueClassId = ClassId("org.springframework.web.bind.annotation.CookieValue")
+    private val requestAttributesClassId = ClassId("org.springframework.web.bind.annotation.RequestAttribute")
+    private val sessionAttributesClassId = ClassId("org.springframework.web.bind.annotation.SessionAttribute")
+    private val modelAttributesClassId = ClassId("org.springframework.web.bind.annotation.ModelAttribute")
     private val requestBodyClassId = ClassId("org.springframework.web.bind.annotation.RequestBody")
     private val requestParamClassId = ClassId("org.springframework.web.bind.annotation.RequestParam")
     private val uriComponentsBuilderClassId = ClassId("org.springframework.web.util.UriComponentsBuilder")
@@ -141,8 +168,60 @@ object SpringModelUtils {
     private val viewResultMatchersClassId = ClassId("org.springframework.test.web.servlet.result.ViewResultMatchers")
     private val mockHttpServletRequestBuilderClassId = ClassId("org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder")
     private val modelAndViewClassId = ClassId("org.springframework.web.servlet.ModelAndView")
+    private val httpHeaderClassId = ClassId("org.springframework.http.HttpHeaders")
 
     private val objectMapperClassId = ClassId("com.fasterxml.jackson.databind.ObjectMapper")
+    private val cookieClassId = ClassId("javax.servlet.http.Cookie")
+
+    private val requestAttributesMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "requestAttr",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(stringClassId, objectClassId)
+    )
+
+    private val sessionAttributesMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "sessionAttr",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(stringClassId, objectClassId)
+    )
+
+    private val modelAttributesMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "flashAttr",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(stringClassId, objectClassId)
+    )
+
+    private val mockHttpServletHeadersMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "headers",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(httpHeaderClassId)
+    )
+
+//    // TODO uncomment when #2542 is fixed
+//    private val mockHttpServletCookieMethodId = MethodId(
+//        classId = mockHttpServletRequestBuilderClassId,
+//        name = "cookie",
+//        returnType = mockHttpServletRequestBuilderClassId,
+//        parameters = listOf(getArrayClassIdByElementClassId(cookieClassId))
+//    )
+
+    private val mockHttpServletContentTypeMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "contentType",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(mediaTypeClassId)
+    )
+
+    private val mockHttpServletContentMethodId = MethodId(
+        classId = mockHttpServletRequestBuilderClassId,
+        name = "content",
+        returnType = mockHttpServletRequestBuilderClassId,
+        parameters = listOf(stringClassId)
+    )
 
     val mockMvcPerformMethodId = MethodId(
         classId = mockMvcClassId,
@@ -257,7 +336,7 @@ object SpringModelUtils {
     )
 
     val resultMatchersViewMethodId = MethodId(
-        classId = contentResultMatchersClassId,
+        classId = mockMvcResultMatchersClassId,
         name = "view",
         parameters = listOf(),
         returnType = viewResultMatchersClassId
@@ -270,8 +349,19 @@ object SpringModelUtils {
         returnType = resultMatcherClassId
     )
 
-    fun createMockMvcModel(idGenerator: () -> Int) =
-        createBeanModel("mockMvc", idGenerator(), mockMvcClassId)
+    fun createMockMvcModel(controller: UtModel?, idGenerator: () -> Int) =
+        createBeanModel("mockMvc", idGenerator(), mockMvcClassId, modificationChainProvider = {
+            // we need to keep controller modifications if there are any, so we add them to mockMvc
+            (controller as? UtAssembleModel)?.let { assembledController ->
+                val controllerModificationRemover = UtModelDeepMapper { model ->
+                    if (model == assembledController) assembledController.copy(modificationsChain = emptyList())
+                    else model
+                }
+                // modificationsChain may mention controller, causing controller modifications to evaluate twice:
+                // once for mockMvc and once for controller itself, to avoid that we remove modifications from controller
+                assembledController.modificationsChain.map { it.mapModels(controllerModificationRemover) }
+            } ?: mutableListOf()
+        })
 
     fun createRequestBuilderModelOrNull(methodId: MethodId, arguments: List<UtModel>, idGenerator: () -> Int): UtModel? {
         check(methodId.parameters.size == arguments.size)
@@ -292,7 +382,7 @@ object SpringModelUtils {
 
         val requestParamsModel = createRequestParamsModel(methodId, arguments, idGenerator)
 
-        val urlTemplateModel = createUrlTemplateModel(pathVariablesModel, requestParamsModel, requestPath, idGenerator)
+        val urlTemplateModel = createUrlTemplateModel(requestPath, pathVariablesModel, requestParamsModel, idGenerator)
 
         var requestBuilderModel = UtAssembleModel(
             id = idGenerator(),
@@ -314,8 +404,162 @@ object SpringModelUtils {
             )
         )
 
-        // TODO #2462 (support @RequestParam, @RequestHeader, @CookieValue, @RequestAttribute, ...)
+        val headersContentModel = createHeadersContentModel(methodId, arguments, idGenerator)
+        requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
+
+//      // TODO uncomment when #2542 is fixed
+//        val cookieValuesModel = createCookieValuesModel(methodId, arguments, idGenerator)
+//        requestBuilderModel =
+//            addCookiesToRequestBuilderModel(cookieValuesModel, requestBuilderModel, idGenerator)
+
+        val requestAttributes = collectArgumentsWithAnnotationModels(methodId, requestAttributesClassId, arguments)
+        requestBuilderModel =
+            addRequestAttributesToRequestModelBuilder(requestAttributes, requestBuilderModel, idGenerator)
+
+        val sessionAttributes = collectArgumentsWithAnnotationModels(methodId, sessionAttributesClassId, arguments)
+        requestBuilderModel =
+            addSessionAttributesToRequestModelBuilder(sessionAttributes, requestBuilderModel, idGenerator)
+
+        val modelAttributes = collectArgumentsWithAnnotationModels(methodId, modelAttributesClassId, arguments)
+        requestBuilderModel =
+            addModelAttributesToRequestModelBuilder(modelAttributes, requestBuilderModel, idGenerator)
+
         return addContentToRequestBuilderModel(methodId, arguments, requestBuilderModel, idGenerator)
+    }
+
+    private fun addRequestAttributesToRequestModelBuilder(
+        requestAttributes: Map<String, UtModel>,
+        requestBuilderModel: UtAssembleModel,
+        idGenerator: () -> Int
+    ): UtAssembleModel = addAttributesToRequestBuilderModel(
+        requestAttributes,
+        requestAttributesMethodId,
+        requestBuilderModel,
+        idGenerator
+    )
+
+
+    private fun addSessionAttributesToRequestModelBuilder(
+        sessionAttributes: Map<String, UtModel>,
+        requestBuilderModel: UtAssembleModel,
+        idGenerator: () -> Int
+    ): UtAssembleModel = addAttributesToRequestBuilderModel(
+        sessionAttributes,
+        sessionAttributesMethodId,
+        requestBuilderModel,
+        idGenerator
+    )
+
+    private fun addModelAttributesToRequestModelBuilder(
+        modelAttributes: Map<String, UtModel>,
+        requestBuilderModel: UtAssembleModel,
+        idGenerator: () -> Int
+    ): UtAssembleModel = addAttributesToRequestBuilderModel(
+        modelAttributes,
+        modelAttributesMethodId,
+        requestBuilderModel,
+        idGenerator
+    )
+
+
+    private fun addAttributesToRequestBuilderModel(
+        attributes: Map<String, UtModel>,
+        addAttributesMethodId: MethodId,
+        requestBuilderModel: UtAssembleModel,
+        idGenerator: () -> Int
+    ): UtAssembleModel{
+        @Suppress("NAME_SHADOWING")
+        var requestBuilderModel = requestBuilderModel
+
+        attributes.forEach { (name, model) ->
+            requestBuilderModel = UtAssembleModel(
+                id = idGenerator(),
+                classId = mockHttpServletRequestBuilderClassId,
+                modelName = "requestBuilder",
+                instantiationCall = UtExecutableCallModel(
+                    instance = requestBuilderModel,
+                    executable = addAttributesMethodId,
+                    params = listOf(UtPrimitiveModel(name), model)
+                )
+            )
+        }
+
+        return requestBuilderModel
+    }
+
+//    // TODO uncomment when #2542 is fixed
+//    private fun addCookiesToRequestBuilderModel(
+//        cookieValuesModel: UtArrayModel,
+//        requestBuilderModel: UtAssembleModel,
+//        idGenerator: () -> Int
+//    ): UtAssembleModel {
+//        @Suppress("NAME_SHADOWING")
+//        var requestBuilderModel = requestBuilderModel
+//
+//        if(cookieValuesModel.length > 0) {
+//            requestBuilderModel = UtAssembleModel(
+//                id = idGenerator(),
+//                classId = mockHttpServletRequestBuilderClassId,
+//                modelName = "requestBuilder",
+//                instantiationCall = UtExecutableCallModel(
+//                    instance = requestBuilderModel,
+//                    executable = mockHttpServletCookieMethodId,
+//                    params = listOf(cookieValuesModel)
+//                )
+//            )
+//        }
+//        return requestBuilderModel
+//    }
+
+    private fun addHeadersToRequestBuilderModel(
+        headersContentModel: UtAssembleModel,
+        requestBuilderModel: UtAssembleModel,
+        idGenerator: () -> Int
+    ): UtAssembleModel {
+        @Suppress("NAME_SHADOWING")
+        var requestBuilderModel = requestBuilderModel
+
+        if (headersContentModel.modificationsChain.isEmpty()) {
+            return requestBuilderModel
+        }
+
+        val headers = UtAssembleModel(
+            id = idGenerator(),
+            classId = httpHeaderClassId,
+            modelName = "headers",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = constructorId(httpHeaderClassId),
+                params = emptyList(),
+            ),
+            modificationsChainProvider = {
+                listOf(
+                    UtExecutableCallModel(
+                        instance = this,
+                        executable = methodId(
+                            classId = httpHeaderClassId,
+                            name = "setAll",
+                            returnType = voidClassId,
+                            arguments = arrayOf(Map::class.java.id),
+                        ),
+                        params = listOf(headersContentModel)
+                    )
+                )
+            }
+        )
+
+        requestBuilderModel = UtAssembleModel(
+            id = idGenerator(),
+            classId = mockHttpServletRequestBuilderClassId,
+            modelName = "requestBuilder",
+            instantiationCall = UtExecutableCallModel(
+                instance = requestBuilderModel,
+                executable = mockHttpServletHeadersMethodId,
+                params = listOf(headers)
+            )
+        )
+
+        return requestBuilderModel
     }
 
     private fun addContentToRequestBuilderModel(
@@ -330,7 +574,6 @@ object SpringModelUtils {
             @Suppress("UNCHECKED_CAST")
             param.getAnnotation(requestBodyClassId.jClass as Class<out Annotation>) ?: return@forEach
 
-            // TODO filter out `null` and `Optional.empty()` values of `arg`
             val mediaTypeModel = UtAssembleModel(
                 id = idGenerator(),
                 classId = mediaTypeClassId,
@@ -353,12 +596,7 @@ object SpringModelUtils {
                 modelName = "requestBuilder",
                 instantiationCall = UtExecutableCallModel(
                     instance = requestBuilderModel,
-                    executable = MethodId(
-                        classId = mockHttpServletRequestBuilderClassId,
-                        name = "contentType",
-                        returnType = mockHttpServletRequestBuilderClassId,
-                        parameters = listOf(mediaTypeClassId)
-                    ),
+                    executable = mockHttpServletContentTypeMethodId,
                     params = listOf(
                         mediaTypeModel
                     )
@@ -390,17 +628,79 @@ object SpringModelUtils {
                 modelName = "requestBuilder",
                 instantiationCall = UtExecutableCallModel(
                     instance = requestBuilderModel,
-                    executable = MethodId(
-                        classId = mockHttpServletRequestBuilderClassId,
-                        name = "content",
-                        returnType = mockHttpServletRequestBuilderClassId,
-                        parameters = listOf(stringClassId)
-                    ),
+                    executable = mockHttpServletContentMethodId,
                     params = listOf(content)
                 )
             )
         }
         return requestBuilderModel
+    }
+
+    private fun createCookieValuesModel(
+        methodId: MethodId,
+        arguments: List<UtModel>,
+        idGenerator: () -> Int,
+    ): UtArrayModel {
+        val cookieValues = collectArgumentsWithAnnotationModels(methodId, cookieValueClassId, arguments)
+            .mapValues { (_, model) -> convertModelValueToString(model) }.toList()
+
+        // Creating an indexed Map for `UtArrayModel.stores`
+        val indexedCookieValues = HashMap<Int, UtModel>()
+        cookieValues.indices.forEach { ind ->
+            indexedCookieValues[ind] = UtAssembleModel(
+                id = idGenerator(),
+                classId = cookieClassId,
+                modelName = "cookie",
+                instantiationCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = constructorId(cookieClassId, stringClassId, stringClassId),
+                    params = listOf(UtPrimitiveModel(cookieValues[ind].first), cookieValues[ind].second),
+                )
+            )
+        }
+
+        return UtArrayModel(
+            id = idGenerator(),
+            classId = getArrayClassIdByElementClassId(cookieClassId),
+            length = cookieValues.size,
+            constModel = UtNullModel(cookieClassId),
+            stores = indexedCookieValues,
+        )
+    }
+
+    private fun createHeadersContentModel(
+        methodId: MethodId,
+        arguments: List<UtModel>,
+        idGenerator: () -> Int,
+    ): UtAssembleModel {
+        // Converts Map models values to String because `HttpHeaders.setAll(...)` method takes `Map<String, String>`
+        val headersContent = collectArgumentsWithAnnotationModels(methodId, requestHeaderClassId, arguments)
+            .mapValues { (_, model) -> convertModelValueToString(model) }
+
+        return UtAssembleModel(
+            id = idGenerator(),
+            classId = Map::class.java.id,
+            modelName = "headersContent",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = HashMap::class.java.getConstructor().executableId,
+                params = emptyList()
+            ),
+            modificationsChainProvider = {
+                headersContent.map { (name, value) ->
+                    UtExecutableCallModel(
+                        instance = this,
+                        // Actually it is a `Map<String, String>`, but we use `Object::class.java` to avoid concrete failures
+                        executable = Map::class.java.getMethod(
+                            "put",
+                            Object::class.java,
+                            Object::class.java
+                        ).executableId,
+                        params = listOf(UtPrimitiveModel(name), value)
+                    )
+                }
+            }
+        )
     }
 
     private fun createPathVariablesModel(
@@ -410,7 +710,6 @@ object SpringModelUtils {
     ): UtAssembleModel {
         val pathVariables = collectArgumentsWithAnnotationModels(methodId, pathVariableClassId, arguments)
 
-        // TODO filter out `null` and `Optional.empty()` values of `arg`
         return UtAssembleModel(
             id = idGenerator(),
             classId = Map::class.java.id,
@@ -440,35 +739,17 @@ object SpringModelUtils {
         methodId: MethodId,
         arguments: List<UtModel>,
         idGenerator: () -> Int
-    ): List< Pair<UtPrimitiveModel, UtAssembleModel> > {
+    ): List<Pair<UtPrimitiveModel, UtArrayModel>> {
         val requestParams = collectArgumentsWithAnnotationModels(methodId, requestParamClassId, arguments)
 
-        // TODO filter out `null` and `Optional.empty()` values of `arg`
         return requestParams.map { (name, value) ->
             Pair(UtPrimitiveModel(name),
-                UtAssembleModel(
+                UtArrayModel(
                     id = idGenerator(),
-                    classId = listClassId,
-                    modelName = "queryParams",
-                    instantiationCall = UtExecutableCallModel(
-                        instance = null,
-                        executable = constructorId(java.util.ArrayList::class.id),
-                        params = emptyList()
-                    ),
-                    modificationsChainProvider = {
-                        listOf(
-                            UtExecutableCallModel(
-                                instance = this,
-                                executable = methodId(
-                                    classId = listClassId,
-                                    name = "add",
-                                    returnType = booleanClassId,
-                                    arguments = arrayOf(Object::class.id),
-                                ),
-                                params = listOf(value)
-                            )
-                        )
-                    }
+                    classId = getArrayClassIdByElementClassId(objectClassId),
+                    length = 1,
+                    constModel = UtNullModel(objectClassId),
+                    stores = mutableMapOf(0 to value),
                 )
             )
         }
@@ -479,24 +760,50 @@ object SpringModelUtils {
         annotationClassId: ClassId,
         arguments: List<UtModel>
     ): MutableMap<String, UtModel> {
-        val argumentsModels = mutableMapOf<String, UtModel>()
+        fun UtModel.isEmptyOptional(): Boolean {
+            return classId == Optional::class.java.id && this is UtAssembleModel &&
+                    instantiationCall is UtExecutableCallModel && instantiationCall.executable.name == "empty"
+        }
 
+        val argumentsModels = mutableMapOf<String, UtModel>()
         methodId.method.parameters.zip(arguments).forEach { (param, arg) ->
             @Suppress("UNCHECKED_CAST") val paramAnnotation =
                 param.getAnnotation(annotationClassId.jClass as Class<out Annotation>) ?: return@forEach
             val name = (annotationClassId.jClass.getMethod("name").invoke(paramAnnotation) as? String).orEmpty()
                 .ifEmpty { annotationClassId.jClass.getMethod("value").invoke(paramAnnotation) as? String }.orEmpty()
                 .ifEmpty { param.name }
-            argumentsModels[name] = arg
+
+            if (arg.isNotNull() && !arg.isEmptyOptional()) {
+                argumentsModels[name] = arg
+            }
         }
 
         return argumentsModels
     }
 
+    /**
+     * Converts the model into a form that is understandable for annotations.
+     * Example: UtArrayModel([UtPrimitiveModel("a"), UtPrimitiveModel("b"), UtPrimitiveModel("c")]) -> UtPrimitiveModel("a, b, c")
+     *
+     * There is known issue when using `model.toString()` is not reliable:
+     *              https://github.com/UnitTestBot/UTBotJava/issues/2505
+     * This issue may be improved in the future.
+     */
+    private fun convertModelValueToString(model: UtModel): UtModel {
+        return UtPrimitiveModel(
+            when(model){
+                is UtArrayModel -> withToStringThreadLocalReentrancyGuard {
+                    (0 until model.length).map { model.stores[it] ?: model.constModel }.joinToString(", ")
+                }
+                else -> model.toString()
+            }
+        )
+    }
+
     private fun createUrlTemplateModel(
-        pathVariablesModel: UtAssembleModel,
-        requestParamModel: List<Pair<UtPrimitiveModel, UtAssembleModel>>,
         requestPath: String,
+        pathVariablesModel: UtAssembleModel,
+        requestParamModel: List<Pair<UtPrimitiveModel, UtArrayModel>>,
         idGenerator: () -> Int
     ): UtModel {
         val requestPathModel = UtPrimitiveModel(requestPath)
@@ -546,7 +853,7 @@ object SpringModelUtils {
                         executable = MethodId(
                             classId = uriComponentsBuilderClassId,
                             name = "queryParam",
-                            parameters = listOf(stringClassId, collectionClassId),
+                            parameters = listOf(stringClassId, getArrayClassIdByElementClassId(objectClassId)),
                             returnType = uriComponentsBuilderClassId
                         ),
                         params = listOf(name, value),

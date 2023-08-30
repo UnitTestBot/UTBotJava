@@ -16,9 +16,9 @@ import org.utbot.python.fuzzing.provider.utils.isProperty
 import org.utbot.python.fuzzing.provider.utils.isProtected
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 
-object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
+object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
     private val unsupportedTypes = listOf(
         pythonRePatternClassId.canonicalName,
         pythonListClassId.canonicalName,
@@ -34,17 +34,17 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
         pythonBoolClassId.canonicalName,
     )
 
-    override fun accept(type: Type): Boolean {
+    override fun accept(type: UtType): Boolean {
         val hasSupportedType =
             !unsupportedTypes.contains(type.pythonTypeName())
         return hasSupportedType && isConcreteType(type)
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         val fields = findFields(description, type)
         findConstructors(description, type)
             .forEach {
-                val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
+                val modifications = emptyList<Routine.Call<UtType, PythonFuzzedValue>>().toMutableList()
                 modifications.addAll(fields.map { field ->
                     Routine.Call(listOf(field.type)) { instance, arguments ->
                         val obj = instance.tree as PythonTree.ReduceNode
@@ -55,7 +55,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
             }
     }
 
-    private fun findFields(description: PythonMethodDescription, type: Type): List<PythonDefinition> {
+    private fun findFields(description: PythonMethodDescription, type: UtType): List<PythonDefinition> {
         // TODO: here we need to use same as .getPythonAttributeByName but without name
         // TODO: now we do not have fields from parents
         // TODO: here we should use only attributes from __slots__
@@ -66,7 +66,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
         }
     }
 
-    private fun findConstructors(description: PythonMethodDescription, type: Type): List<PythonDefinition> {
+    private fun findConstructors(description: PythonMethodDescription, type: UtType): List<PythonDefinition> {
         val initMethodName = "__init__"
         val newMethodName = "__new__"
         val typeDescr = type.pythonDescription()
@@ -89,10 +89,10 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
     }
 
     private fun constructObject(
-        type: Type,
+        type: UtType,
         constructorFunction: FunctionType,
-        modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>
-    ): Seed.Recursive<Type, PythonFuzzedValue> {
+        modifications: Sequence<Routine.Call<UtType, PythonFuzzedValue>>
+    ): Seed.Recursive<UtType, PythonFuzzedValue> {
         val description = constructorFunction.pythonDescription() as PythonCallableTypeDescription
         val positionalArgs = description.argumentKinds.count { it == PythonCallableTypeDescription.ArgKind.ARG_POS }
         val arguments = constructorFunction.arguments.take(positionalArgs)
@@ -115,10 +115,10 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
     }
 
     private fun callConstructors(
-        type: Type,
+        type: UtType,
         constructor: PythonDefinition,
-        modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>
-    ): Sequence<Seed.Recursive<Type, PythonFuzzedValue>> = sequence {
+        modifications: Sequence<Routine.Call<UtType, PythonFuzzedValue>>
+    ): Sequence<Seed.Recursive<UtType, PythonFuzzedValue>> = sequence {
         val constructors = emptyList<FunctionType>().toMutableList()
         if (constructor.type.pythonTypeName() == "Overload") {
             constructor.type.parameters.forEach {

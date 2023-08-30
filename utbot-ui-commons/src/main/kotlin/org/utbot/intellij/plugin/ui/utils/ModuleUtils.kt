@@ -184,8 +184,11 @@ fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<ITestSourceRoot>, l
     if (testSourceRoots.any { root -> root.dir?.name == dedicatedTestSourceRootName }) return null
 
     val moduleInstance = ModuleRootManager.getInstance(this)
-    val testFolder = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
+    val testFolder = moduleInstance.contentEntries
+        .flatMap { it.sourceFolders.toList() }
+        .filterNot { it.isForGeneratedSources() }
         .firstOrNull { it.rootType in testSourceRootTypes }
+
     (testFolder?.let { testFolder.file?.parent }
         ?: testFolder?.contentEntry?.file ?: this.guessModuleDir())?.let {
         val file = FakeVirtualFile(it, dedicatedTestSourceRootName)

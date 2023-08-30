@@ -2,6 +2,8 @@ package org.utbot.instrumentation.instrumentation.execution
 
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
+import org.utbot.framework.plugin.api.mapper.mapModels
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
@@ -22,10 +24,15 @@ data class UtConcreteExecutionData(
     val timeout: Long
 )
 
+fun UtConcreteExecutionData.mapModels(mapper: UtModelMapper) = copy(
+    stateBefore = stateBefore.mapModels(mapper),
+    instrumentation = instrumentation.map { it.mapModels(mapper) }
+)
+
 /**
  * [UtConcreteExecutionResult] that has not yet been populated with extra data, e.g.:
- *  - updated `stateBefore: EnvironmentModels`
- *  - `detectedMockingCandidates: Set<ExecutableId>` (not yet implemented, see #2321)
+ *  - updated [UtConcreteExecutionResult.stateBefore]
+ *  - [UtConcreteExecutionResult.detectedMockingCandidates]
  */
 data class PreliminaryUtConcreteExecutionResult(
     val stateAfter: EnvironmentModels,
@@ -33,12 +40,16 @@ data class PreliminaryUtConcreteExecutionResult(
     val coverage: Coverage,
     val newInstrumentation: List<UtInstrumentation>? = null,
 ) {
-    fun toCompleteUtConcreteExecutionResult(stateBefore: EnvironmentModels) = UtConcreteExecutionResult(
-        stateBefore,
-        stateAfter,
-        result,
-        coverage,
-        newInstrumentation,
+    fun toCompleteUtConcreteExecutionResult(
+        stateBefore: EnvironmentModels,
+        detectedMockingCandidates: Set<MethodId>
+    ) = UtConcreteExecutionResult(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        coverage = coverage,
+        newInstrumentation = newInstrumentation,
+        detectedMockingCandidates = detectedMockingCandidates,
     )
 }
 
@@ -48,6 +59,7 @@ data class UtConcreteExecutionResult(
     val result: UtExecutionResult,
     val coverage: Coverage,
     val newInstrumentation: List<UtInstrumentation>? = null,
+    val detectedMockingCandidates: Set<MethodId>,
 ) {
     override fun toString(): String = buildString {
         appendLine("UtConcreteExecutionResult(")

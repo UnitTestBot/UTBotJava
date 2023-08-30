@@ -8,20 +8,29 @@ import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.SpringSettings.*
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.UtConcreteExecutionProcessedFailure
+import org.utbot.framework.plugin.api.isNull
+import org.utbot.framework.plugin.api.util.SpringModelUtils.mockMvcPerformMethodId
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhaseFailingOnAnyException
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.process.generated.GetSpringRepositoriesResult
+import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
+import org.utbot.instrumentation.process.generated.TryLoadingSpringContextResult
+import org.utbot.rd.IdleWatchdog
 import org.utbot.spring.api.SpringApi
+import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
 import java.security.ProtectionDomain
@@ -50,6 +59,14 @@ class SpringUtExecutionInstrumentation(
     companion object {
         private val logger = getLogger<SpringUtExecutionInstrumentation>()
         private const val SPRING_COMMONS_JAR_FILENAME = "utbot-spring-commons-shadow.jar"
+
+        val springCommonsJar: File by lazy {
+            JarUtils.extractJarFileFromResources(
+                jarFileName = SPRING_COMMONS_JAR_FILENAME,
+                jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
+                targetDirectoryName = "spring-commons"
+            )
+        }
     }
 
     fun tryLoadingSpringContext(): ConcreteContextLoadingResult {
@@ -67,6 +84,22 @@ class SpringUtExecutionInstrumentation(
         parameters: Any?,
         phasesWrapper: PhasesController.(invokeBasePhases: () -> PreliminaryUtConcreteExecutionResult) -> PreliminaryUtConcreteExecutionResult
     ): UtConcreteExecutionResult = synchronized(this) {
+        if (parameters !is UtConcreteExecutionData) {
+            throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
+        }
+
+        // `RemovingConstructFailsUtExecutionInstrumentation` may detect that we fail to
+        // construct `RequestBuilder` and use `requestBuilder = null`, leading to a nonsensical
+        // test `mockMvc.perform((RequestBuilder) null)`, which we should discard
+        if (parameters.stateBefore.executableToCall == mockMvcPerformMethodId && parameters.stateBefore.parameters.single().isNull())
+            return UtConcreteExecutionResult(
+                stateBefore = parameters.stateBefore,
+                stateAfter = MissingState,
+                result = UtConcreteExecutionProcessedFailure(IllegalStateException("requestBuilder can't be null")),
+                coverage = Coverage(),
+                detectedMockingCandidates = emptySet()
+            )
+
         getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             phasesWrapper {
@@ -96,14 +129,6 @@ class SpringUtExecutionInstrumentation(
             .flatMap { springApi.getDependenciesForBean(it.beanName, userSourcesClassLoader) }
             .toSet()
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
-    }
-
-    fun getBeanModel(beanName: String, classpathToConstruct: Set<String>): UtModel {
-        val bean = springApi.getBean(beanName)
-        return UtModelConstructor.createOnlyUserClassesConstructor(
-            pathsToUserClasses = classpathToConstruct,
-            utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
-        ).construct(bean, bean::class.java.id)
     }
 
     fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
@@ -140,6 +165,19 @@ class SpringUtExecutionInstrumentation(
         }
     }
 
+    override fun InstrumentedProcessModel.setupAdditionalRdResponses(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
+        watchdog.measureTimeForActiveCall(getRelevantSpringRepositories, "Getting Spring repositories") { params ->
+            val classId: ClassId = kryoHelper.readObject(params.classId)
+            val repositoryDescriptions = getRepositoryDescriptions(classId)
+            GetSpringRepositoriesResult(kryoHelper.writeObject(repositoryDescriptions))
+        }
+        watchdog.measureTimeForActiveCall(tryLoadingSpringContext, "Trying to load Spring application context") { params ->
+            val contextLoadingResult = tryLoadingSpringContext()
+            TryLoadingSpringContextResult(kryoHelper.writeObject(contextLoadingResult))
+        }
+        delegateInstrumentation.run { setupAdditionalRdResponses(kryoHelper, watchdog) }
+    }
+
     class Factory(
         private val delegateInstrumentationFactory: UtExecutionInstrumentation.Factory<*>,
         private val springSettings: PresentSpringSettings,
@@ -147,11 +185,7 @@ class SpringUtExecutionInstrumentation(
         private val buildDirs: Array<URL>,
     ) : UtExecutionInstrumentation.Factory<SpringUtExecutionInstrumentation> {
         override val additionalRuntimeClasspath: Set<String>
-            get() = super.additionalRuntimeClasspath + JarUtils.extractJarFileFromResources(
-                jarFileName = SPRING_COMMONS_JAR_FILENAME,
-                jarResourcePath = "lib/$SPRING_COMMONS_JAR_FILENAME",
-                targetDirectoryName = "spring-commons"
-            ).path
+            get() = super.additionalRuntimeClasspath + springCommonsJar.path
 
         // TODO may be we can use some alternative sandbox that has more permissions
         //  (at the very least we need `ReflectPermission("suppressAccessChecks")`

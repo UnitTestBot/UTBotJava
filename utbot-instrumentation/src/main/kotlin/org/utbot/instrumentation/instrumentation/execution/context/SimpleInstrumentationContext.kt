@@ -24,4 +24,6 @@ class SimpleInstrumentationContext : InstrumentationContext {
         javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
 
     override fun onPhaseTimeout(timedOutedPhase: ExecutionPhase) = Unit
+
+    override fun handleLastCaughtConstructionException(exception: Throwable) = Unit
 }

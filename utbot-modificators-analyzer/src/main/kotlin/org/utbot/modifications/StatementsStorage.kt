@@ -20,7 +20,7 @@ import org.utbot.framework.plugin.api.StatementId
  * - build invocation graph (with nested calls) and find field modificators on request
  */
 class StatementsStorage(
-    private val modificationsTransformationMode: ModificationTransformationMode
+    private val modificationsTransformationMode: FieldInvolvementMode
 ) {
     /** Statements with their detailed information */
     val items: MutableMap<StatementId, StatementInfo> = mutableMapOf()
@@ -99,7 +99,7 @@ class StatementsStorage(
 
         return when (analysisMode) {
             AllModificators -> fields
-            Methods -> if (statementId is MethodId && !isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
+            Methods -> if (statementId is MethodId && !isSetterOrDirectAccessor(statementId)) fields else emptySet()
             SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
             Constructors -> if (statementId is ConstructorId) fields else emptySet()
         }

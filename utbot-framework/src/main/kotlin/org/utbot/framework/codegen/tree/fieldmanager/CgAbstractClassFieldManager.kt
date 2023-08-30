@@ -45,8 +45,12 @@ abstract class CgAbstractClassFieldManager(context: CgContext) :
 
             val baseVarName = constructBaseVarName(model)
 
-            val createdVariable = variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                ?: error("`CgVariable` cannot be constructed from a $model model")
+            // `withNameScope` is used to avoid saving names for sub-models of model
+            val createdVariable = withNameScope {
+                variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
+                    ?: error("`CgVariable` cannot be constructed from a $model model")
+            }
+            existingVariableNames.add(createdVariable.name)
 
             val declaration = CgDeclaration(classId, variableName = createdVariable.name, initializer = null)
 

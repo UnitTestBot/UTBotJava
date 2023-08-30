@@ -14,6 +14,7 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import java.security.AccessControlException
 
@@ -21,10 +22,14 @@ class PhasesController(
     private val instrumentationContext: InstrumentationContext,
     traceHandler: TraceHandler,
     delegateInstrumentation: Instrumentation<Result<*>>,
-    private val timeout: Long
+    private val timeout: Long,
+    idGenerator: StateBeforeAwareIdGenerator,
 ) {
     private var currentlyElapsed = 0L
-    val valueConstructionPhase = ValueConstructionPhase(instrumentationContext)
+    val valueConstructionPhase = ValueConstructionPhase(
+        instrumentationContext,
+        idGenerator,
+    )
 
     val preparationPhase = PreparationPhase(traceHandler)
 
@@ -34,7 +39,8 @@ class PhasesController(
 
     val modelConstructionPhase = ModelConstructionPhase(
         traceHandler = traceHandler,
-        utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
+        utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor,
+        idGenerator = idGenerator,
     )
 
     val postprocessingPhase = PostprocessingPhase()
@@ -98,6 +104,8 @@ class PhasesController(
 
             // here static methods and instances are mocked
             mock(parameters.instrumentation)
+
+            lastCaughtException?.let { instrumentationContext.handleLastCaughtConstructionException(it) }
 
             ConstructedData(params, statics, getCache())
         }

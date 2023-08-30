@@ -209,7 +209,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         }
 
         classRef?.let { declaredClassRefs = declaredClassRefs.put(it, declaration.variable) }
-        updateVariableScope(declaration.variable, model)
+        rememberVariableForModel(declaration.variable, model)
 
         return Either.left(declaration)
     }
@@ -469,7 +469,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
 
     override fun declareVariable(type: ClassId, name: String): CgVariable =
         CgVariable(name, type).also {
-            updateVariableScope(it)
+            rememberVariableForModel(it)
         }
 
     override fun wrapTypeIfRequired(baseType: ClassId): ClassId =

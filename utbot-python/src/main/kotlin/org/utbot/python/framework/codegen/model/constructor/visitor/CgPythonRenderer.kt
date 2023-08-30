@@ -454,19 +454,10 @@ internal class CgPythonRenderer(
     override fun visit(block: List<CgStatement>, printNextLine: Boolean) {
         println(":")
 
-        val isBlockTooLarge = workaround(WorkaroundReason.LONG_CODE_FRAGMENTS) { block.size > 120 }
-
         withIndent {
-            if (isBlockTooLarge) {
-                print("\"\"\"")
-                println(" This block of code is ${block.size} lines long and could lead to compilation error")
-            }
-
             for (statement in block) {
                 statement.accept(this)
             }
-
-            if (isBlockTooLarge) println("\"\"\"")
         }
 
         if (printNextLine) println()

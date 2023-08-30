@@ -30,25 +30,32 @@ import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.util.anyInstance
+import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.constructor.CapturedArgument
 import org.utbot.framework.plugin.api.util.constructor.constructLambda
 import org.utbot.framework.plugin.api.util.constructor.constructStaticLambda
+import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockController
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.mock.InstanceMockController
 import org.utbot.instrumentation.instrumentation.execution.mock.MethodMockController
 import org.utbot.instrumentation.instrumentation.execution.mock.MockController
 import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Modifier
+import java.lang.reflect.TypeVariable
+import java.security.AccessController
+import java.security.PrivilegedAction
 import java.util.*
-import org.utbot.framework.plugin.api.util.id
 import kotlin.reflect.KClass
 
 /**
@@ -63,8 +70,13 @@ import kotlin.reflect.KClass
  */
 // TODO: JIRA:1379 -- Refactor ValueConstructor and InstrumentationContextAwareValueConstructor
 class InstrumentationContextAwareValueConstructor(
-    private val instrumentationContext: InstrumentationContext
+    private val instrumentationContext: InstrumentationContext,
+    private val idGenerator: StateBeforeAwareIdGenerator,
 ) {
+    companion object {
+        private const val MAX_DYNAMIC_MOCK_DEPTH = 5
+    }
+
     private val classLoader: ClassLoader
         get() = utContext.classLoader
 
@@ -76,6 +88,11 @@ class InstrumentationContextAwareValueConstructor(
             }
             return objectToModel
         }
+
+    val detectedMockingCandidates: MutableSet<MethodId> = mutableSetOf()
+
+    var lastCaughtException: Throwable? = null
+        private set
 
     // TODO: JIRA:1379 -- replace UtReferenceModel with Int
     private val constructedObjects = HashMap<UtReferenceModel, Any>()
@@ -121,6 +138,14 @@ class InstrumentationContextAwareValueConstructor(
         }
 
     /**
+     * Use this method if you need to use [construct], while being in a sandbox.
+     *
+     * Permission elevation is required, because [construct] heavily uses reflection and Mockito.
+     */
+    private fun constructPrivileged(model: UtModel): UtConcreteValue<*> =
+        AccessController.doPrivileged(PrivilegedAction { construct(model) })
+
+    /**
      * Constructs an Enum<*> instance by model, uses reference-equality cache.
      */
     private fun constructEnum(model: UtEnumConstantModel): Any {
@@ -146,7 +171,7 @@ class InstrumentationContextAwareValueConstructor(
             notMockInstance
         } else {
             val concreteValues = model.mocks.mapValues { mutableListOf<Any?>() }
-            val mockInstance = generateMockitoMock(javaClass, concreteValues)
+            val mockInstance = generateMockitoMock(javaClass, concreteValues, model)
 
             constructedObjects[model] = mockInstance
 
@@ -155,6 +180,12 @@ class InstrumentationContextAwareValueConstructor(
                 // If model is unit, then null should be returned (this model has to be already constructed).
                 val constructedValues = mockModels.map { model -> construct(model).value.takeIf { it != Unit } }
                 valuesList.addAll(constructedValues)
+            }
+
+            if (model.canHaveRedundantOrMissingMocks) {
+                // we clear `mocks` to avoid redundant mocks,
+                // actually useful mocks should be later added back as they are used
+                model.mocks.clear()
             }
 
             mockInstance
@@ -194,8 +225,101 @@ class InstrumentationContextAwareValueConstructor(
         }
     }
 
-    private fun generateMockitoMock(clazz: Class<*>, concreteValues: Map<ExecutableId, List<Any?>>): Any {
-        val answer = generateMockitoAnswer(concreteValues)
+    private fun generateMockitoAnswerHandlingRedundantAndMissingMocks(
+        concreteValues: Map<ExecutableId, List<Any?>>,
+        mockModel: UtCompositeModel
+    ): Answer<*> {
+        class MockedExecutable(
+            val executableId: ExecutableId,
+            val answerValues: List<Any?>,
+            val answerModels: List<UtModel>,
+        ) {
+            private var pointer: Int = 0
+
+            fun nextAnswer(): Any? {
+                val answerValue = answerValues[pointer]
+                val answerModel = answerModels[pointer]
+                pointer = (pointer + 1) % answerValues.size
+
+                // Record mock answers into `mockModel.mocks` as these answers are used.
+                // Avoid recording multiple answers if same answer is reused over and over again.
+                if (answerValues.size > 1 || executableId !in mockModel.mocks) {
+                    (mockModel.mocks.getOrPut(executableId) { mutableListOf() } as MutableList).add(answerModel)
+                }
+
+                return answerValue
+            }
+        }
+
+        val mockedExecutables = concreteValues.mapValues { (executableId, values) ->
+            MockedExecutable(
+                executableId = executableId,
+                answerValues = values,
+                answerModels = mockModel.mocks.getValue(executableId),
+            )
+        }.toMutableMap()
+
+        return Answer { invocation ->
+            with(invocation.method) {
+                mockedExecutables.getOrPut(executableId) {
+                    detectedMockingCandidates.add(executableId)
+                    var answerModel = generateNewAnswerModel(executableId, dynamicMockModelToDepth[mockModel] ?: 0)
+                    val answerValue = runCatching { constructPrivileged(answerModel) }.getOrElse {
+                        // fallback is used, so we still get some value (null) for types
+                        // that can't be mocked, e.g. arrays and sealed interfaces
+                        answerModel = executableId.returnType.defaultValueModel()
+                        constructPrivileged(answerModel)
+                    }
+
+                    MockedExecutable(
+                        executableId = executableId,
+                        // `Unit` is replaced with `null`, because in Java `void` methods actually return `null`
+                        answerValues = listOf(answerValue.value.takeUnless { it == Unit }),
+                        answerModels = listOf(answerModel)
+                    )
+                }.nextAnswer()
+            }
+        }
+    }
+
+    private val dynamicMockModelToDepth = mutableMapOf<UtCompositeModel, Int>()
+
+    private fun generateNewAnswerModel(methodId: MethodId, depth: Int) =
+        methodId.returnType.defaultValueModel().takeUnless { it.isNull() } ?: when {
+            // use `null` to avoid false positive `ClassCastException`
+            methodId.method.genericReturnType is TypeVariable<*> -> UtNullModel(methodId.returnType)
+
+            // mockito can't mock `String` and `Class`
+            methodId.returnType == stringClassId -> UtNullModel(stringClassId)
+            methodId.returnType == classClassId -> UtClassRefModel(
+                id = idGenerator.createId(),
+                classId = classClassId,
+                value = classClassId,
+            )
+            depth > MAX_DYNAMIC_MOCK_DEPTH -> UtNullModel(methodId.classId)
+
+            else -> UtCompositeModel(
+                id = idGenerator.createId(),
+                // TODO mockito can't mock sealed interfaces,
+                //  we have to mock their implementations or use null
+                classId = methodId.returnType,
+                isMock = true,
+                canHaveRedundantOrMissingMocks = true,
+            ).also { dynamicMockModelToDepth[it] = depth + 1 }
+        }
+
+    private fun generateMockitoMock(
+        clazz: Class<*>,
+        concreteValues: Map<ExecutableId, List<Any?>>,
+        mockModel: UtCompositeModel
+    ): Any {
+        val answer =
+            if (mockModel.canHaveRedundantOrMissingMocks) {
+                generateMockitoAnswerHandlingRedundantAndMissingMocks(concreteValues, mockModel)
+            } else {
+                generateMockitoAnswer(concreteValues)
+            }
+
         return Mockito.mock(clazz, answer)
     }
 
@@ -411,7 +535,10 @@ class InstrumentationContextAwareValueConstructor(
             .also { result ->
                 result
                     .exceptionOrNull()
-                    ?.let { callModel.thrownConcreteException = it.javaClass.id }
+                    ?.let {
+                        lastCaughtException = it
+                        callModel.thrownConcreteException = it.javaClass.id
+                    }
             }
 
 

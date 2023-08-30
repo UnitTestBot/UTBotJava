@@ -22,7 +22,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
@@ -81,7 +81,7 @@ class PythonCodeGenerator(
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, Type>,
+        methodAnnotations: Map<String, UtType>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         namesInModule: Collection<String>,

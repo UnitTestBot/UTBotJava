@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.framework.api.python.PythonUtExecution
+import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
@@ -18,7 +19,7 @@ import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
-import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
+import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
@@ -28,7 +29,6 @@ import org.utbot.python.utils.ExecutionWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.PriorityCartesianProduct
 import org.utbot.python.utils.TimeoutMode
-import java.io.File
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
@@ -44,16 +44,15 @@ class PythonTestCaseGenerator(
     private val isCancelled: () -> Boolean,
     private val timeoutForRun: Long = 0,
     private val sourceFileContent: String,
-    private val mypyStorage: MypyAnnotationStorage,
-    private val mypyReportLine: List<MypyReportLine>,
-    private val mypyConfigFile: File,
+    private val mypyStorage: MypyInfoBuild,
+    private val mypyReportLine: List<MypyReportLine>
 ) {
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
     private fun constructCollectors(
-        mypyStorage: MypyAnnotationStorage,
-        typeStorage: PythonTypeStorage,
+        mypyStorage: MypyInfoBuild,
+        typeStorage: PythonTypeHintsStorage,
         method: PythonMethod
     ): Pair<HintCollector, ConstantCollector> {
 
@@ -71,7 +70,7 @@ class PythonTestCaseGenerator(
         return Pair(hintCollector, constantCollector)
     }
 
-    private fun getCandidates(param: TypeParameter, typeStorage: PythonTypeStorage): List<Type> {
+    private fun getCandidates(param: TypeParameter, typeStorage: PythonTypeHintsStorage): List<UtType> {
         val meta = param.pythonDescription() as PythonTypeVarDescription
         return when (meta.parameterKind) {
             PythonTypeVarDescription.ParameterKind.WithConcreteValues -> {
@@ -88,7 +87,7 @@ class PythonTestCaseGenerator(
         }
     }
 
-    private fun generateTypesAfterSubstitution(type: Type, typeStorage: PythonTypeStorage): List<Type> {
+    private fun generateTypesAfterSubstitution(type: UtType, typeStorage: PythonTypeHintsStorage): List<UtType> {
         val params = type.getBoundedParameters()
         return PriorityCartesianProduct(params.map { getCandidates(it, typeStorage) }).getSequence().map { subst ->
             DefaultSubstitutionProvider.substitute(type, (params zip subst).associate { it })
@@ -97,7 +96,7 @@ class PythonTestCaseGenerator(
 
     private fun substituteTypeParameters(
         method: PythonMethod,
-        typeStorage: PythonTypeStorage,
+        typeStorage: PythonTypeHintsStorage,
         ): List<PythonMethod> {
         val newClasses = method.containingPythonClass?.let {
             generateTypesAfterSubstitution(it, typeStorage)
@@ -122,7 +121,7 @@ class PythonTestCaseGenerator(
 
     private fun methodHandler(
         method: PythonMethod,
-        typeStorage: PythonTypeStorage,
+        typeStorage: PythonTypeHintsStorage,
         coveredLines: MutableSet<Int>,
         errors: MutableList<UtError>,
         executions: MutableList<PythonUtExecution>,
@@ -137,10 +136,15 @@ class PythonTestCaseGenerator(
         var missingLines = initMissingLines
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
-        val constants = constantCollector.result.map { (type, value) ->
-            logger.debug { "Collected constant: ${type.pythonTypeRepresentation()}: $value" }
-            PythonFuzzedConcreteValue(type, value)
-        }
+        val constants = constantCollector.result
+            .mapNotNull { (type, value) ->
+                if (type.pythonTypeName() == pythonStrClassId.name && value is String) {
+                    // Filter doctests
+                    if (value.contains(">>>")) return@mapNotNull null
+                }
+                logger.debug { "Collected constant: ${type.pythonTypeRepresentation()}: $value" }
+                PythonFuzzedConcreteValue(type, value)
+            }
 
         inferAnnotations(
             method,
@@ -148,13 +152,12 @@ class PythonTestCaseGenerator(
             typeStorage,
             hintCollector,
             mypyReportLine,
-            mypyConfigFile,
             limitManager,
             additionalVars
         ) { functionType ->
             val args = (functionType as FunctionType).arguments
 
-            logger.info { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
+            logger.debug { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
 
             val engine = PythonEngine(
                 method,
@@ -163,7 +166,7 @@ class PythonTestCaseGenerator(
                 pythonPath,
                 constants,
                 timeoutForRun,
-                PythonTypeStorage.get(mypyStorage)
+                PythonTypeHintsStorage.get(mypyStorage)
             )
 
             var feedback: InferredTypeFeedback = SuccessFeedback
@@ -216,13 +219,13 @@ class PythonTestCaseGenerator(
     fun generate(method: PythonMethod, until: Long): PythonTestSet {
         storageForMypyMessages.clear()
 
-        val typeStorage = PythonTypeStorage.get(mypyStorage)
+        val typeStorage = PythonTypeHintsStorage.get(mypyStorage)
 
         val executions = mutableListOf<PythonUtExecution>()
         val errors = mutableListOf<UtError>()
         val coveredLines = mutableSetOf<Int>()
 
-        logger.info("Start test generation for ${method.name}")
+        logger.info { "Start test generation for ${method.name}" }
         try {
             val methodModifications = mutableSetOf<Pair<PythonMethod, String>>()  // Set of pairs <PythonMethod, additionalVars>
 
@@ -247,10 +250,10 @@ class PythonTestCaseGenerator(
                 )
             }
         } catch (_: OutOfMemoryError) {
-            logger.info { "Out of memory error. Stop test generation process" }
+            logger.debug { "Out of memory error. Stop test generation process" }
         }
 
-        logger.info("Collect all test executions for ${method.name}")
+        logger.info { "Collect all test executions for ${method.name}" }
         val (emptyCoverageExecutions, coverageExecutions) = executions.partition { it.coverage == null }
         val (successfulExecutions, failedExecutions) = coverageExecutions.partition { it.result is UtExecutionSuccess }
 
@@ -286,14 +289,13 @@ class PythonTestCaseGenerator(
 
     private fun inferAnnotations(
         method: PythonMethod,
-        mypyStorage: MypyAnnotationStorage,
-        typeStorage: PythonTypeStorage,
+        mypyStorage: MypyInfoBuild,
+        typeStorage: PythonTypeHintsStorage,
         hintCollector: HintCollector,
         report: List<MypyReportLine>,
-        mypyConfigFile: File,
         limitManager: TestGenerationLimitManager,
         additionalVars: String,
-        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+        annotationHandler: suspend (UtType) -> InferredTypeFeedback,
     ) {
         val namesInModule = mypyStorage.names
             .getOrDefault(curModule, emptyList())
@@ -316,7 +318,7 @@ class PythonTestCaseGenerator(
                 getOffsetLine(sourceFileContent, method.ast.beginOffset),
                 getOffsetLine(sourceFileContent, method.ast.endOffset)
             ),
-            mypyConfigFile,
+            mypyStorage.buildRoot.configFile,
             additionalVars,
             randomTypeFrequency = RANDOM_TYPE_FREQUENCY
         )

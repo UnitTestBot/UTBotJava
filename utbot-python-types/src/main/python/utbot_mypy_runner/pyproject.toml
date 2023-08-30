@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "utbot_mypy_runner"
+version = "0.2.11"
+description = ""
+authors = ["Ekaterina Tochilina <katerina_t_n@mail.ru>"]
+readme = "README.md"
+packages = [{include = "utbot_mypy_runner"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+mypy = "1.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -7,20 +7,20 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonSetClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonAnnotationParameters
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 
-object SetValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: Type): Boolean {
+object SetValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
+    override fun accept(type: UtType): Boolean {
         return type.pythonTypeName() == pythonSetClassId.canonicalName
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         val params = type.pythonAnnotationParameters()
 
-        val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
+        val modifications = emptyList<Routine.Call<UtType, PythonFuzzedValue>>().toMutableList()
         modifications.add(Routine.Call(params) { instance, arguments ->
             val set = instance.tree as PythonTree.SetNode
             set.items.add(arguments.first().tree)

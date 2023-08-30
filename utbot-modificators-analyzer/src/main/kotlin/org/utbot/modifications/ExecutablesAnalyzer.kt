@@ -56,14 +56,14 @@ class ExecutablesAnalyzer {
      */
     fun findModificationsInJimple(
         executableId: ExecutableId,
-        transformationMode: ModificationTransformationMode
+        transformationMode: FieldInvolvementMode
     ): Set<FieldId> {
         val sootMethod = executablesCache[executableId] ?: error("No method ${executableId.name} in soot cache")
 
         val jimpleBody = retrieveJimpleBody(sootMethod) ?: return emptySet()
         return jimpleBody
             .units
-            .mapNotNullTo(mutableSetOf()) { transformationMode.transformer(it) }
+            .mapNotNullTo(mutableSetOf()) { transformationMode.projector(it) }
     }
 
     /**

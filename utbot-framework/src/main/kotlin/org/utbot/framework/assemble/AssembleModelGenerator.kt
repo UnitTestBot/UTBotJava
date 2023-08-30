@@ -48,7 +48,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import java.lang.reflect.Constructor
 import java.util.IdentityHashMap
-import org.utbot.modifications.ModificationTransformationMode
+import org.utbot.modifications.FieldInvolvementMode
 
 /**
  * Creates [UtAssembleModel] from any [UtModel] or it's inner models if possible
@@ -75,7 +75,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
     private val modificatorsSearcher =
         UtBotFieldsModificatorsSearcher(
-            modificationTransformationMode = ModificationTransformationMode.WriteOnly
+            fieldInvolvementMode = FieldInvolvementMode.WriteOnly
         )
     private val constructorAnalyzer = ConstructorAnalyzer()
 

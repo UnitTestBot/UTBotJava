@@ -38,8 +38,6 @@ import org.utbot.framework.util.ConflictTriggers
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
-import org.utbot.framework.plugin.api.SpringSettings.*
-import org.utbot.framework.plugin.api.SpringTestType.*
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider

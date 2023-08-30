@@ -205,12 +205,12 @@ class AssembleModelGenerator(private val basePackageName: String) {
                     is UtClassRefModel,
                     is UtVoidModel,
                     is UtEnumConstantModel,
-                    is UtCustomModel -> utModel
+                    is UtCustomModel -> utModel // for example, UtSpringContextModel
                     is UtLambdaModel -> assembleLambdaModel(utModel)
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
                     is UtAssembleModel -> assembleAssembleModel(utModel)
-                    // Python, JavaScript, UtSpringContextModel are supposed to be here as well
+                    // Python, JavaScript are supposed to be here as well
                     else -> utModel
                 }
             } catch (e: AssembleException) {

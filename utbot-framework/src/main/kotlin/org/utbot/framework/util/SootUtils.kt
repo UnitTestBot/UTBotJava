@@ -96,12 +96,15 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
 
     Scene.v().loadNecessaryClasses()
     PackManager.v().runPacks()
+    // these options are moved out from forEach loop because they are slow due to rd communication
+    val removeUtBotClassesFromHierarchy = UtSettings.removeUtBotClassesFromHierarchy
+    val removeSootClassesFromHierarchy = UtSettings.removeSootClassesFromHierarchy
     // we need this to create hierarchy of classes
     Scene.v().classes.toList().forEach {
         val isUtBotPackage = it.packageName.startsWith(UTBOT_PACKAGE_PREFIX)
 
         // remove our own classes from the soot scene
-        if (UtSettings.removeUtBotClassesFromHierarchy && isUtBotPackage) {
+        if (removeUtBotClassesFromHierarchy && isUtBotPackage) {
             val isOverriddenPackage = it.packageName.startsWith(UTBOT_OVERRIDDEN_PACKAGE_PREFIX)
             val isExamplesPackage = it.packageName.startsWith(UTBOT_EXAMPLES_PACKAGE_PREFIX)
             val isApiPackage = it.packageName.startsWith(UTBOT_API_PACKAGE_PREFIX)
@@ -115,7 +118,7 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
         }
 
         // remove soot's classes from the scene, because we don't wont to analyze them
-        if (UtSettings.removeSootClassesFromHierarchy && it.packageName.startsWith(SOOT_PACKAGE_PREFIX)) {
+        if (removeSootClassesFromHierarchy && it.packageName.startsWith(SOOT_PACKAGE_PREFIX)) {
             Scene.v().removeClass(it)
             return@forEach
         }

@@ -31,6 +31,10 @@ abstract class CgAbstractSpringTestClassConstructor(context: CgContext) :
             fields += constructClassFields(testClassModel)
             clearUnwantedVariableModels()
 
+            // constructClassFields may mark fields as initialized, while they are in
+            // fact not initialized, so we clearAlreadyInitializedFieldModels()
+            variableConstructor.clearAlreadyInitializedFieldModels()
+
             constructAdditionalTestMethods()?.let { methodRegions += it }
 
             for ((testSetIndex, testSet) in testClassModel.methodTestSets.withIndex()) {

@@ -12,6 +12,9 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.mapModels
 import java.util.Optional
 
 object SpringModelUtils {
@@ -91,7 +94,7 @@ object SpringModelUtils {
             )
         }
 
-    private val validationLibraries = listOf("jakarta.validation.constraints")
+    private val validationLibraries = listOf("javax.validation.constraints", "jakarta.validation.constraints")
     private fun validationClassIds(simpleName: String) = getClassIdFromEachAvailablePackage(validationLibraries, simpleName)
         .filter { utContext.classLoader.tryLoadClass(it.name) != null }
 
@@ -108,7 +111,12 @@ object SpringModelUtils {
         bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
 
-    fun createBeanModel(beanName: String, id: Int, classId: ClassId) = UtAssembleModel(
+    fun createBeanModel(
+        beanName: String,
+        id: Int,
+        classId: ClassId,
+        modificationChainProvider: UtAssembleModel.() -> List<UtStatementModel> = { mutableListOf() },
+    ) = UtAssembleModel(
         id = id,
         classId = classId,
         modelName = "@Autowired $beanName",
@@ -117,7 +125,7 @@ object SpringModelUtils {
             executable = getBeanMethodId,
             params = listOf(UtPrimitiveModel(beanName))
         ),
-        modificationsChainProvider = { mutableListOf() }
+        modificationsChainProvider = modificationChainProvider
     )
 
     fun UtModel.isAutowiredFromContext(): Boolean =
@@ -341,8 +349,19 @@ object SpringModelUtils {
         returnType = resultMatcherClassId
     )
 
-    fun createMockMvcModel(idGenerator: () -> Int) =
-        createBeanModel("mockMvc", idGenerator(), mockMvcClassId)
+    fun createMockMvcModel(controller: UtModel?, idGenerator: () -> Int) =
+        createBeanModel("mockMvc", idGenerator(), mockMvcClassId, modificationChainProvider = {
+            // we need to keep controller modifications if there are any, so we add them to mockMvc
+            (controller as? UtAssembleModel)?.let { assembledController ->
+                val controllerModificationRemover = UtModelDeepMapper { model ->
+                    if (model == assembledController) assembledController.copy(modificationsChain = emptyList())
+                    else model
+                }
+                // modificationsChain may mention controller, causing controller modifications to evaluate twice:
+                // once for mockMvc and once for controller itself, to avoid that we remove modifications from controller
+                assembledController.modificationsChain.map { it.mapModels(controllerModificationRemover) }
+            } ?: mutableListOf()
+        })
 
     fun createRequestBuilderModelOrNull(methodId: MethodId, arguments: List<UtModel>, idGenerator: () -> Int): UtModel? {
         check(methodId.parameters.size == arguments.size)
@@ -720,34 +739,17 @@ object SpringModelUtils {
         methodId: MethodId,
         arguments: List<UtModel>,
         idGenerator: () -> Int
-    ): List< Pair<UtPrimitiveModel, UtAssembleModel> > {
+    ): List<Pair<UtPrimitiveModel, UtArrayModel>> {
         val requestParams = collectArgumentsWithAnnotationModels(methodId, requestParamClassId, arguments)
 
         return requestParams.map { (name, value) ->
             Pair(UtPrimitiveModel(name),
-                UtAssembleModel(
+                UtArrayModel(
                     id = idGenerator(),
-                    classId = listClassId,
-                    modelName = "queryParams",
-                    instantiationCall = UtExecutableCallModel(
-                        instance = null,
-                        executable = constructorId(java.util.ArrayList::class.id),
-                        params = emptyList()
-                    ),
-                    modificationsChainProvider = {
-                        listOf(
-                            UtExecutableCallModel(
-                                instance = this,
-                                executable = methodId(
-                                    classId = listClassId,
-                                    name = "add",
-                                    returnType = booleanClassId,
-                                    arguments = arrayOf(Object::class.id),
-                                ),
-                                params = listOf(value)
-                            )
-                        )
-                    }
+                    classId = getArrayClassIdByElementClassId(objectClassId),
+                    length = 1,
+                    constModel = UtNullModel(objectClassId),
+                    stores = mutableMapOf(0 to value),
                 )
             )
         }
@@ -801,7 +803,7 @@ object SpringModelUtils {
     private fun createUrlTemplateModel(
         requestPath: String,
         pathVariablesModel: UtAssembleModel,
-        requestParamModel: List<Pair<UtPrimitiveModel, UtAssembleModel>>,
+        requestParamModel: List<Pair<UtPrimitiveModel, UtArrayModel>>,
         idGenerator: () -> Int
     ): UtModel {
         val requestPathModel = UtPrimitiveModel(requestPath)
@@ -851,7 +853,7 @@ object SpringModelUtils {
                         executable = MethodId(
                             classId = uriComponentsBuilderClassId,
                             name = "queryParam",
-                            parameters = listOf(stringClassId, collectionClassId),
+                            parameters = listOf(stringClassId, getArrayClassIdByElementClassId(objectClassId)),
                             returnType = uriComponentsBuilderClassId
                         ),
                         params = listOf(name, value),

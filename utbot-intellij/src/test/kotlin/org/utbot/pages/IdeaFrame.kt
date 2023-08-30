@@ -157,7 +157,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
     }
 
     fun createNewJavaClass(newClassname: String = "Example",
-                           textToClickOn: String = "org.example") {
+                           textToClickOn: String = "Main") {
         waitProjectIsOpened()
         expandProjectTree(projectName)
         with(projectViewTree) {

@@ -33,9 +33,6 @@ class CreateProjects : BaseTest() {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         with(ideaFrame) {
             waitProjectIsCreated()
-            if (ideaBuildSystem == IdeaBuildSystem.INTELLIJ) {
-                createNewPackage("org.example")
-            }
             waitFor(Duration.ofSeconds(30)) {
                 !isDumbMode()
             }

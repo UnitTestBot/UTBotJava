@@ -5,7 +5,7 @@ import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 
 
 /**
@@ -17,8 +17,16 @@ class InvocationPhase(
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
         val message = this.javaClass.simpleName
-        return when(e) {
-            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
+        return when (e) {
+            is TimeoutException -> ExecutionPhaseStop(
+                message,
+                PreliminaryUtConcreteExecutionResult(
+                    stateAfter = MissingState,
+                    result = UtTimeoutException(e),
+                    coverage = Coverage()
+                )
+            )
+
             else -> ExecutionPhaseError(message, e)
         }
     }

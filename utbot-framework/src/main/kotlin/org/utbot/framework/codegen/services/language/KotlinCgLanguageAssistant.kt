@@ -6,7 +6,7 @@ import org.utbot.framework.codegen.renderer.CgKotlinRenderer
 import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JVMTestFrameworkManager
-import org.utbot.framework.plugin.api.utils.testClassNameGenerator
+import org.utbot.framework.plugin.api.utils.ClassNameUtils.generateTestClassName
 
 object KotlinCgLanguageAssistant : AbstractCgLanguageAssistant() {
 
@@ -24,7 +24,7 @@ object KotlinCgLanguageAssistant : AbstractCgLanguageAssistant() {
         testClassPackageName: String,
         classUnderTest: ClassId
     ): Pair<String, String> {
-        return testClassNameGenerator(testClassCustomName, testClassPackageName, classUnderTest)
+        return generateTestClassName(testClassCustomName, testClassPackageName, classUnderTest)
     }
 
     override fun getLanguageTestFrameworkManager() = JVMTestFrameworkManager()

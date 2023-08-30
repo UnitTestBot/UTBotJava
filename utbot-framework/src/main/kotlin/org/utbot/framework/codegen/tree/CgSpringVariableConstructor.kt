@@ -1,16 +1,16 @@
 package org.utbot.framework.codegen.tree
 
-import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.tree.fieldmanager.ClassFieldManagerFacade
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+import org.utbot.framework.plugin.api.UtSpringEntityManagerModel
 import org.utbot.framework.plugin.api.util.stringClassId
 
 class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(context) {
-    val annotatedModelGroups: MutableMap<ClassId, MutableSet<UtModelWrapper>> = mutableMapOf()
 
     private val fieldManagerFacade = ClassFieldManagerFacade(context)
 
@@ -20,19 +20,21 @@ class CgSpringVariableConstructor(context: CgContext) : CgVariableConstructor(co
         variable?.let { return it }
 
         return when (model) {
-            is UtSpringContextModel -> createApplicationContextVariable()
+            is UtSpringContextModel, is UtSpringEntityManagerModel -> createDummyVariable(model)
             else -> super.getOrCreateVariable(model, name)
         }
     }
 
-    private fun createApplicationContextVariable(): CgValue {
+    private fun createDummyVariable(model: UtModel): CgVariable {
         // This is a kind of HACK
-        // Actually, applicationContext variable is useless as it is not used in the generated code.
-        // However, this variable existence is required for autowired fields creation process.
-        val applicationContextVariable = CgLiteral(stringClassId, "applicationContext")
-
-        return applicationContextVariable.also {
-            valueByUtModelWrapper[UtSpringContextModel.wrap()] = it
+        // Actually, this value is not supposed to be used in the generated code.
+        // However, this value existence is required for fields declaration process.
+        val dummyVariable = newVar(model.classId) {
+            CgLiteral(stringClassId, "dummy")
         }
+
+        valueByUtModelWrapper[model.wrap()] = dummyVariable
+
+        return dummyVariable
     }
 }

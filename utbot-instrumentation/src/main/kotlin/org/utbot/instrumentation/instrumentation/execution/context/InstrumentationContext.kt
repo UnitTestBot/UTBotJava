@@ -1,9 +1,14 @@
 package org.utbot.instrumentation.instrumentation.execution.context
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtConcreteExecutionProcessedFailure
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
+import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhase
+import org.utbot.instrumentation.instrumentation.execution.phases.ValueConstructionPhase
 import java.lang.reflect.Method
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
@@ -33,6 +38,24 @@ interface InstrumentationContext {
      * construct models for instances of specified [class][classId].
      */
     fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor?
+
+    /**
+     * Called when [timedOutedPhase] times out.
+     * This method is executed in the same thread that [timedOutedPhase] was run in.
+     * Implementor is expected to only perform some clean up operations (e.g. rollback transactions in Spring).
+     */
+    fun onPhaseTimeout(timedOutedPhase: ExecutionPhase)
+
+    /**
+     * At the very end of the [ValueConstructionPhase], instrumentation context gets to decide what to do
+     * with last caught [UtStatementCallModel.thrownConcreteException] (it can be caught if the call
+     * is non-essential for value construction, i.e. it's in [UtAssembleModel.modificationsChain]).
+     *
+     * A reasonable implementation may:
+     *   - ignore the [exception]
+     *   - cause phase to terminate with [UtConcreteExecutionProcessedFailure]
+     */
+    fun handleLastCaughtConstructionException(exception: Throwable)
 
     object MockGetter {
         data class MockContainer(private val values: List<*>) {

@@ -5,7 +5,8 @@ import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.execution.constructors.InstrumentationContextAwareValueConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 
 typealias ConstructedParameters = List<UtConcreteValue<*>>
 typealias ConstructedStatics = Map<FieldId, UtConcreteValue<*>>
@@ -21,12 +22,13 @@ data class ConstructedData(
  * This phase of values instantiation from given models.
  */
 class ValueConstructionPhase(
-    instrumentationContext: InstrumentationContext
+    instrumentationContext: InstrumentationContext,
+    idGenerator: StateBeforeAwareIdGenerator,
 ) : ExecutionPhase {
 
     override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseStop(
         phase = this.javaClass.simpleName,
-        result = UtConcreteExecutionResult(
+        result = PreliminaryUtConcreteExecutionResult(
             stateAfter = MissingState,
             result = when(e) {
                 is TimeoutException -> UtTimeoutException(e)
@@ -36,7 +38,12 @@ class ValueConstructionPhase(
         )
     )
 
-    private val constructor = InstrumentationContextAwareValueConstructor(instrumentationContext)
+    private val constructor = InstrumentationContextAwareValueConstructor(
+        instrumentationContext,
+        idGenerator,
+    )
+    val detectedMockingCandidates: Set<MethodId> get() = constructor.detectedMockingCandidates
+    val lastCaughtException: Throwable? get() = constructor.lastCaughtException
 
     fun getCache(): ConstructedCache {
         return constructor.objectToModelCache

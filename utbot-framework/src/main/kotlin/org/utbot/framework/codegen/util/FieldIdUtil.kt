@@ -36,7 +36,7 @@ fun FieldId.isAccessibleFrom(packageName: String, callerClassId: ClassId): Boole
     return isClassAccessible && isAccessibleFromPackageByModifiers
 }
 
-private fun FieldId.canBeReadViaGetterFrom(context: CgContext): Boolean =
+internal fun FieldId.canBeReadViaGetterFrom(context: CgContext): Boolean =
     declaringClass.allMethods.contains(getter) && getter.isAccessibleFrom(context.testClassPackageName)
 
 /**
@@ -52,7 +52,7 @@ internal fun FieldId.canBeReadFrom(context: CgContext, callerClassId: ClassId): 
     return isAccessibleFrom(context.testClassPackageName, callerClassId)
 }
 
-private fun FieldId.canBeSetViaSetterFrom(context: CgContext): Boolean =
+internal fun FieldId.canBeSetViaSetterFrom(context: CgContext): Boolean =
     declaringClass.allMethods.contains(setter) && setter.isAccessibleFrom(context.testClassPackageName)
 
 /**

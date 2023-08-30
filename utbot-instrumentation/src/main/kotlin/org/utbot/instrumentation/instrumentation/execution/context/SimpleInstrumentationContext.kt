@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdLibModelWithCompositeOriginConstructors
+import org.utbot.instrumentation.instrumentation.execution.phases.ExecutionPhase
 
 /**
  * Simple instrumentation context, that is used for pure JVM projects without
@@ -21,4 +22,8 @@ class SimpleInstrumentationContext : InstrumentationContext {
 
     override fun findUtModelWithCompositeOriginConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor? =
         javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
+
+    override fun onPhaseTimeout(timedOutedPhase: ExecutionPhase) = Unit
+
+    override fun handleLastCaughtConstructionException(exception: Throwable) = Unit
 }

@@ -8,7 +8,6 @@
 
 package org.utbot.framework.plugin.api
 
-import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
@@ -56,6 +55,9 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
+import org.utbot.framework.plugin.api.mapper.map
+import org.utbot.framework.plugin.api.mapper.mapPreservingType
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.process.OpenModulesContainer
 import soot.SootMethod
@@ -499,6 +501,12 @@ data class UtClassRefModel(
  * - isMock flag
  * - calculated field values (models)
  * - mocks for methods with return values
+ * - [canHaveRedundantOrMissingMocks] flag, which is set to `true` for mocks
+ *   created by:
+ *    - fuzzer which doesn't know which methods will actually be called
+ *    - engine which also doesn't know which methods will actually be
+ *      called during concrete execution that may be only **partially**
+ *      backed up by the symbolic analysis
  *
  * [fields] contains non-static fields
  */
@@ -508,6 +516,7 @@ data class UtCompositeModel(
     val isMock: Boolean,
     val fields: MutableMap<FieldId, UtModel> = mutableMapOf(),
     val mocks: MutableMap<ExecutableId, List<UtModel>> = mutableMapOf(),
+    val canHaveRedundantOrMissingMocks: Boolean = true,
 ) : UtReferenceModel(id, classId) {
     //TODO: SAT-891 - rewrite toString() method
     override fun toString() = withToStringThreadLocalReentrancyGuard {
@@ -764,16 +773,34 @@ abstract class UtCustomModel(
     classId: ClassId,
     modelName: String = id.toString(),
     override val origin: UtCompositeModel? = null,
-) : UtModelWithCompositeOrigin(id, classId, modelName, origin)
+) : UtModelWithCompositeOrigin(id, classId, modelName, origin) {
+    abstract fun shallowMap(mapper: UtModelMapper): UtCustomModel
+}
 
 object UtSpringContextModel : UtCustomModel(
     id = null,
     classId = SpringModelUtils.applicationContextClassId,
     modelName = "applicationContext"
 ) {
+    override fun shallowMap(mapper: UtModelMapper) = this
+
     // NOTE that overriding equals is required just because without it
     // we will lose equality for objects after deserialization
     override fun equals(other: Any?): Boolean = other is UtSpringContextModel
+
+    override fun hashCode(): Int = 0
+}
+
+class UtSpringEntityManagerModel : UtCustomModel(
+    id = null,
+    classId = SpringModelUtils.entityManagerClassIds.first(),
+    modelName = "entityManager"
+) {
+    override fun shallowMap(mapper: UtModelMapper) = this
+
+    // NOTE that overriding equals is required just because without it
+    // we will lose equality for objects after deserialization
+    override fun equals(other: Any?): Boolean = other is UtSpringEntityManagerModel
 
     override fun hashCode(): Int = 0
 }
@@ -784,9 +811,9 @@ data class SpringRepositoryId(
     val entityClassId: ClassId,
 )
 
-class UtSpringMockMvcResultActionsModel(
-    id: Int?,
-    origin: UtCompositeModel?,
+data class UtSpringMockMvcResultActionsModel(
+    override val id: Int?,
+    override val origin: UtCompositeModel?,
     val status: Int,
     val errorMessage: String?,
     val contentAsString: String,
@@ -799,7 +826,12 @@ class UtSpringMockMvcResultActionsModel(
     classId = SpringModelUtils.resultActionsClassId,
     id = id,
     modelName = "mockMvcResultActions@$id"
-)
+) {
+    override fun shallowMap(mapper: UtModelMapper) = copy(
+        origin = origin?.mapPreservingType<UtCompositeModel>(mapper),
+        model = model?.map(mapper)
+    )
+}
 
 /**
  * Model for a step to obtain [UtAssembleModel].
@@ -815,6 +847,7 @@ sealed class UtStatementCallModel(
     override val instance: UtReferenceModel?,
     open val statement: StatementId,
     open val params: List<UtModel>,
+    var thrownConcreteException: ClassId? = null
 ): UtStatementModel(instance) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {

@@ -8,16 +8,16 @@ import org.utbot.python.framework.api.python.util.pythonComplexClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 
-object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: Type): Boolean {
+object ComplexValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
+    override fun accept(type: UtType): Boolean {
         return type.pythonTypeName() == pythonComplexClassId.canonicalName || type.isAny()
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         yield(Seed.Recursive(
             construct = Routine.Create(
                 listOf(

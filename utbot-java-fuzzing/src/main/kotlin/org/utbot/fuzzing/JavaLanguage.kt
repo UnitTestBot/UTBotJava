@@ -50,6 +50,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     IteratorValueProvider(idGenerator),
     EmptyCollectionValueProvider(idGenerator),
     DateValueProvider(idGenerator),
+    VoidValueProvider,
     NullValueProvider,
 )
 
@@ -58,7 +59,7 @@ suspend fun runJavaFuzzing(
     methodUnderTest: ExecutableId,
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
-    providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
+    providers: List<JavaValueProvider> = defaultValueProviders(idGenerator),
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val random = Random(0)

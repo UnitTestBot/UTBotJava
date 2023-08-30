@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.id
 import soot.SootField
 import java.lang.reflect.Constructor
@@ -307,6 +308,9 @@ val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
 val collectionClassId = java.util.Collection::class.id
 
+val listClassId = List::class.id
+val setClassId = Set::class.id
+
 val baseStreamClassId = java.util.stream.BaseStream::class.id
 val streamClassId = java.util.stream.Stream::class.id
 val intStreamClassId = java.util.stream.IntStream::class.id
@@ -319,6 +323,11 @@ val doubleStreamToArrayMethodId = methodId(doubleStreamClassId, "toArray", doubl
 val streamToArrayMethodId = methodId(streamClassId, "toArray", objectArrayClassId)
 
 val dateClassId = java.util.Date::class.id
+
+fun getArrayClassIdByElementClassId(elementClassId: ClassId): ClassId{
+    val elementClass = utContext.classLoader.loadClass(elementClassId.name)
+    return java.lang.reflect.Array.newInstance(elementClass,0)::class.java.id
+}
 
 @Suppress("RemoveRedundantQualifierName")
 val primitiveToId: Map<Class<*>, ClassId> = mapOf(
@@ -446,6 +455,7 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
     doubleClassId -> UtPrimitiveModel(0.0)
     booleanClassId -> UtPrimitiveModel(false)
     charClassId -> UtPrimitiveModel('\u0000')
+    voidClassId -> UtVoidModel
     else -> UtNullModel(this)
 }
 

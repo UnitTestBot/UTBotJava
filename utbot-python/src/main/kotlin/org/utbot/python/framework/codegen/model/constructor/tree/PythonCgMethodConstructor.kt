@@ -293,7 +293,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             emptyLineIfNeeded()
             if (elementsHaveSameStructure) {
                 val index = newVar(pythonNoneClassId, keyName) {
-                    CgLiteral(pythonNoneClassId, "None")
+                    CgPythonRepr(pythonNoneClassId, "None")
                 }
                 forEachLoop {
                     innerBlock {
@@ -346,6 +346,12 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         depth: Int = maxDepth,
         useExpectedAsValue: Boolean = false
     ) {
+        if (!expectedNode.comparable && expectedNode.isRecursive()) {
+            emptyLineIfNeeded()
+            comment("Cannot compare recursive objects")  // TODO: add special function for recursive comparison
+            assertIsInstance(expected, actual)
+            return
+        }
         if (expectedNode.comparable || depth == 0) {
             val expectedValue = if (useExpectedAsValue) {
                 expected

@@ -14,6 +14,7 @@ import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.util.at
 import org.utbot.framework.codegen.util.canBeSetFrom
+import org.utbot.framework.codegen.util.canBeSetViaSetterFrom
 import org.utbot.framework.codegen.util.fieldThatIsGotWith
 import org.utbot.framework.codegen.util.fieldThatIsSetWith
 import org.utbot.framework.codegen.util.inc
@@ -21,6 +22,7 @@ import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.codegen.util.lessThan
 import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.codegen.util.resolve
+import org.utbot.framework.codegen.util.setter
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
@@ -47,6 +49,7 @@ import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.booleanWrapperClassId
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.defaultValueModel
+import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.id
@@ -186,7 +189,7 @@ open class CgVariableConstructor(val context: CgContext) :
         }
 
         for ((fieldId, fieldModel) in model.fields) {
-            val variableForField = getOrCreateVariable(fieldModel)
+            val variableForField = getOrCreateVariable(fieldModel, name = fieldId.name)
             if (!variableForField.hasDefaultValue())
                 setFieldValue(obj, fieldId, variableForField)
         }
@@ -209,6 +212,10 @@ open class CgVariableConstructor(val context: CgContext) :
             // TODO: check if it is correct to use declaringClass of a field here
             val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
             fieldAccess `=` valueForField
+        } else if (context.codegenLanguage == CodegenLanguage.JAVA &&
+            !field.isStatic && fieldId.canBeSetViaSetterFrom(context)
+        ) {
+            +CgMethodCall(obj, fieldId.setter, listOf(valueForField))
         } else {
             // composite models must not have info about static fields, hence only non-static fields are set here
             +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, valueForField)
@@ -253,17 +260,23 @@ open class CgVariableConstructor(val context: CgContext) :
         for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
-                    val instance = declareOrGet(statementModel.instance)
+                    val instance = getOrCreateVariable(statementModel.instance)
                     // fields here are supposed to be accessible, so we assign them directly without any checks
-                    instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
+                    instance[statementModel.fieldId] `=` getOrCreateVariable(
+                        model = statementModel.fieldModel,
+                        name = statementModel.fieldId.name,
+                    )
                 }
                 is UtStatementCallModel -> {
                     val call = createCgExecutableCallFromUtExecutableCall(statementModel)
                     val equivalentFieldAccess = replaceCgExecutableCallWithFieldAccessIfNeeded(call)
-                    if (equivalentFieldAccess != null)
-                        +equivalentFieldAccess
-                    else
-                        +call
+                    val thrownException = statementModel.thrownConcreteException
+
+                    if (equivalentFieldAccess != null) +equivalentFieldAccess
+                    else if (thrownException != null) {
+                        +tryBlock { +call }
+                            .catch(thrownException) { /* do nothing */ }
+                    } else +call
                 }
             }
         }
@@ -275,23 +288,22 @@ open class CgVariableConstructor(val context: CgContext) :
         when (statementModel) {
             is UtExecutableCallModel -> {
                 val executable = statementModel.executable
+                val paramNames = runCatching {
+                    executable.executable.parameters.map { if (it.isNamePresent) it.name else null }
+                }.getOrNull()
                 val params = statementModel.params
+                val caller = statementModel.instance?.let { getOrCreateVariable(it) }
+                val args = params.mapIndexed { i, param ->
+                    getOrCreateVariable(param, name = paramNames?.getOrNull(i))
+                }
 
                 when (executable) {
-                    is MethodId -> {
-                        val caller = statementModel.instance?.let { declareOrGet(it) }
-                        val args = params.map { declareOrGet(it) }
-                        caller[executable](*args.toTypedArray())
-                    }
-
-                    is ConstructorId -> {
-                        val args = params.map { declareOrGet(it) }
-                        executable(*args.toTypedArray())
-                    }
+                    is MethodId -> caller[executable](*args.toTypedArray())
+                    is ConstructorId -> executable(*args.toTypedArray())
                 }
             }
             is UtDirectGetFieldModel -> {
-                val instance = declareOrGet(statementModel.instance)
+                val instance = getOrCreateVariable(statementModel.instance)
                 val fieldAccess = statementModel.fieldAccess
                 utilsClassId[getFieldValue](instance, fieldAccess.fieldId.declaringClass.canonicalName, fieldAccess.fieldId.name)
             }
@@ -499,13 +511,6 @@ open class CgVariableConstructor(val context: CgContext) :
         return newVar(Class::class.id, baseName) { init }
     }
 
-    /**
-     * Either declares a new variable or gets it from context's cache
-     * Returns the obtained variable
-     */
-    private fun declareOrGet(model: UtModel): CgValue =
-        valueByUtModelWrapper[model.wrap()] ?: getOrCreateVariable(model)
-
     private fun basicForLoop(start: Any, until: Any, body: (i: CgExpression) -> Unit) {
         forLoop {
             val (i, init) = loopInitialization(intClassId, "i", start.resolve())
@@ -537,7 +542,7 @@ open class CgVariableConstructor(val context: CgContext) :
     ): Pair<CgVariable, CgDeclaration> {
         val declaration = CgDeclaration(variableType, baseVariableName.toVarName(), initializer.resolve())
         val variable = declaration.variable
-        updateVariableScope(variable)
+        rememberVariableForModel(variable)
         return variable to declaration
     }
 

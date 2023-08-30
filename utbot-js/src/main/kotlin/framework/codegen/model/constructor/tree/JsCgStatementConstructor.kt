@@ -95,7 +95,7 @@ class JsCgStatementConstructor(context: CgContext) :
             isMutable = isMutableVar
         }
 
-        updateVariableScope(declaration.variable, model)
+        rememberVariableForModel(declaration.variable, model)
 
         return Either.left(declaration)
     }
@@ -275,7 +275,7 @@ class JsCgStatementConstructor(context: CgContext) :
 
     override fun declareVariable(type: ClassId, name: String): CgVariable =
         CgVariable(name, type).also {
-            updateVariableScope(it)
+            rememberVariableForModel(it)
         }
 
     // TODO SEVERE: think about these 2 functions

@@ -40,6 +40,12 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("jdkInfo", jdkInfo)
         field("applicationContext", array(PredefinedType.byte))
     }
+    val testClassNameParams = structdef {
+        field("classUnderTest", array(PredefinedType.byte))
+    }
+    val testClassNameResult = structdef {
+        field("testClassName", PredefinedType.string)
+    }
     val generateParams = structdef {
         // generate
         field("methods", array(PredefinedType.byte))
@@ -146,6 +152,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         call("getSpringBeanDefinitions", getSpringBeanDefinitions, springAnalyzerResult).async
         call("createTestGenerator", testGeneratorParams, PredefinedType.void).async
         call("isCancelled", PredefinedType.void, PredefinedType.bool).async
+        call("findTestClassName", testClassNameParams, testClassNameResult).async
         call("generate", generateParams, generateResult).async
         call("render", renderParams, renderResult).async
         call("obtainClassId", PredefinedType.string, array(PredefinedType.byte)).async

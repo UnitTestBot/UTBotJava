@@ -454,19 +454,10 @@ internal class CgPythonRenderer(
     override fun visit(block: List<CgStatement>, printNextLine: Boolean) {
         println(":")
 
-        val isBlockTooLarge = workaround(WorkaroundReason.LONG_CODE_FRAGMENTS) { block.size > 120 }
-
         withIndent {
-            if (isBlockTooLarge) {
-                print("\"\"\"")
-                println(" This block of code is ${block.size} lines long and could lead to compilation error")
-            }
-
             for (statement in block) {
                 statement.accept(this)
             }
-
-            if (isBlockTooLarge) println("\"\"\"")
         }
 
         if (printNextLine) println()
@@ -505,7 +496,18 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonRepr) {
-        print(element.content.dropBuiltins())
+        val content = element.content.dropBuiltins()
+        if (content.startsWith("\"") && content.endsWith("\"")) {
+            val realContent = content.slice(1 until content.length - 1)
+            if (realContent.startsWith("r\\\"") && realContent.endsWith("\\\"")) {  // raw string
+                val innerContent = realContent.slice(5 until realContent.length - 4)
+                print("r\"${innerContent.replace("\r", "\\r").replace("\n", "\\n")}\"")
+            } else {
+                print("\"${realContent.replace("\r", "\\r").replace("\n", "\\n")}\"")
+            }
+        } else {
+            print(content.dropBuiltins())
+        }
     }
 
     override fun visit(element: CgPythonIndex) {

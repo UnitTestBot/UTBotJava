@@ -25,6 +25,7 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.utils.ClassNameUtils
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.BeanAdditionalData
@@ -42,7 +43,6 @@ import org.utbot.spring.process.SpringAnalyzerProcess
 import org.utbot.summary.summarizeAll
 import org.utbot.taint.TaintConfigurationProviderUserRules
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Paths
 import kotlin.reflect.jvm.kotlinFunction
 import kotlin.time.Duration.Companion.seconds
@@ -74,10 +74,21 @@ private var idCounter: Long = 0
 private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog, realProtocol: IProtocol) {
     val model = this
     watchdog.measureTimeForActiveCall(setupUtContext, "UtContext setup") { params ->
-        // we use parent classloader with null to disable autoload classes from system classloader
-        UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
-            File(it).toURI().toURL()
-        }.toTypedArray(), null)))
+        val urls = params.classpathForUrlsClassloader.map { File(it).toURI().toURL() }.toTypedArray()
+        // - First, we try to load class/resource with platform class loader `ClassLoader.getSystemClassLoader().parent`
+        //     - at this step we load classes like
+        //        - `java.util.ArrayList` (from boostrap classloader)
+        //        - `javax.sql.DataSource` (from platform classloader)
+        // - Next, we try to load class/resource from user class path
+        //     - at this step we load classes like class under test and other classes from user project and its dependencies
+        // - Finally, if all else fails we try to load class/resource from UtBot classpath
+        //     - at this step we load classes from UtBot project and its dependencies (e.g. Mockito if user doesn't have it, see #2545)
+        val classLoader = FallbackClassLoader(
+            urls = urls,
+            fallback = ClassLoader.getSystemClassLoader(),
+            commonParent = ClassLoader.getSystemClassLoader().parent,
+        )
+        UtContext.setUtContext(UtContext(classLoader))
     }
     watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
         try {
@@ -117,6 +128,11 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 }
             }
         )
+    }
+    watchdog.measureTimeForActiveCall(findTestClassName, "Creating test class name") { params ->
+        val classUnderTest: ClassId = kryoHelper.readObject(params.classUnderTest)
+        val testClassName = ClassNameUtils.generateTestClassShortName(classUnderTest)
+        TestClassNameResult(testClassName)
     }
     watchdog.measureTimeForActiveCall(generate, "Generating tests") { params ->
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)

@@ -59,6 +59,7 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
+import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.process.EngineProcess
@@ -82,7 +83,8 @@ object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
 
     enum class ProgressRange(val from : Double, val to: Double) {
-        SOLVING(from = 0.0, to = 0.9),
+        INITIALIZATION(from = 0.01, to = 0.1),
+        SOLVING(from = 0.1, to = 0.9),
         CODEGEN(from = 0.9, to = 0.95),
         SARIF(from = 0.95, to = 1.0)
     }
@@ -218,7 +220,7 @@ object UtTestsDialogProcessor {
                         val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 
                         indicator.isIndeterminate = false
-                        updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
+                        updateIndicator(indicator, ProgressRange.INITIALIZATION, "Generate tests: starting engine", 0.0)
 
                         // TODO sometimes preClasspathCollectionPromises get stuck, even though all
                         //  needed dependencies get installed, we need to figure out why that happens
@@ -259,9 +261,14 @@ object UtTestsDialogProcessor {
                         val staticMockingConfigured = model.staticsMocking.isConfigured
 
                         val process = EngineProcess.createBlocking(project, classNameToPath)
+                        updateIndicator(indicator, ProgressRange.INITIALIZATION, fraction = 0.2)
 
                         process.terminateOnException { _ ->
-                            val classpathForClassLoader = buildDirs + classpathList
+                            val classpathForClassLoader = buildDirs + classpathList + when (model.projectType) {
+                                Spring -> listOf(SpringUtExecutionInstrumentation.springCommonsJar.path)
+                                else -> emptyList<String>()
+                            }
+
                             process.setupUtContext(classpathForClassLoader)
                             val simpleApplicationContext = SimpleApplicationContext(
                                 SimpleMockerContext(mockFrameworkInstalled, staticMockingConfigured)
@@ -291,6 +298,7 @@ object UtTestsDialogProcessor {
                                 }
                                 else -> simpleApplicationContext
                             }
+                            updateIndicator(indicator, ProgressRange.INITIALIZATION, fraction = 0.25)
                             process.createTestGenerator(
                                 buildDirs,
                                 classpath,
@@ -302,6 +310,7 @@ object UtTestsDialogProcessor {
                                     indicator.isCanceled
                                 })
                             }
+                            updateIndicator(indicator, ProgressRange.INITIALIZATION, fraction = 1.0)
 
                             for (srcClass in model.srcClasses) {
                                 if (indicator.isCanceled) {
@@ -387,7 +396,7 @@ object UtTestsDialogProcessor {
                                         }
                                         val useFuzzing = when (model.projectType) {
                                             Spring -> when (model.springTestType) {
-                                                UNIT_TEST -> false
+                                                UNIT_TEST -> UtSettings.useFuzzing
                                                 INTEGRATION_TEST -> true
                                             }
 

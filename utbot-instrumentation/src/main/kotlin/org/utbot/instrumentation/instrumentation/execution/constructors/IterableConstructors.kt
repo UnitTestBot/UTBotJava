@@ -7,7 +7,8 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.collectionClassId
+import org.utbot.framework.plugin.api.util.mapClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 
 internal class CollectionConstructor : UtAssembleModelConstructorBase() {
@@ -22,9 +23,7 @@ internal class CollectionConstructor : UtAssembleModelConstructorBase() {
         // This value will be constructed as UtCompositeModel.
         val models = value.map { internalConstructor.construct(it, valueToClassId(it)) }
 
-        val classId = value::class.java.id
-
-        val addMethodId = MethodId(classId, "add", booleanClassId, listOf(objectClassId))
+        val addMethodId = MethodId(collectionClassId, "add", booleanClassId, listOf(objectClassId))
 
         return models.map { UtExecutableCallModel(this, addMethodId, listOf(it)) }
     }
@@ -63,7 +62,7 @@ internal class MapConstructor : UtAssembleModelConstructorBase() {
             internalConstructor.run { construct(key, valueToClassId(key)) to construct(value, valueToClassId(value)) }
         }
 
-        val putMethodId = MethodId(classId, "put", objectClassId, listOf(objectClassId, objectClassId))
+        val putMethodId = MethodId(mapClassId, "put", objectClassId, listOf(objectClassId, objectClassId))
 
         return keyToValueModels.map { (key, value) ->
             UtExecutableCallModel(this, putMethodId, listOf(key, value))

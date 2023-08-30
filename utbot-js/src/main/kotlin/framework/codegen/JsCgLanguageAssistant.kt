@@ -12,7 +12,7 @@ import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.services.language.AbstractCgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.utils.testClassNameGenerator
+import org.utbot.framework.plugin.api.utils.ClassNameUtils.generateTestClassName
 
 object JsCgLanguageAssistant : AbstractCgLanguageAssistant() {
 
@@ -35,7 +35,7 @@ object JsCgLanguageAssistant : AbstractCgLanguageAssistant() {
         testClassPackageName: String,
         classUnderTest: ClassId
     ): Pair<String, String> {
-        return testClassNameGenerator(testClassCustomName, testClassPackageName, classUnderTest)
+        return generateTestClassName(testClassCustomName, testClassPackageName, classUnderTest)
     }
 
     override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer = CgJsRenderer(context, printer)

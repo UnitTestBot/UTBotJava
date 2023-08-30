@@ -2,6 +2,7 @@ package org.utbot.instrumentation.instrumentation.execution
 
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.signature
@@ -11,6 +12,7 @@ import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.context.SimpleInstrumentationContext
@@ -46,19 +48,24 @@ class SimpleUtExecutionInstrumentation(
         methodSignature: String,
         arguments: ArgumentList,
         parameters: Any?,
-        phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
+        phasesWrapper: PhasesController.(invokeBasePhases: () -> PreliminaryUtConcreteExecutionResult) -> PreliminaryUtConcreteExecutionResult
     ): UtConcreteExecutionResult {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
         }
         val (stateBefore, instrumentations, timeout) = parameters // smart cast to UtConcreteExecutionData
 
+        lateinit var detectedMockingCandidates: Set<MethodId>
+
         return PhasesController(
             instrumentationContext,
             traceHandler,
             delegateInstrumentation,
-            timeout
+            timeout,
+            idGenerator = StateBeforeAwareIdGenerator.fromUtConcreteExecutionData(parameters)
         ).computeConcreteExecutionResult {
+            detectedMockingCandidates = valueConstructionPhase.detectedMockingCandidates
+
             phasesWrapper {
                 try {
                     // some preparation actions for concrete execution
@@ -115,7 +122,7 @@ class SimpleUtExecutionInstrumentation(
                         Triple(executionResult, stateAfter, newInstrumentation)
                     }
 
-                    UtConcreteExecutionResult(
+                    PreliminaryUtConcreteExecutionResult(
                         stateAfter,
                         executionResult,
                         coverage,
@@ -126,7 +133,10 @@ class SimpleUtExecutionInstrumentation(
                     applyPostprocessing()
                 }
             }
-        }
+        }.toCompleteUtConcreteExecutionResult(
+            stateBefore = stateBefore,
+            detectedMockingCandidates = detectedMockingCandidates,
+        )
     }
 
     override fun getResultOfInstrumentation(className: String, methodSignature: String): ResultOfInstrumentation =

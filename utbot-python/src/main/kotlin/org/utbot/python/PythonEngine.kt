@@ -18,8 +18,8 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.*
-import org.utbot.python.newtyping.PythonTypeStorage
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
@@ -36,7 +36,7 @@ class PythonEngine(
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
-    private val pythonTypeStorage: PythonTypeStorage,
+    private val pythonTypeStorage: PythonTypeHintsStorage,
 ) {
 
     private val cache = EvaluationCache()
@@ -122,7 +122,7 @@ class PythonEngine(
     }
     private fun handleSuccessResult(
         arguments: List<PythonFuzzedValue>,
-        types: List<Type>,
+        types: List<UtType>,
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
     ): FuzzingExecutionFeedback {
@@ -143,7 +143,7 @@ class PythonEngine(
                 types.joinToString { it.pythonTypeRepresentation() }
             }. Exception type: ${resultModel.type.name}"
 
-            logger.info(errorMessage)
+            logger.debug { errorMessage }
             return TypeErrorFeedback(errorMessage)
         }
 
@@ -190,7 +190,7 @@ class PythonEngine(
     private fun fuzzingResultHandler(
         description: PythonMethodDescription,
         arguments: List<PythonFuzzedValue>,
-        parameters: List<Type>,
+        parameters: List<UtType>,
         manager: PythonWorkerManager,
     ): PythonExecutionResult? {
         val additionalModules = parameters.flatMap { it.pythonModules() }
@@ -269,14 +269,14 @@ class PythonEngine(
                 }
             }
         } catch (_: TimeoutException) {
-            logger.info { "Fuzzing process was interrupted by timeout" }
+            logger.debug { "Fuzzing process was interrupted by timeout" }
             return null
         }
     }
 
-    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
+    fun fuzzing(parameters: List<UtType>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         ServerSocket(0).use { serverSocket ->
-            logger.info { "Server port: ${serverSocket.localPort}" }
+            logger.debug { "Server port: ${serverSocket.localPort}" }
             val manager = try {
                 PythonWorkerManager(
                     serverSocket,
@@ -286,7 +286,7 @@ class PythonEngine(
             } catch (_: TimeoutException) {
                 return@flow
             }
-            logger.info { "Executor manager was created successfully" }
+            logger.debug { "Executor manager was created successfully" }
 
             val pmd = PythonMethodDescription(
                 methodUnderTest.name,
@@ -307,18 +307,18 @@ class PythonEngine(
                     try {
                         PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
                             if (isCancelled()) {
-                                logger.info { "Fuzzing process was interrupted" }
+                                logger.debug { "Fuzzing process was interrupted" }
                                 manager.disconnect()
                                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
                             }
                             if (System.currentTimeMillis() >= until) {
-                                logger.info { "Fuzzing process was interrupted by timeout" }
+                                logger.debug { "Fuzzing process was interrupted by timeout" }
                                 manager.disconnect()
                                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
                             }
 
                             if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
-                                logger.debug("FakeNode in Python model")
+                                logger.debug { "FakeNode in Python model" }
                                 emit(FakeNodeFeedback)
                                 return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                             }
@@ -341,7 +341,7 @@ class PythonEngine(
                             return@PythonFuzzing result.fuzzingPlatformFeedback
                         }.fuzz(pmd)
                     } catch (_: NoSeedValueException) {
-                        logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
+                        logger.debug { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
                     }
                 }
             } finally {

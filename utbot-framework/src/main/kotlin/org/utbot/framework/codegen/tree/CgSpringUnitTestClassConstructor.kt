@@ -1,8 +1,6 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.codegen.domain.builtin.closeMethodId
-import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
-import org.utbot.framework.codegen.domain.builtin.mockClassId
 import org.utbot.framework.codegen.domain.builtin.openMocksMethodId
 import org.utbot.framework.codegen.domain.builtin.clearMethodId
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -11,11 +9,13 @@ import org.utbot.framework.codegen.domain.models.CgDeclaration
 import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgMethodsCluster
-import org.utbot.framework.codegen.domain.models.CgSimpleRegion
 import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.domain.models.SpringTestClassModel
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
+import org.utbot.framework.codegen.tree.fieldmanager.CgInjectingMocksFieldsManager
+import org.utbot.framework.codegen.tree.fieldmanager.CgMockedFieldsManager
+import org.utbot.framework.codegen.tree.fieldmanager.CgSpiedFieldsManager
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -27,21 +27,19 @@ class CgSpringUnitTestClassConstructor(context: CgContext) : CgAbstractSpringTes
     private lateinit var mockitoCloseableVariable: CgValue
     private lateinit var spyClearVariables: List<CgValue>
 
-    private val injectingMocksFieldsManager = CgInjectingMocksFieldsManager(context)
     private val mocksFieldsManager = CgMockedFieldsManager(context)
     private val spiesFieldsManager = CgSpiedFieldsManager(context)
+    private val injectingMocksFieldsManager =
+        CgInjectingMocksFieldsManager(context, mocksFieldsManager, spiesFieldsManager)
 
-    override fun constructClassFields(testClassModel: SpringTestClassModel): List<CgFieldDeclaration> {
+    override fun constructClassFields(testClassModel: SimpleTestClassModel): List<CgFieldDeclaration> {
         val fields = mutableListOf<CgFieldDeclaration>()
-        val thisInstances = testClassModel.springSpecificInformation.thisInstanceModels
-        val mocks = testClassModel.springSpecificInformation.thisInstanceDependentMocks
-        val spies = testClassModel.springSpecificInformation.thisInstanceDependentSpies
 
-        val spiesFields = constructFieldsWithAnnotation(spiesFieldsManager, spies)
-        val mockedFields = constructFieldsWithAnnotation(mocksFieldsManager, mocks)
+        val spiesFields = spiesFieldsManager.createFieldDeclarations(testClassModel)
+        val mockedFields = mocksFieldsManager.createFieldDeclarations(testClassModel)
 
         if ((spiesFields + mockedFields).isNotEmpty()) {
-            val injectingMocksFields = constructFieldsWithAnnotation(injectingMocksFieldsManager, thisInstances)
+            val injectingMocksFields = injectingMocksFieldsManager.createFieldDeclarations(testClassModel)
 
             fields += injectingMocksFields
             fields += mockedFields

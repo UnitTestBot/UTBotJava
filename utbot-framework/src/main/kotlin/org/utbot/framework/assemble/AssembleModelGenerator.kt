@@ -7,10 +7,10 @@ import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.util.isAccessibleFrom
-import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
-import org.utbot.framework.modifications.ConstructorAnalyzer
-import org.utbot.framework.modifications.ConstructorAssembleInfo
-import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
+import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
+import org.utbot.modifications.ConstructorAnalyzer
+import org.utbot.modifications.ConstructorAssembleInfo
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
@@ -48,6 +48,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import java.lang.reflect.Constructor
 import java.util.IdentityHashMap
+import org.utbot.modifications.FieldInvolvementMode
 
 /**
  * Creates [UtAssembleModel] from any [UtModel] or it's inner models if possible
@@ -72,7 +73,10 @@ class AssembleModelGenerator(private val basePackageName: String) {
     //Call chain of statements to create assemble model
     private var callChain = mutableListOf<UtStatementModel>()
 
-    private val modificatorsSearcher = UtBotFieldsModificatorsSearcher()
+    private val modificatorsSearcher =
+        UtBotFieldsModificatorsSearcher(
+            fieldInvolvementMode = FieldInvolvementMode.WriteOnly
+        )
     private val constructorAnalyzer = ConstructorAnalyzer()
 
     /**
@@ -492,7 +496,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
      * Finds setters and direct accessors for fields of particular class.
      */
     private fun findSettersAndDirectAccessors(classId: ClassId): Map<FieldId, StatementId> {
-        val allModificatorsOfClass =  modificatorsSearcher.findModificators(SettersAndDirectAccessors)
+        val allModificatorsOfClass =  modificatorsSearcher.getFieldToModificators(SettersAndDirectAccessors)
 
         return allModificatorsOfClass
             .mapNotNull { (fieldId, possibleModificators) ->

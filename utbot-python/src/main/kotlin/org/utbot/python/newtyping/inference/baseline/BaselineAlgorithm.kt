@@ -5,7 +5,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.hints.*
 import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.*
 import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
 import org.utbot.python.newtyping.utils.weightedRandom
@@ -24,7 +24,7 @@ private val EDGES_TO_LINK = listOf(
 private val logger = KotlinLogging.logger {}
 
 class BaselineAlgorithm(
-    private val storage: PythonTypeStorage,
+    private val storage: PythonTypeHintsStorage,
     private val pythonPath: String,
     private val pythonMethodCopy: PythonMethod,
     private val directoriesForSysPath: Set<String>,
@@ -40,7 +40,7 @@ class BaselineAlgorithm(
     override suspend fun run(
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
-        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+        annotationHandler: suspend (UtType) -> InferredTypeFeedback,
     ): Int {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
         val initialState = getInitialState(hintCollectorResult, generalRating)
@@ -120,7 +120,7 @@ class BaselineAlgorithm(
 
     private fun getInitialState(
         hintCollectorResult: HintCollectorResult,
-        generalRating: List<Type>
+        generalRating: List<UtType>
     ): BaselineAlgorithmState {
         val paramNames = pythonMethodCopy.arguments.map { it.name }
         val root = PartialTypeNode(hintCollectorResult.initialSignature, true)

@@ -11,13 +11,13 @@ import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal
 import java.math.BigInteger
 
-object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: Type): Boolean {
+object FloatValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
+    override fun accept(type: UtType): Boolean {
         return type.pythonTypeName() == pythonFloatClassId.canonicalName || type.isAny()
     }
 
@@ -41,7 +41,7 @@ object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
             }
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> = sequence {
         val floatConstants = getFloatConstants(description.concreteValues)
         val intConstants = getIntConstants(description.concreteValues)
         val constants = floatConstants + intConstants

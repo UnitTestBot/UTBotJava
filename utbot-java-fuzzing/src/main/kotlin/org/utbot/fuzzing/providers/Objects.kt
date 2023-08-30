@@ -2,17 +2,51 @@ package org.utbot.fuzzing.providers
 
 import mu.KotlinLogging
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.*
-import org.utbot.fuzzer.*
-import org.utbot.fuzzing.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtDirectSetFieldModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.classClassId
+import org.utbot.framework.plugin.api.util.constructor
+import org.utbot.framework.plugin.api.util.dateClassId
+import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isAbstract
+import org.utbot.framework.plugin.api.util.isCollectionOrMap
+import org.utbot.framework.plugin.api.util.isEnum
+import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
+import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.framework.plugin.api.util.isStatic
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.fuzzer.FuzzedType
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.IdGenerator
+import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.fuzzed
+import org.utbot.fuzzing.FuzzedDescription
+import org.utbot.fuzzing.JavaValueProvider
+import org.utbot.fuzzing.Routine
+import org.utbot.fuzzing.Scope
+import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.toFuzzerType
+import org.utbot.fuzzing.traverseHierarchy
 import org.utbot.fuzzing.utils.hex
+import org.utbot.modifications.AnalysisMode
+import org.utbot.modifications.FieldInvolvementMode
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import soot.Scene
 import soot.SootClass
 import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.lang.reflect.TypeVariable
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,7 +72,7 @@ fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
 
@@ -56,8 +90,8 @@ class ObjectValueProvider(
         }
     }
 
-    private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
-        return Seed.Recursive(
+    private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> =
+        Seed.Recursive(
             construct = Routine.Create(constructorId.executable.genericParameterTypes.map {
                 toFuzzerType(it, description.typeCache)
             }) { values ->
@@ -103,11 +137,10 @@ class ObjectValueProvider(
             },
             empty = nullRoutine(classId)
         )
-    }
 }
 
 @Suppress("unused")
-object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+object NullValueProvider : JavaValueProvider {
 
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
         // any value in static function is ok to fuzz
@@ -137,7 +170,7 @@ object NullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescript
  *
  * Intended to be used as a last fallback.
  */
-object AnyDepthNullValueProvider : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+object AnyDepthNullValueProvider : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = type.classId.isRefType
 
@@ -152,14 +185,14 @@ object AnyDepthNullValueProvider : ValueProvider<FuzzedType, FuzzedValue, Fuzzed
  */
 class AbstractsObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
 
     override fun accept(type: FuzzedType) = type.classId.isRefType && !isKnownTypes(type.classId)
 
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
         val t = try {
             Scene.v().getRefType(type.classId.name).sootClass
-        } catch (ignore: NoClassDefFoundError) {
+        } catch (ignore: Throwable) {
             logger.error(ignore) { "Soot may be not initialized" }
             return@sequence
         }
@@ -219,6 +252,12 @@ internal class FieldDescription(
     val getter: Method?
 )
 
+internal class MethodDescription(
+    val name: String,
+    val parameterTypes: List<FuzzedType>,
+    val method: Method
+)
+
 internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
     return generateSequence(classId.jClass) { it.superclass }.flatMap { jClass ->
         jClass.declaredFields.map { field ->
@@ -238,6 +277,37 @@ internal fun findAccessibleModifiableFields(description: FuzzedDescription?, cla
             )
         }
     }.toList()
+}
+
+internal fun findMethodsToModifyWith(
+    description: FuzzedDescription,
+    valueClassId: ClassId,
+    classUnderTest: ClassId,
+    ): List<MethodDescription> {
+    val packageName = description.description.packageName
+
+    val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
+    val modifyingMethods = findModifyingMethodNames(methodUnderTestName, valueClassId, classUnderTest)
+    return valueClassId.allMethods
+        .map { it.method }
+        .mapNotNull { method ->
+            if (isAccessible(method, packageName)) {
+                if (method.name !in modifyingMethods) return@mapNotNull null
+                if (method.genericParameterTypes.any { it is TypeVariable<*> }) return@mapNotNull null
+
+                val parameterTypes =
+                    method
+                        .parameterTypes
+                        .map { toFuzzerType(it, description.typeCache) }
+
+                MethodDescription(
+                    name = method.name,
+                    parameterTypes = parameterTypes,
+                    method = method
+                )
+            } else null
+        }
+        .toList()
 }
 
 internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, packageName: String?): PublicSetterGetter? {
@@ -271,6 +341,36 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
     return Modifier.isPublic(clazz.modifiers) ||
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
+
+private fun findModifyingMethodNames(
+    methodUnderTestName: String,
+    valueClassId: ClassId,
+    classUnderTest: ClassId,
+    ) : Set<String> =
+    UtBotFieldsModificatorsSearcher(fieldInvolvementMode = FieldInvolvementMode.ReadAndWrite)
+        .let { searcher ->
+            searcher.update(setOf(valueClassId, classUnderTest))
+            val modificatorsToFields = searcher.getModificatorToFields(analysisMode = AnalysisMode.Methods)
+
+            modificatorsToFields[methodUnderTestName]?.let { fieldsModifiedByMut ->
+                modificatorsToFields
+                    .mapNotNull { (methodName, fieldSet) ->
+                        val relevantFields = if (UtSettings.tryMutateOtherClassesFieldsWithMethods) {
+                            fieldsModifiedByMut
+                        } else {
+                            fieldsModifiedByMut
+                                .filter { field -> field.declaringClass == classUnderTest }
+                                .toSet()
+                        }
+
+                        val methodIsModifying = fieldSet.intersect(relevantFields).isNotEmpty()
+                                && methodName != methodUnderTestName
+                        if (methodIsModifying) methodName else null
+                    }
+                    .toSet()
+            }
+                ?: setOf()
+        }
 
 private fun isNotPrivateOrProtected(modifiers: Int): Boolean {
     val hasAnyAccessModifier = Modifier.isPrivate(modifiers) || Modifier.isProtected(modifiers)

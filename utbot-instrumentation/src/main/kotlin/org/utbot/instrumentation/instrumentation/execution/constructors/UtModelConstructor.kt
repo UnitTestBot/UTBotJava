@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import java.lang.reflect.Modifier
+import java.lang.reflect.Proxy
 import java.util.*
 import java.util.stream.BaseStream
 
@@ -32,17 +33,12 @@ interface UtModelConstructorInterface {
  */
 class UtModelConstructor(
     private val objectToModelCache: IdentityHashMap<Any, UtModel>,
+    private val idGenerator: StateBeforeAwareIdGenerator,
     private val utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?,
     private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy,
     private val maxDepth: Long = DEFAULT_MAX_DEPTH
 ) : UtModelConstructorInterface {
     private val constructedObjects = IdentityHashMap<Any, UtModel>()
-
-    private var unusedId = 0
-    private val usedIds = objectToModelCache.values
-        .filterIsInstance<UtReferenceModel>()
-        .mapNotNull { it.id }
-        .toMutableSet()
 
     companion object {
         private const val DEFAULT_MAX_DEPTH = 7L
@@ -55,16 +51,16 @@ class UtModelConstructor(
             val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
                 pathsToUserClasses, cache
             )
-            return UtModelConstructor(cache, utModelWithCompositeOriginConstructorFinder, strategy)
+            return UtModelConstructor(
+                objectToModelCache = cache,
+                idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
+                utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
+                compositeModelStrategy = strategy
+            )
         }
     }
 
-    private fun computeUnusedIdAndUpdate(): Int {
-        while (unusedId in usedIds) {
-            unusedId++
-        }
-        return unusedId.also { usedIds += it }
-    }
+    private fun computeUnusedIdAndUpdate(): Int = idGenerator.createId()
 
     private fun handleId(value: Any): Int {
         return objectToModelCache[value]?.let { (it as? UtReferenceModel)?.id } ?: computeUnusedIdAndUpdate()
@@ -85,6 +81,52 @@ class UtModelConstructor(
         return UtLambdaModel.createFake(handleId(value), classId, baseClass)
     }
 
+    private fun isProxy(value: Any?): Boolean =
+        value != null && Proxy.isProxyClass(value::class.java)
+
+    /**
+     * Using `UtAssembleModel` for dynamic proxies helps to avoid exceptions like
+     * `java.lang.ClassNotFoundException: jdk.proxy3.$Proxy184` during code generation.
+     */
+    private fun constructProxy(value: Any, classId: ClassId): UtAssembleModel {
+        val newProxyInstanceExecutableId = java.lang.reflect.Proxy::newProxyInstance.executableId
+
+        // we don't want to construct deep models for invocationHandlers, since they can be quite large
+        val argsRemainingDepth = 0L
+
+        val classLoader = UtAssembleModel(
+            id = computeUnusedIdAndUpdate(),
+            classId = newProxyInstanceExecutableId.parameters[0],
+            modelName = "systemClassLoader",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = ClassLoader::getSystemClassLoader.executableId,
+                params = emptyList()
+            )
+        )
+        val interfaces = construct(
+            value::class.java.interfaces,
+            newProxyInstanceExecutableId.parameters[1],
+            remainingDepth = argsRemainingDepth
+        )
+        val invocationHandler = construct(
+            Proxy.getInvocationHandler(value),
+            newProxyInstanceExecutableId.parameters[2],
+            remainingDepth = argsRemainingDepth
+        )
+
+        return UtAssembleModel(
+            id = handleId(value),
+            classId = classId,
+            modelName = "dynamicProxy",
+            instantiationCall = UtExecutableCallModel(
+                instance = null,
+                executable = newProxyInstanceExecutableId,
+                params = listOf(classLoader, interfaces, invocationHandler)
+            )
+        )
+    }
+
     /**
      * Constructs a UtModel from a concrete [value] with a specific [classId]. The result can be a [UtAssembleModel]
      * as well.
@@ -103,6 +145,9 @@ class UtModelConstructor(
         if (isProxyLambda(value)) {
             return constructFakeLambda(value!!, classId)
         }
+        if (isProxy(value)) {
+            return constructProxy(value!!, classId)
+        }
         return when (value) {
             null -> UtNullModel(classId)
             is Unit -> UtVoidModel
@@ -113,7 +158,10 @@ class UtModelConstructor(
             is Long,
             is Float,
             is Double,
-            is Boolean -> if (classId.isPrimitive) UtPrimitiveModel(value) else constructFromAny(value, remainingDepth)
+            is Boolean -> {
+                if (classId.isPrimitive) UtPrimitiveModel(value)
+                else constructFromAny(value, classId, remainingDepth)
+            }
 
             is ByteArray -> constructFromByteArray(value, remainingDepth)
             is ShortArray -> constructFromShortArray(value, remainingDepth)
@@ -127,7 +175,7 @@ class UtModelConstructor(
             is Enum<*> -> constructFromEnum(value)
             is Class<*> -> constructFromClass(value)
             is BaseStream<*, *> -> constructFromStream(value)
-            else -> constructFromAny(value, remainingDepth)
+            else -> constructFromAny(value, classId, remainingDepth)
         }
     }
 
@@ -287,10 +335,27 @@ class UtModelConstructor(
     /**
      * First tries to construct UtAssembleModel. If failure, constructs UtCompositeModel.
      */
-    private fun constructFromAny(value: Any, remainingDepth: Long): UtModel =
+    private fun constructFromAny(value: Any, classId: ClassId, remainingDepth: Long): UtModel =
         constructedObjects.getOrElse(value) {
-            tryConstructCustomModel(value, remainingDepth) ?: constructCompositeModel(value, remainingDepth)
+            tryConstructCustomModel(value, remainingDepth)
+                ?: findEqualValueOfWellKnownType(value)
+                    ?.takeIf { (_, replacementClassId) -> replacementClassId isSubtypeOf classId }
+                    ?.let { (replacement, replacementClassId) ->
+                        // right now replacements only work with `UtAssembleModel`
+                        (tryConstructCustomModel(replacement, remainingDepth) as? UtAssembleModel)
+                            ?.copy(classId = replacementClassId)
+                    }
+                ?: constructCompositeModel(value, remainingDepth)
         }
+
+    private fun findEqualValueOfWellKnownType(value: Any): Pair<Any, ClassId>? = runCatching {
+        when (value) {
+            is List<*> -> ArrayList(value) to listClassId
+            is Set<*> -> LinkedHashSet(value) to setClassId
+            is Map<*, *> -> LinkedHashMap(value) to mapClassId
+            else -> null
+        }
+    }.getOrNull()
 
     /**
      * Constructs custom UtModel but does it only for predefined list of classes.

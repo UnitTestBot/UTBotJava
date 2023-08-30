@@ -22,7 +22,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
@@ -81,7 +81,7 @@ class PythonCodeGenerator(
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, Type>,
+        methodAnnotations: Map<String, UtType>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         namesInModule: Collection<String>,
@@ -91,6 +91,7 @@ class PythonCodeGenerator(
         val printer = CgPrinterImpl()
         val renderer = CgPythonRenderer(cgRendererContext, printer)
 
+        val importOs = PythonSystemImport("os")
         val importSys = PythonSystemImport("sys")
         val importTyping = PythonSystemImport("typing")
         val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
@@ -100,7 +101,7 @@ class PythonCodeGenerator(
 
         val additionalModules = methodAnnotations.values.flatMap { it.pythonModules() }.map { PythonUserImport(it) }
         val imports =
-            (listOf(importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules)).toSet()
+            (listOf(importOs, importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules)).toSet()
                 .toList()
 
         imports.forEach { renderer.renderPythonImport(it) }

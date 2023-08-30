@@ -1,7 +1,7 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
 import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.TypeInferenceEdge
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithValue
@@ -17,7 +17,7 @@ class HintEdgeWithBound(
     to: HintCollectorNode,
     val source: EdgeSource,
     override val boundType: TypeInferenceEdgeWithBound.BoundType,
-    override val dependency: (Type) -> List<Type>
+    override val dependency: (UtType) -> List<UtType>
 ): HintEdge(from, to), TypeInferenceEdgeWithBound
 
 class HintEdgeWithValue(
@@ -26,9 +26,9 @@ class HintEdgeWithValue(
     override val annotationParameterId: Int
 ): HintEdge(from, to), TypeInferenceEdgeWithValue
 
-class HintCollectorNode(override val partialType: Type): TypeInferenceNode {
-    val lowerBounds: MutableList<Type> = mutableListOf()
-    val upperBounds: MutableList<Type> = mutableListOf()
+class HintCollectorNode(override val partialType: UtType): TypeInferenceNode {
+    val lowerBounds: MutableList<UtType> = mutableListOf()
+    val upperBounds: MutableList<UtType> = mutableListOf()
     override val outgoingEdges: MutableSet<HintEdge> = mutableSetOf()
     override val ingoingEdges: MutableSet<HintEdge> = mutableSetOf()
 }

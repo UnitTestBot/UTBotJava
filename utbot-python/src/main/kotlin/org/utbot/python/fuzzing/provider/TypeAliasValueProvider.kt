@@ -7,16 +7,15 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonTypeAliasDescription
-import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.newtyping.general.UtType
 
-object TypeAliasValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
+object TypeAliasValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
 
-    override fun accept(type: Type): Boolean {
+    override fun accept(type: UtType): Boolean {
         return type.meta is PythonTypeAliasDescription
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
+    override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> {
         val compositeType = PythonTypeAliasDescription.castToCompatibleTypeApi(type)
         return sequenceOf(
             Seed.Recursive(

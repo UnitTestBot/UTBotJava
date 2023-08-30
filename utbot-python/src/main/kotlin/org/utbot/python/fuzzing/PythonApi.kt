@@ -11,25 +11,25 @@ import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
 data class PythonFuzzedConcreteValue(
-    val type: Type,
+    val type: UtType,
     val value: Any,
     val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
 )
 
 class PythonMethodDescription(
     val name: String,
-    parameters: List<Type>,
+    parameters: List<UtType>,
     val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
-    val pythonTypeStorage: PythonTypeStorage,
+    val pythonTypeStorage: PythonTypeHintsStorage,
     val tracer: Trie<Instruction, *>,
     val random: Random,
-) : Description<Type>(parameters)
+) : Description<UtType>(parameters)
 
 sealed interface FuzzingExecutionFeedback
 class ValidExecution(val utFuzzedExecution: PythonUtExecution): FuzzingExecutionFeedback
@@ -47,14 +47,14 @@ data class PythonExecutionResult(
 data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<Instruction> = Trie.emptyNode(),
-) : Feedback<Type, PythonFuzzedValue>
+) : Feedback<UtType, PythonFuzzedValue>
 
 class PythonFuzzedValue(
     val tree: PythonTree.PythonTreeNode,
     val summary: String? = null,
 )
 
-fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
+fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     NoneValueProvider,
     BoolValueProvider,
     IntValueProvider,
@@ -70,17 +70,18 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
     BytesValueProvider,
     BytearrayValueProvider,
     ReduceValueProvider,
+    RePatternValueProvider,
     ConstantValueProvider,
     TypeAliasValueProvider,
     SubtypeValueProvider(typeStorage)
 )
 
 class PythonFuzzing(
-    private val pythonTypeStorage: PythonTypeStorage,
+    private val pythonTypeStorage: PythonTypeHintsStorage,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
-) : Fuzzing<Type, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
+) : Fuzzing<UtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
-    private fun generateDefault(description: PythonMethodDescription, type: Type)= sequence {
+    private fun generateDefault(description: PythonMethodDescription, type: UtType)= sequence {
         pythonDefaultValueProviders(pythonTypeStorage).asSequence().forEach { provider ->
             if (provider.accept(type)) {
                 logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
@@ -89,8 +90,8 @@ class PythonFuzzing(
         }
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
-        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
+    override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> {
+        var providers = emptyList<Seed<UtType, PythonFuzzedValue>>().asSequence()
 
         if (type.isAny()) {
             logger.debug("Any does not have provider")

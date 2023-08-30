@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
+import com.jetbrains.rd.util.getLogger
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.framework.plugin.api.Coverage
@@ -11,19 +12,24 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.context.InstrumentationContext
 import java.security.AccessControlException
 
 class PhasesController(
-    instrumentationContext: InstrumentationContext,
+    private val instrumentationContext: InstrumentationContext,
     traceHandler: TraceHandler,
     delegateInstrumentation: Instrumentation<Result<*>>,
-    private val timeout: Long
+    private val timeout: Long,
+    idGenerator: StateBeforeAwareIdGenerator,
 ) {
     private var currentlyElapsed = 0L
-    val valueConstructionPhase = ValueConstructionPhase(instrumentationContext)
+    val valueConstructionPhase = ValueConstructionPhase(
+        instrumentationContext,
+        idGenerator,
+    )
 
     val preparationPhase = PreparationPhase(traceHandler)
 
@@ -33,22 +39,23 @@ class PhasesController(
 
     val modelConstructionPhase = ModelConstructionPhase(
         traceHandler = traceHandler,
-        utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor
+        utModelWithCompositeOriginConstructorFinder = instrumentationContext::findUtModelWithCompositeOriginConstructor,
+        idGenerator = idGenerator,
     )
 
     val postprocessingPhase = PostprocessingPhase()
 
-    inline fun computeConcreteExecutionResult(block: PhasesController.() -> UtConcreteExecutionResult): UtConcreteExecutionResult {
+    inline fun computeConcreteExecutionResult(block: PhasesController.() -> PreliminaryUtConcreteExecutionResult): PreliminaryUtConcreteExecutionResult {
         try {
             return this.block()
         } catch (e: ExecutionPhaseStop) {
             return e.result
         } catch (e: ExecutionPhaseError) {
             if (e.cause.cause is AccessControlException) {
-                return UtConcreteExecutionResult(
-                    MissingState,
-                    UtSandboxFailure(e.cause.cause!!),
-                    Coverage()
+                return PreliminaryUtConcreteExecutionResult(
+                    stateAfter = MissingState,
+                    result = UtSandboxFailure(e.cause.cause!!),
+                    coverage = Coverage()
                 )
             }
 
@@ -56,13 +63,24 @@ class PhasesController(
         }
     }
 
+    companion object {
+        private val logger = getLogger<PhasesController>()
+    }
+
     fun <T, R : ExecutionPhase> executePhaseInTimeout(phase: R, block: R.() -> T): T = phase.start {
         val stopWatch = StopWatch()
         val context = UtContext(utContext.classLoader, stopWatch)
         val timeoutForCurrentPhase = timeout - currentlyElapsed
-        val result = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout - currentlyElapsed, stopWatch) {
+        val executor = ThreadBasedExecutor.threadLocal
+        val result = executor.invokeWithTimeout(timeout - currentlyElapsed, stopWatch) {
             withUtContext(context) {
-                phase.block()
+                try {
+                    phase.block()
+                } finally {
+                    executor.runCleanUpIfTimedOut {
+                        instrumentationContext.onPhaseTimeout(phase)
+                    }
+                }
             }
         } ?: throw TimeoutException("Timeout $timeoutForCurrentPhase ms for phase ${phase.javaClass.simpleName} elapsed, controller timeout - $timeout")
 
@@ -86,6 +104,8 @@ class PhasesController(
 
             // here static methods and instances are mocked
             mock(parameters.instrumentation)
+
+            lastCaughtException?.let { instrumentationContext.handleLastCaughtConstructionException(it) }
 
             ConstructedData(params, statics, getCache())
         }

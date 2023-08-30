@@ -49,3 +49,11 @@ def starts_with(s: str):
 
 def join_str(strings: typing.List[str]):
     return "--".join(strings)
+
+
+def separated_str(x: int):
+    if x == 1:
+        return r"fjalsdk\\nfjlask"
+    if 1 < x < 100:
+        return "fjalsd\n" * x
+    return x

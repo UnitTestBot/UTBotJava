@@ -4,6 +4,7 @@ plugins {
 
 configurations {
     fetchSpringAnalyzerJar
+    fetchSpringCommonsJar
     fetchInstrumentationJar
 }
 
@@ -14,6 +15,7 @@ dependencies {
     api project(':utbot-summary')
     api project(':utbot-framework-api')
     api project(':utbot-rd')
+    api project(':utbot-modificators-analyzer')
 
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
@@ -49,10 +51,8 @@ dependencies {
 
     implementation project(':utbot-spring-commons-api')
     implementation project(':utbot-spring-analyzer')
-
-    if (projectType == springEdition || projectType==ultimateEdition) {
-        fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
-    }
+    fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
+    fetchSpringCommonsJar project(path: ':utbot-spring-commons', configuration: 'springCommonsJar')
 }
 
 processResources {
@@ -61,6 +61,10 @@ processResources {
     }
 
     from(configurations.fetchSpringAnalyzerJar) {
+        into "lib"
+    }
+
+    from(configurations.fetchSpringCommonsJar) {
         into "lib"
     }
 }

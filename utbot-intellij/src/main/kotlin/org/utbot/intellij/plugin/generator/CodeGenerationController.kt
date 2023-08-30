@@ -72,6 +72,9 @@ import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.api.utils.ClassNameUtils.generateTestClassShortName
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
@@ -87,6 +90,7 @@ import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.EDT_LATER
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.THREAD_POOL
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.WRITE_ACTION
@@ -143,20 +147,24 @@ object CodeGenerationController {
                 latch.countDown()
                 continue
             }
+
+            val classUnderTest = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
+            val testClassName = process.findTestClassName(classUnderTest)
+
             try {
                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.CODEGEN, "Write test cases for class ${srcClass.name}", index.toDouble() / classesWithTests.size)
                 val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
-                val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
+
+                val testClass = createTestClass(testClassName, testDirectory, model) ?: continue
                 val testFilePointer = SmartPointerManager.getInstance(model.project)
                     .createSmartPsiElementPointer(testClass.containingFile)
-                val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UnitTestBot", null, {
                     generateCodeAndReport(
                         process,
                         testSetsId,
                         srcClass,
-                        cut,
+                        classUnderTest,
                         testClass,
                         testFilePointer,
                         srcClassPathToSarifReport,
@@ -170,7 +178,7 @@ object CodeGenerationController {
             } catch (e : CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showCreatingClassError(model.project, createTestClassName(srcClass))
+                showCreatingClassError(model.project, testClassName)
             } finally {
                 index++
             }
@@ -607,8 +615,7 @@ object CodeGenerationController {
         }
     }
 
-    private fun createTestClass(srcClass: PsiClass, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
-        val testClassName = createTestClassName(srcClass)
+    private fun createTestClass(testClassName: String, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
         val aPackage = JavaDirectoryService.getInstance().getPackage(testDirectory)
 
         if (aPackage != null) {
@@ -874,8 +881,6 @@ object CodeGenerationController {
         }
         unblockDocument(testClass.project, editor.document)
     }
-
-    private fun createTestClassName(srcClass: PsiClass) = srcClass.name + "Test"
 
     @Suppress("unused")
     // this method was used in the past, not used in the present but may be used in the future

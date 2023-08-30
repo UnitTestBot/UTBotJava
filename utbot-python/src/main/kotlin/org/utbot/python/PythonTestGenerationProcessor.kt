@@ -27,11 +27,12 @@ import org.utbot.python.framework.codegen.model.PythonUserImport
 import org.utbot.python.newtyping.PythonFunctionDefinition
 import org.utbot.python.newtyping.general.CompositeType
 import org.utbot.python.newtyping.getPythonAttributes
-import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
+import org.utbot.python.newtyping.mypy.MypyBuildDirectory
+import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.newtyping.pythonName
+import org.utbot.python.utils.TemporaryFileManager
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
@@ -39,19 +40,18 @@ import kotlin.io.path.pathString
 // TODO: add asserts that one or less of containing classes and only one file
 abstract class PythonTestGenerationProcessor {
     abstract val configuration: PythonTestGenerationConfig
+    private val mypyBuildRoot = TemporaryFileManager.assignTemporaryFile(tag = "mypyBuildRoot")
 
-    fun sourceCodeAnalyze(): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
-        val mypyConfigFile = setConfigFile(configuration.sysPathDirectories)
+    fun sourceCodeAnalyze(): Pair<MypyInfoBuild, List<MypyReportLine>> {
         return readMypyAnnotationStorageAndInitialErrors(
             configuration.pythonPath,
             configuration.testFileInformation.testedFilePath,
             configuration.testFileInformation.moduleName,
-            mypyConfigFile
+            MypyBuildDirectory(mypyBuildRoot, configuration.sysPathDirectories)
         )
     }
 
-    fun testGenerate(mypyStorage: MypyAnnotationStorage): List<PythonTestSet> {
-        val mypyConfigFile = setConfigFile(configuration.sysPathDirectories)
+    fun testGenerate(mypyStorage: MypyInfoBuild): List<PythonTestSet> {
         val startTime = System.currentTimeMillis()
 
         val testCaseGenerator = PythonTestCaseGenerator(
@@ -64,8 +64,7 @@ abstract class PythonTestGenerationProcessor {
             timeoutForRun = configuration.timeoutForRun,
             sourceFileContent = configuration.testFileInformation.testedFileContent,
             mypyStorage = mypyStorage,
-            mypyReportLine = emptyList(),
-            mypyConfigFile = mypyConfigFile,
+            mypyReportLine = emptyList()
         )
 
         val until = startTime + configuration.timeout
@@ -156,7 +155,7 @@ abstract class PythonTestGenerationProcessor {
     private fun collectImports(notEmptyTests: List<PythonTestSet>): Set<PythonImport> {
         val importParamModules = notEmptyTests.flatMap { testSet ->
             testSet.executions.flatMap { execution ->
-                val params = (execution.stateAfter.parameters + execution.stateBefore.parameters).toMutableSet()
+                val params = (execution.stateAfter.parameters + execution.stateBefore.parameters).toMutableList()
                 val self = mutableListOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance)
                 if (execution is PythonUtExecution) {
                     params.addAll(execution.stateInit.parameters)
@@ -172,7 +171,7 @@ abstract class PythonTestGenerationProcessor {
                         }
                     }
             }
-        }
+        }.toSet()
         val importResultModules = notEmptyTests.flatMap { testSet ->
             testSet.executions.mapNotNull { execution ->
                 if (execution.result is UtExecutionSuccess) {
@@ -185,7 +184,7 @@ abstract class PythonTestGenerationProcessor {
                     }
                 } else null
             }.flatten()
-        }
+        }.toSet()
         val rootModule = configuration.testFileInformation.moduleName.split(".").first()
         val testRootModule = PythonUserImport(importName_ = rootModule)
         val sysImport = PythonSystemImport("sys")
@@ -207,7 +206,7 @@ abstract class PythonTestGenerationProcessor {
     }
 
     private fun findMethodByHeader(
-        mypyStorage: MypyAnnotationStorage,
+        mypyStorage: MypyInfoBuild,
         method: PythonMethodHeader,
         curModule: String,
         sourceFileContent: String
@@ -269,7 +268,7 @@ abstract class PythonTestGenerationProcessor {
             else
                 acc + listOf(InstructionSet(lineNumber, lineNumber))
         }
-    protected fun getCoverageInfo(testSets: List<PythonTestSet>): String {
+    protected fun getCoverageInfo(testSets: List<PythonTestSet>): CoverageInfo {
         val covered = mutableSetOf<Int>()
         val missed = mutableSetOf<Set<Int>>()
         testSets.forEach { testSet ->
@@ -286,11 +285,15 @@ abstract class PythonTestGenerationProcessor {
             else
                 getInstructionSetList(missed.reduce { a, b -> a intersect b })
 
+        return CoverageInfo(
+            coveredInstructionSets,
+            missedInstructionSets
+        )
+    }
+
+    protected fun getStringCoverageInfo(testSets: List<PythonTestSet>): String {
         return jsonAdapter.toJson(
-            CoverageInfo(
-                coveredInstructionSets,
-                missedInstructionSets
-            )
+            getCoverageInfo(testSets)
         )
     }
 

@@ -27,6 +27,7 @@ abstract class BaseConstructorTest {
     protected fun <T : Any> computeReconstructed(value: T): T {
         val model = UtModelConstructor(
             objectToModelCache = IdentityHashMap(),
+            idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
             utModelWithCompositeOriginConstructorFinder = ::findUtCustomModelConstructor
         ).construct(value, value::class.java.id)
 

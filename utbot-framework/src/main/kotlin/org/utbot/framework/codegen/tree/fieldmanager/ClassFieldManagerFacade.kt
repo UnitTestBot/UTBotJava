@@ -1,11 +1,22 @@
 package org.utbot.framework.codegen.tree.fieldmanager
 
+import org.utbot.common.getOrPut
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.context.CgContextProperty
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtSpringContextModel
+
+object RelevantFieldManagersProperty : CgContextProperty<MutableList<CgAbstractClassFieldManager>>
+
+/**
+ * Managers to process annotated fields of the class under test
+ * relevant for the current generation type.
+ */
+val CgContextOwner.relevantFieldManagers: MutableList<CgAbstractClassFieldManager>
+    get() = properties.getOrPut(RelevantFieldManagersProperty) { mutableListOf() }
 
 class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 

@@ -38,6 +38,11 @@ interface SpringApi {
      * because transactions are bound to threads
      */
     fun afterTestMethod()
+
+    /**
+     * Time-consuming operation that fully resets Spring context
+     */
+    fun resetContext()
 }
 
 data class RepositoryDescription(

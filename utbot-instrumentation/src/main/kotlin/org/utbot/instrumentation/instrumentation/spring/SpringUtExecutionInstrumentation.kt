@@ -90,6 +90,9 @@ class SpringUtExecutionInstrumentation(
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
         }
 
+        if (parameters.isRerun)
+            springApi.resetContext()
+
         // `RemovingConstructFailsUtExecutionInstrumentation` may detect that we fail to
         // construct `RequestBuilder` and use `requestBuilder = null`, leading to a nonsensical
         // test `mockMvc.perform((RequestBuilder) null)`, which we should discard

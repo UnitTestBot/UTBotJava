@@ -19,12 +19,25 @@ tasks.register("cleanDist") {
     delete(localMypyPath.canonicalPath)
 }
 
+val installPoetry =
+    if (pythonInterpreter != null) {
+        tasks.register<Exec>("installPoetry") {
+            group = "python"
+            workingDir = utbotMypyRunnerPath
+            commandLine(pythonInterpreter, "-m", "pip", "install", "poetry")
+        }
+    } else {
+        null
+    }
+
 val setMypyRunnerVersion =
-    if (pythonInterpreter != null)
+    if (pythonInterpreter != null) {
         tasks.register<Exec>("setVersion") {
-        group = "python"
-        workingDir = utbotMypyRunnerPath
-        commandLine(pythonInterpreter, "-m", "poetry", "version", utbotMypyRunnerVersion)
+            dependsOn(installPoetry!!)
+            group = "python"
+            workingDir = utbotMypyRunnerPath
+            commandLine(pythonInterpreter, "-m", "poetry", "version", utbotMypyRunnerVersion)
+        }
     } else {
         null
     }

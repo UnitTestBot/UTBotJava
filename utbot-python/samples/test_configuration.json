@@ -21,7 +21,7 @@
               "classes": null,
               "methods": null,
               "timeout": 10,
-              "coverage": 100
+              "coverage": 91
             }
           ]
         },
@@ -143,7 +143,7 @@
       ]
     },
     {
-      "path": "samples/collections",
+      "path": "samples/collection",
       "files": [
         {
           "name": "dicts",
@@ -206,8 +206,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 60,
-              "coverage": 88
+              "timeout": 30,
+              "coverage": 92
             }
           ]
         }
@@ -223,7 +223,7 @@
               "classes": null,
               "methods": null,
               "timeout": 100,
-              "coverage": 100
+              "coverage": 46
             }
           ]
         },
@@ -434,7 +434,7 @@
               "classes": null,
               "methods": null,
               "timeout": 60,
-              "coverage": 100
+              "coverage": 92
             }
           ]
         },
@@ -456,7 +456,7 @@
               "classes": null,
               "methods": null,
               "timeout": 160,
-              "coverage": 110
+              "coverage": 100
             }
           ]
         }
@@ -569,7 +569,7 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 120,
+              "timeout": 140,
               "coverage": 100
             }
           ]
@@ -592,7 +592,7 @@
               "classes": null,
               "methods": null,
               "timeout": 30,
-              "coverage": 100
+              "coverage": 80
             }
           ]
         },

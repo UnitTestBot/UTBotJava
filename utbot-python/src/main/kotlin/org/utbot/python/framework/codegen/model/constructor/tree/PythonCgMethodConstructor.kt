@@ -122,7 +122,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     recordActualResult()
                     generateResultAssertions()
 
-                    if (methodType == CgTestMethodType.PASSED_EXCEPTION) {
+                    if (currentExecution?.result !is UtExecutionFailure && methodType == CgTestMethodType.SUCCESSFUL) {
                         generateFieldStateAssertions(stateAssertions, assertThisObject, testSet.executableUnderTest)
                     }
                 }

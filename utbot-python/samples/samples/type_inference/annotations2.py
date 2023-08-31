@@ -6,6 +6,11 @@ from enum import Enum
 XXX = TypeVar("XXX", "A", int)
 
 
+def f(x: int):
+    a = [x, XXX]
+    return a
+
+
 class A(Generic[XXX]):
     self_: XXX
 

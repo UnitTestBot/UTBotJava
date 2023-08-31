@@ -7,8 +7,8 @@ import java.util.concurrent.TimeUnit
 
 fun main() = runBlocking {
     withTimeout(TimeUnit.SECONDS.toMillis(10)) {
-        object : Fuzzing<String, String, Description<String>, Feedback<String, String>> {
-            override fun generate(description: Description<String>, type: String) = sequence<Seed<String, String>> {
+        object : Fuzzing<String, String, Description<String, String>, Feedback<String, String>> {
+            override fun generate(description: Description<String, String>, type: String) = sequence<Seed<String, String>> {
                 when (type) {
                     "url" -> yield(Seed.Recursive(
                         construct = Routine.Create(
@@ -49,7 +49,7 @@ fun main() = runBlocking {
             }
 
             override suspend fun handle(
-                description: Description<String>,
+                description: Description<String, String>,
                 values: List<String>
             ): Feedback<String, String> {
                 println(values[0])

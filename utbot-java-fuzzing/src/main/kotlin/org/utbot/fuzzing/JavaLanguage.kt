@@ -17,17 +17,25 @@ private val logger = KotlinLogging.logger {}
 
 typealias JavaValueProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>
 
+
+
 class FuzzedDescription(
     val description: FuzzedMethodDescription,
     val tracer: Trie<Instruction, *>,
     val typeCache: MutableMap<Type, FuzzedType>,
     val random: Random,
-    val scope: Scope? = null
-) : Description<FuzzedType>(
+    val scope: Scope? = null,
+) : Description<FuzzedType, FuzzedValue>(
     description.parameters.mapIndexed { index, classId ->
         description.fuzzerType(index) ?: FuzzedType(classId)
     }
 ) {
+    // To turn on logging, use this implementation of Description:
+    //LoggingDescription<FuzzedType, FuzzedValue>(
+    // description.parameters.mapIndexed { index, classId ->
+    //    description.fuzzerType(index) ?: FuzzedType(classId)
+    //}, "~/.utbot/JavaFuzzing") { ... }
+
     val constants: Sequence<FuzzedConcreteValue>
         get() = description.concreteValues.asSequence()
 
@@ -35,6 +43,7 @@ class FuzzedDescription(
         return FuzzedDescription(description, tracer, typeCache, random, scope)
     }
 }
+
 
 fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = listOf(
     BooleanValueProvider,
@@ -53,13 +62,25 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     NullValueProvider,
 )
 
+
+data class JavaFeedback(
+    val result: Trie.Node<Instruction>,
+    override val control: Control,
+    ) : Feedback<FuzzedType, FuzzedValue> {
+    override var runDuration: Long? = null
+    override fun toString(): String {
+        return "$result; trace hash: ${result.hashCode()}; trace count: ${result.count}"
+    }
+}
+
+
 suspend fun runJavaFuzzing(
     idGenerator: IdentityPreservingIdGenerator<Int>,
     methodUnderTest: ExecutableId,
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
-    exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
+    exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> JavaFeedback
 ) {
     val random = Random(0)
     val classUnderTest = methodUnderTest.classId

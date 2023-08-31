@@ -8,7 +8,7 @@ private val logger by lazy { KotlinLogging.logger {} }
 /**
  * Entry point to run fuzzing.
  */
-suspend fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> runFuzzing(
+suspend fun <TYPE, RESULT, DESCRIPTION : Description<TYPE, RESULT>, FEEDBACK : Feedback<TYPE, RESULT>> runFuzzing(
     provider: ValueProvider<TYPE, RESULT, DESCRIPTION>,
     description: DESCRIPTION,
     random: Random = Random(0),
@@ -24,7 +24,7 @@ suspend fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
  * @param providers is a list of "type to values" generator
  * @param exec this function is called when fuzzer generates values of type R to run it with target program.
  */
-class BaseFuzzing<T, R, D : Description<T>, F : Feedback<T, R>>(
+class BaseFuzzing<T, R, D : Description<T, R>, F : Feedback<T, R>>(
     val providers: List<ValueProvider<T, R, D>>,
     val exec: suspend (description: D, values: List<R>) -> F
 ) : Fuzzing<T, R, D, F> {
@@ -60,7 +60,7 @@ class BaseFuzzing<T, R, D : Description<T>, F : Feedback<T, R>>(
 /**
  * Value provider generates [Seed] and has other methods to combine providers.
  */
-fun interface ValueProvider<T, R, D : Description<T>> {
+fun interface ValueProvider<T, R, D : Description<T, R>> {
 
     fun enrich(description: D, type: T, scope: Scope) {}
 
@@ -144,7 +144,7 @@ fun interface ValueProvider<T, R, D : Description<T>> {
         return if (this is Fallback<T, R, D>) { provider.unwrapIfFallback() } else { this }
     }
 
-    private class Fallback<T, R, D : Description<T>>(
+    private class Fallback<T, R, D : Description<T, R>>(
         val provider: ValueProvider<T, R, D>,
         val fallback: ValueProvider<T, R, D>,
     ): ValueProvider<T, R, D> {
@@ -172,7 +172,7 @@ fun interface ValueProvider<T, R, D : Description<T>> {
     /**
      * Wrapper class that delegates implementation to the [providers].
      */
-    private class Combined<T, R, D : Description<T>>(providers: List<ValueProvider<T, R, D>>): ValueProvider<T, R, D> {
+    private class Combined<T, R, D : Description<T, R>>(providers: List<ValueProvider<T, R, D>>): ValueProvider<T, R, D> {
         val providers: List<ValueProvider<T, R, D>>
 
         init {
@@ -203,7 +203,7 @@ fun interface ValueProvider<T, R, D : Description<T>> {
     }
 
     companion object {
-        fun <T, R, D : Description<T>> of(valueProviders: List<ValueProvider<T, R, D>>): ValueProvider<T, R, D> {
+        fun <T, R, D : Description<T, R>> of(valueProviders: List<ValueProvider<T, R, D>>): ValueProvider<T, R, D> {
             return Combined(valueProviders)
         }
     }
@@ -215,7 +215,7 @@ fun interface ValueProvider<T, R, D : Description<T>> {
  * @param type that is used as a filter to call this provider
  * @param generate yields values for the type
  */
-class TypeProvider<T, R, D : Description<T>>(
+class TypeProvider<T, R, D : Description<T, R>>(
     val type: T,
     val generate: suspend SequenceScope<Seed<T, R>>.(description: D, type: T) -> Unit
 ) : ValueProvider<T, R, D> {

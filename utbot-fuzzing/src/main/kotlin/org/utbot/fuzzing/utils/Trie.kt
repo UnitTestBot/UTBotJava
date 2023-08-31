@@ -168,13 +168,21 @@ open class Trie<T, K>(
         val parent: NodeImpl<T, K>?,
         override var count: Int = 0,
         val children: MutableMap<K, NodeImpl<T, K>> = HashMap(),
-    ) : Node<T>
+    ) : Node<T> {
+        override fun toString(): String {
+            return "$data"
+        }
+    }
 
     private object EmptyNode : Node<Any> {
         override val data: Any
             get() = error("empty node has no data")
         override val count: Int
             get() = 0
+
+        override fun toString(): String {
+            return "EMPTY"
+        }
     }
 
     companion object {

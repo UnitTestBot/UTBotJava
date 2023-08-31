@@ -19,4 +19,8 @@ import org.utbot.framework.plugin.api.UtModel
 open class FuzzedValue(
     val model: UtModel,
     var summary: String? = null,
-)
+) {
+    override fun toString(): String {
+        return "FuzzedValue: $summary"
+    }
+}

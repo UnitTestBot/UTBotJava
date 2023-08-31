@@ -18,7 +18,7 @@ class FuzzerSmokeTest {
     fun `fuzzing runs with empty parameters`() {
         runBlocking {
             var count = 0
-            runFuzzing<Unit, Unit, Description<Unit>, BaseFeedback<Unit, Unit, Unit>>(
+            runFuzzing<Unit, Unit, Description<Unit, Unit>, BaseFeedback<Unit, Unit, Unit>>(
                 { _, _ -> sequenceOf() },
                 Description(emptyList())
             ) { _, _ ->
@@ -34,7 +34,7 @@ class FuzzerSmokeTest {
         assertThrows<NoSeedValueException> {
             runBlocking {
                 var count = 0
-                runFuzzing<Unit, Unit, Description<Unit>, BaseFeedback<Unit, Unit, Unit>>(
+                runFuzzing<Unit, Unit, Description<Unit, Unit>, BaseFeedback<Unit, Unit, Unit>>(
                     provider = { _, _ -> sequenceOf() },
                     description = Description(listOf(Unit)),
                     configuration = Configuration(
@@ -55,7 +55,7 @@ class FuzzerSmokeTest {
             var count = 0
             runFuzzing(
                 { _, _ -> sequenceOf(Seed.Simple(Unit)) },
-                Description(listOf(Unit))
+                Description<Unit, Unit>(listOf(Unit))
             ) { _, _ ->
                 count += 1
                 BaseFeedback(Unit, Control.STOP)
@@ -71,7 +71,7 @@ class FuzzerSmokeTest {
             var executions = 0
             runFuzzing(
                 { _, _ -> sequenceOf(Seed.Simple(Unit)) },
-                Description(listOf(Unit))
+                Description<Unit, Unit>(listOf(Unit))
             ) { _, _ ->
                 executions++
                 BaseFeedback(Unit, if (--count == 0) Control.STOP else Control.CONTINUE)
@@ -91,7 +91,7 @@ class FuzzerSmokeTest {
                     generations++
                     sequenceOf(Seed.Simple(Unit))
                 },
-                Description(listOf(Unit))
+                Description<Unit, Unit>(listOf(Unit))
             ) { _, _ ->
                 BaseFeedback(Unit, if (--count == 0) Control.STOP else Control.CONTINUE)
             }
@@ -108,7 +108,7 @@ class FuzzerSmokeTest {
                 withTimeout(1000) {
                     runFuzzing(
                         { _, _ -> sequenceOf(Seed.Simple(Unit)) },
-                        Description(listOf(Unit))
+                        Description<Unit, Unit>(listOf(Unit))
                     ) { _, _ ->
                         throw SpecialException()
                     }
@@ -128,7 +128,7 @@ class FuzzerSmokeTest {
             var depth = 0
             var count = 0
             runFuzzing(
-                ValueProvider<KClass<*>, Node?, Description<KClass<*>>> { _, _ ->
+                { _, _ ->
                     sequenceOf(Seed.Recursive(
                         construct = Routine.Create(listOf(Node::class, Node::class)) { v ->
                             Node(v[0], v[1])
@@ -162,7 +162,7 @@ class FuzzerSmokeTest {
                 withTimeout(1000) {
                     runFuzzing(
                         { _, _ -> sequenceOf(Seed.Simple(Unit)) },
-                        Description(listOf(Unit))
+                        Description<Unit, Unit>(listOf(Unit))
                     ) { _, _ ->
                         if (System.currentTimeMillis() - start > 10_000) {
                             error("Fuzzer didn't stopped in 10 000 ms")
@@ -181,7 +181,7 @@ class FuzzerSmokeTest {
                 val start = System.currentTimeMillis()
                 runFuzzing(
                     { _, _ -> sequenceOf(Seed.Simple(Unit)) },
-                    Description(listOf(Unit))
+                    Description<Unit, Unit>(listOf(Unit))
                 ) { _, _ ->
                     if (System.currentTimeMillis() - start > 10_000) {
                         error("Fuzzer didn't stopped in 10_000 ms")
@@ -197,7 +197,7 @@ class FuzzerSmokeTest {
     @Test
     fun `fuzzer generate same result when random is seeded`() {
         data class B(var a: Int)
-        val provider = ValueProvider<Unit, B, Description<Unit>> { _, _ ->
+        val provider = ValueProvider<Unit, B, Description<Unit, B>> { _, _ ->
             sequenceOf(
                 Seed.Simple(B(0)) { p, r -> B(p.a + r.nextInt()) },
                 Seed.Known(BitVectorValue(32, Signed.POSITIVE)) { B(it.toInt()) },
@@ -245,7 +245,7 @@ class FuzzerSmokeTest {
                 flow {
                     runFuzzing(
                         { _, _ -> sequenceOf(Seed.Simple(Unit)) },
-                        Description(listOf(Unit))
+                        Description<Unit, Unit>(listOf(Unit))
                     ) { _, _ ->
                         if (System.currentTimeMillis() - start > 10_000) {
                             error("Fuzzer didn't stopped in 10_000 ms")
@@ -273,7 +273,7 @@ class FuzzerSmokeTest {
                         modify = sequenceOf(Routine.Call(emptyList()) { s, _ -> s.append("1") }),
                         empty = Routine.Empty { fail("Empty is called despite construct requiring no args") }
                     )) },
-                    Description(listOf(Unit))
+                    Description<Unit, StringBuilder>(listOf(Unit))
                 ) { _, (s) ->
                     if (s.isEmpty()) {
                         seenEmpty = true
@@ -299,7 +299,7 @@ class FuzzerSmokeTest {
                         modify = emptySequence(),
                         empty = Routine.Empty { null }
                     )}.asSequence() },
-                    Description(listOf(Unit))
+                    Description<Unit, Node?>(listOf(Unit))
                 ) { _, _ ->
                     seenAnything = true
                     BaseFeedback(Unit, Control.STOP)

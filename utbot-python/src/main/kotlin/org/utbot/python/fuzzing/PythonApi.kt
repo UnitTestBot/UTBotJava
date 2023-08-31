@@ -29,7 +29,7 @@ class PythonMethodDescription(
     val pythonTypeStorage: PythonTypeStorage,
     val tracer: Trie<Instruction, *>,
     val random: Random,
-) : Description<Type>(parameters)
+) : Description<Type, PythonFuzzedValue>(parameters)
 
 sealed interface FuzzingExecutionFeedback
 class ValidExecution(val utFuzzedExecution: PythonUtExecution): FuzzingExecutionFeedback
@@ -47,7 +47,9 @@ data class PythonExecutionResult(
 data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<Instruction> = Trie.emptyNode(),
-) : Feedback<Type, PythonFuzzedValue>
+) : Feedback<Type, PythonFuzzedValue> {
+    override var runDuration: Long? = null
+}
 
 class PythonFuzzedValue(
     val tree: PythonTree.PythonTreeNode,

@@ -7,6 +7,37 @@ import kotlin.math.pow
  */
 data class Configuration(
 
+    var tuneKnownValueMutations: Boolean = true,
+    var tuneCollectionMutations: Boolean = true,
+    var tuneRecursiveMutations: Boolean = true,
+
+    /**
+     * When true, fuzzer selects one value and runs it for [runsPerValue] times, first [investigationPeriodPerValue] of which
+     * are investigational. When false, fuzzer investigates mutations efficiencies for [globalInvestigationPeriod] runs and
+     * tunes it for next [globalExploitationPeriod] runs, then drops statistics and starts over.
+     */
+    var rotateValues: Boolean = false,
+
+    /**
+     * Number of iterations before mutations probabilities correction when [rotateValues] is false.
+     */
+    var globalInvestigationPeriod: Long = 100,
+
+    /**
+     * Number of iterations before dropping statistics when [rotateValues] is false.
+     */
+    var globalExploitationPeriod: Long = 900,
+
+    /**
+     * Number of continuous iterations for each value when [rotateValues] is true.
+     */
+    var runsPerValue: Long = 500,
+
+    /**
+     * Number of iterations before mutations probabilities correction when [rotateValues] is true.
+     */
+    var investigationPeriodPerValue: Int = 250,
+
     /**
      * Choose between already generated values and new generation of values.
      */
@@ -32,7 +63,17 @@ data class Configuration(
     /**
      * Energy function that is used to choose seeded value.
      */
-    var energyFunction: (x: Long) -> Double = { x -> 1 / x.coerceAtLeast(1L).toDouble().pow(2) },
+    var energyFunction: (feedbackCount: Long, runDuration: Long) -> Double = {
+        // x, _ -> 1 / x.coerceAtLeast(1L).toDouble().pow(2)
+        feedbackCount, runDuration -> 1000 /
+            feedbackCount.coerceAtLeast(1L).toDouble().pow(2) /
+            runDuration.coerceAtLeast(1L).toDouble().pow(2)
+    },
+
+    /**
+     * Rating function that is used to manipulate mutations probabilities while tuning.
+     */
+    var mutationRatingFunction: (successProbability: Double) -> Double = { successProbability -> successProbability.pow(2) },
 
     /**
      * Probability to prefer shuffling collection instead of mutation one value from modification
@@ -96,3 +137,4 @@ data class Configuration(
      */
     var maxNumberOfRecursiveSeedModifications: Int = 10,
 )
+

@@ -231,7 +231,7 @@ class JavaFuzzingTest {
     }
 }
 
-class MarkerValueProvider<T, R, D : Description<T>>(
+class MarkerValueProvider<T, R, D : Description<T, R>>(
     val name: String
 ) : ValueProvider<T, R, D> {
     var enrich: Int = 0

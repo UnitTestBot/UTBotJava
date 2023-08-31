@@ -11,3 +11,4 @@ target/
 utbot-intellij/src/main/resources/settings.properties
 __pycache__
 .dmypy.json
+tbot-fuzzing/src/main/resources/*

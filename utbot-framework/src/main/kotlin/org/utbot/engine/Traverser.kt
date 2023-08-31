@@ -116,7 +116,6 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.isFromTrustedLibrary
-import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.plugin.api.ClassId
@@ -2336,10 +2335,18 @@ class Traverser(
      * Marks the [createdField] as speculatively not null if the [field] is considering
      * as not producing [NullPointerException].
      *
-     * See more detailed documentation in [ApplicationContext] mentioned methods.
+     * See more detailed documentation in [NonNullSpeculator] mentioned methods.
      */
-    private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
-        if (nonNullSpeculator.speculativelyCannotProduceNullPointerException(field, methodUnderTest.classId))
+    private fun checkAndMarkLibraryFieldSpeculativelyNotNull(
+        field: SootField,
+        createdField: SymbolicValue,
+    ) {
+        if (nonNullSpeculator.speculativelyCannotProduceNullPointerException(
+                field = field,
+                isMocked = (createdField as? ObjectValue)?.asWrapperOrNull is UtMockWrapper,
+                classUnderTest = methodUnderTest.classId,
+            )
+        )
             markAsSpeculativelyNotNull(createdField.addr)
     }
 

@@ -9,6 +9,7 @@ import soot.SootField
 class SimpleNonNullSpeculator : NonNullSpeculator {
     override fun speculativelyCannotProduceNullPointerException(
         field: SootField,
+        isMocked: Boolean,
         classUnderTest: ClassId,
     ): Boolean =
         !UtSettings.maximizeCoverageUsingReflection &&

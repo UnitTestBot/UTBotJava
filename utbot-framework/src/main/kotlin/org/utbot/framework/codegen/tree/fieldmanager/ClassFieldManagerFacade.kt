@@ -11,6 +11,10 @@ class ClassFieldManagerFacade(context: CgContext) : CgContextOwner by context {
 
     private val alreadyInitializedModels = mutableSetOf<UtModelWrapper>()
 
+    fun clearAlreadyInitializedModels() {
+        alreadyInitializedModels.clear()
+    }
+
     fun constructVariableForField(model: UtModel): CgValue? {
         relevantFieldManagers.forEach { manager ->
             val alreadyCreatedVariable = manager.findCgValueByModel(model, manager.annotatedModels)

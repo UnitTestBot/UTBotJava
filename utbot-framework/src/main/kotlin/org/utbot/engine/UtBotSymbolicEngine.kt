@@ -516,7 +516,7 @@ class UtBotSymbolicEngine(
                 trieNode = descr.tracer.add(coveredInstructions)
 
                 val earlierStateBeforeSize = coverageToMinStateBeforeSize[trieNode]
-                val curStateBeforeSize = stateBefore.calculateSize()
+                val curStateBeforeSize = concreteExecutionResult.stateBefore.calculateSize()
 
                 if (earlierStateBeforeSize == null || curStateBeforeSize < earlierStateBeforeSize)
                     coverageToMinStateBeforeSize[trieNode] = curStateBeforeSize

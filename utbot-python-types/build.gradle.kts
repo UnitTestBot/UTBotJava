@@ -1,9 +1,9 @@
 val kotlinLoggingVersion: String? by rootProject
 
 dependencies {
-    implementation("com.squareup.moshi:moshi:1.11.0")
-    implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
-    implementation("com.squareup.moshi:moshi-adapters:1.11.0")
+    implementation("com.squareup.moshi:moshi:1.14.0")
+    implementation("com.squareup.moshi:moshi-kotlin:1.14.0")
+    implementation("com.squareup.moshi:moshi-adapters:1.14.0")
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
 }
 
@@ -72,6 +72,29 @@ if (pythonInterpreter != null && pypiToken != null) {
     }
 }
 
+val uninstallMypyRunner =
+    if (pythonInterpreter != null) {
+        tasks.register<Exec>("uninstallMypyRunner") {
+            group = "python"
+            commandLine(
+                pythonInterpreter,
+                "-m",
+                "pip",
+                "uninstall",
+                "utbot_mypy_runner"
+            )
+            commandLine(
+                pythonInterpreter,
+                "-m",
+                "pip",
+                "cache",
+                "purge"
+            )
+        }
+    } else {
+        null
+    }
+
 val installMypyRunner =
     if (pythonInterpreter != null) {
         tasks.register<Exec>("installUtbotMypyRunner") {
@@ -96,6 +119,7 @@ val jsonDir = File(project.projectDir, "src/test/resources")
 
 fun getParamsForSample(sampleName: String): List<String> =
     listOf(
+        sampleName,
         File(samplesDir, "$sampleName.py").canonicalPath,
         sampleName,
         buildDir.canonicalPath,
@@ -110,12 +134,12 @@ val samplesInfo = listOf(
 )
 
 if (pythonInterpreter != null) {
-    val subtasks = samplesInfo.mapIndexed { index, params ->
-        tasks.register<JavaExec>("regenerateJsonForTests_$index") {
+    val subtasks = samplesInfo.map { params ->
+        tasks.register<JavaExec>("regenerateJsonForTests_${params.first()}") {
             dependsOn(installMypyRunner!!)
             group = "python_subtasks"
             classpath = sourceSets.test.get().runtimeClasspath
-            args = listOf(pythonInterpreter) + params
+            args = listOf(pythonInterpreter) + params.drop(1)
             mainClass.set("org.utbot.python.newtyping.samples.GenerateMypyInfoBuildKt")
         }
     }

@@ -1,8 +1,8 @@
 package org.utbot.python.newtyping.mypy
 
-import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.*
+import org.utbot.python.utils.CustomPolymorphicJsonAdapterFactory
 
 class MypyAnnotation(
     val nodeId: String,
@@ -47,7 +47,10 @@ sealed class CompositeAnnotationNode(
     fun getInitData(self: CompositeTypeCreator.Original): CompositeTypeCreator.InitializationData {
         storage.nodeToUtBotType[this] = self
         (typeVars zip self.parameters).forEach { (node, typeParam) ->
-            val typeVar = node.node as TypeVarNode
+            val typeVar = node.node as? TypeVarNode
+            require(typeVar != null) {
+                "Did not construct type variable"
+            }
             storage.nodeToUtBotType[typeVar] = typeParam
             typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance, typeVar.kind)
             typeParam.constraints = typeVar.constraints
@@ -117,7 +120,10 @@ class FunctionNode(
         ) { self ->
             storage.nodeToUtBotType[this] = self
             (typeVars zip self.parameters).forEach { (nodeId, typeParam) ->
-                val typeVar = storage.nodeStorage[nodeId] as TypeVarNode
+                val typeVar = storage.nodeStorage[nodeId] as? TypeVarNode
+                require(typeVar != null) {
+                    "Did not construct type variable"
+                }
                 storage.nodeToUtBotType[typeVar] = typeParam
                 typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance, typeVar.kind)
                 typeParam.constraints = typeVar.constraints
@@ -236,28 +242,22 @@ enum class AnnotationType {
     Unknown
 }
 
-val annotationAdapter: PolymorphicJsonAdapterFactory<MypyAnnotationNode> =
-    PolymorphicJsonAdapterFactory.of(MypyAnnotationNode::class.java, "type")
-        .withSubtype(ConcreteAnnotation::class.java, AnnotationType.Concrete.name)
-        .withSubtype(Protocol::class.java, AnnotationType.Protocol.name)
-        .withSubtype(TypeVarNode::class.java, AnnotationType.TypeVar.name)
-        .withSubtype(OverloadedFunction::class.java, AnnotationType.Overloaded.name)
-        .withSubtype(FunctionNode::class.java, AnnotationType.Function.name)
-        .withSubtype(PythonAny::class.java, AnnotationType.Any.name)
-        //.withSubtype(PythonLiteral::class.java, AnnotationType.Literal.name)
-        .withSubtype(PythonUnion::class.java, AnnotationType.Union.name)
-        .withSubtype(PythonTuple::class.java, AnnotationType.Tuple.name)
-        .withSubtype(PythonNoneType::class.java, AnnotationType.NoneType.name)
-        .withSubtype(TypeAliasNode::class.java, AnnotationType.TypeAlias.name)
-        .withSubtype(UnknownAnnotationNode::class.java, AnnotationType.Unknown.name)
-
-object MypyAnnotations {
-
-    data class MypyReportLine(
-        val line: Int,
-        val type: String,
-        val message: String,
-        val file: String
+val annotationAdapter = CustomPolymorphicJsonAdapterFactory(
+    MypyAnnotationNode::class.java,
+    contentLabel = "content",
+    keyLabel = "type",
+    mapOf(
+        AnnotationType.Concrete.name to ConcreteAnnotation::class.java,
+        AnnotationType.Protocol.name to Protocol::class.java,
+        AnnotationType.TypeVar.name to TypeVarNode::class.java,
+        AnnotationType.Overloaded.name to OverloadedFunction::class.java,
+        AnnotationType.Function.name to FunctionNode::class.java,
+        AnnotationType.Any.name to PythonAny::class.java,
+        // .withSubtype(PythonLiteral::class.java, AnnotationType.Literal.name)
+        AnnotationType.Union.name to PythonUnion::class.java,
+        AnnotationType.Tuple.name to PythonTuple::class.java,
+        AnnotationType.NoneType.name to PythonNoneType::class.java,
+        AnnotationType.TypeAlias.name to TypeAliasNode::class.java,
+        AnnotationType.Unknown.name to UnknownAnnotationNode::class.java
     )
-
-}
+)

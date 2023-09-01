@@ -85,16 +85,17 @@ def get_result_from_mypy_build(build_result: mypy_main.build.BuildResult, source
             if definition is not None:
                 annotation_dict[module][name] = definition
 
+    def processor(line, col, end_line, end_col, type_, meta):
+        expression_types[module_for_types].append(
+            ExpressionType(*get_borders(line, col, end_line, end_col, content), line, get_annotation(type_, meta)))
+
     expression_types: tp.Dict[str, tp.List[ExpressionType]] = defaultdict(list)
     if module_for_types is not None:
         mypy_file = build_result.files[module_for_types]
         with open(mypy_file.path, "r") as file:
             content = file.readlines()
-            processor = lambda line, col, end_line, end_col, type_: \
-                    expression_types[module_for_types].append( # TODO: proper Meta
-                        ExpressionType(*get_borders(line, col, end_line, end_col, content), line, get_annotation(type_, Meta(module_for_types)))
-                    )
-            traverser = expression_traverser.MyTraverserVisitor(build_result.types, processor)
+            meta = Meta(module_for_types)
+            traverser = expression_traverser.MyTraverserVisitor(build_result.types, processor, annotation_dict[module_for_types], annotation_node_dict, meta)
             traverser.visit_mypy_file(build_result.files[module_for_types])
 
     return get_output_json(annotation_dict, expression_types, names_dict, indent)

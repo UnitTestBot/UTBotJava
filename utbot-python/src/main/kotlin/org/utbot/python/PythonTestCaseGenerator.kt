@@ -23,7 +23,6 @@ import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
-import org.utbot.python.newtyping.mypy.MypyAnnotations
 import org.utbot.python.newtyping.utils.isRequired
 import org.utbot.python.utils.ExecutionWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
@@ -48,7 +47,7 @@ class PythonTestCaseGenerator(
     private val mypyReportLine: List<MypyReportLine>
 ) {
 
-    private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
+    private val storageForMypyMessages: MutableList<MypyReportLine> = mutableListOf()
 
     private fun constructCollectors(
         mypyStorage: MypyInfoBuild,

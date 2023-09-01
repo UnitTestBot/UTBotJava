@@ -12,7 +12,7 @@ fun main(args: Array<String>) {
     val jsonName = args[4]
     val path = source.parent
     val mypyDir = MypyBuildDirectory(buildDir, setOf(path))
-    buildMypyInfo(pythonPath, listOf(source.canonicalPath), listOf(module), mypyDir, module)
+    buildMypyInfo(pythonPath, listOf(source.canonicalPath), listOf(module), mypyDir, moduleForTypes = module, indent = null)
     val jsonText = mypyDir.fileForAnnotationStorage.readText()
     val output = File(jsonName)
     output.writeText(jsonText)

@@ -76,9 +76,10 @@ fun buildMypyInfo(
     val mypyExitStatus = if (mypyBuildDir.fileForMypyExitStatus.exists()) mypyBuildDir.fileForMypyExitStatus.readText() else null
     if (result.exitValue != 0 || mypyExitStatus != "0")
         error("Something went wrong in initial mypy run. " +
-                "\nPython stderr ${result.stderr}" +
-                "\nMypy stderr: $stderr" +
-                "\nMypy stdout: $stdout")
+                "\nPython stdout:\n${result.stdout}" +
+                "\nPython stderr:\n${result.stderr}" +
+                "\nMypy stderr:\n$stderr" +
+                "\nMypy stdout:\n$stdout")
 }
 
 fun readMypyAnnotationStorageAndInitialErrors(

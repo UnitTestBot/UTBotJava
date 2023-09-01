@@ -8,7 +8,7 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.newtyping.mypy.MypyAnnotations
+import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.utils.isNamed
 
 data class PythonArgument(
@@ -69,7 +69,7 @@ data class PythonTestSet(
     val method: PythonMethod,
     val executions: List<UtExecution>,
     val errors: List<UtError>,
-    val mypyReport: List<MypyAnnotations.MypyReportLine>,
+    val mypyReport: List<MypyReportLine>,
     val classId: PythonClassId? = null,
 )
 

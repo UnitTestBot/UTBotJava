@@ -20,7 +20,7 @@ class SubtypeValueProvider(
                 ((type.meta as? PythonConcreteCompositeTypeDescription)?.isAbstract == true)
     }
 
-    private val concreteTypes = typeStorage.allTypes.filter {
+    private val concreteTypes = typeStorage.simpleTypes.filter {
         isConcreteType(it) && it.pythonDescription().name.name.first() != '_'  // Don't substitute private classes
     }.map {
         DefaultSubstitutionProvider.substituteAll(it, it.parameters.map { pythonAnyType })

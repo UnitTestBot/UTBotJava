@@ -215,7 +215,7 @@ open class CgVariableConstructor(val context: CgContext) :
         } else if (context.codegenLanguage == CodegenLanguage.JAVA &&
             !field.isStatic && fieldId.canBeSetViaSetterFrom(context)
         ) {
-            +CgMethodCall(obj, fieldId.setter, listOf(valueForField))
+            +obj[fieldId.setter](valueForField)
         } else {
             // composite models must not have info about static fields, hence only non-static fields are set here
             +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, valueForField)

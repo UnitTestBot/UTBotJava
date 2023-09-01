@@ -29,6 +29,7 @@ import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl.FieldAccessorSuitability.*
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
+import org.utbot.framework.codegen.tree.downcastIfNeeded
 import org.utbot.framework.codegen.tree.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.codegen.tree.isUtil
@@ -114,7 +115,11 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     override operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall {
         val resolvedArgs = args.resolve()
         val methodCall = if (method.canBeCalledWith(caller, resolvedArgs)) {
-            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method)).takeCallerFromArgumentsIfNeeded()
+            CgMethodCall(
+                caller = caller?.let { downcastIfNeeded(method.classId, caller) },
+                executableId = method,
+                arguments = resolvedArgs.guardedForDirectCallOf(method)
+            ).takeCallerFromArgumentsIfNeeded()
         } else {
             method.callWithReflection(caller, resolvedArgs)
         }
@@ -200,7 +205,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             // this executable can be called on builtin type
             this.type is BuiltinClassId && this.type in builtinCallersWithoutReflection -> true
 
-            else -> false
+            // receiver can be downcasted before call
+            else -> executable.isAccessibleFrom(testClassPackageName)
         }
 
     // For some builtin types we need to clarify

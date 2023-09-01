@@ -292,6 +292,20 @@ internal fun CgContextOwner.typeCast(
 }
 
 /**
+ * Casts [expression] to [targetType] only if downcast is needed,
+ * e.g. this method will cast `Collection` to `Set`, but not vice-versa.
+ *
+ * @see typeCast
+ */
+internal fun CgContextOwner.downcastIfNeeded(
+    targetType: ClassId,
+    expression: CgExpression,
+    isSafetyCast: Boolean = false
+): CgExpression =
+    if (expression.type isSubtypeOf targetType) expression
+    else typeCast(targetType, expression, isSafetyCast)
+
+/**
  * Sets an element of arguments array in parameterized test,
  * if test framework represents arguments as array.
  */

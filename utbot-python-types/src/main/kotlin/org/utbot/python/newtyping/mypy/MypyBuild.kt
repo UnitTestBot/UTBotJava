@@ -33,7 +33,7 @@ class ExpressionTypeFromMypy(
 class MypyInfoBuild(
     val nodeStorage: Map<String, MypyAnnotationNode>,
     val definitions: Map<String, Map<String, MypyDefinition>>,
-    val types: Map<String, List<ExpressionTypeFromMypy>>,
+    val exprTypes: Map<String, List<ExpressionTypeFromMypy>>,
     val names: Map<String, List<Name>>
 ) {
     @Transient lateinit var buildRoot: MypyBuildDirectory
@@ -77,7 +77,7 @@ class MypyInfoBuild(
                 fillArgNames(it.value)
             }
         }
-        types.values.flatten().forEach {
+        exprTypes.values.flatten().forEach {
             initAnnotation(it.type)
         }
         nodeStorage.values.forEach { node ->

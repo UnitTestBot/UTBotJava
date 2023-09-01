@@ -55,7 +55,12 @@ class PythonTestCaseGenerator(
         method: PythonMethod
     ): Pair<HintCollector, ConstantCollector> {
 
-        val mypyExpressionTypes = mypyStorage.types[curModule]?.let { moduleTypes ->
+        // initialize definitions first
+        mypyStorage.definitions[curModule]!!.values.map { def ->
+            def.getUtBotDefinition()
+        }
+
+        val mypyExpressionTypes = mypyStorage.exprTypes[curModule]?.let { moduleTypes ->
             moduleTypes.associate {
                 Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
             }

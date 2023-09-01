@@ -7,6 +7,7 @@ import mypy.nodes
 import mypy.types
 
 
+added_keys: tp.List[str] = []
 annotation_node_dict: tp.Dict[str, "AnnotationNode"] = {}
 type_vars_of_node: tp.Dict[str, tp.List[str]] = defaultdict(list)
 any_type_instance = mypy.types.AnyType(mypy.types.TypeOfAny.unannotated)
@@ -72,6 +73,7 @@ class AnnotationNode(Encodable):
         self.kind_value = annotation_type
         self.id_ = id_
         annotation_node_dict[id_] = self
+        added_keys.append(id_)
         self.meta = copy.deepcopy(meta)
 
     def __eq__(self, other):
@@ -115,6 +117,7 @@ class Variable(Definition):
         
         except NoTypeVarBindingException:
             self.type = get_annotation(any_type_instance, self.meta)
+            
 
     @encode_extension(Definition.encode_inner)
     def encode_inner(self) -> tp.Dict[str, EncodedInfo]:
@@ -279,8 +282,7 @@ class FunctionNode(AnnotationNode):
         self.meta.fullname_to_node_id[''] = id_
 
         if isinstance(type, mypy.types.CallableType):
-            self.arg_types = [get_annotation(
-                x, meta=self.meta) for x in type.arg_types]
+            self.arg_types = [get_annotation(x, meta=self.meta) for x in type.arg_types]
             self.return_type = get_annotation(type.ret_type, self.meta)
             self.arg_kinds = [self._get_arg_kind(x) for x in type.arg_kinds]
             self.arg_names = type.arg_names
@@ -446,7 +448,12 @@ class Meta:
 
 
 class NoTypeVarBindingException(Exception):
-    pass
+    def __init__(self, namespace: str, keys):
+        self.namespace = namespace
+        self.keys = keys
+
+    def __repr__(self):
+        return f"NoTypeVarBindingException({self.namespace}, {self.keys})"
 
 
 def get_annotation_node(mypy_type: mypy.types.Type, meta: Meta) -> AnnotationNode:
@@ -461,7 +468,8 @@ def get_annotation_node(mypy_type: mypy.types.Type, meta: Meta) -> AnnotationNod
             node = global_fullname_to_node_id[mypy_type.id.namespace]
         
         else:
-            raise NoTypeVarBindingException()  # this might happen if __init__ has its own type variables
+            # this might happen, for example, if __init__ has its own type variables
+            raise NoTypeVarBindingException(mypy_type.id.namespace, meta.fullname_to_node_id.keys())
         
         id_ = '.' + str(mypy_type.id.raw_id) + '.' + node
     
@@ -516,7 +524,7 @@ def get_annotation_node(mypy_type: mypy.types.Type, meta: Meta) -> AnnotationNod
         id_ = '0'
         result = AnnotationNode("Unknown", id_, meta)
 
-    annotation_node_dict[id_] = result
+    assert id_ in annotation_node_dict.keys()
     return result
 
 

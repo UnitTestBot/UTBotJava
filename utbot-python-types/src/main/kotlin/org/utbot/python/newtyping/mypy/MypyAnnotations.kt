@@ -11,14 +11,24 @@ class MypyAnnotation(
     var initialized = false
     @Transient lateinit var storage: MypyInfoBuild
     val node: MypyAnnotationNode
-        get() = storage.nodeStorage[nodeId]!!
+        get() {
+            val result = storage.nodeStorage[nodeId]
+            require(result != null) {
+                "Required node is absent in storage: $nodeId"
+            }
+            return result
+        }
     val asUtBotType: UtType
         get() {
-            assert(initialized)
+            require(initialized)
             val origin = storage.getUtBotTypeOfNode(node)
+            if (origin.pythonDescription() is PythonAnyTypeDescription)
+                return origin
             if (args != null) {
-                assert(origin.parameters.size == args.size)
-                assert(origin.parameters.all { it is TypeParameter })
+                require(origin.parameters.size == args.size) {
+                    "Bad arguments on ${origin.pythonTypeRepresentation()}. Expected ${origin.parameters.size} parameters but got ${args.size}"
+                }
+                require(origin.parameters.all { it is TypeParameter })
                 val argTypes = args.map { it.asUtBotType }
                 return DefaultSubstitutionProvider.substitute(
                     origin,
@@ -73,7 +83,7 @@ class ConcreteAnnotation(
     val isAbstract: Boolean
 ): CompositeAnnotationNode(module, simpleName, members, typeVars, bases) {
     override fun initializeType(): UtType {
-        assert(storage.nodeToUtBotType[this] == null)
+        require(storage.nodeToUtBotType[this] == null)
         return createPythonConcreteCompositeType(
             Name(module.split('.'), simpleName),
             typeVars.size,
@@ -146,9 +156,16 @@ class TypeVarNode(
 ): MypyAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + values + (upperBound?.let { listOf(it) } ?: emptyList())
-    override fun initializeType() =
-        error("Initialization of TypeVar must be done in defining class or function." +
-                " TypeVar name: $varName, def_id: $def")
+    override fun initializeType(): UtType {
+        /*error(
+            "Initialization of TypeVar must be done in defining class or function." +
+                    " TypeVar name: $varName, def_id: $def"
+        )*/
+        // this a rare and bad case:
+        // https://github.com/sqlalchemy/sqlalchemy/blob/rel_2_0_20/lib/sqlalchemy/sql/sqltypes.py#L2091C5-L2091C23
+        storage.nodeStorage[def]!!.initializeType()
+        return storage.nodeToUtBotType[this] ?: error("Error while initializing TypeVar name: $varName, def_id: $def")
+    }
     val constraints: Set<TypeParameterConstraint> by lazy {
         val upperBoundConstraint: Set<TypeParameterConstraint> =
             upperBound?.let { setOf(TypeParameterConstraint(upperBoundRelation, it.asUtBotType)) } ?: emptySet()

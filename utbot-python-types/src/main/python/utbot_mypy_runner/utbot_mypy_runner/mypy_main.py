@@ -11,11 +11,10 @@ Copy with some changes of function 'main' from here:
 https://github.com/python/mypy/blob/v1.5.1/mypy/main.py
 """
 def new_main(
-    *,
-    args: list[str] | None = None,
-    stdout: TextIO = sys.stdout,
-    stderr: TextIO = sys.stderr,
-    clean_exit: bool = False,
+    stdout: TextIO,
+    stderr: TextIO,
+    args: Optional[List[str]] = None,
+    clean_exit: bool = False
 ) -> Optional[build.BuildResult]:
     """Main entry point to the type checker.
 

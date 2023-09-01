@@ -79,7 +79,7 @@ class TypeInferenceProcessor(
 
             val pythonMethod = (pythonMethodOpt as Success).value
 
-            val mypyExpressionTypes = mypyBuild.types[moduleOfSourceFile]!!.associate {
+            val mypyExpressionTypes = mypyBuild.exprTypes[moduleOfSourceFile]!!.associate {
                 Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
             }
             val namesStorage = GlobalNamesStorage(mypyBuild)

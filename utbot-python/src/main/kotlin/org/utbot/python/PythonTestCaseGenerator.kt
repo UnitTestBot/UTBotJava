@@ -324,7 +324,8 @@ class PythonTestCaseGenerator(
             ),
             mypyStorage.buildRoot.configFile,
             additionalVars,
-            randomTypeFrequency = RANDOM_TYPE_FREQUENCY
+            randomTypeFrequency = RANDOM_TYPE_FREQUENCY,
+            dMypyTimeout = timeoutForRun
         )
 
         runBlocking breaking@{

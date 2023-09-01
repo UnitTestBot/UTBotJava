@@ -102,7 +102,8 @@ class TypeInferenceProcessor(
                     getOffsetLine(sourceFileContent, pythonMethod.ast.endOffset)
                 ),
                 mypyBuild.buildRoot.configFile,
-                ""
+                "",
+                dMypyTimeout = null
             )
 
             startingTypeInferenceAction()

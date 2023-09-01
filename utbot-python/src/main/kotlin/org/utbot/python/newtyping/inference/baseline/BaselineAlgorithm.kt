@@ -33,7 +33,8 @@ class BaselineAlgorithm(
     private val initialErrorNumber: Int,
     private val configFile: File,
     private val additionalVars: String,
-    private val randomTypeFrequency: Int = 0
+    private val randomTypeFrequency: Int = 0,
+    private val dMypyTimeout: Long?
 ) : TypeInferenceAlgorithm() {
     private val random = Random(0)
 
@@ -109,7 +110,8 @@ class BaselineAlgorithm(
             pythonPath,
             configFile,
             initialErrorNumber,
-            additionalVars
+            additionalVars,
+            timeout = dMypyTimeout
         )
     }
 

@@ -107,6 +107,9 @@ class SpringUtExecutionInstrumentation(
 
         return try {
             delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
+                if (!parameters.isRerun)
+                    modelConstructionPhase.preconfigureConstructor { maxDepth = 0 }
+
                 phasesWrapper {
                     // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
                     //     so they are executed in one thread with method under test

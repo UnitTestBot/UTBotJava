@@ -23,9 +23,11 @@ from utbot_executor.utils import suppress_stdout as __suppress_stdout
 __all__ = ['PythonExecutor']
 
 
-def _update_states(init_memory_dump: MemoryDump, state_before: MemoryDump) -> MemoryDump:
-    for id_, obj in state_before.objects.items():
-        if id_ not in init_memory_dump.objects:
+def _update_states(init_memory_dump: MemoryDump, before_memory_dump: MemoryDump) -> MemoryDump:
+    for id_, obj in before_memory_dump.objects.items():
+        if id_ in init_memory_dump.objects:
+            init_memory_dump.objects[id_].comparable = obj.comparable
+        else:
             init_memory_dump.objects[id_] = obj
     return init_memory_dump
 
@@ -98,15 +100,20 @@ class PythonExecutor:
             args = [loader.load_object(PythonId(arg_id)) for arg_id in request.arguments_ids]
             logging.debug("Arguments: %s", args)
             kwargs = {name: loader.load_object(PythonId(kwarg_id)) for name, kwarg_id in request.kwarguments_ids.items()}
+            logging.debug("Kwarguments: %s", kwargs)
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
             return ExecutionFailResponse("fail", traceback.format_exc())
         logging.debug("Arguments have been created")
 
         try:
-            state_before_memory = _load_objects(args + list(kwargs.values()))
-            init_state_before = _update_states(loader.reload_id(), state_before_memory)
-            serialized_state_init = serialize_memory_dump(init_state_before)
+            state_init_memory = _load_objects(args + list(kwargs.values()))
+            logging.warning("state init memory \n%s", state_init_memory.objects)
+            logging.warning("loader ids \n%s", loader.dump_id_to_real_id)
+
+            state_init = _update_states(loader.reload_id(), state_init_memory)
+            serialized_state_init = serialize_memory_dump(state_init)
+            logging.warning("STATE INIT: \n%s", serialized_state_init)
 
             def _coverage_sender(info: typing.Tuple[str, int]):
                 if pathlib.Path(info[0]) == pathlib.Path(request.filepath):
@@ -166,6 +173,7 @@ def _run_calculate_function_value(
     Return serialized data: status, coverage info, object ids and memory."""
 
     _, _, _, state_before, serialized_state_before = _serialize_state(args, kwargs)
+    logging.warning("STATE BEFORE: \n%s", serialized_state_before)
 
     __is_exception = False
 
@@ -195,6 +203,8 @@ def _run_calculate_function_value(
     logging.debug("Missed lines: %s", __missed_filtered)
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
+    logging.warning("STATE AFTER: \n%s", serialized_state_after)
+
     ids = args_ids + list(kwargs_ids.values())
     # state_before, state_after = compress_memory(ids, state_before, state_after)
     diff_ids = compress_memory(ids, state_before, state_after)

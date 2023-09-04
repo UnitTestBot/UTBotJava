@@ -136,7 +136,7 @@ internal class MypyBuildKtTest {
 
     @Test
     fun testTypeAlias() {
-        val isinstance = storageBoruvka.types["boruvka"]!!.find { it.startOffset == 3701L }!!.type.asUtBotType
+        val isinstance = storageBoruvka.exprTypes["boruvka"]!!.find { it.startOffset == 3701L }!!.type.asUtBotType
         val func = isinstance as FunctionType
         val classInfo = func.arguments[1]
         assertTrue(classInfo.pythonDescription() is PythonTypeAliasDescription)

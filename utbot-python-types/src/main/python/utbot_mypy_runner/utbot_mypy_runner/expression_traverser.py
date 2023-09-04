@@ -1,19 +1,26 @@
 import typing as tp
+import copy
 
 from mypy.nodes import *
 from mypy.traverser import *
 import mypy.types
 
+import utbot_mypy_runner.nodes as my_nodes
+
 
 class MyTraverserVisitor(TraverserVisitor):
-    def __init__(self, types, processor: tp.Callable[[int, int, int, int, mypy.types.Type], None]):
+    def __init__(self, types, processor: tp.Callable[[int, int, int, int, mypy.types.Type, Any], None], definitions: tp.Dict[str, Any], annotation_node_dict: tp.Dict[str, Any], meta: my_nodes.Meta):
         self.types = types
         self.processor = processor
+        self.meta: tp.Optional[my_nodes.Meta] = meta
+        self.depth = 0
+        self.definitions = definitions
+        self.annotation_node_dict = annotation_node_dict
 
     def process_expression(self, o: Expression) -> None:
-        if o in self.types.keys() and not isinstance(self.types[o], mypy.types.AnyType) \
+        if self.meta is not None and o in self.types.keys() and not isinstance(self.types[o], mypy.types.AnyType) \
             and o.end_line is not None and o.end_column is not None and o.line >= 0:
-            self.processor(o.line, o.column, o.end_line, o.end_column, self.types[o])
+            self.processor(o.line, o.column, o.end_line, o.end_column, self.types[o], self.meta)
 
     def visit_name_expr(self, o: NameExpr) -> None:
         self.process_expression(o)
@@ -22,6 +29,49 @@ class MyTraverserVisitor(TraverserVisitor):
     def visit_member_expr(self, o: MemberExpr) -> None:
         self.process_expression(o)
         super().visit_member_expr(o)
+
+    def visit_func(self, o: FuncItem) -> None:
+        old_meta = self.meta
+        definition: tp.Optional[my_nodes.Definition] = None
+        
+        containing_class: tp.Optional[my_nodes.AnnotationNode] = None
+        if old_meta is not None and old_meta.containing_class is not None:
+            containing_class = self.annotation_node_dict[old_meta.containing_class]
+        
+        if containing_class is not None and isinstance(containing_class, my_nodes.CompositeAnnotationNode):
+            definition = next((x for x in containing_class.members if isinstance(x, my_nodes.FuncDef) and x.name == o.name), None)
+        
+        elif self.depth == 0 and o.name in self.definitions.keys():
+            definition = self.definitions[o.name]
+
+        if definition is not None and old_meta is not None:
+            self.meta = copy.deepcopy(old_meta)
+            self.meta.fullname_to_node_id[""] = definition.type.node_id
+        else:
+            self.meta = None
+
+        self.depth += 1
+        #print("META after func:", self.meta)
+        #print("old meta:", self.meta)
+        #print("name:", o.name)
+        super().visit_func(o)
+        self.depth -= 1
+        self.meta = old_meta
+
+    def visit_class_def(self, o: ClassDef) -> None:
+        old_meta = self.meta
+        self.meta = copy.copy(old_meta)
+
+        if self.meta is not None and o.name in self.definitions.keys():
+            self.meta.containing_class = self.definitions[o.name].type.node_id
+        else:
+            self.meta = None
+
+        self.depth += 1
+        super().visit_class_def(o)
+        self.depth -= 1
+        self.meta = old_meta
+
 
 """
     def visit_yield_expr(self, o: YieldExpr) -> None:

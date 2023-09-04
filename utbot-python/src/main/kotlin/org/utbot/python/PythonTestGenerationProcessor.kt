@@ -2,6 +2,7 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import mu.KotlinLogging
 import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
@@ -37,6 +38,8 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
 
+private val logger = KotlinLogging.logger {}
+
 // TODO: add asserts that one or less of containing classes and only one file
 abstract class PythonTestGenerationProcessor {
     abstract val configuration: PythonTestGenerationConfig
@@ -68,16 +71,21 @@ abstract class PythonTestGenerationProcessor {
         )
 
         val until = startTime + configuration.timeout
-        val tests = configuration.testedMethods.mapIndexed { index, methodHeader ->
+        val tests = configuration.testedMethods.mapIndexedNotNull { index, methodHeader ->
             val methodsLeft = configuration.testedMethods.size - index
             val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
-            val method = findMethodByHeader(
-                mypyStorage,
-                methodHeader,
-                configuration.testFileInformation.moduleName,
-                configuration.testFileInformation.testedFileContent
-            )
-            testCaseGenerator.generate(method, localUntil)
+            try {
+                val method = findMethodByHeader(
+                    mypyStorage,
+                    methodHeader,
+                    configuration.testFileInformation.moduleName,
+                    configuration.testFileInformation.testedFileContent
+                )
+                testCaseGenerator.generate(method, localUntil)
+            } catch (e: SelectedMethodIsNotAFunctionDefinition) {
+                logger.warn { "Skipping method ${e.methodName}: did not find its function definition" }
+                null
+            }
         }
         val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
 
@@ -221,7 +229,7 @@ abstract class PythonTestGenerationProcessor {
             mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
                 it.meta.name == method.name
             }
-        } as? PythonFunctionDefinition ?: error("Selected method is not a function definition")
+        } as? PythonFunctionDefinition ?: throw SelectedMethodIsNotAFunctionDefinition(method.name)
 
         val parsedFile = PythonParser(sourceFileContent).Module()
         val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
@@ -298,3 +306,5 @@ abstract class PythonTestGenerationProcessor {
     }
 
 }
+
+data class SelectedMethodIsNotAFunctionDefinition(val methodName: String): Exception()

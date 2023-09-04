@@ -9,7 +9,7 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
-fun checkWithDMypy(pythonPath: String, fileWithCodePath: String, configFile: File): String {
+fun checkWithDMypy(pythonPath: String, fileWithCodePath: String, configFile: File, timeout: Long? = null): String? {
     val result = runCommand(
         listOf(
             pythonPath,
@@ -20,8 +20,11 @@ fun checkWithDMypy(pythonPath: String, fileWithCodePath: String, configFile: Fil
             fileWithCodePath,
             "--config-file",
             configFile.path
-        )
+        ),
+        timeout = timeout
     )
+    if (result.terminatedByTimeout)
+        return null
     return result.stdout
 }
 
@@ -34,7 +37,8 @@ fun checkSuggestedSignatureWithDMypy(
     pythonPath: String,
     configFile: File,
     initialErrorNumber: Int,
-    additionalVars: String
+    additionalVars: String,
+    timeout: Long? = null
 ): Boolean {
     val annotationMap =
         (method.definition.meta.args.map { it.name } zip method.definition.type.arguments).associate {
@@ -43,7 +47,8 @@ fun checkSuggestedSignatureWithDMypy(
     val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule, additionalVars)
     // logger.debug(mypyCode)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
-    val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)
+    val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile, timeout = timeout)
+        ?: return true
     val report = getErrorsAndNotes(mypyOutput)
     val errorNumber = getErrorNumber(report, fileForMypyCode.canonicalPath, 0, mypyCode.length)
     if (errorNumber > initialErrorNumber)

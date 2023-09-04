@@ -23,7 +23,6 @@ import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
-import org.utbot.python.newtyping.mypy.MypyAnnotations
 import org.utbot.python.newtyping.utils.isRequired
 import org.utbot.python.utils.ExecutionWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
@@ -48,7 +47,7 @@ class PythonTestCaseGenerator(
     private val mypyReportLine: List<MypyReportLine>
 ) {
 
-    private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
+    private val storageForMypyMessages: MutableList<MypyReportLine> = mutableListOf()
 
     private fun constructCollectors(
         mypyStorage: MypyInfoBuild,
@@ -56,7 +55,12 @@ class PythonTestCaseGenerator(
         method: PythonMethod
     ): Pair<HintCollector, ConstantCollector> {
 
-        val mypyExpressionTypes = mypyStorage.types[curModule]?.let { moduleTypes ->
+        // initialize definitions first
+        mypyStorage.definitions[curModule]!!.values.map { def ->
+            def.getUtBotDefinition()
+        }
+
+        val mypyExpressionTypes = mypyStorage.exprTypes[curModule]?.let { moduleTypes ->
             moduleTypes.associate {
                 Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
             }
@@ -320,7 +324,8 @@ class PythonTestCaseGenerator(
             ),
             mypyStorage.buildRoot.configFile,
             additionalVars,
-            randomTypeFrequency = RANDOM_TYPE_FREQUENCY
+            randomTypeFrequency = RANDOM_TYPE_FREQUENCY,
+            dMypyTimeout = timeoutForRun
         )
 
         runBlocking breaking@{

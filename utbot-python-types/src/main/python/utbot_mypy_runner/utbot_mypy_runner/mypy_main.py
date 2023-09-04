@@ -5,9 +5,10 @@ import sys
 from io import StringIO
 from typing import List, Tuple, TextIO, Callable, Optional, cast
 
+
 """
 Copy with some changes of function 'main' from here:
-https://github.com/python/mypy/blob/v1.0.0/mypy/main.py
+https://github.com/python/mypy/blob/v1.5.1/mypy/main.py
 """
 def new_main(
     stdout: TextIO,
@@ -16,6 +17,7 @@ def new_main(
     clean_exit: bool = False
 ) -> Optional[build.BuildResult]:
     """Main entry point to the type checker.
+
     Args:
         args: Custom command-line arguments.  If not given, sys.argv[1:] will
             be used.
@@ -59,6 +61,11 @@ def new_main(
             stderr,
             options,
         )
+
+    # CHANGE
+    # if options.install_types and not sources:
+    #    install_types(formatter, options, non_interactive=options.non_interactive)
+    #    return
 
     res, messages, blockers = run_build(sources, options, fscache, t0, stdout, stderr)
 
@@ -137,7 +144,8 @@ if __name__ == "__main__":
     if build_result is None:
         print("BuildResult is None")
     else:
-        print(build_result.files['utbot_mypy_runner.nodes'].names['CompositeAnnotationNode'].node.names["module_key"].node.is_initialized_in_class)
+        pass
+        #print(build_result.files['utbot_mypy_runner.nodes'].names['CompositeAnnotationNode'].node.names["module_key"].node.is_initialized_in_class)
         #print(build_result.files['builtins'].names['str'].node.names["count"].node.arguments[2].initializer)
         #print(build_result.files['dijkstra'].names['Dijkstra'].node.names['Node'].node.module_name)
         #print(build_result.files['numpy'].names['ndarray'].module_public)

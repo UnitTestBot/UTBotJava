@@ -33,13 +33,18 @@ def get_output_json(annotations: tp.Dict[str, tp.Dict[str, Definition]],
                     names_dict: tp.Dict[str, tp.List[utbot_mypy_runner.names.Name]],
                     indent: tp.Optional[int]):
     node_storage_key = 'nodeStorage'
-    types_key = 'types'
+    types_key = 'exprTypes'
     definitions_key = 'definitions'
     names_key = 'names'
 
     result: tp.Dict[str, tp.Any] = {node_storage_key: {}, types_key: {}}
     for key in annotation_node_dict:
-        result[node_storage_key][str(key)] = annotation_node_dict[key].encode()
+        try:
+            encoded = annotation_node_dict[key].encode()
+        except:
+            # Partial AnnotationNode (probably because of NoTypeVarBindingException)
+            continue
+        result[node_storage_key][str(key)] = encoded
 
     result[definitions_key] = {}
     for module in annotations.keys():
@@ -81,20 +86,27 @@ def get_result_from_mypy_build(build_result: mypy_main.build.BuildResult, source
 
             only_types = mypy_file.path not in source_paths
 
-            definition = get_definition_from_symbol_node(symbol_table_node, Meta(module), only_types)
+            try:
+                definition = get_definition_from_symbol_node(symbol_table_node, Meta(module), only_types)
+            except NoTypeVarBindingException:
+                # Bad definition, like this one: 
+                # https://github.com/sqlalchemy/sqlalchemy/blob/rel_2_0_20/lib/sqlalchemy/orm/mapped_collection.py#L521
+                definition = None
+
             if definition is not None:
                 annotation_dict[module][name] = definition
+
+    def processor(line, col, end_line, end_col, type_, meta):
+        expression_types[module_for_types].append(
+            ExpressionType(*get_borders(line, col, end_line, end_col, content), line, get_annotation(type_, meta)))
 
     expression_types: tp.Dict[str, tp.List[ExpressionType]] = defaultdict(list)
     if module_for_types is not None:
         mypy_file = build_result.files[module_for_types]
         with open(mypy_file.path, "r") as file:
             content = file.readlines()
-            processor = lambda line, col, end_line, end_col, type_: \
-                    expression_types[module_for_types].append( # TODO: proper Meta
-                        ExpressionType(*get_borders(line, col, end_line, end_col, content), line, get_annotation(type_, Meta(module_for_types)))
-                    )
-            traverser = expression_traverser.MyTraverserVisitor(build_result.types, processor)
+            meta = Meta(module_for_types)
+            traverser = expression_traverser.MyTraverserVisitor(build_result.types, processor, annotation_dict[module_for_types], annotation_node_dict, meta)
             traverser.visit_mypy_file(build_result.files[module_for_types])
 
     return get_output_json(annotation_dict, expression_types, names_dict, indent)

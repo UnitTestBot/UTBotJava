@@ -7,9 +7,11 @@ import mypy.nodes
 import mypy.types
 
 
+added_keys: tp.List[str] = []
 annotation_node_dict: tp.Dict[str, "AnnotationNode"] = {}
 type_vars_of_node: tp.Dict[str, tp.List[str]] = defaultdict(list)
 any_type_instance = mypy.types.AnyType(mypy.types.TypeOfAny.unannotated)
+global_fullname_to_node_id: tp.Dict[str, str] = {}
 
 
 if sys.version_info >= (3, 10):
@@ -27,7 +29,8 @@ class Annotation:
         self.args = args
 
     def encode(self) -> tp.Dict[str, EncodedInfo]:
-        result: tp.Dict[str, EncodedInfo] = {self.node_id_key: str(self.node_id)}
+        result: tp.Dict[str, EncodedInfo] = {
+            self.node_id_key: str(self.node_id)}
         if self.args is not None:
             result[self.args_key] = [x.encode() for x in self.args]
         return result
@@ -46,17 +49,32 @@ def encode_extension(super_encode: tp.Callable[[tp.Any], tp.Dict[str, EncodedInf
     return decorator
 
 
-class AnnotationNode:
-    type_key = 'type'
+class Encodable:
+    kind_key: str
+    content_key: str
+    kind_value: str
+
+    def encode_outer(self, subobject: EncodedInfo) -> tp.Dict[str, EncodedInfo]:
+        return {self.kind_key: self.kind_value, self.content_key: subobject}
+
+    def encode_inner(self) -> tp.Dict[str, EncodedInfo]:
+        return dict()
+
+    def encode(self):
+        inner = self.encode_inner()
+        return self.encode_outer(inner)
+
+
+class AnnotationNode(Encodable):
+    kind_key = 'type'
+    content_key = 'content'
 
     def __init__(self, annotation_type, id_, meta: 'Meta'):
-        self.type = annotation_type
+        self.kind_value = annotation_type
         self.id_ = id_
         annotation_node_dict[id_] = self
+        added_keys.append(id_)
         self.meta = copy.deepcopy(meta)
-
-    def encode(self) -> tp.Dict[str, EncodedInfo]:
-        return {self.type_key: self.type}
 
     def __eq__(self, other):
         return self.id_ == other.id_
@@ -65,15 +83,14 @@ class AnnotationNode:
         return hash(self.id_)
 
 
-class Definition:
+class Definition(Encodable):
     kind_key = 'kind'
+    content_key = 'content'
 
     def __init__(self, kind: str, meta: 'Meta'):
-        self.kind = kind
+        self.type: Annotation
+        self.kind_value = kind
         self.meta = copy.deepcopy(meta)
-
-    def encode(self) -> tp.Dict[str, EncodedInfo]:
-        return {self.kind_key: self.kind}
 
 
 class Variable(Definition):
@@ -92,13 +109,18 @@ class Variable(Definition):
         self.is_self: bool = var.is_self
         self.is_initialized_in_class: bool = var.is_initialized_in_class
         self.type: Annotation
-        if var.type is None or self.meta.is_arg:
+        try:
+            if var.type is None or self.meta.is_arg:
+                self.type = get_annotation(any_type_instance, self.meta)
+            else:
+                self.type = get_annotation(var.type, self.meta)
+        
+        except NoTypeVarBindingException:
             self.type = get_annotation(any_type_instance, self.meta)
-        else:
-            self.type = get_annotation(var.type, self.meta)
+            
 
-    @encode_extension(Definition.encode)
-    def encode(self) -> tp.Dict[str, EncodedInfo]:
+    @encode_extension(Definition.encode_inner)
+    def encode_inner(self) -> tp.Dict[str, EncodedInfo]:
         return {
             self.name_key: self.name,
             self.is_property_key: self.is_property,
@@ -117,8 +139,8 @@ class ClassDef(Definition):
         super().__init__(self.kind, meta)
         self.type: Annotation = get_annotation(mypy.types.Instance(type_info, []), self.meta)
 
-    @encode_extension(Definition.encode)
-    def encode(self):
+    @encode_extension(Definition.encode_inner)
+    def encode_inner(self):
         return {self.type_key: self.type.encode()}
 
 
@@ -148,8 +170,8 @@ class FuncDef(Definition):
             self.args.append(defn)
         self.meta.is_arg = False
 
-    @encode_extension(Definition.encode)
-    def encode(self):
+    @encode_extension(Definition.encode_inner)
+    def encode_inner(self):
         return {
             self.args_key: [x.encode() for x in self.args],
             self.type_key: self.type.encode(),
@@ -171,17 +193,17 @@ class OverloadedFuncDef(Definition):
             self.type = get_annotation(any_type_instance, self.meta)
         else:
             self.type = get_annotation(func_def.type, self.meta)
-        
+
         self.items: tp.List[Definition] = []
         for x in func_def.items:
             cur = get_definition_from_node(x, self.meta)
             assert cur is not None
             self.items.append(cur)
-        
+
         self.name: str = func_def.name
 
-    @encode_extension(Definition.encode)
-    def encode(self):
+    @encode_extension(Definition.encode_inner)
+    def encode_inner(self):
         return {
             self.type_key: self.type.encode(),
             self.items_key: [x.encode() for x in self.items],
@@ -221,8 +243,8 @@ class TypeVarNode(AnnotationNode):
         else:
             self.variance = self.invariant
 
-    @encode_extension(AnnotationNode.encode)
-    def encode(self):
+    @encode_extension(AnnotationNode.encode_inner)
+    def encode_inner(self):
         return {
             self.var_name_key: self.name,
             self.values_key: [x.encode() for x in self.values],
@@ -272,14 +294,17 @@ class FunctionNode(AnnotationNode):
                 first_arg = [Annotation(self.meta.containing_class)]
             elif len(type.arguments):
                 first_arg = [get_annotation(any_type_instance, meta=self.meta)]
-            
-            self.arg_types = first_arg + [get_annotation(any_type_instance, meta=self.meta) for _ in type.arguments[1:]]
-            self.return_type = get_annotation(any_type_instance, meta=self.meta)
+
+            self.arg_types = first_arg + \
+                [get_annotation(any_type_instance, meta=self.meta)
+                 for _ in type.arguments[1:]]
+            self.return_type = get_annotation(
+                any_type_instance, meta=self.meta)
             self.arg_kinds = [self._get_arg_kind(x) for x in type.arg_kinds]
             self.arg_names = type.arg_names
         else:
             assert False, "Not reachable"
-    
+
     def _get_arg_kind(self, kind):
         if kind == mypy.nodes.ARG_POS:
             return self.arg_pos
@@ -296,8 +321,8 @@ class FunctionNode(AnnotationNode):
         else:
             assert False, "Not reachable"
 
-    @encode_extension(AnnotationNode.encode)
-    def encode(self):
+    @encode_extension(AnnotationNode.encode_inner)
+    def encode_inner(self):
         return {
             self.type_vars_key: self.type_vars,
             self.arg_types_key: [x.encode() for x in self.arg_types],
@@ -314,11 +339,23 @@ class CompositeAnnotationNode(AnnotationNode):
     type_vars_key = 'typeVars'
     bases_key = 'bases'
 
+    @staticmethod
+    def recordable(symbol_node: mypy.nodes.TypeInfo) -> bool:
+        type_vars = symbol_node.defn.type_vars
+        return all(isinstance(x, mypy.types.TypeVarType) for x in type_vars)
+
     def __init__(self, annotation_type: str, symbol_node: mypy.nodes.TypeInfo, id_, meta: 'Meta'):
+        assert self.recordable(symbol_node)
         super().__init__(annotation_type, id_, meta)
         self.meta.fullname_to_node_id[symbol_node._fullname] = id_
         self.module: str = symbol_node.module_name
         self.simple_name: str = symbol_node._fullname[len(self.module)+1:]
+        global_fullname_to_node_id[symbol_node._fullname] = id_
+
+        self.raw_type_vars: tp.Sequence[mypy.types.Type] = symbol_node.defn.type_vars
+        self.type_vars: tp.List[Annotation] = [
+            get_annotation(x, self.meta) for x in self.raw_type_vars
+        ]
 
         self.meta.containing_class = id_
         self.members: tp.List[Definition] = []
@@ -329,17 +366,12 @@ class CompositeAnnotationNode(AnnotationNode):
             definition = get_definition_from_node(inner_node, self.meta)
             if definition is not None:
                 self.members.append(definition)
-        
-        self.meta.containing_class = None
 
-        self.raw_type_vars: tp.Sequence[mypy.types.Type] = symbol_node.defn.type_vars
-        self.type_vars: tp.List[Annotation] = [
-            get_annotation(x, self.meta) for x in self.raw_type_vars
-        ]
-        self.bases: tp.List[Annotation] = [get_annotation(x, self.meta) for x in symbol_node.bases]
+        self.bases: tp.List[Annotation] = [
+            get_annotation(x, self.meta) for x in symbol_node.bases]
 
-    @encode_extension(AnnotationNode.encode)
-    def encode(self):
+    @encode_extension(AnnotationNode.encode_inner)
+    def encode_inner(self):
         return {
             self.module_key: self.module,
             self.simple_name_key: self.simple_name,
@@ -359,8 +391,8 @@ class ConcreteAnnotationNode(CompositeAnnotationNode):
         super().__init__(self.annotation_type, symbol_node, id_, meta)
         self.is_abstract: bool = symbol_node.is_abstract
 
-    @encode_extension(CompositeAnnotationNode.encode)
-    def encode(self):
+    @encode_extension(CompositeAnnotationNode.encode_inner)
+    def encode_inner(self):
         return {self.is_abstract_key: self.is_abstract}
 
 
@@ -374,8 +406,8 @@ class ProtocolAnnotationNode(CompositeAnnotationNode):
         super().__init__(self.annotation_type, symbol_node, id_, meta)
         self.member_names: tp.List[str] = symbol_node.protocol_members
 
-    @encode_extension(CompositeAnnotationNode.encode)
-    def encode(self):
+    @encode_extension(CompositeAnnotationNode.encode_inner)
+    def encode_inner(self):
         return {self.member_names_key: self.member_names}
 
 
@@ -388,8 +420,8 @@ class AnnotationNodeWithItems(AnnotationNode):
             get_annotation(x, self.meta) for x in mypy_type.items
         ]
 
-    @encode_extension(AnnotationNode.encode)
-    def encode(self):
+    @encode_extension(AnnotationNode.encode_inner)
+    def encode_inner(self):
         return {self.items_key: [x.encode() for x in self.items]}
 
 
@@ -398,12 +430,12 @@ class TypeAliasNode(AnnotationNode):
 
     target_key = 'target'
 
-    def  __init__(self, alias: mypy.nodes.TypeAlias, id_: str, meta: 'Meta'):
+    def __init__(self, alias: mypy.nodes.TypeAlias, id_: str, meta: 'Meta'):
         super().__init__(self.annotation_type, id_, meta)
         self.target: Annotation = get_annotation(alias.target, meta)
 
-    @encode_extension(AnnotationNode.encode)
-    def encode(self):
+    @encode_extension(AnnotationNode.encode_inner)
+    def encode_inner(self):
         return {self.target_key: self.target.encode()}
 
 
@@ -415,40 +447,58 @@ class Meta:
         self.containing_class = None
 
 
-def get_annotation_node(mypy_type: mypy.types.Type, meta: Meta) -> AnnotationNode:
+class NoTypeVarBindingException(Exception):
+    def __init__(self, namespace: str, keys):
+        self.namespace = namespace
+        self.keys = keys
 
+    def __repr__(self):
+        return f"NoTypeVarBindingException({self.namespace}, {self.keys})"
+
+
+def get_annotation_node(mypy_type: mypy.types.Type, meta: Meta) -> AnnotationNode:
     if isinstance(mypy_type, mypy.types.Instance):
         id_ = str(id(mypy_type.type))
+    
     elif isinstance(mypy_type, mypy.types.TypeVarType):
-        if mypy_type.id.namespace not in meta.fullname_to_node_id.keys():
-            id_ = '0'
-            mypy_type = mypy.types.Type()
-        else:
+        if mypy_type.id.namespace in meta.fullname_to_node_id.keys():
             node = meta.fullname_to_node_id[mypy_type.id.namespace]
-            id_ = '.' + str(mypy_type.id.raw_id) + '.' + node
+        
+        elif mypy_type.id.namespace in global_fullname_to_node_id.keys():
+            node = global_fullname_to_node_id[mypy_type.id.namespace]
+        
+        else:
+            # this might happen, for example, if __init__ has its own type variables
+            raise NoTypeVarBindingException(mypy_type.id.namespace, meta.fullname_to_node_id.keys())
+        
+        id_ = '.' + str(mypy_type.id.raw_id) + '.' + node
+    
     elif isinstance(mypy_type, mypy.types.AnyType):
         id_ = 'A'
+    
     elif isinstance(mypy_type, mypy.types.NoneType):
         id_ = 'N'
+    
     else:
         id_ = str(id(mypy_type))
 
     if id_ in annotation_node_dict.keys():
         return annotation_node_dict[id_]
 
-    result: AnnotationNode
+    result: tp.Optional[AnnotationNode] = None
 
-    if isinstance(mypy_type, mypy.types.Instance):
+    if isinstance(mypy_type, mypy.types.Instance) and CompositeAnnotationNode.recordable(mypy_type.type):
         if mypy_type.type.is_protocol:
             result = ProtocolAnnotationNode(mypy_type.type, id_, meta)
         else:
             result = ConcreteAnnotationNode(mypy_type.type, id_, meta)
+
     elif isinstance(mypy_type, mypy.types.CallableType):
         result = FunctionNode(id_, meta, mypy_type)
 
     elif isinstance(mypy_type, mypy.types.Overloaded):  # several signatures for one function
         result = AnnotationNodeWithItems("Overloaded", mypy_type, id_, meta)
-    
+
     elif isinstance(mypy_type, mypy.types.TypeVarType):
         result = TypeVarNode(mypy_type, id_, meta)
 
@@ -468,11 +518,13 @@ def get_annotation_node(mypy_type: mypy.types.Type, meta: Meta) -> AnnotationNod
             mypy_type.alias is not None and len(mypy_type.args) == 0:
         result = TypeAliasNode(mypy_type.alias, id_, meta)
 
-    else:
+    # TODO: consider LiteralType
+
+    if result is None:
         id_ = '0'
         result = AnnotationNode("Unknown", id_, meta)
 
-    annotation_node_dict[id_] = result
+    assert id_ in annotation_node_dict.keys()
     return result
 
 
@@ -489,8 +541,6 @@ def get_annotation(mypy_type: mypy.types.Type, meta: Meta) -> Annotation:
         else:
             return Annotation(cur_node.id_, children)
 
-    # TODO: consider LiteralType
-    
     else:
         return Annotation(cur_node.id_)
 
@@ -514,7 +564,7 @@ def get_definition_from_symbol_node(
     table_node: mypy.nodes.SymbolTableNode,
     meta: Meta,
     only_types: bool = False
-)-> tp.Optional[Definition]:
+) -> tp.Optional[Definition]:
     if table_node.node is None or not (table_node.node.fullname.startswith(meta.module_name)) \
             or not isinstance(table_node.node, mypy.nodes.Node):  # this check is only for mypy
         return None

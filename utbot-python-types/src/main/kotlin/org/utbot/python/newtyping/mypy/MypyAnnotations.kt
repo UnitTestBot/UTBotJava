@@ -1,8 +1,8 @@
 package org.utbot.python.newtyping.mypy
 
-import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.*
+import org.utbot.python.utils.CustomPolymorphicJsonAdapterFactory
 
 class MypyAnnotation(
     val nodeId: String,
@@ -11,14 +11,24 @@ class MypyAnnotation(
     var initialized = false
     @Transient lateinit var storage: MypyInfoBuild
     val node: MypyAnnotationNode
-        get() = storage.nodeStorage[nodeId]!!
+        get() {
+            val result = storage.nodeStorage[nodeId]
+            require(result != null) {
+                "Required node is absent in storage: $nodeId"
+            }
+            return result
+        }
     val asUtBotType: UtType
         get() {
-            assert(initialized)
+            require(initialized)
             val origin = storage.getUtBotTypeOfNode(node)
+            if (origin.pythonDescription() is PythonAnyTypeDescription)
+                return origin
             if (args != null) {
-                assert(origin.parameters.size == args.size)
-                assert(origin.parameters.all { it is TypeParameter })
+                require(origin.parameters.size == args.size) {
+                    "Bad arguments on ${origin.pythonTypeRepresentation()}. Expected ${origin.parameters.size} parameters but got ${args.size}"
+                }
+                require(origin.parameters.all { it is TypeParameter })
                 val argTypes = args.map { it.asUtBotType }
                 return DefaultSubstitutionProvider.substitute(
                     origin,
@@ -47,7 +57,10 @@ sealed class CompositeAnnotationNode(
     fun getInitData(self: CompositeTypeCreator.Original): CompositeTypeCreator.InitializationData {
         storage.nodeToUtBotType[this] = self
         (typeVars zip self.parameters).forEach { (node, typeParam) ->
-            val typeVar = node.node as TypeVarNode
+            val typeVar = node.node as? TypeVarNode
+            require(typeVar != null) {
+                "Did not construct type variable"
+            }
             storage.nodeToUtBotType[typeVar] = typeParam
             typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance, typeVar.kind)
             typeParam.constraints = typeVar.constraints
@@ -70,7 +83,7 @@ class ConcreteAnnotation(
     val isAbstract: Boolean
 ): CompositeAnnotationNode(module, simpleName, members, typeVars, bases) {
     override fun initializeType(): UtType {
-        assert(storage.nodeToUtBotType[this] == null)
+        require(storage.nodeToUtBotType[this] == null)
         return createPythonConcreteCompositeType(
             Name(module.split('.'), simpleName),
             typeVars.size,
@@ -117,7 +130,10 @@ class FunctionNode(
         ) { self ->
             storage.nodeToUtBotType[this] = self
             (typeVars zip self.parameters).forEach { (nodeId, typeParam) ->
-                val typeVar = storage.nodeStorage[nodeId] as TypeVarNode
+                val typeVar = storage.nodeStorage[nodeId] as? TypeVarNode
+                require(typeVar != null) {
+                    "Did not construct type variable"
+                }
                 storage.nodeToUtBotType[typeVar] = typeParam
                 typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance, typeVar.kind)
                 typeParam.constraints = typeVar.constraints
@@ -140,9 +156,16 @@ class TypeVarNode(
 ): MypyAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + values + (upperBound?.let { listOf(it) } ?: emptyList())
-    override fun initializeType() =
-        error("Initialization of TypeVar must be done in defining class or function." +
-                " TypeVar name: $varName, def_id: $def")
+    override fun initializeType(): UtType {
+        /*error(
+            "Initialization of TypeVar must be done in defining class or function." +
+                    " TypeVar name: $varName, def_id: $def"
+        )*/
+        // this a rare and bad case:
+        // https://github.com/sqlalchemy/sqlalchemy/blob/rel_2_0_20/lib/sqlalchemy/sql/sqltypes.py#L2091C5-L2091C23
+        storage.nodeStorage[def]!!.initializeType()
+        return storage.nodeToUtBotType[this] ?: error("Error while initializing TypeVar name: $varName, def_id: $def")
+    }
     val constraints: Set<TypeParameterConstraint> by lazy {
         val upperBoundConstraint: Set<TypeParameterConstraint> =
             upperBound?.let { setOf(TypeParameterConstraint(upperBoundRelation, it.asUtBotType)) } ?: emptySet()
@@ -236,28 +259,22 @@ enum class AnnotationType {
     Unknown
 }
 
-val annotationAdapter: PolymorphicJsonAdapterFactory<MypyAnnotationNode> =
-    PolymorphicJsonAdapterFactory.of(MypyAnnotationNode::class.java, "type")
-        .withSubtype(ConcreteAnnotation::class.java, AnnotationType.Concrete.name)
-        .withSubtype(Protocol::class.java, AnnotationType.Protocol.name)
-        .withSubtype(TypeVarNode::class.java, AnnotationType.TypeVar.name)
-        .withSubtype(OverloadedFunction::class.java, AnnotationType.Overloaded.name)
-        .withSubtype(FunctionNode::class.java, AnnotationType.Function.name)
-        .withSubtype(PythonAny::class.java, AnnotationType.Any.name)
-        //.withSubtype(PythonLiteral::class.java, AnnotationType.Literal.name)
-        .withSubtype(PythonUnion::class.java, AnnotationType.Union.name)
-        .withSubtype(PythonTuple::class.java, AnnotationType.Tuple.name)
-        .withSubtype(PythonNoneType::class.java, AnnotationType.NoneType.name)
-        .withSubtype(TypeAliasNode::class.java, AnnotationType.TypeAlias.name)
-        .withSubtype(UnknownAnnotationNode::class.java, AnnotationType.Unknown.name)
-
-object MypyAnnotations {
-
-    data class MypyReportLine(
-        val line: Int,
-        val type: String,
-        val message: String,
-        val file: String
+val annotationAdapter = CustomPolymorphicJsonAdapterFactory(
+    MypyAnnotationNode::class.java,
+    contentLabel = "content",
+    keyLabel = "type",
+    mapOf(
+        AnnotationType.Concrete.name to ConcreteAnnotation::class.java,
+        AnnotationType.Protocol.name to Protocol::class.java,
+        AnnotationType.TypeVar.name to TypeVarNode::class.java,
+        AnnotationType.Overloaded.name to OverloadedFunction::class.java,
+        AnnotationType.Function.name to FunctionNode::class.java,
+        AnnotationType.Any.name to PythonAny::class.java,
+        // .withSubtype(PythonLiteral::class.java, AnnotationType.Literal.name)
+        AnnotationType.Union.name to PythonUnion::class.java,
+        AnnotationType.Tuple.name to PythonTuple::class.java,
+        AnnotationType.NoneType.name to PythonNoneType::class.java,
+        AnnotationType.TypeAlias.name to TypeAliasNode::class.java,
+        AnnotationType.Unknown.name to UnknownAnnotationNode::class.java
     )
-
-}
+)

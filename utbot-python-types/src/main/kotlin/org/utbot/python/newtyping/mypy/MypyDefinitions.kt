@@ -1,9 +1,9 @@
 package org.utbot.python.newtyping.mypy
 
-import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.utils.CustomPolymorphicJsonAdapterFactory
 
 sealed class MypyDefinition(val type: MypyAnnotation) {
     fun getUtBotType(): UtType = type.asUtBotType
@@ -69,9 +69,14 @@ enum class MypyDefinitionLabel {
     OverloadedFuncDef
 }
 
-val definitionAdapter: PolymorphicJsonAdapterFactory<MypyDefinition> =
-    PolymorphicJsonAdapterFactory.of(MypyDefinition::class.java, "kind")
-        .withSubtype(Variable::class.java, MypyDefinitionLabel.Variable.name)
-        .withSubtype(ClassDef::class.java, MypyDefinitionLabel.ClassDef.name)
-        .withSubtype(FuncDef::class.java, MypyDefinitionLabel.FuncDef.name)
-        .withSubtype(OverloadedFuncDef::class.java, MypyDefinitionLabel.OverloadedFuncDef.name)
+val definitionAdapter = CustomPolymorphicJsonAdapterFactory(
+    MypyDefinition::class.java,
+    contentLabel = "content",
+    keyLabel = "kind",
+    mapOf(
+        MypyDefinitionLabel.Variable.name to Variable::class.java,
+        MypyDefinitionLabel.ClassDef.name to ClassDef::class.java,
+        MypyDefinitionLabel.FuncDef.name to FuncDef::class.java,
+        MypyDefinitionLabel.OverloadedFuncDef.name to OverloadedFuncDef::class.java
+    )
+)

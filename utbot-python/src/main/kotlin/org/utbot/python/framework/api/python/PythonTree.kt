@@ -369,7 +369,7 @@ class PythonTreeWrapper(val tree: PythonTree.PythonTreeNode) {
         if (other !is PythonTreeWrapper)
             return false
         if (PythonTree.isRecursiveObject(tree) || PythonTree.isRecursiveObject(other.tree))
-            return tree == other.tree
+            return tree.id == other.tree.id
         return tree.softEquals(other.tree)
     }
 

@@ -180,7 +180,8 @@ class PythonTestCaseGenerator(
             ),
             mypyStorage.buildRoot.configFile,
             additionalVars,
-            randomTypeFrequency = RANDOM_TYPE_FREQUENCY
+            randomTypeFrequency = RANDOM_TYPE_FREQUENCY,
+            dMypyTimeout = timeoutForRun,
         )
 
         val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
@@ -300,59 +301,6 @@ class PythonTestCaseGenerator(
                 ?.map { x -> x.lineNumber }?.toSet()
                 ?: emptySet()
         return if (missingLines == null) curMissing else missingLines intersect curMissing
-    }
-
-    private fun inferAnnotations(
-        method: PythonMethod,
-        mypyStorage: MypyInfoBuild,
-        typeStorage: PythonTypeHintsStorage,
-        hintCollector: HintCollector,
-        report: List<MypyReportLine>,
-        limitManager: TestGenerationLimitManager,
-        additionalVars: String,
-        annotationHandler: suspend (UtType) -> InferredTypeFeedback,
-    ) {
-        val namesInModule = mypyStorage.names
-            .getOrDefault(curModule, emptyList())
-            .map { it.name }
-            .filter {
-                it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
-            }
-        val typeInferenceCancellation = { isCancelled() || limitManager.isCancelled() }
-
-        val algo = BaselineAlgorithm(
-            typeStorage,
-            hintCollector.result,
-            pythonPath,
-            method,
-            directoriesForSysPath,
-            curModule,
-            namesInModule,
-            getErrorNumber(
-                report,
-                fileOfMethod,
-                getOffsetLine(sourceFileContent, method.ast.beginOffset),
-                getOffsetLine(sourceFileContent, method.ast.endOffset)
-            ),
-            mypyStorage.buildRoot.configFile,
-            additionalVars,
-            randomTypeFrequency = RANDOM_TYPE_FREQUENCY,
-            dMypyTimeout = timeoutForRun
-        )
-
-        runBlocking breaking@{
-            if (typeInferenceCancellation()) {
-                return@breaking
-            }
-
-            val iterationNumber = algo.run(typeInferenceCancellation, annotationHandler)
-
-            if (iterationNumber == 1) {  // Initial annotation can't be substituted
-                limitManager.mode = TimeoutMode
-                val existsAnnotation = method.definition.type
-                annotationHandler(existsAnnotation)
-            }
-        }
     }
 
     companion object {

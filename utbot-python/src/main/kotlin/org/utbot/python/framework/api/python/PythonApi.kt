@@ -2,7 +2,6 @@ package org.utbot.python.framework.api.python
 
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.PythonArgument
-import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.moduleOfType
 
 /**
@@ -80,7 +79,7 @@ class PythonTreeModel(
         if (other !is PythonTreeModel) {
             return false
         }
-        return comparePythonTree(tree, other.tree)
+        return tree == other.tree
     }
 
     override fun hashCode(): Int {

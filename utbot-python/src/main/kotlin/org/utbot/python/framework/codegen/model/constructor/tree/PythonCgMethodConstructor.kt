@@ -189,7 +189,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             assertEquality(
                 expected = it.second,
                 actual = it.first,
-                expectedVariableName = paramNames[executableId]?.get(index) + "_modified"
+                expectedVariableName = paramNames[executableId]?.get(index) + "_expected"
             )
         }
         if (assertThisObject.isNotEmpty()) {
@@ -199,7 +199,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             assertEquality(
                 expected = it.second,
                 actual = it.first,
-                expectedVariableName = it.first.name + "_modified"
+                expectedVariableName = it.first.name + "_expected"
             )
         }
     }
@@ -417,14 +417,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                     )
                                 )
                             }
-                            val fieldExpected = newVar(value.type, "expected_$field") {
-                                CgFieldAccess(
-                                    expected, FieldId(
-                                        value.type,
-                                        field
-                                    )
-                                )
-                            }
+                            val fieldExpected = variableConstructor.getOrCreateVariable(PythonTreeModel(value), "expected_$field")
                             pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1)
                         }
                     }

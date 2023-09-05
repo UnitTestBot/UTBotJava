@@ -50,6 +50,8 @@ class SpringUtExecutionInstrumentation(
     private val userSourcesClassLoader = URLClassLoader(buildDirs, null)
 
     private val relatedBeansCache = mutableMapOf<Class<*>, Set<String>>()
+    private val nonRepositoryRelatedBeansCache = mutableMapOf<Class<*>, Set<String>>()
+    private val repositoryDescriptionsCache = mutableMapOf<Class<*>, Set<SpringRepositoryId>>()
 
     private val springApi: SpringApi get() = instrumentationContext.springApi
 
@@ -69,7 +71,7 @@ class SpringUtExecutionInstrumentation(
         }
     }
 
-    fun tryLoadingSpringContext(): ConcreteContextLoadingResult {
+    private fun tryLoadingSpringContext(): ConcreteContextLoadingResult {
         val apiProviderResult = instrumentationContext.springApiProviderResult
         return ConcreteContextLoadingResult(
             contextLoaded = apiProviderResult.result.isSuccess,
@@ -100,21 +102,24 @@ class SpringUtExecutionInstrumentation(
                 detectedMockingCandidates = emptySet()
             )
 
-        getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
-        return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
-            phasesWrapper {
-                // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
-                //     so they are executed in one thread with method under test
-                // NB! beforeTestMethod() and afterTestMethod() are executed without timeout, because:
-                //     - if the invokeBasePhases() times out, we still want to execute afterTestMethod()
-                //     - first call to beforeTestMethod() can take significant amount of time due to class loading & transformation
-                executePhaseWithoutTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
-                try {
-                    invokeBasePhases()
-                } finally {
-                    executePhaseWithoutTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
+        return try {
+            delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
+                phasesWrapper {
+                    // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
+                    //     so they are executed in one thread with method under test
+                    // NB! beforeTestMethod() and afterTestMethod() are executed without timeout, because:
+                    //     - if the invokeBasePhases() times out, we still want to execute afterTestMethod()
+                    //     - first call to beforeTestMethod() can take significant amount of time due to class loading & transformation
+                    executePhaseWithoutTimeout(SpringBeforeTestMethodPhase) { springApi.beforeTestMethod() }
+                    try {
+                        invokeBasePhases()
+                    } finally {
+                        executePhaseWithoutTimeout(SpringAfterTestMethodPhase) { springApi.afterTestMethod() }
+                    }
                 }
             }
+        } finally {
+            getNonRepositoryRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
         }
     }
 
@@ -131,8 +136,12 @@ class SpringUtExecutionInstrumentation(
             .also { logger.info { "Detected relevant beans for class ${clazz.name}: $it" } }
     }
 
-    fun getRepositoryDescriptions(classId: ClassId): Set<SpringRepositoryId> {
-        val relevantBeanNames = getRelevantBeans(classId.jClass)
+    private fun getNonRepositoryRelevantBeans(clazz: Class<*>): Set<String> = nonRepositoryRelatedBeansCache.getOrPut(clazz) {
+        getRelevantBeans(clazz).subtract(getRepositoryDescriptions(clazz).map { it.repositoryBeanName }.toSet())
+    }
+
+    private fun getRepositoryDescriptions(clazz: Class<*>): Set<SpringRepositoryId> = repositoryDescriptionsCache.getOrPut(clazz) {
+        val relevantBeanNames = getRelevantBeans(clazz)
         val repositoryDescriptions = springApi.resolveRepositories(relevantBeanNames.toSet(), userSourcesClassLoader)
         return repositoryDescriptions.map { repositoryDescription ->
             SpringRepositoryId(
@@ -168,7 +177,7 @@ class SpringUtExecutionInstrumentation(
     override fun InstrumentedProcessModel.setupAdditionalRdResponses(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
         watchdog.measureTimeForActiveCall(getRelevantSpringRepositories, "Getting Spring repositories") { params ->
             val classId: ClassId = kryoHelper.readObject(params.classId)
-            val repositoryDescriptions = getRepositoryDescriptions(classId)
+            val repositoryDescriptions = getRepositoryDescriptions(classId.jClass)
             GetSpringRepositoriesResult(kryoHelper.writeObject(repositoryDescriptions))
         }
         watchdog.measureTimeForActiveCall(tryLoadingSpringContext, "Trying to load Spring application context") { params ->

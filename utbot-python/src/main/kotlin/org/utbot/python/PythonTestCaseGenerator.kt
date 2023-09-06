@@ -280,7 +280,8 @@ class PythonTestCaseGenerator(
             else
                 coverageExecutions + emptyCoverageExecutions.take(MAX_EMPTY_COVERAGE_TESTS),
             errors,
-            storageForMypyMessages
+            storageForMypyMessages,
+            executionsNumber = executions.size,
         )
     }
 

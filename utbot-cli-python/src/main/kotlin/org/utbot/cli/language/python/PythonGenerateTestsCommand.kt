@@ -270,7 +270,8 @@ class PythonGenerateTestsCommand : CliktCommand(
                     testSet.executions.filterNot { it.result is UtExecutionSuccess },
                     testSet.errors,
                     testSet.mypyReport,
-                    testSet.classId
+                    testSet.classId,
+                    testSet.executionsNumber
                 )
             }
         }

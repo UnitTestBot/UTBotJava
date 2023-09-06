@@ -22,9 +22,16 @@ class PythonCliProcessor(
         )
     }
 
+    private fun getExecutionsNumber(testSets: List<PythonTestSet>): Int {
+        return testSets.sumOf { it.executionsNumber }
+    }
+
     override fun processCoverageInfo(testSets: List<PythonTestSet>) {
         val coverageReport = getStringCoverageInfo(testSets)
         val output = coverageOutput ?: return
         writeToFileAndSave(output, coverageReport)
+        val executionReport = "{\"executions\": ${getExecutionsNumber(testSets)}}"
+        val executionOutput = "$output.executions"
+        writeToFileAndSave(executionOutput, executionReport)
     }
 }

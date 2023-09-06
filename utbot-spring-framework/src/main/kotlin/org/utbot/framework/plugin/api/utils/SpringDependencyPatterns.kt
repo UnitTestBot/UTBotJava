@@ -1,19 +1,17 @@
 package org.utbot.framework.plugin.api.utils
 
-import org.utbot.framework.codegen.domain.SpringBeans
-import org.utbot.framework.codegen.domain.SpringBoot
+import org.utbot.framework.codegen.domain.SpringModule.SPRING_BEANS
+import org.utbot.framework.codegen.domain.SpringModule.SPRING_BOOT
 import org.utbot.framework.codegen.domain.SpringModule
 
 fun SpringModule.patterns(): Patterns {
     val moduleLibraryPatterns = when (this) {
-        SpringBoot -> springBootModulePatterns
-        SpringBeans -> springBeansModulePatterns
-        else -> throw UnsupportedOperationException("Unknown dependency injection framework $this")
+        SPRING_BOOT -> springBootModulePatterns
+        SPRING_BEANS -> springBeansModulePatterns
     }
     val libraryPatterns = when (this) {
-        SpringBoot -> springBootPatterns
-        SpringBeans -> springBeansPatterns
-        else -> throw UnsupportedOperationException("Unknown dependency injection framework $this")
+        SPRING_BOOT -> springBootPatterns
+        SPRING_BEANS -> springBeansPatterns
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)
@@ -21,14 +19,12 @@ fun SpringModule.patterns(): Patterns {
 
 fun SpringModule.testPatterns(): Patterns {
     val moduleLibraryPatterns = when (this) {
-        SpringBoot -> springBootTestModulePatterns
-        SpringBeans -> springBeansTestModulePatterns
-        else -> throw UnsupportedOperationException("Unknown dependency injection framework $this")
+        SPRING_BOOT -> springBootTestModulePatterns
+        SPRING_BEANS -> springBeansTestModulePatterns
     }
     val libraryPatterns = when (this) {
-        SpringBoot -> springBootTestPatterns
-        SpringBeans -> springBeansTestPatterns
-        else -> throw UnsupportedOperationException("Unknown dependency injection framework $this")
+        SPRING_BOOT -> springBootTestPatterns
+        SPRING_BEANS -> springBeansTestPatterns
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)

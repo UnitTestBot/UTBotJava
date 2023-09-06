@@ -86,8 +86,8 @@ import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.SpringBeans
-import org.utbot.framework.codegen.domain.SpringBoot
+import org.utbot.framework.codegen.domain.SpringModule.SPRING_BEANS
+import org.utbot.framework.codegen.domain.SpringModule.SPRING_BOOT
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
@@ -361,7 +361,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
 
-        SpringModule.allItems.forEach {
+        SpringModule.values().forEach {
             it.isInstalled = findDependencyInjectionLibrary(model.srcModule, it) != null
         }
         SpringModule.installedItems.forEach {
@@ -964,7 +964,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
 
             SpringModule.installedItems
-                .filter { it.isInstalled }
                 .forEach { configureSpringTestDependency(it) }
         }
     }
@@ -1006,9 +1005,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             !frameworkTestVersionInProject.isCompatibleWith(frameworkVersionInProject)
 ) {
             val libraryDescriptor = when (springModule) {
-                SpringBoot -> springBootTestLibraryDescriptor(frameworkVersionInProject)
-                SpringBeans -> springTestLibraryDescriptor(frameworkVersionInProject)
-                else -> error("Unsupported DI framework type $springModule")
+                SPRING_BOOT -> springBootTestLibraryDescriptor(frameworkVersionInProject)
+                SPRING_BEANS -> springTestLibraryDescriptor(frameworkVersionInProject)
             }
 
             model.preClasspathCollectionPromises += addDependency(model.testModule, libraryDescriptor)

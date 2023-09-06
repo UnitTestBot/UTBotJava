@@ -72,6 +72,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
     BytesValueProvider,
     BytearrayValueProvider,
     ReduceValueProvider,
+    RePatternValueProvider,
     ConstantValueProvider,
     TypeAliasValueProvider,
     SubtypeValueProvider(typeStorage)

@@ -65,7 +65,7 @@ class SpringUtExecutionInstrumentation(
         arguments: ArgumentList,
         parameters: Any?,
         phasesWrapper: PhasesController.(invokeBasePhases: () -> UtConcreteExecutionResult) -> UtConcreteExecutionResult
-    ): UtConcreteExecutionResult {
+    ): UtConcreteExecutionResult = synchronized(this) {
         getRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
         return delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
             phasesWrapper {

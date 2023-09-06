@@ -42,9 +42,8 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     }
 
     /**
-     * System classloader can find org.slf4j and org.utbot.spring thus
-     *  - when we want to mock something from org.slf4j we also want this class will be loaded by [HandlerClassesLoader]
-     *  - we want org.utbot.spring to be loaded by [HandlerClassesLoader] so it can use Spring directly
+     * System classloader can find org.slf4j thus when we want to mock something from org.slf4j
+     * we also want this class will be loaded by [HandlerClassesLoader]
      */
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
         if (name.startsWith("org.slf4j")) {
@@ -147,6 +146,7 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         HandlerClassesLoader.addUrls(instrumentationFactory.additionalRuntimeClasspath)
         instrumentation = instrumentationFactory.create()
         logger.debug { "instrumentation - ${instrumentation.javaClass.name} " }
+        Agent.dynamicClassTransformer.useBytecodeTransformation = params.useBytecodeTransformation
         Agent.dynamicClassTransformer.transformer = instrumentation
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
     }

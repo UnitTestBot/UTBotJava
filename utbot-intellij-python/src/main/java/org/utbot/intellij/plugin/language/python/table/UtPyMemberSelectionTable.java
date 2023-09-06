@@ -1,13 +1,14 @@
 package org.utbot.intellij.plugin.language.python.table;
 
+import com.intellij.openapi.actionSystem.BackgroundableDataProvider;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataProvider;
 import com.intellij.refactoring.ui.EnableDisableAction;
 import com.intellij.ui.*;
 import com.intellij.ui.icons.RowIcon;
 import com.intellij.ui.table.JBTable;
-import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.ui.JBUI;
+import com.jetbrains.python.psi.PyElement;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,13 +22,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable implements DataProvider {
+public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable implements BackgroundableDataProvider {
     protected static final int CHECKED_COLUMN = 0;
     protected static final int DISPLAY_NAME_COLUMN = 1;
     protected static final int ICON_POSITION = 0;
 
     protected List<T> myItems;
     protected MyTableModel<T> myTableModel;
+    private DataProvider dataProvider;
 
     public UtPyMemberSelectionTable(Collection<T> items) {
         myItems = new ArrayList<>(items);
@@ -52,11 +54,22 @@ public class UtPyMemberSelectionTable<T extends UtPyTableItem> extends JBTable i
     }
 
     @Override
-    public @Nullable Object getData(@NotNull @NonNls String dataId) {
-        if (CommonDataKeys.PSI_ELEMENT.is(dataId)) {
-            return ContainerUtil.getFirstItem(getSelectedMemberInfos());
+    public @Nullable DataProvider createBackgroundDataProvider() {
+        if (dataProvider == null) {
+            dataProvider = new DataProvider() {
+                @Override
+                public @Nullable Object getData(@NotNull @NonNls String dataId) {
+                    if (CommonDataKeys.PSI_ELEMENT.is(dataId)) {
+                        for (UtPyTableItem item : getSelectedMemberInfos()) {
+                            PyElement pyElement = item.getContent();
+                            if (pyElement != null) return pyElement;
+                        }
+                    }
+                    return null;
+                }
+            };
         }
-        return null;
+        return dataProvider;
     }
 
     public Collection<T> getSelectedMemberInfos() {

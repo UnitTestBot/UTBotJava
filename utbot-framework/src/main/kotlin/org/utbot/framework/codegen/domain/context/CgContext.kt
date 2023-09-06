@@ -20,11 +20,14 @@ import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.services.access.Block
+import org.utbot.framework.codegen.services.access.CgFieldStateManager
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.codegen.tree.fieldmanager.CgAbstractClassFieldManager
+import org.utbot.framework.codegen.tree.fieldmanager.CgClassFieldManager
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -242,6 +245,12 @@ interface CgContextOwner {
      */
     var successfulExecutionsModels: List<UtModel>
 
+    /**
+     * Managers to process annotated fields of the class under test
+     * relevant for the current generation type.
+     */
+    val relevantFieldManagers: MutableList<CgAbstractClassFieldManager>
+
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
         return try {
@@ -457,12 +466,11 @@ interface CgContextOwner {
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
 
-    fun UtModel.wrap(modelTagName: String? = null): UtModelWrapper =
+    fun UtModel.wrap(): UtModelWrapper =
         UtModelWrapper(
             testSetId = currentTestSetId,
             executionId = currentExecutionId,
             model = this,
-            modelTagName = modelTagName
         )
 }
 
@@ -509,6 +517,7 @@ class CgContext(
         RuntimeExceptionTestsBehaviour.defaultItem,
     override val hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
     override val enableTestsTimeout: Boolean = true,
+    override val relevantFieldManagers: MutableList<CgAbstractClassFieldManager> = mutableListOf(),
     override var containsReflectiveCall: Boolean = false,
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache

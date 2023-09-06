@@ -10,7 +10,7 @@ open class CodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator(par
     protected val classUnderTest: ClassId = params.classUnderTest
 
     override fun generate(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
-        val testClassModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
+        val testClassModel = SimpleTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
         val astConstructor = CgSimpleTestClassConstructor(context)

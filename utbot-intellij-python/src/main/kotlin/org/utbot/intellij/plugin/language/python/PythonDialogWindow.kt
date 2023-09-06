@@ -63,6 +63,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         }
 
         init()
+        setOKButtonText(ACTION_GENERATE)
     }
 
     override fun createCenterPanel(): JComponent {
@@ -139,19 +140,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     }
 
     private fun checkMembers(members: Collection<UtPyTableItem>) = members.forEach { it.isChecked = true }
-
-    class OKOptionAction(private val okAction: Action) : AbstractAction(ACTION_GENERATE) {
-        init {
-            putValue(DEFAULT_ACTION, java.lang.Boolean.TRUE)
-            putValue(FOCUSED_ACTION, java.lang.Boolean.TRUE)
-        }
-        override fun actionPerformed(e: ActionEvent?) {
-            okAction.actionPerformed(e)
-        }
-    }
-
-    private val okOptionAction: OKOptionAction get() = OKOptionAction(super.getOKAction())
-    override fun getOKAction() = okOptionAction
 
     override fun doOKAction() {
         val selectedMembers = pyElementsTable.selectedMemberInfos

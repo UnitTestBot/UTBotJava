@@ -269,7 +269,7 @@ abstract class PythonTestGenerationProcessor {
             else
                 acc + listOf(InstructionSet(lineNumber, lineNumber))
         }
-    protected fun getCoverageInfo(testSets: List<PythonTestSet>): String {
+    protected fun getCoverageInfo(testSets: List<PythonTestSet>): CoverageInfo {
         val covered = mutableSetOf<Int>()
         val missed = mutableSetOf<Set<Int>>()
         testSets.forEach { testSet ->
@@ -286,11 +286,15 @@ abstract class PythonTestGenerationProcessor {
             else
                 getInstructionSetList(missed.reduce { a, b -> a intersect b })
 
+        return CoverageInfo(
+            coveredInstructionSets,
+            missedInstructionSets
+        )
+    }
+
+    protected fun getStringCoverageInfo(testSets: List<PythonTestSet>): String {
         return jsonAdapter.toJson(
-            CoverageInfo(
-                coveredInstructionSets,
-                missedInstructionSets
-            )
+            getCoverageInfo(testSets)
         )
     }
 

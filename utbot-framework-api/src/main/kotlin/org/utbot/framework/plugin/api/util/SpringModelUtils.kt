@@ -3,7 +3,6 @@ package org.utbot.framework.plugin.api.util
 import org.utbot.common.tryLoadClass
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.SpringRepositoryId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -16,7 +15,7 @@ object SpringModelUtils {
     val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
 
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
-    val crudRepositoryClassId = ClassId("org.springframework.data.repository.CrudRepository")
+    val repositoryClassId = ClassId("org.springframework.data.repository.Repository")
 
     val springBootTestClassId = ClassId("org.springframework.boot.test.context.SpringBootTest")
 
@@ -25,6 +24,7 @@ object SpringModelUtils {
     val transactionalClassId = ClassId("org.springframework.transaction.annotation.Transactional")
     val autoConfigureTestDbClassId = ClassId("org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase")
     val autoConfigureMockMvcClassId = ClassId("org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc")
+    val withMockUserClassId = ClassId("org.springframework.security.test.context.support.WithMockUser")
 
     val runWithClassId = ClassId("org.junit.runner.RunWith")
     val springRunnerClassId = ClassId("org.springframework.test.context.junit4.SpringRunner")
@@ -39,13 +39,52 @@ object SpringModelUtils {
     val activeProfilesClassId = ClassId("org.springframework.test.context.ActiveProfiles")
     val contextConfigurationClassId = ClassId("org.springframework.test.context.ContextConfiguration")
 
+    private fun getClassIdFromEachAvailablePackage(
+        packages: List<String>,
+        classNameFromPackage: String
+    ): List<ClassId> = packages.map { ClassId("$it.$classNameFromPackage") }
+        .filter { utContext.classLoader.tryLoadClass(it.name) != null }
 
     // most likely only one persistent library is on the classpath, but we need to be able to work with either of them
     private val persistentLibraries = listOf("javax.persistence", "jakarta.persistence")
-    private fun persistentClassIds(simpleName: String) = persistentLibraries.map { ClassId("$it.$simpleName") }
+    private fun persistentClassIds(simpleName: String) = getClassIdFromEachAvailablePackage(persistentLibraries, simpleName)
 
-    val entityClassIds = persistentClassIds("Entity")
-    val generatedValueClassIds = persistentClassIds("GeneratedValue")
+    val entityClassIds get() = persistentClassIds("Entity")
+    val generatedValueClassIds get() = persistentClassIds("GeneratedValue")
+    val idClassIds get() = persistentClassIds("Id")
+    val persistenceContextClassIds get() = persistentClassIds("PersistenceContext")
+    val entityManagerClassIds get() = persistentClassIds("EntityManager")
+
+    val persistMethodIdOrNull: MethodId?
+        get() {
+            return MethodId(
+                classId = entityManagerClassIds.firstOrNull() ?: return null,
+                name = "persist",
+                returnType = voidClassId,
+                parameters = listOf(objectClassId),
+                bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+            )
+        }
+
+    val detachMethodIdOrNull: MethodId?
+        get() {
+            return MethodId(
+                classId = entityManagerClassIds.firstOrNull() ?: return null,
+                name = "detach",
+                returnType = voidClassId,
+                parameters = listOf(objectClassId),
+                bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
+            )
+        }
+
+    private val validationLibraries = listOf("jakarta.validation.constraints")
+    private fun validationClassIds(simpleName: String) = getClassIdFromEachAvailablePackage(validationLibraries, simpleName)
+        .filter { utContext.classLoader.tryLoadClass(it.name) != null }
+
+    val notEmptyClassIds get() = validationClassIds("NotEmpty")
+    val notBlankClassIds get() = validationClassIds("NotBlank")
+    val emailClassIds get() = validationClassIds("Email")
+
 
     private val getBeanMethodId = MethodId(
         classId = applicationContextClassId,
@@ -54,15 +93,6 @@ object SpringModelUtils {
         parameters = listOf(String::class.id),
         bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
     )
-
-    private val saveMethodId = MethodId(
-        classId = crudRepositoryClassId,
-        name = "save",
-        returnType = Any::class.id,
-        parameters = listOf(Any::class.id),
-        bypassesSandbox = true // TODO may be we can use some alternative sandbox that has more permissions
-    )
-
 
     fun createBeanModel(beanName: String, id: Int, classId: ClassId) = UtAssembleModel(
         id = id,
@@ -74,16 +104,6 @@ object SpringModelUtils {
             params = listOf(UtPrimitiveModel(beanName))
         ),
         modificationsChainProvider = { mutableListOf() }
-    )
-
-    fun createSaveCallModel(repositoryId: SpringRepositoryId, id: Int, entityModel: UtModel) = UtExecutableCallModel(
-        instance = createBeanModel(
-            beanName = repositoryId.repositoryBeanName,
-            id = id,
-            classId = repositoryId.repositoryClassId,
-        ),
-        executable = saveMethodId,
-        params = listOf(entityModel)
     )
 
     fun UtModel.isAutowiredFromContext(): Boolean =
@@ -102,6 +122,7 @@ object SpringModelUtils {
     private val requestMappingClassId = ClassId("org.springframework.web.bind.annotation.RequestMapping")
     private val pathVariableClassId = ClassId("org.springframework.web.bind.annotation.PathVariable")
     private val requestBodyClassId = ClassId("org.springframework.web.bind.annotation.RequestBody")
+    private val requestParamClassId = ClassId("org.springframework.web.bind.annotation.RequestParam")
     private val uriComponentsBuilderClassId = ClassId("org.springframework.web.util.UriComponentsBuilder")
     private val mediaTypeClassId = ClassId("org.springframework.http.MediaType")
     private val mockHttpServletResponseClassId = ClassId("org.springframework.mock.web.MockHttpServletResponse")
@@ -263,15 +284,17 @@ object SpringModelUtils {
         @Suppress("UNCHECKED_CAST")
         val classRequestMappingAnnotation: Annotation? =
             methodId.classId.jClass.getAnnotation(requestMappingClassId.jClass as Class<out Annotation>)
-        val cassRequestPath = classRequestMappingAnnotation?.let { getRequestPathOrNull(it) }.orEmpty()
+        val classRequestPath = classRequestMappingAnnotation?.let { getRequestPathOrNull(it) }.orEmpty()
 
-        val requestPath = cassRequestPath + (getRequestPathOrNull(requestMappingAnnotation) ?: return null)
+        val requestPath = classRequestPath + (getRequestPathOrNull(requestMappingAnnotation) ?: return null)
 
         val pathVariablesModel = createPathVariablesModel(methodId, arguments, idGenerator)
 
-        val urlTemplateModel = createUrlTemplateModel(pathVariablesModel, requestPath, idGenerator)
+        val requestParamsModel = createRequestParamsModel(methodId, arguments, idGenerator)
 
-        val requestBuilderModel = UtAssembleModel(
+        val urlTemplateModel = createUrlTemplateModel(pathVariablesModel, requestParamsModel, requestPath, idGenerator)
+
+        var requestBuilderModel = UtAssembleModel(
             id = idGenerator(),
             classId = mockHttpServletRequestBuilderClassId,
             modelName = "requestBuilder",
@@ -291,7 +314,7 @@ object SpringModelUtils {
             )
         )
 
-        // TODO support @RequestParam, @RequestHeader, @CookieValue, @RequestAttribute
+        // TODO #2462 (support @RequestParam, @RequestHeader, @CookieValue, @RequestAttribute, ...)
         return addContentToRequestBuilderModel(methodId, arguments, requestBuilderModel, idGenerator)
     }
 
@@ -385,16 +408,7 @@ object SpringModelUtils {
         arguments: List<UtModel>,
         idGenerator: () -> Int
     ): UtAssembleModel {
-        val pathVariables = mutableMapOf<String, UtModel>()
-
-        methodId.method.parameters.zip(arguments).forEach { (param, arg) ->
-            @Suppress("UNCHECKED_CAST") val pathVariableAnnotation =
-                param.getAnnotation(pathVariableClassId.jClass as Class<out Annotation>) ?: return@forEach
-            val name = (pathVariableClassId.jClass.getMethod("name").invoke(pathVariableAnnotation) as? String).orEmpty()
-                .ifEmpty { pathVariableClassId.jClass.getMethod("value").invoke(pathVariableAnnotation) as? String }.orEmpty()
-                .ifEmpty { param.name }
-            pathVariables[name] = arg
-        }
+        val pathVariables = collectArgumentsWithAnnotationModels(methodId, pathVariableClassId, arguments)
 
         // TODO filter out `null` and `Optional.empty()` values of `arg`
         return UtAssembleModel(
@@ -422,15 +436,73 @@ object SpringModelUtils {
         )
     }
 
+    private fun createRequestParamsModel(
+        methodId: MethodId,
+        arguments: List<UtModel>,
+        idGenerator: () -> Int
+    ): List< Pair<UtPrimitiveModel, UtAssembleModel> > {
+        val requestParams = collectArgumentsWithAnnotationModels(methodId, requestParamClassId, arguments)
+
+        // TODO filter out `null` and `Optional.empty()` values of `arg`
+        return requestParams.map { (name, value) ->
+            Pair(UtPrimitiveModel(name),
+                UtAssembleModel(
+                    id = idGenerator(),
+                    classId = listClassId,
+                    modelName = "queryParams",
+                    instantiationCall = UtExecutableCallModel(
+                        instance = null,
+                        executable = constructorId(java.util.ArrayList::class.id),
+                        params = emptyList()
+                    ),
+                    modificationsChainProvider = {
+                        listOf(
+                            UtExecutableCallModel(
+                                instance = this,
+                                executable = methodId(
+                                    classId = listClassId,
+                                    name = "add",
+                                    returnType = booleanClassId,
+                                    arguments = arrayOf(Object::class.id),
+                                ),
+                                params = listOf(value)
+                            )
+                        )
+                    }
+                )
+            )
+        }
+    }
+
+    private fun collectArgumentsWithAnnotationModels(
+        methodId: MethodId,
+        annotationClassId: ClassId,
+        arguments: List<UtModel>
+    ): MutableMap<String, UtModel> {
+        val argumentsModels = mutableMapOf<String, UtModel>()
+
+        methodId.method.parameters.zip(arguments).forEach { (param, arg) ->
+            @Suppress("UNCHECKED_CAST") val paramAnnotation =
+                param.getAnnotation(annotationClassId.jClass as Class<out Annotation>) ?: return@forEach
+            val name = (annotationClassId.jClass.getMethod("name").invoke(paramAnnotation) as? String).orEmpty()
+                .ifEmpty { annotationClassId.jClass.getMethod("value").invoke(paramAnnotation) as? String }.orEmpty()
+                .ifEmpty { param.name }
+            argumentsModels[name] = arg
+        }
+
+        return argumentsModels
+    }
+
     private fun createUrlTemplateModel(
         pathVariablesModel: UtAssembleModel,
+        requestParamModel: List<Pair<UtPrimitiveModel, UtAssembleModel>>,
         requestPath: String,
         idGenerator: () -> Int
     ): UtModel {
         val requestPathModel = UtPrimitiveModel(requestPath)
-        return if (pathVariablesModel.modificationsChain.isEmpty()) requestPathModel
+        return if (pathVariablesModel.modificationsChain.isEmpty() && requestParamModel.isEmpty()) requestPathModel
         else {
-            val uriBuilderFromPath = UtAssembleModel(
+            var uriBuilderFromPath = UtAssembleModel(
                 id = idGenerator(),
                 classId = uriComponentsBuilderClassId,
                 modelName = "uriBuilderFromPath",
@@ -445,27 +517,49 @@ object SpringModelUtils {
                     params = listOf(requestPathModel),
                 )
             )
-            val uriBuilderWithPathVariables = UtAssembleModel(
-                id = idGenerator(),
-                classId = uriComponentsBuilderClassId,
-                modelName = "uriBuilderWithPathVariables",
-                instantiationCall = UtExecutableCallModel(
-                    instance = uriBuilderFromPath,
-                    executable = MethodId(
-                        classId = uriComponentsBuilderClassId,
-                        name = "uriVariables",
-                        parameters = listOf(Map::class.java.id),
-                        returnType = uriComponentsBuilderClassId
-                    ),
-                    params = listOf(pathVariablesModel),
+
+            if(pathVariablesModel.modificationsChain.isNotEmpty()) {
+                uriBuilderFromPath = UtAssembleModel(
+                    id = idGenerator(),
+                    classId = uriComponentsBuilderClassId,
+                    modelName = "uriBuilderWithPathVariables",
+                    instantiationCall = UtExecutableCallModel(
+                        instance = uriBuilderFromPath,
+                        executable = MethodId(
+                            classId = uriComponentsBuilderClassId,
+                            name = "uriVariables",
+                            parameters = listOf(Map::class.java.id),
+                            returnType = uriComponentsBuilderClassId
+                        ),
+                        params = listOf(pathVariablesModel),
+                    )
                 )
-            )
-            UtAssembleModel(
+            }
+
+            requestParamModel.forEach { (name, value) ->
+                uriBuilderFromPath = UtAssembleModel(
+                    id = idGenerator(),
+                    classId = uriComponentsBuilderClassId,
+                    modelName = "uriBuilderWithRequestParam",
+                    instantiationCall = UtExecutableCallModel(
+                        instance = uriBuilderFromPath,
+                        executable = MethodId(
+                            classId = uriComponentsBuilderClassId,
+                            name = "queryParam",
+                            parameters = listOf(stringClassId, collectionClassId),
+                            returnType = uriComponentsBuilderClassId
+                        ),
+                        params = listOf(name, value),
+                    )
+                )
+            }
+
+            return UtAssembleModel(
                 id = idGenerator(),
                 classId = stringClassId,
                 modelName = "uriString",
                 instantiationCall = UtExecutableCallModel(
-                    instance = uriBuilderWithPathVariables,
+                    instance = uriBuilderFromPath,
                     executable = MethodId(
                         classId = uriComponentsBuilderClassId,
                         name = "toUriString",

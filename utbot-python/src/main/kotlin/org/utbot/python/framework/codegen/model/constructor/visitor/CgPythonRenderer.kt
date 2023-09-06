@@ -505,7 +505,18 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonRepr) {
-        print(element.content.dropBuiltins())
+        val content = element.content.dropBuiltins()
+        if (content.startsWith("\"") && content.endsWith("\"")) {
+            val realContent = content.slice(1 until content.length - 1)
+            if (realContent.startsWith("r\\\"") && realContent.endsWith("\\\"")) {  // raw string
+                val innerContent = realContent.slice(5 until realContent.length - 4)
+                print("r\"${innerContent.replace("\r", "\\r").replace("\n", "\\n")}\"")
+            } else {
+                print("\"${realContent.replace("\r", "\\r").replace("\n", "\\n")}\"")
+            }
+        } else {
+            print(content.dropBuiltins())
+        }
     }
 
     override fun visit(element: CgPythonIndex) {

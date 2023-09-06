@@ -213,7 +213,7 @@ class FuzzerSmokeTest {
                 ),
                 Seed.Collection(
                     construct = Routine.Collection { size -> B(size) },
-                    modify = Routine.ForEach(listOf(Unit)) { self, ind, v -> self.a = ind * self.a * v.first().a }
+                    modify = Routine.ForEach(listOf(Unit)) { self, ind, v -> self.a *= ind * v.first().a }
                 )
             )
         }

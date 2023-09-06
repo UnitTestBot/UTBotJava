@@ -108,12 +108,9 @@ class PythonExecutor:
 
         try:
             state_init_memory = _load_objects(args + list(kwargs.values()))
-            logging.warning("state init memory \n%s", state_init_memory.objects)
-            logging.warning("loader ids \n%s", loader.dump_id_to_real_id)
 
             state_init = _update_states(loader.reload_id(), state_init_memory)
             serialized_state_init = serialize_memory_dump(state_init)
-            logging.warning("STATE INIT: \n%s", serialized_state_init)
 
             def _coverage_sender(info: typing.Tuple[str, int]):
                 if pathlib.Path(info[0]) == pathlib.Path(request.filepath):
@@ -173,7 +170,6 @@ def _run_calculate_function_value(
     Return serialized data: status, coverage info, object ids and memory."""
 
     _, _, _, state_before, serialized_state_before = _serialize_state(args, kwargs)
-    logging.warning("STATE BEFORE: \n%s", serialized_state_before)
 
     __is_exception = False
 
@@ -203,7 +199,6 @@ def _run_calculate_function_value(
     logging.debug("Missed lines: %s", __missed_filtered)
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
-    logging.warning("STATE AFTER: \n%s", serialized_state_after)
 
     ids = args_ids + list(kwargs_ids.values())
     # state_before, state_after = compress_memory(ids, state_before, state_after)

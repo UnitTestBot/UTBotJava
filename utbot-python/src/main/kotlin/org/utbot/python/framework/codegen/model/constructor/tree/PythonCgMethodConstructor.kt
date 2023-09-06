@@ -406,7 +406,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
 
             is PythonTree.ReduceNode -> {
-                if (expectedNode.state.isNotEmpty()) {
+                if (expectedNode.state.isNotEmpty() && !expectedNode.customState) {  // TODO: support custom state codegen
                     expectedNode.state.forEach { (field, value) ->
                         if (value.comparable) {
                             val fieldActual = newVar(value.type, "actual_$field") {
@@ -418,11 +418,18 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 )
                             }
                             val fieldExpected = if (useExpectedAsValue) {
-                                expected
+                                newVar(value.type, "expected_$field") {
+                                    CgFieldAccess(
+                                        expected, FieldId(
+                                            value.type,
+                                            field
+                                        )
+                                    )
+                                }
                             } else {
                                 variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
                             }
-                            pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1)
+                            pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1, useExpectedAsValue = useExpectedAsValue)
                         }
                     }
                 } else {

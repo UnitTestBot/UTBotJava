@@ -11,6 +11,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.properties.Delegates
 import kotlin.random.Random
 
 
@@ -96,9 +97,7 @@ open class Description<TYPE, RESULT>(
     open fun beforeRun() {}
     open fun afterRun() {}
 
-    open fun afterIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event: MinsetEvent) {}
-
-    open fun finalizeReport(statistic: Statistic<TYPE, RESULT>) {}
+    open suspend fun afterIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event: MinsetEvent) {}
 }
 
 abstract class ReportingDescription<TYPE, RESULT> (
@@ -111,26 +110,19 @@ abstract class ReportingDescription<TYPE, RESULT> (
     }
 
     override fun beforeIteration() {
-        // TODO: Use beforeIteration, beforeRun, afterRun and afterIteration to analyze fuzzer's overhead
-        super.beforeIteration()
+        reporter.beforeIteration()
     }
 
     override fun beforeRun() {
-        // TODO: Use beforeIteration, beforeRun, afterRun and afterIteration to analyze fuzzer's overhead
-        super.beforeIteration()
+        reporter.beforeRun()
     }
 
     override fun afterRun() {
-        // TODO: Use beforeIteration, beforeRun, afterRun and afterIteration to analyze fuzzer's overhead
-        super.beforeIteration()
+        reporter.afterRun()
     }
 
-    override fun afterIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event: MinsetEvent) {
-        reporter.update(values, feedback, event)
-    }
-
-    override fun finalizeReport(statistic: Statistic<TYPE, RESULT>) {
-        reporter.conclude(statistic)
+    override suspend fun afterIteration(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event: MinsetEvent) {
+        reporter.afterIteration(values, feedback, event)
     }
 }
 
@@ -153,14 +145,20 @@ abstract class Reporter<TYPE, RESULT>(
     fun setUp(description: Description<TYPE, RESULT>) {
         this.description = description
     }
-    abstract fun update(values : Node<TYPE, RESULT>, feedback : Feedback<TYPE, RESULT>, event : MinsetEvent, additionalMessage: String = "")
-    abstract fun conclude(statistic: Statistic<TYPE, RESULT>)
+    open fun beforeIteration() {}
+    open fun beforeRun() {}
+    open fun afterRun() {}
+    open fun afterIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event : MinsetEvent) {}
 }
 
 
 class LoggingReporter<TYPE, RESULT>(
     val path: String
 ) : Reporter<TYPE, RESULT>(path) {
+
+    private var iterationStartTime by Delegates.notNull<Long>()
+    private var executionStartTime by Delegates.notNull<Long>()
+    private var executionFinishTime by Delegates.notNull<Long>()
 
     override fun clone() : LoggingReporter<TYPE, RESULT> {
         return LoggingReporter(path)
@@ -172,46 +170,46 @@ class LoggingReporter<TYPE, RESULT>(
         path
     }
 
-    private val logFile = File("$actualPath/log")
-    private val overviewFile = File("$actualPath/overview.txt")
+    private val logWriter = FileOutputStream(File("$actualPath/log"), true).bufferedWriter()
 
     init {
         File(actualPath).mkdirs()
     }
 
-    override fun update(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event : MinsetEvent, additionalMessage: String) {
-        val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
-
-        FileOutputStream(logFile, true).bufferedWriter().use {
-
-            val printableValues = buildString {
-                values.toString()
-                    .toByteArray(Charsets.UTF_8)
-                    .forEach {
-                        byte -> val hexString = byte.toInt().toString(16).padStart(2, '0')
-                            append("\\u").append(hexString)
-                    }
-            }
-
-            it.write("[$time]\t$printableValues\t$feedback\t$event\t$additionalMessage\n")
-        }
+    override fun beforeIteration() {
+        iterationStartTime = System.nanoTime()
     }
 
-    override fun conclude(statistic: Statistic<TYPE, RESULT>) {
-        File(actualPath).mkdirs()
-        overviewFile.apply{ createNewFile() }.printWriter().use { out ->
-            out.println("Total runs: ${statistic.totalRuns}")
+    override fun beforeRun() {
+        executionStartTime = System.nanoTime()
+    }
 
-            if (statistic is SeedsMaintainingStatistic<*, *, *>) {
-                out.println("Final minset size: ${statistic.size()}")
-            }
+    override fun afterRun() {
+        executionFinishTime = System.nanoTime()
+    }
 
-            val seconds = statistic.elapsedTime / 1_000_000_000
-            val minutes = (seconds % 3600) / 60
-            val remainingSeconds = (seconds % 3600) % 60
-            val formattedTime = String.format("%02d min %02d.%03d sec", minutes, remainingSeconds, statistic.elapsedTime % 1_000_000)
-            out.println("Elapsed time: $formattedTime")
+    override fun afterIteration(values: Node<TYPE, RESULT>, feedback: Feedback<TYPE, RESULT>, event : MinsetEvent) {
+        val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss:SSS"))
+
+        val printableValues = buildString {
+            values.toString()
+                .toByteArray(Charsets.UTF_8)
+                .forEach { byte ->
+                    val char = byte.toInt().toChar()
+                    if (char.isDefined() && char != '\t' && char != '\n' && char != '"') {
+                        append(char)
+                    } else {
+                        val hexString = byte.toInt().toString(16).padStart(2, '0')
+                        append("\\u").append(hexString)
+                    }
+                }
         }
+
+        val iterationDuration = (System.nanoTime() - iterationStartTime).toFloat() / 1_000_000
+        val executionDuration = (executionFinishTime - executionStartTime).toFloat() / 1_000_000
+
+        logWriter.write("$time\t${"%.3f".format(iterationDuration)}\t${"%.3f".format(executionDuration)}\t$feedback\t$event\t$printableValues\n")
+        logWriter.flush()
     }
 }
 ///endregion
@@ -503,33 +501,27 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
         beforeIteration(description, statistic)
         description.beforeIteration()
 
-//        TODO: Experiment with changing configuration based on some runtime conditions, for example:
-//        if(statistic.lastNewFeedbackIter > 100) {
-//            configuration.rotateValues = true
-//        }
-
         val values =
-
-        if (configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > 0) {
-            statistic.getSeed(random, configuration).let {
-                mutationFactory.mutate(it, random, configuration, statistic)
-            }
-        } else {
-            if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+            if (configuration.rotateValues && statistic.totalRuns % configuration.runsPerValue > 0) {
                 statistic.getSeed(random, configuration).let {
                     mutationFactory.mutate(it, random, configuration, statistic)
                 }
             } else {
-                val actualParameters = description.parameters
-                // fuzz one value, seems to be bad, when have only a few and simple values
-                fuzzOne(actualParameters).let {
-                    if (random.flipCoin(configuration.probMutationRate)) {
+                if (statistic.isNotEmpty() && random.flipCoin(configuration.probSeedRetrievingInsteadGenerating)) {
+                    statistic.getSeed(random, configuration).let {
                         mutationFactory.mutate(it, random, configuration, statistic)
-                    } else {
-                        it
+                    }
+                } else {
+                    val actualParameters = description.parameters
+                    // fuzz one value, seems to be bad, when have only a few and simple values
+                    fuzzOne(actualParameters).let {
+                        if (random.flipCoin(configuration.probMutationRate)) {
+                            mutationFactory.mutate(it, random, configuration, statistic)
+                        } else {
+                            it
+                        }
                     }
                 }
-            }
 
         }
 
@@ -543,7 +535,7 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
 
         val timeBeforeHandle = System.nanoTime()
         val feedback = fuzzing.handle(description, result)
-        feedback.runDuration = System.nanoTime() - timeBeforeHandle % 100
+        feedback.runDuration = (System.nanoTime() - timeBeforeHandle) / 100
 
         description.afterRun()
 
@@ -554,18 +546,10 @@ private suspend fun <T, R, D : Description<T, R>, F : Feedback<T, R>> Fuzzing<T,
             totalRuns++
         }
 
-        when (feedback.control) {
-            Control.CONTINUE -> {
-                description.afterIteration(values, feedback, minsetResponse)
-                description.finalizeReport(statistic)
-            }
-            Control.STOP -> {
-                description.finalizeReport(statistic)
-                break
-            }
-            Control.PASS -> {
-                description.finalizeReport(statistic)
-            }
+        description.afterIteration(values, feedback, minsetResponse)
+
+        if (feedback.control == Control.STOP) {
+            break
         }
     }
 }

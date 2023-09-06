@@ -117,7 +117,8 @@ def check_coverage(
 
 def main_test_generation(args):
     config = parse_config(args.config_file)
-    shutil.rmtree(args.coverage_output_dir)
+    if pathlib.Path(args.coverage_output_dir).exists():
+        shutil.rmtree(args.coverage_output_dir)
     for part in config['parts']:
         for file in part['files']:
             for group in file['groups']:

@@ -108,7 +108,6 @@ class PythonExecutor:
 
         try:
             state_init_memory = _load_objects(args + list(kwargs.values()))
-
             state_init = _update_states(loader.reload_id(), state_init_memory)
             serialized_state_init = serialize_memory_dump(state_init)
 
@@ -199,7 +198,6 @@ def _run_calculate_function_value(
     logging.debug("Missed lines: %s", __missed_filtered)
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
-
     ids = args_ids + list(kwargs_ids.values())
     # state_before, state_after = compress_memory(ids, state_before, state_after)
     diff_ids = compress_memory(ids, state_before, state_after)

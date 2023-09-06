@@ -417,7 +417,11 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                     )
                                 )
                             }
-                            val fieldExpected = variableConstructor.getOrCreateVariable(PythonTreeModel(value), "expected_$field")
+                            val fieldExpected = if (useExpectedAsValue) {
+                                expected
+                            } else {
+                                variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
+                            }
                             pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1)
                         }
                     }

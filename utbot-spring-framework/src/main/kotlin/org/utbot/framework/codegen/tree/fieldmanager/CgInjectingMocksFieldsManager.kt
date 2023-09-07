@@ -1,8 +1,6 @@
 package org.utbot.framework.codegen.tree.fieldmanager
 
 import org.utbot.framework.codegen.domain.builtin.injectMocksClassId
-import org.utbot.framework.codegen.domain.builtin.mockClassId
-import org.utbot.framework.codegen.domain.builtin.spyClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgFieldDeclaration
 import org.utbot.framework.codegen.domain.models.CgValue

@@ -278,7 +278,7 @@ internal class UtilClassFileMethodProvider(language: CodegenLanguage)
     val UTIL_CLASS_VERSION = "2.1"
 }
 
-internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
+class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
 
 internal fun selectUtilClassId(codegenLanguage: CodegenLanguage): ClassId =
     when (codegenLanguage) {

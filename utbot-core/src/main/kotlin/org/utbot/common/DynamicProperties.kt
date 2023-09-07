@@ -36,6 +36,11 @@ interface MutableDynamicProperties<TOwner> : DynamicProperties<TOwner> {
     operator fun <T> set(property: DynamicProperty<TOwner, T>, value: T)
 }
 
+fun <TOwner, T> MutableDynamicProperties<TOwner>.getOrPut(property: DynamicProperty<TOwner, T>, default: () -> T): T {
+    if (property !in this) set(property, default())
+    return getValue(property)
+}
+
 fun <TOwner> Iterable<InitialisedDynamicProperty<TOwner, *>>.toMutableDynamicProperties(): MutableDynamicProperties<TOwner> =
     DynamicPropertiesImpl<TOwner>().also { properties ->
         forEach { properties.add(it) }

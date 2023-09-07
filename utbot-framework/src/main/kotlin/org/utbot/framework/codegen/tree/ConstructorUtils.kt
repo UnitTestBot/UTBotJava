@@ -255,7 +255,7 @@ fun CgContextOwner.importIfNeeded(type: ClassId) {
     }
 }
 
-internal fun CgContextOwner.importIfNeeded(method: MethodId) {
+fun CgContextOwner.importIfNeeded(method: MethodId) {
     val name = method.name
     val packageName = method.classId.packageName
     method.takeIf { it.isStatic && packageName != testClassPackageName && packageName != "java.lang" }

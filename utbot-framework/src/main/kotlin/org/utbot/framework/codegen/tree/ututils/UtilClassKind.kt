@@ -120,7 +120,7 @@ sealed class UtilClassKind(
          * @return `null` if [CgContext.utilMethodProvider] is not [UtilClassFileMethodProvider],
          * because it means that util methods will be taken from some other provider (e.g. [TestClassUtilMethodProvider]).
          */
-        internal fun fromCgContextOrNull(context: CgContext): UtilClassKind? {
+        fun fromCgContextOrNull(context: CgContext): UtilClassKind? {
             if (context.requiredUtilMethods.isEmpty()) return null
             if (!context.mockFrameworkUsed) {
                 return RegularUtUtils(context.codegenLanguage)

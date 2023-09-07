@@ -1,5 +1,6 @@
 dependencies {
     testImplementation(project(":utbot-framework"))
+    testImplementation(project(":utbot-spring-framework"))
     testImplementation project(':utbot-testing')
     testImplementation project(':utbot-spring-sample')
 

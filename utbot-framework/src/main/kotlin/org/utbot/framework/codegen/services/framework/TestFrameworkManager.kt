@@ -25,9 +25,6 @@ import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.util.SpringModelUtils.extendWithClassId
-import org.utbot.framework.plugin.api.util.SpringModelUtils.runWithClassId
-import org.utbot.framework.plugin.api.util.SpringModelUtils.springExtensionClassId
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.byteArrayClassId
 import org.utbot.framework.plugin.api.util.charArrayClassId

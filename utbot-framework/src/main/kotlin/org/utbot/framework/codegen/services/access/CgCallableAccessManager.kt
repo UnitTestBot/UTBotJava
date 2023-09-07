@@ -87,7 +87,7 @@ interface CgCallableAccessManager {
     operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess
 }
 
-internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
+class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
     CgContextOwner by context {
 
     private val statementConstructor by lazy { getStatementConstructorBy(context) }

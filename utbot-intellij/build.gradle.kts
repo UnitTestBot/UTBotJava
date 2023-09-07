@@ -157,6 +157,7 @@ dependencies {
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = jacksonVersion)
 
     implementation(project(":utbot-framework")) { exclude(group = "org.slf4j", module = "slf4j-api") }
+    implementation(project(":utbot-spring-framework")) { exclude(group = "org.slf4j", module = "slf4j-api") }
     implementation(project(":utbot-java-fuzzing"))
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")

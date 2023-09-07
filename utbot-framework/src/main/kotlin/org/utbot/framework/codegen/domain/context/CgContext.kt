@@ -13,6 +13,9 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.common.DynamicProperty
+import org.utbot.common.MutableDynamicProperties
+import org.utbot.common.mutableDynamicPropertiesOf
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
@@ -25,7 +28,6 @@ import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
-import org.utbot.framework.codegen.tree.fieldmanager.CgAbstractClassFieldManager
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -37,6 +39,9 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.jClass
+
+typealias CgContextProperties = MutableDynamicProperties<CgContext>
+typealias CgContextProperty<T> = DynamicProperty<CgContext, T>
 
 /**
  * Interface for all code generation context aware entities
@@ -243,10 +248,16 @@ interface CgContextOwner {
     var successfulExecutionsModels: List<UtModel>
 
     /**
-     * Managers to process annotated fields of the class under test
-     * relevant for the current generation type.
+     * Many of [CgContext] properties are only needed in some specific scenarios
+     * (e.g. Spring-related properties and parametrized test specific properties).
+     *
+     * To avoid overly inflating [CgContext] interface such properties should
+     * be added as dynamic properties.
+     *
+     * @see DynamicProperty
      */
-    val relevantFieldManagers: MutableList<CgAbstractClassFieldManager>
+    // TODO make parameterized test specific properties dynamic
+    val properties: CgContextProperties
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -509,8 +520,8 @@ class CgContext(
         RuntimeExceptionTestsBehaviour.defaultItem,
     override val hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
     override val enableTestsTimeout: Boolean = true,
-    override val relevantFieldManagers: MutableList<CgAbstractClassFieldManager> = mutableListOf(),
     override var containsReflectiveCall: Boolean = false,
+    override val properties: CgContextProperties = mutableDynamicPropertiesOf(),
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
@@ -667,5 +678,6 @@ class CgContext(
         hangingTestsTimeout = this.hangingTestsTimeout,
         enableTestsTimeout = this.enableTestsTimeout,
         containsReflectiveCall = this.containsReflectiveCall,
+        properties = this.properties,
     )
 }

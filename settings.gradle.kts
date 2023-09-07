@@ -56,6 +56,7 @@ if (includeRiderInBuild.toBoolean()) {
 
 include("utbot-ui-commons")
 
+include("utbot-spring-framework")
 include("utbot-spring-commons-api")
 include("utbot-spring-commons")
 include("utbot-spring-analyzer")

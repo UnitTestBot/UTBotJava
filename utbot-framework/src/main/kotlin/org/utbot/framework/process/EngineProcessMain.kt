@@ -28,18 +28,14 @@ import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.utils.ClassNameUtils
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.process.generated.BeanAdditionalData
-import org.utbot.framework.process.generated.BeanDefinitionData
 import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.generated.settingsModel
-import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
-import org.utbot.spring.process.SpringAnalyzerProcess
 import org.utbot.summary.summarizeAll
 import org.utbot.taint.TaintConfigurationProviderUserRules
 import java.io.File
@@ -89,27 +85,6 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             commonParent = ClassLoader.getSystemClassLoader().parent,
         )
         UtContext.setUtContext(UtContext(classLoader))
-    }
-    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
-        try {
-            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
-            val result = springAnalyzerProcess.terminateOnException { _ ->
-                springAnalyzerProcess.getBeanDefinitions(
-                    kryoHelper.readObject(params.springSettings)
-                )
-            }
-            springAnalyzerProcess.terminate()
-            val beanDefinitions = result.beanDefinitions
-                .map { data ->
-                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
-                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
-                }
-                .toTypedArray()
-            SpringAnalyzerResult(beanDefinitions)
-        } catch (e: Exception) {
-            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
-            SpringAnalyzerResult(emptyArray())
-        }
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
@@ -272,6 +247,11 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             Pair(message, null)
         }
         GenerateTestReportResult(notifyMessage, statistics, hasWarnings)
+    }
+    watchdog.measureTimeForActiveCall(perform, "Performing dynamic task") { params ->
+        val task = kryoHelper.readObject<EngineProcessTask<Any?>>(params.engineProcessTask)
+        val result = task.perform(kryoHelper)
+        kryoHelper.writeObject(result)
     }
 }
 

@@ -129,12 +129,14 @@ class PythonGenerateTestsCommand : CliktCommand(
         val topLevelClasses = PythonCode.getTopLevelClasses(parsedModule)
 
         val selectedMethods = methods
+        val filterMethods = listOf("__init__", "__new__")
         if (pythonClass == null && methods == null) {
             return if (topLevelFunctions.isNotEmpty())
                 Success(
                     topLevelFunctions
                         .mapNotNull { parseFunctionDefinition(it) }
                         .map { PythonMethodHeader(it.name.toString(), absSourceFile(), null) }
+                        .filter { !filterMethods.contains(it.name) }
                 )
             else {
                 val topLevelClassMethods = topLevelClasses
@@ -146,6 +148,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                                 val parsedClassName = PythonClassId(cls.name.toString())
                                 PythonMethodHeader(function.name.toString(), absSourceFile(), parsedClassName)
                             }
+                            .filter { !filterMethods.contains(it.name) }
                     }
                 if (topLevelClassMethods.isNotEmpty()) {
                     Success(topLevelClassMethods)
@@ -178,6 +181,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                 .map {
                     PythonMethodHeader(it.name.toString(), absSourceFile(), parsedClassId)
                 }
+                .filter { !filterMethods.contains(it.name) }
             if (fineMethods.isNotEmpty())
                 Success(fineMethods)
             else

@@ -54,6 +54,8 @@ object PythonTree {
     ) {
         constructor(type: PythonClassId, comparable: Boolean = true) : this(PythonIdGenerator.createId(), type, comparable)
 
+        fun PythonTreeNode.wrap(): PythonTreeWrapper = PythonTreeWrapper(this)
+
         open val children: List<PythonTreeNode> = emptyList()
 
         fun isRecursive(): Boolean {
@@ -75,7 +77,7 @@ object PythonTree {
             if (other !is PythonTreeNode) {
                 return false
             }
-            return id == other.id
+            return this.wrap() == other.wrap()
         }
 
         override fun hashCode(): Int {
@@ -367,7 +369,7 @@ class PythonTreeWrapper(val tree: PythonTree.PythonTreeNode) {
         if (other !is PythonTreeWrapper)
             return false
         if (PythonTree.isRecursiveObject(tree) || PythonTree.isRecursiveObject(other.tree))
-            return tree == other.tree
+            return tree.id == other.tree.id
         return tree.softEquals(other.tree)
     }
 

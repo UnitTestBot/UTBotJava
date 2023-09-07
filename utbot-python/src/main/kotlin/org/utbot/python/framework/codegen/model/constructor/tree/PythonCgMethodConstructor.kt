@@ -189,7 +189,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             assertEquality(
                 expected = it.second,
                 actual = it.first,
-                expectedVariableName = paramNames[executableId]?.get(index) + "_modified"
+                expectedVariableName = paramNames[executableId]?.get(index) + "_expected"
             )
         }
         if (assertThisObject.isNotEmpty()) {
@@ -199,7 +199,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             assertEquality(
                 expected = it.second,
                 actual = it.first,
-                expectedVariableName = it.first.name + "_modified"
+                expectedVariableName = it.first.name + "_expected"
             )
         }
     }
@@ -408,23 +408,29 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             is PythonTree.ReduceNode -> {
                 if (expectedNode.state.isNotEmpty()) {
                     expectedNode.state.forEach { (field, value) ->
-                        val fieldActual = newVar(value.type, "actual_$field") {
-                            CgFieldAccess(
-                                actual, FieldId(
-                                    value.type,
-                                    field
+                        if (value.comparable) {
+                            val fieldActual = newVar(value.type, "actual_$field") {
+                                CgFieldAccess(
+                                    actual, FieldId(
+                                        value.type,
+                                        field
+                                    )
                                 )
-                            )
+                            }
+                            val fieldExpected = if (useExpectedAsValue) {
+                                newVar(value.type, "expected_$field") {
+                                    CgFieldAccess(
+                                        expected, FieldId(
+                                            value.type,
+                                            field
+                                        )
+                                    )
+                                }
+                            } else {
+                                variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
+                            }
+                            pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1, useExpectedAsValue = useExpectedAsValue)
                         }
-                        val fieldExpected = newVar(value.type, "expected_$field") {
-                            CgFieldAccess(
-                                expected, FieldId(
-                                    value.type,
-                                    field
-                                )
-                            )
-                        }
-                        pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1)
                     }
                 } else {
                     emptyLineIfNeeded()

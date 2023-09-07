@@ -35,7 +35,7 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
         }
     }
 
-    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null, depth: Int = 6): Pair<CgValue, List<CgStatement>> {
+    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode, baseName: String? = null): Pair<CgValue, List<CgStatement>> {
         val id = objectNode.id
         val assistant = (context.cgLanguageAssistant as PythonCgLanguageAssistant)
         return when (objectNode) {

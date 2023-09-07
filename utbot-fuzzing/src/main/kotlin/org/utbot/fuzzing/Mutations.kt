@@ -296,7 +296,7 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
             return Result.Recursive(
                 construct = recursive.mutate(source.construct,random, configuration),
                 modify = source.modify,
-                finally = source.finally,
+                transformers = source.transformers,
             )
         }
     }
@@ -311,7 +311,7 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
             return Result.Recursive(
                 construct = source.construct,
                 modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1)),
-                finally = source.finally
+                transformers = source.transformers
             )
         }
     }
@@ -329,7 +329,7 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
                     val i = random.nextInt(0, source.modify.size)
                     set(i, recursive.mutate(source.modify[i], random, configuration))
                 },
-                finally = source.finally
+                transformers = source.transformers
             )
         }
 

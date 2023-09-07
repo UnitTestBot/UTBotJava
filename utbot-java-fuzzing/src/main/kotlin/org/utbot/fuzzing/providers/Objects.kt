@@ -22,7 +22,6 @@ import org.utbot.framework.util.executableId
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
@@ -57,13 +56,6 @@ private fun isIgnored(type: ClassId): Boolean {
             || type.isAbstract
             || (type.isInner && !type.isStatic)
 }
-
-fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
-    ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
-        ovp.withFallback(
-            AbstractsObjectValueProvider(idGenerator).with(BuilderObjectValueProvider(idGenerator))
-        )
-    }.withFallback(AnyDepthNullValueProvider)
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -109,7 +101,7 @@ class ObjectValueProvider(
                     when {
                         fd.canBeSetDirectly -> {
                             yield(Routine.Call(listOf(fd.type)) { self, values ->
-                                val model = self.model as UtAssembleModel
+                                val model = self.model as? UtAssembleModel ?: return@Call
                                 model.modificationsChain as MutableList += UtDirectSetFieldModel(
                                     model,
                                     FieldId(classId, fd.name),
@@ -120,7 +112,7 @@ class ObjectValueProvider(
 
                         fd.setter != null && fd.getter != null -> {
                             yield(Routine.Call(listOf(fd.type)) { self, values ->
-                                val model = self.model as UtAssembleModel
+                                val model = self.model as? UtAssembleModel ?: return@Call
                                 model.modificationsChain as MutableList += UtExecutableCallModel(
                                     model,
                                     fd.setter.executableId,
@@ -245,7 +237,7 @@ class BuilderObjectValueProvider(
                                          }
                                     },
                                 empty = nullRoutine(returnClassId),
-                                finally = Routine.Modify(parameters) { instance, values ->
+                                transformers = sequenceOf(Routine.Modify(parameters) { instance, values ->
                                     UtAssembleModel(
                                         idGenerator.createId(),
                                         returnClassId,
@@ -256,7 +248,7 @@ class BuilderObjectValueProvider(
                                             values.map { it.model }
                                         ),
                                     ).fuzzed {  }
-                                }
+                                })
                             ))
                         }
                     }
@@ -272,7 +264,8 @@ private fun SootClass.isUseful(): Boolean {
     if (packageName != null) {
         if (packageName.startsWith("jdk.internal") ||
             packageName.startsWith("org.utbot") ||
-            packageName.startsWith("sun.")
+            packageName.startsWith("sun.") ||
+            packageName.startsWith("com.sun.")
         )
             return false
     }

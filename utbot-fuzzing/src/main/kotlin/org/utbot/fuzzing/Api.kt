@@ -142,7 +142,7 @@ sealed interface Seed<TYPE, RESULT> {
         val construct: Routine.Create<TYPE, RESULT>,
         val modify: Sequence<Routine.Call<TYPE, RESULT>> = emptySequence(),
         val empty: Routine.Empty<TYPE, RESULT>,
-        val finally: Routine.Modify<TYPE, RESULT>? = null,
+        val transformers: Sequence<Routine.Modify<TYPE, RESULT>> = emptySequence(),
     ) : Seed<TYPE, RESULT>
 
     /**
@@ -550,20 +550,26 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                         }
                     )
                 },
-            finally = task.finally?.let { finally ->
-                fuzz(
-                    finally.types,
-                    fuzzing,
-                    description,
-                    random,
-                    configuration,
-                    finally,
-                    state.copy {
-                        recursionTreeDepth++
-                        iterations = -1
-                        parameterIndex = -1
-                    }
-                )
+            transformers = task.transformers.let { transformer ->
+                if (transformer === emptySequence<Node<TYPE, RESULT>>() || transformer.none()) {
+                    emptyList()
+                } else {
+                    transformer.map { f ->
+                        fuzz(
+                            f.types,
+                            fuzzing,
+                            description,
+                            random,
+                            configuration,
+                            f,
+                            state.copy {
+                                recursionTreeDepth++
+                                iterations = -1
+                                parameterIndex = -1
+                            }
+                        )
+                    }.toList()
+                }
             }
         )
     } catch (nsv: NoSeedValueException) {
@@ -600,12 +606,16 @@ private fun <TYPE, R> create(result: Result<TYPE, R>): R = when(result) {
                 else -> error("Undefined object call method ${func.builder}")
             }
         }
-        finally?.let { func ->
-            when (val builder = func.builder) {
-                is Routine.Modify<TYPE, R> -> builder(obj, func.result.map { create(it) })
-                else -> error("Undefined object call method ${func.builder}")
+        transformers.let { transformers ->
+            var transformed = obj
+            transformers.forEach { transformer ->
+                transformed = when (val builder = transformer.builder) {
+                    is Routine.Modify<TYPE, R> -> builder(obj, transformer.result.map { create(it) })
+                    else -> error("Undefined object call method ${transformer.builder}")
+                }
             }
-        } ?: obj
+            transformed
+        }
     }
     is Result.Collection<TYPE, R> -> with(result) {
         val collection: R = when (val c = construct.builder) {
@@ -687,7 +697,7 @@ sealed interface Result<TYPE, RESULT> {
     class Recursive<TYPE, RESULT>(
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
-        val finally: Node<TYPE, RESULT>?,
+        val transformers: List<Node<TYPE, RESULT>>,
     ) : Result<TYPE, RESULT>
 
     /**

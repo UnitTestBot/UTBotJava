@@ -42,14 +42,18 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     FloatValueProvider,
     StringValueProvider,
     NumberValueProvider,
-    anyObjectValueProvider(idGenerator),
-    ArrayValueProvider(idGenerator),
-    EnumValueProvider(idGenerator),
-    ListSetValueProvider(idGenerator),
-    MapValueProvider(idGenerator),
-    IteratorValueProvider(idGenerator),
-    EmptyCollectionValueProvider(idGenerator),
-    DateValueProvider(idGenerator),
+    (ObjectValueProvider(idGenerator)
+        with ArrayValueProvider(idGenerator)
+        with EnumValueProvider(idGenerator)
+        with ListSetValueProvider(idGenerator)
+        with MapValueProvider(idGenerator)
+        with IteratorValueProvider(idGenerator)
+        with EmptyCollectionValueProvider(idGenerator)
+        with DateValueProvider(idGenerator))
+            .withFallback(
+                AbstractsObjectValueProvider(idGenerator)
+                        with BuilderObjectValueProvider(idGenerator)
+            ),
     VoidValueProvider,
     NullValueProvider,
 )
@@ -235,6 +239,7 @@ private fun toClassId(type: Type, cache: MutableMap<Type, FuzzedType>): ClassId 
         }
         is ParameterizedType -> (type.rawType as Class<*>).id
         is Class<*> -> type.id
+        is TypeVariable<*> -> type.bounds.firstOrNull()?.let { toClassId(it, cache) } ?: objectClassId
         else -> error("unknown type: $type")
     }
 }

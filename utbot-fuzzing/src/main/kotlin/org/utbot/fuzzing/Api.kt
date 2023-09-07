@@ -141,7 +141,8 @@ sealed interface Seed<TYPE, RESULT> {
     class Recursive<TYPE, RESULT>(
         val construct: Routine.Create<TYPE, RESULT>,
         val modify: Sequence<Routine.Call<TYPE, RESULT>> = emptySequence(),
-        val empty: Routine.Empty<TYPE, RESULT>
+        val empty: Routine.Empty<TYPE, RESULT>,
+        val finally: Routine.Modify<TYPE, RESULT>? = null,
     ) : Seed<TYPE, RESULT>
 
     /**
@@ -184,6 +185,13 @@ sealed class Routine<T, R>(val types: List<T>) : Iterable<T> by types {
         operator fun invoke(instance: R, arguments: List<R>) {
             callable(instance, arguments)
         }
+    }
+
+    class Modify<T, R>(
+        types: List<T>,
+        val callable: (instance: R, arguments: List<R>) -> R
+    ) : Routine<T, R>(types) {
+        operator fun invoke(instance: R, arguments: List<R>): R = callable(instance, arguments)
     }
 
     /**
@@ -541,7 +549,22 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                             parameterIndex = -1
                         }
                     )
-                }
+                },
+            finally = task.finally?.let { finally ->
+                fuzz(
+                    finally.types,
+                    fuzzing,
+                    description,
+                    random,
+                    configuration,
+                    finally,
+                    state.copy {
+                        recursionTreeDepth++
+                        iterations = -1
+                        parameterIndex = -1
+                    }
+                )
+            }
         )
     } catch (nsv: NoSeedValueException) {
         @Suppress("UNCHECKED_CAST")
@@ -577,7 +600,12 @@ private fun <TYPE, R> create(result: Result<TYPE, R>): R = when(result) {
                 else -> error("Undefined object call method ${func.builder}")
             }
         }
-        obj
+        finally?.let { func ->
+            when (val builder = func.builder) {
+                is Routine.Modify<TYPE, R> -> builder(obj, func.result.map { create(it) })
+                else -> error("Undefined object call method ${func.builder}")
+            }
+        } ?: obj
     }
     is Result.Collection<TYPE, R> -> with(result) {
         val collection: R = when (val c = construct.builder) {
@@ -659,6 +687,7 @@ sealed interface Result<TYPE, RESULT> {
     class Recursive<TYPE, RESULT>(
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
+        val finally: Node<TYPE, RESULT>?,
     ) : Result<TYPE, RESULT>
 
     /**

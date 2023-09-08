@@ -347,10 +347,10 @@ class PythonEngine(
                             val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
                             val mem = cache.get(pair)
                             if (mem != null) {
-                                logger.debug("Repeat in fuzzing")
+                                logger.debug("Repeat in fuzzing ${arguments.map {it.tree}}")
                                 description.limitManager.addSuccessExecution()
                                 emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
-                                return@PythonFuzzing mem.fuzzingPlatformFeedback
+                                return@PythonFuzzing mem.fuzzingPlatformFeedback.fromCache()
                             }
                             val result = fuzzingResultHandler(description, arguments, parameters, manager)
                             if (result == null) {  // timeout

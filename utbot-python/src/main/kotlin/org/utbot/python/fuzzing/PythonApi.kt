@@ -58,7 +58,17 @@ data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<Instruction> = Trie.emptyNode(),
     val typeInferenceFeedback: InferredTypeFeedback = InvalidTypeFeedback,
-) : Feedback<UtType, PythonFuzzedValue>
+    val fromCache: Boolean = false,
+) : Feedback<UtType, PythonFuzzedValue> {
+    fun fromCache(): PythonFeedback {
+        return PythonFeedback(
+            control = control,
+            result = result,
+            typeInferenceFeedback = typeInferenceFeedback,
+            fromCache = true,
+        )
+    }
+}
 
 class PythonFuzzedValue(
     val tree: PythonTree.PythonTreeNode,
@@ -128,7 +138,7 @@ class PythonFuzzing(
 
     override suspend fun handle(description: PythonMethodDescription, values: List<PythonFuzzedValue>): PythonFeedback {
         val result = execute(description, values)
-        if (result.typeInferenceFeedback is SuccessFeedback) {
+        if (result.typeInferenceFeedback is SuccessFeedback && !result.fromCache) {
             typeInferenceAlgorithm.laudType(description.type)
         }
         if (description.limitManager.isCancelled()) {

@@ -44,6 +44,7 @@ class BaselineAlgorithm(
     private val states: MutableList<BaselineAlgorithmState> = mutableListOf(initialState)
     private val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
     private var iterationCounter = 0
+    private var randomTypeCounter = 0
 
     private val simpleTypes = simplestTypes(storage)
     private val mixtureType = createPythonUnionType(simpleTypes)
@@ -65,8 +66,8 @@ class BaselineAlgorithm(
 
     private fun getLaudedType(): UtType? {
         if (statistic.isEmpty()) return null
-        val sum = statistic.map { it.value }.sum()
-        val weights = statistic.map { it.value.toDouble() / sum }
+        val sum = statistic.values.sum()
+        val weights = statistic.values.map { it.toDouble() / sum }
         val newType = weightedRandom(statistic.keys.toList(), weights, random)
         logger.info("Lauded type: ${newType.pythonTypeRepresentation()}")
         return newType
@@ -79,12 +80,13 @@ class BaselineAlgorithm(
         iterationCounter++
 
         if (randomTypeFrequency > 0 && iterationCounter % randomTypeFrequency == 0) {
-            if (iterationCounter % 2 == 0) {
-                val randomType = getRandomType()
-                if (randomType != null) return randomType
+            randomTypeCounter++
+            if (randomTypeCounter % 2 == 0) {
+                val laudedType = getLaudedType()
+                if (laudedType != null) return laudedType
             }
-            val laudedType = getLaudedType()
-            if (laudedType != null) return laudedType
+            val randomType = getRandomType()
+            if (randomType != null) return randomType
         }
 
         val state = chooseState(states)
@@ -96,13 +98,17 @@ class BaselineAlgorithm(
                 openedStates[newState.signature] = newState to state
                 return newState.signature
             }
-            expandState()
+        } else if (state.anyNodes.isEmpty()) {
+            logger.info("Checking ${state.signature.pythonTypeRepresentation()}")
+            if (checkSignature(state.signature as FunctionType, fileForMypyRuns, configFile)) {
+                return state.signature
+            } else {
+                states.remove(state)
+            }
         } else {
             states.remove(state)
         }
-        val laudedType = getLaudedType()
-        if (laudedType != null) return laudedType
-        return null
+        return expandState()
     }
 
     fun feedbackState(signature: UtType, feedback: InferredTypeFeedback) {

@@ -7,6 +7,7 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonComplexClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.newtyping.createPythonUnionType
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
@@ -17,11 +18,17 @@ object ComplexValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMet
     }
 
     override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
+        val numberType = createPythonUnionType(
+            listOf(
+                description.pythonTypeStorage.pythonFloat,
+                description.pythonTypeStorage.pythonInt
+            )
+        )
         yield(Seed.Recursive(
             construct = Routine.Create(
                 listOf(
-                    description.pythonTypeStorage.pythonFloat,
-                    description.pythonTypeStorage.pythonFloat,
+                    numberType,
+                    numberType
                 )
             ) { v ->
                 val real = v[0].tree as PythonTree.PrimitiveNode

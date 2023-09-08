@@ -43,7 +43,7 @@ object FloatValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMetho
     override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> = sequence {
         val floatConstants = getFloatConstants(description.concreteValues)
         val intConstants = getIntConstants(description.concreteValues)
-        val constants = floatConstants + intConstants
+        val constants = floatConstants + intConstants + listOf(0, 1).map { IEEE754Value.fromValue(it.toDouble()) }
 
         constants.asSequence().forEach {  value ->
             yield(Seed.Known(value) {

@@ -20,6 +20,8 @@ private val logger = KotlinLogging.logger {}
 private val loggedUnresolvedExecutables = mutableSetOf<ExecutableId>()
 
 val Type.typeToken: TypeToken<*> get() = TypeToken.of(this)
+inline fun <reified T> typeTokenOf(): TypeToken<T> = object : TypeToken<T>() {}
+inline fun <reified T> jTypeOf(): Type = typeTokenOf<T>().type
 
 val FuzzedType.jType: Type get() = toType(cache = mutableMapOf())
 
@@ -88,6 +90,11 @@ fun resolveParameterTypes(
             // e.g. when unifying Optional<Integer> and Optional<String>
             return null
         }
+
+        // in some cases when bounded wildcards are involved TypeResolver.where() doesn't throw even though types are
+        // incompatible (e.g. when needed type is `List<? super Integer>` while actual super type is `List<String>`)
+        if (!typeResolver.resolveType(actualSuperType).typeToken.isSubtypeOf(neededType))
+            return null
 
         executableId.executable.genericParameterTypes.map {
             typeResolver.resolveType(it)

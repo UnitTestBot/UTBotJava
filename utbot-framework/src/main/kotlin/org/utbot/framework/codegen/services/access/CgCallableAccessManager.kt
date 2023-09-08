@@ -1,8 +1,6 @@
 package org.utbot.framework.codegen.services.access
 
 import kotlinx.collections.immutable.PersistentList
-import org.utbot.framework.codegen.domain.Junit5
-import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.builtin.any
 import org.utbot.framework.codegen.domain.builtin.anyOfClass
 import org.utbot.framework.codegen.domain.builtin.getMethodId
@@ -47,7 +45,6 @@ import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.util.exceptions
 import org.utbot.framework.plugin.api.util.extensionReceiverParameterIndex
 import org.utbot.framework.plugin.api.util.humanReadableName
@@ -158,16 +155,6 @@ class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessMana
 
         if (methodId == getTargetException) {
             addExceptionIfNeeded(Throwable::class.id)
-        }
-
-        val methodIsToCallAndThrowsExplicitly = methodId == currentExecutableToCall
-                && currentExecution?.result is UtExplicitlyThrownException
-        val frameworkSupportsAssertThrows = testFramework == Junit5 || testFramework == TestNg
-
-        //If explicit exception is wrapped with assertThrows,
-        // no "throws" in test method signature is required.
-        if (methodIsToCallAndThrowsExplicitly && frameworkSupportsAssertThrows) {
-            return
         }
 
         methodId.method.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }

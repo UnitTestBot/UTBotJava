@@ -286,7 +286,9 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is TestNg) { "According to settings, TestNg was expected, but got: $testFramework" }
-        val lambda = statementConstructor.lambda(testFramework.throwingRunnableClassId) { block() }
+        val lambda = statementConstructor.lambda(testFramework.throwingRunnableClassId) {
+            runWithoutCollectingExceptions(block)
+        }
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
 
@@ -474,7 +476,9 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
-        val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
+        val lambda = statementConstructor.lambda(testFramework.executableClassId) {
+            runWithoutCollectingExceptions(block)
+        }
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
 

@@ -191,6 +191,12 @@ class BuilderObjectValueProvider(
                 sootClass.methods.asSequence()
                     .filter { isAccessible(it, description.description.packageName) }
                     .filter { (implementors.contains((it.returnType as? RefType)?.sootClass)) }
+                    .filter {
+                        // Simple check whether the method is synthetic,
+                        // because Soot has no information about this:
+                        // https://mailman.cs.mcgill.ca/pipermail/soot-list/2012-November/004972.html
+                        !it.name.matches(nameWithDigitsAfterSpecialCharRegex)
+                    }
                     .forEach { method ->
                         val returnType = method.returnType as RefType
                         val returnClassId = returnType.classId
@@ -258,6 +264,8 @@ class BuilderObjectValueProvider(
 
 }
 
+private val nameWithDigitsAfterSpecialCharRegex = """.*\$\d+$""".toRegex()
+
 private fun SootClass.isUseful(): Boolean {
     if (!isConcrete) return false
     val packageName = packageName
@@ -269,7 +277,7 @@ private fun SootClass.isUseful(): Boolean {
         )
             return false
     }
-    val isAnonymousClass = name.matches(""".*\$\d+$""".toRegex())
+    val isAnonymousClass = name.matches(nameWithDigitsAfterSpecialCharRegex)
     if (isAnonymousClass) {
         return false
     }

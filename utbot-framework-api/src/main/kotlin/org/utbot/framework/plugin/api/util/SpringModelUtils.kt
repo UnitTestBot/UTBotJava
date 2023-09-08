@@ -173,6 +173,12 @@ object SpringModelUtils {
     private val objectMapperClassId = ClassId("com.fasterxml.jackson.databind.ObjectMapper")
     private val cookieClassId = ClassId("javax.servlet.http.Cookie")
 
+    // as of Spring 6.0 `NestedServletException` is deprecated in favor of standard `ServletException` nesting
+    val nestedServletExceptionClassIds = listOf(
+        ClassId("org.springframework.web.util.NestedServletException"),
+        ClassId("jakarta.servlet.ServletException")
+    )
+
     private val requestAttributesMethodId = MethodId(
         classId = mockHttpServletRequestBuilderClassId,
         name = "requestAttr",

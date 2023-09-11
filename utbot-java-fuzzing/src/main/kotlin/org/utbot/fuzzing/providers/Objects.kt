@@ -198,12 +198,17 @@ class BuilderObjectValueProvider(
                         // https://mailman.cs.mcgill.ca/pipermail/soot-list/2012-November/004972.html
                         !it.name.matches(nameWithDigitsAfterSpecialCharRegex)
                     }
-                    .forEach { method ->
+                    .forEach byMethod@{ method ->
                         val returnType = method.returnType as RefType
                         val returnClassId = returnType.classId
                         val isStaticMethod = method.isStatic
                         val parameters = method.parameterTypes.map {
-                            toFuzzerType(it.classId.jClass, description.typeCache)
+                            try {
+                                toFuzzerType(it.classId.jClass, description.typeCache)
+                            } catch (e: ClassNotFoundException) {
+                                logger.warn { "${it.classId} is not loaded by classpath" }
+                                return@byMethod
+                            }
                         } as MutableList<FuzzedType>
                         if (isStaticMethod) {
                             yield(Seed.Recursive(

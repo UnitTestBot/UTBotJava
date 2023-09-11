@@ -338,8 +338,8 @@ class AbstractsObjectValueProvider(
         }
 
         val implementations = when {
-            t.isInterface -> Scene.v().fastHierarchy.getAllImplementersOfInterface(t).filter(::canCreateClass)
-            t.isAbstract -> Scene.v().fastHierarchy.getSubclassesOf(t).filter(::canCreateClass)
+            t.isInterface -> Scene.v().activeHierarchy.getImplementersOf(t).filter(::canCreateClass)
+            t.isAbstract -> Scene.v().activeHierarchy.getSubclassesOf(t).filter(::canCreateClass)
             else -> emptyList()
         }
         implementations.shuffled(description.random).take(10).forEach { concrete ->

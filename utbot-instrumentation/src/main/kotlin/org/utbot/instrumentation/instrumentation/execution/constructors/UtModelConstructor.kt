@@ -41,7 +41,7 @@ class UtModelConstructor(
     private val constructedObjects = IdentityHashMap<Any, UtModel>()
 
     companion object {
-        private const val DEFAULT_MAX_DEPTH = 7L
+        const val DEFAULT_MAX_DEPTH = 7L
 
         fun createOnlyUserClassesConstructor(
             pathsToUserClasses: Set<String>,

@@ -11,6 +11,7 @@ import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
+import org.utbot.framework.context.custom.RerunningConcreteExecutionContext
 import org.utbot.framework.context.custom.mockAllTypesWithoutSpecificValueProvider
 import org.utbot.framework.context.utils.transformJavaFuzzingContext
 import org.utbot.framework.context.utils.withValueProvider
@@ -72,11 +73,14 @@ class SpringApplicationContextImpl(
                     )
                     .mockAllTypesWithoutSpecificValueProvider()
             }
-            SpringTestType.INTEGRATION_TEST -> SpringIntegrationTestConcreteExecutionContext(
-                delegateConcreteExecutionContext,
-                classpathWithoutDependencies,
-                this
-            )
+            SpringTestType.INTEGRATION_TEST ->
+                RerunningConcreteExecutionContext(
+                    SpringIntegrationTestConcreteExecutionContext(
+                        delegateConcreteExecutionContext,
+                        classpathWithoutDependencies,
+                        springApplicationContext = this
+                    )
+                )
         }
     }
 

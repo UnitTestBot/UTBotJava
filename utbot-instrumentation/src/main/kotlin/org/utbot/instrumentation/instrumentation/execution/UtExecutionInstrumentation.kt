@@ -16,12 +16,16 @@ import org.utbot.instrumentation.instrumentation.execution.phases.PhasesControll
  * @property [stateBefore] is necessary for construction of parameters of a concrete call.
  * @property [instrumentation] is necessary for mocking static methods and new instances.
  * @property [timeout] is timeout for specific concrete execution (in milliseconds).
+ * @property [isRerun] reruns can be used to obtain more reproducible results (e.g. on clean Spring application context),
+ * rerun can take more time due to context reinitialisation.
+ *
  * By default is initialized from [UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis]
  */
 data class UtConcreteExecutionData(
     val stateBefore: EnvironmentModels,
     val instrumentation: List<UtInstrumentation>,
-    val timeout: Long
+    val timeout: Long,
+    val isRerun: Boolean,
 )
 
 fun UtConcreteExecutionData.mapModels(mapper: UtModelMapper) = copy(

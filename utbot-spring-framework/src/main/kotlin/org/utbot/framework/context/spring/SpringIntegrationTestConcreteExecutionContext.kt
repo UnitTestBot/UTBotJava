@@ -6,7 +6,6 @@ import org.utbot.framework.context.JavaFuzzingContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringSettings
-import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.getRelevantSpringRepositories
@@ -21,7 +20,7 @@ class SpringIntegrationTestConcreteExecutionContext(
     private val delegateContext: ConcreteExecutionContext,
     classpathWithoutDependencies: String,
     private val springApplicationContext: SpringApplicationContext,
-) : ConcreteExecutionContext {
+) : ConcreteExecutionContext by delegateContext {
     private val springSettings = (springApplicationContext.springSettings as? SpringSettings.PresentSpringSettings) ?:
         error("Integration tests cannot be generated without Spring configuration")
 
@@ -49,11 +48,6 @@ class SpringIntegrationTestConcreteExecutionContext(
                 springApplicationContext.concreteContextLoadingResult = it
             }
         }
-
-    override fun transformExecutionsBeforeMinimization(
-        executions: List<UtExecution>,
-        classUnderTestId: ClassId
-    ): List<UtExecution> = delegateContext.transformExecutionsBeforeMinimization(executions, classUnderTestId)
 
     override fun tryCreateFuzzingContext(
         concreteExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,

@@ -782,11 +782,12 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
     return EnvironmentModels(thisInstanceBefore, paramsBefore, statics, methodUnderTest)
 }
 
-private suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<UtConcreteExecutionResult>>.executeConcretely(
+suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<UtConcreteExecutionResult>>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>,
-    timeoutInMillis: Long
+    timeoutInMillis: Long,
+    isRerun: Boolean = false,
 ): UtConcreteExecutionResult = executeAsync(
     methodUnderTest.classId.name,
     methodUnderTest.signature,
@@ -794,7 +795,8 @@ private suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<
     parameters = UtConcreteExecutionData(
         stateBefore,
         instrumentation,
-        timeoutInMillis
+        timeoutInMillis,
+        isRerun,
     )
 ).convertToAssemble(methodUnderTest.classId.packageName)
 

@@ -10,6 +10,7 @@ class PythonCliProcessor(
     private val output: String,
     private val logger: KLogger,
     private val coverageOutput: String?,
+    private val executionCounterOutput: String?,
 ) : PythonTestGenerationProcessor() {
 
     override fun saveTests(testsCode: String) {
@@ -27,11 +28,13 @@ class PythonCliProcessor(
     }
 
     override fun processCoverageInfo(testSets: List<PythonTestSet>) {
-        val coverageReport = getStringCoverageInfo(testSets)
-        val output = coverageOutput ?: return
-        writeToFileAndSave(output, coverageReport)
-        val executionReport = "{\"executions\": ${getExecutionsNumber(testSets)}}"
-        val executionOutput = "$output.executions"
-        writeToFileAndSave(executionOutput, executionReport)
+        coverageOutput?.let { output ->
+            val coverageReport = getStringCoverageInfo(testSets)
+            writeToFileAndSave(output, coverageReport)
+        }
+        executionCounterOutput?.let { executionOutput ->
+            val executionReport = "{\"executions\": ${getExecutionsNumber(testSets)}}"
+            writeToFileAndSave(executionOutput, executionReport)
+        }
     }
 }

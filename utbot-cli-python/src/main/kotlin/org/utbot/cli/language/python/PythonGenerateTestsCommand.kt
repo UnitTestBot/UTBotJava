@@ -76,6 +76,11 @@ class PythonGenerateTestsCommand : CliktCommand(
         help = "File to write coverage report."
     )
 
+    private val executionCounterOutput by option(
+        "--executions-counter",
+        help = "File to write number of executions."
+    )
+
     private val installRequirementsIfMissing by option(
         "--install-requirements",
         help = "Install Python requirements if missing."
@@ -255,6 +260,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             output.toAbsolutePath(),
             logger,
             coverageOutput?.toAbsolutePath(),
+            executionCounterOutput?.toAbsolutePath(),
         )
 
         logger.info("Loading information about Python types...")

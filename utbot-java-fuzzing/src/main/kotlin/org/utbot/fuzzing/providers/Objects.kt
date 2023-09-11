@@ -70,9 +70,16 @@ fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
         ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
     }
 
+/**
+ * Marker interface that shows that this [JavaValueProvider] can potentially provide values of
+ * arbitrary types, unlike type-specific value providers that were designed to provide values of
+ * few specific popular types (e.g. `List`, `String`, etc.).
+ */
+interface AnyObjectValueProvider : JavaValueProvider
+
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-) : JavaValueProvider {
+) : AnyObjectValueProvider {
 
     override fun accept(type: FuzzedType) = !isIgnored(type.classId)
 
@@ -140,7 +147,7 @@ class ObjectValueProvider(
 }
 
 @Suppress("unused")
-object NullValueProvider : JavaValueProvider {
+object NullValueProvider : AnyObjectValueProvider {
 
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
         // any value in static function is ok to fuzz
@@ -170,7 +177,7 @@ object NullValueProvider : JavaValueProvider {
  *
  * Intended to be used as a last fallback.
  */
-object AnyDepthNullValueProvider : JavaValueProvider {
+object AnyDepthNullValueProvider : AnyObjectValueProvider {
 
     override fun accept(type: FuzzedType) = type.classId.isRefType
 
@@ -185,7 +192,7 @@ object AnyDepthNullValueProvider : JavaValueProvider {
  */
 class AbstractsObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
-) : JavaValueProvider {
+) : AnyObjectValueProvider {
 
     override fun accept(type: FuzzedType) = type.classId.isRefType && !isKnownTypes(type.classId)
 

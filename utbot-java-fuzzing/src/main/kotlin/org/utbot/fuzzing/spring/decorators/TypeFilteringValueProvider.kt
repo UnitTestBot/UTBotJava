@@ -4,9 +4,9 @@ import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.ValueProvider
 
 fun <T, R, D : Description<T>> ValueProvider<T, R, D>.filterTypes(predicate: (T) -> Boolean) =
-    FilteredValueProvider(delegate = this, predicate)
+    TypeFilteringValueProvider(delegate = this, predicate)
 
-class FilteredValueProvider<T, R, D : Description<T>>(
+class TypeFilteringValueProvider<T, R, D : Description<T>>(
     delegate: ValueProvider<T, R, D>,
     private val predicate: (T) -> Boolean
 ) : ValueProviderDecorator<T, R, D>(delegate) {

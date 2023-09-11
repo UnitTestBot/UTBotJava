@@ -102,7 +102,7 @@ class ObjectValueProvider(
                     when {
                         fd.canBeSetDirectly -> {
                             yield(Routine.Call(listOf(fd.type)) { self, values ->
-                                val model = self.model as? UtAssembleModel ?: return@Call
+                                val model = self.model as UtAssembleModel
                                 model.modificationsChain as MutableList += UtDirectSetFieldModel(
                                     model,
                                     FieldId(classId, fd.name),
@@ -113,7 +113,7 @@ class ObjectValueProvider(
 
                         fd.setter != null && fd.getter != null -> {
                             yield(Routine.Call(listOf(fd.type)) { self, values ->
-                                val model = self.model as? UtAssembleModel ?: return@Call
+                                val model = self.model as UtAssembleModel
                                 model.modificationsChain as MutableList += UtExecutableCallModel(
                                     model,
                                     fd.setter.executableId,

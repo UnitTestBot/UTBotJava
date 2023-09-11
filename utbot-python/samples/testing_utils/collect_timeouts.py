@@ -11,7 +11,6 @@ def read_test_config(path: pathlib.Path, coverage_dir: pathlib.Path) -> typing.D
     for part in data['parts']:
         for file in part['files']:
             for group in file['groups']:
-                full_name = pathlib.PurePath(part['path'], file['name'])
                 file_suffix = f"{part['path'].replace('/', '_')}_{file['name']}"
                 executions_output_file = pathlib.Path(coverage_dir, f"coverage_{file_suffix}.json.executions")
                 timeout = group['timeout']

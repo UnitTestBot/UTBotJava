@@ -1,4 +1,5 @@
-from named_arguments.named_arguments import g
+def g(x):
+    return x ** 2
 
 
 class A:
@@ -18,7 +19,7 @@ class A:
             return self.x ** power
         return pow(self.x, power, modulo)
 
-    def f1(self, x: int, y:int=1, *, z: int, t:int=2):
+    def f1(self, x, y=1, *, z, t=2):
         if y == 0:
             return 100 * x + t
         else:

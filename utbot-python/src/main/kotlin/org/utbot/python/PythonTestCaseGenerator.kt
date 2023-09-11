@@ -14,7 +14,6 @@ import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.*
-import org.utbot.python.newtyping.inference.InferredTypeFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
@@ -22,7 +21,6 @@ import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.newtyping.utils.isRequired
-import org.utbot.python.utils.ExecutionWithTimoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.PriorityCartesianProduct
 import org.utbot.python.utils.TimeoutMode

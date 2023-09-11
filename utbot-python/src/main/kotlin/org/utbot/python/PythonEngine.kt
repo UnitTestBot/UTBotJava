@@ -254,12 +254,12 @@ class PythonEngine(
                 is PythonEvaluationSuccess -> {
                     val coveredInstructions = evaluationResult.coverage.coveredInstructions
 
-                     val result = handleSuccessResult(
-                        arguments,
-                        parameters,
-                        evaluationResult,
-                        description,
-                     )
+                    val result = handleSuccessResult(
+                       arguments,
+                       parameters,
+                       evaluationResult,
+                       description,
+                    )
                     val typeInferenceFeedback = if (result is ValidExecution) SuccessFeedback else InvalidTypeFeedback
                     when (result) {
                         is ValidExecution -> {

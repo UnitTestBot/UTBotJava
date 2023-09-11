@@ -43,11 +43,12 @@ dependencies {
 }
 
 intellij {
-
-    val androidPlugins = listOf("org.jetbrains.android")
-
     val jvmPlugins = listOf(
         "java"
+    )
+
+    val kotlinPlugins = mutableListOf(
+        "org.jetbrains.kotlin"
     )
 
     val pythonCommunityPlugins = listOf(
@@ -58,24 +59,17 @@ intellij {
         "Pythonid:${pythonUltimatePluginVersion}"
     )
 
-    val jsPlugins = listOf(
-        "JavaScript"
-    )
-
-    val goPlugins = listOf(
-        "org.jetbrains.plugins.go:${goPluginVersion}"
-    )
-
     plugins.set(
         when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins
-            "PC" -> pythonCommunityPlugins
-            "PY" -> pythonUltimatePlugins // something else, JS?
+            "IC" -> jvmPlugins + kotlinPlugins + pythonCommunityPlugins
+            "IU" -> jvmPlugins + kotlinPlugins + pythonUltimatePlugins
+            "PC" -> jvmPlugins + kotlinPlugins + pythonCommunityPlugins
+            "PY" -> jvmPlugins + kotlinPlugins + pythonUltimatePlugins // something else, JS?
             else -> jvmPlugins
         }
     )
 
     version.set(ideVersion)
     type.set(ideType)
+    SettingsTemplateHelper.proceed(project)
 }

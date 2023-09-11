@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python.table;
+package org.utbot.intellij.plugin.python.table;
 
 import com.intellij.openapi.actionSystem.BackgroundableDataProvider;
 import com.intellij.openapi.actionSystem.CommonDataKeys;

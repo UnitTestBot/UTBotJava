@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python
+package org.utbot.intellij.plugin.python
 
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
 import com.jetbrains.python.psi.PyClass
+import org.utbot.intellij.plugin.python.language.PythonLanguageAssistant
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestGenerationProcessor

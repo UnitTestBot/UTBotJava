@@ -1,33 +1,33 @@
-package org.utbot.intellij.plugin.language.python.table;
+package org.utbot.intellij.plugin.python.table;
 
 import com.intellij.icons.AllIcons;
-import com.jetbrains.python.psi.PyClass;
 import com.jetbrains.python.psi.PyElement;
+import com.jetbrains.python.psi.PyFunction;
 
 import javax.swing.*;
 
-public class UtPyClassItem implements UtPyTableItem {
-    private final PyClass pyClass;
+public class UtPyFunctionItem implements UtPyTableItem {
+    private final PyFunction pyFunction;
     private boolean isChecked;
 
-    public UtPyClassItem(PyClass clazz) {
-        pyClass = clazz;
+    public UtPyFunctionItem(PyFunction function) {
+        pyFunction = function;
         isChecked = false;
     }
 
     @Override
     public PyElement getContent() {
-        return pyClass;
+        return pyFunction;
     }
 
     @Override
     public String getIdName() {
-        return pyClass.getQualifiedName();
+        return pyFunction.getQualifiedName();
     }
 
     @Override
     public Icon getIcon() {
-        return AllIcons.Nodes.Class;
+        return AllIcons.Nodes.Function;
     }
 
     @Override

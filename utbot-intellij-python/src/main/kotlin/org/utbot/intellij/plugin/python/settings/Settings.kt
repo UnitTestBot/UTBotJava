@@ -1,7 +1,7 @@
-package org.utbot.intellij.plugin.language.python.settings
+package org.utbot.intellij.plugin.python.settings
 
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
-import org.utbot.intellij.plugin.language.python.PythonTestsModel
+import org.utbot.intellij.plugin.python.PythonTestsModel
 import org.utbot.intellij.plugin.settings.Settings
 
 fun loadStateFromModel(settings: Settings, model: PythonTestsModel) {

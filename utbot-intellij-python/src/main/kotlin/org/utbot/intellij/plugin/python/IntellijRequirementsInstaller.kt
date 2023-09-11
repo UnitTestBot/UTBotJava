@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python
+package org.utbot.intellij.plugin.python
 
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.invokeLater

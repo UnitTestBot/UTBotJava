@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python
+package org.utbot.intellij.plugin.python
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
@@ -9,9 +9,9 @@ import com.intellij.psi.PsiElement
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFunction
-import org.utbot.intellij.plugin.language.python.table.UtPyClassItem
-import org.utbot.intellij.plugin.language.python.table.UtPyFunctionItem
-import org.utbot.intellij.plugin.language.python.table.UtPyTableItem
+import org.utbot.intellij.plugin.python.table.UtPyClassItem
+import org.utbot.intellij.plugin.python.table.UtPyFunctionItem
+import org.utbot.intellij.plugin.python.table.UtPyTableItem
 import org.utbot.python.utils.RequirementsUtils
 import kotlin.random.Random
 

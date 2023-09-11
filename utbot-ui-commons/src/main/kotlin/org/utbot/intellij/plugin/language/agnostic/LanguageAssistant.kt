@@ -97,9 +97,9 @@ abstract class LanguageAssistant {
 private fun loadWithException(language: Language): Class<*>? {
     try {
         return when (language.id) {
-            "Python" -> Class.forName("org.utbot.intellij.plugin.language.python.PythonLanguageAssistant")
-            "ECMAScript 6" -> Class.forName("org.utbot.intellij.plugin.language.js.JsLanguageAssistant")
-            "go" -> Class.forName("org.utbot.intellij.plugin.language.go.GoLanguageAssistant")
+            "Python" -> Class.forName("org.utbot.intellij.plugin.python.language.PythonLanguageAssistant")
+            "ECMAScript 6" -> Class.forName("org.utbot.intellij.plugin.js.language.JsLanguageAssistant")
+            "go" -> Class.forName("org.utbot.intellij.plugin.go.language.GoLanguageAssistant")
             "JAVA", "kotlin" -> Class.forName("org.utbot.intellij.plugin.language.JvmLanguageAssistant")
             else -> error("Unknown language id: ${language.id}")
         }

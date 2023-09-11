@@ -60,6 +60,8 @@ include("utbot-spring-framework")
 include("utbot-spring-commons-api")
 include("utbot-spring-commons")
 include("utbot-spring-analyzer")
+include("utbot-spring-sample")
+include("utbot-spring-test")
 
 if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python")
@@ -69,9 +71,6 @@ if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python-types")
     include("utbot-python-executor")
 }
-
-include("utbot-spring-sample")
-include("utbot-spring-test")
 
 if (projectType == ultimateEdition) {
     if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
@@ -88,3 +87,4 @@ if (projectType == ultimateEdition) {
 }
 
 include("utbot-light")
+include("utbot-intellij-java")

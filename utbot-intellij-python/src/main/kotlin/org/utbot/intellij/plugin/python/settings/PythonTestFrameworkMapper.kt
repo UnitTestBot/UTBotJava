@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python.settings
+package org.utbot.intellij.plugin.python.settings
 
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.intellij.plugin.settings.TestFrameworkMapper

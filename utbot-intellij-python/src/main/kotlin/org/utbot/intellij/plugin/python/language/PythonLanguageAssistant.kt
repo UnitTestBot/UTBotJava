@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python
+package org.utbot.intellij.plugin.python.language
 
 import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
+import org.utbot.intellij.plugin.python.*
 
 object PythonLanguageAssistant : LanguageAssistant() {
 

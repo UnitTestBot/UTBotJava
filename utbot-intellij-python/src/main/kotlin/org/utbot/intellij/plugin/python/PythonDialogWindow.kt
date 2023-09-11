@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python
+package org.utbot.intellij.plugin.python
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.ui.ComboBox
@@ -16,19 +16,16 @@ import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFunction
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.intellij.plugin.language.python.settings.PythonTestFrameworkMapper
-import org.utbot.intellij.plugin.language.python.settings.loadStateFromModel
-import org.utbot.intellij.plugin.language.python.table.UtPyClassItem
-import org.utbot.intellij.plugin.language.python.table.UtPyFunctionItem
-import org.utbot.intellij.plugin.language.python.table.UtPyMemberSelectionTable
-import org.utbot.intellij.plugin.language.python.table.UtPyTableItem
+import org.utbot.intellij.plugin.python.settings.PythonTestFrameworkMapper
+import org.utbot.intellij.plugin.python.settings.loadStateFromModel
+import org.utbot.intellij.plugin.python.table.UtPyClassItem
+import org.utbot.intellij.plugin.python.table.UtPyFunctionItem
+import org.utbot.intellij.plugin.python.table.UtPyMemberSelectionTable
+import org.utbot.intellij.plugin.python.table.UtPyTableItem
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
 import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
-import java.awt.event.ActionEvent
 import java.util.concurrent.TimeUnit
-import javax.swing.AbstractAction
-import javax.swing.Action
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
 
@@ -113,7 +110,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         val functionItems = functions
             .groupBy { it.containingClass }
             .flatMap { (_, pyFuncs) ->
-                pyFuncs.map {UtPyFunctionItem(it)}
+                pyFuncs.map { UtPyFunctionItem(it) }
             }
         val classItems = classes.map {
             UtPyClassItem(it)

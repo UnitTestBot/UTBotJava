@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python.table;
+package org.utbot.intellij.plugin.python.table;
 
 import java.util.HashSet;
 import java.util.List;

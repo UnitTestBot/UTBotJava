@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.python
+package org.utbot.intellij.plugin.python
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
@@ -8,7 +8,7 @@ import com.jetbrains.python.psi.PyFile
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
-import org.utbot.intellij.plugin.language.python.table.UtPyTableItem
+import org.utbot.intellij.plugin.python.table.UtPyTableItem
 import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class PythonTestsModel(

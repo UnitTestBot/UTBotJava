@@ -19,11 +19,6 @@ abstract class ValueProviderDecorator<T, R, D : Description<T>>(
     override fun generate(description: D, type: T): Sequence<Seed<T, R>> =
         delegate.generate(description, type)
 
-    override fun except(filter: (ValueProvider<T, R, D>) -> Boolean): ValueProvider<T, R, D> {
-        val res = wrap(delegate.except(filter))
-        return if (filter(res)) ValueProvider.of(emptyList()) else res
-    }
-
     override fun map(transform: (ValueProvider<T, R, D>) -> ValueProvider<T, R, D>): ValueProvider<T, R, D> =
         transform(wrap(delegate.map(transform)))
 }

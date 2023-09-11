@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.util.simpleNameWithClass
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.util.executableId
 import org.utbot.fuzzer.FuzzedType
@@ -217,7 +218,13 @@ class BuilderObjectValueProvider(
                                             params.map { it.model }
                                         ),
                                         modificationsChainProvider = { mutableListOf() }
-                                    ).fuzzed { }
+                                    ).fuzzed {
+                                        val creatorExecutableId = method.executableId
+                                        summary = "%var% = ${when (creatorExecutableId) {
+                                            is ConstructorId -> classId.simpleName
+                                            is MethodId -> creatorExecutableId.simpleNameWithClass
+                                        }}(${creatorExecutableId.parameters.joinToString { it.simpleName }})"
+                                    }
                                 },
                                 empty = nullRoutine(returnClassId)
                             ))
@@ -253,7 +260,13 @@ class BuilderObjectValueProvider(
                                             method.executableId,
                                             values.map { it.model }
                                         ),
-                                    ).fuzzed {  }
+                                    ).fuzzed {
+                                        val creatorExecutableId = method.executableId
+                                        summary = "%var% = ${when (creatorExecutableId) {
+                                            is ConstructorId -> classId.simpleName
+                                            is MethodId -> creatorExecutableId.simpleNameWithClass
+                                        }}(${creatorExecutableId.parameters.joinToString { it.simpleName }})"
+                                    }
                                 })
                             ))
                         }

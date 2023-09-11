@@ -47,6 +47,7 @@ class ModifyingWithMethodsProviderWrapper(
                                         }
                                     },
                         empty = seed.empty,
+                        transformers = seed.transformers,
                     )
                 } else seed
             }

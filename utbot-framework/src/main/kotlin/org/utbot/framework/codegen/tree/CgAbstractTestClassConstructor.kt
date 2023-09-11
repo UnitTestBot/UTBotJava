@@ -94,6 +94,12 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
     ) {
         val (_, _, clustersInfo) = testSet
 
+        // `stateAfter` is not accounted here, because usually most of it is not rendered
+        val executionToSizeCache = testSet.executions.associateWith { execution ->
+            execution.stateBefore.calculateSize() +
+                    ((execution.result as? UtExecutionSuccess)?.model?.calculateSize() ?: 1)
+        }
+
         for ((clusterSummary, executionIndices) in clustersInfo) {
             val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
             emptyLineIfNeeded()
@@ -114,11 +120,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
                         if ((execution.result as? UtExecutionFailure)?.exception is NullPointerException) 1 else -1
                     }
                         // we place "smaller" tests earlier, since they are easier to read
-                        // `stateAfter` is not accounted here, because usually most of it is not rendered
-                        .thenComparingInt { (_, execution) ->
-                            execution.stateBefore.calculateSize() +
-                                    ((execution.result as? UtExecutionSuccess)?.model?.calculateSize() ?: 1)
-                        }
+                        .thenComparingInt { (_, execution) -> executionToSizeCache.getValue(execution) }
                 ).forEach { (i, execution) ->
                     withExecutionIdScope(i) {
                         currentTestCaseTestMethods += methodConstructor.createTestMethod(testSet, execution)

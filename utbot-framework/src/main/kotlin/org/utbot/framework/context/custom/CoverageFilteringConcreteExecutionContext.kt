@@ -5,6 +5,7 @@ import org.utbot.common.hasOnClasspath
 import org.utbot.common.tryLoadClass
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.util.utContext
 import java.io.File
@@ -39,8 +40,13 @@ class CoverageFilteringConcreteExecutionContext(
 
     override fun transformExecutionsBeforeMinimization(
         executions: List<UtExecution>,
-        classUnderTestId: ClassId
+        methodUnderTest: ExecutableId,
     ): List<UtExecution> {
+        @Suppress("NAME_SHADOWING")
+        val executions = delegateContext.transformExecutionsBeforeMinimization(executions, methodUnderTest)
+
+        val classUnderTestId = methodUnderTest.classId
+
         val annotationsToIgnoreCoverage =
             annotationsToIgnoreCoverage.mapNotNull { utContext.classLoader.tryLoadClass(it.name) }
 

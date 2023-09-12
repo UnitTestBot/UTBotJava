@@ -2,6 +2,7 @@ package org.utbot.framework.context
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.instrumentation.ConcreteExecutor
@@ -17,7 +18,13 @@ interface ConcreteExecutionContext {
 
     fun transformExecutionsBeforeMinimization(
         executions: List<UtExecution>,
-        classUnderTestId: ClassId
+        methodUnderTest: ExecutableId,
+    ): List<UtExecution>
+
+    fun transformExecutionsAfterMinimization(
+        executions: List<UtExecution>,
+        methodUnderTest: ExecutableId,
+        rerunExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
     ): List<UtExecution>
 
     fun tryCreateFuzzingContext(

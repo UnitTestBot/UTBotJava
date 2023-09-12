@@ -6,14 +6,13 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.fuzzing.value.TypesFromJSONStorage
 
 object ConstantValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: UtType): Boolean {
-        return TypesFromJSONStorage.getTypesFromJsonStorage().containsKey(type.pythonTypeName()) || type.isAny()
+        return TypesFromJSONStorage.getTypesFromJsonStorage().containsKey(type.pythonTypeName())
     }
 
     override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> =

@@ -13,7 +13,6 @@ import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigInteger
@@ -24,7 +23,7 @@ object IntValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodD
     private val configurationStubWithNoUsage = Configuration()
 
     override fun accept(type: UtType): Boolean {
-        return type.pythonTypeName() == pythonIntClassId.canonicalName || type.isAny()
+        return type.pythonTypeName() == pythonIntClassId.canonicalName
     }
 
     private fun BitVectorValue.change(func: BitVectorValue.() -> Unit): BitVectorValue {

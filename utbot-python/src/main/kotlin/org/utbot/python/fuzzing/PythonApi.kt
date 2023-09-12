@@ -11,7 +11,15 @@ import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.inference.InferredTypeFeedback
+import org.utbot.python.newtyping.inference.InvalidTypeFeedback
+import org.utbot.python.newtyping.inference.SuccessFeedback
+import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.utils.ExecutionWithTimoutMode
+import org.utbot.python.utils.TestGenerationLimitManager
+import org.utbot.python.utils.TimeoutMode
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
@@ -29,6 +37,8 @@ class PythonMethodDescription(
     val pythonTypeStorage: PythonTypeHintsStorage,
     val tracer: Trie<Instruction, *>,
     val random: Random,
+    val limitManager: TestGenerationLimitManager,
+    val type: FunctionType,
 ) : Description<UtType>(parameters)
 
 sealed interface FuzzingExecutionFeedback
@@ -47,7 +57,18 @@ data class PythonExecutionResult(
 data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<Instruction> = Trie.emptyNode(),
-) : Feedback<UtType, PythonFuzzedValue>
+    val typeInferenceFeedback: InferredTypeFeedback = InvalidTypeFeedback,
+    val fromCache: Boolean = false,
+) : Feedback<UtType, PythonFuzzedValue> {
+    fun fromCache(): PythonFeedback {
+        return PythonFeedback(
+            control = control,
+            result = result,
+            typeInferenceFeedback = typeInferenceFeedback,
+            fromCache = true,
+        )
+    }
+}
 
 class PythonFuzzedValue(
     val tree: PythonTree.PythonTreeNode,
@@ -76,8 +97,21 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     SubtypeValueProvider(typeStorage)
 )
 
+fun pythonAnyTypeValueProviders() = listOf(
+    NoneValueProvider,
+    BoolValueProvider,
+    IntValueProvider,
+    FloatValueProvider,
+    ComplexValueProvider,
+    StrValueProvider,
+    BytesValueProvider,
+    BytearrayValueProvider,
+    ConstantValueProvider,
+)
+
 class PythonFuzzing(
     private val pythonTypeStorage: PythonTypeHintsStorage,
+    private val typeInferenceAlgorithm: BaselineAlgorithm,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
 ) : Fuzzing<UtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
@@ -103,6 +137,50 @@ class PythonFuzzing(
     }
 
     override suspend fun handle(description: PythonMethodDescription, values: List<PythonFuzzedValue>): PythonFeedback {
-        return execute(description, values)
+        val result = execute(description, values)
+        if (result.typeInferenceFeedback is SuccessFeedback && !result.fromCache) {
+            typeInferenceAlgorithm.laudType(description.type)
+        }
+        if (description.limitManager.isCancelled()) {
+            typeInferenceAlgorithm.feedbackState(description.type, result.typeInferenceFeedback)
+        }
+        return result
+    }
+
+    private suspend fun forkType(description: PythonMethodDescription, stats: Statistic<UtType, PythonFuzzedValue>) {
+        val type: UtType? = typeInferenceAlgorithm.expandState()
+        if (type != null) {
+            val newTypes = (type as FunctionType).arguments
+            val d = PythonMethodDescription(
+                description.name,
+                newTypes,
+                description.concreteValues,
+                description.pythonTypeStorage,
+                description.tracer,
+                description.random,
+                TestGenerationLimitManager(ExecutionWithTimoutMode, description.limitManager.until),
+                type
+            )
+            if (!d.limitManager.isCancelled()) {
+                logger.debug { "Fork new type" }
+                fork(d, stats)
+            }
+            logger.debug { "Fork ended" }
+        } else {
+            description.limitManager.mode = TimeoutMode
+        }
+    }
+
+    override suspend fun isCancelled(
+        description: PythonMethodDescription,
+        stats: Statistic<UtType, PythonFuzzedValue>
+    ): Boolean {
+        if (description.limitManager.isCancelled() || description.parameters.any { it.isAny() }) {
+            forkType(description, stats)
+            if (description.limitManager.isRootManager) {
+                return TimeoutMode.isCancelled(description.limitManager)
+            }
+        }
+        return description.limitManager.isCancelled()
     }
 }

@@ -71,6 +71,7 @@ data class PythonTestSet(
     val errors: List<UtError>,
     val mypyReport: List<MypyReportLine>,
     val classId: PythonClassId? = null,
+    val executionsNumber: Int = 0,
 )
 
 data class FunctionArguments(

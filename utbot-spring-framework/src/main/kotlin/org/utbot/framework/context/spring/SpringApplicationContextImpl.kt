@@ -13,6 +13,7 @@ import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.context.custom.mockAllTypesWithoutSpecificValueProvider
 import org.utbot.framework.context.utils.transformJavaFuzzingContext
+import org.utbot.framework.context.utils.transformValueProvider
 import org.utbot.framework.context.utils.withValueProvider
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
@@ -25,6 +26,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
+import org.utbot.fuzzing.spring.useNullForPartiallyUnresolvableClasses
 
 class SpringApplicationContextImpl(
     private val delegateContext: ApplicationContext,
@@ -77,7 +79,7 @@ class SpringApplicationContextImpl(
                 classpathWithoutDependencies,
                 this
             )
-        }
+        }.transformValueProvider { it.useNullForPartiallyUnresolvableClasses() }
     }
 
     override fun createCodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator =

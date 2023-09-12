@@ -1,4 +1,5 @@
-from samples.named_arguments.named_arguments import g
+def g(x):
+    return x ** 2
 
 
 class A:

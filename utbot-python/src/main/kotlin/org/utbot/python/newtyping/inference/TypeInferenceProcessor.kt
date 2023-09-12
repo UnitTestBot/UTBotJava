@@ -90,6 +90,7 @@ class TypeInferenceProcessor(
 
             val algo = BaselineAlgorithm(
                 typeStorage,
+                collector.result,
                 pythonPath,
                 pythonMethod,
                 directoriesForSysPath,
@@ -109,7 +110,7 @@ class TypeInferenceProcessor(
             startingTypeInferenceAction()
             val annotations = emptyList<UtType>().toMutableList()
             runBlocking {
-                algo.run(collector.result, cancel) {
+                algo.run(cancel) {
                     annotations.add(it)
                     processSignature(it)
                     SuccessFeedback

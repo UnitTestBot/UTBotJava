@@ -10,7 +10,6 @@ import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal
@@ -18,7 +17,7 @@ import java.math.BigInteger
 
 object FloatValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: UtType): Boolean {
-        return type.pythonTypeName() == pythonFloatClassId.canonicalName || type.isAny()
+        return type.pythonTypeName() == pythonFloatClassId.canonicalName
     }
 
     private fun getFloatConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<IEEE754Value> {
@@ -44,7 +43,7 @@ object FloatValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMetho
     override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> = sequence {
         val floatConstants = getFloatConstants(description.concreteValues)
         val intConstants = getIntConstants(description.concreteValues)
-        val constants = floatConstants + intConstants
+        val constants = floatConstants + intConstants + listOf(0, 1).map { IEEE754Value.fromValue(it.toDouble()) }
 
         constants.asSequence().forEach {  value ->
             yield(Seed.Known(value) {

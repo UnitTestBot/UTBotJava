@@ -19,30 +19,30 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
         }
     }
 
-    override fun expandProjectTree(projectName: String) {
+    override fun expandProjectTree() {
         with(projectViewTree) {
             waitForIgnoringError(ofSeconds(10)) {
                 hasText("src")
             }
             if (hasText("src").not()) {
                 findText(projectName).doubleClick()
-                waitForIgnoringError{
-                    hasText("src")
-                }
+            }
+            waitForIgnoringError{
+                hasText("main")
             }
             if (hasText("main").not()) {
                 findText("src").doubleClick()
-                waitForIgnoringError{
-                    hasText("src").and(hasText("main"))
-                }
+            }
+            waitForIgnoringError{
+                hasText("src").and(hasText("main"))
             }
             if (hasText("java").not()) {
                 findText("main").doubleClick()
-                waitForIgnoringError{
-                    hasText("src").and(hasText("main")).and(hasText("java"))
-                }
             }
-            if (hasText("Main").not()) {
+            waitForIgnoringError{
+                hasText("src").and(hasText("main")).and(hasText("java"))
+            }
+            if (hasText {it.text.startsWith("org") || it.text.startsWith("com")}.not()) {
                 findText("java").doubleClick()
             }
         }

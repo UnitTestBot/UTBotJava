@@ -1,5 +1,6 @@
 package org.utbot.steps
 
+import com.intellij.remoterobot.fixtures.JButtonFixture
 import com.intellij.remoterobot.fixtures.TextEditorFixture
 import com.intellij.remoterobot.fixtures.dataExtractor.contains
 import com.intellij.remoterobot.search.locators.byXpath
@@ -35,6 +36,13 @@ fun TextEditorFixture.goToLineAndColumn(row: Int, column: Int) {
         }
         enterText("$row:$column")
         enter()
+    }
+}
+
+fun TextEditorFixture.closeAllTabs() {
+    val closeTabButtons = remoteRobot.findAll<JButtonFixture>(byXpath("//div[@class='EditorTabs']//div[@myicon='close.svg']"))
+    closeTabButtons.forEach {
+        it.click()
     }
 }
 

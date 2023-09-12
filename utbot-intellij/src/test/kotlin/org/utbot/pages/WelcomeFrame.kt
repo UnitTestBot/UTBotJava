@@ -38,8 +38,7 @@ class WelcomeFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) :
     val newProjectDialog
         get() = remoteRobot.find(NewProjectDialogFixture::class.java)
 
-    fun openProjectByPath(projectName: String,
-                          location: String = "") {
+    fun openProjectByPath(location: String, projectName: String = "") {
         val localPath = location + projectName
         openProjectLink.click()
         keyboard.enterText(localPath)

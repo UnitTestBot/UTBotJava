@@ -109,10 +109,13 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         } catch (ignore: Throwable) {}
     }
 
-    fun openUTBotDialogFromProjectViewForClass(classname: String) {
+    fun openUTBotDialogFromProjectViewForClass(classname: String, packageName: String = "") {
         step("Call UnitTestBot action") {
             waitFor(ofSeconds(200)) { !isDumbMode() }
             with(projectViewTree) {
+                if (hasText(classname).not() && packageName != "") {
+                    findText{it.text.endsWith(packageName)}.doubleClick()
+                }
                 findText(classname).click(MouseButton.RIGHT_BUTTON)
             }
             remoteRobot.actionMenuItem("Generate Tests with UnitTestBot...").click()
@@ -120,6 +123,8 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
     }
 
     open fun waitProjectIsOpened() {
+        projectViewTree.click()
+        keyboard { key(KeyEvent.VK_PAGE_UP) }
         waitForIgnoringError(ofSeconds(30)) {
             projectViewTree.hasText(projectName)
         }
@@ -129,7 +134,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         waitProjectIsOpened()
     }
 
-    open fun expandProjectTree(projectName: String) {
+    open fun expandProjectTree() {
         with(projectViewTree) {
             if (hasText("src").not()) {
                 findText(projectName).doubleClick()
@@ -158,8 +163,6 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     fun createNewJavaClass(newClassname: String = "Example",
                            textToClickOn: String = "Main") {
-        waitProjectIsOpened()
-        expandProjectTree(projectName)
         with(projectViewTree) {
             findText(textToClickOn).click(MouseButton.RIGHT_BUTTON)
         }

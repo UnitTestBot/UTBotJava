@@ -11,8 +11,8 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileSystemItem
-import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
-import org.jetbrains.kotlin.idea.core.util.toPsiFile
+//import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
+//import org.jetbrains.kotlin.idea.core.util.toPsiFile
 
 private val logger = KotlinLogging.logger {}
 
@@ -84,9 +84,20 @@ abstract class LanguageAssistant {
         }
 
         private fun findLanguageRecursively(project: Project, virtualFiles: Array<VirtualFile>): Language? {
-            val psiFiles = virtualFiles.mapNotNull { it.toPsiFile(project) }
-            val psiDirectories = virtualFiles.mapNotNull { it.toPsiDirectory(project) }
-
+            val psiFiles = virtualFiles.mapNotNull {
+                if (it is PsiFile) {
+                    it
+                }
+                else null
+            }
+            val psiDirectories = virtualFiles.mapNotNull {
+                if (it is PsiDirectory) {
+                    it
+                }
+                else null
+            }
+//            val psiFiles = virtualFiles.mapNotNull { it.getPsiFile(project) }
+//            val psiDirectories = virtualFiles.mapNotNull { it. .toPsiDirectory(project) }
 
             val fileLanguage = psiFiles.firstNotNullOfOrNull { getLanguageFromFile(it) }
             return fileLanguage ?: psiDirectories.firstNotNullOfOrNull { findLanguageRecursively(it) }

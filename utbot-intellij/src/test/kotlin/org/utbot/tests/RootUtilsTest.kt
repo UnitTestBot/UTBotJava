@@ -1,8 +1,12 @@
-package org.utbot.intellij.plugin.ui.utils
+package org.utbot.tests
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
+import org.utbot.intellij.plugin.ui.utils.SRC_MAIN
+import org.utbot.intellij.plugin.ui.utils.getCommonPrefix
+import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
 
 internal class RootUtilsTest {
     internal class MockTestSourceRoot(override val dirPath: String) : ITestSourceRoot {

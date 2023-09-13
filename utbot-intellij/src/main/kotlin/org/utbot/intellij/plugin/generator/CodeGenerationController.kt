@@ -72,9 +72,6 @@ import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.plugin.api.utils.ClassNameUtils.generateTestClassShortName
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
@@ -90,7 +87,6 @@ import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
-import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.EDT_LATER
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.THREAD_POOL
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.WRITE_ACTION

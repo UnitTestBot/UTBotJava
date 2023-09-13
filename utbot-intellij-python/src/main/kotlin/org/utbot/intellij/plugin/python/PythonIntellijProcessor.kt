@@ -1,6 +1,6 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.codeInsight.CodeInsightUtil
+//import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
@@ -31,7 +31,7 @@ class PythonIntellijProcessor(
                 testDir.findFile(testPsiFile.name)?.delete()
                 testDir.add(testPsiFile)
                 val file = testDir.findFile(testPsiFile.name)!!
-                CodeInsightUtil.positionCursor(model.project, file, file)
+//                CodeInsightUtil.positionCursor(model.project, file, file)
             }
         }
     }

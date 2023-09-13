@@ -27,7 +27,9 @@ include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
 include("utbot-modificators-analyzer")
-include("utbot-intellij")
+if (ideType != "PC") {
+    include("utbot-intellij")
+}
 include("utbot-sample")
 include("utbot-java-fuzzing")
 include("utbot-fuzzing")
@@ -87,4 +89,4 @@ if (projectType == ultimateEdition) {
 }
 
 include("utbot-light")
-include("utbot-intellij-java")
+include("utbot-intellij-main")

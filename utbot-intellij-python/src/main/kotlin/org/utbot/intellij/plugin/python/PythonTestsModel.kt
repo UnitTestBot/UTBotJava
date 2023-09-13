@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyElement
@@ -13,8 +12,6 @@ import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class PythonTestsModel(
     project: Project,
-    srcModule: Module,
-    potentialTestModules: List<Module>,
     val elementsToDisplay: Set<PyElement>,
     val focusedElements: Set<UtPyTableItem>?,
     var timeout: Long,
@@ -24,8 +21,6 @@ class PythonTestsModel(
     val names: Map<Pair<String, String>, PyElement>,
 ) : BaseTestsModel(
     project,
-    srcModule,
-    potentialTestModules
 ) {
     lateinit var testSourceRootPath: String
     lateinit var testFramework: TestFramework

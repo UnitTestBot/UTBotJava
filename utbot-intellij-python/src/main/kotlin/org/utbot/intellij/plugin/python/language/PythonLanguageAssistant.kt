@@ -15,8 +15,8 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
-import org.jetbrains.kotlin.idea.core.util.toPsiFile
+//import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
+//import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.python.*
@@ -140,8 +140,8 @@ object PythonLanguageAssistant : LanguageAssistant() {
     }
 
     private fun getAllElements(project: Project, virtualFiles: Collection<VirtualFile>): Pair<Set<PyClass>, Set<PyFunction>> {
-        val psiFiles = virtualFiles.mapNotNull { it.toPsiFile(project) }
-        val psiDirectories = virtualFiles.mapNotNull { it.toPsiDirectory(project) }
+        val psiFiles = virtualFiles.filterIsInstance<PsiFile>()
+        val psiDirectories = virtualFiles.filterIsInstance<PsiDirectory>()
 
         val classes = psiFiles.flatMap { getClassesFromFile(it) }.toMutableSet()
         val functions = psiFiles.flatMap { getFunctionsFromFile(it) }.toMutableSet()

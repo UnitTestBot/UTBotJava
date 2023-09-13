@@ -148,7 +148,7 @@ fun Module.suitableTestSourceRoots(): List<TestSourceRoot> {
         .mapNotNull { it.testSourceRoot }
 }
 
-private val SourceFolder.testSourceRoot:TestSourceRoot?
+private val SourceFolder.testSourceRoot: TestSourceRoot?
     get() {
         val file = file
         val expectedLanguage = expectedLanguageForTests

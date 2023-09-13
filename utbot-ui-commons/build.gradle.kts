@@ -15,8 +15,8 @@ intellij {
     type.set(ideType)
 
     plugins.set(listOf(
-        "java",
-        "org.jetbrains.android"
+//        "java",
+//        "org.jetbrains.android"
     ))
 }
 

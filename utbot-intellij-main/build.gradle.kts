@@ -29,7 +29,7 @@ val junit4PlatformVersion: String by rootProject
 // https://plugins.jetbrains.com/docs/intellij/android-studio.html#configuring-the-plugin-pluginxml-file
 val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
 
-project.tasks.asMap["runIde"]?.enabled = false
+//project.tasks.asMap["runIde"]?.enabled = false
 
 plugins {
     id("org.jetbrains.intellij") version "1.13.1"
@@ -169,9 +169,13 @@ dependencies {
 
     //Family
 
+    if (ideType != "PC") {
+        implementation(project(":utbot-intellij"))
+    }
+
     if (pythonIde?.split(',')?.contains(ideType) == true) {
-        implementation(project(":utbot-python"))
-        implementation(project(":utbot-intellij-python"))
+        api(project(":utbot-python"))
+        api(project(":utbot-intellij-python"))
     }
 
     if (projectType == ultimateEdition) {

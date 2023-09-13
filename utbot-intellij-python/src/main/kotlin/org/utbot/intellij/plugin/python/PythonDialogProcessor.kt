@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.module.impl.ModuleImpl
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
@@ -24,14 +25,14 @@ import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.resolve.QualifiedNameFinder
+import com.jetbrains.python.sdk.pythonSdk
 import mu.KotlinLogging
-import org.jetbrains.kotlin.idea.base.util.module
-import org.jetbrains.kotlin.idea.base.util.sdk
+//import org.jetbrains.kotlin.idea.base.util.module
+//import org.jetbrains.kotlin.idea.base.util.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
-import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.utils.RequirementsInstaller
@@ -119,7 +120,7 @@ object PythonDialogProcessor {
                 }
             }
         }
-        val pythonPath = getPythonPath(elementsToShow)
+        val pythonPath = getPythonPath(project)
         if (pythonPath == null) {
             showErrorDialogLater(
                 project,
@@ -146,8 +147,6 @@ object PythonDialogProcessor {
         focusedElement: PyElement?,
         pythonPath: String,
     ): PythonDialogWindow {
-        val srcModules = findSrcModules(elementsToShow)
-        val testModules = srcModules.flatMap {it.testModules(project)}
         val focusedElements = focusedElement
             ?.let { setOf(focusedElement.toUtPyTableItem()).filterNotNull() }
             ?.toSet()
@@ -155,8 +154,6 @@ object PythonDialogProcessor {
         return PythonDialogWindow(
             PythonTestsModel(
                 project,
-                srcModules.first(),
-                testModules,
                 elementsToShow,
                 focusedElements,
                 project.service<Settings>().generationTimeoutInMillis,
@@ -334,12 +331,12 @@ object PythonDialogProcessor {
     }
 }
 
-fun getPythonPath(elementsToShow: Set<PyElement>): String? {
-    return findSrcModules(elementsToShow).first().sdk?.homePath
+fun getPythonPath(project: Project): String? {
+    return project.pythonSdk?.homePath
 }
 
 fun findSrcModules(elements: Collection<PyElement>): List<Module> {
-    return elements.mapNotNull { it.module }.distinct()
+    return listOf(ModuleImpl("", elements.first().project))
 }
 
 fun getSrcModule(element: PyElement): Module {

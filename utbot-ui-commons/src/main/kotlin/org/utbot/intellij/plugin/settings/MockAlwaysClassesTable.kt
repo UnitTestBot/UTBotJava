@@ -11,9 +11,8 @@ import com.intellij.openapi.ui.cellvalidators.CellComponentProvider
 import com.intellij.openapi.ui.cellvalidators.CellTooltipManager
 import com.intellij.openapi.ui.cellvalidators.ValidatingTableCellRendererWrapper
 import com.intellij.openapi.util.Disposer
-import com.intellij.psi.JavaPsiFacade
-import com.intellij.psi.PsiClass
-import com.intellij.psi.search.GlobalSearchScope
+//import com.intellij.psi.JavaPsiFacade
+//import com.intellij.psi.PsiClass
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.ColumnInfo
@@ -33,7 +32,7 @@ internal class MockAlwaysClassesTable(project: Project) : ListTableWithButtons<M
     // TODO maybe use MinusculeMatcher for completion sometime
 
     init {
-        MockAlwaysClassesTable.project = project
+        Companion.project = project
 
         val table: JBTable = tableView
         table.emptyText.clear()
@@ -87,7 +86,7 @@ internal class MockAlwaysClassesTable(project: Project) : ListTableWithButtons<M
                     return@BiFunction null
                 }
 
-                checkPsiClassByName(value) ?: return@BiFunction ValidationInfo("No such class $value found", component)
+//                checkPsiClassByName(value) ?: return@BiFunction ValidationInfo("No such class $value found", component)
 
                 return@BiFunction null
             }
@@ -122,8 +121,8 @@ internal class MockAlwaysClassesTable(project: Project) : ListTableWithButtons<M
 
         private val validatorsDisposable = Disposer.newDisposable()
 
-        private fun checkPsiClassByName(classFullyQualifiedName: String): PsiClass? =
-            JavaPsiFacade.getInstance(project).findClass(classFullyQualifiedName, GlobalSearchScope.allScope(project))
+//        private fun checkPsiClassByName(classFullyQualifiedName: String): PsiClass? =
+//            JavaPsiFacade.getInstance(project).findClass(classFullyQualifiedName, GlobalSearchScope.allScope(project))
     }
 
     internal data class Item(var fullyQualifiedName: String) {

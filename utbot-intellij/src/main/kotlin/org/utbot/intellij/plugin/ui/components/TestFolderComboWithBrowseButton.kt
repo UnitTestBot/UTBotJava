@@ -14,14 +14,14 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ArrayUtil
 import com.intellij.util.ui.UIUtil
-import java.io.File
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JList
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
+import java.io.File
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JList
 
 private const val SET_TEST_FOLDER = "set test folder"
 
@@ -77,7 +77,7 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
                 } else {
                     //Prepend and select newly added test root
                     val testRootItems = linkedSetOf(it)
-                    testRootItems += (0 until childComponent.itemCount).map { i -> childComponent.getItemAt(i) as VirtualFile}
+                    testRootItems += (0 until childComponent.itemCount).map { i -> childComponent.getItemAt(i) as VirtualFile }
                     newItemList(testRootItems)
                 }
             }
@@ -86,9 +86,12 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
 
     private fun chooseTestRoot(model: BaseTestsModel): VirtualFile? =
         ReadAction.compute<VirtualFile, RuntimeException> {
-            val desc = object:FileChooserDescriptor(false, true, false, false, false, false) {
+            val desc = object : FileChooserDescriptor(false, true, false, false, false, false) {
                 override fun isFileSelectable(file: VirtualFile?): Boolean {
-                    return file != null && ModuleUtil.findModuleForFile(file, model.project) != null && super.isFileSelectable(file)
+                    return file != null && ModuleUtil.findModuleForFile(
+                        file,
+                        model.project
+                    ) != null && super.isFileSelectable(file)
                 }
             }
             val initialFile = model.project.guessProjectDir()

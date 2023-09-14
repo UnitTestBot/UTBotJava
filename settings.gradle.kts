@@ -27,7 +27,7 @@ include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
 include("utbot-modificators-analyzer")
-if (ideType != "PC") {
+if (ideType != "PC" && ideType != "PY") {
     include("utbot-intellij")
 }
 include("utbot-sample")

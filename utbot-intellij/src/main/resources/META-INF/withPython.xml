@@ -1,4 +1,0 @@
-<!--Optional dependency on com.intellij.modules.python-->
-<extensions defaultExtensionNs="com.intellij">
-    <depends>com.intellij.modules.python</depends>
-</extensions>

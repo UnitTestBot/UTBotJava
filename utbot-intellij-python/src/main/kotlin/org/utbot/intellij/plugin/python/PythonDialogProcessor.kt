@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.python
 
+import com.intellij.lang.Language
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runWriteAction
@@ -24,7 +25,6 @@ import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-import com.jetbrains.python.psi.resolve.QualifiedNameFinder
 import com.jetbrains.python.sdk.pythonSdk
 import mu.KotlinLogging
 //import org.jetbrains.kotlin.idea.base.util.module
@@ -335,16 +335,8 @@ fun getPythonPath(project: Project): String? {
     return project.pythonSdk?.homePath
 }
 
-fun findSrcModules(elements: Collection<PyElement>): List<Module> {
-    return listOf(ModuleImpl("", elements.first().project))
-}
-
 fun getSrcModule(element: PyElement): Module {
     return ModuleUtilCore.findModuleForPsiElement(element) ?: error("Module for source class or function not found")
-}
-
-fun getFullName(element: PyElement): String {
-    return QualifiedNameFinder.getQualifiedName(element) ?: error("Name for source class or function not found")
 }
 
 fun getContentFromPyFile(file: PyFile) =

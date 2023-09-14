@@ -169,7 +169,7 @@ dependencies {
 
     //Family
 
-    if (ideType != "PC") {
+    if (ideType != "PC" && ideType != "PY") {
         implementation(project(":utbot-intellij"))
     }
 

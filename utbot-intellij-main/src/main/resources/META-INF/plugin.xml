@@ -19,7 +19,7 @@
                 text="Generate Tests with UnitTestBot..."
                 description="Cover code with auto-generated tests">
             <add-to-group group-id="ProjectViewPopupMenu"/>
-<!--            <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>-->
+            <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>
             <keyboard-shortcut keymap="$default" first-keystroke="alt shift U"/>
             <keyboard-shortcut keymap="$default" first-keystroke="alt U" second-keystroke="alt T"/>
         </action>
@@ -32,13 +32,13 @@
         <!--suppress PluginXmlValidity -->
         <projectService serviceImplementation="org.utbot.intellij.plugin.settings.Settings" preload="true"/>
         <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
-<!--        <postStartupActivity implementation="org.utbot.intellij.plugin.ui.GotItTooltipActivity"/>-->
+        <postStartupActivity implementation="org.utbot.intellij.plugin.ui.GotItTooltipActivity"/>
         <projectModelModifier implementation="org.androidstudio.plugin.util.UtAndroidGradleJavaProjectModelModifierWrapper" order="first"/>
-<!--        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtMavenProjectModelModifier" order="first"/>-->
-<!--        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtIdeaProjectModelModifier" order="first"/>-->
+        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtMavenProjectModelModifier" order="first"/>
+        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtIdeaProjectModelModifier" order="first"/>
         <!--Documentation-->
-<!--        <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>-->
-<!--        <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>-->
+        <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>
+        <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>
     </extensions>
 
     <!-- Minimum and maximum build of IDE compatible with the plugin -->

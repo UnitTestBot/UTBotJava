@@ -10,13 +10,18 @@ import org.utbot.framework.codegen.domain.TestFramework
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.rootManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
+import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.concurrency.Promise
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
+import org.jetbrains.kotlin.idea.util.sourceRoot
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.framework.SummariesGenerationType
@@ -30,6 +35,7 @@ import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.*
+import org.utbot.intellij.plugin.util.binaryName
 import java.nio.file.Files
 import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory

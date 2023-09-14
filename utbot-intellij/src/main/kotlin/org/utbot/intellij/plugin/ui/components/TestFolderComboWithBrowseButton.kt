@@ -16,6 +16,7 @@ import com.intellij.util.ArrayUtil
 import com.intellij.util.ui.UIUtil
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.BaseTestsModel
+import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
@@ -25,7 +26,7 @@ import javax.swing.JList
 
 private const val SET_TEST_FOLDER = "set test folder"
 
-class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
+class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
     ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
 
 

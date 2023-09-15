@@ -33,7 +33,6 @@ class InjectMockValueProvider(
     private val classUnderTest: ClassId
 ) : JavaValueProvider {
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
-        // any value except this
         if (description.description.isStatic == false && scope.parameterIndex == 0 && scope.recursionDepth == 1) {
             scope.putProperty(INJECT_MOCK_FLAG, Unit)
         }

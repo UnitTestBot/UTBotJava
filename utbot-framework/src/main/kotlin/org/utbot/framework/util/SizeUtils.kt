@@ -35,7 +35,7 @@ fun EnvironmentModels.calculateSize(): Int {
  * calculated the size for [this] model and [this] is [UtReferenceModel], then in codegen we would have already
  * created variable for [this] model and do not need to create it again, so size should be equal to 0.
  */
-private fun UtModel.calculateSize(used: MutableSet<UtReferenceModel> = mutableSetOf()): Int {
+fun UtModel.calculateSize(used: MutableSet<UtReferenceModel> = mutableSetOf()): Int {
     if (this in used) return 0
 
     if (this is UtReferenceModel)

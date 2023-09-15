@@ -10,6 +10,7 @@ import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.PACKAGE_
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_BASE_PACKAGE_NAME
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
+import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
@@ -301,16 +302,17 @@ internal val utKotlinUtilsClassId: ClassId
         isKotlinObject = true
     )
 
-/**
- * [MethodId] for [AutoCloseable.close].
- */
-val openMocksMethodId = MethodId(
+val openMocksMethodId = BuiltinMethodId(
     classId = MockitoAnnotations::class.id,
     name = "openMocks",
     returnType = AutoCloseable::class.java.id,
     parameters = listOf(objectClassId),
+    isStatic = true,
 )
 
+/**
+ * [MethodId] for [AutoCloseable.close].
+ */
 val closeMethodId = MethodId(
     classId = AutoCloseable::class.java.id,
     name = "close",

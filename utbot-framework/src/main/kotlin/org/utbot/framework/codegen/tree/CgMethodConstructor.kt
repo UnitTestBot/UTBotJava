@@ -1171,7 +1171,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         } else if (context.codegenLanguage == CodegenLanguage.JAVA &&
             !jField.isStatic && canBeReadViaGetterFrom(context)
         ) {
-            CgMethodCall(variable, getter, emptyList())
+            variable[getter]()
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
         }

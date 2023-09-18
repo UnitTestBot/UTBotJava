@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import mu.KotlinLogging
 import org.utbot.common.tryLoadClass
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.plugin.api.isNotNull
@@ -16,6 +17,8 @@ import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
 import org.utbot.framework.plugin.api.mapper.mapModels
 import java.util.Optional
+
+private val logger = KotlinLogging.logger {}
 
 object SpringModelUtils {
     val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
@@ -57,7 +60,7 @@ object SpringModelUtils {
 
     // the library in which Cookie is stored depends on the version of Spring
     private val cookiesLibraries = listOf("javax.servlet.http", "jakarta.servlet.http")
-    private val cookieClassId = getClassIdFromEachAvailablePackage(cookiesLibraries, "Cookie").single()
+    private val cookieClassIds = getClassIdFromEachAvailablePackage(cookiesLibraries, "Cookie")
 
     val entityClassIds get() = persistentClassIds("Entity")
     val generatedValueClassIds get() = persistentClassIds("GeneratedValue")
@@ -210,7 +213,7 @@ object SpringModelUtils {
         parameters = listOf(httpHeaderClassId)
     )
 
-    private val mockHttpServletCookieMethodId = MethodId(
+    private fun mockHttpServletCookieMethodId(cookieClassId: ClassId) = MethodId(
         classId = mockHttpServletRequestBuilderClassId,
         name = "cookie",
         returnType = mockHttpServletRequestBuilderClassId,
@@ -448,9 +451,15 @@ object SpringModelUtils {
         val headersContentModel = createHeadersContentModel(methodId, arguments, idGenerator)
         requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
 
-        val cookieValuesModel = createCookieValuesModel(methodId, arguments, idGenerator)
-        requestBuilderModel =
-            addCookiesToRequestBuilderModel(cookieValuesModel, requestBuilderModel, idGenerator)
+        val cookieClassId = cookieClassIds.singleOrNull()
+        if(cookieClassId is ClassId) {
+            val cookieValuesModel = createCookieValuesModel(cookieClassId, methodId, arguments, idGenerator)
+            requestBuilderModel =
+                addCookiesToRequestBuilderModel(cookieClassId, cookieValuesModel, requestBuilderModel, idGenerator)
+        }
+        else{
+            logger.warn { "Cookie library not found" }
+        }
 
         val requestAttributes = collectArgumentsWithAnnotationModels(methodId, requestAttributesClassId, arguments)
         requestBuilderModel =
@@ -528,6 +537,7 @@ object SpringModelUtils {
     }
 
     private fun addCookiesToRequestBuilderModel(
+        cookieClassId: ClassId,
         cookieValuesModel: UtArrayModel,
         requestBuilderModel: UtAssembleModel,
         idGenerator: () -> Int
@@ -542,7 +552,7 @@ object SpringModelUtils {
                 modelName = "requestBuilder",
                 instantiationCall = UtExecutableCallModel(
                     instance = requestBuilderModel,
-                    executable = mockHttpServletCookieMethodId,
+                    executable = mockHttpServletCookieMethodId(cookieClassId),
                     params = listOf(cookieValuesModel)
                 )
             )
@@ -676,6 +686,7 @@ object SpringModelUtils {
     }
 
     private fun createCookieValuesModel(
+        cookieClassId: ClassId,
         methodId: MethodId,
         arguments: List<UtModel>,
         idGenerator: () -> Int,

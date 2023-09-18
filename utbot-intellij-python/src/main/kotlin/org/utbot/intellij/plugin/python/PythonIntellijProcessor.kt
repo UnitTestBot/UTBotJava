@@ -1,20 +1,11 @@
 package org.utbot.intellij.plugin.python
 
-//import com.intellij.codeInsight.CodeInsightUtil
-import com.intellij.codeInsight.CodeInsightUtilBase
-import com.intellij.codeInsight.CodeInsightUtilCore
-import com.intellij.codeInsight.CodeInsightWorkspaceSettings
-import com.intellij.codeInsight.actions.CodeInsightAction
-import com.intellij.codeInsight.hints.codeVision.CodeVision
-import com.intellij.icons.ExpUiIcons.CodeInsight
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiAnchor
 import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
-import com.intellij.testFramework.fixtures.CodeInsightTestUtil
 import com.jetbrains.python.psi.PyClass
 import org.utbot.intellij.plugin.python.language.PythonLanguageAssistant
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
@@ -40,12 +31,7 @@ class PythonIntellijProcessor(
                 testDir.findFile(testPsiFile.name)?.delete()
                 testDir.add(testPsiFile)
                 val file = testDir.findFile(testPsiFile.name)!!
-                CodeInsightUtilCore.getInstance().prepareFileForWrite(file)
-                val document = PsiDocumentManager.getInstance(model.project).getDocument(file)
-                val editor = CodeInsightUtilCore.getInstance()
-                editor.prepareFileForWrite(file)
-//                CodeInsightUtilCore.
-//                CodeInsightUtil.positionCursor(model.project, file, file)
+                OpenFileDescriptor(project, file.virtualFile).navigate(true)
             }
         }
     }

@@ -1,6 +1,7 @@
 package org.utbot.framework.context.custom
 
 import org.utbot.framework.context.JavaFuzzingContext
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.providers.MapValueProvider
 import org.utbot.fuzzing.spring.unit.MockValueProvider
@@ -37,6 +38,11 @@ class MockingJavaFuzzingContext(
                     .with(NullValueProvider)
             )
 
-    override fun handleFuzzedConcreteExecutionResult(concreteExecutionResult: UtConcreteExecutionResult) =
+    override fun handleFuzzedConcreteExecutionResult(
+        methodUnderTest: ExecutableId,
+        concreteExecutionResult: UtConcreteExecutionResult
+    ) {
+        delegateContext.handleFuzzedConcreteExecutionResult(methodUnderTest, concreteExecutionResult)
         mockValueProvider.addMockingCandidates(concreteExecutionResult.detectedMockingCandidates)
+    }
 }

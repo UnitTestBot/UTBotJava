@@ -21,5 +21,8 @@ interface JavaFuzzingContext {
         executableToCall: ExecutableId,
     ): EnvironmentModels
 
-    fun handleFuzzedConcreteExecutionResult(concreteExecutionResult: UtConcreteExecutionResult)
+    fun handleFuzzedConcreteExecutionResult(
+        methodUnderTest: ExecutableId,
+        concreteExecutionResult: UtConcreteExecutionResult,
+    )
 }

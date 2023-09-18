@@ -65,6 +65,8 @@ class SpringIntegrationTestConcreteExecutionContext(
             delegateContext = delegateContext.tryCreateFuzzingContext(params),
             relevantRepositories = relevantRepositories,
             springApplicationContext = springApplicationContext,
+            fuzzingStartTimeMillis = params.fuzzingStartTimeMillis,
+            fuzzingEndTimeMillis = params.fuzzingEndTimeMillis,
         )
     }
 }

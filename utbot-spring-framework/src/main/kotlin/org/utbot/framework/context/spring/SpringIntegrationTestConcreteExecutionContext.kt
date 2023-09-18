@@ -2,6 +2,7 @@ package org.utbot.framework.context.spring
 
 import mu.KotlinLogging
 import org.utbot.framework.context.ConcreteExecutionContext
+import org.utbot.framework.context.ConcreteExecutionContext.FuzzingContextParams
 import org.utbot.framework.context.JavaFuzzingContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
@@ -49,23 +50,19 @@ class SpringIntegrationTestConcreteExecutionContext(
             }
         }
 
-    override fun tryCreateFuzzingContext(
-        concreteExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
-        classUnderTest: ClassId,
-        idGenerator: IdentityPreservingIdGenerator<Int>
-    ): JavaFuzzingContext {
-        if (springApplicationContext.getBeansAssignableTo(classUnderTest).isEmpty())
+    override fun tryCreateFuzzingContext(params: FuzzingContextParams): JavaFuzzingContext {
+        if (springApplicationContext.getBeansAssignableTo(params.classUnderTest).isEmpty())
             error(
-                "No beans of type ${classUnderTest.name} are found. " +
+                "No beans of type ${params.classUnderTest} are found. " +
                         "Try choosing different Spring configuration or adding beans to " +
                         springSettings.configuration.fullDisplayName
             )
 
-        val relevantRepositories = concreteExecutor.getRelevantSpringRepositories(classUnderTest)
-        logger.info { "Detected relevant repositories for class $classUnderTest: $relevantRepositories" }
+        val relevantRepositories = params.concreteExecutor.getRelevantSpringRepositories(params.classUnderTest)
+        logger.info { "Detected relevant repositories for class ${params.classUnderTest}: $relevantRepositories" }
 
         return SpringIntegrationTestJavaFuzzingContext(
-            delegateContext = delegateContext.tryCreateFuzzingContext(concreteExecutor, classUnderTest, idGenerator),
+            delegateContext = delegateContext.tryCreateFuzzingContext(params),
             relevantRepositories = relevantRepositories,
             springApplicationContext = springApplicationContext,
         )

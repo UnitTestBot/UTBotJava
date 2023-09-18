@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go.generator
+package org.utbot.intellij.plugin.go.generator
 
 import com.goide.project.DefaultGoRootsProvider
 import com.goide.psi.GoFunctionOrMethodDeclaration
@@ -16,9 +16,9 @@ import com.intellij.openapi.ui.Messages
 import org.utbot.go.gocodeanalyzer.GoParsingSourceCodeAnalysisResultException
 import org.utbot.go.logic.GoUtTestsGenerationConfig
 import org.utbot.go.worker.GoWorkerFailedException
-import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
-import org.utbot.intellij.plugin.language.go.ui.GenerateGoTestsDialogWindow
-import org.utbot.intellij.plugin.language.go.ui.utils.resolveGoExecutablePath
+import org.utbot.intellij.plugin.go.models.GenerateGoTestsModel
+import org.utbot.intellij.plugin.go.ui.GenerateGoTestsDialogWindow
+import org.utbot.intellij.plugin.go.ui.utils.resolveGoExecutablePath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import java.nio.file.Paths
 

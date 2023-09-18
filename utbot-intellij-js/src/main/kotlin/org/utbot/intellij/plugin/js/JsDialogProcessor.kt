@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.js
 
 import api.JsTestGenerator
 import com.intellij.codeInsight.CodeInsightUtil
@@ -10,9 +10,11 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.TestModuleProperties
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
@@ -24,8 +26,8 @@ import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
 import org.utbot.framework.plugin.api.TimeoutException
+import org.utbot.intellij.plugin.js.language.JsLanguageAssistant
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
-import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
@@ -87,7 +89,10 @@ object JsDialogProcessor {
         val pathToNode =
             NodeJsLocalInterpreterManager.getInstance().interpreters.first().interpreterSystemIndependentPath
         val (_, errorText) = JsCmdExec.runCommand(
-            shouldWait = true, cmd = arrayOf("\"${pathToNode}\"", "-v")
+            shouldWait = true, cmd = arrayOf(
+                pathToNode,
+                "-v"
+            )
         )
         if (errorText.isNotEmpty()) throw NoSuchElementException()
         val pathToNPM =
@@ -117,7 +122,7 @@ object JsDialogProcessor {
         filePath: String,
         file: JSFile
     ): JsTestsModel? {
-        val testModules = srcModule.testModules(project)
+        val testModules = srcModule.testModules()
 
         if (testModules.isEmpty()) {
             val errorMessage = """
@@ -130,11 +135,10 @@ object JsDialogProcessor {
         val (pathToNode, pathToNPM) = findNodeAndNPM() ?: return null
         return JsTestsModel(
             project = project,
-            srcModule = srcModule,
             potentialTestModules = testModules,
+            file = file,
             fileMethods = fileMethods,
             selectedMethods = if (focusedMethod != null) setOf(focusedMethod) else emptySet(),
-            file = file,
         ).apply {
             containingFilePath = filePath
             this.pathToNode = pathToNode
@@ -267,6 +271,8 @@ object JsDialogProcessor {
         }
     }
 }
+
+private fun Module.testModules() = listOf(this)
 
 private fun PackageDataService.checkAndInstallRequirements(project: Project): Boolean {
     val missingPackages = jsPackagesList.filterNot { this.findPackage(it) }

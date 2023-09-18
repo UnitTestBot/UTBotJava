@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.js
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.ui.TextBrowseFolderListener

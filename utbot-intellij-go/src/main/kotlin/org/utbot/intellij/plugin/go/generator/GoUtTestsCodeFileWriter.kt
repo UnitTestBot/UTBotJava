@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go.generator
+package org.utbot.intellij.plugin.go.generator
 
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.runWriteAction
@@ -9,8 +9,8 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiManager
 import com.intellij.util.IncorrectOperationException
 import org.utbot.go.api.GoUtFile
-import org.utbot.intellij.plugin.language.go.GoLanguageAssistant
-import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
+import org.utbot.intellij.plugin.go.language.GoLanguageAssistant
+import org.utbot.intellij.plugin.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import java.nio.file.Paths
 

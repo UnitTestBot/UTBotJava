@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go.ui
+package org.utbot.intellij.plugin.go.ui
 
 import com.goide.psi.GoNamedElement
 import com.goide.refactor.ui.GoDeclarationInfo

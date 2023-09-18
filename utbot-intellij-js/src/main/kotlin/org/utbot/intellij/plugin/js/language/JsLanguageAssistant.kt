@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.js.language
 
 import com.intellij.lang.Language
 import com.intellij.lang.ecmascript6.psi.ES6Class
@@ -16,6 +16,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.idea.util.projectStructure.module
+import org.utbot.intellij.plugin.js.JsDialogProcessor
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import settings.JsTestGenerationSettings.dummyClassName
 

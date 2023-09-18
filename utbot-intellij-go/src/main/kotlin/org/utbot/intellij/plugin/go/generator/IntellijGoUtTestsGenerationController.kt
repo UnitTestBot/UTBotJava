@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go.generator
+package org.utbot.intellij.plugin.go.generator
 
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.progress.ProgressIndicator
@@ -7,7 +7,7 @@ import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFuzzedFunctionTestCase
 import org.utbot.go.gocodeanalyzer.GoSourceCodeAnalyzer
 import org.utbot.go.logic.AbstractGoUtTestsGenerationController
-import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
+import org.utbot.intellij.plugin.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.showWarningDialogLater
 import java.nio.file.Path

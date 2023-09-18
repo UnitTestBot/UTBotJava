@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go
+package org.utbot.intellij.plugin.go.language
 
 import com.goide.psi.*
 import com.intellij.lang.Language
@@ -10,7 +10,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.idea.base.util.module
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
-import org.utbot.intellij.plugin.language.go.generator.GoUtTestsDialogProcessor
+import org.utbot.intellij.plugin.go.generator.GoUtTestsDialogProcessor
 
 @Suppress("unused") // is used in org.utbot.intellij.plugin.language.agnostic.LanguageAssistant via reflection
 object GoLanguageAssistant : LanguageAssistant() {

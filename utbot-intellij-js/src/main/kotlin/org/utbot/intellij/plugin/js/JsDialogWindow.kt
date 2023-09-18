@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.js
 
 import com.intellij.lang.javascript.refactoring.ui.JSMemberSelectionTable
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
@@ -111,7 +111,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
         model.pathToNYC = nycSourceFileChooserField.text
-        model.coverageMode = coverageMode.mode
+        model.coverageMode = CoverageModeButtons.mode
         File(testSourceFolderField.text).mkdir()
         model.testSourceRoot =
             VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Paths.get(testSourceFolderField.text))

@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.js
 
 import javax.swing.ButtonGroup
 import javax.swing.JRadioButton

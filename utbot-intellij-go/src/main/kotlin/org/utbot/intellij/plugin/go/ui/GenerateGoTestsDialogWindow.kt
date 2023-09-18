@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go.ui
+package org.utbot.intellij.plugin.go.ui
 
 import com.goide.psi.GoFunctionDeclaration
 import com.goide.psi.GoFunctionOrMethodDeclaration
@@ -16,7 +16,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.utbot.go.logic.GoUtTestsGenerationConfig
 import org.utbot.go.logic.TestsGenerationMode
-import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
+import org.utbot.intellij.plugin.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.settings.Settings
 import java.text.ParseException
 import java.util.concurrent.TimeUnit

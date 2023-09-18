@@ -41,8 +41,8 @@ abstract class CoverageService(
                 )
                 JsCmdExec.runCommand(
                     cmd = arrayOf(
-                        "\"${settings.pathToNode}\"",
-                        "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js\""
+                        settings.pathToNode,
+                        "$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js"
                     ),
                     dir = projectPath,
                     shouldWait = true,

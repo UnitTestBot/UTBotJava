@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go.models
+package org.utbot.intellij.plugin.go.models
 
 import com.goide.psi.GoFunctionDeclaration
 import com.goide.psi.GoFunctionOrMethodDeclaration

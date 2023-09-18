@@ -66,7 +66,7 @@ class PackageDataService(
                     dir = projectPath,
                     shouldWait = true,
                     timeout = 10,
-                    cmd = arrayOf("\"$pathToNpm\"", "list", npmListFlag.toString())
+                    cmd = arrayOf(pathToNpm, "list", npmListFlag.toString())
                 )
                 var result = inputText.contains(packageName)
                 if (!result || this == nycData) {
@@ -103,7 +103,7 @@ class PackageDataService(
                 dir = projectPath,
                 shouldWait = true,
                 timeout = 10,
-                cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.L.toString(), *localPackageNames)
+                cmd = arrayOf(pathToNpm, "install", NpmListFlag.L.toString(), *localPackageNames)
             )
             inputTextAllPackages += inputText
             errorTextAllPackages += errorText
@@ -114,7 +114,7 @@ class PackageDataService(
                 dir = projectPath,
                 shouldWait = true,
                 timeout = 10,
-                cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.G.toString(), *globalPackageNames)
+                cmd = arrayOf(pathToNpm, "install", NpmListFlag.G.toString(), *globalPackageNames)
             )
             inputTextAllPackages += inputText
             errorTextAllPackages += errorText

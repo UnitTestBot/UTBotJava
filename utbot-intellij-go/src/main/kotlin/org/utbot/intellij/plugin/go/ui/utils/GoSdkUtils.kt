@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.go.ui.utils
+package org.utbot.intellij.plugin.go.ui.utils
 
 import com.goide.sdk.GoSdk
 import java.nio.file.Paths

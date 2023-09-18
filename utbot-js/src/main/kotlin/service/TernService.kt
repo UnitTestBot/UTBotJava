@@ -80,7 +80,7 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
             dir = "$projectPath/$utbotDir/",
             shouldWait = true,
             timeout = 20,
-            cmd = arrayOf("\"${settings.pathToNode}\"", "\"${projectPath}/$utbotDir/ternScript.js\""),
+            cmd = arrayOf(settings.pathToNode, "${projectPath}/$utbotDir/ternScript.js"),
         )
         json = try {
             JSONObject(inputText.replaceAfterLast("}", ""))

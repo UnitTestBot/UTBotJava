@@ -61,11 +61,11 @@ intellij {
 
     plugins.set(
         when (ideType) {
-            "IC" -> jvmPlugins + kotlinPlugins + pythonCommunityPlugins
-            "IU" -> jvmPlugins + kotlinPlugins + pythonUltimatePlugins
+            "IC" -> pythonCommunityPlugins
+            "IU" -> pythonUltimatePlugins
             "PC" -> pythonCommunityPlugins
             "PY" -> pythonUltimatePlugins // something else, JS?
-            else -> jvmPlugins
+            else -> emptyList()
         }
     )
 

@@ -9,7 +9,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
-import com.intellij.openapi.module.impl.ModuleImpl
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
@@ -27,8 +26,6 @@ import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.sdk.pythonSdk
 import mu.KotlinLogging
-//import org.jetbrains.kotlin.idea.base.util.module
-//import org.jetbrains.kotlin.idea.base.util.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.settings.Settings

@@ -44,7 +44,7 @@ class MutationFactory<TYPE, RESULT> {
 
                 val mutation = if (tuningMode &&
                     configuration.tuneKnownValueMutations &&
-                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() >= 0
+                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() > 0
                 ) {
                     mutationsEfficiencies.keys.toTypedArray()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
                 } else {
@@ -62,7 +62,7 @@ class MutationFactory<TYPE, RESULT> {
                     .filter { (k, _) -> k is RecursiveMutations<*, *> } as Map<RecursiveMutations<TYPE, RESULT>, Double>
 
                 val mutation = if (tuningMode && configuration.tuneRecursiveMutations &&
-                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() >= 0
+                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() > 0
                 ) {
                     mutationsEfficiencies.keys.toTypedArray()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
                 } else {
@@ -84,7 +84,7 @@ class MutationFactory<TYPE, RESULT> {
                     .filter { (k, _) -> k is CollectionMutations<*, *> } as Map<CollectionMutations<TYPE, RESULT>, Double>
 
                 val mutation = if (tuningMode && configuration.tuneCollectionMutations &&
-                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() >= 0
+                    mutationsEfficiencies.isNotEmpty() && mutationsEfficiencies.values.sum() > 0
                 ) {
                     mutationsEfficiencies.keys.toList()[random.chooseOne(mutationsEfficiencies.values.toDoubleArray())]
                 } else {
@@ -252,6 +252,10 @@ sealed interface StringMutations : Mutation<StringValue> {
             }
             return StringValue(newString, lastMutation = this, mutatedFrom = source)
         }
+
+        override fun equals(other: Any?): Boolean {
+            return this.javaClass == other?.javaClass
+        }
     }
 
     object RemoveCharacter : StringMutations {
@@ -266,6 +270,10 @@ sealed interface StringMutations : Mutation<StringValue> {
             }
             return StringValue(newString, this)
         }
+
+        override fun equals(other: Any?): Boolean {
+            return this.javaClass == other?.javaClass
+        }
     }
 
     object ShuffleCharacters : StringMutations {
@@ -274,6 +282,10 @@ sealed interface StringMutations : Mutation<StringValue> {
                 value = String(source.value.toCharArray().apply { shuffle(random) }),
                 lastMutation = this
             )
+        }
+
+        override fun equals(other: Any?): Boolean {
+            return this.javaClass == other?.javaClass
         }
     }
 }
@@ -313,9 +325,7 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
         }
 
         override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other == null || javaClass != other.javaClass) return false
-            return true
+            return this.javaClass == other?.javaClass
         }
 
         override fun hashCode(): Int {
@@ -342,9 +352,7 @@ sealed interface CollectionMutations<TYPE, RESULT> : Mutation<Pair<Result.Collec
         }
 
         override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other == null || javaClass != other.javaClass) return false
-            return true
+            return this.javaClass == other?.javaClass
         }
 
         override fun hashCode(): Int {
@@ -384,6 +392,14 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
                 lastMutation = this,
             )
         }
+
+        override fun equals(other: Any?): Boolean {
+            return this.javaClass == other?.javaClass
+        }
+
+        override fun hashCode(): Int {
+            return javaClass.hashCode()
+        }
     }
 
     class ShuffleAndCutModifications<TYPE, RESULT> : RecursiveMutations<TYPE, RESULT> {
@@ -398,6 +414,14 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
                 modify = source.modify.shuffled(random).take(random.nextInt(source.modify.size + 1)),
                 lastMutation = this,
             )
+        }
+
+        override fun equals(other: Any?): Boolean {
+            return this.javaClass == other?.javaClass
+        }
+
+        override fun hashCode(): Int {
+            return javaClass.hashCode()
         }
     }
 
@@ -418,5 +442,12 @@ sealed interface RecursiveMutations<TYPE, RESULT> : Mutation<Pair<Result.Recursi
             )
         }
 
+        override fun equals(other: Any?): Boolean {
+            return this.javaClass == other?.javaClass
+        }
+
+        override fun hashCode(): Int {
+            return javaClass.hashCode()
+        }
     }
 }

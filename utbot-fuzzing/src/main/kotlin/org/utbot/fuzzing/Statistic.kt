@@ -129,7 +129,7 @@ open class MainStatisticImpl<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> (
     override fun getMutationsRatings(configuration: Configuration): Map<Mutation<*>, Double> {
         val ratings = mutationsCounts.mapValues { (key, _) ->
             configuration.mutationRatingFunction(
-                ( (mutationsSuccessCounts[key] ?: 0.01) / mutationsCounts[key]!! )
+                ((mutationsSuccessCounts[key] ?: 0.01) / mutationsSuccessCounts.values.sum())
             )
         }
 

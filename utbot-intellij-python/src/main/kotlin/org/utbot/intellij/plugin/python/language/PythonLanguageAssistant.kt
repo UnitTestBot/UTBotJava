@@ -7,16 +7,11 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileSystemItem
+import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-//import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
-//import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.python.*
@@ -140,8 +135,12 @@ object PythonLanguageAssistant : LanguageAssistant() {
     }
 
     private fun getAllElements(project: Project, virtualFiles: Collection<VirtualFile>): Pair<Set<PyClass>, Set<PyFunction>> {
-        val psiFiles = virtualFiles.filterIsInstance<PsiFile>()
-        val psiDirectories = virtualFiles.filterIsInstance<PsiDirectory>()
+        val psiFiles = virtualFiles.mapNotNull {
+            PsiManager.getInstance(project).findFile(it)
+        }
+        val psiDirectories = virtualFiles.mapNotNull {
+            PsiManager.getInstance(project).findDirectory(it)
+        }
 
         val classes = psiFiles.flatMap { getClassesFromFile(it) }.toMutableSet()
         val functions = psiFiles.flatMap { getFunctionsFromFile(it) }.toMutableSet()

@@ -424,7 +424,6 @@ class UtBotSymbolicEngine(
      * Run fuzzing flow.
      *
      * @param until is used by fuzzer to cancel all tasks if the current time is over this value
-     * @param transform provides model values for a method
      */
     fun fuzzing(until: Long = Long.MAX_VALUE) = flow {
         val isFuzzable = methodUnderTest.parameters.all { classId ->

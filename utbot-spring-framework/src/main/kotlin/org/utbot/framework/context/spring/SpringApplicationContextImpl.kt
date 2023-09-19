@@ -1,8 +1,10 @@
 package org.utbot.framework.context.spring
 
 import mu.KotlinLogging
+import org.utbot.common.dynamicPropertiesOf
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
+import org.utbot.common.withValue
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.generator.SpringCodeGenerator
@@ -12,9 +14,9 @@ import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.context.custom.RerunningConcreteExecutionContext
-import org.utbot.framework.context.custom.mockAllTypesWithoutSpecificValueProvider
+import org.utbot.framework.context.custom.useMocks
 import org.utbot.framework.context.utils.transformJavaFuzzingContext
-import org.utbot.framework.context.utils.withValueProvider
+import org.utbot.framework.context.utils.transformValueProvider
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
@@ -25,7 +27,12 @@ import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzing.spring.FuzzedTypeFlag
+import org.utbot.fuzzing.spring.addProperties
+import org.utbot.fuzzing.spring.decorators.replaceTypes
+import org.utbot.fuzzing.spring.properties
 import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
+import org.utbot.fuzzing.toFuzzerType
 
 class SpringApplicationContextImpl(
     private val delegateContext: ApplicationContext,
@@ -36,6 +43,8 @@ class SpringApplicationContextImpl(
     companion object {
         private val logger = KotlinLogging.logger {}
     }
+
+    private object ReplacedFuzzedTypeFlag : FuzzedTypeFlag
 
     override val typeReplacer: TypeReplacer = SpringTypeReplacer(delegateContext.typeReplacer, this)
     override val nonNullSpeculator: NonNullSpeculator = SpringNonNullSpeculator(delegateContext.nonNullSpeculator, this)
@@ -65,13 +74,32 @@ class SpringApplicationContextImpl(
         return when (springTestType) {
             SpringTestType.UNIT_TEST -> delegateConcreteExecutionContext.transformJavaFuzzingContext { fuzzingContext ->
                 fuzzingContext
-                    .withValueProvider(
+                    .useMocks { type ->
+                        ReplacedFuzzedTypeFlag !in type.properties &&
+                                mockStrategy.eligibleToMock(
+                                    classToMock = type.classId,
+                                    classUnderTest = fuzzingContext.classUnderTest
+                                )
+                    }
+                    .transformValueProvider { origValueProvider ->
                         InjectMockValueProvider(
                             idGenerator = fuzzingContext.idGenerator,
-                            classToUseCompositeModelFor = fuzzingContext.classUnderTest
+                            classUnderTest = fuzzingContext.classUnderTest
                         )
-                    )
-                    .mockAllTypesWithoutSpecificValueProvider()
+                            .withFallback(origValueProvider)
+                            .replaceTypes { description, type ->
+                                typeReplacer.replaceTypeIfNeeded(type.classId)
+                                    ?.let { replacementClassId ->
+                                        // TODO infer generic type of replacement
+                                        val replacement =
+                                            if (type.classId == replacementClassId) type
+                                            else toFuzzerType(replacementClassId.jClass, description.typeCache)
+                                        replacement.addProperties(
+                                            dynamicPropertiesOf(ReplacedFuzzedTypeFlag.withValue(Unit))
+                                        )
+                                    } ?: type
+                            }
+                    }
             }
             SpringTestType.INTEGRATION_TEST ->
                 RerunningConcreteExecutionContext(

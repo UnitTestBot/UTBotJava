@@ -21,11 +21,11 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
-import org.utbot.fuzzing.providers.ModifyingWithMethodsProviderWrapper
+import org.utbot.fuzzing.spring.decorators.ModifyingWithMethodsProviderWrapper
 import org.utbot.fuzzing.providers.ObjectValueProvider
 import org.utbot.fuzzing.spring.GeneratedFieldValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
-import org.utbot.fuzzing.spring.preserveProperties
+import org.utbot.fuzzing.spring.decorators.preserveProperties
 import org.utbot.fuzzing.spring.valid.EmailValueProvider
 import org.utbot.fuzzing.spring.valid.NotBlankStringValueProvider
 import org.utbot.fuzzing.spring.valid.NotEmptyStringValueProvider

@@ -35,8 +35,6 @@ include("utbot-junit-contest")
 include("utbot-analytics")
 include("utbot-analytics-torch")
 
-include("utbot-cli")
-
 include("utbot-api")
 include("utbot-instrumentation")
 include("utbot-instrumentation-tests")
@@ -65,6 +63,7 @@ include("utbot-spring-test")
 
 if (javaIde.split(",").contains(ideType)) {
     include("utbot-intellij")
+    include("utbot-cli")
 }
 
 if (pythonIde.split(",").contains(ideType)) {

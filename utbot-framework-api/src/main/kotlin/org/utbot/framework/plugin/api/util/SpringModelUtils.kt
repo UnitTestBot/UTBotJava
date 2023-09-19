@@ -364,7 +364,7 @@ object SpringModelUtils {
         pathVariableClassId,
         requestParamClassId,
         requestHeaderClassId,
-//        cookieValueClassId, // TODO uncomment when #2542 is fixed
+        cookieValueClassId,
         requestAttributesClassId,
         sessionAttributesClassId,
         modelAttributesClassId,
@@ -451,15 +451,11 @@ object SpringModelUtils {
         val headersContentModel = createHeadersContentModel(methodId, arguments, idGenerator)
         requestBuilderModel = addHeadersToRequestBuilderModel(headersContentModel, requestBuilderModel, idGenerator)
 
-        val cookieClassId = cookieClassIds.singleOrNull()
-        if(cookieClassId is ClassId) {
+        cookieClassIds.singleOrNull()?.let { cookieClassId ->
             val cookieValuesModel = createCookieValuesModel(cookieClassId, methodId, arguments, idGenerator)
             requestBuilderModel =
                 addCookiesToRequestBuilderModel(cookieClassId, cookieValuesModel, requestBuilderModel, idGenerator)
-        }
-        else{
-            logger.warn { "Cookie library not found" }
-        }
+        } ?: logger.warn { "Cookie library not found" }
 
         val requestAttributes = collectArgumentsWithAnnotationModels(methodId, requestAttributesClassId, arguments)
         requestBuilderModel =

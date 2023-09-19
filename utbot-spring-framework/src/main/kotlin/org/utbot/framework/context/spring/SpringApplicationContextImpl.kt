@@ -76,7 +76,7 @@ class SpringApplicationContextImpl(
                 fuzzingContext
                     .useMocks { type ->
                         ReplacedFuzzedTypeFlag !in type.properties &&
-                                fuzzingContext.mockStrategy.eligibleToMock(
+                                mockStrategy.eligibleToMock(
                                     classToMock = type.classId,
                                     classUnderTest = fuzzingContext.classUnderTest
                                 )

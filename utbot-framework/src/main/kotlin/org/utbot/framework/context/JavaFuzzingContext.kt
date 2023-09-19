@@ -1,6 +1,5 @@
 package org.utbot.framework.context
 
-import org.utbot.engine.MockStrategy
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -12,7 +11,6 @@ import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionRe
 
 interface JavaFuzzingContext {
     val classUnderTest: ClassId
-    val mockStrategy: MockStrategy
     val idGenerator: IdentityPreservingIdGenerator<Int>
     val valueProvider: JavaValueProvider
 

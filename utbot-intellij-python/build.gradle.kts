@@ -6,7 +6,6 @@ val ideType: String? by rootProject
 val ideVersion: String by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
-val goPluginVersion: String? by rootProject
 
 plugins {
     id("org.jetbrains.intellij") version "1.13.1"
@@ -43,13 +42,6 @@ dependencies {
 }
 
 intellij {
-    val jvmPlugins = listOf(
-        "java"
-    )
-
-    val kotlinPlugins = mutableListOf(
-        "org.jetbrains.kotlin"
-    )
 
     val pythonCommunityPlugins = listOf(
         "PythonCore:${pythonCommunityPluginVersion}"

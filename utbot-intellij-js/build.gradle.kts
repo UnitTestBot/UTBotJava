@@ -4,9 +4,6 @@ val apacheCommonsTextVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
 val ideType: String? by rootProject
 val ideVersion: String? by rootProject
-val pythonCommunityPluginVersion: String? by rootProject
-val pythonUltimatePluginVersion: String? by rootProject
-val goPluginVersion: String? by rootProject
 
 plugins {
     id("org.jetbrains.intellij") version "1.13.1"
@@ -43,36 +40,14 @@ dependencies {
 }
 
 intellij {
-
-    val androidPlugins = listOf("org.jetbrains.android")
-
-    val jvmPlugins = listOf(
-        "java"
-    )
-
-    val pythonCommunityPlugins = listOf(
-        "PythonCore:${pythonCommunityPluginVersion}"
-    )
-
-    val pythonUltimatePlugins = listOf(
-        "Pythonid:${pythonUltimatePluginVersion}"
-    )
-
     val jsPlugins = listOf(
         "JavaScript"
     )
 
-    val goPlugins = listOf(
-        "org.jetbrains.plugins.go:${goPluginVersion}"
-    )
-
     plugins.set(
         when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins
-            "PC" -> pythonCommunityPlugins
-            "PY" -> pythonUltimatePlugins // something else, JS?
-            else -> jvmPlugins
+            "IU" -> jsPlugins
+            else -> emptyList()
         }
     )
 

@@ -43,36 +43,14 @@ dependencies {
 }
 
 intellij {
-
-    val androidPlugins = listOf("org.jetbrains.android")
-
-    val jvmPlugins = listOf(
-        "java"
-    )
-
-    val pythonCommunityPlugins = listOf(
-        "PythonCore:${pythonCommunityPluginVersion}"
-    )
-
-    val pythonUltimatePlugins = listOf(
-        "Pythonid:${pythonUltimatePluginVersion}"
-    )
-
-    val jsPlugins = listOf(
-        "JavaScript"
-    )
-
     val goPlugins = listOf(
         "org.jetbrains.plugins.go:${goPluginVersion}"
     )
 
     plugins.set(
         when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins
-            "PC" -> pythonCommunityPlugins
-            "PU" -> pythonUltimatePlugins // something else, JS?
-            else -> jvmPlugins
+            "IU" -> goPlugins
+            else -> emptyList()
         }
     )
 

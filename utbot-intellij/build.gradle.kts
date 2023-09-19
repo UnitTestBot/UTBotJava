@@ -13,10 +13,6 @@ val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 val goPluginVersion: String? by rootProject
 
-val pythonIde: String? by rootProject
-val jsIde: String? by rootProject
-val goIde: String? by rootProject
-
 val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
 val rdVersion: String? by rootProject
@@ -48,22 +44,6 @@ intellij {
     )
 
     androidStudioPath?.let { jvmPlugins += androidPlugins }
-
-    val pythonCommunityPlugins = listOf(
-        "PythonCore:${pythonCommunityPluginVersion}"
-    )
-
-    val pythonUltimatePlugins = listOf(
-        "Pythonid:${pythonUltimatePluginVersion}"
-    )
-
-    val jsPlugins = listOf(
-        "JavaScript"
-    )
-
-    val goPlugins = listOf(
-        "org.jetbrains.plugins.go:${goPluginVersion}"
-    )
 
     val mavenUtilsPlugins = listOf(
         "org.jetbrains.idea.maven"

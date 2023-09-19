@@ -66,7 +66,7 @@ intellij {
                 "IC" -> basePluginSet + pythonCommunityPlugins
                 "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
                 "PC" -> pythonCommunityPlugins
-                "PY" -> pythonUltimatePlugins // something else, JS?
+                "PY" -> pythonUltimatePlugins + jsPlugins // something else, JS?
                 else -> basePluginSet
             }
             else -> basePluginSet

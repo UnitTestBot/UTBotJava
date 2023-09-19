@@ -2,13 +2,7 @@ package org.utbot.fuzzing.providers
 
 import mu.KotlinLogging
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.dateClassId
@@ -23,11 +17,12 @@ import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.util.simpleNameWithClass
 import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.util.executableId
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
@@ -40,13 +35,11 @@ import org.utbot.fuzzing.utils.hex
 import org.utbot.modifications.AnalysisMode
 import org.utbot.modifications.FieldInvolvementMode
 import org.utbot.modifications.UtBotFieldsModificatorsSearcher
+import soot.RefType
 import soot.Scene
 import soot.SootClass
-import java.lang.reflect.Field
-import java.lang.reflect.Member
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import java.lang.reflect.TypeVariable
+import soot.SootMethod
+import java.lang.reflect.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -64,11 +57,6 @@ private fun isIgnored(type: ClassId): Boolean {
             || type.isAbstract
             || (type.isInner && !type.isStatic)
 }
-
-fun anyObjectValueProvider(idGenerator: IdentityPreservingIdGenerator<Int>) =
-    ObjectValueProvider(idGenerator).letIf(UtSettings.fuzzingImplementationOfAbstractClasses) { ovp ->
-        ovp.withFallback(AbstractsObjectValueProvider(idGenerator))
-    }
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -180,6 +168,140 @@ object AnyDepthNullValueProvider : JavaValueProvider {
     ) = sequenceOf<Seed<FuzzedType, FuzzedValue>>(Seed.Simple(nullFuzzedValue(classClassId)))
 }
 
+class BuilderObjectValueProvider(
+    val idGenerator: IdGenerator<Int>,
+) : JavaValueProvider {
+
+    override fun accept(type: FuzzedType) = type.classId.isRefType && !isKnownTypes(type.classId)
+
+    override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
+        val t = try {
+            Scene.v().getRefType(type.classId.name).sootClass
+        } catch (ignore: Throwable) {
+            logger.error(ignore) { "Soot may be not initialized" }
+            return@sequence
+        }
+        val implementors = if (t.isInterface) {
+            Scene.v().activeHierarchy.let { it.getImplementersOf(t) + it.getSubinterfacesOf(t) + t }.toSet()
+        } else {
+            Scene.v().activeHierarchy.let { it.getSubclassesOf(t) + t }.toSet()
+        }
+        Scene.v().classes.forEach { sootClass ->
+            val classId = sootClass.id
+            if (sootClass.isUseful() && isAccessible(sootClass, description.description.packageName)) {
+                sootClass.methods.asSequence()
+                    .filter { isAccessible(it, description.description.packageName) }
+                    .filter { (implementors.contains((it.returnType as? RefType)?.sootClass)) }
+                    .filter {
+                        // Simple check whether the method is synthetic,
+                        // because Soot has no information about this:
+                        // https://mailman.cs.mcgill.ca/pipermail/soot-list/2012-November/004972.html
+                        !it.name.matches(nameWithDigitsAfterSpecialCharRegex)
+                    }
+                    .forEach byMethod@{ method ->
+                        val returnType = method.returnType as RefType
+                        val returnClassId = returnType.classId
+                        val isStaticMethod = method.isStatic
+                        val parameters = method.parameterTypes.map {
+                            try {
+                                toFuzzerType(it.classId.jClass, description.typeCache)
+                            } catch (e: ClassNotFoundException) {
+                                logger.warn { "${it.classId} is not loaded by classpath" }
+                                return@byMethod
+                            }
+                        } as MutableList<FuzzedType>
+                        if (isStaticMethod) {
+                            yield(Seed.Recursive(
+                                construct = Routine.Create(parameters) { params ->
+                                    UtAssembleModel(
+                                        idGenerator.createId(),
+                                        returnClassId,
+                                        method.toString(),
+                                        UtExecutableCallModel(
+                                            null,
+                                            method.executableId,
+                                            params.map { it.model }
+                                        ),
+                                        modificationsChainProvider = { mutableListOf() }
+                                    ).fuzzed {
+                                        val creatorExecutableId = method.executableId
+                                        summary = "%var% = ${when (creatorExecutableId) {
+                                            is ConstructorId -> classId.simpleName
+                                            is MethodId -> creatorExecutableId.simpleNameWithClass
+                                        }}(${creatorExecutableId.parameters.joinToString { it.simpleName }})"
+                                    }
+                                },
+                                empty = nullRoutine(returnClassId)
+                            ))
+                        } else {
+                            val builderInstance = toFuzzerType(classId.jClass, description.typeCache)
+                            yield(Seed.Recursive(
+                                construct = Routine.Create(listOf(builderInstance)) {
+                                    it.first()
+                                },
+                                modify = sootClass.methods.asSequence()
+                                    .filter { isAccessible(it, description.description.packageName) }
+                                    .filter { (it.returnType as? RefType)?.sootClass == sootClass }
+                                    .map { builderMethod ->
+                                         Routine.Call(builderMethod.parameterTypes.map {
+                                             toFuzzerType(it.classId.jClass, description.typeCache)
+                                         }) { instance, values ->
+                                             val utAssembleModel = instance.model as? UtAssembleModel ?: return@Call
+                                             (utAssembleModel.modificationsChain as MutableList<UtStatementModel>).add(UtExecutableCallModel(
+                                                     utAssembleModel,
+                                                     builderMethod.executableId,
+                                                     values.map { it.model }
+                                                 ))
+                                         }
+                                    },
+                                empty = nullRoutine(returnClassId),
+                                transformers = sequenceOf(Routine.Modify(parameters) { instance, values ->
+                                    UtAssembleModel(
+                                        idGenerator.createId(),
+                                        returnClassId,
+                                        method.toString(),
+                                        UtExecutableCallModel(
+                                            instance.model as? UtAssembleModel ?: return@Modify nullFuzzedValue(returnClassId),
+                                            method.executableId,
+                                            values.map { it.model }
+                                        ),
+                                    ).fuzzed {
+                                        val creatorExecutableId = method.executableId
+                                        summary = "%var% = ${when (creatorExecutableId) {
+                                            is ConstructorId -> classId.simpleName
+                                            is MethodId -> creatorExecutableId.simpleNameWithClass
+                                        }}(${creatorExecutableId.parameters.joinToString { it.simpleName }})"
+                                    }
+                                })
+                            ))
+                        }
+                    }
+            }
+        }
+    }
+
+}
+
+private val nameWithDigitsAfterSpecialCharRegex = """.*\$\d+$""".toRegex()
+
+private fun SootClass.isUseful(): Boolean {
+    if (!isConcrete) return false
+    val packageName = packageName
+    if (packageName != null) {
+        if (packageName.startsWith("jdk.internal") ||
+            packageName.startsWith("org.utbot") ||
+            packageName.startsWith("sun.") ||
+            packageName.startsWith("com.sun.")
+        )
+            return false
+    }
+    val isAnonymousClass = name.matches(nameWithDigitsAfterSpecialCharRegex)
+    if (isAnonymousClass) {
+        return false
+    }
+    return true
+}
+
 /**
  * Finds and create object from implementations of abstract classes or interfaces.
  */
@@ -196,45 +318,39 @@ class AbstractsObjectValueProvider(
             logger.error(ignore) { "Soot may be not initialized" }
             return@sequence
         }
+
         fun canCreateClass(sc: SootClass): Boolean {
             try {
-                if (!sc.isConcrete) return false
-                val packageName = sc.packageName
-                if (packageName != null) {
-                    if (packageName.startsWith("jdk.internal") ||
-                        packageName.startsWith("org.utbot") ||
-                        packageName.startsWith("sun."))
-                    return false
-                }
-                val isAnonymousClass = sc.name.matches(""".*\$\d+$""".toRegex())
-                if (isAnonymousClass) {
+                if (!sc.isUseful()) {
                     return false
                 }
                 val jClass = sc.id.jClass
                 return isAccessible(jClass, description.description.packageName) &&
-                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) } &&
-                        jClass.let {
-                            // This won't work in case of implementations with generics like `Impl<T> implements A<T>`.
-                            // Should be reworked with accurate generic matching between all classes.
-                            toFuzzerType(it, description.typeCache).traverseHierarchy(description.typeCache).contains(type)
-                        }
+                        jClass.declaredConstructors.any { isAccessible(it, description.description.packageName) }
+                        // This won't work in case of implementations with generics like `Impl<T> implements A<T>`.
+                        // Should be reworked with accurate generic matching between all classes.
+                        && toFuzzerType(jClass, description.typeCache).traverseHierarchy(description.typeCache)
+                            .contains(type)
             } catch (ignore: Throwable) {
+                logger.warn("Cannot resolve class $sc", ignore)
                 return false
             }
         }
 
         val implementations = when {
-            t.isInterface -> Scene.v().fastHierarchy.getAllImplementersOfInterface(t).filter(::canCreateClass)
-            t.isAbstract -> Scene.v().fastHierarchy.getSubclassesOf(t).filter(::canCreateClass)
+            t.isInterface -> Scene.v().activeHierarchy.getImplementersOf(t).filter(::canCreateClass)
+            t.isAbstract -> Scene.v().activeHierarchy.getSubclassesOf(t).filter(::canCreateClass)
             else -> emptyList()
         }
         implementations.shuffled(description.random).take(10).forEach { concrete ->
-            yield(Seed.Recursive(
-                construct = Routine.Create(listOf(toFuzzerType(concrete.id.jClass, description.typeCache))) {
-                    it.first()
-                },
-                empty = nullRoutine(type.classId)
-            ))
+            yield(
+                Seed.Recursive(
+                    construct = Routine.Create(listOf(toFuzzerType(concrete.id.jClass, description.typeCache))) {
+                        it.first()
+                    },
+                    empty = nullRoutine(type.classId)
+                )
+            )
         }
     }
 }
@@ -258,7 +374,11 @@ internal class MethodDescription(
     val method: Method
 )
 
-internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
+internal fun findAccessibleModifiableFields(
+    description: FuzzedDescription?,
+    classId: ClassId,
+    packageName: String?
+): List<FieldDescription> {
     return generateSequence(classId.jClass) { it.superclass }.flatMap { jClass ->
         jClass.declaredFields.map { field ->
             val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)
@@ -283,7 +403,7 @@ internal fun findMethodsToModifyWith(
     description: FuzzedDescription,
     valueClassId: ClassId,
     classUnderTest: ClassId,
-    ): List<MethodDescription> {
+): List<MethodDescription> {
     val packageName = description.description.packageName
 
     val methodUnderTestName = description.description.name.substringAfter(description.description.className + ".")
@@ -314,7 +434,11 @@ internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, pack
     @Suppress("DEPRECATION") val postfixName = field.name.capitalize()
     val setterName = "set$postfixName"
     val getterName = "get$postfixName"
-    val getter = try { getDeclaredMethod(getterName) } catch (_: NoSuchMethodException) { return null }
+    val getter = try {
+        getDeclaredMethod(getterName)
+    } catch (_: NoSuchMethodException) {
+        return null
+    }
     return if (isAccessible(getter, packageName) && getter.returnType == field.type) {
         declaredMethods.find {
             isAccessible(it, packageName) &&
@@ -342,11 +466,26 @@ internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
             (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.`package`?.name == packageName)
 }
 
+internal fun isAccessible(sootClass: SootClass, packageName: String?): Boolean {
+    return Modifier.isPublic(sootClass.modifiers) ||
+            (packageName != null && isNotPrivateOrProtected(sootClass.modifiers) && sootClass.packageName == packageName)
+}
+
+internal fun isAccessible(sootMethod: SootMethod, packageName: String?): Boolean {
+    var clazz = sootMethod.declaringClass
+    while (clazz != null) {
+        if (!isAccessible(clazz, packageName)) return false
+        clazz = if (clazz.hasOuterClass()) clazz.outerClass else null
+    }
+    return Modifier.isPublic(sootMethod.modifiers) ||
+            (packageName != null && isNotPrivateOrProtected(sootMethod.modifiers) && sootMethod.declaringClass.packageName == packageName)
+}
+
 private fun findModifyingMethodNames(
     methodUnderTestName: String,
     valueClassId: ClassId,
     classUnderTest: ClassId,
-    ) : Set<String> =
+): Set<String> =
     UtBotFieldsModificatorsSearcher(fieldInvolvementMode = FieldInvolvementMode.ReadAndWrite)
         .let { searcher ->
             searcher.update(setOf(valueClassId, classUnderTest))

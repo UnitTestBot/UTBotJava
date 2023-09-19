@@ -141,7 +141,8 @@ sealed interface Seed<TYPE, RESULT> {
     class Recursive<TYPE, RESULT>(
         val construct: Routine.Create<TYPE, RESULT>,
         val modify: Sequence<Routine.Call<TYPE, RESULT>> = emptySequence(),
-        val empty: Routine.Empty<TYPE, RESULT>
+        val empty: Routine.Empty<TYPE, RESULT>,
+        val transformers: Sequence<Routine.Modify<TYPE, RESULT>> = emptySequence(),
     ) : Seed<TYPE, RESULT>
 
     /**
@@ -184,6 +185,13 @@ sealed class Routine<T, R>(val types: List<T>) : Iterable<T> by types {
         operator fun invoke(instance: R, arguments: List<R>) {
             callable(instance, arguments)
         }
+    }
+
+    class Modify<T, R>(
+        types: List<T>,
+        val callable: (instance: R, arguments: List<R>) -> R
+    ) : Routine<T, R>(types) {
+        operator fun invoke(instance: R, arguments: List<R>): R = callable(instance, arguments)
     }
 
     /**
@@ -541,7 +549,28 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                             parameterIndex = -1
                         }
                     )
+                },
+            transformers = task.transformers.let { transformer ->
+                if (transformer === emptySequence<Node<TYPE, RESULT>>() || transformer.none()) {
+                    emptyList()
+                } else {
+                    transformer.map { f ->
+                        fuzz(
+                            f.types,
+                            fuzzing,
+                            description,
+                            random,
+                            configuration,
+                            f,
+                            state.copy {
+                                recursionTreeDepth++
+                                iterations = -1
+                                parameterIndex = -1
+                            }
+                        )
+                    }.toList()
                 }
+            }
         )
     } catch (nsv: NoSeedValueException) {
         @Suppress("UNCHECKED_CAST")
@@ -577,7 +606,16 @@ private fun <TYPE, R> create(result: Result<TYPE, R>): R = when(result) {
                 else -> error("Undefined object call method ${func.builder}")
             }
         }
-        obj
+        transformers.let { transformers ->
+            var transformed = obj
+            transformers.forEach { transformer ->
+                transformed = when (val builder = transformer.builder) {
+                    is Routine.Modify<TYPE, R> -> builder(obj, transformer.result.map { create(it) })
+                    else -> error("Undefined object call method ${transformer.builder}")
+                }
+            }
+            transformed
+        }
     }
     is Result.Collection<TYPE, R> -> with(result) {
         val collection: R = when (val c = construct.builder) {
@@ -659,6 +697,7 @@ sealed interface Result<TYPE, RESULT> {
     class Recursive<TYPE, RESULT>(
         val construct: Node<TYPE, RESULT>,
         val modify: List<Node<TYPE, RESULT>>,
+        val transformers: List<Node<TYPE, RESULT>>,
     ) : Result<TYPE, RESULT>
 
     /**

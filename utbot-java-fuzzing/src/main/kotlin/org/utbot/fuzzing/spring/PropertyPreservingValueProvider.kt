@@ -54,7 +54,13 @@ class PropertyPreservingValueProvider(private val delegateProvider: JavaValuePro
                             callable = modification.callable
                         )
                     },
-                    empty = seed.empty
+                    empty = seed.empty,
+                    transformers = seed.transformers.map { transformer ->
+                        Routine.Modify(
+                            types = transformer.types.addPreservedProperties(),
+                            callable = transformer.callable
+                        )
+                    }
                 )
                 is Seed.Collection -> Seed.Collection(
                     construct = seed.construct,

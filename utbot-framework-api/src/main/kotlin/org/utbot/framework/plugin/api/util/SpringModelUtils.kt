@@ -355,6 +355,39 @@ object SpringModelUtils {
         returnType = resultMatcherClassId
     )
 
+    private val supportedControllerParameterAnnotations = setOf(
+        pathVariableClassId,
+        requestParamClassId,
+        requestHeaderClassId,
+//        cookieValueClassId, // TODO uncomment when #2542 is fixed
+        requestAttributesClassId,
+        sessionAttributesClassId,
+        modelAttributesClassId,
+        requestBodyClassId,
+    )
+
+    /**
+     * If a controller method has a parameter of one of these types, then we don't fully support conversion
+     * of direct call of that controller method call to a request that can be done via `mockMvc` even if
+     * said parameter is annotated with one of [supportedControllerParameterAnnotations].
+     */
+    private val unsupportedControllerParameterTypes = setOf(
+        dateClassId, // see #2505
+        mapClassId, // e.g. `@RequestParam Map<String, Object>` is not yet properly handled
+    )
+
+    /**
+     * Returns `true` if for every parameter of [methodId] we have a mechanism of registering said
+     * parameter in `requestBuilder` when calling controller method via `mockMvc.perform(requestBuilder)`.
+     */
+    fun allControllerParametersAreSupported(methodId: MethodId): Boolean =
+        methodId.parameters.none { it in unsupportedControllerParameterTypes } &&
+                methodId.method.parameters.all { param ->
+                    param.annotations.any { annotation ->
+                        annotation.annotationClass.id in supportedControllerParameterAnnotations
+                    }
+                }
+
     fun createMockMvcModel(controller: UtModel?, idGenerator: () -> Int) =
         createBeanModel("mockMvc", idGenerator(), mockMvcClassId, modificationChainProvider = {
             // we need to keep controller modifications if there are any, so we add them to mockMvc

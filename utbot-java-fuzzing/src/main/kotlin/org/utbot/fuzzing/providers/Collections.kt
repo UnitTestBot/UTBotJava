@@ -84,24 +84,8 @@ class MapValueProvider(
     idGenerator: IdGenerator<Int>
 ) : CollectionValueProvider(idGenerator, java.util.Map::class.id) {
 
-    private enum class MethodCall { KEYS, VALUES }
-
-    private fun findTypeByMethod(description: FuzzedDescription, type: FuzzedType, method: MethodCall): FuzzedType {
-        val methodName = when (method) {
-            MethodCall.KEYS -> "keySet"
-            MethodCall.VALUES -> "values"
-        }
-        val m = Map::class.java.getMethod(methodName)
-        return resolveTypeByMethod(description, type, m)?.let {
-            assert(it.classId.isSubtypeOf(collectionClassId))
-            assert(it.generics.size == 1)
-            it.generics[0]
-        } ?: FuzzedType(objectClassId)
-    }
-
     override fun resolveType(description: FuzzedDescription, type: FuzzedType) = sequence {
-        val keyGeneric = findTypeByMethod(description, type, MethodCall.KEYS)
-        val valueGeneric = findTypeByMethod(description, type, MethodCall.VALUES)
+        val (keyGeneric, valueGeneric) = resolveGenericsOfSuperClass<Map<*, *>>(description, type)
         when (type.classId) {
             java.util.Map::class.id -> {
                 if (keyGeneric.classId isSubtypeOf Comparable::class) {
@@ -128,19 +112,8 @@ class ListSetValueProvider(
     idGenerator: IdGenerator<Int>
 ) : CollectionValueProvider(idGenerator, java.util.Collection::class.id) {
 
-    private val iteratorClassId = java.util.Iterator::class.java.id
-
-    private fun findTypeByMethod(description: FuzzedDescription, type: FuzzedType): FuzzedType {
-        val method = java.util.Collection::class.java.getMethod("iterator")
-        return resolveTypeByMethod(description, type, method)?.let {
-            assert(it.classId.isSubtypeOf(iteratorClassId))
-            assert(it.generics.size == 1)
-            it.generics[0]
-        } ?: FuzzedType(objectClassId)
-    }
-
     override fun resolveType(description: FuzzedDescription, type: FuzzedType) = sequence {
-        val generic = findTypeByMethod(description, type)
+        val (generic) = resolveGenericsOfSuperClass<Collection<*>>(description, type)
         when (type.classId) {
             java.util.Queue::class.id,
             java.util.Deque::class.id-> {
@@ -203,20 +176,6 @@ abstract class CollectionValueProvider(
     }
 
     /**
-     * Can be used to resolve some types using [type] and some method of this type
-     */
-    protected fun resolveTypeByMethod(description: FuzzedDescription, type: FuzzedType, method: Method): FuzzedType? {
-        return try {
-            toFuzzerType(
-                TypeToken.of(type.jType).resolveType(method.genericReturnType).type,
-                description.typeCache
-            )
-        } catch (t: Throwable) {
-            null
-        }
-    }
-
-    /**
      * Types should be resolved with type parameters
      */
     abstract fun resolveType(description: FuzzedDescription, type: FuzzedType) : Sequence<FuzzedType>
@@ -267,7 +226,7 @@ class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : JavaValueProvid
     }
 
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> {
-        val generic = type.generics.firstOrNull() ?: FuzzedType(objectClassId)
+        val (generic) = resolveGenericsOfSuperClass<Iterator<*>>(description, type)
         return sequenceOf(Seed.Recursive(
             construct = Routine.Create(listOf(FuzzedType(iterableClassId, listOf(generic)))) { v ->
                 val id = idGenerator.createId()
@@ -305,5 +264,22 @@ class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : JavaValueProvid
                 }
             }
         ))
+    }
+}
+
+private inline fun <reified T> resolveGenericsOfSuperClass(
+    description: FuzzedDescription,
+    type: FuzzedType,
+): List<FuzzedType> {
+    val superClass = T::class.java
+    return try {
+        check(superClass.isAssignableFrom(type.classId.jClass)) { "$superClass isn't super class of $type" }
+        @Suppress("UNCHECKED_CAST")
+        toFuzzerType(
+            TypeToken.of(type.jType).getSupertype(superClass as Class<in Any>).type,
+            description.typeCache
+        ).generics
+    } catch (e: Throwable) {
+        superClass.typeParameters.map { toFuzzerType(it, description.typeCache) }
     }
 }

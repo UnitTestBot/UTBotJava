@@ -1,3 +1,6 @@
+val projectType: String by rootProject
+val communityEdition: String by rootProject
+val ultimateEdition: String by rootProject
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
@@ -6,6 +9,8 @@ val ideType: String? by rootProject
 val ideVersion: String by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
+val goPluginVersion: String? by rootProject
+val androidStudioPath: String? by rootProject
 
 plugins {
     id("org.jetbrains.intellij") version "1.13.1"
@@ -43,6 +48,18 @@ dependencies {
 
 intellij {
 
+    val androidPlugins = listOf("org.jetbrains.android")
+
+    val jvmPlugins = mutableListOf(
+        "java"
+    )
+
+    val kotlinPlugins = mutableListOf(
+        "org.jetbrains.kotlin"
+    )
+
+    androidStudioPath?.let { jvmPlugins += androidPlugins }
+
     val pythonCommunityPlugins = listOf(
         "PythonCore:${pythonCommunityPluginVersion}"
     )
@@ -51,13 +68,32 @@ intellij {
         "Pythonid:${pythonUltimatePluginVersion}"
     )
 
+    val jsPlugins = listOf(
+        "JavaScript"
+    )
+
+    val goPlugins = listOf(
+        "org.jetbrains.plugins.go:${goPluginVersion}"
+    )
+
+    val mavenUtilsPlugins = listOf(
+        "org.jetbrains.idea.maven"
+    )
+
+    val basePluginSet = jvmPlugins + kotlinPlugins + mavenUtilsPlugins + androidPlugins
+
     plugins.set(
-        when (ideType) {
-            "IC" -> pythonCommunityPlugins
-            "IU" -> pythonUltimatePlugins
-            "PC" -> pythonCommunityPlugins
-            "PY" -> pythonUltimatePlugins // something else, JS?
-            else -> emptyList()
+        when (projectType) {
+            communityEdition -> basePluginSet + pythonCommunityPlugins
+            ultimateEdition -> when (ideType) {
+                "IC" -> basePluginSet + pythonCommunityPlugins
+                "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
+                "PC" -> pythonCommunityPlugins
+                "PY" -> pythonUltimatePlugins // something else, JS?
+                "GO" -> goPlugins
+                else -> basePluginSet
+            }
+            else -> basePluginSet
         }
     )
 

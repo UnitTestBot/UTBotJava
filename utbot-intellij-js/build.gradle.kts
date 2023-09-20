@@ -90,6 +90,7 @@ intellij {
                 "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
                 "PC" -> pythonCommunityPlugins
                 "PY" -> pythonUltimatePlugins // something else, JS?
+                "GO" -> goPlugins
                 else -> basePluginSet
             }
             else -> basePluginSet

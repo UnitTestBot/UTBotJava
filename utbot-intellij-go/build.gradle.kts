@@ -88,6 +88,8 @@ intellij {
             ultimateEdition -> when (ideType) {
                 "IC" -> basePluginSet + pythonCommunityPlugins
                 "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
+                "PC" -> pythonCommunityPlugins
+                "PY" -> pythonUltimatePlugins // something else, JS?
                 "GO" -> goPlugins
                 else -> basePluginSet
             }

@@ -16,6 +16,9 @@ val goIde: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
 
+val junit5Version: String by rootProject
+val junit4PlatformVersion: String by rootProject
+
 // https://plugins.jetbrains.com/docs/intellij/android-studio.html#configuring-the-plugin-pluginxml-file
 val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
 
@@ -76,7 +79,7 @@ intellij {
 
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
-//    SettingsTemplateHelper.proceed(project)
+    SettingsTemplateHelper.proceed(project)
 }
 
 val remoteRobotVersion = "0.11.16"
@@ -176,4 +179,9 @@ dependencies {
 
     // Video Recording
     implementation("com.automation-remarks:video-recorder-junit5:2.0")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junit4PlatformVersion")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:$junit5Version")
 }

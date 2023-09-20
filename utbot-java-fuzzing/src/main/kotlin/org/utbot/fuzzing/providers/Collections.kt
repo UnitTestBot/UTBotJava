@@ -7,10 +7,9 @@ import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
+import org.utbot.fuzzer.jType
 import org.utbot.fuzzing.*
-import org.utbot.fuzzing.spring.utils.jType
 import org.utbot.fuzzing.utils.hex
-import java.lang.reflect.Method
 import kotlin.reflect.KClass
 
 class EmptyCollectionValueProvider(

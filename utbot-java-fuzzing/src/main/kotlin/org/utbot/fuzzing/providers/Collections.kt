@@ -1,5 +1,6 @@
 package org.utbot.fuzzing.providers
 
+import com.google.common.reflect.TypeToken
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedType
@@ -7,7 +8,9 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
+import org.utbot.fuzzing.spring.utils.jType
 import org.utbot.fuzzing.utils.hex
+import java.lang.reflect.Method
 import kotlin.reflect.KClass
 
 class EmptyCollectionValueProvider(
@@ -80,9 +83,25 @@ class EmptyCollectionValueProvider(
 class MapValueProvider(
     idGenerator: IdGenerator<Int>
 ) : CollectionValueProvider(idGenerator, java.util.Map::class.id) {
+
+    private enum class MethodCall { KEYS, VALUES }
+
+    private fun findTypeByMethod(description: FuzzedDescription, type: FuzzedType, method: MethodCall): FuzzedType {
+        val methodName = when (method) {
+            MethodCall.KEYS -> "keySet"
+            MethodCall.VALUES -> "values"
+        }
+        val m = Map::class.java.getMethod(methodName)
+        return resolveTypeByMethod(description, type, m)?.let {
+            assert(it.classId.isSubtypeOf(collectionClassId))
+            assert(it.generics.size == 1)
+            it.generics[0]
+        } ?: FuzzedType(objectClassId)
+    }
+
     override fun resolveType(description: FuzzedDescription, type: FuzzedType) = sequence {
-        val keyGeneric = type.generics.getOrNull(0) ?: FuzzedType(objectClassId)
-        val valueGeneric = type.generics.getOrNull(1) ?: FuzzedType(objectClassId)
+        val keyGeneric = findTypeByMethod(description, type, MethodCall.KEYS)
+        val valueGeneric = findTypeByMethod(description, type, MethodCall.VALUES)
         when (type.classId) {
             java.util.Map::class.id -> {
                 if (keyGeneric.classId isSubtypeOf Comparable::class) {
@@ -108,8 +127,20 @@ class MapValueProvider(
 class ListSetValueProvider(
     idGenerator: IdGenerator<Int>
 ) : CollectionValueProvider(idGenerator, java.util.Collection::class.id) {
+
+    private val iteratorClassId = java.util.Iterator::class.java.id
+
+    private fun findTypeByMethod(description: FuzzedDescription, type: FuzzedType): FuzzedType {
+        val method = java.util.Collection::class.java.getMethod("iterator")
+        return resolveTypeByMethod(description, type, method)?.let {
+            assert(it.classId.isSubtypeOf(iteratorClassId))
+            assert(it.generics.size == 1)
+            it.generics[0]
+        } ?: FuzzedType(objectClassId)
+    }
+
     override fun resolveType(description: FuzzedDescription, type: FuzzedType) = sequence {
-        val generic = type.generics.firstOrNull() ?: FuzzedType(objectClassId)
+        val generic = findTypeByMethod(description, type)
         when (type.classId) {
             java.util.Queue::class.id,
             java.util.Deque::class.id-> {
@@ -168,6 +199,20 @@ abstract class CollectionValueProvider(
             if (emptyConstructor != null && emptyConstructor.isPublic) {
                 yield(type)
             }
+        }
+    }
+
+    /**
+     * Can be used to resolve some types using [type] and some method of this type
+     */
+    protected fun resolveTypeByMethod(description: FuzzedDescription, type: FuzzedType, method: Method): FuzzedType? {
+        return try {
+            toFuzzerType(
+                TypeToken.of(type.jType).resolveType(method.genericReturnType).type,
+                description.typeCache
+            )
+        } catch (t: Throwable) {
+            null
         }
     }
 

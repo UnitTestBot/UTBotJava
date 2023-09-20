@@ -1,30 +1,27 @@
 package org.utbot.intellij.plugin.js
 
 import api.JsTestGenerator
-import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreterManager
 import com.intellij.lang.ecmascript6.psi.ES6Class
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.TestModuleProperties
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
 import mu.KotlinLogging
-import org.jetbrains.kotlin.idea.util.application.invokeLater
-import org.jetbrains.kotlin.idea.util.application.runReadAction
-import org.jetbrains.kotlin.idea.util.application.runWriteAction
-import org.jetbrains.kotlin.konan.file.File
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.intellij.plugin.js.language.JsLanguageAssistant
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
@@ -36,6 +33,7 @@ import settings.PackageDataService
 import settings.jsPackagesList
 import utils.JsCmdExec
 import utils.OsProvider
+import java.io.File
 import java.io.IOException
 
 private val logger = KotlinLogging.logger {}
@@ -205,10 +203,11 @@ object JsDialogProcessor {
                             testDir.add(temp)
                             testDir.findFile(testFileName)!!
                         }
-                        val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile) as Editor
-                        unblockDocument(project, testFileEditor.document)
-                        testFileEditor.document.setText(generatedCode)
-                        unblockDocument(project, testFileEditor.document)
+//                        val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile) as Editor
+                        OpenFileDescriptor(project, testPsiFile.virtualFile).navigate(true)
+//                        unblockDocument(project, testFileEditor.document)
+//                        testFileEditor.document.setText(generatedCode)
+//                        unblockDocument(project, testFileEditor.document)
                     }
                 }
             }

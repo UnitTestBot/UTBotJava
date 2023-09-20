@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.python.*
 
+@Suppress("unused") // is used in org.utbot.intellij.plugin.language.agnostic.LanguageAssistant via reflection
 object PythonLanguageAssistant : LanguageAssistant() {
 
     private const val pythonID = "Python"

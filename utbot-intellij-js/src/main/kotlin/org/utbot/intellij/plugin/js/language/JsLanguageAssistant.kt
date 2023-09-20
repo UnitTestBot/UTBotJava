@@ -10,16 +10,17 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.idea.util.projectStructure.module
 import org.utbot.intellij.plugin.js.JsDialogProcessor
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import settings.JsTestGenerationSettings.dummyClassName
 
+@Suppress("unused") // is used in org.utbot.intellij.plugin.language.agnostic.LanguageAssistant via reflection
 object JsLanguageAssistant : LanguageAssistant() {
 
     private const val jsId = "ECMAScript 6"
@@ -61,7 +62,7 @@ object JsLanguageAssistant : LanguageAssistant() {
         } else {
             e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
         }
-        val module = element.module ?: return null
+        val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
         val virtualFile = (e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return null).path
         val focusedMethod = getContainingMethod(element)
         containingClass(element)?.let {

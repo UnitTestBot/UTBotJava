@@ -5,10 +5,10 @@ import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.idea.base.util.module
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.go.generator.GoUtTestsDialogProcessor
 
@@ -26,7 +26,7 @@ object GoLanguageAssistant : LanguageAssistant() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val file = e.getData(CommonDataKeys.PSI_FILE) as? GoFile ?: return
-        val module = file.module ?: return
+        val module = ModuleUtilCore.findModuleForFile(file) ?: return
         val (targetFunctions, focusedTargetFunctions) = getPsiTargets(e) ?: return
         GoUtTestsDialogProcessor.createDialogAndGenerateTests(
             project,

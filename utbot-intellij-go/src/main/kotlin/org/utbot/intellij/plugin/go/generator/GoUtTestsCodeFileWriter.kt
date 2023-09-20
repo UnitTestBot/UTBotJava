@@ -1,7 +1,7 @@
 package org.utbot.intellij.plugin.go.generator
 
-import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
@@ -37,7 +37,7 @@ object GoUtTestsCodeFileWriter {
                 sourceFileDir.add(testPsiFile)
 
                 val testFile = sourceFileDir.findFile(testsFileNameWithExtension)!!
-                CodeInsightUtil.positionCursor(model.project, testFile, testFile)
+                OpenFileDescriptor(model.project, testFile.virtualFile).navigate(true)
             }
         } catch (e: IncorrectOperationException) {
             showCreatingFileError(model.project, testsFileName)

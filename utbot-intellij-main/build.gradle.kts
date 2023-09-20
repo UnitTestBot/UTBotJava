@@ -75,7 +75,7 @@ intellij {
 
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
-    SettingsTemplateHelper.proceed(project)
+//    SettingsTemplateHelper.proceed(project)
 }
 
 val remoteRobotVersion = "0.11.16"
@@ -147,8 +147,8 @@ dependencies {
     }
 
     if (pythonIde?.split(',')?.contains(ideType) == true) {
-        api(project(":utbot-python"))
-        api(project(":utbot-intellij-python"))
+        implementation(project(":utbot-python"))
+        implementation(project(":utbot-intellij-python"))
     }
 
     if (projectType == ultimateEdition) {

@@ -63,5 +63,5 @@ intellij {
 
     version.set(ideVersion)
     type.set(ideType)
-    SettingsTemplateHelper.proceed(project)
+//    SettingsTemplateHelper.proceed(project)
 }

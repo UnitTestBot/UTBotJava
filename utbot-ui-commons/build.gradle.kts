@@ -13,11 +13,6 @@ project.tasks.asMap["runIde"]?.enabled = false
 intellij {
     version.set(ideVersion)
     type.set(ideType)
-
-    plugins.set(listOf(
-//        "java",
-//        "org.jetbrains.android"
-    ))
 }
 
 tasks {

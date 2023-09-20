@@ -55,7 +55,7 @@ intellij {
 
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
-    SettingsTemplateHelper.proceed(project)
+//    SettingsTemplateHelper.proceed(project)
 }
 
 tasks {

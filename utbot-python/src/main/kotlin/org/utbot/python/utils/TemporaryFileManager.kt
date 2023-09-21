@@ -10,8 +10,13 @@ object TemporaryFileManager {
     private var nextId = 0
 
     init {
+        tmpDirectory = initialize()
+    }
+
+    fun initialize(): Path {
         tmpDirectory = FileUtil.createTempDirectory("python-test-generation-${nextId++}")
         Cleaner.addFunction { tmpDirectory.toFile().deleteRecursively() }
+        return tmpDirectory
     }
 
     fun assignTemporaryFile(fileName_: String? = null, tag: String? = null, addToCleaner: Boolean = true): File {

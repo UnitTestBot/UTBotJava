@@ -14,5 +14,7 @@ fun ConcreteExecutionContext.transformJavaFuzzingContext(
 }
 
 fun ConcreteExecutionContext.transformValueProvider(
-    transformer: (JavaValueProvider) -> JavaValueProvider
-) = transformJavaFuzzingContext { it.transformValueProvider(transformer) }
+    transformer: FuzzingContextParams.(JavaValueProvider) -> JavaValueProvider
+) = transformJavaFuzzingContext { javaFuzzingContext ->
+    javaFuzzingContext.transformValueProvider { valueProvider -> transformer(valueProvider) }
+}

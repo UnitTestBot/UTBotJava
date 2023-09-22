@@ -26,7 +26,9 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassIds
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzing.spring.JavaLangObject
 import org.utbot.fuzzing.spring.FuzzedTypeFlag
 import org.utbot.fuzzing.spring.addProperties
 import org.utbot.fuzzing.spring.decorators.replaceTypes
@@ -58,7 +60,11 @@ class SpringApplicationContextImpl(
         var delegateConcreteExecutionContext = delegateContext.createConcreteExecutionContext(
             fullClasspath,
             classpathWithoutDependencies
-        )
+        ).transformValueProvider { valueProvider ->
+            valueProvider.with(JavaLangObject(
+                classesToTryUsingAsJavaLangObject = listOf(objectClassId, classUnderTest)
+            ))
+        }
 
         // to avoid filtering out all coverage, we only filter
         // coverage when `classpathWithoutDependencies` is provided

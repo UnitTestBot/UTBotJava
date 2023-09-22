@@ -92,7 +92,10 @@ class SpringApplicationContextImpl(
                     .transformValueProvider { origValueProvider ->
                         InjectMockValueProvider(
                             idGenerator = fuzzingContext.idGenerator,
-                            classUnderTest = fuzzingContext.classUnderTest
+                            classUnderTest = fuzzingContext.classUnderTest,
+                            isFieldNonNull = { fieldId ->
+                                nonNullSpeculator.speculativelyCannotProduceNullPointerException(fieldId, classUnderTest)
+                            },
                         )
                             .withFallback(origValueProvider)
                             .replaceTypes { description, type ->

@@ -169,6 +169,7 @@ class ExecutableAnalyzer {
 
             val field = (assn.leftOp as? JInstanceFieldRef)?.field ?: continue
             val parameterIndex = jimpleBody.parameterLocals.indexOfFirst { it.name == jimpleLocal.name }
+            if (parameterIndex == -1) continue
             indexedFields[parameterIndex] = FieldId(field.declaringClass.id, field.name)
         }
 

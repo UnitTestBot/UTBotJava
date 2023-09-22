@@ -468,6 +468,13 @@ val ClassId.allDeclaredFieldIds: Sequence<FieldId>
 val SootField.fieldId: FieldId
     get() = FieldId(declaringClass.id, name)
 
+/**
+ * For some lambdas class names in byte code and in Soot don't match, so we may fail
+ * to convert some soot fields to Java fields, in such case `null` is returned.
+ */
+val SootField.jFieldOrNull: Field?
+    get() = runCatching { fieldId.jField }.getOrNull()
+
 // FieldId utils
 val FieldId.safeJField: Field?
     get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }

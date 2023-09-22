@@ -1,17 +1,13 @@
 package org.utbot.modifications
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.util.executableId
 import org.utbot.modifications.util.kotlinIntrinsicsClassId
 import org.utbot.modifications.util.retrieveJimpleBody
 import soot.Scene
 import soot.SootMethod
-import soot.Type
 import soot.jimple.InvokeExpr
 import soot.jimple.JimpleBody
 import soot.jimple.ParameterRef
@@ -25,65 +21,69 @@ import soot.jimple.internal.JReturnVoidStmt
 import soot.jimple.internal.JimpleLocal
 
 /**
- * Information about constructor required to use it
+ * Information about [executableId] required to use it
  * in assemble model construction process.
  *
- * @param params describes the params to call constructor with
- * @param setFields describes fields set to required value in constructor
- * @param affectedFields describes all fields affected in constructor
+ * @param params describes the params to call [executableId] with
+ * @param setFields describes fields set to required value in [executableId]
+ * @param affectedFields describes all fields affected in [executableId]
  * */
-data class ConstructorAssembleInfo(
-    val constructorId: ConstructorId,
+data class ExecutableAssembleInfo(
+    val executableId: ExecutableId,
     val params: Map<Int, FieldId> = mapOf(),
     val setFields: Set<FieldId> = setOf(),
     val affectedFields: Set<FieldId> = setOf()
 )
 
 /**
- * Analyzer of constructors based on Soot.
+ * Analyzer of constructors and methods based on Soot.
  */
-class ConstructorAnalyzer {
-    private val scene = Scene.v()
+class ExecutableAnalyzer {
+    // `Scene.v()` may not yet be initialized when `ExecutableAnalyzer` is created
+    private val scene get() = Scene.v()
 
     /**
-     * Verifies that [constructorId] can be used in assemble models.
-     * Analyses Soot representation of constructor for that.
+     * Verifies that [executableId] can be used in assemble models.
+     * Analyses Soot representation of [executableId] for that.
      */
-    fun isAppropriate(constructorId: ConstructorId): Boolean {
-        val sootConstructor = sootConstructor(constructorId) ?: return false
-        return isAppropriate(sootConstructor)
+    fun isAppropriate(executableId: ExecutableId): Boolean {
+        val sootMethod = sootMethod(executableId) ?: return false
+        return isAppropriate(sootMethod)
     }
 
     /**
-     * Retrieves information about [constructorId] params and modified fields from Soot.
+     * Retrieves information about [executableId] params and modified fields from Soot.
      */
-    fun analyze(constructorId: ConstructorId): ConstructorAssembleInfo {
+    fun analyze(executableId: ExecutableId): ExecutableAssembleInfo {
         val setFields = mutableSetOf<FieldId>()
         val affectedFields = mutableSetOf<FieldId>()
 
-        val sootConstructor = sootConstructor(constructorId)
-            ?: error("Soot representation of $constructorId is not found.")
-        val params = analyze(sootConstructor, setFields, affectedFields)
+        val sootMethod = sootMethod(executableId)
+            ?: error("Soot representation of $executableId is not found.")
+        val params = analyze(sootMethod, setFields, affectedFields)
 
-        return ConstructorAssembleInfo(constructorId, params, setFields, affectedFields)
+        return ExecutableAssembleInfo(executableId, params, setFields, affectedFields)
     }
 
-    //A cache of constructors been analyzed if they are appropriate or not
-    private val analyzedConstructors: MutableMap<SootMethod, Boolean> = mutableMapOf()
+    //A cache of executable that has been analyzed if they are appropriate or not
+    private val analyzedExecutables: MutableMap<SootMethod, Boolean> = mutableMapOf()
 
     /**
-     *Verifies that the body of this constructor
+     * Verifies that the body of this [sootMethod]
      * contains only statements matching pattern
      * this.a = something
-     * where "a" is an argument of the constructor.
+     * where "a" is an argument of the [sootMethod].
+     *
+     * NOTE: In case of constructors, calls to other constructors
+     * (i.e. `super(...)` and `this(...)`) are also allowed.
      */
-    private fun isAppropriate(sootConstructor: SootMethod): Boolean {
-        if (sootConstructor in analyzedConstructors) {
-            return analyzedConstructors[sootConstructor]!!
+    private fun isAppropriate(sootMethod: SootMethod): Boolean {
+        if (sootMethod in analyzedExecutables) {
+            return analyzedExecutables[sootMethod]!!
         }
-        analyzedConstructors[sootConstructor] = false
+        analyzedExecutables[sootMethod] = false
 
-        val jimpleBody = retrieveJimpleBody(sootConstructor) ?: return false
+        val jimpleBody = retrieveJimpleBody(sootMethod) ?: return false
         if (hasSuspiciousInstructions(jimpleBody) || modifiesStatics(jimpleBody)) {
             return false
         }
@@ -96,7 +96,7 @@ class ConstructorAnalyzer {
             }
         }
 
-        analyzedConstructors[sootConstructor] = true
+        analyzedExecutables[sootMethod] = true
         return true
     }
 
@@ -111,15 +111,15 @@ class ConstructorAnalyzer {
     }
 
     private fun analyze(
-        sootConstructor: SootMethod,
+        sootMethod: SootMethod,
         setFields: MutableSet<FieldId>,
         affectedFields: MutableSet<FieldId>,
     ): Map<Int, FieldId> {
-        val jimpleBody = retrieveJimpleBody(sootConstructor) ?: return emptyMap()
+        val jimpleBody = retrieveJimpleBody(sootMethod) ?: return emptyMap()
         analyzeAssignments(jimpleBody, setFields, affectedFields)
 
         val indexOfLocals = jimpleVariableIndices(jimpleBody)
-        val indexedFields = indexToField(sootConstructor).toMutableMap()
+        val indexedFields = indexToField(sootMethod).toMutableMap()
 
         for (invocation in invocations(jimpleBody)) {
             val invokedIndexedFields = analyze(invocation.method, setFields, affectedFields)
@@ -157,10 +157,10 @@ class ConstructorAnalyzer {
     }
 
     /**
-     * Matches an index of constructor argument with a [FieldId].
+     * Matches an index of executable argument with a [FieldId].
      */
-    private fun indexToField(sootConstructor: SootMethod): Map<Int, FieldId> {
-        val jimpleBody = retrieveJimpleBody(sootConstructor) ?: return emptyMap()
+    private fun indexToField(sootMethod: SootMethod): Map<Int, FieldId> {
+        val jimpleBody = retrieveJimpleBody(sootMethod) ?: return emptyMap()
         val assignments = assignments(jimpleBody)
 
         val indexedFields = mutableMapOf<Int, FieldId>()
@@ -176,29 +176,19 @@ class ConstructorAnalyzer {
     }
 
     /**
-     * Matches Jimple variable name with an index in current constructor.
+     * Matches Jimple variable name with an index in current executable.
      */
     private fun jimpleVariableIndices(jimpleBody: JimpleBody) = jimpleBody.units
         .filterIsInstance<JIdentityStmt>()
         .filter { it.leftOp is JimpleLocal && it.rightOp is ParameterRef }
         .associate { it.leftOp as JimpleLocal to (it.rightOp as ParameterRef).index }
 
-    private val sootConstructorCache = mutableMapOf<ConstructorId, SootMethod>()
+    private val sootMethodCache = mutableMapOf<ExecutableId, SootMethod?>()
 
-    private fun sootConstructor(constructorId: ConstructorId): SootMethod? {
-        if (constructorId in sootConstructorCache) {
-            return sootConstructorCache[constructorId]
+    private fun sootMethod(executableId: ExecutableId): SootMethod? = sootMethodCache.getOrPut(executableId) {
+        scene.getSootClass(executableId.classId.name).methods.firstOrNull {
+            it.executableId == executableId
         }
-        val sootClass = scene.getSootClass(constructorId.classId.name)
-        val allConstructors = sootClass.methods.filter { it.isConstructor }
-        val sootConstructor = allConstructors.firstOrNull { sameParameterTypes(it, constructorId) }
-
-        if (sootConstructor != null) {
-            sootConstructorCache[constructorId] = sootConstructor
-            return sootConstructor
-        }
-
-        return null
     }
 
     private fun hasSuspiciousInstructions(jimpleBody: JimpleBody): Boolean =
@@ -223,36 +213,4 @@ class ConstructorAnalyzer {
             .map { it.invokeExpr }
             // These are instructions inserted by Kotlin compiler to check that arguments are not null, we should ignore them
             .filterNot { it.method.declaringClass.id == kotlinIntrinsicsClassId }
-
-    private fun sameParameterTypes(sootMethod: SootMethod, constructorId: ConstructorId): Boolean {
-        val sootConstructorTypes = sootMethod.parameterTypes
-        val constructorTypes = constructorId.parameters.map { getParameterType(it) }
-
-        val sootConstructorParamsCount = sootConstructorTypes.count()
-        val constructorParamsCount = constructorTypes.count()
-
-        if (sootConstructorParamsCount != constructorParamsCount) return false
-        for (i in 0 until sootConstructorParamsCount) {
-            if (sootConstructorTypes[i] != constructorTypes[i]) return false
-        }
-
-        return true
-    }
-
-    /**
-     * Restores [Type] by [ClassId] if possible.
-     *
-     * Note: we return null if restore process failed. Possibly we need to
-     * enlarge a set of cases types we can deal with in the future.
-     */
-    private fun getParameterType(type: ClassId): Type? =
-        try {
-            when {
-                type.isRefType -> scene.getRefType(type.name)
-                type.isArray -> scene.getType(type.jClass.canonicalName)
-                else ->  scene.getType(type.name)
-            }
-        } catch (e: Exception) {
-            null
-        }
 }

@@ -15,6 +15,7 @@ import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.context.custom.RerunningConcreteExecutionContext
 import org.utbot.framework.context.custom.useMocks
+import org.utbot.framework.context.utils.transformInstrumentationFactory
 import org.utbot.framework.context.utils.transformJavaFuzzingContext
 import org.utbot.framework.context.utils.transformValueProvider
 import org.utbot.framework.plugin.api.BeanDefinitionData
@@ -35,6 +36,7 @@ import org.utbot.fuzzing.spring.decorators.replaceTypes
 import org.utbot.fuzzing.spring.properties
 import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
 import org.utbot.fuzzing.toFuzzerType
+import org.utbot.instrumentation.instrumentation.execution.RemovingConstructFailsUtExecutionInstrumentation
 
 class SpringApplicationContextImpl(
     private val delegateContext: ApplicationContext,
@@ -115,6 +117,8 @@ class SpringApplicationContextImpl(
                         springApplicationContext = this
                     )
                 )
+        }.transformInstrumentationFactory { delegateInstrumentationFactory ->
+            RemovingConstructFailsUtExecutionInstrumentation.Factory(delegateInstrumentationFactory)
         }
     }
 

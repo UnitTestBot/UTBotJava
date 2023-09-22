@@ -12,7 +12,6 @@ import org.utbot.framework.plugin.api.isSuccess
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.getRelevantSpringRepositories
-import org.utbot.instrumentation.instrumentation.execution.RemovingConstructFailsUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.spring.SpringUtExecutionInstrumentation
@@ -32,15 +31,13 @@ class SpringIntegrationTestConcreteExecutionContext(
     }
 
     override val instrumentationFactory: UtExecutionInstrumentation.Factory<*> =
-        RemovingConstructFailsUtExecutionInstrumentation.Factory(
-            SpringUtExecutionInstrumentation.Factory(
-                delegateContext.instrumentationFactory,
-                springSettings,
-                springApplicationContext.beanDefinitions,
-                buildDirs = classpathWithoutDependencies.split(File.pathSeparator)
-                    .map { File(it).toURI().toURL() }
-                    .toTypedArray(),
-            )
+        SpringUtExecutionInstrumentation.Factory(
+            delegateContext.instrumentationFactory,
+            springSettings,
+            springApplicationContext.beanDefinitions,
+            buildDirs = classpathWithoutDependencies.split(File.pathSeparator)
+                .map { File(it).toURI().toURL() }
+                .toTypedArray(),
         )
 
     override fun loadContext(

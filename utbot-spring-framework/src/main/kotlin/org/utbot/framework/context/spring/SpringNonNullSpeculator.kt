@@ -72,7 +72,7 @@ class SpringNonNullSpeculator(
                              }
                              .map { (_, fieldId) -> fieldId }
                      }).toSet().also {
-                         logger.info { "Injected fields for $classId: $it" }
+                         logger.debug { "Injected fields for $classId: $it" }
                     }
          } catch (e: Throwable) {
             logger.warn(e) { "Failed to determine injected fields for class $classId" }

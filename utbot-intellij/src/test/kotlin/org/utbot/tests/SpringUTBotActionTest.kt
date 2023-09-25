@@ -5,27 +5,30 @@ import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.core.api.SoftAssertions
 import org.junit.jupiter.api.*
 import org.utbot.data.IdeaBuildSystem
+import org.utbot.pages.IdeaGradleFrame
+import org.utbot.pages.idea
 import org.utbot.pages.welcomeFrame
 import java.time.Duration
 
 class SpringUTBotActionTest : BaseTest() {
-    val SPRING_EXISTING_PROJECT_NAME = "spring-petclinic"
+
     val SPRING_PROJECT_DIRECTORY = "D:\\\\JavaProjects\\\\spring\\\\"
+    val SPRING_EXISTING_PROJECT_NAME = "spring-petclinic"
     val APP_PACKAGE_NAME = "org.springframework.samples.petclinic"
     val EXISTING_PACKAGE_NAME = "vet"
     val EXISTING_CLASS_NAME = "VetController"
 
     @BeforeEach
-    fun openExistingSpringProject (remoteRobot: RemoteRobot) {
-        remoteRobot.welcomeFrame {
+    fun openExistingSpringProject(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
+        welcomeFrame {
             try {
                 findText(SPRING_EXISTING_PROJECT_NAME).click()
             } catch (ignore: NoSuchElementException) {
                 openProjectByPath(SPRING_PROJECT_DIRECTORY, SPRING_EXISTING_PROJECT_NAME)
             }
         }
-        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
-        return with (ideaFrame) {
+        val ideaFrame = remoteRobot.find(IdeaGradleFrame::class.java, Duration.ofSeconds(10))
+        return with(ideaFrame) {
             waitProjectIsOpened()
             expandProjectTree()
         }
@@ -133,7 +136,7 @@ class SpringUTBotActionTest : BaseTest() {
                 waitForIgnoringError (Duration.ofSeconds(5)){
                     inlineProgressTextPanel.isShowing
                 }
-                waitForIgnoringError (Duration.ofSeconds(60)){
+                waitForIgnoringError (Duration.ofSeconds(30)){
                     inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
                 }
                 waitForIgnoringError(Duration.ofSeconds(60)) {
@@ -152,11 +155,9 @@ class SpringUTBotActionTest : BaseTest() {
         }
     }
 
-
     @AfterEach
-    fun closeDialogIfNotClosed (remoteRobot: RemoteRobot) {
-        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
-        with (ideaFrame) {
+    fun closeDialogIfNotClosed (remoteRobot: RemoteRobot): Unit = with(remoteRobot){
+        idea {
             try {
                 unitTestBotDialog.closeButton.click()
             } catch (ignore: Throwable) {}

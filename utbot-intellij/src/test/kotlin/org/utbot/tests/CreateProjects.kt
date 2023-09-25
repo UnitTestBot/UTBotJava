@@ -18,7 +18,7 @@ class CreateProjects : BaseTest() {
     @ParameterizedTest(name = "Create {0} project with JDK {1}")
     @Tags(Tag("smoke"), Tag("NewProject"), Tag("Java"), Tag("UTBot"), Tag(""))
     @MethodSource("allProjectsProvider")
-    fun createProjectWithSupportedJDK(
+    fun createProjectWithJDK(
         ideaBuildSystem: IdeaBuildSystem, jdkVersion: JDKVersion,
         remoteRobot: RemoteRobot
     ): Unit = with(remoteRobot) {

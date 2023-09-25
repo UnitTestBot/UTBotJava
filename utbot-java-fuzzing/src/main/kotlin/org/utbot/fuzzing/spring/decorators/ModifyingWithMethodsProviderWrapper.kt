@@ -1,4 +1,4 @@
-package org.utbot.fuzzing.providers
+package org.utbot.fuzzing.spring.decorators
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -9,8 +9,8 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Routine
-import org.utbot.fuzzing.Scope
 import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.providers.findMethodsToModifyWith
 
 /**
  * Value provider that is a buddy for another provider
@@ -22,8 +22,11 @@ import org.utbot.fuzzing.Seed
  */
 class ModifyingWithMethodsProviderWrapper(
     private val classUnderTest: ClassId,
-    private val delegate: JavaValueProvider
-) : JavaValueProvider by delegate {
+    delegate: JavaValueProvider
+) : ValueProviderDecorator<FuzzedType, FuzzedValue, FuzzedDescription>(delegate) {
+
+    override fun wrap(provider: JavaValueProvider): JavaValueProvider =
+        ModifyingWithMethodsProviderWrapper(classUnderTest, provider)
 
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> =
         delegate
@@ -50,9 +53,4 @@ class ModifyingWithMethodsProviderWrapper(
                     )
                 } else seed
             }
-
-    override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) =
-        delegate.enrich(description, type, scope)
-
-    override fun accept(type: FuzzedType): Boolean = delegate.accept(type)
 }

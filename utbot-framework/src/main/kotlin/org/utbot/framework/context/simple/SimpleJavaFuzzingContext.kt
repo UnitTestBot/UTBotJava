@@ -31,6 +31,8 @@ class SimpleJavaFuzzingContext(
         executableToCall = executableToCall
     )
 
-    override fun handleFuzzedConcreteExecutionResult(concreteExecutionResult: UtConcreteExecutionResult) =
-        Unit
+    override fun handleFuzzedConcreteExecutionResult(
+        methodUnderTest: ExecutableId,
+        concreteExecutionResult: UtConcreteExecutionResult
+    ) = Unit
 }

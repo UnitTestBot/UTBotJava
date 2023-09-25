@@ -171,7 +171,7 @@ internal fun FuzzedType.traverseHierarchy(typeCache: MutableMap<Type, FuzzedType
  * @param type to be resolved
  * @param cache is used to store same [FuzzedType] for same java types
  */
-internal fun toFuzzerType(type: Type, cache: MutableMap<Type, FuzzedType>): FuzzedType {
+fun toFuzzerType(type: Type, cache: MutableMap<Type, FuzzedType>): FuzzedType {
     return toFuzzerType(
         type = type,
         classId = { t -> toClassId(t, cache) },

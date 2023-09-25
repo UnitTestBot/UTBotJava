@@ -1,12 +1,11 @@
 package org.utbot.framework.context.simple
 
 import org.utbot.framework.context.ConcreteExecutionContext
+import org.utbot.framework.context.ConcreteExecutionContext.FuzzingContextParams
 import org.utbot.framework.context.JavaFuzzingContext
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.SimpleUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -32,9 +31,6 @@ class SimpleConcreteExecutionContext(fullClassPath: String) : ConcreteExecutionC
         rerunExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
     ): List<UtExecution> = executions
 
-    override fun tryCreateFuzzingContext(
-        concreteExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
-        classUnderTest: ClassId,
-        idGenerator: IdentityPreservingIdGenerator<Int>
-    ): JavaFuzzingContext = SimpleJavaFuzzingContext(classUnderTest, idGenerator)
+    override fun tryCreateFuzzingContext(params: FuzzingContextParams): JavaFuzzingContext =
+        SimpleJavaFuzzingContext(params.classUnderTest, params.idGenerator)
 }

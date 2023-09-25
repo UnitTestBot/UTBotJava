@@ -418,7 +418,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                                 "Mocks will be used when necessary."
                     )
                 }
-                row("Tests type:") {
+                row("Test type:") {
                     cell(springTestType)
                     contextHelp(
                         "Unit tests do not initialize ApplicationContext <br>" +
@@ -667,6 +667,19 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     override fun doOKAction() {
+        if (isSpringConfigSelected()
+            && springTestType.selectedItem == INTEGRATION_TEST
+            && Messages.showYesNoDialog(
+                    model.project,
+                    "Generating \"Integration tests\" may lead to corrupting user data or inflicting other harm.\n" +
+                            "Please use a test configuration or profile.",
+                    "Warning",
+                    "Proceed",
+                    "Go Back",
+                    Messages.getWarningIcon()
+                ) != Messages.YES) {
+                return;
+        }
         fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 
         logger.info { "Tests generation instantiation phase started at ${now()}" }

@@ -24,6 +24,7 @@ import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.resolve.QualifiedNameFinder
+import com.jetbrains.python.sdk.pythonSdk
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.base.util.module
 import org.jetbrains.kotlin.idea.base.util.sdk
@@ -119,7 +120,7 @@ object PythonDialogProcessor {
                 }
             }
         }
-        val pythonPath = getPythonPath(elementsToShow)
+        val pythonPath = getPythonPath(project)
         if (pythonPath == null) {
             showErrorDialogLater(
                 project,
@@ -334,8 +335,8 @@ object PythonDialogProcessor {
     }
 }
 
-fun getPythonPath(elementsToShow: Set<PyElement>): String? {
-    return findSrcModules(elementsToShow).first().sdk?.homePath
+fun getPythonPath(project: Project): String? {
+    return project.pythonSdk?.homePath
 }
 
 fun findSrcModules(elements: Collection<PyElement>): List<Module> {

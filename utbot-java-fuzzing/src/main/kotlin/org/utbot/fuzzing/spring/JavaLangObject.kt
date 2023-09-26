@@ -13,7 +13,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.providers.nullRoutine
 import org.utbot.fuzzing.toFuzzerType
 
-class JavaLangObject(
+class JavaLangObjectValueProvider(
     private val classesToTryUsingAsJavaLangObject: List<ClassId>,
 ) : JavaValueProvider {
     override fun accept(type: FuzzedType): Boolean {

@@ -29,7 +29,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.fuzzing.spring.JavaLangObject
+import org.utbot.fuzzing.spring.JavaLangObjectValueProvider
 import org.utbot.fuzzing.spring.FuzzedTypeFlag
 import org.utbot.fuzzing.spring.addProperties
 import org.utbot.fuzzing.spring.decorators.replaceTypes
@@ -63,7 +63,7 @@ class SpringApplicationContextImpl(
             fullClasspath,
             classpathWithoutDependencies
         ).transformValueProvider { valueProvider ->
-            valueProvider.with(JavaLangObject(
+            valueProvider.with(JavaLangObjectValueProvider(
                 classesToTryUsingAsJavaLangObject = listOf(objectClassId, classUnderTest)
             ))
         }

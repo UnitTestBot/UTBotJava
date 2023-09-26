@@ -1,6 +1,7 @@
 package org.utbot.fuzzing.spring.unit
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.isFinal
@@ -30,7 +31,8 @@ val INJECT_MOCK_FLAG = ScopeProperty<Unit>(
  */
 class InjectMockValueProvider(
     private val idGenerator: IdGenerator<Int>,
-    private val classUnderTest: ClassId
+    private val classUnderTest: ClassId,
+    private val isFieldNonNull: (FieldId) -> Boolean
 ) : JavaValueProvider {
     override fun enrich(description: FuzzedDescription, type: FuzzedType, scope: Scope) {
         if (description.description.isStatic == false && scope.parameterIndex == 0 && scope.recursionDepth == 1) {
@@ -43,14 +45,24 @@ class InjectMockValueProvider(
     override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> {
         if (description.scope?.getProperty(INJECT_MOCK_FLAG) == null) return emptySequence()
         val fields = type.classId.allDeclaredFieldIds.filterNot { it.isStatic && it.isFinal }.toList()
+        val (nonNullFields, nullableFields) = fields.partition(isFieldNonNull)
         return sequenceOf(Seed.Recursive(
-            construct = Routine.Create(types = fields.map { toFuzzerType(it.jField.genericType, description.typeCache) }) { values ->
+            construct = Routine.Create(
+                types = nonNullFields.map { toFuzzerType(it.jField.genericType, description.typeCache) }
+            ) { values ->
                 emptyFuzzedValue(type.classId).also {
                     (it.model as UtCompositeModel).fields.putAll(
-                        fields.zip(values).associate { (field, value) -> field to value.model }
+                        nonNullFields.zip(values).associate { (field, value) -> field to value.model }
                     )
                 }
             },
+            modify = nullableFields.map { field ->
+                Routine.Call<FuzzedType, FuzzedValue>(
+                    types = listOf(toFuzzerType(field.jField.genericType, description.typeCache))
+                ) { instance, (value) ->
+                    (instance.model as UtCompositeModel).fields[field] = value.model
+                }
+            }.asSequence(),
             empty = Routine.Empty { emptyFuzzedValue(type.classId) }
         ))
     }

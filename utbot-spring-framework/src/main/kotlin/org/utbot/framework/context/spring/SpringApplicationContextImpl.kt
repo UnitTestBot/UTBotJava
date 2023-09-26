@@ -15,6 +15,7 @@ import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.context.custom.CoverageFilteringConcreteExecutionContext
 import org.utbot.framework.context.custom.RerunningConcreteExecutionContext
 import org.utbot.framework.context.custom.useMocks
+import org.utbot.framework.context.utils.transformInstrumentationFactory
 import org.utbot.framework.context.utils.transformJavaFuzzingContext
 import org.utbot.framework.context.utils.transformValueProvider
 import org.utbot.framework.plugin.api.BeanDefinitionData
@@ -26,13 +27,16 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.entityClassIds
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzing.spring.JavaLangObjectValueProvider
 import org.utbot.fuzzing.spring.FuzzedTypeFlag
 import org.utbot.fuzzing.spring.addProperties
 import org.utbot.fuzzing.spring.decorators.replaceTypes
 import org.utbot.fuzzing.spring.properties
 import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
 import org.utbot.fuzzing.toFuzzerType
+import org.utbot.instrumentation.instrumentation.execution.RemovingConstructFailsUtExecutionInstrumentation
 
 class SpringApplicationContextImpl(
     private val delegateContext: ApplicationContext,
@@ -58,7 +62,11 @@ class SpringApplicationContextImpl(
         var delegateConcreteExecutionContext = delegateContext.createConcreteExecutionContext(
             fullClasspath,
             classpathWithoutDependencies
-        )
+        ).transformValueProvider { valueProvider ->
+            valueProvider.with(JavaLangObjectValueProvider(
+                classesToTryUsingAsJavaLangObject = listOf(objectClassId, classUnderTest)
+            ))
+        }
 
         // to avoid filtering out all coverage, we only filter
         // coverage when `classpathWithoutDependencies` is provided
@@ -84,7 +92,10 @@ class SpringApplicationContextImpl(
                     .transformValueProvider { origValueProvider ->
                         InjectMockValueProvider(
                             idGenerator = fuzzingContext.idGenerator,
-                            classUnderTest = fuzzingContext.classUnderTest
+                            classUnderTest = fuzzingContext.classUnderTest,
+                            isFieldNonNull = { fieldId ->
+                                nonNullSpeculator.speculativelyCannotProduceNullPointerException(fieldId, classUnderTest)
+                            },
                         )
                             .withFallback(origValueProvider)
                             .replaceTypes { description, type ->
@@ -109,6 +120,8 @@ class SpringApplicationContextImpl(
                         springApplicationContext = this
                     )
                 )
+        }.transformInstrumentationFactory { delegateInstrumentationFactory ->
+            RemovingConstructFailsUtExecutionInstrumentation.Factory(delegateInstrumentationFactory)
         }
     }
 

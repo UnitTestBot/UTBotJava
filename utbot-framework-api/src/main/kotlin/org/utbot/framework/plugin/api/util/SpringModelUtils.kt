@@ -22,6 +22,11 @@ private val logger = KotlinLogging.logger {}
 
 object SpringModelUtils {
     val autowiredClassId = ClassId("org.springframework.beans.factory.annotation.Autowired")
+    val injectClassIds = getClassIdFromEachAvailablePackage(
+        packages = listOf("javax", "jakarta"),
+        classNameFromPackage = "inject.Inject"
+    )
+    val componentClassId = ClassId("org.springframework.stereotype.Component")
 
     val applicationContextClassId = ClassId("org.springframework.context.ApplicationContext")
     val repositoryClassId = ClassId("org.springframework.data.repository.Repository")

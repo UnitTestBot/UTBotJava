@@ -8,8 +8,8 @@ import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
-import org.utbot.modifications.ConstructorAnalyzer
-import org.utbot.modifications.ConstructorAssembleInfo
+import org.utbot.modifications.ExecutableAnalyzer
+import org.utbot.modifications.ExecutableAssembleInfo
 import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -77,7 +77,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
         UtBotFieldsModificatorsSearcher(
             fieldInvolvementMode = FieldInvolvementMode.WriteOnly
         )
-    private val constructorAnalyzer = ConstructorAnalyzer()
+    private val executableAnalyzer = ExecutableAnalyzer()
 
     /**
      * Clears state before and after block execution.
@@ -284,8 +284,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
             modelsInAnalysis.add(compositeModel)
 
             val constructorInfo =
-                if (shouldAnalyzeConstructor) constructorAnalyzer.analyze(constructorId)
-                else ConstructorAssembleInfo(constructorId)
+                if (shouldAnalyzeConstructor) executableAnalyzer.analyze(constructorId)
+                else ExecutableAssembleInfo(constructorId)
 
             val instantiationCall = constructorCall(compositeModel, constructorInfo)
             return UtAssembleModel(
@@ -406,9 +406,9 @@ class AssembleModelGenerator(private val basePackageName: String) {
      */
     private fun constructorCall(
         compositeModel: UtCompositeModel,
-        constructorInfo: ConstructorAssembleInfo,
+        constructorInfo: ExecutableAssembleInfo,
     ): UtExecutableCallModel {
-        val constructorParams = constructorInfo.constructorId.parameters.withIndex()
+        val constructorParams = constructorInfo.executableId.parameters.withIndex()
             .map { (index, param) ->
                 val modelOrNull = compositeModel.fields
                     .filter { it.key == constructorInfo.params[index] }
@@ -418,7 +418,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
                 assembleModel(fieldModel)
             }
 
-        return UtExecutableCallModel(instance = null, constructorInfo.constructorId, constructorParams)
+        return UtExecutableCallModel(instance = null, constructorInfo.executableId, constructorParams)
     }
 
     /**
@@ -445,11 +445,11 @@ class AssembleModelGenerator(private val basePackageName: String) {
             val fromUtilPackage = classId.packageName.startsWith("java.util")
             constructorIds
                 .sortedBy { it.parameters.size }
-                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || constructorAnalyzer.isAppropriate(it) }
+                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || executableAnalyzer.isAppropriate(it) }
         } else {
             constructorIds
                 .sortedByDescending { it.parameters.size }
-                .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+                .firstOrNull { executableAnalyzer.isAppropriate(it) }
         }
     }
 

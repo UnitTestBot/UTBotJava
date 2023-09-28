@@ -3,9 +3,6 @@ package org.utbot.examples.spring.autowiring.twoAndMoreBeansForOneType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Service
 public class ServiceOfBeansWithSameType {
     @Autowired
@@ -14,15 +11,21 @@ public class ServiceOfBeansWithSameType {
     @Autowired
     private Person personTwo;
 
-    public final List<String> baseOrders = new ArrayList<>();
-
-    // a method for testing the case when the Engine produces one model on @Autowired variables of the same type
-    public Integer ageSum(){
-        return personOne.getAge() + personTwo.getAge();
+    // A method for testing both cases when the Engine produces
+    //  - two models for two @Autowired fields of the same type
+    //  - one model for two @Autowired fields of the same type
+    public Boolean checker() {
+        String name1 = personOne.getName();// shouldn't produce NPE because `personOne` is `@Autowired`
+        int length = name1.length(); // can produce NPE because `Person.name` isn't `@Autowired`
+        Integer age2 = personTwo.getAge(); // shouldn't produce NPE because `personTwo` is `@Autowired`
+        return personOne == personTwo;
     }
 
-    // a method for testing the case when the Engine produces two models on @Autowired variables of the same type
-    public Boolean checker() {
-        return personOne.getName().equals("k") && personTwo.getName().length() > 5 && baseOrders.isEmpty();
+    public Person getPersonOne() {
+        return personOne;
+    }
+
+    public Person getPersonTwo() {
+        return personTwo;
     }
 }

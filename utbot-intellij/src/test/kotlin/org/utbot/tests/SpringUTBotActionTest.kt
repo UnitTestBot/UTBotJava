@@ -147,10 +147,54 @@ class SpringUTBotActionTest : BaseTest() {
             softly.assertThat(utbotNotification.body.hasText("Target: org.springframework.samples.petclinic.vet.VetController Overall test methods: 7"))
             softly.assertThat(textEditor().editor.text).contains("class ${EXISTING_CLASS_NAME}Test")
             softly.assertThat(textEditor().editor.text).contains("@Test\n")
-//            softly.assertThat(textEditor().editor.text).contains(CONTEXT_LOADS_TEST_TEXT)
+            softly.assertThat(textEditor().editor.text).contains("@InjectMocks\n\tprivate VetController vetController;")
+            softly.assertThat(textEditor().editor.text).contains("@Mock\n\tprivate VetRepository vetRepositoryMock;")
             softly.assertThat(textEditor().editor.text).contains("@utbot.classUnderTest {@link ${EXISTING_CLASS_NAME}}")
             softly.assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${EXISTING_CLASS_NAME}#showResourcesVetList")
             softly.assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${EXISTING_CLASS_NAME}#showVetList")
+            softly.assertThat(inspectionsView.inspectionTree.isShowing)
+            softly.assertThat(inspectionsView.inspectionTree.hasText("Errors detected by UnitTestBot"))
+            softly.assertThat(inspectionsView.inspectionTree.hasText("${EXISTING_CLASS_NAME}.java"))
+            hideInspectionViewButton.click()
+            softly.assertAll()
+        }
+    }
+
+    @Test
+    @DisplayName("Check Spring Integration tests generation")
+    @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("Integration tests"), Tag("Generate tests"))
+    fun checkSpringIntegrationTestsGeneration(remoteRobot: RemoteRobot) {
+        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
+        return with (ideaFrame) {
+            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
+            with (unitTestBotDialog) {
+                springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
+                heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
+                springTestsTypeComboBox.selectItem("Integration tests")
+                unitTestBotDialog.generateTestsButton.click()
+                unitTestBotDialog.integrationTestsWarningDialog.proceedButton.click()
+            }
+            waitForIgnoringError (Duration.ofSeconds(10)){
+                inlineProgressTextPanel.isShowing
+            }
+            waitForIgnoringError (Duration.ofSeconds(60)){
+                inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
+            }
+            waitForIgnoringError(Duration.ofSeconds(90)) {
+                utbotNotification.title.hasText("UnitTestBot: unit tests generated successfully")
+            }
+            val softly = SoftAssertions()
+            softly.assertThat(utbotNotification.body.hasText("Target: org.springframework.samples.petclinic.vet.VetController Overall test methods: "))
+            softly.assertThat(textEditor().editor.text).contains("@SpringBootTest\n")
+            softly.assertThat(textEditor().editor.text).contains("@BootstrapWith(SpringBootTestContextBootstrapper.class)\n")
+            softly.assertThat(textEditor().editor.text).contains("@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)\n")
+            softly.assertThat(textEditor().editor.text).contains("@Transactional\n")
+            softly.assertThat(textEditor().editor.text).contains("@AutoConfigureTestDatabase\n")
+            softly.assertThat(textEditor().editor.text).contains("@AutoConfigureMockMvc\n")
+            softly.assertThat(textEditor().editor.text).contains("class ${EXISTING_CLASS_NAME}Test")
+            softly.assertThat(textEditor().editor.text).contains("@Test\n")
+            softly.assertThat(textEditor().editor.text).contains(CONTEXT_LOADS_TEST_TEXT)
+            softly.assertThat(textEditor().editor.text).contains("///region FUZZER: SUCCESSFUL EXECUTIONS for method showResourcesVetList()")
             softly.assertThat(inspectionsView.inspectionTree.isShowing)
             softly.assertThat(inspectionsView.inspectionTree.hasText("Errors detected by UnitTestBot"))
             softly.assertThat(inspectionsView.inspectionTree.hasText("${EXISTING_CLASS_NAME}.java"))

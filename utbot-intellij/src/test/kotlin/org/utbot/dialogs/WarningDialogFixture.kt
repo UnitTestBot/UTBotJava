@@ -21,4 +21,12 @@ class WarningDialogFixture(
         get() = button(
             byXpath("//div[@text.key='button.cancel']"))
 
+    val proceedButton
+        get() = button(
+            byXpath("//div[@text='Proceed']"))
+
+    val goBackButton
+        get() = button(
+            byXpath("//div[@text='Go Back']"))
+
 }

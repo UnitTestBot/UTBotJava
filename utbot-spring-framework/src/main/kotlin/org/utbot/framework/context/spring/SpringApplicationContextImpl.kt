@@ -5,6 +5,7 @@ import org.utbot.common.dynamicPropertiesOf
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
 import org.utbot.common.withValue
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.generator.SpringCodeGenerator
@@ -118,7 +119,8 @@ class SpringApplicationContextImpl(
                         delegateConcreteExecutionContext,
                         classpathWithoutDependencies,
                         springApplicationContext = this
-                    )
+                    ),
+                    maxRerunsPerMethod = UtSettings.maxSpringContextResetsPerMethod
                 )
         }.transformInstrumentationFactory { delegateInstrumentationFactory ->
             RemovingConstructFailsUtExecutionInstrumentation.Factory(delegateInstrumentationFactory)

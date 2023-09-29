@@ -82,15 +82,11 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
             nameInput.doubleClick()
             keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
             keyboard.enterText(projectName)
-            var input = DEFAULT_PROJECT_DIRECTORY
-            if (location != "") {
-                input = location
-            }
-            if (locationInput.hasText(input).not()) {
+            if (locationInput.hasText(location).not()) {
                 locationInput.click()
                 keyboard{
                     hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
-                    enterText(input.replace("\\", "\\\\"))
+                    enterText(location.replace("\\", "\\\\"))
                 }
             }
             this.findText(language).click()

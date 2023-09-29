@@ -98,11 +98,11 @@ class UnitTestBotDialogFixture(
 
     val springTestsTypeLabel
         get() = jLabel(
-            byXpath("//div[@text='Tests type:']"))
+            byXpath("//div[@text='Test type:']"))
 
     val springTestsTypeComboBox
         get() = comboBox(
-            byXpath("//div[@accessiblename='Tests type:' and @class='ComboBox']"))
+            byXpath("//div[@accessiblename='Test type:' and @class='ComboBox']"))
 
     val springActiveProfilesLabel
         get() = jLabel(

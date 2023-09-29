@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
+import org.utbot.data.DEFAULT_PROJECT_DIRECTORY
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import org.utbot.data.NEW_PROJECT_NAME_START
@@ -27,7 +28,8 @@ class CreateProjects : BaseTest() {
             createNewProject(
                 projectName = newProjectName,
                 buildSystem = ideaBuildSystem,
-                jdkVersion = jdkVersion
+                jdkVersion = jdkVersion,
+                location = DEFAULT_PROJECT_DIRECTORY
             )
         }
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)

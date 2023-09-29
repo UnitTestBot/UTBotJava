@@ -13,6 +13,7 @@ import org.utbot.data.IdeaBuildSystem
 import org.utbot.dialogs.UnitTestBotDialogFixture
 import org.utbot.dialogs.WarningDialogFixture
 import org.utbot.elements.NotificationFixture
+import org.utbot.tabs.InspectionViewFixture
 import java.awt.event.KeyEvent
 import java.time.Duration
 import java.time.Duration.ofSeconds
@@ -63,8 +64,14 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
             ofSeconds(10))
 
     val unitTestBotDialog
-        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java,
-            ofSeconds(10))
+        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java)
+
+    val inspectionsView
+        get() = remoteRobot.find(InspectionViewFixture::class.java)
+
+    val hideInspectionViewButton
+        get() = actionButton( byXpath("//div[@text.key='toolwindow.stripe.Problems_View']"),
+            Duration.ofSeconds(5))
 
     @JvmOverloads
     fun dumbAware(timeout: Duration = Duration.ofMinutes(5), function: () -> Unit) {

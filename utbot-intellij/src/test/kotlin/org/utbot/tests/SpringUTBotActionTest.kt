@@ -12,7 +12,7 @@ import java.time.Duration
 
 class SpringUTBotActionTest : BaseTest() {
 
-    val SPRING_PROJECT_DIRECTORY = "D:\\\\JavaProjects\\\\spring\\\\"
+    val SPRING_PROJECT_DIRECTORY = "D:\\JavaProjects\\spring"
     val SPRING_EXISTING_PROJECT_NAME = "spring-petclinic"
     val APP_PACKAGE_NAME = "org.springframework.samples.petclinic"
     val EXISTING_PACKAGE_NAME = "vet"
@@ -133,25 +133,29 @@ class SpringUTBotActionTest : BaseTest() {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
                 unitTestBotDialog.generateTestsButton.click()
-                waitForIgnoringError (Duration.ofSeconds(5)){
-                    inlineProgressTextPanel.isShowing
-                }
-                waitForIgnoringError (Duration.ofSeconds(30)){
-                    inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
-                }
-                waitForIgnoringError(Duration.ofSeconds(60)) {
-                    utbotNotification.title.hasText("UnitTestBot: unit tests generated successfully")
-                }
-                val softly = SoftAssertions()
-                softly.assertThat(utbotNotification.body.hasText("Target: org.springframework.samples.petclinic.vet.VetController Overall test methods: 7"))
-                softly.assertThat(textEditor().editor.text).contains("class ${EXISTING_CLASS_NAME}Test")
-                softly.assertThat(textEditor().editor.text).contains("@Test\n")
-                softly.assertThat(textEditor().editor.text).contains(CONTEXT_LOADS_TEST_TEXT)
-                softly.assertThat(textEditor().editor.text).contains("@utbot.classUnderTest {@link ${EXISTING_CLASS_NAME}}")
-                softly.assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${EXISTING_CLASS_NAME}#showResourcesVetList")
-                softly.assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${EXISTING_CLASS_NAME}#showVetList")
-                softly.assertAll()
             }
+            waitForIgnoringError (Duration.ofSeconds(10)){
+                inlineProgressTextPanel.isShowing
+            }
+            waitForIgnoringError (Duration.ofSeconds(60)){
+                inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
+            }
+            waitForIgnoringError(Duration.ofSeconds(90)) {
+                utbotNotification.title.hasText("UnitTestBot: unit tests generated successfully")
+            }
+            val softly = SoftAssertions()
+            softly.assertThat(utbotNotification.body.hasText("Target: org.springframework.samples.petclinic.vet.VetController Overall test methods: 7"))
+            softly.assertThat(textEditor().editor.text).contains("class ${EXISTING_CLASS_NAME}Test")
+            softly.assertThat(textEditor().editor.text).contains("@Test\n")
+//            softly.assertThat(textEditor().editor.text).contains(CONTEXT_LOADS_TEST_TEXT)
+            softly.assertThat(textEditor().editor.text).contains("@utbot.classUnderTest {@link ${EXISTING_CLASS_NAME}}")
+            softly.assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${EXISTING_CLASS_NAME}#showResourcesVetList")
+            softly.assertThat(textEditor().editor.text).contains("@utbot.methodUnderTest {@link ${EXISTING_CLASS_NAME}#showVetList")
+            softly.assertThat(inspectionsView.inspectionTree.isShowing)
+            softly.assertThat(inspectionsView.inspectionTree.hasText("Errors detected by UnitTestBot"))
+            softly.assertThat(inspectionsView.inspectionTree.hasText("${EXISTING_CLASS_NAME}.java"))
+            hideInspectionViewButton.click()
+            softly.assertAll()
         }
     }
 

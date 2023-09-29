@@ -394,6 +394,14 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var minimizeCrashExecutions by getBooleanProperty(true)
 
     /**
+     * Determines maximum number of executions with unknown coverage per method per result type,
+     * typically unknown coverage is caused either by JVM crash or method under test not being
+     * executed (e.g. because [ClassLoader] failed to load class containing it or some dynamic
+     * proxy intercepted invocation and never called the method under test).
+     */
+    var maxUnknownCoverageExecutionsPerMethodPerResultType by getIntProperty(2, 1, Int.MAX_VALUE)
+
+    /**
      * Enable it to calculate unsat cores for hard constraints as well.
      * It may be usefull during debug.
      *

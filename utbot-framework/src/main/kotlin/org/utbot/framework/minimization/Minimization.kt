@@ -1,11 +1,7 @@
 package org.utbot.framework.minimization
 
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.calculateSize
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
@@ -41,9 +37,22 @@ fun <T : Any> minimizeTestCase(
 
 fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
     val unknownCoverageExecutions =
-        executions.filter { it.coverage?.coveredInstructions.isNullOrEmpty() }.toSet()
-    // ^^^ here we add executions with empty or null coverage, because it happens only if a concrete execution failed,
-    //     so we don't know the actual coverage for such executions
+        executions
+            .filter { it.coverage?.coveredInstructions.isNullOrEmpty() }
+            .groupBy {
+                it.result.javaClass to (
+                        (it.result as? UtExecutionSuccess)?.model ?: (it.result as? UtExecutionFailure)?.exception
+                )?.javaClass
+            }
+            .values
+            .flatMap { executionsGroup ->
+                val executionToSize = executionsGroup.associateWith { it.stateBefore.calculateSize() }
+                executionsGroup
+                    .sortedBy { executionToSize[it] }
+                    .take(UtSettings.maxUnknownCoverageExecutionsPerMethodPerResultType)
+            }
+            .toSet()
+    // ^^^ here we add executions with empty or null coverage
 
     val filteredExecutions = filterOutDuplicateCoverages(executions - unknownCoverageExecutions)
     val (mapping, executionToPriorityMapping) = buildMapping(filteredExecutions)

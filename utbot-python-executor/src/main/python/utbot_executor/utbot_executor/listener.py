@@ -80,9 +80,9 @@ class PythonExecuteServer:
                 response_size = str(len(bytes_data))
                 self.clientsocket.send((response_size + os.linesep).encode())
 
-                sended_size = 0
-                while len(bytes_data) > sended_size:
-                    sended_size += self.clientsocket.send(bytes_data[sended_size:])
+                sent_size = 0
+                while len(bytes_data) > sent_size:
+                    sent_size += self.clientsocket.send(bytes_data[sent_size:])
 
                 logging.debug('Sent all data')
         logging.info('All done...')

@@ -1,7 +1,7 @@
 """Python code executor for UnitTestBot"""
 import copy
+import dis
 import importlib
-import inspect
 import logging
 import pathlib
 import socket
@@ -17,8 +17,8 @@ from utbot_executor.deep_serialization.memory_objects import MemoryDump, PythonS
 from utbot_executor.deep_serialization.utils import PythonId, getattr_by_path
 from utbot_executor.memory_compressor import compress_memory
 from utbot_executor.parser import ExecutionRequest, ExecutionResponse, ExecutionFailResponse, ExecutionSuccessResponse
-from utbot_executor.ut_tracer import UtTracer
-from utbot_executor.utils import suppress_stdout as __suppress_stdout
+from utbot_executor.ut_tracer import UtTracer, UtCoverageSender
+from utbot_executor.utils import suppress_stdout as __suppress_stdout, get_instructions
 
 __all__ = ['PythonExecutor']
 
@@ -111,14 +111,15 @@ class PythonExecutor:
             state_init = _update_states(loader.reload_id(), state_init_memory)
             serialized_state_init = serialize_memory_dump(state_init)
 
-            def _coverage_sender(info: typing.Tuple[str, int]):
-                if pathlib.Path(info[0]) == pathlib.Path(request.filepath):
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    logging.debug("Coverage message: %s:%d", request.coverage_id, info[1])
-                    logging.debug("Port: %d", self.coverage_port)
-                    message = bytes(f'{request.coverage_id}:{info[1]}', encoding='utf-8')
-                    sock.sendto(message, (self.coverage_hostname, self.coverage_port))
-                    logging.debug("ID: %s, Coverage: %s", request.coverage_id, info)
+            # def _coverage_sender(info: typing.Tuple[str, int]):
+            #     if pathlib.Path(info[0]) == pathlib.Path(request.filepath):
+            #         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            #         logging.debug("Coverage message: %s:%d", request.coverage_id, info[1])
+            #         logging.debug("Port: %d", self.coverage_port)
+            #         message = bytes(f'{request.coverage_id}:{info[1]}', encoding='utf-8')
+            #         sock.sendto(message, (self.coverage_hostname, self.coverage_port))
+            #         logging.debug("ID: %s, Coverage: %s", request.coverage_id, info)
+            _coverage_sender = UtCoverageSender(request.coverage_id, self.coverage_hostname, self.coverage_port)
 
             value = _run_calculate_function_value(
                     function,
@@ -126,7 +127,7 @@ class PythonExecutor:
                     kwargs,
                     request.filepath,
                     serialized_state_init,
-                    tracer=UtTracer(_coverage_sender)
+                    tracer=UtTracer(pathlib.Path(request.filepath), [sys.prefix, sys.exec_prefix], _coverage_sender)
                     )
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
@@ -172,10 +173,10 @@ def _run_calculate_function_value(
 
     __is_exception = False
 
-    (__sources, __start, ) = inspect.getsourcelines(function)
-    __not_empty_lines = [i for i, line in enumerate(__sources, __start) if len(line.strip()) != 0]
-    logging.debug("Not empty lines %s", __not_empty_lines)
-    __end = __start + len(__sources)
+    # bytecode = dis.get_instructions(function)
+    # __all_code_lines = [instr.starts_line for instr in bytecode if instr.starts_line is not None]
+    __all_code_lines = list(get_instructions(function))
+    __start = min([op[0] for op in __all_code_lines])
 
     __tracer = tracer
 
@@ -189,13 +190,14 @@ def _run_calculate_function_value(
 
     logging.debug("Coverage: %s", __tracer.counts)
     logging.debug("Fullpath: %s", fullpath)
-    module_path = pathlib.Path(fullpath)
-    __stmts = [x[1] for x in __tracer.counts if pathlib.Path(x[0]) == module_path]
-    __stmts_filtered = [x for x in __not_empty_lines if x in __stmts]
-    __stmts_filtered_with_def = [__start] + __stmts_filtered
-    __missed_filtered = [x for x in __not_empty_lines if x not in __stmts_filtered_with_def]
-    logging.debug("Covered lines: %s", __stmts_filtered_with_def)
+    __stmts = [x for x in __tracer.counts]
+    __stmts_with_def = [(1, 0)] + __stmts
+    __missed_filtered = [x for x in __all_code_lines if x not in __stmts_with_def]
+    logging.debug("Covered lines: %s", __stmts_with_def)
     logging.debug("Missed lines: %s", __missed_filtered)
+
+    __str_statements = [":".join(map(str, x)) for x in __stmts_with_def]
+    __str_missed_statements = [":".join(map(str, x)) for x in __missed_filtered]
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
     ids = args_ids + list(kwargs_ids.values())
@@ -205,8 +207,8 @@ def _run_calculate_function_value(
     return ExecutionSuccessResponse(
             status="success",
             is_exception=__is_exception,
-            statements=__stmts_filtered_with_def,
-            missed_statements=__missed_filtered,
+            statements=__str_statements,
+            missed_statements=__str_missed_statements,
             state_init=state_init,
             state_before=serialized_state_before,
             state_after=serialized_state_after,

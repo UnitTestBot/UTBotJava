@@ -13,6 +13,8 @@ import org.utbot.python.evaluation.serialization.PythonExecutionResult
 import org.utbot.python.evaluation.serialization.SuccessExecution
 import org.utbot.python.evaluation.serialization.serializeObjects
 import org.utbot.python.evaluation.utils.CoverageIdGenerator
+import org.utbot.python.evaluation.utils.PyInstruction
+import org.utbot.python.evaluation.utils.toPyInstruction
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.pythonDescription
@@ -132,9 +134,11 @@ class PythonCodeSocketExecutor(
                 val stateBefore = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateBefore) ?: return parsingException
                 val stateAfter = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateAfter) ?: return parsingException
                 val diffIds = executionResult.diffIds.map {it.toLong()}
+                val statements = executionResult.statements.mapNotNull { it.toPyInstruction() }
+                val missedStatements = executionResult.missedStatements.mapNotNull { it.toPyInstruction() }
                 PythonEvaluationSuccess(
                     executionResult.isException,
-                    calculateCoverage(executionResult.statements, executionResult.missedStatements),
+                    calculateCoverage(statements, missedStatements),
                     stateInit,
                     stateBefore,
                     stateAfter,
@@ -151,15 +155,15 @@ class PythonCodeSocketExecutor(
         }
     }
 
-    private fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>): Coverage {
+    private fun calculateCoverage(statements: List<PyInstruction>, missedStatements: List<PyInstruction>): Coverage {
         val covered = statements.filter { it !in missedStatements }
         return Coverage(
             coveredInstructions=covered.map {
                 Instruction(
                     method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
                     method.methodSignature(),
-                    it,
-                    it.toLong()
+                    it.lineNumber,
+                    it.offset
                 )
             },
             instructionsCount = statements.size.toLong(),
@@ -167,8 +171,8 @@ class PythonCodeSocketExecutor(
                 Instruction(
                     method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
                     method.methodSignature(),
-                    it,
-                    it.toLong()
+                    it.lineNumber,
+                    it.offset
                 )
             }
         )

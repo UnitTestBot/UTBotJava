@@ -12,7 +12,9 @@ import org.utbot.python.evaluation.*
 import org.utbot.python.evaluation.serialization.MemoryDump
 import org.utbot.python.evaluation.serialization.toPythonTree
 import org.utbot.python.evaluation.utils.CoverageIdGenerator
+import org.utbot.python.evaluation.utils.PyInstruction
 import org.utbot.python.evaluation.utils.coveredLinesToInstructions
+import org.utbot.python.evaluation.utils.makeInstructions
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
@@ -92,7 +94,7 @@ class PythonEngine(
     private fun handleTimeoutResult(
         arguments: List<PythonFuzzedValue>,
         methodUnderTestDescription: PythonMethodDescription,
-        coveredLines: Collection<Int>,
+        coveredInstructions: List<Instruction>,
     ): FuzzingExecutionFeedback {
         val summary = arguments
             .zip(methodUnderTest.arguments)
@@ -109,7 +111,6 @@ class PythonEngine(
         val beforeThisObject = beforeThisObjectTree?.let { PythonTreeModel(it.tree) }
         val beforeModelList = beforeModelListTree.map { PythonTreeModel(it.tree) }
 
-        val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
         val coverage = Coverage(coveredInstructions)
         val utFuzzedExecution = PythonUtExecution(
             stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
@@ -134,7 +135,8 @@ class PythonEngine(
     ): FuzzingExecutionFeedback {
         val prohibitedExceptions = listOf(
             "builtins.AttributeError",
-            "builtins.TypeError"
+            "builtins.TypeError",
+            "builtins.NotImplementedError",
         )
 
         val summary = arguments
@@ -237,8 +239,8 @@ class PythonEngine(
                 is PythonEvaluationTimeout -> {
                     val coveredLines =
                         manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableSetOf())
-                    val utTimeoutException = handleTimeoutResult(arguments, description, coveredLines)
-                    val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
+                    val coveredInstructions = makeInstructions(coveredLines, methodUnderTest)
+                    val utTimeoutException = handleTimeoutResult(arguments, description, coveredInstructions)
                     val trieNode: Trie.Node<Instruction> =
                         if (coveredInstructions.isEmpty())
                             Trie.emptyNode()

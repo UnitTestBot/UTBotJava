@@ -32,7 +32,10 @@ object UtBotSpringApi {
         delegateContext: ApplicationContext = SimpleApplicationContext()
     ): SpringApplicationContext {
         if (springTestType == SpringTestType.INTEGRATION_TEST) {
-            val configuration = (springSettings as? SpringSettings.PresentSpringSettings)?.configuration
+            require(springSettings is SpringSettings.PresentSpringSettings) {
+                "Integration tests can't be generated without Spring settings"
+            }
+            val configuration = springSettings.configuration
             require(configuration !is SpringConfiguration.XMLConfiguration) {
                 "Integration tests aren't supported for XML configurations, consider using Java " +
                         "configuration that imports your XML configuration with @ImportResource"

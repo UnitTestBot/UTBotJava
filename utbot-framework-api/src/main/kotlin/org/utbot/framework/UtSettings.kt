@@ -597,6 +597,21 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var disableUnsatChecking by getBooleanProperty(false)
 
     // endregion
+
+    // region Spring-related options
+
+    /**
+     * When generating integration tests we only partially reset context in between executions to save time.
+     * For example, entity id generators do not get reset. It may lead to non-reproduceable results if
+     * IDs leak to the output of the method under test.
+     *
+     * To cope with that, we rerun executions that are left after minimization, fully resetting Spring context
+     * between executions. However, full context reset is slow, so we use this setting to limit number of
+     * tests per method that are rerun with full context reset in case minimization outputs too many tests.
+     */
+    var maxSpringContextResetsPerMethod by getIntProperty(25, 0, Int.MAX_VALUE)
+
+    // endregion
 }
 
 /**

@@ -86,8 +86,7 @@ import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.SpringModule.SPRING_BEANS
-import org.utbot.framework.codegen.domain.SpringModule.SPRING_BOOT
+import org.utbot.framework.codegen.domain.SpringModule.*
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
@@ -112,6 +111,7 @@ import org.utbot.intellij.plugin.models.jUnit5ParametrizedTestsLibraryDescriptor
 import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.models.springBootTestLibraryDescriptor
+import org.utbot.intellij.plugin.models.springSecurityLibraryDescriptor
 import org.utbot.intellij.plugin.models.springTestLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgNewLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgOldLibraryDescriptor
@@ -1020,6 +1020,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val libraryDescriptor = when (springModule) {
                 SPRING_BOOT -> springBootTestLibraryDescriptor(frameworkVersionInProject)
                 SPRING_BEANS -> springTestLibraryDescriptor(frameworkVersionInProject)
+                SPRING_SECURITY -> springSecurityLibraryDescriptor(frameworkVersionInProject)
             }
 
             model.preClasspathCollectionPromises += addDependency(model.testModule, libraryDescriptor)

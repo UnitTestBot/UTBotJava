@@ -8,7 +8,7 @@ import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.defaultApplicationContext
 import kotlin.reflect.KClass
 
-val springNoConfigApplicationContext = SpringApplicationContextImpl(
+val springNoConfigApplicationContext = SpringApplicationContextImpl.internalCreate(
     delegateContext = defaultApplicationContext,
     springTestType = SpringTestType.UNIT_TEST,
     springSettings = SpringSettings.AbsentSpringSettings,

@@ -1433,7 +1433,10 @@ sealed class SpringConfiguration(val fullDisplayName: String) {
 
     class JavaConfiguration(override val configBinaryName: String) : JavaBasedConfiguration(configBinaryName)
 
-    class SpringBootConfiguration(override val configBinaryName: String, val isUnique: Boolean): JavaBasedConfiguration(configBinaryName)
+    class SpringBootConfiguration(
+        override val configBinaryName: String,
+        val isDefinitelyUnique: Boolean
+    ) : JavaBasedConfiguration(configBinaryName)
 
     class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)
 }

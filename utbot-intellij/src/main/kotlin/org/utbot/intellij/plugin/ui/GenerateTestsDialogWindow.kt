@@ -725,7 +725,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                             if (springBootConfigs.contains(classBinaryName)) {
                                 SpringConfiguration.SpringBootConfiguration(
                                     configBinaryName = classBinaryName,
-                                    isUnique = springBootConfigs.size == 1,
+                                    isDefinitelyUnique = springBootConfigs.size == 1,
                                     )
                             } else {
                                 SpringConfiguration.JavaConfiguration(classBinaryName)

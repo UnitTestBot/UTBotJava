@@ -250,7 +250,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     }
     watchdog.measureTimeForActiveCall(perform, "Performing dynamic task") { params ->
         val task = kryoHelper.readObject<EngineProcessTask<Any?>>(params.engineProcessTask)
-        val result = task.perform(kryoHelper)
+        val result = task.perform()
         kryoHelper.writeObject(result)
     }
 }

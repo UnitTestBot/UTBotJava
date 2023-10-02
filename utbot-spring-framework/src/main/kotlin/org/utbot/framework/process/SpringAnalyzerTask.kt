@@ -4,7 +4,6 @@ import mu.KotlinLogging
 import org.utbot.framework.plugin.api.BeanAdditionalData
 import org.utbot.framework.plugin.api.BeanDefinitionData
 import org.utbot.framework.plugin.api.SpringSettings.PresentSpringSettings
-import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.rd.use
 import org.utbot.spring.process.SpringAnalyzerProcess
 
@@ -16,7 +15,7 @@ class SpringAnalyzerTask(
         private val logger = KotlinLogging.logger {}
     }
 
-    override fun perform(kryoHelper: KryoHelper): List<BeanDefinitionData> = try {
+    override fun perform(): List<BeanDefinitionData> = try {
         SpringAnalyzerProcess.createBlocking(classpath).use {
             it.getBeanDefinitions(settings)
         }.beanDefinitions

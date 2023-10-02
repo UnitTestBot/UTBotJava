@@ -12,6 +12,7 @@ import org.utbot.data.DEFAULT_PROJECT_DIRECTORY
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import java.awt.event.KeyEvent
+import java.io.File
 import java.time.Duration
 import java.time.Duration.ofSeconds
 
@@ -86,7 +87,7 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
                 locationInput.click()
                 keyboard{
                     hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
-                    enterText(location.replace("\\", "\\\\"))
+                    enterText(location.replace(File.separator, File.separator + File.separator))
                 }
             }
             this.findText(language).click()

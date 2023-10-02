@@ -9,6 +9,7 @@ import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import org.utbot.dialogs.NewProjectDialogFixture
 import org.utbot.dialogs.OpenProjectDialogFixture
+import java.io.File
 import java.time.Duration
 
 fun RemoteRobot.welcomeFrame(function: WelcomeFrame.()-> Unit) {
@@ -26,6 +27,8 @@ class WelcomeFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) :
         get() = actionLink(byXpath("New Project","//div[(@class='MainButton' and @text='New Project') or (@accessiblename='New Project' and @class='JButton')]"))
     val openProjectLink
         get() = actionLink(byXpath("Open","//div[(@class='MainButton' and @text='Open') or (@accessiblename.key='action.WelcomeScreen.OpenProject.text')]"))
+    val getFromVSCLink
+        get() = actionLink(byXpath("Get from VCS","//div[(@class='MainButton' and @text='Get from VCS')]"))
     val moreActions
         get() = button(byXpath("More Action", "//div[@accessiblename='More Actions']"))
 
@@ -38,10 +41,13 @@ class WelcomeFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) :
     val newProjectDialog
         get() = remoteRobot.find(NewProjectDialogFixture::class.java)
 
+
+
     fun openProjectByPath(location: String, projectName: String = "") {
-        val localPath = location + "\\" + projectName
+        val separator = File.separator
+        val localPath = location + separator + projectName
         openProjectLink.click()
-        keyboard.enterText(localPath.replace("\\", "\\\\"))
+        keyboard.enterText(localPath.replace(separator, separator + separator))
         openProjectDialog.okButton.click()
     }
 
@@ -55,5 +61,9 @@ class WelcomeFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) :
             buildSystem, jdkVersion, addSampleCode
         )
         newProjectDialog.createButton.click()
+    }
+
+    fun cloneProjectFromVC(url: String, buildSystem: IdeaBuildSystem) {
+
     }
 }

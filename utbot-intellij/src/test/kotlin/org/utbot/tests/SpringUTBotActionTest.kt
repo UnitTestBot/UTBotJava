@@ -4,16 +4,17 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.core.api.SoftAssertions
 import org.junit.jupiter.api.*
+import org.utbot.data.DEFAULT_PROJECT_DIRECTORY
 import org.utbot.data.IdeaBuildSystem
+import org.utbot.data.SPRING_EXISTING_PROJECT_NAME
 import org.utbot.pages.IdeaGradleFrame
 import org.utbot.pages.idea
 import org.utbot.pages.welcomeFrame
+import java.io.File
 import java.time.Duration
 
 class SpringUTBotActionTest : BaseTest() {
 
-    val SPRING_PROJECT_DIRECTORY = "D:\\JavaProjects\\spring"
-    val SPRING_EXISTING_PROJECT_NAME = "spring-petclinic"
     val APP_PACKAGE_NAME = "org.springframework.samples.petclinic"
     val EXISTING_PACKAGE_NAME = "vet"
     val EXISTING_CLASS_NAME = "VetController"
@@ -22,9 +23,9 @@ class SpringUTBotActionTest : BaseTest() {
     fun openExistingSpringProject(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
         welcomeFrame {
             try {
-                findText(SPRING_EXISTING_PROJECT_NAME).click()
+                findText(DEFAULT_PROJECT_DIRECTORY + File.separator + SPRING_EXISTING_PROJECT_NAME).click()
             } catch (ignore: NoSuchElementException) {
-                openProjectByPath(SPRING_PROJECT_DIRECTORY, SPRING_EXISTING_PROJECT_NAME)
+                openProjectByPath(DEFAULT_PROJECT_DIRECTORY, SPRING_EXISTING_PROJECT_NAME)
             }
         }
         val ideaFrame = remoteRobot.find(IdeaGradleFrame::class.java, Duration.ofSeconds(10))

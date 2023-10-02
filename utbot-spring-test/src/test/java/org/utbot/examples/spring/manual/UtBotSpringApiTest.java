@@ -22,10 +22,25 @@ import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
 
 public class UtBotSpringApiTest {
+    private static final List<String> DEFAULT_PROFILES = Collections.singletonList("default");
+
+    @Test
+    public void testOnAbsentSpringSettings() {
+        SpringApplicationContext springApplicationContext =
+                UtBotSpringApi.createSpringApplicationContext(
+                        SpringSettings.AbsentSpringSettings.INSTANCE,
+                        SpringTestType.UNIT_TEST,
+                        new ArrayList<>()
+                );
+
+        assertEquals(new ArrayList<>(), springApplicationContext.getBeanDefinitions());
+    }
+
     @Test
     public void testOnSpringBootConfig() {
         List<BeanDefinitionData> actual = getBeansFromSampleProject(
-                UtBotSpringApi.createJavaSpringConfiguration(ExampleSpringBootConfig.class)
+                UtBotSpringApi.createJavaSpringConfiguration(ExampleSpringBootConfig.class),
+                DEFAULT_PROFILES
         );
 
         List<BeanDefinitionData> expected = new ArrayList<>();
@@ -46,7 +61,8 @@ public class UtBotSpringApiTest {
     @Test
     public void testOnPureSpringConfig() {
         List<BeanDefinitionData> actual = getBeansFromSampleProject(
-                UtBotSpringApi.createJavaSpringConfiguration(ExamplePureSpringConfig.class)
+                UtBotSpringApi.createJavaSpringConfiguration(ExamplePureSpringConfig.class),
+                DEFAULT_PROFILES
         );
 
         List<BeanDefinitionData> expected = new ArrayList<>();
@@ -56,6 +72,50 @@ public class UtBotSpringApiTest {
                 "org.utbot.examples.spring.config.pure.ExamplePureSpringService",
                 new BeanAdditionalData(
                         "exampleService",
+                        Collections.emptyList(),
+                        "org.utbot.examples.spring.config.pure.ExamplePureSpringConfig"
+                )
+        ));
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testOnPureSpringConfigWithProfiles() {
+        List<String> profiles = new ArrayList<>();
+        profiles.add("test1");
+        profiles.add("test3");
+
+        List<BeanDefinitionData> actual = getBeansFromSampleProject(
+                UtBotSpringApi.createJavaSpringConfiguration(ExamplePureSpringConfig.class),
+                profiles
+        );
+
+        List<BeanDefinitionData> expected = new ArrayList<>();
+        expected.add(new BeanDefinitionData("examplePureSpringConfig", "org.utbot.examples.spring.config.pure.ExamplePureSpringConfig", null));
+        expected.add(new BeanDefinitionData(
+                "exampleService0",
+                "org.utbot.examples.spring.config.pure.ExamplePureSpringService",
+                new BeanAdditionalData(
+                        "exampleService",
+                        Collections.emptyList(),
+                        "org.utbot.examples.spring.config.pure.ExamplePureSpringConfig"
+                )
+        ));
+        expected.add(new BeanDefinitionData(
+                "exampleServiceTest1",
+                "org.utbot.examples.spring.config.pure.ExamplePureSpringService",
+                new BeanAdditionalData(
+                        "exampleServiceTest1",
+                        Collections.emptyList(),
+                        "org.utbot.examples.spring.config.pure.ExamplePureSpringConfig"
+                )
+        ));
+        expected.add(new BeanDefinitionData(
+                "exampleServiceTest3",
+                "org.utbot.examples.spring.config.pure.ExamplePureSpringService",
+                new BeanAdditionalData(
+                        "exampleServiceTest3",
                         Collections.emptyList(),
                         "org.utbot.examples.spring.config.pure.ExamplePureSpringConfig"
                 )
@@ -87,15 +147,18 @@ public class UtBotSpringApiTest {
         assertEquals(expected, actual);
     }
 
-    private List<BeanDefinitionData> getBeansFromSampleProject(SpringConfiguration configuration) {
-        return getBeansFromSampleProject(configuration, new ArrayList<>());
+    private List<BeanDefinitionData> getBeansFromSampleProject(
+            SpringConfiguration configuration,
+            List<String> profiles
+    ) {
+        return getBeansFromSampleProject(configuration, profiles, new ArrayList<>());
     }
 
     private List<BeanDefinitionData> getBeansFromSampleProject(
             SpringConfiguration configuration,
+            List<String> profiles,
             List<String> additionalClasspath
     ) {
-        List<String> profiles = Collections.singletonList("default");
         SpringSettings springSettings = new SpringSettings.PresentSpringSettings(configuration, profiles);
         SpringTestType springTestType = SpringTestType.UNIT_TEST;
         List<String> classpath = new ArrayList<>(additionalClasspath);

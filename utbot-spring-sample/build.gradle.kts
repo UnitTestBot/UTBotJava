@@ -13,7 +13,6 @@ dependencies {
 
     implementation(group = "org.springframework.boot", name = "spring-boot-starter-web", version = springBootVersion)
     implementation(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa", version = springBootVersion)
-    implementation(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa", version = springBootVersion)
     implementation(group = "org.springframework.boot", name = "spring-boot-starter-test", version = springBootVersion)
 }
 

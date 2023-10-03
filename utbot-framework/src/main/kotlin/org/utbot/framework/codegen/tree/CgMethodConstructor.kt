@@ -1226,7 +1226,12 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         if (!successfullyConstructedCustomAssert) {
             val expectedVariable = variableConstructor.getOrCreateVariable(expected, expectedVariableName)
             if (emptyLineIfNeeded) emptyLineIfNeeded()
-            assertEquality(expectedVariable, actual)
+
+            if (expected.isMockModel()) {
+                testFrameworkManager.assertSame(expectedVariable, actual)
+            } else {
+                assertEquality(expectedVariable, actual)
+            }
         }
     }
 
@@ -1303,13 +1308,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     }
                 }
                 else -> {
-                    currentExecution!!.result.onSuccess { resultModel ->
-                        if (resultModel.isMockModel()) {
-                            testFrameworkManager.assertSame(expected, actual)
-                            return
-                        }
-                    }
-
                     when (expected) {
                         is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
                         is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)

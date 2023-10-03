@@ -81,6 +81,10 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         )
     }
 
+    override fun assertSame(expected: CgValue, actual: CgValue) {
+        error("assertSame does not exist in PyTest")
+    }
+
     fun assertIsinstance(types: List<PythonClassId>, actual: CgVariable) {
         +CgPythonAssertEquals(
             CgPythonFunctionCall(
@@ -102,10 +106,14 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
     override val dataProviderMethodsHolder: TestClassContext
-        get() = error("Parametrized tests are not supported for JavaScript")
+        get() = error("Parametrized tests are not supported in Unittest")
 
     override fun addAnnotationForNestedClasses() {
         error("Nested classes annotation does not exist in Unittest")
+    }
+
+    override fun assertSame(expected: CgValue, actual: CgValue) {
+        error("assertSame does not exist in Unittest")
     }
 
     override fun expectException(exception: ClassId, block: () -> Unit) {

@@ -115,6 +115,7 @@ import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTaintAnalysisFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
@@ -1302,6 +1303,13 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     }
                 }
                 else -> {
+                    currentExecution!!.result.onSuccess { resultModel ->
+                        if (resultModel.isMockModel()) {
+                            testFrameworkManager.assertSame(expected, actual)
+                            return
+                        }
+                    }
+
                     when (expected) {
                         is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
                         is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)

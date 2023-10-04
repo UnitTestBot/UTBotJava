@@ -619,6 +619,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         visitedModels += modelWithField
 
         with(testFrameworkManager) {
+            if (expectedModel.isMockModel()) {
+                currentBlock += assertions[assertSame](expected, actual).toStatement()
+                return
+            }
+
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
                 currentBlock += CgSingleLineComment("Current deep equals depth exceeds max depth $DEEP_EQUALS_MAX_DEPTH")
                 currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
@@ -1226,12 +1231,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         if (!successfullyConstructedCustomAssert) {
             val expectedVariable = variableConstructor.getOrCreateVariable(expected, expectedVariableName)
             if (emptyLineIfNeeded) emptyLineIfNeeded()
-
-            if (expected.isMockModel()) {
-                testFrameworkManager.assertSame(expectedVariable, actual)
-            } else {
-                assertEquality(expectedVariable, actual)
-            }
+            assertEquality(expectedVariable, actual)
         }
     }
 

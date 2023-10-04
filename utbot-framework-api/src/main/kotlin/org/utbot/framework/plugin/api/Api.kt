@@ -404,13 +404,10 @@ fun UtModel.isMockModel() = this is UtCompositeModel && isMock
  * Checks that this [UtModel] must be constructed with @Spy annotation in generated tests.
  * Used only for construct variables with @Spy annotation.
  */
-fun UtModel.canBeSpied(): Boolean {
-    val javaClass = this.classId.jClass
+fun UtModel.canBeSpied(): Boolean =
+    this is UtAssembleModel && spiedTypes.any { type -> type.isAssignableFrom(this.classId.jClass)}
 
-    return this is UtAssembleModel &&
-            (Collection::class.java.isAssignableFrom(javaClass)
-                    || Map::class.java.isAssignableFrom(javaClass))
-}
+val spiedTypes = setOf(Collection::class.java, Map::class.java)
 
 /**
  * Get model id (symbolic null value for UtNullModel)

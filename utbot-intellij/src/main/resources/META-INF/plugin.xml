@@ -69,21 +69,28 @@
     </description>
     <change-notes>
         <![CDATA[
-        Check out UnitTestBot new features and major improvements in the latest release:
+        UnitTestBot can now generate tests for Spring applications.
         <ul>
-            <li>Generating tests for Python and JavaScript</li>
-            <li>New fuzzing platform providing support for multiple languages</li>
-            <li>Improved test generation for Kotlin code</li>
-            <li>Multiprocess architecture based on the <a href="https://github.com/JetBrains/rd">Reactive Distributed communication framework</a> with advanced logging and debugging options</li>
-            <li>Symbolic execution engine with higher priority and fewer false UNSAT verdicts</li>
-            <li>UI/UX improvements for test sources root, <code>setting.properties</code> file, cancellation, timeout settings, notifications</li>
-            <li>Summaries with fine-grained settings</li>
-            <li>SARIF reports enabled by default, displaying sandbox-related and timeout test failures, properly addressing source files</li>
-            <li>Improved monitoring visualized with Grafana</li>
-            <li>Test generation bug fixes</li>
-            <li>Detailed documentation on UnitTestBot components including UnitTestBot architecture overview</li>
+            <li>It automatically detects if you use the Spring framework and provides you with necessary options right in the dialog window.</li>
+            <li>You can choose from the <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Testing-Spring-based-code">three approaches to Spring test generation:</a></li>
+                <ul>
+                    <li>standard unit tests that mock environmental interactions,</li>
+                    <li>Spring-specific unit tests that use information about the Spring application context,</li>
+                    <li>and integration tests that validate interactions between Spring components.</li>
+                </ul>
         </ul>
-    ]]>
+        Find more improvements and bug fixes:
+        <ul>
+            <li>Support for IntelliJ IDEA 2023.2</li>
+            <li>Taint analysis feature (experimental)</li>
+            <li>Improved mocking in symbolic execution engine</li>
+            <li>Enhanced fuzzing mechanism: improved domain-specific API and mutation processes; support for generic fields and resolving generic parameter types; single branch detection, and ability to use all public methods of a class under test</li>
+            <li>Improved UIs for standard Java, Spring, and Python test generation</li>
+            <li>Fixed bugs for symbolic execution engine, fuzzing, code generation and instrumented process, summaries, SARIF reports, and more</li>
+            <li>Multiple improvements for Python support related to rendering constructors; mastering exceptions, timed out tests, and regular expressions; fixes for coverage and shutting down behavior</li>
+            <li>Enhanced Go test generation: support for maps and user-defined types</li>
+        </ul>
+        ]]>
     </change-notes>
     <extensions defaultExtensionNs="com.intellij">
         <globalInspection language="JAVA"

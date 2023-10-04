@@ -67,16 +67,12 @@ class CgSpiedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(con
         }
 
     /*
-     * Detects if injecting models via @Spy is possible and behavior is transparent.
+     * Filters out cases when different tests use different [clazz]
+     * implementations and hence we need to inject different types.
      *
-     * Some limitations are reasoned by @InjectMocks behaviour. It can successfully
-     * inject a @Spy if it's type is unique in this class (original variable names
-     * are hidden in test class,so we can inject by type only). It may cause problems
-     * sometimes. For example, if there is more than one collection in original class
-     * having types List<A> and List<B>, we may try to construct two listSpy objects
-     * that clash and injection will be incorrect so on.
-     *
-     * So @Spy variable may be created only if there are no clashes as described.
+     * This limitation is reasoned by @InjectMocks behaviour.
+     * Otherwise, injection may be misleading:
+     * for example, several spies may be injected into one field.
     */
     private fun getSuitableSpyModelsOfType(
         clazz: Class<*>,

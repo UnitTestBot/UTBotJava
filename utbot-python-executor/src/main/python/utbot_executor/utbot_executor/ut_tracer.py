@@ -8,6 +8,7 @@ import socket
 import sys
 import threading
 import typing
+from concurrent.futures import ThreadPoolExecutor
 
 
 def _modname(path):
@@ -26,8 +27,7 @@ class UtCoverageSender:
 
         self.use_thread = use_thread
         if use_thread:
-            self.thread = threading.Thread(target=self.send_loop, daemon=True)
-            self.thread.start()
+            self.thread = ThreadPoolExecutor(max_workers=4)
 
     def send_loop(self):
         try:
@@ -37,7 +37,8 @@ class UtCoverageSender:
             self.send_loop()
 
     def send_message(self, message: bytes):
-        self.sock.sendto(*message)
+        logging.debug(f"SEND {message}")
+        self.sock.sendto(message, (self.host, self.port))
 
     def send_message_thread(self):
         message = self.message_queue.get()
@@ -45,8 +46,10 @@ class UtCoverageSender:
 
     def put_message(self, key: str):
         message = bytes(f"{self.coverage_id}:{key}", encoding="utf-8")
+        logging.debug(f"PUT {message}")
         if self.use_thread:
             self.message_queue.put((message, (self.host, self.port)))
+            self.thread.submit(self.send_message_thread)
         else:
             self.send_message(message)
 
@@ -81,9 +84,12 @@ class UtTracer:
             if why == "opcode":
                 offset = frame.f_lasti
             key = (lineno, offset)
+            logging.debug(filename, key)
             if key not in self.counts:
+                message = ":".join(map(str, key))
                 try:
-                    self.sender.put_message(":".join(map(str, key)))
+                    # self.sender.send_message(message)
+                    self.sender.put_message(message)
                 except Exception:
                     pass
             self.counts[key] = self.counts.get(key, 0) + 1
@@ -121,5 +127,5 @@ def f(x):
 
 
 if __name__ in "__main__":
-    tracer = UtTracer(pathlib.Path(__file__), [], UtCoverageSender("1", "localhost", 0))
-    tracer.runfunc(f, 70)
+    tracer = UtTracer(pathlib.Path(__file__), [], UtCoverageSender("1", "localhost", 0, use_thread=False))
+    tracer.runfunc(f, 6)

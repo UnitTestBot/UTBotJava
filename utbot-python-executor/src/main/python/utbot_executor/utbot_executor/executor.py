@@ -1,13 +1,10 @@
 """Python code executor for UnitTestBot"""
 import copy
-import dis
 import importlib
 import logging
 import pathlib
-import socket
 import sys
 import traceback
-import typing
 from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 from utbot_executor.deep_serialization.deep_serialization import serialize_memory_dump, \
@@ -173,8 +170,6 @@ def _run_calculate_function_value(
 
     __is_exception = False
 
-    # bytecode = dis.get_instructions(function)
-    # __all_code_lines = [instr.starts_line for instr in bytecode if instr.starts_line is not None]
     __all_code_lines = list(get_instructions(function))
     __start = min([op[0] for op in __all_code_lines])
 

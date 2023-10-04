@@ -238,7 +238,7 @@ class PythonEngine(
 
                 is PythonEvaluationTimeout -> {
                     val coveredLines =
-                        manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableSetOf())
+                        manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableListOf())
                     val coveredInstructions = makeInstructions(coveredLines, methodUnderTest)
                     val utTimeoutException = handleTimeoutResult(arguments, description, coveredInstructions)
                     val trieNode: Trie.Node<Instruction> =

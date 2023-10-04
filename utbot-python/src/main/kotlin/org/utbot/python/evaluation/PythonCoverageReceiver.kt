@@ -13,7 +13,7 @@ import kotlin.math.max
 class PythonCoverageReceiver(
     val until: Long,
 ) : Thread() {
-    val coverageStorage = mutableMapOf<String, MutableSet<PyInstruction>>()
+    val coverageStorage = mutableMapOf<String, MutableList<PyInstruction>>()
     private val socket = DatagramSocket()
     private val logger = KotlinLogging.logger {}
 
@@ -46,7 +46,7 @@ class PythonCoverageReceiver(
                     val (id, line) = requestData
                     val instruction = line.toPyInstruction()
                     if (instruction != null) {
-                        coverageStorage.getOrPut(id) { mutableSetOf() }.add(instruction)
+                        coverageStorage.getOrPut(id) { mutableListOf() }.add(instruction)
                     }
                 }
             }

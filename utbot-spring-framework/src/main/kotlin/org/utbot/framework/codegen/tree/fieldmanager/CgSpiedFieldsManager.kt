@@ -13,6 +13,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.canBeSpied
 import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.spiedTypes
 import org.utbot.framework.plugin.api.util.jClass
 
 class CgSpiedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(context) {
@@ -40,44 +41,8 @@ class CgSpiedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(con
                             cgModel !in dependentMockModels
                 }
 
-        val suitableDependentSpyModels = getSuitableDependentSpyModels(dependentSpyModels)
-        return constructFieldsWithAnnotation(suitableDependentSpyModels)
-    }
-
-    /*
-     * If we have models of different types implementing Collection,
-     * we should not construct fields of these models with @Spy annotation
-     * because in this case, Spring cannot inject fields.
-     *
-     * The situation is similar with Map.
-     */
-    private fun getSuitableDependentSpyModels(dependentSpyModels: MutableSet<UtModelWrapper>): Set<UtModelWrapper> =
-        getSuitableDependentSpyModelsImplementing(Collection::class.java, dependentSpyModels) +
-                getSuitableDependentSpyModelsImplementing(Map::class.java, dependentSpyModels)
-
-
-    private fun getSuitableDependentSpyModelsImplementing(clazz: Class<*>, dependentSpyModels: MutableSet<UtModelWrapper>): Set<UtModelWrapper> {
-        return when{
-            isSuitableSpyModelsImplementing(clazz, dependentSpyModels) -> dependentSpyModels.filter { clazz.isAssignableFrom(it.model.classId.jClass) }.toSet()
-            else -> emptySet()
-        }
-    }
-
-    /*
-    * Models implementing Collection will be suitable if they are all the same type.
-    *
-    * The situation is similar with Map.
-    */
-    private fun isSuitableSpyModelsImplementing(clazz: Class<*>, dependentSpyModels: MutableSet<UtModelWrapper>): Boolean {
-        val modelsClassIdsSet = HashSet<ClassId>()
-        dependentSpyModels.forEach {
-            val modelClassId = it.model.classId
-            if(clazz.isAssignableFrom(modelClassId.jClass)){
-                modelsClassIdsSet.add(modelClassId)
-            }
-        }
-
-        return modelsClassIdsSet.size == 1
+        val suitableSpyModels = getSuitableSpyModels(dependentSpyModels)
+        return constructFieldsWithAnnotation(suitableSpyModels)
     }
 
     private val spyFrameworkManager = SpyFrameworkManager(context)
@@ -95,4 +60,33 @@ class CgSpiedFieldsManager(context: CgContext) : CgAbstractClassFieldManager(con
         classId.canBeInjectedByTypeInto(classUnderTest)
 
     override fun constructBaseVarName(model: UtModel): String = super.constructBaseVarName(model) + "Spy"
+
+    private fun getSuitableSpyModels(potentialSpyModels: MutableSet<UtModelWrapper>): Set<UtModelWrapper> =
+        spiedTypes.fold(setOf()) { spyModels, type ->
+            spyModels + getSuitableSpyModelsOfType(type, potentialSpyModels)
+        }
+
+    /*
+     * Detects if injecting models via @Spy is possible and behavior is transparent.
+     *
+     * Some limitations are reasoned by @InjectMocks behaviour. It can successfully
+     * inject a @Spy if it's type is unique in this class (original variable names
+     * are hidden in test class,so we can inject by type only). It may cause problems
+     * sometimes. For example, if there is more than one collection in original class
+     * having types List<A> and List<B>, we may try to construct two listSpy objects
+     * that clash and injection will be incorrect so on.
+     *
+     * So @Spy variable may be created only if there are no clashes as described.
+    */
+    private fun getSuitableSpyModelsOfType(
+        clazz: Class<*>,
+        potentialSpyModels: MutableSet<UtModelWrapper>
+    ): Set<UtModelWrapper> {
+        val spyModelsAssignableFrom = potentialSpyModels
+            .filter { clazz.isAssignableFrom(it.model.classId.jClass) }
+            .toSet()
+        val spyModelsTypesCount = spyModelsAssignableFrom.map { it.model.classId }.toSet().size
+
+        return if (spyModelsTypesCount == 1) spyModelsAssignableFrom else emptySet()
+    }
 }

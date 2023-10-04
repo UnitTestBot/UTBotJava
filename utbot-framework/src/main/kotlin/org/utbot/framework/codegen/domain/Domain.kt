@@ -190,6 +190,8 @@ abstract class TestFramework(
 
     open val testSuperClass: ClassId? = null
 
+    open val assertSame by lazy { assertionId("assertSame", objectClassId, objectClassId) }
+
     open val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
     val assertFloatEquals by lazy { assertionId("assertEquals", floatClassId, floatClassId, floatClassId) }

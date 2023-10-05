@@ -1,3 +1,7 @@
+configurations {
+    fetchSpringSampleJar
+}
+
 dependencies {
     testImplementation(project(":utbot-framework"))
     testImplementation(project(":utbot-spring-framework"))
@@ -16,7 +20,11 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
 
+    testImplementation group: 'commons-io', name: 'commons-io', version: commonsIoVersion
+
     testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa', version: springBootVersion
+
+    fetchSpringSampleJar project(path: ':utbot-spring-sample', configuration: 'springSampleJar')
 }
 
 configurations {
@@ -28,5 +36,11 @@ configurations {
 test {
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
+    }
+}
+
+processTestResources {
+    from(configurations.fetchSpringSampleJar) {
+        into "lib"
     }
 }

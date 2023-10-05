@@ -56,8 +56,6 @@
             <li>generating <a href="https://github.com/microsoft/sarif-tutorials/blob/main/README.md">SARIF</a> reports</li>
             <li>innovative symbolic execution engine combined with a smart fuzzing platform</li>
         </ul>
-        UnitTestBot supports the latest JDKs, JUnit 4, JUnit 5, TestNG, Mockito and is suitable for all popular operational systems.
-        <br/>
         Try <a href="https://www.utbot.org/demo/?language=Java&source=public%20class%20Recursion%20%7B%0A%0A%20%20public%20int%20fib(int%20n)%20%7B%0A%20%20%20%20if%20(n%20%3C%200)%20throw%20new%20IllegalArgumentException()%3B%0A%20%20%20%20if%20(n%20%3D%3D%200)%20return%200%3B%0A%20%20%20%20if%20(n%20%3D%3D%201)%20return%201%3B%0A%20%20%20%20%0A%20%20%20%20return%20fib(n%20-%201)%20%2B%20fib(n%20-%202)%3B%0A%20%20%7D%0A%7D%0A">UnitTestBot online demo</a> to see how it generates tests for your code in real time.
         <br/>
         Contribute to UnitTestBot via <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub</a>.

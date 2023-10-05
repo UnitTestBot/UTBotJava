@@ -6,7 +6,7 @@ import traceback
 from utbot_executor.deep_serialization.memory_objects import PythonSerializer
 from utbot_executor.parser import parse_request, serialize_response, ExecutionFailResponse
 from utbot_executor.executor import PythonExecutor
-
+from utbot_executor.utils import TraceMode
 
 RECV_SIZE = 2**15
 
@@ -17,12 +17,13 @@ class PythonExecuteServer:
             hostname: str,
             port: int,
             coverage_hostname: str,
-            coverage_port: str,
+            coverage_port: int,
+            trace_mode: TraceMode,
             ):
         logging.info('PythonExecutor is creating...')
         self.clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientsocket.connect((hostname, port))
-        self.executor = PythonExecutor(coverage_hostname, coverage_port)
+        self.executor = PythonExecutor(coverage_hostname, coverage_port, trace_mode)
 
     def run(self) -> None:
         logging.info('PythonExecutor is ready...')

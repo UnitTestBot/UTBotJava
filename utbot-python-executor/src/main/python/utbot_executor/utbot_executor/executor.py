@@ -15,7 +15,12 @@ from utbot_executor.deep_serialization.utils import PythonId, getattr_by_path
 from utbot_executor.memory_compressor import compress_memory
 from utbot_executor.parser import ExecutionRequest, ExecutionResponse, ExecutionFailResponse, ExecutionSuccessResponse
 from utbot_executor.ut_tracer import UtTracer, UtCoverageSender
-from utbot_executor.utils import suppress_stdout as __suppress_stdout, get_instructions
+from utbot_executor.utils import (
+    suppress_stdout as __suppress_stdout,
+    get_instructions,
+    filter_instructions,
+    TraceMode,
+)
 
 __all__ = ['PythonExecutor']
 
@@ -38,9 +43,10 @@ def _load_objects(objs: List[Any]) -> MemoryDump:
 
 
 class PythonExecutor:
-    def __init__(self, coverage_hostname: str, coverage_port: int):
+    def __init__(self, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode):
         self.coverage_hostname = coverage_hostname
         self.coverage_port = coverage_port
+        self.trace_mode = trace_mode
 
     @staticmethod
     def add_syspaths(syspaths: Iterable[str]):
@@ -108,24 +114,21 @@ class PythonExecutor:
             state_init = _update_states(loader.reload_id(), state_init_memory)
             serialized_state_init = serialize_memory_dump(state_init)
 
-            # def _coverage_sender(info: typing.Tuple[str, int]):
-            #     if pathlib.Path(info[0]) == pathlib.Path(request.filepath):
-            #         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            #         logging.debug("Coverage message: %s:%d", request.coverage_id, info[1])
-            #         logging.debug("Port: %d", self.coverage_port)
-            #         message = bytes(f'{request.coverage_id}:{info[1]}', encoding='utf-8')
-            #         sock.sendto(message, (self.coverage_hostname, self.coverage_port))
-            #         logging.debug("ID: %s, Coverage: %s", request.coverage_id, info)
             _coverage_sender = UtCoverageSender(request.coverage_id, self.coverage_hostname, self.coverage_port)
 
             value = _run_calculate_function_value(
-                    function,
-                    args,
-                    kwargs,
-                    request.filepath,
-                    serialized_state_init,
-                    tracer=UtTracer(pathlib.Path(request.filepath), [sys.prefix, sys.exec_prefix], _coverage_sender)
-                    )
+                function,
+                args,
+                kwargs,
+                request.filepath,
+                serialized_state_init,
+                tracer=UtTracer(
+                    pathlib.Path(request.filepath),
+                    [sys.prefix, sys.exec_prefix],
+                    _coverage_sender,
+                    self.trace_mode,
+                ),
+            )
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
             return ExecutionFailResponse("fail", traceback.format_exc())
@@ -170,7 +173,7 @@ def _run_calculate_function_value(
 
     __is_exception = False
 
-    __all_code_lines = list(get_instructions(function))
+    __all_code_lines = filter_instructions(get_instructions(function), tracer.mode)
     __start = min([op[0] for op in __all_code_lines])
 
     __tracer = tracer
@@ -196,7 +199,6 @@ def _run_calculate_function_value(
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
     ids = args_ids + list(kwargs_ids.values())
-    # state_before, state_after = compress_memory(ids, state_before, state_after)
     diff_ids = compress_memory(ids, state_before, state_after)
 
     return ExecutionSuccessResponse(

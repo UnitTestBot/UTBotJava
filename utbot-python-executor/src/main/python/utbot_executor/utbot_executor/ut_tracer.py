@@ -1,14 +1,13 @@
-import dis
-import inspect
 import logging
 import os
 import pathlib
 import queue
 import socket
 import sys
-import threading
 import typing
 from concurrent.futures import ThreadPoolExecutor
+
+from utbot_executor.utils import TraceMode
 
 
 def _modname(path):
@@ -55,13 +54,20 @@ class UtCoverageSender:
 
 
 class UtTracer:
-    def __init__(self, tested_file: pathlib.Path, ignore_dirs: typing.List[str], sender: UtCoverageSender):
+    def __init__(
+        self,
+        tested_file: pathlib.Path,
+        ignore_dirs: typing.List[str],
+        sender: UtCoverageSender,
+        mode: TraceMode = TraceMode.Instructions,
+    ):
         self.tested_file = tested_file
         self.counts = {}
         self.localtrace = self.localtrace_count
         self.globaltrace = self.globaltrace_lt
         self.ignore_dirs = ignore_dirs
         self.sender = sender
+        self.mode = mode
 
     def runfunc(self, func, /, *args, **kw):
         result = None
@@ -80,15 +86,13 @@ class UtTracer:
         filename = frame.f_code.co_filename
         if pathlib.Path(filename) == self.tested_file:
             lineno = frame.f_lineno
-            offset = 0
+            offset = lineno * 2
             if why == "opcode":
                 offset = frame.f_lasti
             key = (lineno, offset)
-            logging.debug(filename, key)
             if key not in self.counts:
                 message = ":".join(map(str, key))
                 try:
-                    # self.sender.send_message(message)
                     self.sender.put_message(message)
                 except Exception:
                     pass
@@ -97,8 +101,9 @@ class UtTracer:
 
     def globaltrace_lt(self, frame, why, arg):
         if why == 'call':
-            frame.f_trace_opcodes = True
-            frame.f_trace_lines = False
+            if self.mode == TraceMode.Instructions:
+                frame.f_trace_opcodes = True
+                frame.f_trace_lines = False
             filename = frame.f_globals.get('__file__', None)
             if filename and all(not filename.startswith(d + os.sep) for d in self.ignore_dirs):
                 modulename = _modname(filename)
@@ -127,5 +132,5 @@ def f(x):
 
 
 if __name__ in "__main__":
-    tracer = UtTracer(pathlib.Path(__file__), [], UtCoverageSender("1", "localhost", 0, use_thread=False))
+    tracer = UtTracer(pathlib.Path(__file__), [], UtCoverageSender("1", "localhost", 0, use_thread=False), mode=TraceMode.Lines)
     tracer.runfunc(f, 6)

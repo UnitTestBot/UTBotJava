@@ -248,6 +248,17 @@
               "coverage": 75
             }
           ]
+        },
+        {
+          "name": "multi_conditions",
+          "groups": [
+            {
+              "classes": null,
+              "methods": null,
+              "timeout": 15,
+              "coverage": 100
+            }
+          ]
         }
       ]
     },

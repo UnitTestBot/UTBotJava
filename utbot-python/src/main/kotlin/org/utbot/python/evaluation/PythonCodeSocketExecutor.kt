@@ -166,7 +166,7 @@ class PythonCodeSocketExecutor(
                     it.offset
                 )
             },
-            instructionsCount = statements.size.toLong(),
+            instructionsCount = (covered.size + missedStatements.size).toLong(),
             missedInstructions = missedStatements.map {
                 Instruction(
                     method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,

@@ -5,6 +5,8 @@ import org.utbot.common.dynamicPropertiesOf
 import org.utbot.common.isAbstract
 import org.utbot.common.isStatic
 import org.utbot.common.withValue
+import org.utbot.external.api.UtBotSpringApi
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.generator.SpringCodeGenerator
@@ -38,14 +40,29 @@ import org.utbot.fuzzing.spring.unit.InjectMockValueProvider
 import org.utbot.fuzzing.toFuzzerType
 import org.utbot.instrumentation.instrumentation.execution.RemovingConstructFailsUtExecutionInstrumentation
 
-class SpringApplicationContextImpl(
+class SpringApplicationContextImpl private constructor(
     private val delegateContext: ApplicationContext,
-    override val beanDefinitions: List<BeanDefinitionData> = emptyList(),
+    override val beanDefinitions: List<BeanDefinitionData>,
     private val springTestType: SpringTestType,
     override val springSettings: SpringSettings,
 ): ApplicationContext by delegateContext, SpringApplicationContext {
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        /**
+         * Used internally by UtBot to create an instance of [SpringApplicationContextImpl]
+         * when [beanDefinitions] are already known.
+         *
+         * NOTE: Bean definitions defined in config from [springSettings] are IGNORED.
+         *
+         * API users should use [UtBotSpringApi.createSpringApplicationContext]
+         */
+        fun internalCreate(
+            delegateContext: ApplicationContext,
+            beanDefinitions: List<BeanDefinitionData>,
+            springTestType: SpringTestType,
+            springSettings: SpringSettings,
+        ) = SpringApplicationContextImpl(delegateContext, beanDefinitions, springTestType, springSettings)
     }
 
     private object ReplacedFuzzedTypeFlag : FuzzedTypeFlag
@@ -118,7 +135,8 @@ class SpringApplicationContextImpl(
                         delegateConcreteExecutionContext,
                         classpathWithoutDependencies,
                         springApplicationContext = this
-                    )
+                    ),
+                    maxRerunsPerMethod = UtSettings.maxSpringContextResetsPerMethod
                 )
         }.transformInstrumentationFactory { delegateInstrumentationFactory ->
             RemovingConstructFailsUtExecutionInstrumentation.Factory(delegateInstrumentationFactory)

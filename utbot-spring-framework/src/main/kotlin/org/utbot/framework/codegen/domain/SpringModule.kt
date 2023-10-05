@@ -8,6 +8,9 @@ enum class SpringModule(
     ),
     SPRING_BOOT(
         testFrameworkDisplayName = "spring-boot-test",
+    ),
+    SPRING_SECURITY(
+        testFrameworkDisplayName = "spring-security-test"
     );
 
     var isInstalled = false

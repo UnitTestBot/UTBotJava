@@ -74,7 +74,7 @@ class UTBotActionTest : BaseTest() {
             textEditor().typeAdditionFunction(newClassName)
             openUTBotDialogFromProjectViewForClass(newClassName)
             assertThat(unitTestBotDialog.generateTestsButton.isEnabled().not())
-            assertThat(unitTestBotDialog.sdkNotificationLabel.hasText("SDK version 19 is not supported, use JDK_1_8, JDK_11 or JDK_17"))
+            assertThat(unitTestBotDialog.sdkNotificationLabel.hasText("SDK version 19 is not supported, use 1.8, 11 or 17 instead."))
             assertThat(unitTestBotDialog.setupSdkLink.isShowing)
             unitTestBotDialog.closeButton.click()
         }

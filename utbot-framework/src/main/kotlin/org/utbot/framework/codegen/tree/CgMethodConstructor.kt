@@ -115,6 +115,7 @@ import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTaintAnalysisFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
@@ -618,6 +619,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         visitedModels += modelWithField
 
         with(testFrameworkManager) {
+            if (expectedModel.isMockModel()) {
+                currentBlock += assertions[assertSame](expected, actual).toStatement()
+                return
+            }
+
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
                 currentBlock += CgSingleLineComment("Current deep equals depth exceeds max depth $DEEP_EQUALS_MAX_DEPTH")
                 currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()

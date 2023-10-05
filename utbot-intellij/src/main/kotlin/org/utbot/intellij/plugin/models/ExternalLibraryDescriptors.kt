@@ -51,11 +51,21 @@ fun springBootTestLibraryDescriptor(versionInProject: Version?): ExternalLibrary
     )
 }
 
+private const val MIN_SUPPORTED_SPRING_VERSION = "2.5"
+
 fun springTestLibraryDescriptor(versionInProject: Version?): ExternalLibraryDescriptor {
-    val preferredVersion = if (versionInProject?.hasNumericOrEmptyPatch() == true) versionInProject?.plainText else "6.0.8"
+    val preferredVersion = if (versionInProject?.hasNumericOrEmptyPatch() == true) versionInProject.plainText else "6.0.8"
     return ExternalLibraryDescriptor(
         "org.springframework", "spring-test",
-        "2.5", null, preferredVersion
+        MIN_SUPPORTED_SPRING_VERSION, null, preferredVersion
+    )
+}
+
+fun springSecurityLibraryDescriptor(versionInProject: Version?): ExternalLibraryDescriptor {
+    val preferredVersion = if (versionInProject?.hasNumericOrEmptyPatch() == true) versionInProject.plainText else "6.0.8"
+    return ExternalLibraryDescriptor(
+        "org.springframework.security", "spring-security-test",
+        MIN_SUPPORTED_SPRING_VERSION, null, preferredVersion
     )
 }
 

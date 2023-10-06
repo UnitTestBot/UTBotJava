@@ -8,6 +8,8 @@ val rdVersion: String by rootProject
 val mockitoVersion: String by rootProject
 val mockitoInlineVersion: String by rootProject
 
+val jacocoVersion: String by rootProject
+
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("java")
@@ -55,6 +57,8 @@ dependencies {
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
     implementation("org.mockito:mockito-core:$mockitoVersion")
     implementation("org.mockito:mockito-inline:$mockitoInlineVersion")
+
+    implementation("org.jacoco:org.jacoco.core:$jacocoVersion")
 
     implementation(project(":utbot-spring-commons-api"))
     fetchSpringCommonsJar(project(":utbot-spring-commons", configuration = "springCommonsJar"))

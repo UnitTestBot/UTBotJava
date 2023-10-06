@@ -2,7 +2,7 @@ package org.utbot.examples.benchmark
 
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.util.Isolated
 import kotlin.system.measureNanoTime
@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 fun getBasicCoverageTime(count: Int): Double {
     var time: Long
     ConcreteExecutor(
-        CoverageInstrumentation.Factory,
+        InstructionCoverageInstrumentation.Factory,
         Repeater::class.java.protectionDomain.codeSource.location.path
     ).use { executor ->
         val dc0 = Repeater(", ")

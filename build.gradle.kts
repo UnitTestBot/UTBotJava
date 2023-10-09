@@ -110,6 +110,10 @@ allprojects {
                 "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
             )
 
+            withType<Jar> {
+                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+            }
+
             useJUnitPlatform {
                 excludeTags = setOf("slow", "IntegrationTest")
             }

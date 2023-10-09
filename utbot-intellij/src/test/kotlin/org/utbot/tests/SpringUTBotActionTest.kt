@@ -4,9 +4,7 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.core.api.SoftAssertions
 import org.junit.jupiter.api.*
-import org.utbot.data.DEFAULT_PROJECT_DIRECTORY
-import org.utbot.data.IdeaBuildSystem
-import org.utbot.data.SPRING_EXISTING_PROJECT_NAME
+import org.utbot.data.*
 import org.utbot.pages.IdeaGradleFrame
 import org.utbot.pages.idea
 import org.utbot.pages.welcomeFrame
@@ -18,21 +16,32 @@ class SpringUTBotActionTest : BaseTest() {
     val APP_PACKAGE_NAME = "org.springframework.samples.petclinic"
     val EXISTING_PACKAGE_NAME = "vet"
     val EXISTING_CLASS_NAME = "VetController"
+    val randomBuildSystem = if (random.nextBoolean()) IdeaBuildSystem.MAVEN else IdeaBuildSystem.GRADLE
 
     @BeforeEach
-    fun openExistingSpringProject(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
+    fun openSpringProject(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
         welcomeFrame {
             try {
-                findText(DEFAULT_PROJECT_DIRECTORY + File.separator + SPRING_EXISTING_PROJECT_NAME).click()
-            } catch (ignore: NoSuchElementException) {
-                openProjectByPath(DEFAULT_PROJECT_DIRECTORY, SPRING_EXISTING_PROJECT_NAME)
+                findText {
+                    it.text.endsWith(CURRENT_RUN_DIRECTORY_END + File.separator + SPRING_PROJECT_NAME)
+                }.click()
+            } catch (ignore: NoSuchElementException) { // ToDo move to CreateProjects
+                cloneProjectFromVC(
+                    SPRING_PROJECT_URL,
+                    CURRENT_RUN_DIRECTORY_FULL_PATH + File.separator + SPRING_PROJECT_NAME,
+                    randomBuildSystem)
             }
         }
-        val ideaFrame = remoteRobot.find(IdeaGradleFrame::class.java, Duration.ofSeconds(10))
-        return with(ideaFrame) {
-            waitProjectIsOpened()
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {//this particular project has gradle default structure
+            waitProjectIsCreated()
             expandProjectTree()
+            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
+            with (unitTestBotDialog) { // ToDo move to CreateProjects
+                setupSdkLink.click()
+
+            }
         }
+        return
     }
 
     @Test
@@ -41,7 +50,6 @@ class SpringUTBotActionTest : BaseTest() {
     fun checkSpringDefaultActionDialog(remoteRobot: RemoteRobot) {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
         return with (ideaFrame) {
-            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
             with (unitTestBotDialog) {
                 val softly = SoftAssertions()
                 softly.assertThat(springConfigurationLabel.isVisible())
@@ -84,7 +92,6 @@ class SpringUTBotActionTest : BaseTest() {
     fun checkActionDialogWithSpringConfiguration(remoteRobot: RemoteRobot) {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
         return with (ideaFrame) {
-            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -106,7 +113,6 @@ class SpringUTBotActionTest : BaseTest() {
     fun checkActionDialogWithIntegrationTests(remoteRobot: RemoteRobot) {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
         return with (ideaFrame) {
-            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -129,7 +135,6 @@ class SpringUTBotActionTest : BaseTest() {
     fun checkSpringUnitTestsGeneration(remoteRobot: RemoteRobot) {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
         return with (ideaFrame) {
-            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -167,7 +172,6 @@ class SpringUTBotActionTest : BaseTest() {
     fun checkSpringIntegrationTestsGeneration(remoteRobot: RemoteRobot) {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
         return with (ideaFrame) {
-            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")

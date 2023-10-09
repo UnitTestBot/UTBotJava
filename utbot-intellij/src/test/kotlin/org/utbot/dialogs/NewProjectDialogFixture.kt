@@ -8,7 +8,6 @@ import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.Keyboard
 import com.intellij.remoterobot.utils.keyboard
 import com.intellij.remoterobot.utils.waitForIgnoringError
-import org.utbot.data.DEFAULT_PROJECT_DIRECTORY
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import java.awt.event.KeyEvent

@@ -7,7 +7,9 @@ import com.intellij.remoterobot.search.locators.byXpath
 import com.intellij.remoterobot.utils.Keyboard
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
+import org.utbot.dialogs.GetFromVersionControlDialogFixture
 import org.utbot.dialogs.NewProjectDialogFixture
+import org.utbot.dialogs.OpenOrImportProjectDialogFixture
 import org.utbot.dialogs.OpenProjectDialogFixture
 import java.io.File
 import java.time.Duration
@@ -35,13 +37,18 @@ class WelcomeFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) :
     val recentProjectLinks
         get() = jTree(byXpath("//div[@class='CardLayoutPanel']//div[@class='Tree']"))
 
-    val openProjectDialog
-        get() = remoteRobot.find(OpenProjectDialogFixture::class.java)
-
     val newProjectDialog
         get() = remoteRobot.find(NewProjectDialogFixture::class.java)
 
+    val openProjectDialog
+        get() = remoteRobot.find(OpenProjectDialogFixture::class.java)
 
+    val getFromVersionControlDialog
+        get() = remoteRobot.find(GetFromVersionControlDialogFixture::class.java)
+
+    val openOrImportProjectDialog
+        get() = remoteRobot.find(OpenOrImportProjectDialogFixture::class.java,
+            Duration.ofSeconds(120))
 
     fun openProjectByPath(location: String, projectName: String = "") {
         val separator = File.separator
@@ -63,7 +70,11 @@ class WelcomeFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) :
         newProjectDialog.createButton.click()
     }
 
-    fun cloneProjectFromVC(url: String, buildSystem: IdeaBuildSystem) {
-
+    fun cloneProjectFromVC(url: String, location: String = "",
+                           buildSystem: IdeaBuildSystem) {
+        getFromVSCLink.click()
+        getFromVersionControlDialog.fillDialog(url, location)
+        getFromVersionControlDialog.cloneButton.click()
+        openOrImportProjectDialog.selectBuildSystem(buildSystem)
     }
 }

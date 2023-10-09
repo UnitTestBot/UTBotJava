@@ -20,6 +20,7 @@ To compile plugin:
 * wait till debug IDEA is started
 * check it is above other windows and maximized
 * check keyboard language is EN
+* do NOT lock screen
 * run **All** the tests in utbot-intellij/src/test/kotlin/org/utbot/tests
 
 Note: projects are created first and only on new projects tests are executed. 

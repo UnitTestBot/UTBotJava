@@ -14,7 +14,7 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
 
     override fun waitProjectIsCreated() {
         super.waitProjectIsOpened()
-        repeat (120) {
+        waitForIgnoringError (ofSeconds(60)) {
             inlineProgressTextPanel.isShowing.not()
         }
     }
@@ -22,13 +22,13 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
     override fun expandProjectTree() {
         with(projectViewTree) {
             waitForIgnoringError(ofSeconds(10)) {
-                hasText("src")
+                hasText(projectName)
             }
             if (hasText("src").not()) {
                 findText(projectName).doubleClick()
             }
             waitForIgnoringError{
-                hasText("main")
+                hasText("src")
             }
             if (hasText("main").not()) {
                 findText("src").doubleClick()

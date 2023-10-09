@@ -84,8 +84,8 @@ class UtTracer:
 
     def localtrace_count(self, frame, why, arg):
         filename = frame.f_code.co_filename
-        if pathlib.Path(filename) == self.tested_file:
-            lineno = frame.f_lineno
+        lineno = frame.f_lineno
+        if pathlib.Path(filename) == self.tested_file and lineno is not None:
             offset = lineno * 2
             if why == "opcode":
                 offset = frame.f_lasti
@@ -119,18 +119,3 @@ class PureTracer:
 
     def runfunc(self, func, /, *args, **kw):
         return func(*args, **kw)
-
-
-def f(x):
-    if 0 < x < 10 and x % 2 == 0:
-        return 1
-    else:
-        return [100,
-                x**2,
-                x + 1
-                ]
-
-
-if __name__ in "__main__":
-    tracer = UtTracer(pathlib.Path(__file__), [], UtCoverageSender("1", "localhost", 0, use_thread=False), mode=TraceMode.Lines)
-    tracer.runfunc(f, 6)

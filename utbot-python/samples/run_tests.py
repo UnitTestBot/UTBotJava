@@ -7,10 +7,14 @@ Example command
  -c <path to UTBotJava/utbot-python/samples>
 """
 import argparse
+import contextlib
 import json
 import os
 import shutil
+import sys
 import typing
+import tqdm
+from tqdm.contrib import DummyTqdmFile
 import pathlib
 
 
@@ -38,9 +42,39 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def inner_zip(collection: dict[str, typing.Iterable], keys: list[str]) -> typing.Iterator[list[typing.Any]]:
+    key, inner_keys = keys[0], keys[1:]
+    if len(inner_keys) == 0:
+        yield [collection[key]]
+        return
+    for inner_collection in collection[key]:
+        for group in inner_zip(inner_collection, inner_keys):
+            yield [collection[key]] + group
+
+
+def test_inner_zip():
+    data = {"1": [{"2": [1, 2, 3]}, {"2": [4, 5, 6]}]}
+    actual = inner_zip(data, ["1", "2"])
+    assert list(actual) == [[data["1"], data["1"][0]["2"]], [data["1"], data["1"][1]["2"]]]
+
+
 def parse_config(config_path: str):
     with open(config_path, "r") as fin:
         return json.loads(fin.read())
+
+
+@contextlib.contextmanager
+def std_out_err_redirect_tqdm():
+    orig_out_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = map(DummyTqdmFile, orig_out_err)
+        yield orig_out_err[0]
+    # Relay exceptions
+    except Exception as exc:
+        raise exc
+    # Always restore sys.stdout/err if necessary
+    finally:
+        sys.stdout, sys.stderr = orig_out_err
 
 
 def generate_tests(
@@ -60,7 +94,7 @@ def generate_tests(
         command += f" -c {','.join(class_names)}"
     if method_names is not None:
         command += f" -m {','.join(method_names)}"
-    print(command)
+    tqdm.tqdm.write(command)
     code = os.system(command)
     return code
 
@@ -71,7 +105,7 @@ def run_tests(
         samples_dir: str,
 ):
     command = f'{python_path} -m coverage run --source={samples_dir} -m unittest discover -p "utbot_*" {tests_dir}'
-    print(command)
+    tqdm.tqdm.write(command)
     code = os.system(command)
     return code
 
@@ -119,25 +153,27 @@ def main_test_generation(args):
     config = parse_config(args.config_file)
     if pathlib.Path(args.coverage_output_dir).exists():
         shutil.rmtree(args.coverage_output_dir)
-    for part in config['parts']:
-        for file in part['files']:
-            for group in file['groups']:
-                full_name = pathlib.PurePath(args.path_to_test_dir, part['path'], file['name'])
-                output_file = pathlib.PurePath(args.output_dir, f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}.py")
-                coverage_output_file = pathlib.PurePath(args.coverage_output_dir, f"coverage_{part['path'].replace('/', '_')}_{file['name']}.json")
-                generate_tests(
-                    args.java,
-                    args.jar,
-                    [args.path_to_test_dir],
-                    args.python_path,
-                    str(full_name),
-                    group['timeout'],
-                    str(output_file),
-                    str(coverage_output_file),
-                    group['classes'],
-                    group['methods']
-                )
-                    
+    with std_out_err_redirect_tqdm() as orig_stdout:
+        # for (part, file, group) in tqdm.tqdm(inner_zip(config, ["parts", "files", "groups"]), file=orig_stdout, dynamic_ncols=True):
+        for part in tqdm.tqdm(config["parts"], file=orig_stdout, dynamic_ncols=True):
+            for file in tqdm.tqdm(part["files"], file=orig_stdout, dynamic_ncols=True):
+                for group in tqdm.tqdm(file["groups"], file=orig_stdout, dynamic_ncols=True):
+                    full_name = pathlib.PurePath(args.path_to_test_dir, part['path'], file['name'])
+                    output_file = pathlib.PurePath(args.output_dir, f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}.py")
+                    coverage_output_file = pathlib.PurePath(args.coverage_output_dir, f"coverage_{part['path'].replace('/', '_')}_{file['name']}.json")
+                    generate_tests(
+                        args.java,
+                        args.jar,
+                        [args.path_to_test_dir],
+                        args.python_path,
+                        str(full_name),
+                        group['timeout'],
+                        str(output_file),
+                        str(coverage_output_file),
+                        group['classes'],
+                        group['methods']
+                    )
+            
 
 if __name__ == '__main__':
     arguments = parse_arguments()

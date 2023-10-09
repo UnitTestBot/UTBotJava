@@ -52,6 +52,8 @@ class BaselineAlgorithm(
     private val openedStates: MutableMap<UtType, Pair<BaselineAlgorithmState, BaselineAlgorithmState>> = mutableMapOf()
     private val statistic: MutableMap<UtType, Int> = mutableMapOf()
 
+    private val checkedSignatures: MutableSet<UtType> = mutableSetOf()
+
     private fun getRandomType(): UtType? {
         val weights = states.map { 1.0 / (it.anyNodes.size * it.anyNodes.size + 1) }
         val state = weightedRandom(states, weights, random)
@@ -92,15 +94,19 @@ class BaselineAlgorithm(
         val state = chooseState(states)
         val newState = expandState(state, storage)
         if (newState != null) {
-            logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
+            logger.info("Checking new state ${newState.signature.pythonTypeRepresentation()}")
             if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
                 logger.debug("Found new state!")
                 openedStates[newState.signature] = newState to state
                 return newState.signature
             }
         } else if (state.anyNodes.isEmpty()) {
+            if (state.signature in checkedSignatures) {
+                return state.signature
+            }
             logger.info("Checking ${state.signature.pythonTypeRepresentation()}")
             if (checkSignature(state.signature as FunctionType, fileForMypyRuns, configFile)) {
+                checkedSignatures.add(state.signature)
                 return state.signature
             } else {
                 states.remove(state)

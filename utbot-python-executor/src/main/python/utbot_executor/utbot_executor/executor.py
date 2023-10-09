@@ -1,6 +1,7 @@
 """Python code executor for UnitTestBot"""
 import copy
 import importlib
+import inspect
 import logging
 import pathlib
 import sys
@@ -173,8 +174,8 @@ def _run_calculate_function_value(
 
     __is_exception = False
 
-    __all_code_lines = filter_instructions(get_instructions(function), tracer.mode)
-    __start = min([op[0] for op in __all_code_lines])
+    _, __start = inspect.getsourcelines(function)
+    __all_code_lines = filter_instructions(get_instructions(function, __start), tracer.mode)
 
     __tracer = tracer
 
@@ -189,7 +190,7 @@ def _run_calculate_function_value(
     logging.debug("Coverage: %s", __tracer.counts)
     logging.debug("Fullpath: %s", fullpath)
     __stmts = [x for x in __tracer.counts]
-    __stmts_with_def = [(1, 0)] + __stmts
+    __stmts_with_def = [(__start, 0)] + __stmts
     __missed_filtered = [x for x in __all_code_lines if x not in __stmts_with_def]
     logging.debug("Covered lines: %s", __stmts_with_def)
     logging.debug("Missed lines: %s", __missed_filtered)

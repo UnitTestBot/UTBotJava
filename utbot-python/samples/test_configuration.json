@@ -10,7 +10,7 @@
               "classes": null,
               "methods": null,
               "timeout": 10,
-              "coverage": 100
+              "coverage": 93
             }
           ]
         },
@@ -233,8 +233,8 @@
             {
               "classes": null,
               "methods": null,
-              "timeout": 30,
-              "coverage": 72
+              "timeout": 180,
+              "coverage": 94
             }
           ]
         },
@@ -256,7 +256,7 @@
               "classes": null,
               "methods": null,
               "timeout": 15,
-              "coverage": 100
+              "coverage": 93
             }
           ]
         }
@@ -531,7 +531,7 @@
             {
               "classes": ["Matrix"],
               "methods": null,
-              "timeout": 240,
+              "timeout": 180,
               "coverage": 100
             }
           ]

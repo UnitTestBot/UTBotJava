@@ -1,6 +1,5 @@
 import dis
 import enum
-import inspect
 import os
 import sys
 import typing
@@ -23,15 +22,15 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
-def get_instructions(obj: object) -> typing.Iterator[tuple[int, int]]:
+def get_instructions(obj: object, start_line: int) -> typing.Iterator[tuple[int, int]]:
     def inner_get_instructions(x, current_line):
         for i, el in enumerate(dis.get_instructions(x)):
             if el.starts_line is not None:
                 current_line = el.starts_line
             yield current_line, el.offset
-            if "<class 'code'>" in str(type(el.argval)):
+            if any(t in str(type(el.argval)) for t in ["<class 'code'>"]):
                 inner_get_instructions(el.argval, current_line)
-    return inner_get_instructions(obj, None)
+    return inner_get_instructions(obj, start_line)
 
 
 def filter_instructions(
@@ -41,4 +40,3 @@ def filter_instructions(
     if mode == TraceMode.Lines:
         return [(it, it) for it in {line for line, op in instructions}]
     return list(instructions)
-

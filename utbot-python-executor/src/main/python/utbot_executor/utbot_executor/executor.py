@@ -44,10 +44,11 @@ def _load_objects(objs: List[Any]) -> MemoryDump:
 
 
 class PythonExecutor:
-    def __init__(self, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode):
+    def __init__(self, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode, send_coverage: bool):
         self.coverage_hostname = coverage_hostname
         self.coverage_port = coverage_port
         self.trace_mode = trace_mode
+        self.send_coverage = send_coverage
 
     @staticmethod
     def add_syspaths(syspaths: Iterable[str]):
@@ -115,7 +116,12 @@ class PythonExecutor:
             state_init = _update_states(loader.reload_id(), state_init_memory)
             serialized_state_init = serialize_memory_dump(state_init)
 
-            _coverage_sender = UtCoverageSender(request.coverage_id, self.coverage_hostname, self.coverage_port)
+            _coverage_sender = UtCoverageSender(
+                request.coverage_id,
+                self.coverage_hostname,
+                self.coverage_port,
+                send_coverage=self.send_coverage,
+            )
 
             value = _run_calculate_function_value(
                 function,

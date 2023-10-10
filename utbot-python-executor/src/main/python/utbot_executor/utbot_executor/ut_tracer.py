@@ -17,12 +17,13 @@ def _modname(path):
 
 
 class UtCoverageSender:
-    def __init__(self, coverage_id: str, host: str, port: int, use_thread: bool = False):
+    def __init__(self, coverage_id: str, host: str, port: int, use_thread: bool = False, send_coverage: bool = True):
         self.coverage_id = coverage_id
         self.host = host
         self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.message_queue = queue.Queue()
+        self.send_coverage = send_coverage
 
         self.use_thread = use_thread
         if use_thread:
@@ -36,8 +37,9 @@ class UtCoverageSender:
             self.send_loop()
 
     def send_message(self, message: bytes):
-        logging.debug(f"SEND {message}")
-        self.sock.sendto(message, (self.host, self.port))
+        if self.send_coverage:
+            logging.debug(f"SEND {message}")
+            self.sock.sendto(message, (self.host, self.port))
 
     def send_message_thread(self):
         message = self.message_queue.get()

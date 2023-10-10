@@ -38,5 +38,5 @@ def filter_instructions(
     mode: TraceMode = TraceMode.Instructions,
 ) -> list[tuple[int, int]]:
     if mode == TraceMode.Lines:
-        return [(it, it) for it in {line for line, op in instructions}]
+        return [(it, 2 * it) for it in {line for line, op in instructions}]
     return list(instructions)

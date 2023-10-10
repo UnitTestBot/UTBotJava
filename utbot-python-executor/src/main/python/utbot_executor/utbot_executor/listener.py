@@ -19,11 +19,12 @@ class PythonExecuteServer:
             coverage_hostname: str,
             coverage_port: int,
             trace_mode: TraceMode,
+            send_coverage: bool
             ):
         logging.info('PythonExecutor is creating...')
         self.clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientsocket.connect((hostname, port))
-        self.executor = PythonExecutor(coverage_hostname, coverage_port, trace_mode)
+        self.executor = PythonExecutor(coverage_hostname, coverage_port, trace_mode, send_coverage)
 
     def run(self) -> None:
         logging.info('PythonExecutor is ready...')

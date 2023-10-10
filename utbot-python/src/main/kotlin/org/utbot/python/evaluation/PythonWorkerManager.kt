@@ -47,7 +47,8 @@ class PythonWorkerManager(
             coverageReceiver.address().second,
             "--logfile", logfile.absolutePath,
             "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
-            "--coverage_type", "instructions",
+            "--coverage_type", "instructions",  // "lines", "instructions"
+            "--send_coverage",  // "--send_coverage", "--no-send_coverage"
         ))
         timeout = max(until - processStartTime, 0)
         if (this::workerSocket.isInitialized && !workerSocket.isClosed) {

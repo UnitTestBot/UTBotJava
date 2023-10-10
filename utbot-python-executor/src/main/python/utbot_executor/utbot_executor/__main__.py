@@ -5,8 +5,8 @@ from utbot_executor.listener import PythonExecuteServer
 from utbot_executor.utils import TraceMode
 
 
-def main(hostname: str, port: int, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode):
-    server = PythonExecuteServer(hostname, port, coverage_hostname, coverage_port, trace_mode)
+def main(hostname: str, port: int, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode, send_coverage: bool):
+    server = PythonExecuteServer(hostname, port, coverage_hostname, coverage_port, trace_mode, send_coverage)
     server.run()
 
 
@@ -28,6 +28,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--coverage_type", choices=["lines", "instructions"], default="instructions"
     )
+    parser.add_argument(
+        "--send_coverage", action=argparse.BooleanOptionalAction
+    )
     args = parser.parse_args()
 
     loglevel = {
@@ -43,4 +46,5 @@ if __name__ == "__main__":
         level=loglevel,
     )
     trace_mode = TraceMode.Lines if args.coverage_type == "lines" else TraceMode.Instructions
-    main(args.hostname, args.port, args.coverage_hostname, args.coverage_port, trace_mode)
+    send_coverage = args.send_coverage
+    main(args.hostname, args.port, args.coverage_hostname, args.coverage_port, trace_mode, send_coverage)

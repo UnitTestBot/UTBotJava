@@ -67,7 +67,9 @@ abstract class PythonTestGenerationProcessor {
             timeoutForRun = configuration.timeoutForRun,
             sourceFileContent = configuration.testFileInformation.testedFileContent,
             mypyStorage = mypyStorage,
-            mypyReportLine = emptyList()
+            mypyReportLine = emptyList(),
+            coverageMode = configuration.coverageMeasureMode,
+            sendCoverageContinuously = configuration.sendCoverageContinuously,
         )
 
         val until = startTime + configuration.timeout

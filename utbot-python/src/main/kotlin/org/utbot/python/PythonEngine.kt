@@ -12,8 +12,7 @@ import org.utbot.python.evaluation.*
 import org.utbot.python.evaluation.serialization.MemoryDump
 import org.utbot.python.evaluation.serialization.toPythonTree
 import org.utbot.python.evaluation.utils.CoverageIdGenerator
-import org.utbot.python.evaluation.utils.PyInstruction
-import org.utbot.python.evaluation.utils.coveredLinesToInstructions
+import org.utbot.python.evaluation.utils.PythonCoverageMode
 import org.utbot.python.evaluation.utils.makeInstructions
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
@@ -44,6 +43,8 @@ class PythonEngine(
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
     private val pythonTypeStorage: PythonTypeHintsStorage,
+    private val coverageMode: PythonCoverageMode = PythonCoverageMode.Instructions,
+    private val sendCoverageContinuously: Boolean = true,
 ) {
 
     private val cache = EvaluationCache()
@@ -302,6 +303,8 @@ class PythonEngine(
                     serverSocket,
                     pythonPath,
                     until,
+                    coverageMode,
+                    sendCoverageContinuously,
                 ) { constructEvaluationInput(it) }
             } catch (_: TimeoutException) {
                 return@flow

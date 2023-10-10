@@ -16,6 +16,8 @@ import org.utbot.python.PythonTestSet
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.TestFileInformation
 import org.utbot.python.code.PythonCode
+import org.utbot.python.evaluation.utils.PythonCoverageMode
+import org.utbot.python.evaluation.utils.toPythonCoverageMode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
@@ -115,6 +117,13 @@ class PythonGenerateTestsCommand : CliktCommand(
         .default("FAIL")
 
     private val doNotGenerateRegressionSuite by option("--do-not-generate-regression-suite", help = "Do not generate regression test suite")
+        .flag(default = false)
+
+    private val coverageMeasureMode by option("--coverage-measure-mode", help = "Use LINES or INSTRUCTIONS for coverage measurement")
+        .choice("INSTRUCTIONS", "LINES")
+        .default("INSTRUCTIONS")
+
+    private val doNotSendCoverageContinuously by option("--do-not-send-coverage-continuously", help = "")
         .flag(default = false)
 
     private val testFramework: TestFramework
@@ -252,7 +261,9 @@ class PythonGenerateTestsCommand : CliktCommand(
             testSourceRootPath = Paths.get(output.toAbsolutePath()).parent.toAbsolutePath(),
             withMinimization = !doNotMinimize,
             isCanceled = { false },
-            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour)
+            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
+            coverageMeasureMode = coverageMeasureMode.toPythonCoverageMode() ?: PythonCoverageMode.Instructions,
+            sendCoverageContinuously = !doNotSendCoverageContinuously
         )
 
         val processor = PythonCliProcessor(

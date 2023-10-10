@@ -6,6 +6,7 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.python.evaluation.utils.PythonCoverageMode
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.fuzzing.*
@@ -40,7 +41,9 @@ class PythonTestCaseGenerator(
     private val timeoutForRun: Long = 0,
     private val sourceFileContent: String,
     private val mypyStorage: MypyInfoBuild,
-    private val mypyReportLine: List<MypyReportLine>
+    private val mypyReportLine: List<MypyReportLine>,
+    private val coverageMode: PythonCoverageMode = PythonCoverageMode.Instructions,
+    private val sendCoverageContinuously: Boolean = true,
 ) {
 
     private val storageForMypyMessages: MutableList<MypyReportLine> = mutableListOf()
@@ -153,7 +156,9 @@ class PythonTestCaseGenerator(
             pythonPath,
             constants,
             timeoutForRun,
-            PythonTypeHintsStorage.get(mypyStorage)
+            PythonTypeHintsStorage.get(mypyStorage),
+            coverageMode,
+            sendCoverageContinuously,
         )
         val namesInModule = mypyStorage.names
             .getOrDefault(curModule, emptyList())

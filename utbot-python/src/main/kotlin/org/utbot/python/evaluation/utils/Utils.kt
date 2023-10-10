@@ -5,14 +5,21 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.pythonTypeRepresentation
 
-fun coveredLinesToInstructions(coveredLines: Collection<Int>, method: PythonMethod): List<Instruction> {
-    return coveredLines.map {
-        Instruction(
-            method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
-            method.methodSignature(),
-            it,
-            it.toLong()
-        )
+enum class PythonCoverageMode {
+    Lines {
+        override fun toString() = "lines"
+    },
+
+    Instructions {
+        override fun toString() = "instructions"
+    }
+}
+
+fun String.toPythonCoverageMode(): PythonCoverageMode? {
+    return when (this.lowercase()) {
+        "lines" -> PythonCoverageMode.Lines
+        "instructions" -> PythonCoverageMode.Instructions
+        else -> null
     }
 }
 

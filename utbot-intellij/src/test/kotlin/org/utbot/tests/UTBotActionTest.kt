@@ -9,12 +9,10 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.utbot.data.*
-import org.utbot.data.TEST_RUN_NUMBER
 import org.utbot.pages.*
 import org.utbot.samples.typeAdditionFunction
 import org.utbot.samples.typeDivisionFunction
 import java.time.Duration.ofSeconds
-import java.util.function.Predicate
 
 class UTBotActionTest : BaseTest() {
     @ParameterizedTest(name = "Generate tests in {0} project with JDK {1}")
@@ -29,7 +27,7 @@ class UTBotActionTest : BaseTest() {
             }.click()
         }
         return with (getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)) {
-            waitProjectIsOpened()
+            waitProjectIsBuilt()
             expandProjectTree()
             val newClassName = "Arithmetic"
             createNewJavaClass(newClassName, "Main")
@@ -70,7 +68,7 @@ class UTBotActionTest : BaseTest() {
             }.click()
         }
         return with (getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)) {
-            waitProjectIsOpened()
+            waitProjectIsBuilt()
             expandProjectTree()
             val newClassName = "Arithmetic"
             createNewJavaClass(newClassName, "Main")

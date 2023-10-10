@@ -10,6 +10,8 @@ import com.intellij.remoterobot.utils.waitFor
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.swing.core.MouseButton
 import org.utbot.data.IdeaBuildSystem
+import org.utbot.dialogs.AddFileToGitDialogFixture
+import org.utbot.dialogs.ProjectStructureDialogFixture
 import org.utbot.dialogs.UnitTestBotDialogFixture
 import org.utbot.dialogs.WarningDialogFixture
 import org.utbot.elements.NotificationFixture
@@ -63,15 +65,21 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][div[contains(.,'UnitTestBot')]]"),
             ofSeconds(10))
 
-    val unitTestBotDialog
-        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java)
-
     val inspectionsView
         get() = remoteRobot.find(InspectionViewFixture::class.java)
 
-    val hideInspectionViewButton
-        get() = actionButton( byXpath("//div[@text.key='toolwindow.stripe.Problems_View']"),
-            Duration.ofSeconds(5))
+    val problemsTabButton
+        get() = button( byXpath("//div[contains(@text.key, 'toolwindow.stripe.Problems_View')]"))
+
+    // Dialogs
+    val unitTestBotDialog
+        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java)
+
+    val projectStructureDialog
+        get() = remoteRobot.find(ProjectStructureDialogFixture::class.java)
+
+    val addFileToGitDialog
+        get() = remoteRobot.find(AddFileToGitDialogFixture::class.java)
 
     @JvmOverloads
     fun dumbAware(timeout: Duration = Duration.ofMinutes(5), function: () -> Unit) {
@@ -129,7 +137,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
        }
     }
 
-    open fun waitProjectIsOpened() {
+    open fun waitProjectIsBuilt() {
         projectViewTree.click()
         keyboard { key(KeyEvent.VK_PAGE_UP) }
         waitForIgnoringError(ofSeconds(30)) {
@@ -138,7 +146,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
     }
 
     open fun waitProjectIsCreated() {
-        waitProjectIsOpened()
+        waitProjectIsBuilt()
     }
 
     open fun expandProjectTree() {
@@ -178,6 +186,18 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         remoteRobot.keyboard {
             enterText(newClassname)
             enter()
+        }
+    }
+
+    fun openProjectStructureDialog() {
+        if (remoteRobot.isMac()) {
+            keyboard {
+                hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_A)
+                enterText("Project Structure...")
+                enter()
+            }
+        } else {
+            menuBar.select("File", "Project Structure...")
         }
     }
 }

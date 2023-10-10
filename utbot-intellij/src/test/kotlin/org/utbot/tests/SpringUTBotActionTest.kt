@@ -1,45 +1,37 @@
 package org.utbot.tests
 
 import com.intellij.remoterobot.RemoteRobot
+import com.intellij.remoterobot.utils.keyboard
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.core.api.SoftAssertions
 import org.junit.jupiter.api.*
 import org.utbot.data.*
-import org.utbot.pages.IdeaGradleFrame
 import org.utbot.pages.idea
 import org.utbot.pages.welcomeFrame
-import java.io.File
+import java.awt.event.KeyEvent
 import java.time.Duration
 
 class SpringUTBotActionTest : BaseTest() {
 
-    val APP_PACKAGE_NAME = "org.springframework.samples.petclinic"
     val EXISTING_PACKAGE_NAME = "vet"
     val EXISTING_CLASS_NAME = "VetController"
-    val randomBuildSystem = if (random.nextBoolean()) IdeaBuildSystem.MAVEN else IdeaBuildSystem.GRADLE
 
     @BeforeEach
     fun openSpringProject(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
         welcomeFrame {
-            try {
-                findText {
-                    it.text.endsWith(CURRENT_RUN_DIRECTORY_END + File.separator + SPRING_PROJECT_NAME)
-                }.click()
-            } catch (ignore: NoSuchElementException) { // ToDo move to CreateProjects
-                cloneProjectFromVC(
-                    SPRING_PROJECT_URL,
-                    CURRENT_RUN_DIRECTORY_FULL_PATH + File.separator + SPRING_PROJECT_NAME,
-                    randomBuildSystem)
-            }
+            findText {
+                it.text.endsWith(SPRING_PROJECT_NAME)
+            }.click()
         }
-        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {//this particular project has gradle default structure
-            waitProjectIsCreated()
-            expandProjectTree()
-            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
-            with (unitTestBotDialog) { // ToDo move to CreateProjects
-                setupSdkLink.click()
-
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
+            keyboard {
+                hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_F9)
             }
+            waitProjectIsBuilt()
+            expandProjectTree()
+        }
+        idea {
+            openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
         }
         return
     }
@@ -48,8 +40,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check action dialog UI default state in a Spring project")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("UI"))
     fun checkSpringDefaultActionDialog(remoteRobot: RemoteRobot) {
-        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
-        return with (ideaFrame) {
+        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
             with (unitTestBotDialog) {
                 val softly = SoftAssertions()
                 softly.assertThat(springConfigurationLabel.isVisible())
@@ -90,8 +81,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check action dialog UI when Spring configuration is selected")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("UI"))
     fun checkActionDialogWithSpringConfiguration(remoteRobot: RemoteRobot) {
-        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
-        return with (ideaFrame) {
+        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -111,8 +101,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check action dialog UI when Integration tests are selected")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("UI"))
     fun checkActionDialogWithIntegrationTests(remoteRobot: RemoteRobot) {
-        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
-        return with (ideaFrame) {
+        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -133,8 +122,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check Spring Unit tests generation")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("Unit tests"), Tag("Generate tests"))
     fun checkSpringUnitTestsGeneration(remoteRobot: RemoteRobot) {
-        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
-        return with (ideaFrame) {
+        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -147,7 +135,11 @@ class SpringUTBotActionTest : BaseTest() {
                 inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
             }
             waitForIgnoringError(Duration.ofSeconds(90)) {
-                utbotNotification.title.hasText("UnitTestBot: unit tests generated successfully")
+                if (addFileToGitDialog.isShowing) {
+                    addFileToGitDialog.cancelButton.click()
+                }
+                utbotNotification.title.hasText("UnitTestBot: unit tests generated with warnings")
+                // because project has several test frameworks
             }
             val softly = SoftAssertions()
             softly.assertThat(utbotNotification.body.hasText("Target: org.springframework.samples.petclinic.vet.VetController Overall test methods: 7"))
@@ -161,7 +153,7 @@ class SpringUTBotActionTest : BaseTest() {
             softly.assertThat(inspectionsView.inspectionTree.isShowing)
             softly.assertThat(inspectionsView.inspectionTree.hasText("Errors detected by UnitTestBot"))
             softly.assertThat(inspectionsView.inspectionTree.hasText("${EXISTING_CLASS_NAME}.java"))
-            hideInspectionViewButton.click()
+            problemsTabButton.click()
             softly.assertAll()
         }
     }
@@ -170,8 +162,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check Spring Integration tests generation")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("Integration tests"), Tag("Generate tests"))
     fun checkSpringIntegrationTestsGeneration(remoteRobot: RemoteRobot) {
-        val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)
-        return with (ideaFrame) {
+        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -186,7 +177,11 @@ class SpringUTBotActionTest : BaseTest() {
                 inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
             }
             waitForIgnoringError(Duration.ofSeconds(90)) {
-                utbotNotification.title.hasText("UnitTestBot: unit tests generated successfully")
+                if (addFileToGitDialog.isShowing) {
+                    addFileToGitDialog.cancelButton.click()
+                }
+                utbotNotification.title.hasText("UnitTestBot: unit tests generated with warnings")
+                // because project has several test frameworks
             }
             val softly = SoftAssertions()
             softly.assertThat(utbotNotification.body.hasText("Target: org.springframework.samples.petclinic.vet.VetController Overall test methods: "))
@@ -203,7 +198,7 @@ class SpringUTBotActionTest : BaseTest() {
             softly.assertThat(inspectionsView.inspectionTree.isShowing)
             softly.assertThat(inspectionsView.inspectionTree.hasText("Errors detected by UnitTestBot"))
             softly.assertThat(inspectionsView.inspectionTree.hasText("${EXISTING_CLASS_NAME}.java"))
-            hideInspectionViewButton.click()
+            problemsTabButton.click()
             softly.assertAll()
         }
     }

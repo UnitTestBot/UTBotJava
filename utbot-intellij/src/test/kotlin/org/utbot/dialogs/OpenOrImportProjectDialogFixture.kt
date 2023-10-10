@@ -30,7 +30,9 @@ class OpenOrImportProjectDialogFixture(
         waitFor {
             openAsRadioButtons.isNotEmpty()
         }
-        openAsRadioButtons.first { it.text.contains(buildSystem.system) }
+        openAsRadioButtons.filter {
+            it.text.contains(buildSystem.system)
+        }[0].click()
         okButton.click()
     }
 }

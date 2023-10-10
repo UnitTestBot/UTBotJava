@@ -113,5 +113,5 @@ class UnitTestBotDialogFixture(
             byXpath("//div[@accessiblename='Active profile(s):' and @class='JBTextField']"))
 
     val integrationTestsWarningDialog: WarningDialogFixture
-        get() = remoteRobot.find<WarningDialogFixture>(byXpath( "//*[@title.key='warning.severity.capitalized']"))
+        get() = remoteRobot.find<WarningDialogFixture>(byXpath( "//*[contains(@title.key,'warning.severity.capitalized')]"))
 }

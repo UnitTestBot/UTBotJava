@@ -18,3 +18,5 @@ const val SPRING_PROJECT_NAME = "spring-petclinic"
 const val SPRING_PROJECT_URL = "https://github.com/spring-projects/spring-petclinic.git"
 
 val random: Random = Random()
+val springProjectBuildSystem = if (random.nextBoolean())
+    IdeaBuildSystem.MAVEN else IdeaBuildSystem.GRADLE

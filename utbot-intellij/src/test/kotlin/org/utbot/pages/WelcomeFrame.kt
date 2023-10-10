@@ -58,13 +58,13 @@ class WelcomeFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent) :
         openProjectDialog.okButton.click()
     }
 
-    fun createNewProject(projectName: String, location: String = "",
+    fun createNewProject(projectName: String, location: String = "", locationPart: String = "",
                          language: String = "Java", buildSystem: IdeaBuildSystem = IdeaBuildSystem.INTELLIJ,
                          jdkVersion: JDKVersion, addSampleCode: Boolean = true) {
         newProjectLink.click()
         newProjectDialog.selectWizard("New Project")
         newProjectDialog.fillDialog(
-            projectName, location, language,
+            projectName, location, locationPart, language,
             buildSystem, jdkVersion, addSampleCode
         )
         newProjectDialog.createButton.click()

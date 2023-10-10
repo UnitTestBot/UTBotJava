@@ -73,7 +73,7 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
     }
 
     fun fillDialog(projectName: String,
-                   location: String = "",
+                   location: String = "", locationPart: String = "",
                    language: String = "Java",
                    buildSystem: IdeaBuildSystem = IdeaBuildSystem.INTELLIJ,
                    jdkVersion: JDKVersion,
@@ -82,7 +82,7 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
             nameInput.doubleClick()
             keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
             keyboard.enterText(projectName)
-            if (locationInput.hasText(location).not()) {
+            if (!locationInput.hasText{it.text.contains(locationPart)}) {
                 locationInput.click()
                 keyboard{
                     hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)

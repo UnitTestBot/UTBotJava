@@ -13,8 +13,8 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
     override val buildSystemToUse = IdeaBuildSystem.GRADLE
 
     override fun waitProjectIsCreated() {
-        super.waitProjectIsOpened()
-        waitForIgnoringError (ofSeconds(60)) {
+        super.waitProjectIsBuilt()
+        repeat (120) {
             inlineProgressTextPanel.isShowing.not()
         }
     }

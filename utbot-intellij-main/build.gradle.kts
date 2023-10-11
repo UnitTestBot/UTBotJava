@@ -34,7 +34,7 @@ intellij {
         "java"
     )
 
-    val kotlinPlugins = mutableListOf(
+    val kotlinPlugins = listOf(
         "org.jetbrains.kotlin"
     )
 

@@ -52,12 +52,12 @@ class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests c
             shouldWait = true,
             timeout = 20,
             cmd = arrayOf(
-                pathToNYC,
-                "--report-dir=$coverageDataPath",
-                "--reporter=clover",
-                "--temp-dir=${workingDir}/cache",
+                "\"$pathToNYC\"",
+                "--report-dir=\"$coverageDataPath\"",
+                "--reporter=\"clover\"",
+                "--temp-dir=\"${workingDir}/cache\"",
                 "mocha",
-                testFileAbsolutePath
+                "\"$testFileAbsolutePath\""
             )
         )
         val coveredList = mutableListOf<Int>()

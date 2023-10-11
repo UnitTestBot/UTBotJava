@@ -87,10 +87,7 @@ object JsDialogProcessor {
         val pathToNode =
             NodeJsLocalInterpreterManager.getInstance().interpreters.first().interpreterSystemIndependentPath
         val (_, errorText) = JsCmdExec.runCommand(
-            shouldWait = true, cmd = arrayOf(
-                pathToNode,
-                "-v"
-            )
+            shouldWait = true, cmd = arrayOf("\"${pathToNode}\"", "-v")
         )
         if (errorText.isNotEmpty()) throw NoSuchElementException()
         val pathToNPM =
@@ -203,11 +200,7 @@ object JsDialogProcessor {
                             testDir.add(temp)
                             testDir.findFile(testFileName)!!
                         }
-//                        val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile) as Editor
                         OpenFileDescriptor(project, testPsiFile.virtualFile).navigate(true)
-//                        unblockDocument(project, testFileEditor.document)
-//                        testFileEditor.document.setText(generatedCode)
-//                        unblockDocument(project, testFileEditor.document)
                     }
                 }
             }

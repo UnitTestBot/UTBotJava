@@ -6,12 +6,12 @@
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.platform</depends>
 
-    <depends optional="true" config-file="META-INF/withJava.xml">com.intellij.modules.java</depends>
-    <depends optional="true" config-file="META-INF/withKotlin.xml">org.jetbrains.kotlin</depends>
-    <depends optional="true" config-file="META-INF/withPython.xml">com.intellij.modules.python</depends>
-    <depends optional="true" config-file="META-INF/withGo.xml">org.jetbrains.plugins.go</depends>
-    <depends optional="true" config-file="META-INF/withAndroid.xml">org.jetbrains.android</depends>
-    <depends optional="true" config-file="META-INF/withIdeaMaven.xml">org.jetbrains.idea.maven</depends>
+    <depends optional="true" config-file="withJava.xml">com.intellij.modules.java</depends>
+    <depends optional="true" config-file="withKotlin.xml">org.jetbrains.kotlin</depends>
+    <depends optional="true" config-file="withPython.xml">com.intellij.modules.python</depends>
+    <depends optional="true" config-file="withGo.xml">org.jetbrains.plugins.go</depends>
+    <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
+    <depends optional="true" config-file="withIdeaMaven.xml">org.jetbrains.idea.maven</depends>
 
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
@@ -85,15 +85,15 @@
         </ul>
     ]]>
     </change-notes>
-<!--    <extensions defaultExtensionNs="com.intellij">-->
-<!--        <globalInspection language="JAVA"-->
-<!--                          displayName="Errors detected by UnitTestBot"-->
-<!--                          groupPath="Java"-->
-<!--                          groupBundle="messages.InspectionsBundle"-->
-<!--                          groupKey="group.names.probable.bugs"-->
-<!--                          enabledByDefault="true"-->
-<!--                          level="ERROR"-->
-<!--                          implementationClass="org.utbot.intellij.plugin.inspection.UnitTestBotInspectionTool"/>-->
-<!--    </extensions>-->
+    <extensions defaultExtensionNs="com.intellij">
+        <globalInspection language="JAVA"
+                          displayName="Errors detected by UnitTestBot"
+                          groupPath="Java"
+                          groupBundle="messages.InspectionsBundle"
+                          groupKey="group.names.probable.bugs"
+                          enabledByDefault="true"
+                          level="ERROR"
+                          implementationClass="org.utbot.intellij.plugin.inspection.UnitTestBotInspectionTool"/>
+    </extensions>
 
 </idea-plugin>

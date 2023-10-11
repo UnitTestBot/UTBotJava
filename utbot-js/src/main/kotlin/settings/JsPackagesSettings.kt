@@ -66,7 +66,7 @@ class PackageDataService(
                     dir = projectPath,
                     shouldWait = true,
                     timeout = 10,
-                    cmd = arrayOf(pathToNpm, "list", npmListFlag.toString())
+                    cmd = arrayOf("\"$pathToNpm\"", "list", npmListFlag.toString())
                 )
                 var result = inputText.contains(packageName)
                 if (!result || this == nycData) {

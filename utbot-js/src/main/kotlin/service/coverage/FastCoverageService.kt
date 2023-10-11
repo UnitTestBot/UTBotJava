@@ -20,7 +20,7 @@ class FastCoverageService(
 
     override fun generateCoverageReport() {
         val (_, errorText) = JsCmdExec.runCommand(
-            cmd = arrayOf(settings.pathToNode, "$utbotDirPath/$tempFileName" + "0.js"),
+            cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName" + "0.js\""),
             dir = projectPath,
             shouldWait = true,
             timeout = settings.timeout,

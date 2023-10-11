@@ -21,7 +21,7 @@ class BasicCoverageService(
         scriptTexts.indices.forEach { index ->
             try {
                 val (_, errorText) = JsCmdExec.runCommand(
-                    cmd = arrayOf(settings.pathToNode, "$utbotDirPath/$tempFileName$index.js"),
+                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName$index.js\""),
                     dir = projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,

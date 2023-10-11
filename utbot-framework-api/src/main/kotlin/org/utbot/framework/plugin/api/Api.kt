@@ -404,13 +404,10 @@ fun UtModel.isMockModel() = this is UtCompositeModel && isMock
  * Checks that this [UtModel] must be constructed with @Spy annotation in generated tests.
  * Used only for construct variables with @Spy annotation.
  */
-fun UtModel.canBeSpied(): Boolean {
-    val javaClass = this.classId.jClass
+fun UtModel.canBeSpied(): Boolean =
+    this is UtAssembleModel && spiedTypes.any { type -> type.isAssignableFrom(this.classId.jClass)}
 
-    return this is UtAssembleModel &&
-            (Collection::class.java.isAssignableFrom(javaClass)
-                    || Map::class.java.isAssignableFrom(javaClass))
-}
+val spiedTypes = setOf(Collection::class.java, Map::class.java)
 
 /**
  * Get model id (symbolic null value for UtNullModel)
@@ -1433,7 +1430,10 @@ sealed class SpringConfiguration(val fullDisplayName: String) {
 
     class JavaConfiguration(override val configBinaryName: String) : JavaBasedConfiguration(configBinaryName)
 
-    class SpringBootConfiguration(override val configBinaryName: String, val isUnique: Boolean): JavaBasedConfiguration(configBinaryName)
+    class SpringBootConfiguration(
+        override val configBinaryName: String,
+        val isDefinitelyUnique: Boolean
+    ) : JavaBasedConfiguration(configBinaryName)
 
     class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)
 }

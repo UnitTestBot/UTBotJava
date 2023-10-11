@@ -292,7 +292,7 @@ object UtTestsDialogProcessor {
                                     val clarifiedBeanDefinitions =
                                         clarifyBeanDefinitionReturnTypes(beanDefinitions, project)
 
-                                    SpringApplicationContextImpl(
+                                    SpringApplicationContextImpl.internalCreate(
                                         simpleApplicationContext,
                                         clarifiedBeanDefinitions,
                                         model.springTestType,

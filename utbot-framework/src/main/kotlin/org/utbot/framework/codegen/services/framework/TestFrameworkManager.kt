@@ -44,6 +44,8 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     val assertions = context.testFramework.assertionsClass
 
+    val assertSame = context.testFramework.assertSame
+
     val assertEquals = context.testFramework.assertEquals
     val assertFloatEquals = context.testFramework.assertFloatEquals
     val assertDoubleEquals = context.testFramework.assertDoubleEquals
@@ -84,6 +86,10 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     open fun assertEquals(expected: CgValue, actual: CgValue) {
         +assertions[assertEquals](expected, actual)
+    }
+
+    open fun assertSame(expected: CgValue, actual: CgValue) {
+        +assertions[assertSame](expected, actual)
     }
 
     open fun assertFloatEquals(expected: CgExpression, actual: CgExpression, delta: Any) {
@@ -286,7 +292,9 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is TestNg) { "According to settings, TestNg was expected, but got: $testFramework" }
-        val lambda = statementConstructor.lambda(testFramework.throwingRunnableClassId) { block() }
+        val lambda = statementConstructor.lambda(testFramework.throwingRunnableClassId) {
+            runWithoutCollectingExceptions(block)
+        }
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
 
@@ -474,7 +482,9 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
-        val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
+        val lambda = statementConstructor.lambda(testFramework.executableClassId) {
+            runWithoutCollectingExceptions(block)
+        }
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
 

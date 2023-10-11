@@ -237,7 +237,8 @@ object UtBotJavaApi {
                 parameters = UtConcreteExecutionData(
                     testInfo.initialState,
                     instrumentation = emptyList(),
-                    UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis
+                    UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis,
+                    isRerun = false,
                 )
             ).result
         } else {

@@ -115,6 +115,7 @@ import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTaintAnalysisFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
@@ -471,6 +472,18 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             .map { it.escapeControlChars() }
             .toMutableList()
 
+        +CgMultilineComment(warningLine + collectNeededStackTraceLines(
+            exception,
+            executableToStartCollectingFrom = currentExecutableToCall!!
+        ))
+    }
+
+    protected open fun collectNeededStackTraceLines(
+        exception: Throwable,
+        executableToStartCollectingFrom: ExecutableId
+    ): List<String> {
+        val executableName = "${executableToStartCollectingFrom.classId.name}.${executableToStartCollectingFrom.name}"
+
         val neededStackTraceLines = mutableListOf<String>()
         var executableCallFound = false
         exception.stackTrace.reversed().forEach { stackTraceElement ->
@@ -485,7 +498,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         if (!executableCallFound)
             logger.warn(exception) { "Failed to find executable call in stack trace" }
 
-        +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
+        return neededStackTraceLines.reversed()
     }
 
     protected fun writeWarningAboutCrash() {
@@ -606,6 +619,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         visitedModels += modelWithField
 
         with(testFrameworkManager) {
+            if (expectedModel.isMockModel()) {
+                currentBlock += assertions[assertSame](expected, actual).toStatement()
+                return
+            }
+
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
                 currentBlock += CgSingleLineComment("Current deep equals depth exceeds max depth $DEEP_EQUALS_MAX_DEPTH")
                 currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
@@ -1159,7 +1177,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         } else if (context.codegenLanguage == CodegenLanguage.JAVA &&
             !jField.isStatic && canBeReadViaGetterFrom(context)
         ) {
-            CgMethodCall(variable, getter, emptyList())
+            variable[getter]()
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
         }
@@ -1819,6 +1837,9 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         currentExecution = execution
         determineExecutionType()
         statesCache = EnvironmentFieldStateCache.emptyCacheFor(execution)
+//        modelToUsageCountInMethod = countUsages(ignoreAssembleOrigin = true) { counter ->
+//            execution.mapAllModels(counter)
+//        }
         return try {
             block()
         } finally {

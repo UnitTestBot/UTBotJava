@@ -90,6 +90,9 @@ class SpringUtExecutionInstrumentation(
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
         }
 
+        if (parameters.isRerun)
+            springApi.resetContext()
+
         // `RemovingConstructFailsUtExecutionInstrumentation` may detect that we fail to
         // construct `RequestBuilder` and use `requestBuilder = null`, leading to a nonsensical
         // test `mockMvc.perform((RequestBuilder) null)`, which we should discard
@@ -104,6 +107,9 @@ class SpringUtExecutionInstrumentation(
 
         return try {
             delegateInstrumentation.invoke(clazz, methodSignature, arguments, parameters) { invokeBasePhases ->
+                if (!parameters.isRerun)
+                    modelConstructionPhase.preconfigureConstructor { maxDepth = 0 }
+
                 phasesWrapper {
                     // NB! beforeTestMethod() and afterTestMethod() are intentionally called inside phases,
                     //     so they are executed in one thread with method under test

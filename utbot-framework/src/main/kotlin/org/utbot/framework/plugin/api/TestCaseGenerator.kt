@@ -39,6 +39,8 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
 import java.io.File
@@ -73,12 +75,12 @@ open class TestCaseGenerator(
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
-    private val concreteExecutionContext = applicationContext.createConcreteExecutionContext(
+    protected val concreteExecutionContext = applicationContext.createConcreteExecutionContext(
         fullClasspath = classpathForEngine,
         classpathWithoutDependencies = buildDirs.joinToString(File.pathSeparator)
     )
 
-    private val classpathForEngine: String
+    protected val classpathForEngine: String
         get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
 
     init {
@@ -110,16 +112,24 @@ open class TestCaseGenerator(
         }
     }
 
-    fun minimizeExecutions(classUnderTestId: ClassId, executions: List<UtExecution>): List<UtExecution> =
+    fun minimizeExecutions(
+        methodUnderTest: ExecutableId,
+        executions: List<UtExecution>,
+        rerunExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
+    ): List<UtExecution> =
         when (UtSettings.testMinimizationStrategyType) {
             TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
             TestSelectionStrategyType.COVERAGE_STRATEGY ->
-                minimizeTestCase(
-                    concreteExecutionContext.transformExecutionsBeforeMinimization(
-                        executions,
-                        classUnderTestId
+                concreteExecutionContext.transformExecutionsAfterMinimization(
+                    minimizeTestCase(
+                        concreteExecutionContext.transformExecutionsBeforeMinimization(
+                            executions,
+                            methodUnderTest,
+                        ),
+                        executionToTestSuite = { it.result::class.java }
                     ),
-                    executionToTestSuite = { it.result::class.java }
+                    methodUnderTest,
+                    rerunExecutor = rerunExecutor,
                 )
         }
 
@@ -283,7 +293,11 @@ open class TestCaseGenerator(
         return@use methods.map { method ->
             UtMethodTestSet(
                 method,
-                minimizeExecutions(method.classId, method2executions.getValue(method)),
+                minimizeExecutions(
+                    method,
+                    method2executions.getValue(method),
+                    rerunExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
+                ),
                 jimpleBody(method),
                 method2errors.getValue(method)
             )

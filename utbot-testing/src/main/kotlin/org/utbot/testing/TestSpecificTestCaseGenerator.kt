@@ -22,6 +22,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.jimpleBody
+import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.taint.TaintConfigurationProvider
 import java.nio.file.Path
 
@@ -103,7 +104,11 @@ class TestSpecificTestCaseGenerator(
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 
-        val minimizedExecutions = super.minimizeExecutions(method.classId, executions)
+        val minimizedExecutions = super.minimizeExecutions(
+            method,
+            executions,
+            rerunExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
+        )
         return UtMethodTestSet(method, minimizedExecutions, jimpleBody(method), errors)
     }
 }

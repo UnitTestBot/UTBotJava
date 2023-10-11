@@ -18,9 +18,9 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Scope
 import org.utbot.fuzzing.ScopeProperty
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.spring.utils.jType
-import org.utbot.fuzzing.spring.utils.toTypeParametrizedByTypeVariables
-import org.utbot.fuzzing.spring.utils.typeToken
+import org.utbot.fuzzer.jType
+import org.utbot.fuzzer.toTypeParametrizedByTypeVariables
+import org.utbot.fuzzer.typeToken
 import org.utbot.fuzzing.toFuzzerType
 
 val methodsToMockProperty = ScopeProperty<Set<MethodId>>(

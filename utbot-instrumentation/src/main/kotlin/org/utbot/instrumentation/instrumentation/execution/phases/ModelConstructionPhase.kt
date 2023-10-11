@@ -40,21 +40,28 @@ class ModelConstructionPhase(
         }
     }
 
+    private val constructorConfiguration = ConstructorConfiguration()
     private lateinit var constructor: UtModelConstructor
 
     class ConstructorConfiguration {
         lateinit var cache: IdentityHashMap<Any, UtModel>
         lateinit var strategy: UtCompositeModelStrategy
+        var maxDepth: Long = UtModelConstructor.DEFAULT_MAX_DEPTH
+    }
+
+    fun preconfigureConstructor(block: ConstructorConfiguration.() -> Unit) {
+        constructorConfiguration.block()
     }
 
     fun configureConstructor(block: ConstructorConfiguration.() -> Unit) {
-        ConstructorConfiguration().run {
+        constructorConfiguration.run {
             block()
             constructor = UtModelConstructor(
                 objectToModelCache = cache,
                 utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
                 compositeModelStrategy = strategy,
                 idGenerator = idGenerator,
+                maxDepth = maxDepth,
             )
         }
     }

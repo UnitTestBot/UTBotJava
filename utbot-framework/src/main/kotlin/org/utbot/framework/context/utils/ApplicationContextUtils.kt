@@ -2,6 +2,7 @@ package org.utbot.framework.context.utils
 
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
+import org.utbot.framework.context.ConcreteExecutionContext.FuzzingContextParams
 import org.utbot.fuzzing.JavaValueProvider
 
 fun ApplicationContext.transformConcreteExecutionContext(
@@ -18,5 +19,5 @@ fun ApplicationContext.transformConcreteExecutionContext(
 }
 
 fun ApplicationContext.transformValueProvider(
-    transformer: (JavaValueProvider) -> JavaValueProvider
+    transformer: FuzzingContextParams.(JavaValueProvider) -> JavaValueProvider
 ) = transformConcreteExecutionContext { it.transformValueProvider(transformer) }

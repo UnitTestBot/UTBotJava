@@ -5,7 +5,9 @@ import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.builders.SimpleTestClassModelBuilder
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.CgCustomAssertConstructor
+import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.codegen.tree.CgSpringIntegrationTestClassConstructor
+import org.utbot.framework.codegen.tree.CgSpringMethodConstructor
 import org.utbot.framework.codegen.tree.CgSpringUnitTestClassConstructor
 import org.utbot.framework.codegen.tree.CgSpringVariableConstructor
 import org.utbot.framework.codegen.tree.CgVariableConstructor
@@ -29,6 +31,9 @@ class SpringCodeGenerator(
             override fun getVariableConstructorBy(context: CgContext): CgVariableConstructor =
                 // TODO decorate original `params.cgLanguageAssistant.getVariableConstructorBy(context)`
                 CgSpringVariableConstructor(context)
+
+            override fun getMethodConstructorBy(context: CgContext): CgMethodConstructor =
+                CgSpringMethodConstructor(context)
 
             override fun getCustomAssertConstructorBy(context: CgContext): CgCustomAssertConstructor =
                 params.cgLanguageAssistant.getCustomAssertConstructorBy(context)

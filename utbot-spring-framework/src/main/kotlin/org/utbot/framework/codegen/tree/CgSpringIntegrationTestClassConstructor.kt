@@ -194,7 +194,7 @@ class CgSpringIntegrationTestClassConstructor(
         // TODO: we support only JavaBasedConfiguration in integration tests.
         //  Adapt for XMLConfigurations when supported.
         val configClass = springSettings.configuration as JavaBasedConfiguration
-        if (configClass is JavaConfiguration || configClass is SpringBootConfiguration && !configClass.isUnique) {
+        if (configClass is JavaConfiguration || configClass is SpringBootConfiguration && !configClass.isDefinitelyUnique) {
             addAnnotation(
                 classId = contextConfigurationClassId,
                 namedArguments = listOf(

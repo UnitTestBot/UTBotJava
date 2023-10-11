@@ -86,8 +86,7 @@ import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.SpringModule.SPRING_BEANS
-import org.utbot.framework.codegen.domain.SpringModule.SPRING_BOOT
+import org.utbot.framework.codegen.domain.SpringModule.*
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
@@ -112,6 +111,7 @@ import org.utbot.intellij.plugin.models.jUnit5ParametrizedTestsLibraryDescriptor
 import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.models.springBootTestLibraryDescriptor
+import org.utbot.intellij.plugin.models.springSecurityLibraryDescriptor
 import org.utbot.intellij.plugin.models.springTestLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgNewLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgOldLibraryDescriptor
@@ -418,7 +418,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                                 "Mocks will be used when necessary."
                     )
                 }
-                row("Tests type:") {
+                row("Test type:") {
                     cell(springTestType)
                     contextHelp(
                         "Unit tests do not initialize ApplicationContext <br>" +
@@ -520,7 +520,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 text = run {
                     val sdkVersion = findSdkVersionOrNull(this@GenerateTestsDialogWindow.model.srcModule)?.feature
                     if (sdkVersion != null) {
-                        "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}, ${JavaSdkVersion.JDK_11} or ${JavaSdkVersion.JDK_17}"
+                        "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8.toReadableString()}, ${JavaSdkVersion.JDK_11.toReadableString()} or ${JavaSdkVersion.JDK_17.toReadableString()} instead."
                     } else {
                         "SDK is not defined"
                     }
@@ -532,6 +532,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 add(createCloseAction())
             })
         }
+
+        fun JavaSdkVersion.toReadableString() : String = toString().replace("JDK_", "").replace('_', '.')
 
         override fun getBackground(): Color? =
             EditorColorsManager.getInstance().globalScheme.getColor(HintUtil.ERROR_COLOR_KEY) ?: super.getBackground()
@@ -667,6 +669,19 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     override fun doOKAction() {
+        if (isSpringConfigSelected()
+            && springTestType.selectedItem == INTEGRATION_TEST
+            && Messages.showYesNoDialog(
+                    model.project,
+                    "Generating \"Integration tests\" may lead to corrupting user data or inflicting other harm.\n" +
+                            "Please use a test configuration or profile.",
+                    "Warning",
+                    "Proceed",
+                    "Go Back",
+                    Messages.getWarningIcon()
+                ) != Messages.YES) {
+                return;
+        }
         fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 
         logger.info { "Tests generation instantiation phase started at ${now()}" }
@@ -712,7 +727,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                             if (springBootConfigs.contains(classBinaryName)) {
                                 SpringConfiguration.SpringBootConfiguration(
                                     configBinaryName = classBinaryName,
-                                    isUnique = springBootConfigs.size == 1,
+                                    isDefinitelyUnique = springBootConfigs.size == 1,
                                     )
                             } else {
                                 SpringConfiguration.JavaConfiguration(classBinaryName)
@@ -1007,6 +1022,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val libraryDescriptor = when (springModule) {
                 SPRING_BOOT -> springBootTestLibraryDescriptor(frameworkVersionInProject)
                 SPRING_BEANS -> springTestLibraryDescriptor(frameworkVersionInProject)
+                SPRING_SECURITY -> springSecurityLibraryDescriptor(frameworkVersionInProject)
             }
 
             model.preClasspathCollectionPromises += addDependency(model.testModule, libraryDescriptor)

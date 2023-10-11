@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.lang.Language
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runWriteAction

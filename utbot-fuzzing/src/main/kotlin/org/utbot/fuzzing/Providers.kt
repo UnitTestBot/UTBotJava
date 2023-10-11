@@ -92,26 +92,16 @@ fun interface ValueProvider<T, R, D : Description<T>> {
     }
 
     /**
-     * Removes `anotherValueProviders<T, R` from current one.
+     * Removes providers matching [filter] from the current one.
      */
-    fun except(filter: (ValueProvider<T, R, D>) -> Boolean): ValueProvider<T, R, D> {
-        return if (this is Combined) {
-            Combined(providers.map { it.unwrapIfFallback() }.filterNot(filter))
-        } else {
-            Combined(if (filter(unwrapIfFallback())) emptyList() else listOf(this))
-        }
-    }
+    fun except(filter: (ValueProvider<T, R, D>) -> Boolean): ValueProvider<T, R, D> =
+        map { if (filter(it)) Combined(emptyList()) else it }
 
     /**
      * Applies [transform] for current provider
      */
-    fun map(transform: (ValueProvider<T, R, D>) -> ValueProvider<T, R, D>): ValueProvider<T, R, D> {
-        return if (this is Combined) {
-            Combined(providers.map(transform))
-        } else {
-            transform(this)
-        }
-    }
+    fun map(transform: (ValueProvider<T, R, D>) -> ValueProvider<T, R, D>): ValueProvider<T, R, D> =
+        transform(this)
 
     /**
      * Uses fallback value provider in case when 'this' one failed to generate any value.
@@ -167,6 +157,8 @@ fun interface ValueProvider<T, R, D : Description<T>> {
             }
         }
 
+        override fun map(transform: (ValueProvider<T, R, D>) -> ValueProvider<T, R, D>): ValueProvider<T, R, D> =
+            transform(Fallback(provider.map(transform), fallback.map(transform)))
     }
 
     /**
@@ -200,6 +192,9 @@ fun interface ValueProvider<T, R, D : Description<T>> {
                 }
             }
         }
+
+        override fun map(transform: (ValueProvider<T, R, D>) -> ValueProvider<T, R, D>): ValueProvider<T, R, D> =
+            transform(Combined(providers.map { it.map(transform) }))
     }
 
     companion object {

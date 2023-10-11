@@ -9,8 +9,11 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.SpringRepositoryId
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtSpringMockMvcResultActionsModel
 import org.utbot.framework.plugin.api.util.SpringModelUtils
+import org.utbot.framework.plugin.api.util.SpringModelUtils.allControllerParametersAreSupported
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.utContext
@@ -18,20 +21,23 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider
-import org.utbot.fuzzing.providers.ModifyingWithMethodsProviderWrapper
+import org.utbot.fuzzing.spring.decorators.ModifyingWithMethodsProviderWrapper
 import org.utbot.fuzzing.providers.ObjectValueProvider
 import org.utbot.fuzzing.spring.GeneratedFieldValueProvider
 import org.utbot.fuzzing.spring.SpringBeanValueProvider
-import org.utbot.fuzzing.spring.preserveProperties
+import org.utbot.fuzzing.spring.decorators.preserveProperties
 import org.utbot.fuzzing.spring.valid.EmailValueProvider
 import org.utbot.fuzzing.spring.valid.NotBlankStringValueProvider
 import org.utbot.fuzzing.spring.valid.NotEmptyStringValueProvider
 import org.utbot.fuzzing.spring.valid.ValidEntityValueProvider
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 
 class SpringIntegrationTestJavaFuzzingContext(
-    val delegateContext: JavaFuzzingContext,
+    private val delegateContext: JavaFuzzingContext,
     relevantRepositories: Set<SpringRepositoryId>,
     springApplicationContext: SpringApplicationContext,
+    private val fuzzingStartTimeMillis: Long,
+    private val fuzzingEndTimeMillis: Long,
 ) : JavaFuzzingContext by delegateContext {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -93,11 +99,13 @@ class SpringIntegrationTestJavaFuzzingContext(
         })
     }
 
+    private val methodsSuccessfullyCalledViaMockMvc = mutableSetOf<ExecutableId>()
+
     override fun createStateBefore(
         thisInstance: UtModel?,
         parameters: List<UtModel>,
         statics: Map<FieldId, UtModel>,
-        executableToCall: ExecutableId,
+        executableToCall: ExecutableId
     ): EnvironmentModels {
         val delegateStateBefore = delegateContext.createStateBefore(thisInstance, parameters, statics, executableToCall)
         return when (executableToCall) {
@@ -107,13 +115,30 @@ class SpringIntegrationTestJavaFuzzingContext(
                     methodId = executableToCall,
                     arguments = parameters,
                     idGenerator = { idGenerator.createId() }
-                ) ?: return delegateStateBefore
+                )?.takeIf {
+                    val halfOfFuzzingTimePassed = System.currentTimeMillis() > (fuzzingStartTimeMillis + fuzzingEndTimeMillis) / 2
+                    val allParamsSupported = allControllerParametersAreSupported(executableToCall)
+                    val successfullyCalledViaMockMvc = executableToCall in methodsSuccessfullyCalledViaMockMvc
+                    !halfOfFuzzingTimePassed || allParamsSupported && successfullyCalledViaMockMvc
+                } ?: return delegateStateBefore
+
                 delegateStateBefore.copy(
                     thisInstance = SpringModelUtils.createMockMvcModel(controller = thisInstance) { idGenerator.createId() },
                     parameters = listOf(requestBuilderModel),
                     executableToCall = SpringModelUtils.mockMvcPerformMethodId,
                 )
             }
+        }
+    }
+
+    override fun handleFuzzedConcreteExecutionResult(
+        methodUnderTest: ExecutableId,
+        concreteExecutionResult: UtConcreteExecutionResult
+    ) {
+        delegateContext.handleFuzzedConcreteExecutionResult(methodUnderTest, concreteExecutionResult)
+        ((concreteExecutionResult.result as? UtExecutionSuccess)?.model as? UtSpringMockMvcResultActionsModel)?.let {
+            if (it.status < 400)
+                methodsSuccessfullyCalledViaMockMvc.add(methodUnderTest)
         }
     }
 }

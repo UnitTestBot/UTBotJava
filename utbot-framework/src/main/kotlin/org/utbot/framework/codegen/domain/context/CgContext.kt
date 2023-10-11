@@ -296,26 +296,8 @@ interface CgContextOwner {
         return block()
     }
 
-    fun addExceptionIfNeeded(exception: ClassId) {
-        if (exception !is BuiltinClassId) {
-            require(exception isSubtypeOf Throwable::class.id) {
-                "Class $exception which is not a Throwable was passed"
-            }
-
-            val isUnchecked = !exception.jClass.isCheckedException
-            val alreadyAdded =
-                collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
-
-            if (isUnchecked || alreadyAdded) return
-
-            collectedExceptions
-                .removeIf { existingException -> existingException isSubtypeOf exception }
-        }
-
-        if (collectedExceptions.add(exception)) {
-            importIfNeeded(exception)
-        }
-    }
+    fun addExceptionIfNeeded(exception: ClassId)
+    fun <T> runWithoutCollectingExceptions(block: () -> T): T
 
     fun createGetClassExpression(id: ClassId, codegenLanguage: CodegenLanguage): CgGetClass =
         when (codegenLanguage) {
@@ -622,6 +604,40 @@ class CgContext(
         requiredUtilMethods.clear()
         valueByUtModelWrapper.clear()
         mockFrameworkUsed = false
+    }
+
+    // number of times collection of exceptions was suspended
+    private var exceptionCollectionSuspensionDepth = 0
+
+    override fun <T> runWithoutCollectingExceptions(block: () -> T): T {
+        exceptionCollectionSuspensionDepth++
+        return try {
+            block()
+        } finally {
+            exceptionCollectionSuspensionDepth--
+        }
+    }
+
+    override fun addExceptionIfNeeded(exception: ClassId) {
+        if (exceptionCollectionSuspensionDepth > 0) return
+        if (exception !is BuiltinClassId) {
+            require(exception isSubtypeOf Throwable::class.id) {
+                "Class $exception which is not a Throwable was passed"
+            }
+
+            val isUnchecked = !exception.jClass.isCheckedException
+            val alreadyAdded =
+                collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
+
+            if (isUnchecked || alreadyAdded) return
+
+            collectedExceptions
+                .removeIf { existingException -> existingException isSubtypeOf exception }
+        }
+
+        if (collectedExceptions.add(exception)) {
+            importIfNeeded(exception)
+        }
     }
 
     override var currentTestSetId: Int = -1

@@ -34,6 +34,7 @@ import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecutio
 import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
+import org.utbot.framework.context.ConcreteExecutionContext.FuzzingContextParams
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -119,7 +120,7 @@ class UtBotSymbolicEngine(
     userTaintConfigurationProvider: TaintConfigurationProvider? = null,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
 ) : UtContextInitializer() {
-    
+
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
     }.graph()
@@ -423,7 +424,6 @@ class UtBotSymbolicEngine(
      * Run fuzzing flow.
      *
      * @param until is used by fuzzer to cancel all tasks if the current time is over this value
-     * @param transform provides model values for a method
      */
     fun fuzzing(until: Long = Long.MAX_VALUE) = flow {
         val isFuzzable = methodUnderTest.parameters.all { classId ->
@@ -440,7 +440,16 @@ class UtBotSymbolicEngine(
         var testEmittedByFuzzer = 0
 
         val fuzzingContext = try {
-            concreteExecutionContext.tryCreateFuzzingContext(concreteExecutor, classUnderTest, defaultIdGenerator)
+            concreteExecutionContext.tryCreateFuzzingContext(
+                FuzzingContextParams(
+                    concreteExecutor = concreteExecutor,
+                    classUnderTest = classUnderTest,
+                    idGenerator = defaultIdGenerator,
+                    fuzzingStartTimeMillis = System.currentTimeMillis(),
+                    fuzzingEndTimeMillis = until,
+                    mockStrategy = mockStrategy,
+                )
+            )
         } catch (e: Exception) {
             emit(UtError(e.message ?: "Failed to create ValueProvider", e))
             return@flow
@@ -495,7 +504,7 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
-            fuzzingContext.handleFuzzedConcreteExecutionResult(concreteExecutionResult)
+            fuzzingContext.handleFuzzedConcreteExecutionResult(methodUnderTest, concreteExecutionResult)
 
             // in case of processed failure in the concrete execution
             concreteExecutionResult.processedFailure()?.let { failure ->
@@ -782,11 +791,12 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
     return EnvironmentModels(thisInstanceBefore, paramsBefore, statics, methodUnderTest)
 }
 
-private suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<UtConcreteExecutionResult>>.executeConcretely(
+suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<UtConcreteExecutionResult>>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>,
-    timeoutInMillis: Long
+    timeoutInMillis: Long,
+    isRerun: Boolean = false,
 ): UtConcreteExecutionResult = executeAsync(
     methodUnderTest.classId.name,
     methodUnderTest.signature,
@@ -794,7 +804,8 @@ private suspend fun ConcreteExecutor<UtConcreteExecutionResult, Instrumentation<
     parameters = UtConcreteExecutionData(
         stateBefore,
         instrumentation,
-        timeoutInMillis
+        timeoutInMillis,
+        isRerun,
     )
 ).convertToAssemble(methodUnderTest.classId.packageName)
 
@@ -853,7 +864,7 @@ private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
 }
 
 private fun UtConcreteExecutionResult.processedFailure(): UtConcreteExecutionProcessedFailure?
- = result as? UtConcreteExecutionProcessedFailure
+    = result as? UtConcreteExecutionProcessedFailure
 
 private fun checkStaticMethodsMock(execution: UtSymbolicExecution) =
     execution.instrumentation.any { it is UtStaticMethodInstrumentation}

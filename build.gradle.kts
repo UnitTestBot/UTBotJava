@@ -63,6 +63,7 @@ allprojects {
                 "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
                 "--add-opens", "java.base/java.util.concurrent.locks=ALL-UNNAMED",
                 "--add-opens", "java.base/java.text=ALL-UNNAMED",
+                "--add-opens", "java.base/java.time=ALL-UNNAMED",
                 "--add-opens", "java.base/java.io=ALL-UNNAMED",
                 "--add-opens", "java.base/java.nio=ALL-UNNAMED",
                 "--add-opens", "java.base/java.nio.file=ALL-UNNAMED",
@@ -108,6 +109,10 @@ allprojects {
                 "--add-opens", "java.base/jdk.internal.vm=ALL-UNNAMED",
                 "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
             )
+
+            withType<Jar> {
+                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+            }
 
             useJUnitPlatform {
                 excludeTags = setOf("slow", "IntegrationTest")

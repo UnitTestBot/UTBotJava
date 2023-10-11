@@ -162,6 +162,11 @@ class SpringApiImpl(
         isInsideTestMethod = false
     }
 
+    override fun resetContext() {
+        testContextManager.testContext.markApplicationContextDirty(null)
+        getOrLoadSpringApplicationContext()
+    }
+
     private fun describesRepository(bean: Any): Boolean =
         try {
             bean is Repository<*, *>

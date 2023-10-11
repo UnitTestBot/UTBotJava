@@ -48,6 +48,12 @@ jobs:
             extra_options: "-PideType=IC -PprojectType=Community"
           - plugin_type: IU
             extra_options: "-PideType=IU -PprojectType=Ultimate"
+          - plugin_type: PC
+            extra_options: "-PideType=PC -PprojectType=Community -PideVersion=2023.2"
+          - plugin_type: PU
+            extra_options: "-PideType=PU -PprojectType=Ultimate -PideVersion=2023.2"
+          - plugin_type: GO
+            extra_options: "-PideType=PU -PprojectType=Community -PideVersion=2023.2"
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
     steps:
@@ -79,13 +85,13 @@ jobs:
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
           gradle clean buildPlugin --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
-          cd utbot-intellij/build/distributions
-          unzip utbot-intellij-${{ env.VERSION }}.zip
-          rm utbot-intellij-${{ env.VERSION }}.zip
+          cd utbot-intellij-main/build/distributions
+          unzip utbot-intellij-main-${{ env.VERSION }}.zip
+          rm utbot-intellij-main-${{ env.VERSION }}.zip
 
       - name: Archive UTBot IntelliJ IDEA plugin
         if: ${{ inputs.upload-artifact == 'true' }}
         uses: actions/upload-artifact@v3
         with:
           name: utbot-intellij-${{ matrix.configuration.plugin_type }}-${{ env.VERSION_ARCHIVE }}
-          path: utbot-intellij/build/distributions/*
+          path: utbot-intellij-main/build/distributions/*

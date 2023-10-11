@@ -33,7 +33,7 @@ internal class MockAlwaysClassesTable(project: Project) : ListTableWithButtons<M
     // TODO maybe use MinusculeMatcher for completion sometime
 
     init {
-        Companion.project = project
+        MockAlwaysClassesTable.project = project
 
         val table: JBTable = tableView
         table.emptyText.clear()

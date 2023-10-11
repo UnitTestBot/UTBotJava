@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.utbot.data.*
-import org.utbot.pages.idea
 import org.utbot.pages.welcomeFrame
 import java.io.File
 import java.time.Duration
@@ -36,7 +35,7 @@ class CreateProjects : BaseTest() {
         }
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         return with(ideaFrame) {
-            waitProjectIsCreated()
+            waitProjectIsBuilt()
             waitFor(Duration.ofSeconds(30)) {
                 !isDumbMode()
             }
@@ -51,17 +50,19 @@ class CreateProjects : BaseTest() {
             cloneProjectFromVC(
                 SPRING_PROJECT_URL,
                 CURRENT_RUN_DIRECTORY_FULL_PATH + File.separator + SPRING_PROJECT_NAME,
-                springProjectBuildSystem
+                IdeaBuildSystem.MAVEN
             )
         }
         with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
-            waitProjectIsBuilt()
-            expandProjectTree() //this particular project has gradle default structure
-        }
-        idea {
+            if (loadProjectNotification.isShowing) {
+                loadProjectNotification.projectLoadButton.click()
+                waitProjectIsBuilt()
+            }
             openProjectStructureDialog()
             projectStructureDialog.setProjectSdk(JDKVersion.JDK_17)
             projectStructureDialog.okButton.click()
+            waitProjectIsBuilt()
+            expandProjectTree()
         }
     }
 }

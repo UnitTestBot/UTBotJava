@@ -43,7 +43,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     val inlineProgressTextPanel
         get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='InlineProgressPanel']//div[@class='TextPanel']"),
-            ofSeconds(10))
+            ofSeconds(5))
 
     val statusTextPanel
         get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='StatusPanel']//div[@class='TextPanel']"),
@@ -57,13 +57,22 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         get() = textField(byXpath("//div[contains(@accessiblename.key, 'editor.accessible.name')]"),
             ofSeconds(20))
 
+    // Notifications
     val ideError
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][.//div[@accessiblename.key='error.new.notification.title']]"),
             ofSeconds(10))
 
     val utbotNotification
-        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][div[contains(.,'UnitTestBot')]]"),
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel' and contains(.,'UnitTestBot')]"),
             ofSeconds(10))
+
+    val loadProjectNotification
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationActionPanel' and contains(.,'Load')]"),
+            ofSeconds(60))
+
+    val addToGitNotification
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel' and contains(.,'Git')]"),
+            ofSeconds(60))
 
     val inspectionsView
         get() = remoteRobot.find(InspectionViewFixture::class.java)
@@ -143,10 +152,9 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         waitForIgnoringError(ofSeconds(30)) {
             projectViewTree.hasText(projectName)
         }
-    }
-
-    open fun waitProjectIsCreated() {
-        waitProjectIsBuilt()
+        waitFor(Duration.ofSeconds(30)) {
+            !isDumbMode()
+        }
     }
 
     open fun expandProjectTree() {

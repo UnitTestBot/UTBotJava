@@ -4,6 +4,7 @@ import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.*
 import com.intellij.remoterobot.search.locators.byXpath
+import com.intellij.remoterobot.utils.keyboard
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.utbot.data.JDKVersion
 import java.time.Duration
@@ -32,7 +33,10 @@ class ProjectStructureDialogFixture(
         waitForIgnoringError(Duration.ofSeconds(5)) {
             heavyWeightWindow().itemsList.isShowing
         }
-        heavyWeightWindow().itemsList.clickItem(jdkVersion.namePart, fullMatch = false)
+        keyboard {
+            enterText(jdkVersion.namePart)
+            enter()
+        }
     }
 
 }

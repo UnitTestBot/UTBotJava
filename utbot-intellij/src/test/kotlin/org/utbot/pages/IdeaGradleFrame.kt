@@ -3,6 +3,7 @@ package org.utbot.pages
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.DefaultXpath
+import com.intellij.remoterobot.utils.waitFor
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.utbot.data.IdeaBuildSystem
 import java.time.Duration.ofSeconds
@@ -12,11 +13,13 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
 
     override val buildSystemToUse = IdeaBuildSystem.GRADLE
 
-    override fun waitProjectIsCreated() {
+    override fun waitProjectIsBuilt() {
         super.waitProjectIsBuilt()
-        repeat (120) {
-            inlineProgressTextPanel.isShowing.not()
-        }
+        try {
+            waitFor (ofSeconds(30)) {
+                inlineProgressTextPanel.isShowing.not()
+            }
+        } catch (ignore: Throwable) {}
     }
 
     override fun expandProjectTree() {

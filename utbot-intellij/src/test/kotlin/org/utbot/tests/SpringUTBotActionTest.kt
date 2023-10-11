@@ -1,14 +1,13 @@
 package org.utbot.tests
 
 import com.intellij.remoterobot.RemoteRobot
-import com.intellij.remoterobot.utils.keyboard
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.core.api.SoftAssertions
 import org.junit.jupiter.api.*
 import org.utbot.data.*
 import org.utbot.pages.idea
 import org.utbot.pages.welcomeFrame
-import java.awt.event.KeyEvent
+import java.io.File
 import java.time.Duration
 
 class SpringUTBotActionTest : BaseTest() {
@@ -20,27 +19,25 @@ class SpringUTBotActionTest : BaseTest() {
     fun openSpringProject(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
         welcomeFrame {
             findText {
-                it.text.endsWith(SPRING_PROJECT_NAME)
+                it.text.endsWith(CURRENT_RUN_DIRECTORY_END + File.separator + SPRING_PROJECT_NAME)
             }.click()
         }
         with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
-            keyboard {
-                hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_F9)
-            }
             waitProjectIsBuilt()
+            if (loadProjectNotification.isShowing) {
+                loadProjectNotification.projectLoadButton.click()
+                waitProjectIsBuilt()
+            }
             expandProjectTree()
-        }
-        idea {
             openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
         }
-        return
     }
 
     @Test
     @DisplayName("Check action dialog UI default state in a Spring project")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("UI"))
     fun checkSpringDefaultActionDialog(remoteRobot: RemoteRobot) {
-        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
             with (unitTestBotDialog) {
                 val softly = SoftAssertions()
                 softly.assertThat(springConfigurationLabel.isVisible())
@@ -81,7 +78,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check action dialog UI when Spring configuration is selected")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("UI"))
     fun checkActionDialogWithSpringConfiguration(remoteRobot: RemoteRobot) {
-        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -101,7 +98,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check action dialog UI when Integration tests are selected")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("UI"))
     fun checkActionDialogWithIntegrationTests(remoteRobot: RemoteRobot) {
-        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -118,11 +115,12 @@ class SpringUTBotActionTest : BaseTest() {
         }
     }
 
+    @Order(1) // to close git notification
     @Test
     @DisplayName("Check Spring Unit tests generation")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("Unit tests"), Tag("Generate tests"))
     fun checkSpringUnitTestsGeneration(remoteRobot: RemoteRobot) {
-        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -134,10 +132,11 @@ class SpringUTBotActionTest : BaseTest() {
             waitForIgnoringError (Duration.ofSeconds(60)){
                 inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
             }
+            waitForIgnoringError (Duration.ofSeconds(90)){
+                addToGitNotification.isShowing
+            }
+            addToGitNotification.alwaysAddButton.click() // otherwise prompt dialog will be shown for each created test file
             waitForIgnoringError(Duration.ofSeconds(90)) {
-                if (addFileToGitDialog.isShowing) {
-                    addFileToGitDialog.cancelButton.click()
-                }
                 utbotNotification.title.hasText("UnitTestBot: unit tests generated with warnings")
                 // because project has several test frameworks
             }
@@ -162,7 +161,7 @@ class SpringUTBotActionTest : BaseTest() {
     @DisplayName("Check Spring Integration tests generation")
     @Tags(Tag("Spring"), Tag("Java"), Tag("UnitTestBot"), Tag("Integration tests"), Tag("Generate tests"))
     fun checkSpringIntegrationTestsGeneration(remoteRobot: RemoteRobot) {
-        return with (getIdeaFrameForBuildSystem(remoteRobot, springProjectBuildSystem)) {
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
             with (unitTestBotDialog) {
                 springConfigurationComboBox.click() /* ComboBoxFixture::selectItem doesn't work with heavyWeightWindow */
                 heavyWeightWindow().itemsList.clickItem("PetClinicApplication")
@@ -177,9 +176,6 @@ class SpringUTBotActionTest : BaseTest() {
                 inlineProgressTextPanel.hasText("Generate test cases for class $EXISTING_CLASS_NAME")
             }
             waitForIgnoringError(Duration.ofSeconds(90)) {
-                if (addFileToGitDialog.isShowing) {
-                    addFileToGitDialog.cancelButton.click()
-                }
                 utbotNotification.title.hasText("UnitTestBot: unit tests generated with warnings")
                 // because project has several test frameworks
             }

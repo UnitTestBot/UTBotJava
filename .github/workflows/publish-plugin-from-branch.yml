@@ -49,11 +49,11 @@ jobs:
           - plugin_type: IU
             extra_options: "-PideType=IU -PprojectType=Ultimate"
           - plugin_type: PC
-            extra_options: "-PideType=PC -PprojectType=Community -PideVersion=2023.2"
-          - plugin_type: PU
-            extra_options: "-PideType=PU -PprojectType=Ultimate -PideVersion=2023.2"
+            extra_options: "-PideType=PC -PprojectType=Community -PideVersion=PpycharmIdeVersion"
+          - plugin_type: PY
+            extra_options: "-PideType=PY -PprojectType=Ultimate -PideVersion=2023.2"
           - plugin_type: GO
-            extra_options: "-PideType=PU -PprojectType=Community -PideVersion=2023.2"
+            extra_options: "-PideType=GO -PprojectType=Community -PideVersion=2023.2"
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
     steps:

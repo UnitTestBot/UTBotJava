@@ -16,7 +16,7 @@ import java.time.Duration
 
 @Order(1)
 class CreateProjects : BaseTest() {
-    //@ParameterizedTest(name = "Create {0} project with JDK {1}")
+    @ParameterizedTest(name = "Create {0} project with JDK {1}")
     @Tags(Tag("Setup"), Tag("Java"), Tag("UTBot"))
     @MethodSource("allProjectsProvider")
     fun createProjectWithJDK(

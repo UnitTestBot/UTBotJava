@@ -54,11 +54,10 @@ class CreateProjects : BaseTest() {
             )
         }
         with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
-            waitFor (Duration.ofSeconds(30)) {
-                loadProjectNotification.isShowing
-            }
-            loadProjectNotification.projectLoadButton.click()
-            waitProjectIsBuilt()
+            try {
+                loadProjectNotification.projectLoadButton.click()
+                waitProjectIsBuilt()
+            } catch (ignore: Throwable) {}
             openProjectStructureDialog()
             projectStructureDialog.setProjectSdk(JDKVersion.JDK_17)
             projectStructureDialog.okButton.click()

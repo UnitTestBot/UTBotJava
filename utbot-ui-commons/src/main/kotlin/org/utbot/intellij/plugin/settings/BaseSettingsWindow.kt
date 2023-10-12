@@ -25,21 +25,6 @@ class BaseSettingsWindow(val project: Project) {
     }
 
     val panel: JPanel = panel {
-        row {
-            enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
-                .onApply {
-                    settings.state.enableExperimentalLanguagesSupport =
-                        enableExperimentalLanguagesCheckBox.isSelected
-                }
-                .onReset {
-                    enableExperimentalLanguagesCheckBox.isSelected =
-                        settings.experimentalLanguagesSupport == true
-                }
-                .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
-                .component
-            contextHelp("Enable JavaScript and Python if IDE supports them")
-        }.bottomGap(BottomGap.MEDIUM)
-
         row("Tests with exceptions:") {
             createCombo(RuntimeExceptionTestsBehaviour::class, RuntimeExceptionTestsBehaviour.values())
         }
@@ -67,6 +52,22 @@ class BaseSettingsWindow(val project: Project) {
                         "time-consuming method or decrease if the execution speed is critical for you."
             )
         }
+
+        row {
+            enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
+                .onApply {
+                    settings.state.enableExperimentalLanguagesSupport =
+                        enableExperimentalLanguagesCheckBox.isSelected
+                }
+                .onReset {
+                    enableExperimentalLanguagesCheckBox.isSelected =
+                        settings.experimentalLanguagesSupport == true
+                }
+                .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
+                .component
+            contextHelp("Enable JavaScript and Python if IDE supports them")
+        }.bottomGap(BottomGap.MEDIUM)
+
     }
 
     fun isModified(): Boolean {

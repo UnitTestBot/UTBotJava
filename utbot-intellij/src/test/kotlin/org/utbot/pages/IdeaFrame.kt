@@ -68,11 +68,11 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     val loadProjectNotification
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationActionPanel' and contains(.,'Load')]"),
-            ofSeconds(60))
+            ofSeconds(10))
 
     val addToGitNotification
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel' and contains(.,'Git')]"),
-            ofSeconds(60))
+            ofSeconds(10))
 
     val inspectionsView
         get() = remoteRobot.find(InspectionViewFixture::class.java)

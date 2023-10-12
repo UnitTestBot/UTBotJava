@@ -24,10 +24,10 @@ class SpringUTBotActionTest : BaseTest() {
         }
         with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
             waitProjectIsBuilt()
-            if (loadProjectNotification.isShowing) {
+            try {
                 loadProjectNotification.projectLoadButton.click()
                 waitProjectIsBuilt()
-            }
+            } catch (ignore: Throwable) {}
             expandProjectTree()
             openUTBotDialogFromProjectViewForClass(EXISTING_CLASS_NAME, EXISTING_PACKAGE_NAME)
         }

@@ -152,7 +152,9 @@ class SpringUTBotActionTest : BaseTest() {
             softly.assertThat(inspectionsView.inspectionTree.isShowing)
             softly.assertThat(inspectionsView.inspectionTree.hasText("Errors detected by UnitTestBot"))
             softly.assertThat(inspectionsView.inspectionTree.hasText("${EXISTING_CLASS_NAME}.java"))
-            problemsTabButton.click()
+            buildResultInEditor.rightClick() // to check test class is compilable
+            softly.assertThat(heavyWeightWindow().data.getAll().toString().contains("error").not())
+            problemsTabButton.click() //to close problems view
             softly.assertAll()
         }
     }
@@ -194,7 +196,9 @@ class SpringUTBotActionTest : BaseTest() {
             softly.assertThat(inspectionsView.inspectionTree.isShowing)
             softly.assertThat(inspectionsView.inspectionTree.hasText("Errors detected by UnitTestBot"))
             softly.assertThat(inspectionsView.inspectionTree.hasText("${EXISTING_CLASS_NAME}.java"))
-            problemsTabButton.click()
+            buildResultInEditor.rightClick() // to check test class is compilable
+            softly.assertThat(heavyWeightWindow().data.getAll().toString().contains("error").not())
+            problemsTabButton.click() //to close problems view
             softly.assertAll()
         }
     }

@@ -21,8 +21,15 @@ class NotificationFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteCompo
         get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='JEditorPane']"),
             ofSeconds(5))
 
-    val link
-        get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='LinkLabel']"),
-            ofSeconds(5))
+    val projectLoadButton
+        get() = button(byXpath("//div[@text.key='unlinked.project.notification.load.action']"))
+
+    // For add file to Git notification
+    val alwaysAddButton
+        get() = button(byXpath("//div[contains(@text.key, 'external.files.add.notification.action.add')]"))
+
+    val dontAskAgainButton
+        get() = button(byXpath("//div[contains(@text.key, 'external.files.add.notification.action.mute')]"))
+
 }
 

@@ -10,9 +10,12 @@ import com.intellij.remoterobot.utils.waitFor
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.assertj.swing.core.MouseButton
 import org.utbot.data.IdeaBuildSystem
+import org.utbot.dialogs.AddFileToGitDialogFixture
+import org.utbot.dialogs.ProjectStructureDialogFixture
 import org.utbot.dialogs.UnitTestBotDialogFixture
 import org.utbot.dialogs.WarningDialogFixture
 import org.utbot.elements.NotificationFixture
+import org.utbot.tabs.InspectionViewFixture
 import java.awt.event.KeyEvent
 import java.time.Duration
 import java.time.Duration.ofSeconds
@@ -40,7 +43,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     val inlineProgressTextPanel
         get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='InlineProgressPanel']//div[@class='TextPanel']"),
-            ofSeconds(10))
+            ofSeconds(5))
 
     val statusTextPanel
         get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='StatusPanel']//div[@class='TextPanel']"),
@@ -54,17 +57,38 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         get() = textField(byXpath("//div[contains(@accessiblename.key, 'editor.accessible.name')]"),
             ofSeconds(20))
 
+    // Notifications
     val ideError
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][.//div[@accessiblename.key='error.new.notification.title']]"),
             ofSeconds(10))
 
     val utbotNotification
-        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][div[contains(.,'UnitTestBot')]]"),
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel' and contains(.,'UnitTestBot')]"),
             ofSeconds(10))
 
-    val unitTestBotDialog
-        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java,
+    val loadProjectNotification
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationActionPanel' and contains(.,'Load')]"),
+            ofSeconds(20))
+
+    val addToGitNotification
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel' and contains(.,'Git')]"),
             ofSeconds(10))
+
+    val inspectionsView
+        get() = remoteRobot.find(InspectionViewFixture::class.java)
+
+    val problemsTabButton
+        get() = button( byXpath("//div[contains(@text.key, 'toolwindow.stripe.Problems_View')]"))
+
+    // Dialogs
+    val unitTestBotDialog
+        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java)
+
+    val projectStructureDialog
+        get() = remoteRobot.find(ProjectStructureDialogFixture::class.java)
+
+    val addFileToGitDialog
+        get() = remoteRobot.find(AddFileToGitDialogFixture::class.java)
 
     @JvmOverloads
     fun dumbAware(timeout: Duration = Duration.ofMinutes(5), function: () -> Unit) {
@@ -109,27 +133,31 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         } catch (ignore: Throwable) {}
     }
 
-    fun openUTBotDialogFromProjectViewForClass(classname: String) {
+    fun openUTBotDialogFromProjectViewForClass(classname: String, packageName: String = "") {
         step("Call UnitTestBot action") {
             waitFor(ofSeconds(200)) { !isDumbMode() }
             with(projectViewTree) {
+                if (hasText(classname).not() && packageName != "") {
+                    findText{it.text.endsWith(packageName)}.doubleClick()
+                }
                 findText(classname).click(MouseButton.RIGHT_BUTTON)
             }
             remoteRobot.actionMenuItem("Generate Tests with UnitTestBot...").click()
        }
     }
 
-    open fun waitProjectIsOpened() {
+    open fun waitProjectIsBuilt() {
+        projectViewTree.click()
+        keyboard { key(KeyEvent.VK_PAGE_UP) }
         waitForIgnoringError(ofSeconds(30)) {
             projectViewTree.hasText(projectName)
         }
+        waitFor(Duration.ofSeconds(90)) {
+            !isDumbMode()
+        }
     }
 
-    open fun waitProjectIsCreated() {
-        waitProjectIsOpened()
-    }
-
-    open fun expandProjectTree(projectName: String) {
+    open fun expandProjectTree() {
         with(projectViewTree) {
             if (hasText("src").not()) {
                 findText(projectName).doubleClick()
@@ -158,8 +186,6 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     fun createNewJavaClass(newClassname: String = "Example",
                            textToClickOn: String = "Main") {
-        waitProjectIsOpened()
-        expandProjectTree(projectName)
         with(projectViewTree) {
             findText(textToClickOn).click(MouseButton.RIGHT_BUTTON)
         }
@@ -168,6 +194,18 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         remoteRobot.keyboard {
             enterText(newClassname)
             enter()
+        }
+    }
+
+    fun openProjectStructureDialog() {
+        if (remoteRobot.isMac()) {
+            keyboard {
+                hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_A)
+                enterText("Project Structure...")
+                enter()
+            }
+        } else {
+            menuBar.select("File", "Project Structure...")
         }
     }
 }

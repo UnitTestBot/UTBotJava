@@ -152,7 +152,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         waitForIgnoringError(ofSeconds(30)) {
             projectViewTree.hasText(projectName)
         }
-        waitFor(Duration.ofSeconds(30)) {
+        waitFor(Duration.ofSeconds(90)) {
             !isDumbMode()
         }
     }

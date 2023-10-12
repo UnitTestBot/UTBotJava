@@ -36,7 +36,7 @@ class CreateProjects : BaseTest() {
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
         return with(ideaFrame) {
             waitProjectIsBuilt()
-            waitFor(Duration.ofSeconds(30)) {
+            waitFor(Duration.ofSeconds(90)) {
                 !isDumbMode()
             }
         }

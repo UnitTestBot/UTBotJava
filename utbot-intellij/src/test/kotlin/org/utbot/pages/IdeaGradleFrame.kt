@@ -16,7 +16,7 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
     override fun waitProjectIsBuilt() {
         super.waitProjectIsBuilt()
         try {
-            waitFor (ofSeconds(30)) {
+            waitFor (ofSeconds(90)) {
                 inlineProgressTextPanel.isShowing.not()
             }
         } catch (ignore: Throwable) {}

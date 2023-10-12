@@ -7,7 +7,7 @@ import javax.swing.JComponent
 class Configurable(val project: Project) : SearchableConfigurable {
     private val displayName: String = "UtBot Configuration"
     private val id: String = "org.utbot.intellij.plugin.settings.UtBotSettingsConfigurable"
-    private val settingsWindow = SettingsWindow(project)
+    private val settingsWindow = BaseSettingsWindow(project)
 
     override fun createComponent(): JComponent = settingsWindow.panel
 

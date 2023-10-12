@@ -16,8 +16,6 @@ import kotlin.reflect.KClass
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.HangingTestsTimeout
-import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
@@ -36,7 +34,6 @@ class SettingsWindow(val project: Project) {
     private lateinit var runInspectionAfterTestGenerationCheckBox: JCheckBox
     private lateinit var forceMockCheckBox: JCheckBox
     private lateinit var enableSummarizationGenerationCheckBox: JCheckBox
-    private lateinit var enableExperimentalLanguagesCheckBox: JCheckBox
 
     private fun Row.createCombo(loader: KClass<*>, values: Array<*>) {
         comboBox(DefaultComboBoxModel(values))
@@ -66,27 +63,12 @@ class SettingsWindow(val project: Project) {
                     enableSummarizationGenerationCheckBox.isSelected = false
                 }
             }
-
-            enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
-                .onApply {
-                    settings.state.enableExperimentalLanguagesSupport =
-                        enableExperimentalLanguagesCheckBox.isSelected
-                }
-                .onReset {
-                    enableExperimentalLanguagesCheckBox.isSelected =
-                        settings.experimentalLanguagesSupport == true
-                }
-                .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
-                .component
-            contextHelp("Enable JavaScript and Python if IDE supports them")
         }.bottomGap(BottomGap.MEDIUM)
 
-        row("Tests with exceptions:") {
-            createCombo(RuntimeExceptionTestsBehaviour::class, RuntimeExceptionTestsBehaviour.values())
-        }
         row("Overflow detection:") {
             createCombo(TreatOverflowAsError::class, TreatOverflowAsError.values())
         }
+
         row {
             useTaintAnalysisCheckBox =
                 checkBox("Enable taint analysis")
@@ -168,29 +150,6 @@ class SettingsWindow(val project: Project) {
             forceMockCheckBox.addActionListener { updater.run() }
         }.bottomGap(BottomGap.MEDIUM)
 
-        row("Hanging test timeout:") {
-            spinner(
-                range = IntRange(
-                    HangingTestsTimeout.MIN_TIMEOUT_MS.toInt(),
-                    HangingTestsTimeout.MAX_TIMEOUT_MS.toInt()
-                ),
-                step = 50
-            ).bindIntValue(
-                getter = {
-                    settings.hangingTestsTimeout.timeoutMs
-                        .coerceIn(HangingTestsTimeout.MIN_TIMEOUT_MS, HangingTestsTimeout.MAX_TIMEOUT_MS).toInt()
-                },
-                setter = {
-                    settings.hangingTestsTimeout = HangingTestsTimeout(it.toLong())
-                }
-            )
-
-            label("milliseconds per method")
-            contextHelp(
-                "Set this timeout to define which test is \"hanging\". Increase it to test the " +
-                        "time-consuming method or decrease if the execution speed is critical for you."
-            )
-        }
         val fuzzLabel = JBLabel("Fuzzing")
         val symLabel = JBLabel("Symbolic execution")
         row {

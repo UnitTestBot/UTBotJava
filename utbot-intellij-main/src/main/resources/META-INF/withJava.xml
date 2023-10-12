@@ -1,3 +1,8 @@
 <!--Optional dependency on org.jetbrains.android-->
-<extensions defaultExtensionNs="com.intellij.modules.java">
-</extensions>
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable dynamic="true" parentId="org.utbot.intellij.plugin.settings.Configurable" instance="org.utbot.intellij.plugin.settings.JavaConfigurable"
+                             id="org.utbot.intellij.plugin.settings.JavaConfigurable"
+                             displayName="Java"/>
+    </extensions>
+</idea-plugin>

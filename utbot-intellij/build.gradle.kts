@@ -45,17 +45,48 @@ intellij {
 
     androidStudioPath?.let { jvmPlugins += androidPlugins }
 
+    val pythonCommunityPlugins = listOf(
+        "PythonCore:${pythonCommunityPluginVersion}"
+    )
+
+    val pythonUltimatePlugins = listOf(
+        "Pythonid:${pythonUltimatePluginVersion}"
+    )
+
+    val jsPlugins = listOf(
+        "JavaScript"
+    )
+
+    val goPlugins = listOf(
+        "org.jetbrains.plugins.go:${goPluginVersion}"
+    )
+
     val mavenUtilsPlugins = listOf(
         "org.jetbrains.idea.maven"
     )
 
     val basePluginSet = jvmPlugins + kotlinPlugins + mavenUtilsPlugins + androidPlugins
 
-    plugins.set(basePluginSet)
+    plugins.set(
+        when (projectType) {
+            communityEdition -> basePluginSet + pythonCommunityPlugins
+            ultimateEdition -> when (ideType) {
+                "IC" -> basePluginSet + pythonCommunityPlugins
+                "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
+                "PC" -> pythonCommunityPlugins
+                "PY" -> pythonUltimatePlugins + jsPlugins
+                "GO" -> goPlugins
+                else -> basePluginSet
+            }
+            else -> basePluginSet
+        }
+    )
 
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
 }
+
+val remoteRobotVersion = "0.11.16"
 
 tasks {
     compileKotlin {
@@ -82,6 +113,31 @@ tasks {
         untilBuild.set("232.*")
         version.set(semVer)
     }
+
+    runIdeForUiTests {
+        jvmArgs("-Xmx2048m", "-Didea.is.internal=true", "-Didea.ui.debug.mode=true")
+
+        systemProperty("robot-server.port", "8082") // default port 8580
+        systemProperty("ide.mac.message.dialogs.as.sheets", "false")
+        systemProperty("jb.privacy.policy.text", "<!--999.999-->")
+        systemProperty("jb.consents.confirmation.enabled", "false")
+        systemProperty("idea.trust.all.projects", "true")
+        systemProperty("ide.mac.file.chooser.native", "false")
+        systemProperty("jbScreenMenuBar.enabled", "false")
+        systemProperty("apple.laf.useScreenMenuBar", "false")
+        systemProperty("ide.show.tips.on.startup.default.value", "false")
+    }
+
+    downloadRobotServerPlugin {
+        version.set(remoteRobotVersion)
+    }
+
+    test {
+        description = "Runs UI integration tests."
+        useJUnitPlatform {
+            exclude("/org/utbot/**") //Comment this line to run the tests locally
+        }
+    }
 }
 
 dependencies {
@@ -102,6 +158,17 @@ dependencies {
 
     implementation(project(":utbot-ui-commons"))
     implementation(project(":utbot-android-studio"))
+
+    testImplementation("com.intellij.remoterobot:remote-robot:$remoteRobotVersion")
+    testImplementation("com.intellij.remoterobot:remote-fixtures:$remoteRobotVersion")
+
+    testImplementation("org.assertj:assertj-core:3.11.1")
+
+    // Logging Network Calls
+    testImplementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
+
+    // Video Recording
+    implementation("com.automation-remarks:video-recorder-junit5:2.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junit4PlatformVersion")

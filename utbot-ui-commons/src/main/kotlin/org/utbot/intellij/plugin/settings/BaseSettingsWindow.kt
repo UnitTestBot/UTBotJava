@@ -25,49 +25,50 @@ class BaseSettingsWindow(val project: Project) {
     }
 
     val panel: JPanel = panel {
-        row("Tests with exceptions:") {
-            createCombo(RuntimeExceptionTestsBehaviour::class, RuntimeExceptionTestsBehaviour.values())
+        group("Common Settings") {
+            row("Tests with exceptions:") {
+                createCombo(RuntimeExceptionTestsBehaviour::class, RuntimeExceptionTestsBehaviour.values())
+            }
+
+            row("Hanging test timeout:") {
+                spinner(
+                    range = IntRange(
+                        HangingTestsTimeout.MIN_TIMEOUT_MS.toInt(),
+                        HangingTestsTimeout.MAX_TIMEOUT_MS.toInt()
+                    ),
+                    step = 50
+                ).bindIntValue(
+                    getter = {
+                        settings.hangingTestsTimeout.timeoutMs
+                            .coerceIn(HangingTestsTimeout.MIN_TIMEOUT_MS, HangingTestsTimeout.MAX_TIMEOUT_MS).toInt()
+                    },
+                    setter = {
+                        settings.hangingTestsTimeout = HangingTestsTimeout(it.toLong())
+                    }
+                )
+
+                label("milliseconds per method")
+                contextHelp(
+                    "Set this timeout to define which test is \"hanging\". Increase it to test the " +
+                            "time-consuming method or decrease if the execution speed is critical for you."
+                )
+            }
+
+            row {
+                enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
+                    .onApply {
+                        settings.state.enableExperimentalLanguagesSupport =
+                            enableExperimentalLanguagesCheckBox.isSelected
+                    }
+                    .onReset {
+                        enableExperimentalLanguagesCheckBox.isSelected =
+                            settings.experimentalLanguagesSupport == true
+                    }
+                    .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
+                    .component
+                contextHelp("Enable JavaScript and Python if IDE supports them")
+            }.bottomGap(BottomGap.MEDIUM)
         }
-
-        row("Hanging test timeout:") {
-            spinner(
-                range = IntRange(
-                    HangingTestsTimeout.MIN_TIMEOUT_MS.toInt(),
-                    HangingTestsTimeout.MAX_TIMEOUT_MS.toInt()
-                ),
-                step = 50
-            ).bindIntValue(
-                getter = {
-                    settings.hangingTestsTimeout.timeoutMs
-                        .coerceIn(HangingTestsTimeout.MIN_TIMEOUT_MS, HangingTestsTimeout.MAX_TIMEOUT_MS).toInt()
-                },
-                setter = {
-                    settings.hangingTestsTimeout = HangingTestsTimeout(it.toLong())
-                }
-            )
-
-            label("milliseconds per method")
-            contextHelp(
-                "Set this timeout to define which test is \"hanging\". Increase it to test the " +
-                        "time-consuming method or decrease if the execution speed is critical for you."
-            )
-        }
-
-        row {
-            enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
-                .onApply {
-                    settings.state.enableExperimentalLanguagesSupport =
-                        enableExperimentalLanguagesCheckBox.isSelected
-                }
-                .onReset {
-                    enableExperimentalLanguagesCheckBox.isSelected =
-                        settings.experimentalLanguagesSupport == true
-                }
-                .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
-                .component
-            contextHelp("Enable JavaScript and Python if IDE supports them")
-        }.bottomGap(BottomGap.MEDIUM)
-
     }
 
     fun isModified(): Boolean {

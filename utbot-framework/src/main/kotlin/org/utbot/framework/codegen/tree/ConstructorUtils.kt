@@ -255,13 +255,13 @@ fun CgContextOwner.importIfNeeded(type: ClassId) {
     }
 }
 
-internal fun CgContextOwner.importIfNeeded(method: MethodId) {
+fun CgContextOwner.importIfNeeded(method: MethodId) {
     val name = method.name
     val packageName = method.classId.packageName
     method.takeIf { it.isStatic && packageName != testClassPackageName && packageName != "java.lang" }
         .takeIf { importedStaticMethods.none { it.name == name } }
         // do not import method under test in order to specify the declaring class directly for its calls
-        .takeIf { currentExecutable != method }
+        .takeIf { currentExecutableUnderTest != method }
         ?.let {
             importedStaticMethods += method
             collectedImports += StaticImport(method.classId.canonicalName, method.name)
@@ -290,6 +290,20 @@ internal fun CgContextOwner.typeCast(
     importIfNeeded(denotableTargetType)
     return CgTypeCast(denotableTargetType, expression, isSafetyCast)
 }
+
+/**
+ * Casts [expression] to [targetType] only if downcast is needed,
+ * e.g. this method will cast `Collection` to `Set`, but not vice-versa.
+ *
+ * @see typeCast
+ */
+internal fun CgContextOwner.downcastIfNeeded(
+    targetType: ClassId,
+    expression: CgExpression,
+    isSafetyCast: Boolean = false
+): CgExpression =
+    if (expression.type isSubtypeOf targetType) expression
+    else typeCast(targetType, expression, isSafetyCast)
 
 /**
  * Sets an element of arguments array in parameterized test,

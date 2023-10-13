@@ -14,10 +14,10 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
-import org.utbot.framework.codegen.generator.CodeGenerator
-import org.utbot.framework.codegen.generator.SpringCodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MethodDescription
 import org.utbot.framework.plugin.api.util.UtContext
@@ -25,24 +25,20 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.utils.ClassNameUtils
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.process.generated.BeanAdditionalData
-import org.utbot.framework.process.generated.BeanDefinitionData
+import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
-import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.generated.settingsModel
-import org.utbot.rd.terminateOnException
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
-import org.utbot.spring.process.SpringAnalyzerProcess
 import org.utbot.summary.summarizeAll
 import org.utbot.taint.TaintConfigurationProviderUserRules
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Paths
 import kotlin.reflect.jvm.kotlinFunction
 import kotlin.time.Duration.Companion.seconds
@@ -74,39 +70,29 @@ private var idCounter: Long = 0
 private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog, realProtocol: IProtocol) {
     val model = this
     watchdog.measureTimeForActiveCall(setupUtContext, "UtContext setup") { params ->
-        UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
-            File(it).toURI().toURL()
-        }.toTypedArray())))
-    }
-    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
-        try {
-            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
-            val result = springAnalyzerProcess.terminateOnException { _ ->
-                springAnalyzerProcess.getBeanDefinitions(
-                    params.config,
-                    params.fileStorage,
-                    params.profileExpression,
-                )
-            }
-            springAnalyzerProcess.terminate()
-            val beanDefinitions = result.beanDefinitions
-                .map { data ->
-                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
-                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
-                }
-                .toTypedArray()
-            SpringAnalyzerResult(beanDefinitions)
-        } catch (e: Exception) {
-            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
-            SpringAnalyzerResult(emptyArray())
-        }
+        val urls = params.classpathForUrlsClassloader.map { File(it).toURI().toURL() }.toTypedArray()
+        // - First, we try to load class/resource with platform class loader `ClassLoader.getSystemClassLoader().parent`
+        //     - at this step we load classes like
+        //        - `java.util.ArrayList` (from boostrap classloader)
+        //        - `javax.sql.DataSource` (from platform classloader)
+        // - Next, we try to load class/resource from user class path
+        //     - at this step we load classes like class under test and other classes from user project and its dependencies
+        // - Finally, if all else fails we try to load class/resource from UtBot classpath
+        //     - at this step we load classes from UtBot project and its dependencies (e.g. Mockito if user doesn't have it, see #2545)
+        val classLoader = FallbackClassLoader(
+            urls = urls,
+            fallback = ClassLoader.getSystemClassLoader(),
+            commonParent = ClassLoader.getSystemClassLoader().parent,
+        )
+        UtContext.setUtContext(UtContext(classLoader))
     }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
         Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
         val applicationContext: ApplicationContext = kryoHelper.readObject(params.applicationContext)
 
-        testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
+        testGenerator = TestCaseGenerator(
+            buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
             dependencyPaths = params.dependencyPaths,
             jdkInfo = JdkInfo(Paths.get(params.jdkInfo.path), params.jdkInfo.version),
@@ -115,7 +101,13 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 runBlocking {
                     model.isCancelled.startSuspending(Unit)
                 }
-            })
+            }
+        )
+    }
+    watchdog.measureTimeForActiveCall(findTestClassName, "Creating test class name") { params ->
+        val classUnderTest: ClassId = kryoHelper.readObject(params.classUnderTest)
+        val testClassName = ClassNameUtils.generateTestClassShortName(classUnderTest)
+        TestClassNameResult(testClassName)
     }
     watchdog.measureTimeForActiveCall(generate, "Generating tests") { params ->
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)
@@ -150,16 +142,15 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             }
     }
     watchdog.measureTimeForActiveCall(render, "Rendering tests") { params ->
-        val projectType = ProjectType.valueOf(params.projectType)
-        val codeGenerator = projectType.createCodeGenerator(kryoHelper, params)
+        val codeGenerator = createCodeGenerator(kryoHelper, params, testGenerator.applicationContext)
 
         codeGenerator.generateAsStringWithTestReport(testSets[params.testSetsId]!!).let {
             testGenerationReports.add(it.testsGenerationReport)
             RenderResult(it.generatedCode, it.utilClassKind?.javaClass?.simpleName)
         }
     }
-    watchdog.measureTimeForActiveCall(obtainClassId, "Obtain class id in UtContext") { canonicalName ->
-        kryoHelper.writeObject(UtContext.currentContext()!!.classLoader.loadClass(canonicalName).id)
+    watchdog.measureTimeForActiveCall(obtainClassId, "Obtain class id in UtContext") { binaryName ->
+        kryoHelper.writeObject(UtContext.currentContext()!!.classLoader.loadClass(binaryName).id)
     }
     watchdog.measureTimeForActiveCall(findMethodsInClassMatchingSelected, "Find methods in Class") { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
@@ -257,6 +248,11 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         }
         GenerateTestReportResult(notifyMessage, statistics, hasWarnings)
     }
+    watchdog.measureTimeForActiveCall(perform, "Performing dynamic task") { params ->
+        val task = kryoHelper.readObject<EngineProcessTask<Any?>>(params.engineProcessTask)
+        val result = task.perform()
+        kryoHelper.writeObject(result)
+    }
 }
 
 private fun processInitialWarnings(report: TestsGenerationReport, params: GenerateTestReportArgs) {
@@ -290,56 +286,38 @@ private fun destinationWarningMessage(testPackageName: String?, classUnderTestPa
     }
 }
 
-private fun ProjectType.createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams): AbstractCodeGenerator {
+private fun createCodeGenerator(kryoHelper: KryoHelper, params: RenderParams, applicationContext: ApplicationContext): AbstractCodeGenerator {
     with(params) {
         val classUnderTest: ClassId = kryoHelper.readObject(classUnderTest)
         val paramNames: MutableMap<ExecutableId, List<String>> = kryoHelper.readObject(paramNames)
         val testFramework = testFrameworkByName(testFramework)
         val staticMocking = if (staticsMocking.startsWith("No")) NoStaticMocking else MockitoStaticMocking
         val forceStaticMocking: ForceStaticMocking = kryoHelper.readObject(forceStaticMocking)
+        val projectType = ProjectType.valueOf(projectType)
 
-        return when (this@createCodeGenerator) {
-            ProjectType.PureJvm -> CodeGenerator(
-                classUnderTest = classUnderTest,
-                projectType = ProjectType.valueOf(projectType),
-                generateUtilClassFile = generateUtilClassFile,
-                paramNames = paramNames,
-                testFramework = testFramework,
-                mockFramework = MockFramework.valueOf(mockFramework),
-                codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
-                cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.valueOf(codegenLanguage)),
-                parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
-                staticsMocking = staticMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-                runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
-                hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
-                enableTestsTimeout = enableTestsTimeout,
-                testClassPackageName = testClassPackageName,
-            )
-
-            ProjectType.Spring -> SpringCodeGenerator(
-                springTestsType = SpringTestsType.valueOf(springTestsType),
-                classUnderTest = classUnderTest,
-                projectType = ProjectType.valueOf(projectType),
-                generateUtilClassFile = generateUtilClassFile,
-                paramNames = paramNames,
-                testFramework = testFramework,
-                mockFramework = MockFramework.valueOf(mockFramework),
-                codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
-                cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.valueOf(codegenLanguage)),
-                parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
-                staticsMocking = staticMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-                runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
-                hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
-                enableTestsTimeout = enableTestsTimeout,
-                testClassPackageName = testClassPackageName,
-            )
-
-            ProjectType.Python -> error("Python code generator can not be created in Engine process")
-            ProjectType.JavaScript -> error("JavaScript code generator can not be created in Engine process")
-        }
+        return applicationContext.createCodeGenerator(CodeGeneratorParams(
+            classUnderTest = classUnderTest,
+            projectType = projectType,
+            generateUtilClassFile = generateUtilClassFile,
+            paramNames = paramNames,
+            testFramework = testFramework,
+            mockFramework = MockFramework.valueOf(mockFramework),
+            codegenLanguage = CodegenLanguage.valueOf(codegenLanguage),
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(
+                CodegenLanguage.valueOf(
+                    codegenLanguage
+                )
+            ),
+            parameterizedTestSource = ParametrizedTestSource.valueOf(parameterizedTestSource),
+            staticsMocking = staticMocking,
+            forceStaticMocking = forceStaticMocking,
+            generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(
+                runtimeExceptionTestsBehaviour
+            ),
+            hangingTestsTimeout = HangingTestsTimeout(hangingTestsTimeout),
+            enableTestsTimeout = enableTestsTimeout,
+            testClassPackageName = testClassPackageName,
+        ))
     }
 }

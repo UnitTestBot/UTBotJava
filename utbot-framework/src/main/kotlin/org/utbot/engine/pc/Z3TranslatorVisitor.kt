@@ -113,6 +113,10 @@ open class Z3TranslatorVisitor(
         z3Context.mkBVSubNoOverflow(translate(expr.left) as BitVecExpr, translate(expr.right) as BitVecExpr) // , true)
     }
 
+    override fun visit(expr: UtMulNoOverflowExpression): Expr<*> = expr.run {
+        z3Context.mkBVMulNoOverflow(translate(expr.left) as BitVecExpr, translate(expr.right) as BitVecExpr , true)
+    }
+
     override fun visit(expr: UtNegExpression): Expr<*> = expr.run {
         negate(z3Context, translate(variable.expr).z3Variable(variable.type))
     }

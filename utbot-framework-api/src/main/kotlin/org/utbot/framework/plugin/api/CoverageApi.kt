@@ -3,7 +3,7 @@ package org.utbot.framework.plugin.api
 /**
  * Represents a covered bytecode instruction.
  *
- * @param className a fqn of the class.
+ * @param internalName the fqn in internal form, i.e. com/rest/order/services/OrderService$InnerClass.
  * @param methodSignature the signature of the method.
  * @param lineNumber a number of the line in the source file.
  * @param id a unique identifier among all instructions in all classes.
@@ -11,11 +11,13 @@ package org.utbot.framework.plugin.api
  * @see <a href="CONFLUENCE:Test+Minimization">Test minimization</a>
  */
 data class Instruction(
-    val className: String,
+    val internalName: String,
     val methodSignature: String,
     val lineNumber: Int,
     val id: Long
-)
+) {
+    val className: String get() = internalName.replace('/', '.')
+}
 
 /**
  * Represents coverage information. Some other

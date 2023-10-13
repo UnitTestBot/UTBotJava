@@ -33,6 +33,6 @@ dependencies {
 processResources {
     // We will extract this jar in `InstrumentedProcess` class.
     from(configurations.fetchInstrumentationJar) {
-        into "instrumentation-lib"
+        into "lib"
     }
 }

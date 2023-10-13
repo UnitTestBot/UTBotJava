@@ -5,8 +5,8 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.common.JarUtils
 import org.utbot.common.getPid
-import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.AbstractRDProcessCompanion
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
@@ -22,7 +22,8 @@ import org.utbot.spring.generated.SpringAnalyzerProcessModel
 import org.utbot.spring.generated.SpringAnalyzerResult
 import org.utbot.spring.generated.springAnalyzerProcessModel
 import java.io.File
-import java.nio.file.Files
+import org.utbot.framework.plugin.api.SpringSettings.*
+import org.utbot.framework.process.kryo.KryoHelper
 
 class SpringAnalyzerProcessInstantDeathException :
     InstantProcessDeathException(
@@ -69,7 +70,7 @@ class SpringAnalyzerProcess private constructor(
                     )
                     val cmd = obtainProcessCommandLine(port)
                     val process = ProcessBuilder(cmd)
-                        .directory(Files.createTempDirectory(utBotTempDirectory, "spring-analyzer").toFile())
+                        .directory(WorkingDirService.provide().toFile())
                         .start()
 
                     logger.info { "Spring Analyzer process started with PID = ${process.getPid}" }
@@ -87,13 +88,12 @@ class SpringAnalyzerProcess private constructor(
 
     private val springAnalyzerModel: SpringAnalyzerProcessModel = onSchedulerBlocking { protocol.springAnalyzerProcessModel }
     private val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
+    private val kryoHelper = KryoHelper(lifetime)
 
     fun getBeanDefinitions(
-        configuration: String,
-        fileStorage: Array<String>,
-        profileExpression: String?,
+        springSettings: PresentSpringSettings
     ): SpringAnalyzerResult {
-        val params = SpringAnalyzerParams(configuration, fileStorage, profileExpression)
+        val params = SpringAnalyzerParams(kryoHelper.writeObject(springSettings))
         return springAnalyzerModel.analyze.startBlocking(params)
     }
 }

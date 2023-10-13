@@ -20,16 +20,6 @@ internal val mockitoClassId = BuiltinClassId(
     simpleName = "Mockito",
 )
 
-internal val mockClassId = BuiltinClassId(
-    canonicalName = "org.mockito.Mock",
-    simpleName = "Mock",
-)
-
-internal val injectMocksClassId = BuiltinClassId(
-    canonicalName = "org.mockito.InjectMocks",
-    simpleName = "InjectMocks",
-)
-
 internal val ongoingStubbingClassId = BuiltinClassId(
     canonicalName = "org.mockito.stubbing.OngoingStubbing",
     simpleName = "OngoingStubbing",

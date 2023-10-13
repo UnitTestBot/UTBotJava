@@ -1,8 +1,6 @@
 package org.utbot.framework.codegen.services.access
 
 import kotlinx.collections.immutable.PersistentList
-import org.utbot.framework.codegen.domain.Junit5
-import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.builtin.any
 import org.utbot.framework.codegen.domain.builtin.anyOfClass
 import org.utbot.framework.codegen.domain.builtin.getMethodId
@@ -29,6 +27,7 @@ import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl.FieldAccessorSuitability.*
 import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
+import org.utbot.framework.codegen.tree.downcastIfNeeded
 import org.utbot.framework.codegen.tree.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.codegen.tree.isUtil
@@ -47,7 +46,6 @@ import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.util.exceptions
 import org.utbot.framework.plugin.api.util.extensionReceiverParameterIndex
 import org.utbot.framework.plugin.api.util.humanReadableName
@@ -87,7 +85,7 @@ interface CgCallableAccessManager {
     operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess
 }
 
-internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
+class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
     CgContextOwner by context {
 
     private val statementConstructor by lazy { getStatementConstructorBy(context) }
@@ -114,7 +112,11 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     override operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall {
         val resolvedArgs = args.resolve()
         val methodCall = if (method.canBeCalledWith(caller, resolvedArgs)) {
-            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method)).takeCallerFromArgumentsIfNeeded()
+            CgMethodCall(
+                caller = caller?.let { downcastIfNeeded(method.classId, caller) },
+                executableId = method,
+                arguments = resolvedArgs.guardedForDirectCallOf(method)
+            ).takeCallerFromArgumentsIfNeeded()
         } else {
             method.callWithReflection(caller, resolvedArgs)
         }
@@ -160,16 +162,6 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             addExceptionIfNeeded(Throwable::class.id)
         }
 
-        val methodIsUnderTestAndThrowsExplicitly = methodId == currentExecutable
-                && currentExecution?.result is UtExplicitlyThrownException
-        val frameworkSupportsAssertThrows = testFramework == Junit5 || testFramework == TestNg
-
-        //If explicit exception is wrapped with assertThrows,
-        // no "throws" in test method signature is required.
-        if (methodIsUnderTestAndThrowsExplicitly && frameworkSupportsAssertThrows) {
-            return
-        }
-
         methodId.method.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
     }
 
@@ -200,7 +192,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             // this executable can be called on builtin type
             this.type is BuiltinClassId && this.type in builtinCallersWithoutReflection -> true
 
-            else -> false
+            // receiver can be downcasted before call
+            else -> executable.isAccessibleFrom(testClassPackageName)
         }
 
     // For some builtin types we need to clarify

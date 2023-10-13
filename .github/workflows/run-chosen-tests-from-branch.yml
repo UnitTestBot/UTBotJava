@@ -49,7 +49,7 @@ jobs:
           
       - name: Run chosen tests
         run: |
-          gradle :${{ github.event.inputs.project-name }}:test --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g --tests ${{ github.event.inputs.tests-bunch-name }}
+          gradle :${{ github.event.inputs.project-name }}:test -PprojectType=Ultimate --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g --tests ${{ github.event.inputs.tests-bunch-name }}
           
       - name: Upload ${{ github.event.inputs.project-name }} tests report if tests have failed
         if: ${{ failure() }}

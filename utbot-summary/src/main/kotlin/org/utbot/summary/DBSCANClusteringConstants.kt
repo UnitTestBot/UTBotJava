@@ -1,5 +1,7 @@
 package org.utbot.summary
 
+import org.utbot.framework.plugin.api.util.IndentUtil
+
 object DBSCANClusteringConstants {
     /**
      * Sets minimum number of successful execution
@@ -24,7 +26,7 @@ object DBSCANClusteringConstants {
 
 object SummarySentenceConstants {
     const val SENTENCE_SEPARATION = ",\n"
-    const val TAB = "    "
+    const val TAB = IndentUtil.TAB
     const val NEW_LINE = "\n"
     const val DOT_SYMBOL = '.'
     const val COMMA_SYMBOL = ','

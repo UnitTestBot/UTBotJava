@@ -2,43 +2,67 @@ package org.utbot.tests
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.utils.waitFor
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import org.utbot.data.IdeaBuildSystem
-import org.utbot.data.JDKVersion
-import org.utbot.data.NEW_PROJECT_NAME_START
+import org.utbot.data.*
 import org.utbot.pages.welcomeFrame
+import java.io.File
 import java.time.Duration
 
 @Order(1)
 class CreateProjects : BaseTest() {
     @ParameterizedTest(name = "Create {0} project with JDK {1}")
-    @Tags(Tag("smoke"), Tag("NewProject"), Tag("Java"), Tag("UTBot"), Tag(""))
+    @Tags(Tag("Setup"), Tag("Java"), Tag("UTBot"))
     @MethodSource("allProjectsProvider")
-    fun createProjectWithSupportedJDK(
+    fun createProjectWithJDK(
         ideaBuildSystem: IdeaBuildSystem, jdkVersion: JDKVersion,
         remoteRobot: RemoteRobot
-    ): Unit = with(remoteRobot) {
-        val newProjectName = NEW_PROJECT_NAME_START + ideaBuildSystem.system + jdkVersion.number
+    ) {
+        val newProjectName = ideaBuildSystem.system + jdkVersion.number
         remoteRobot.welcomeFrame {
             createNewProject(
                 projectName = newProjectName,
                 buildSystem = ideaBuildSystem,
-                jdkVersion = jdkVersion
+                jdkVersion = jdkVersion,
+                location = CURRENT_RUN_DIRECTORY_FULL_PATH,
+                locationPart = CURRENT_RUN_DIRECTORY_END
             )
         }
         val ideaFrame = getIdeaFrameForBuildSystem(remoteRobot, ideaBuildSystem)
-        with(ideaFrame) {
-            waitProjectIsCreated()
-            if (ideaBuildSystem == IdeaBuildSystem.INTELLIJ) {
-                createNewPackage("org.example")
-            }
-            waitFor(Duration.ofSeconds(30)) {
+        return with(ideaFrame) {
+            waitProjectIsBuilt()
+            waitFor(Duration.ofSeconds(90)) {
                 !isDumbMode()
             }
+        }
+    }
+
+    @Test
+    @DisplayName("Clone Spring project")
+    @Tags(Tag("Setup"), Tag("Java"), Tag("Spring"), Tag("UTBot"))
+    fun cloneSpringProject(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
+        welcomeFrame {
+            cloneProjectFromVC(
+                SPRING_PROJECT_URL,
+                CURRENT_RUN_DIRECTORY_FULL_PATH + File.separator + SPRING_PROJECT_NAME,
+                IdeaBuildSystem.MAVEN
+            )
+        }
+        with (getIdeaFrameForBuildSystem(remoteRobot, IdeaBuildSystem.GRADLE)) {
+            try {
+                loadProjectNotification.projectLoadButton.click()
+                waitProjectIsBuilt()
+            } catch (ignore: Throwable) {}
+            openProjectStructureDialog()
+            projectStructureDialog.setProjectSdk(JDKVersion.JDK_17)
+            projectStructureDialog.okButton.click()
+            waitProjectIsBuilt()
+            expandProjectTree()
         }
     }
 }

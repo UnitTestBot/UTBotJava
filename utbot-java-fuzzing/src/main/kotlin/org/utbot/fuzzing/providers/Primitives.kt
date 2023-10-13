@@ -2,6 +2,7 @@ package org.utbot.fuzzing.providers
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedContext.Comparison.*
@@ -16,12 +17,12 @@ import kotlin.random.Random
 
 abstract class PrimitiveValueProvider(
     vararg acceptableTypes: ClassId
-) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+) : JavaValueProvider {
     protected val acceptableTypes = acceptableTypes.toSet()
 
     final override fun accept(type: FuzzedType) = type.classId in acceptableTypes
 
-    protected suspend fun <T : KnownValue> SequenceScope<Seed<FuzzedType, FuzzedValue>>.yieldKnown(
+    protected suspend fun <T : KnownValue<T>> SequenceScope<Seed<FuzzedType, FuzzedValue>>.yieldKnown(
         value: T,
         toValue: T.() -> Any
     ) {
@@ -37,7 +38,7 @@ abstract class PrimitiveValueProvider(
         })
     }
 
-    private fun <T : KnownValue> T.valueToString(): String {
+    private fun <T : KnownValue<T>> T.valueToString(): String {
         when (this) {
             is BitVectorValue -> {
                 for (defaultBound in Signed.values()) {
@@ -65,11 +66,11 @@ abstract class PrimitiveValueProvider(
                     else -> toString()
                 }
             }
-            is StringValue -> {
-                return "'${value.substringToLength(10, "...")}'"
-            }
             is RegexValue -> {
                 return "'${value.substringToLength(10, "...")}' from $pattern"
+            }
+            is StringValue -> {
+                return "'${value.substringToLength(10, "...")}'"
             }
             else -> return toString()
         }
@@ -126,7 +127,7 @@ object IntegerValueProvider : PrimitiveValueProvider(
     private val configurationStubWithNoUsage = Configuration()
 
     private fun BitVectorValue.change(func: BitVectorValue.() -> Unit): BitVectorValue {
-        return Mutation<KnownValue> { _, _, _ ->
+        return Mutation<KnownValue<*>> { _, _, _ ->
             BitVectorValue(this).apply { func() }
         }.mutate(this, randomStubWithNoUsage, configurationStubWithNoUsage) as BitVectorValue
     }
@@ -206,7 +207,7 @@ object FloatValueProvider : PrimitiveValueProvider(
     }
 }
 
-object StringValueProvider : PrimitiveValueProvider(stringClassId) {
+object StringValueProvider : PrimitiveValueProvider(stringClassId, java.lang.CharSequence::class.java.id) {
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
@@ -215,21 +216,15 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId) {
             .filter { it.classId == stringClassId }
         val values = constants
             .mapNotNull { it.value as? String } +
-                sequenceOf("", "abc", "\n\t\r")
-        values.forEach { yieldKnown(StringValue(it)) { value } }
+                sequenceOf("", "abc", "XZ", "#$\\\"'", "\n\t\r", "10", "-3")
+        values.forEach { yieldKnown(StringValue(it), StringValue::value) }
         constants
             .filter { it.fuzzedContext.isPatterMatchingContext()  }
             .map { it.value as String }
             .distinct()
-            .filter { it.isNotBlank() }
-            .filter {
-                try {
-                    Pattern.compile(it); true
-                } catch (_: PatternSyntaxException) {
-                    false
-                }
-            }.forEach {
-                yieldKnown(RegexValue(it, Random(0))) { value }
+            .filter(String::isSupportedPattern)
+            .forEach {
+                yieldKnown(RegexValue(it, Random(0)), StringValue::value)
             }
     }
 
@@ -242,4 +237,9 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId) {
             else -> false
         }
     }
+}
+
+object VoidValueProvider : PrimitiveValueProvider(voidClassId) {
+    override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> =
+        sequenceOf(Seed.Simple(UtVoidModel.fuzzed { summary = "%var% = void" }))
 }

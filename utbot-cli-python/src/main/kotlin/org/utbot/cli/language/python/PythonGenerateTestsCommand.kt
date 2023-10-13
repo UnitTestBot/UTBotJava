@@ -7,19 +7,22 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.PythonMethodHeader
-import org.utbot.python.PythonTestGenerationProcessor
-import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.PythonTestGenerationConfig
+import org.utbot.python.PythonTestSet
+import org.utbot.python.utils.RequirementsInstaller
+import org.utbot.python.TestFileInformation
 import org.utbot.python.code.PythonCode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
+import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utbot.python.utils.*
-import org.utbot.python.utils.RequirementsUtils.installRequirements
-import org.utbot.python.utils.RequirementsUtils.requirements
 import java.io.File
 import java.nio.file.Paths
 
@@ -35,6 +38,8 @@ class PythonGenerateTestsCommand : CliktCommand(
     private val sourceFile by argument(
         help = "File with Python code to generate tests for."
     )
+
+    private fun absSourceFile() = sourceFile.toAbsolutePath()
 
     private val pythonClass by option(
         "-c", "--class",
@@ -59,13 +64,21 @@ class PythonGenerateTestsCommand : CliktCommand(
     ).required()
 
     private val output by option(
-        "-o", "--output",
-        help = "(required) File for generated tests."
-    ).required()
+        "-o", "--output", help = "(required) File for generated tests."
+    )
+        .required()
+        .check("Must end with .py suffix") {
+            it.endsWith(".py")
+        }
 
     private val coverageOutput by option(
         "--coverage",
         help = "File to write coverage report."
+    )
+
+    private val executionCounterOutput by option(
+        "--executions-counter",
+        help = "File to write number of executions."
     )
 
     private val installRequirementsIfMissing by option(
@@ -97,6 +110,13 @@ class PythonGenerateTestsCommand : CliktCommand(
         .choice(Pytest.toString(), Unittest.toString())
         .default(Unittest.toString())
 
+    private val runtimeExceptionTestsBehaviour by option("--runtime-exception-behaviour", help = "PASS or FAIL")
+        .choice("PASS", "FAIL")
+        .default("FAIL")
+
+    private val doNotGenerateRegressionSuite by option("--do-not-generate-regression-suite", help = "Do not generate regression test suite")
+        .flag(default = false)
+
     private val testFramework: TestFramework
         get() =
             when (testFrameworkAsString) {
@@ -114,12 +134,14 @@ class PythonGenerateTestsCommand : CliktCommand(
         val topLevelClasses = PythonCode.getTopLevelClasses(parsedModule)
 
         val selectedMethods = methods
+        val filterMethods = listOf("__init__", "__new__")
         if (pythonClass == null && methods == null) {
             return if (topLevelFunctions.isNotEmpty())
                 Success(
                     topLevelFunctions
                         .mapNotNull { parseFunctionDefinition(it) }
-                        .map { PythonMethodHeader(it.name.toString(), sourceFile, null) }
+                        .map { PythonMethodHeader(it.name.toString(), absSourceFile(), null) }
+                        .filter { !filterMethods.contains(it.name) }
                 )
             else {
                 val topLevelClassMethods = topLevelClasses
@@ -129,8 +151,9 @@ class PythonGenerateTestsCommand : CliktCommand(
                             .mapNotNull { parseFunctionDefinition(it) }
                             .map { function ->
                                 val parsedClassName = PythonClassId(cls.name.toString())
-                                PythonMethodHeader(function.name.toString(), sourceFile, parsedClassName)
+                                PythonMethodHeader(function.name.toString(), absSourceFile(), parsedClassName)
                             }
+                            .filter { !filterMethods.contains(it.name) }
                     }
                 if (topLevelClassMethods.isNotEmpty()) {
                     Success(topLevelClassMethods)
@@ -141,7 +164,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             val pythonMethodsOpt = selectedMethods.map { functionName ->
                 topLevelFunctions
                     .mapNotNull { parseFunctionDefinition(it) }
-                    .map { PythonMethodHeader(it.name.toString(), sourceFile, null) }
+                    .map { PythonMethodHeader(it.name.toString(), absSourceFile(), null) }
                     .find { it.name == functionName }
                     ?.let { Success(it) }
                     ?: Fail("Couldn't find top-level function $functionName in the source file.")
@@ -161,8 +184,9 @@ class PythonGenerateTestsCommand : CliktCommand(
             val fineMethods = methods
                 .filter { !forbiddenMethods.contains(it.name.toString()) }
                 .map {
-                    PythonMethodHeader(it.name.toString(), sourceFile, parsedClassId)
+                    PythonMethodHeader(it.name.toString(), absSourceFile(), parsedClassId)
                 }
+                .filter { !filterMethods.contains(it.name) }
             if (fineMethods.isNotEmpty())
                 Success(fineMethods)
             else
@@ -188,8 +212,8 @@ class PythonGenerateTestsCommand : CliktCommand(
 
     @Suppress("UNCHECKED_CAST")
     private fun calculateValues(): Optional<Unit> {
-        val currentPythonModuleOpt = findCurrentPythonModule(directoriesForSysPath, sourceFile)
-        sourceFileContent = File(sourceFile).readText()
+        val currentPythonModuleOpt = findCurrentPythonModule(directoriesForSysPath, absSourceFile())
+        sourceFileContent = File(absSourceFile()).readText()
         val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods() }
 
         return bind(pack(currentPythonModuleOpt, pythonMethodsOpt)) {
@@ -199,29 +223,6 @@ class PythonGenerateTestsCommand : CliktCommand(
         }
     }
 
-    private fun processMissingRequirements(): PythonTestGenerationProcessor.MissingRequirementsActionResult {
-        if (installRequirementsIfMissing) {
-            logger.info("Installing requirements...")
-            val result = installRequirements(pythonPath)
-            if (result.exitValue == 0)
-                return PythonTestGenerationProcessor.MissingRequirementsActionResult.INSTALLED
-            System.err.println(result.stderr)
-            logger.error("Failed to install requirements.")
-        } else {
-            logger.error("Missing some requirements. Please add --install-requirements flag or install them manually.")
-        }
-        logger.info("Requirements: ${requirements.joinToString()}")
-        return PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
-    }
-
-    private fun writeToFileAndSave(filename: String, fileContent: String) {
-        val file = File(filename)
-        file.parentFile?.mkdirs()
-        file.writeText(fileContent)
-        file.createNewFile()
-    }
-
-
     override fun run() {
         val status = calculateValues()
         if (status is Fail) {
@@ -229,48 +230,70 @@ class PythonGenerateTestsCommand : CliktCommand(
             return
         }
 
-        processTestGeneration(
-            pythonPath = pythonPath,
-            pythonFilePath = sourceFile.toAbsolutePath(),
-            pythonFileContent = sourceFileContent,
-            directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() }.toSet(),
-            currentPythonModule = currentPythonModule,
-            pythonMethods = pythonMethods,
-            containingClassName = pythonClass,
-            timeout = timeout,
-            testFramework = testFramework,
-            timeoutForRun = timeoutForRun,
-            writeTestTextToFile = { generatedCode ->
-                writeToFileAndSave(output, generatedCode)
-            },
-            pythonRunRoot = Paths.get("").toAbsolutePath(),
-            doNotCheckRequirements = doNotCheckRequirements,
-            withMinimization = !doNotMinimize,
-            checkingRequirementsAction = {
-                logger.info("Checking requirements...")
-            },
-            installingRequirementsAction = {
-                logger.info("Installing requirements...")
-            },
-            requirementsAreNotInstalledAction = ::processMissingRequirements,
-            startedLoadingPythonTypesAction = {
-                logger.info("Loading information about Python types...")
-            },
-            startedTestGenerationAction = {
-                logger.info("Generating tests...")
-            },
-            notGeneratedTestsAction = {
-                logger.error(
-                    "Couldn't generate tests for the following functions: ${it.joinToString()}"
-                )
-            },
-            processMypyWarnings = { messages -> messages.forEach { println(it) } },
-            processCoverageInfo = { coverageReport ->
-                val output = coverageOutput ?: return@processTestGeneration
-                writeToFileAndSave(output, coverageReport)
-            }
-        ) {
-            logger.info("Finished test generation for the following functions: ${it.joinToString()}")
+        logger.info("Checking requirements...")
+        val installer = CliRequirementsInstaller(installRequirementsIfMissing, logger)
+        val requirementsAreInstalled = RequirementsInstaller.checkRequirements(
+            installer,
+            pythonPath,
+            if (testFramework.isInstalled) emptyList() else listOf(testFramework.mainPackage)
+        )
+        if (!requirementsAreInstalled) {
+            return
         }
+
+        val config = PythonTestGenerationConfig(
+            pythonPath = pythonPath,
+            testFileInformation = TestFileInformation(absSourceFile(), sourceFileContent, currentPythonModule.dropInitFile()),
+            sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
+            testedMethods = pythonMethods,
+            timeout = timeout,
+            timeoutForRun = timeoutForRun,
+            testFramework = testFramework,
+            testSourceRootPath = Paths.get(output.toAbsolutePath()).parent.toAbsolutePath(),
+            withMinimization = !doNotMinimize,
+            isCanceled = { false },
+            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour)
+        )
+
+        val processor = PythonCliProcessor(
+            config,
+            output.toAbsolutePath(),
+            logger,
+            coverageOutput?.toAbsolutePath(),
+            executionCounterOutput?.toAbsolutePath(),
+        )
+
+        logger.info("Loading information about Python types...")
+        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+
+        logger.info("Generating tests...")
+        var testSets = processor.testGenerate(mypyStorage)
+        if (testSets.isEmpty()) return
+        if (doNotGenerateRegressionSuite) {
+            testSets = testSets.map { testSet ->
+                PythonTestSet(
+                    testSet.method,
+                    testSet.executions.filterNot { it.result is UtExecutionSuccess },
+                    testSet.errors,
+                    testSet.mypyReport,
+                    testSet.classId,
+                    testSet.executionsNumber
+                )
+            }
+        }
+
+        logger.info("Saving tests...")
+        val testCode = processor.testCodeGenerate(testSets)
+        processor.saveTests(testCode)
+
+
+        logger.info("Saving coverage report...")
+        processor.processCoverageInfo(testSets)
+
+        logger.info(
+            "Finished test generation for the following functions: ${
+                testSets.joinToString { it.method.name }
+            }"
+        )
     }
 }

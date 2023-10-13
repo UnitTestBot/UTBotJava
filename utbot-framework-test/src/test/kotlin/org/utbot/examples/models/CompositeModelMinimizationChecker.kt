@@ -1,27 +1,24 @@
 package org.utbot.examples.models
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.junit.Test
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.testcheckers.eq
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtModelTestCaseChecker
 
 internal class CompositeModelMinimizationChecker : UtModelTestCaseChecker(
     testClass = CompositeModelMinimizationExample::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     private fun UtModel.getFieldsOrNull(): Map<FieldId, UtModel>? = when(this) {
         is UtAssembleModel -> origin?.fields
         is UtCompositeModel -> fields
+        is UtCustomModel -> origin?.fields
         else -> null
     }
 

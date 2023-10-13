@@ -527,7 +527,7 @@ open class StringsTemplatesSingular : StringsTemplatesInterface {
     override val returnLine: String = "returns from: "
     override val countedReturnLine: String = "returns from:$NEW_LINE"
     override val invokeLine: String = "invokes:$NEW_LINE"
-    override val switchCaseLine: String = "activates switch case: "
+    override val switchCaseLine: String = "activates "
     override val caughtExceptionLine: String = "catches exception:$NEW_LINE"
     override val recursionAssignmentLine: String = "triggers recursion of "
 }
@@ -549,7 +549,7 @@ class StringsTemplatesPlural : StringsTemplatesSingular() {
     override val returnLine: String = "return from: "
     override val countedReturnLine: String = "return from:$NEW_LINE"
     override val invokeLine: String = "invoke:$NEW_LINE"
-    override val switchCaseLine: String = "activate switch case: "
+    override val switchCaseLine: String = "activate "
     override val caughtExceptionLine: String = "catches exception:$NEW_LINE"
     override val recursionAssignmentLine: String = "trigger recursion of "
 }

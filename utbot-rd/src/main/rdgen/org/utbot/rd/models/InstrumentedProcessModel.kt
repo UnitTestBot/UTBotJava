@@ -12,6 +12,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
 
     val SetInstrumentationParams = structdef {
         field("instrumentation", array(PredefinedType.byte))
+        field("useBytecodeTransformation", PredefinedType.bool)
     }
 
     val InvokeMethodCommandParams = structdef {
@@ -41,12 +42,16 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("result", array(PredefinedType.byte))
     }
 
-    val GetSpringBeanParams = structdef {
-        field("beanName", PredefinedType.string)
+    val GetSpringRepositoriesParams = structdef {
+        field("classId", array(PredefinedType.byte))
     }
 
-    val GetSpringBeanResult = structdef {
-        field("beanModel", array(PredefinedType.byte))
+    val GetSpringRepositoriesResult = structdef {
+        field("springRepositoryIds", array(PredefinedType.byte))
+    }
+
+    val TryLoadingSpringContextResult = structdef {
+        field("springContextLoadingResult", array(PredefinedType.byte))
     }
 
     init {
@@ -84,9 +89,15 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
                 "This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to get value of static field\n" +
                         "[fieldId]"
         }
-        call("GetSpringBean", GetSpringBeanParams, GetSpringBeanResult).apply {
+        call("getRelevantSpringRepositories", GetSpringRepositoriesParams, GetSpringRepositoriesResult).apply {
             async
-            documentation = "Gets Spring bean by name (requires Spring instrumentation)"
+            documentation = "Gets a list of [SpringRepositoryId]s that class specified by the [ClassId]" +
+                    " (possibly indirectly) depends on (requires Spring instrumentation)"
+        }
+        call("tryLoadingSpringContext", PredefinedType.void, TryLoadingSpringContextResult).apply {
+            async
+            documentation = "This command is sent to the instrumented process from the [ConcreteExecutor]\n" +
+                    "if the user wants to determine whether or not Spring application context can load"
         }
     }
 }

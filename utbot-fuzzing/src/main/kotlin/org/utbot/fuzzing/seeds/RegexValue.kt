@@ -1,24 +1,35 @@
 package org.utbot.fuzzing.seeds
 
-import com.github.curiousoddman.rgxgen.RgxGen
-import com.github.curiousoddman.rgxgen.config.RgxGenOption
-import com.github.curiousoddman.rgxgen.config.RgxGenProperties
+import org.cornutum.regexpgen.js.Provider
+import org.cornutum.regexpgen.random.RandomBoundsGen
 import org.utbot.fuzzing.Mutation
 import kotlin.random.Random
 import kotlin.random.asJavaRandom
 
-class RegexValue(val pattern: String, val random: Random) : KnownValue {
+class RegexValue(
+    val pattern: String,
+    val random: Random,
+    val maxLength: Int = listOf(16, 256, 2048).random(random)
+) : StringValue(
+    valueProvider = {
+        val matchingExact = Provider.forEcmaScript().matchingExact(pattern)
+        matchingExact.generate(RandomBoundsGen(random.asJavaRandom()), 1, maxLength)
+    }
+) {
 
-    val value: String by lazy { RgxGen(pattern).apply {
-        setProperties(rgxGenProperties)
-    }.generate(random.asJavaRandom()) }
-
-    override fun mutations() = listOf(Mutation<KnownValue> { source, random, _ ->
-        require(this === source)
-        RegexValue(pattern, random)
-    })
+    override fun mutations(): List<Mutation<out StringValue>> {
+        return super.mutations() + Mutation<RegexValue> { source, random, _ ->
+            RegexValue(source.pattern, random)
+        }
+    }
 }
 
-private val rgxGenProperties = RgxGenProperties().apply {
-    setProperty(RgxGenOption.INFINITE_PATTERN_REPETITION.key, "5")
+fun String.isSupportedPattern(): Boolean {
+    if (isEmpty()) return false
+    return try {
+        Provider.forEcmaScript().matchingExact(this)
+        true
+    } catch (_: Throwable) {
+        false
+    }
 }

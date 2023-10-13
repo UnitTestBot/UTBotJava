@@ -2,9 +2,9 @@ package org.utbot.framework.util
 
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtAutowiredBaseModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
@@ -36,7 +36,7 @@ abstract class UtModelVisitor<D> {
             is UtAssembleModel -> visit(element, data)
             is UtCompositeModel -> visit(element, data)
             is UtLambdaModel -> visit(element, data)
-            is UtAutowiredBaseModel -> visit(element, data)
+            is UtCustomModel -> visit(element, data)
         }
     }
 
@@ -46,7 +46,7 @@ abstract class UtModelVisitor<D> {
     protected abstract fun visit(element: UtAssembleModel, data: D)
     protected abstract fun visit(element: UtCompositeModel, data: D)
     protected abstract fun visit(element: UtLambdaModel, data: D)
-    protected abstract fun visit(element: UtAutowiredBaseModel, data: D)
+    protected abstract fun visit(element: UtCustomModel, data: D)
 
     /**
      * Returns true when we can traverse the given model.

@@ -7,10 +7,10 @@ import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.util.isAccessibleFrom
-import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
-import org.utbot.framework.modifications.ConstructorAnalyzer
-import org.utbot.framework.modifications.ConstructorAssembleInfo
-import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
+import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
+import org.utbot.modifications.ExecutableAnalyzer
+import org.utbot.modifications.ExecutableAssembleInfo
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
@@ -21,6 +21,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
@@ -47,6 +48,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import java.lang.reflect.Constructor
 import java.util.IdentityHashMap
+import org.utbot.modifications.FieldInvolvementMode
 
 /**
  * Creates [UtAssembleModel] from any [UtModel] or it's inner models if possible
@@ -71,8 +73,11 @@ class AssembleModelGenerator(private val basePackageName: String) {
     //Call chain of statements to create assemble model
     private var callChain = mutableListOf<UtStatementModel>()
 
-    private val modificatorsSearcher = UtBotFieldsModificatorsSearcher()
-    private val constructorAnalyzer = ConstructorAnalyzer()
+    private val modificatorsSearcher =
+        UtBotFieldsModificatorsSearcher(
+            fieldInvolvementMode = FieldInvolvementMode.WriteOnly
+        )
+    private val executableAnalyzer = ExecutableAnalyzer()
 
     /**
      * Clears state before and after block execution.
@@ -199,7 +204,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
                     is UtPrimitiveModel,
                     is UtClassRefModel,
                     is UtVoidModel,
-                    is UtEnumConstantModel -> utModel
+                    is UtEnumConstantModel,
+                    is UtCustomModel -> utModel // for example, UtSpringContextModel
                     is UtLambdaModel -> assembleLambdaModel(utModel)
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
@@ -278,8 +284,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
             modelsInAnalysis.add(compositeModel)
 
             val constructorInfo =
-                if (shouldAnalyzeConstructor) constructorAnalyzer.analyze(constructorId)
-                else ConstructorAssembleInfo(constructorId)
+                if (shouldAnalyzeConstructor) executableAnalyzer.analyze(constructorId)
+                else ExecutableAssembleInfo(constructorId)
 
             val instantiationCall = constructorCall(compositeModel, constructorInfo)
             return UtAssembleModel(
@@ -400,9 +406,9 @@ class AssembleModelGenerator(private val basePackageName: String) {
      */
     private fun constructorCall(
         compositeModel: UtCompositeModel,
-        constructorInfo: ConstructorAssembleInfo,
+        constructorInfo: ExecutableAssembleInfo,
     ): UtExecutableCallModel {
-        val constructorParams = constructorInfo.constructorId.parameters.withIndex()
+        val constructorParams = constructorInfo.executableId.parameters.withIndex()
             .map { (index, param) ->
                 val modelOrNull = compositeModel.fields
                     .filter { it.key == constructorInfo.params[index] }
@@ -412,7 +418,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
                 assembleModel(fieldModel)
             }
 
-        return UtExecutableCallModel(instance = null, constructorInfo.constructorId, constructorParams)
+        return UtExecutableCallModel(instance = null, constructorInfo.executableId, constructorParams)
     }
 
     /**
@@ -439,11 +445,11 @@ class AssembleModelGenerator(private val basePackageName: String) {
             val fromUtilPackage = classId.packageName.startsWith("java.util")
             constructorIds
                 .sortedBy { it.parameters.size }
-                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || constructorAnalyzer.isAppropriate(it) }
+                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || executableAnalyzer.isAppropriate(it) }
         } else {
             constructorIds
                 .sortedByDescending { it.parameters.size }
-                .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+                .firstOrNull { executableAnalyzer.isAppropriate(it) }
         }
     }
 
@@ -490,7 +496,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
      * Finds setters and direct accessors for fields of particular class.
      */
     private fun findSettersAndDirectAccessors(classId: ClassId): Map<FieldId, StatementId> {
-        val allModificatorsOfClass =  modificatorsSearcher.findModificators(SettersAndDirectAccessors)
+        val allModificatorsOfClass =  modificatorsSearcher.getFieldToModificators(SettersAndDirectAccessors)
 
         return allModificatorsOfClass
             .mapNotNull { (fieldId, possibleModificators) ->

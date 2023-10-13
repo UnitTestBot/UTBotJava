@@ -12,10 +12,10 @@ import org.utbot.examples.modificators.StronglyConnectedComponents
 import org.utbot.examples.modificators.coupling.ClassA
 import org.utbot.examples.modificators.coupling.ClassB
 import org.utbot.examples.modificators.hierarchy.InheritedModifications
-import org.utbot.framework.modifications.AnalysisMode
-import org.utbot.framework.modifications.AnalysisMode.AllModificators
-import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
-import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
+import org.utbot.modifications.AnalysisMode
+import org.utbot.modifications.AnalysisMode.AllModificators
+import org.utbot.modifications.AnalysisMode.SettersAndDirectAccessors
+import org.utbot.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import kotlin.reflect.KClass
@@ -24,9 +24,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.utbot.common.nameOfPackage
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
+import org.utbot.modifications.FieldInvolvementMode
 
 internal class UtBotFieldModificatorsTest {
     private lateinit var fieldsModificatorsSearcher: UtBotFieldsModificatorsSearcher
@@ -176,7 +176,9 @@ internal class UtBotFieldModificatorsTest {
             forceReload = false,
             jdkInfo = JdkInfoDefaultProvider().info
         )
-        fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher()
+        fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher(
+            fieldInvolvementMode = FieldInvolvementMode.WriteOnly
+        )
     }
 
     private fun runUpdate(classes: Set<KClass<*>>) {
@@ -193,7 +195,7 @@ internal class UtBotFieldModificatorsTest {
 
     //We use sorting here to make comparing with sorted in advance expected collections easier
     private fun runFieldModificatorsSearch(analysisMode: AnalysisMode) =
-        fieldsModificatorsSearcher.findModificators(analysisMode)
+        fieldsModificatorsSearcher.getFieldToModificators(analysisMode)
             .map { (key, value) ->
                 val modificatorNames = value.filterNot { it.name.startsWith("direct_set_") }.map { it.name }
                 key.name to modificatorNames.toSortedSet()

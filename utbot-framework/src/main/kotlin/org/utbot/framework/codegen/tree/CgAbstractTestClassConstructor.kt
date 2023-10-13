@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.tree
 
+import mu.KotlinLogging
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -16,7 +17,6 @@ import org.utbot.framework.codegen.domain.models.CgTestMethodCluster
 import org.utbot.framework.codegen.domain.models.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.domain.models.CgUtilEntity
 import org.utbot.framework.codegen.domain.models.CgUtilMethod
-import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.renderer.importUtilMethodDependencies
 import org.utbot.framework.codegen.reports.TestsGenerationReport
@@ -24,12 +24,20 @@ import org.utbot.framework.codegen.services.CgNameGenerator
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionFailure
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.util.calculateSize
 
 abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: CgContext):
     CgContextOwner by context,
-    CgStatementConstructor by CgComponents.getStatementConstructorBy(context){
+    CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     init {
         CgComponents.clearContextRelatedStorage()
@@ -61,9 +69,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
             if (currentTestClass != outerMostTestClass) {
                 isNested = true
                 isStatic = testFramework.nestedClassesShouldBeStatic
-                testFrameworkManager.annotationForNestedClasses?.let {
-                    currentTestClassContext.collectedTestClassAnnotations += it
-                }
+                testFrameworkManager.addAnnotationForNestedClasses()
             }
 
             body = constructTestClassBody(testClassModel)
@@ -86,7 +92,13 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
         testSet: CgMethodTestSet,
         regions: MutableList<CgRegion<CgMethod>>
     ) {
-        val (methodUnderTest, _, clustersInfo) = testSet
+        val (_, _, clustersInfo) = testSet
+
+        // `stateAfter` is not accounted here, because usually most of it is not rendered
+        val executionToSizeCache = testSet.executions.associateWith { execution ->
+            execution.stateBefore.calculateSize() +
+                    ((execution.result as? UtExecutionSuccess)?.model?.calculateSize() ?: 1)
+        }
 
         for ((clusterSummary, executionIndices) in clustersInfo) {
             val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
@@ -97,11 +109,23 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
                 executionIndices to false
             }
 
-            for (i in checkedRange) {
-                withExecutionIdScope(i) {
-                    currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
+            testSet.executions
+                .withIndex()
+                .toList()
+                .slice(checkedRange)
+                .sortedWith(
+                    // NPE tests are rendered last, because oftentimes they are meaningless in a sense
+                    // that they pass `null` somewhere where `null` is never passed in production
+                    compareBy<IndexedValue<UtExecution>> { (_, execution) ->
+                        if ((execution.result as? UtExecutionFailure)?.exception is NullPointerException) 1 else -1
+                    }
+                        // we place "smaller" tests earlier, since they are easier to read
+                        .thenComparingInt { (_, execution) -> executionToSizeCache.getValue(execution) }
+                ).forEach { (i, execution) ->
+                    withExecutionIdScope(i) {
+                        currentTestCaseTestMethods += methodConstructor.createTestMethod(testSet, execution)
+                    }
                 }
-            }
 
             val comments = listOf("Actual number of generated tests (${executionIndices.last - executionIndices.first}) exceeds per-method limit (${UtSettings.maxTestsPerMethodInRegion})",
                 "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestsPerMethod' property")
@@ -120,6 +144,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
     }
 
     protected fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
+        logger.warn(failure) { "Code generation error" }
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)

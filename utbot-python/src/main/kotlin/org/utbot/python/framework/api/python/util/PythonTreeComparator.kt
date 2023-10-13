@@ -26,7 +26,7 @@ fun comparePythonTree(
         return false
     }
     if (visitedLeft[left.id] == VisitStatus.CLOSED) {
-        return equals[left.id to right.id]!!
+        return equals[left.id to right.id] ?: false
     }
     if (visitedLeft[left.id] == VisitStatus.OPENED) {
         return true

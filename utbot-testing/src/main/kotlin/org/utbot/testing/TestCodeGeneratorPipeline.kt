@@ -1,25 +1,21 @@
 package org.utbot.testing
 
 import mu.KotlinLogging
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.utbot.common.FileUtil
 import org.utbot.common.measureTime
 import org.utbot.common.info
 import org.utbot.framework.codegen.generator.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.id
@@ -30,45 +26,43 @@ import kotlin.reflect.KClass
 
 internal val logger = KotlinLogging.logger {}
 
-class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFrameworkConfiguration) {
+class TestCodeGeneratorPipeline(
+    private val testInfrastructureConfiguration: TestInfrastructureConfiguration,
+    private val applicationContext: ApplicationContext
+) {
 
-    fun runClassesCodeGenerationTests(classesStages: List<ClassStages>) {
-        val pipelines = classesStages.map {
-            with(it) { ClassPipeline(StageContext(testClass, testSets, testSets.size), check) }
+    fun runClassesCodeGenerationTests(classesStages: ClassStages) {
+        val pipeline = with(classesStages) {
+            ClassPipeline(StageContext(testClass, testSets, testSets.size), check)
         }
 
-        if (pipelines.isEmpty()) return
-
-        checkPipelinesResults(pipelines)
+        checkPipelinesResults(pipeline)
     }
 
-    private fun runPipelinesStages(classesPipelines: List<ClassPipeline>): List<CodeGenerationResult> {
-        val classesPipelinesNames = classesPipelines.joinToString(" ") {
-            val classUnderTest = it.stageContext.classUnderTest
-            classUnderTest.qualifiedName ?: error("${classUnderTest.simpleName} doesn't have a fqn name")
-        }
+    private fun runPipelinesStages(classPipeline: ClassPipeline): CodeGenerationResult {
+        val classUnderTest = classPipeline.stageContext.classUnderTest
+        val classPipelineName = classUnderTest.qualifiedName
+            ?: error("${classUnderTest.simpleName} doesn't have a fqn name")
 
         logger
             .info()
-            .measureTime({ "Executing code generation tests for [$classesPipelinesNames]" }) {
-                CodeGeneration.filterPipelines(classesPipelines).forEach {
-                    withUtContext(UtContext(it.stageContext.classUnderTest.java.classLoader)) {
+            .measureTime({ "Executing code generation tests for [$classPipelineName]" }) {
+                CodeGeneration.verifyPipeline(classPipeline)?.let {
+                    withUtContext(UtContext(classUnderTest.java.classLoader)) {
                         processCodeGenerationStage(it)
                     }
                 }
 
-                Compilation.filterPipelines(classesPipelines).let {
-                    if (it.isNotEmpty()) processCompilationStages(it)
+                Compilation.verifyPipeline(classPipeline)?.let {
+                    processCompilationStages(it)
                 }
 
-                TestExecution.filterPipelines(classesPipelines).let {
-                    if (it.isNotEmpty()) processTestExecutionStages(it)
+                TestExecution.verifyPipeline(classPipeline)?.let {
+                    processTestExecutionStages(it)
                 }
 
-                return classesPipelines.map {
-                    with(it.stageContext) {
-                        CodeGenerationResult(classUnderTest, numberOfTestCases, stages)
-                    }
+                return with(classPipeline.stageContext) {
+                    CodeGenerationResult(classUnderTest, numberOfTestCases, stages)
                 }
             }
     }
@@ -79,8 +73,8 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
             val information = StageExecutionInformation(CodeGeneration)
             val testSets = data as List<UtMethodTestSet>
 
-            val codegenLanguage = testFrameworkConfiguration.codegenLanguage
-            val parametrizedTestSource = testFrameworkConfiguration.parametrizedTestSource
+            val codegenLanguage = testInfrastructureConfiguration.codegenLanguage
+            val parametrizedTestSource = testInfrastructureConfiguration.parametrizedTestSource
 
             val codeGenerationResult = callToCodeGenerator(testSets, classUnderTest)
             val testClass = codeGenerationResult.generatedCode
@@ -93,13 +87,13 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                     val prefix = when (codegenLanguage) {
                         CodegenLanguage.JAVA ->
                             when (parametrizedTestSource) {
-                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "public void "
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "@Test"
                                 ParametrizedTestSource.PARAMETRIZE -> "public void parameterizedTestsFor"
                             }
 
                         CodegenLanguage.KOTLIN ->
                             when (parametrizedTestSource) {
-                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "fun "
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "@Test"
                                 ParametrizedTestSource.PARAMETRIZE -> "fun parameterizedTestsFor"
                             }
                     }
@@ -163,7 +157,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                 if (generatedUtilClassFile != null) {
                     logger.error("Util class for the broken test has been written to the file: [$generatedUtilClassFile]")
                 }
-                logger.error("Failed configuration: $testFrameworkConfiguration")
+                logger.error("Failed configuration: $testInfrastructureConfiguration")
 
                 throw it
             }
@@ -185,18 +179,17 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     )
 
     @Suppress("UNCHECKED_CAST")
-    private fun processCompilationStages(classesPipelines: List<ClassPipeline>) {
+    private fun processCompilationStages(classesPipeline: ClassPipeline) {
         val information = StageExecutionInformation(Compilation)
-        val classes = classesPipelines.retrieveClasses()
+        val classes = listOf(classesPipeline).retrieveClasses()
         val buildDirectory = classes.createBuildDirectory()
 
-        val codegenLanguage = testFrameworkConfiguration.codegenLanguage
+        val codegenLanguage = testInfrastructureConfiguration.codegenLanguage
 
-        val testClassesNamesToTestGeneratedTests = classesPipelines.map { classPipeline ->
-            val codeGeneratorResult = classPipeline.stageContext.data as CodeGeneratorResult//String
+            val codeGeneratorResult = classesPipeline.stageContext.data as CodeGeneratorResult//String
             val testClass = codeGeneratorResult.generatedCode
 
-            val testClassName = classPipeline.retrieveTestClassName("GeneratedTest")
+            val testClassName = classesPipeline.retrieveTestClassName("GeneratedTest")
             val generatedTestFile = writeTest(testClass, testClassName, buildDirectory, codegenLanguage)
             val generatedUtilClassFile = codeGeneratorResult.utilClassKind?.writeUtilClassToFile(buildDirectory, codegenLanguage)
 
@@ -205,12 +198,12 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                 logger.info("Util class for the test has been written to the file: [$generatedUtilClassFile]")
             }
 
-            GeneratedTestClassInfo(testClassName, generatedTestFile, generatedUtilClassFile)
-        }
+            val testClassesNamesToTestGeneratedTests = GeneratedTestClassInfo(testClassName, generatedTestFile, generatedUtilClassFile)
+
 
         val sourceFiles = mutableListOf<String>().apply {
-            this += testClassesNamesToTestGeneratedTests.map { it.generatedTestFile.absolutePath }
-            this += testClassesNamesToTestGeneratedTests.mapNotNull { it.generatedUtilClassFile?.absolutePath }
+            testClassesNamesToTestGeneratedTests.generatedTestFile.absolutePath?.let { this += it }
+            testClassesNamesToTestGeneratedTests.generatedUtilClassFile?.absolutePath?.let { this += it }
         }
         compileTests(
             "$buildDirectory",
@@ -218,12 +211,10 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
             codegenLanguage
         )
 
-        testClassesNamesToTestGeneratedTests.zip(classesPipelines) { generatedTestClassInfo, classPipeline ->
-            classPipeline.stageContext = classPipeline.stageContext.copy(
-                data = CompilationResult("$buildDirectory", generatedTestClassInfo.testClassName),
-                stages = classPipeline.stageContext.stages + information.completeStage()
-            )
-        }
+        classesPipeline.stageContext = classesPipeline.stageContext.copy(
+            data = CompilationResult("$buildDirectory", testClassesNamesToTestGeneratedTests.testClassName),
+            stages = classesPipeline.stageContext.stages + information.completeStage()
+        )
     }
 
     /**
@@ -239,21 +230,20 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     private fun List<ClassPipeline>.retrieveClasses() = map { it.stageContext.classUnderTest.java }
 
     @Suppress("UNCHECKED_CAST")
-    private fun processTestExecutionStages(classesPipelines: List<ClassPipeline>) {
+    private fun processTestExecutionStages(classesPipeline: ClassPipeline) {
         val information = StageExecutionInformation(TestExecution)
-        val buildDirectory = (classesPipelines.first().stageContext.data as CompilationResult).buildDirectory
-        val testClassesNames = classesPipelines.map { classPipeline ->
-            (classPipeline.stageContext.data as CompilationResult).testClassName
-        }
-        with(testFrameworkConfiguration) {
+        val compilationResult = classesPipeline.stageContext.data as CompilationResult
+        val buildDirectory = compilationResult.buildDirectory
+        val testClassesNames = listOf(compilationResult.testClassName)
+
+        with(testInfrastructureConfiguration) {
             runTests(buildDirectory, testClassesNames, testFramework, codegenLanguage)
         }
-        classesPipelines.forEach {
-            it.stageContext = it.stageContext.copy(
+
+        classesPipeline.stageContext = classesPipeline.stageContext.copy(
                 data = Unit,
-                stages = it.stageContext.stages + information.completeStage()
+                stages = classesPipeline.stageContext.stages + information.completeStage()
             )
-        }
     }
 
     private fun callToCodeGenerator(
@@ -263,21 +253,23 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         val params = mutableMapOf<ExecutableId, List<String>>()
 
         withUtContext(UtContext(classUnderTest.java.classLoader)) {
-            val codeGenerator = with(testFrameworkConfiguration) {
-                CodeGenerator(
-                    classUnderTest.id,
-                    projectType = ProjectType.PureJvm,
-                    generateUtilClassFile = generateUtilClassFile,
-                    paramNames = params,
-                    testFramework = testFramework,
-                    staticsMocking = staticsMocking,
-                    forceStaticMocking = forceStaticMocking,
-                    generateWarningsForStaticMocking = false,
-                    codegenLanguage = codegenLanguage,
-                    cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
-                    parameterizedTestSource = parametrizedTestSource,
-                    runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-                    enableTestsTimeout = enableTestsTimeout
+            val codeGenerator = with(testInfrastructureConfiguration) {
+                applicationContext.createCodeGenerator(
+                    CodeGeneratorParams(
+                        classUnderTest.id,
+                        projectType = projectType,
+                        generateUtilClassFile = generateUtilClassFile,
+                        paramNames = params,
+                        testFramework = testFramework,
+                        staticsMocking = staticsMocking,
+                        forceStaticMocking = forceStaticMocking,
+                        generateWarningsForStaticMocking = false,
+                        codegenLanguage = codegenLanguage,
+                        cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
+                        parameterizedTestSource = parametrizedTestSource,
+                        runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
+                        enableTestsTimeout = enableTestsTimeout,
+                    )
                 )
             }
             val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
@@ -286,55 +278,52 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         }
     }
 
-    private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {
-        val results = runPipelinesStages(classesPipelines)
-        val classesChecks = classesPipelines.map { it.stageContext.classUnderTest to listOf(it.check) }
-        processResults(results, classesChecks)
+    private fun checkPipelinesResults(classesPipeline: ClassPipeline) {
+        val result = runPipelinesStages(classesPipeline)
+        val classChecks = classesPipeline.stageContext.classUnderTest to listOf(classesPipeline.check)
+        processResults(result, classChecks)
     }
 
     private fun processResults(
-        results: List<CodeGenerationResult>,
-        classesChecks: List<Pair<KClass<*>, List<StageStatusCheck>>>
+        result: CodeGenerationResult,
+        classChecks: Pair<KClass<*>, List<StageStatusCheck>>
     ) {
-        val transformedResults: List<Pair<KClass<*>, List<String>>> =
-            results.zip(classesChecks) { result, classChecks ->
-                val stageStatusChecks = classChecks.second.mapNotNull { check ->
-                    runCatching { check(result) }
-                        .fold(
-                            onSuccess = { if (it) null else check.description },
-                            onFailure = { it.description }
-                        )
-                }
-                result.classUnderTest to stageStatusChecks
-            }
-        val failedResults = transformedResults.filter { it.second.isNotEmpty() }
+        val stageStatusChecks = classChecks.second.mapNotNull { check ->
+            runCatching { check(result) }
+                .fold(
+                    onSuccess = { if (it) null else check.description },
+                    onFailure = { it.description }
+                )
+        }
+        val transformedResult: Pair<KClass<*>, List<String>> =  result.classUnderTest to stageStatusChecks
+        val failedResultExists = transformedResult.second.isNotEmpty()
 
-        assertTrue(failedResults.isEmpty()) {
-            val separator = "\n\t\t"
-            val failedResultsConcatenated = failedResults.joinToString(separator, prefix = separator) {
-                "${it.first.simpleName} : ${it.second.joinToString()}"
-            }
-
-            "There are failed checks: $failedResultsConcatenated"
+        assertFalse(failedResultExists) {
+            "There are failed checks: ${transformedResult.second}"
         }
     }
 
     companion object {
-        var currentTestFrameworkConfiguration = defaultTestFrameworkConfiguration()
+        private val defaultConfiguration =
+            Configuration(CodegenLanguage.JAVA, ParametrizedTestSource.DO_NOT_PARAMETRIZE, TestExecution)
 
-        fun defaultTestFrameworkConfiguration(
-            language: CodegenLanguage = CodegenLanguage.JAVA,
-            parameterizationMode: ParametrizedTestSource = ParametrizedTestSource.defaultItem
-        ) = TestFrameworkConfiguration(
-            testFramework = TestFramework.defaultItem,
-            codegenLanguage = language,
-            mockFramework = MockFramework.defaultItem,
-            mockStrategy = MockStrategyApi.defaultItem,
-            staticsMocking = StaticsMocking.defaultItem,
-            parametrizedTestSource = parameterizationMode,
-            forceStaticMocking = ForceStaticMocking.defaultItem,
-            generateUtilClassFile = false
-        )
+        //TODO: this variable must be lateinit, without strange default initializer
+        var currentTestInfrastructureConfiguration: TestInfrastructureConfiguration = configurePipeline(defaultConfiguration)
+
+        fun configurePipeline(configuration: AbstractConfiguration) =
+            TestInfrastructureConfiguration(
+                projectType = configuration.projectType,
+                testFramework = TestFramework.defaultItem,
+                codegenLanguage = configuration.language,
+                mockFramework = MockFramework.defaultItem,
+                mockStrategy = configuration.mockStrategy,
+                staticsMocking = StaticsMocking.defaultItem,
+                parametrizedTestSource = configuration.parametrizedTestSource,
+                forceStaticMocking = ForceStaticMocking.defaultItem,
+                generateUtilClassFile = false
+            ).also {
+                currentTestInfrastructureConfiguration = it
+            }
 
         private const val ERROR_REGION_BEGINNING = "///region Errors"
         private const val ERROR_REGION_END = "///endregion"
@@ -348,10 +337,8 @@ enum class ExecutionStatus {
 sealed class Stage(private val name: String, val nextStage: Stage?) {
     override fun toString() = name
 
-    fun filterPipelines(classesPipelines: List<ClassPipeline>): List<ClassPipeline> =
-        classesPipelines.filter {
-            it.check.firstStage <= this && it.check.lastStage >= this
-        }
+    fun verifyPipeline(classesPipeline: ClassPipeline): ClassPipeline? =
+        if (classesPipeline.check.firstStage <= this && classesPipeline.check.lastStage >= this) classesPipeline else null
 
     abstract operator fun compareTo(stage: Stage): Int
 }

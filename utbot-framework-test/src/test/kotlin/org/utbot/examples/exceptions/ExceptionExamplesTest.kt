@@ -1,10 +1,8 @@
 package org.utbot.examples.exceptions
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.atLeast
 import org.utbot.testing.ignoreExecutionsNumber
@@ -13,10 +11,8 @@ import org.utbot.testing.isException
 internal class ExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ExceptionExamples::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO: fails because we construct lists with generics
-    )
+    // TODO: Kotlin code generation fails because we construct lists with generics
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testInitAnArray() {

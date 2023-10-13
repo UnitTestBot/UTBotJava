@@ -10,6 +10,7 @@ import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.PACKAGE_
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_BASE_PACKAGE_NAME
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
+import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
@@ -278,7 +279,7 @@ internal class UtilClassFileMethodProvider(language: CodegenLanguage)
     val UTIL_CLASS_VERSION = "2.1"
 }
 
-internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
+class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
 
 internal fun selectUtilClassId(codegenLanguage: CodegenLanguage): ClassId =
     when (codegenLanguage) {
@@ -301,22 +302,43 @@ internal val utKotlinUtilsClassId: ClassId
         isKotlinObject = true
     )
 
-/**
- * [MethodId] for [AutoCloseable.close].
- */
-val openMocksMethodId = MethodId(
+val openMocksMethodId = BuiltinMethodId(
     classId = MockitoAnnotations::class.id,
     name = "openMocks",
     returnType = AutoCloseable::class.java.id,
     parameters = listOf(objectClassId),
+    isStatic = true,
 )
 
+/**
+ * [MethodId] for [AutoCloseable.close].
+ */
 val closeMethodId = MethodId(
     classId = AutoCloseable::class.java.id,
     name = "close",
     returnType = voidClassId,
     parameters = emptyList(),
 )
+
+private val clearCollectionMethodId = MethodId(
+    classId = Collection::class.java.id,
+    name = "clear",
+    returnType = voidClassId,
+    parameters = emptyList()
+)
+
+private val clearMapMethodId = MethodId(
+    classId = Map::class.java.id,
+    name = "clear",
+    returnType = voidClassId,
+    parameters = emptyList()
+)
+
+fun clearMethodId(javaClass: Class<*>): MethodId = when {
+    Collection::class.java.isAssignableFrom(javaClass) -> clearCollectionMethodId
+    Map::class.java.isAssignableFrom(javaClass) -> clearMapMethodId
+    else -> error("Clear method is not implemented for $javaClass")
+}
 
 val mocksAutoCloseable: Set<ClassId> = setOf(
     MockitoStaticMocking.mockedStaticClassId,

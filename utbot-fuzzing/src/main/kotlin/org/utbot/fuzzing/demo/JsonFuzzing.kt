@@ -30,7 +30,6 @@ private class JsonBuilder(
  *
  * Also, some utility class such as [BaseFuzzing] and [TypeProvider] are used to start fuzzing without class inheritance.
  */
-@Suppress("RemoveExplicitTypeArguments")
 suspend fun main() {
     var count = 0
     val set = mutableMapOf<String, AtomicLong>()
@@ -85,7 +84,7 @@ suspend fun main() {
         println(result)
         set.computeIfAbsent(result) { AtomicLong() }.incrementAndGet()
         if (++count < 10000) emptyFeedback() else {
-            println("Duplication ratio:" + set.size / count.toDouble())
+            println("Unique ratio:" + set.size / count.toDouble())
             error("Forced from the example")
         }
     }.fuzz(

@@ -20,12 +20,6 @@ class NoProbesArrayException(clazz: Class<*>, arrayName: String) :
 class CastProbesArrayException :
     InstrumentationException("Can't cast probes array to Boolean array")
 
-class ReadingFromKryoException(e: Throwable) :
-    InstrumentationException("Reading from Kryo exception |> ${e.stackTraceToString()}", e)
-
-class WritingToKryoException(e: Throwable) :
-    InstrumentationException("Writing to Kryo exception |> ${e.stackTraceToString()}", e)
-
 /**
  * this exception is thrown only in main process.
  * currently it means that {e: Throwable} happened in instrumented process,

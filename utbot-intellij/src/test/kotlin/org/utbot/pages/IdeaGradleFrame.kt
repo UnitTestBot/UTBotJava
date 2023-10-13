@@ -3,6 +3,7 @@ package org.utbot.pages
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.data.RemoteComponent
 import com.intellij.remoterobot.fixtures.DefaultXpath
+import com.intellij.remoterobot.utils.waitFor
 import com.intellij.remoterobot.utils.waitForIgnoringError
 import org.utbot.data.IdeaBuildSystem
 import java.time.Duration.ofSeconds
@@ -12,37 +13,39 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
 
     override val buildSystemToUse = IdeaBuildSystem.GRADLE
 
-    override fun waitProjectIsCreated() {
-        super.waitProjectIsOpened()
-        waitForIgnoringError (ofSeconds(60)) {
-            statusTextPanel.hasText { it.text.contains("Gradle sync finished") }
-        }
+    override fun waitProjectIsBuilt() {
+        super.waitProjectIsBuilt()
+        try {
+            waitFor (ofSeconds(90)) {
+                inlineProgressTextPanel.isShowing.not()
+            }
+        } catch (ignore: Throwable) {}
     }
 
-    override fun expandProjectTree(projectName: String) {
+    override fun expandProjectTree() {
         with(projectViewTree) {
             waitForIgnoringError(ofSeconds(10)) {
-                hasText("src")
+                hasText(projectName)
             }
             if (hasText("src").not()) {
                 findText(projectName).doubleClick()
-                waitForIgnoringError{
-                    hasText("src")
-                }
+            }
+            waitForIgnoringError{
+                hasText("src")
             }
             if (hasText("main").not()) {
                 findText("src").doubleClick()
-                waitForIgnoringError{
-                    hasText("src").and(hasText("main"))
-                }
+            }
+            waitForIgnoringError{
+                hasText("src").and(hasText("main"))
             }
             if (hasText("java").not()) {
                 findText("main").doubleClick()
-                waitForIgnoringError{
-                    hasText("src").and(hasText("main")).and(hasText("java"))
-                }
             }
-            if (hasText("org.example").not()) {
+            waitForIgnoringError{
+                hasText("src").and(hasText("main")).and(hasText("java"))
+            }
+            if (hasText {it.text.startsWith("org") || it.text.startsWith("com")}.not()) {
                 findText("java").doubleClick()
             }
         }

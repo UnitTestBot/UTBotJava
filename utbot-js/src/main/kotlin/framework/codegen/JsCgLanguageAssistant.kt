@@ -10,11 +10,11 @@ import org.utbot.framework.codegen.domain.context.TestClassContext
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgRendererContext
-import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.codegen.services.language.AbstractCgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.utils.testClassNameGenerator
+import org.utbot.framework.plugin.api.utils.ClassNameUtils.generateTestClassName
 
-object JsCgLanguageAssistant : CgLanguageAssistant() {
+object JsCgLanguageAssistant : AbstractCgLanguageAssistant() {
 
     override val outerMostTestClassContent: TestClassContext = TestClassContext()
 
@@ -35,7 +35,7 @@ object JsCgLanguageAssistant : CgLanguageAssistant() {
         testClassPackageName: String,
         classUnderTest: ClassId
     ): Pair<String, String> {
-        return testClassNameGenerator(testClassCustomName, testClassPackageName, classUnderTest)
+        return generateTestClassName(testClassCustomName, testClassPackageName, classUnderTest)
     }
 
     override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer = CgJsRenderer(context, printer)

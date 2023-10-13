@@ -1,14 +1,7 @@
 package org.utbot.python.framework.api.python
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.DocStatement
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.python.framework.api.python.util.comparePythonTree
+import org.utbot.framework.plugin.api.*
+import org.utbot.python.PythonArgument
 import org.utbot.python.framework.api.python.util.moduleOfType
 
 /**
@@ -86,7 +79,7 @@ class PythonTreeModel(
         if (other !is PythonTreeModel) {
             return false
         }
-        return comparePythonTree(tree, other.tree)
+        return tree == other.tree
     }
 
     override fun hashCode(): Int {
@@ -100,8 +93,44 @@ class PythonUtExecution(
     stateAfter: EnvironmentModels,
     val diffIds: List<Long>,
     result: UtExecutionResult,
+    val arguments: List<PythonArgument>,
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
-    displayName: String? = null
-) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName)
+    displayName: String? = null,
+) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
+    init {
+        stateInit.parameters.zip(stateBefore.parameters).map { (init, before) ->
+            if (init is PythonTreeModel && before is PythonTreeModel) {
+                init.tree.comparable = before.tree.comparable
+            }
+        }
+        val init = stateInit.thisInstance
+        val before = stateBefore.thisInstance
+        if (init is PythonTreeModel && before is PythonTreeModel) {
+            init.tree.comparable = before.tree.comparable
+        }
+    }
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution {
+        return PythonUtExecution(
+            stateInit = stateInit,
+            stateBefore = stateBefore,
+            stateAfter = stateAfter,
+            diffIds = diffIds,
+            result = result,
+            coverage = coverage,
+            summary = summary,
+            testMethodName = testMethodName,
+            displayName = displayName,
+            arguments = arguments
+        )
+    }
+}

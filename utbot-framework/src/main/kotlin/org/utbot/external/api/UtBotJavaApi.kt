@@ -10,7 +10,10 @@ import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.generator.CodeGenerator
+import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.context.simple.SimpleApplicationContext
+import org.utbot.framework.context.utils.transformValueProvider
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
@@ -36,10 +39,13 @@ import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzing.FuzzedDescription
+import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
+import org.utbot.instrumentation.instrumentation.execution.SimpleUtExecutionInstrumentation
+import java.io.File
 import kotlin.reflect.jvm.kotlinFunction
 
 object UtBotJavaApi {
@@ -71,7 +77,7 @@ object UtBotJavaApi {
         val testSets: MutableList<UtMethodTestSet> = generatedTestCases.toMutableList()
 
         val concreteExecutor = ConcreteExecutor(
-            UtExecutionInstrumentation,
+            SimpleUtExecutionInstrumentation.Factory(pathsToUserClasses = classpath.split(File.pathSeparator).toSet()),
             classpath,
         )
 
@@ -83,6 +89,7 @@ object UtBotJavaApi {
 
         return withUtContext(utContext) {
             val codeGenerator = CodeGenerator(
+                CodeGeneratorParams(
                     classUnderTest = classUnderTest.id,
                     projectType = projectType,
                     testFramework = testFramework,
@@ -94,6 +101,7 @@ object UtBotJavaApi {
                     generateWarningsForStaticMocking = generateWarningsForStaticMocking,
                     testClassPackageName = testClassPackageName
                 )
+            )
 
             codeGenerator.generateAsString(testSets, destinationClassName)
         }
@@ -166,7 +174,7 @@ object UtBotJavaApi {
                 }
                 ?.map { UtPrimitiveModel(it) } ?: emptySequence()
 
-        val customModelProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> { _, type ->
+        val customModelProvider = JavaValueProvider { _, type ->
             sequence {
                 createPrimitiveModels(primitiveValuesSupplier, type.classId).forEach { model ->
                     yield(Seed.Simple(FuzzedValue(model)))
@@ -176,7 +184,15 @@ object UtBotJavaApi {
 
         return withUtContext(UtContext(classUnderTest.classLoader)) {
             val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(listOf(buildPath), classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
+            TestCaseGenerator(
+                listOf(buildPath),
+                classpath,
+                dependencyClassPath,
+                jdkInfo = JdkInfoDefaultProvider().info,
+                applicationContext = SimpleApplicationContext().transformValueProvider { defaultModelProvider ->
+                    customModelProvider.withFallback(defaultModelProvider)
+                }
+            )
                 .generate(
                     methodsForAutomaticGeneration.map {
                         it.methodToBeTestedFromUserInput.executableId
@@ -184,11 +200,7 @@ object UtBotJavaApi {
                     mockStrategyApi,
                     chosenClassesToMockAlways = emptySet(),
                     generationTimeoutInMillis,
-                    generate = { symbolicEngine ->
-                        symbolicEngine.fuzzing { defaultModelProvider ->
-                            customModelProvider.withFallback(defaultModelProvider)
-                        }
-                    }
+                    generate = { symbolicEngine -> symbolicEngine.fuzzing() }
                 )
         }.toMutableList()
     }
@@ -225,7 +237,8 @@ object UtBotJavaApi {
                 parameters = UtConcreteExecutionData(
                     testInfo.initialState,
                     instrumentation = emptyList(),
-                    UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis
+                    UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis,
+                    isRerun = false,
                 )
             ).result
         } else {

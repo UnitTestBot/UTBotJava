@@ -12,10 +12,6 @@ import org.utbot.testing.value
 
 internal class MockFinalClassTest : UtValueTestCaseChecker(
     testClass = MockFinalClassExample::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
 ) {
     @Test
     fun testFinalClass() {

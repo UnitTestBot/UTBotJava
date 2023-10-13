@@ -12,7 +12,7 @@ class SummarySimpleClassExampleTest : SummaryTestCaseGeneratorTest(
     @Test
     fun testImmutableFieldAccess() {
         val summary1 = "Test \n" +
-                "throws NullPointerException in: c.b == 10\n"
+                "throws NullPointerException when: c.b == 10\n"
         val summary2 = "Test executes conditions:\n" +
                 "    (c.b == 10): False\n" +
                 "returns from: return 1;\n"

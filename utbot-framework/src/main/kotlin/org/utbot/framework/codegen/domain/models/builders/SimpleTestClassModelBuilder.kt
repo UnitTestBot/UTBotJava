@@ -1,21 +1,23 @@
 package org.utbot.framework.codegen.domain.models.builders
 
-import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.enclosingClass
 
-open class SimpleTestClassModelBuilder(context: CgContext): TestClassModelBuilder() {
+typealias TypedModelWrappers = Map<ClassId, Set<UtModelWrapper>>
+
+open class SimpleTestClassModelBuilder: TestClassModelBuilder() {
     override fun createTestClassModel(
         classUnderTest: ClassId,
         testSets: List<CgMethodTestSet>,
     ): SimpleTestClassModel {
         // For each class stores list of methods declared in this class (methods from nested classes are excluded)
-        val class2methodTestSets = testSets.groupBy { it.executableId.classId }
+        val class2methodTestSets = testSets.groupBy { it.executableUnderTest.classId }
 
         val classesWithMethodsUnderTest = testSets
-            .map { it.executableId.classId }
+            .map { it.executableUnderTest.classId }
             .distinct()
 
         // For each class stores list of its "direct" nested classes

@@ -8,9 +8,14 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.newtyping.mypy.MypyReportLine
+import org.utbot.python.newtyping.utils.isNamed
 
-data class PythonArgument(val name: String, val annotation: String?)
+data class PythonArgument(
+    val name: String,
+    val annotation: String?,
+    val isNamed: Boolean = false,
+)
 
 class PythonMethodHeader(
     val name: String,
@@ -26,24 +31,32 @@ class PythonMethod(
     var definition: PythonFunctionDefinition,
     val ast: Block
 ) {
+
     fun methodSignature(): String = "$name(" + arguments.joinToString(", ") {
         "${it.name}: ${it.annotation ?: pythonAnyClassId.name}"
     } + ")"
 
     /*
     Check that the first argument is `self` of `cls`.
-    TODO: Now we think that all class methods has `self` argument! We should support `@property` decorator
+    TODO: We should support `@property` decorator
      */
     val hasThisArgument: Boolean
-        get() = containingPythonClass != null
+        get() = containingPythonClass != null && definition.meta.args.any { it.isSelf }
 
     val arguments: List<PythonArgument>
         get() {
-            val paramNames = definition.meta.args.map { it.name }
-            return (definition.type.arguments zip paramNames).map {
-                PythonArgument(it.second, it.first.pythonTypeRepresentation())
+            val meta = definition.type.pythonDescription() as PythonCallableTypeDescription
+            return (definition.type.arguments).mapIndexed { index, type ->
+                PythonArgument(
+                    meta.argumentNames[index]!!,
+                    type.pythonTypeRepresentation(),  // TODO: improve pythonTypeRepresentation
+                    isNamed(meta.argumentKinds[index])
+                )
             }
         }
+
+    val argumentsWithoutSelf: List<PythonArgument>
+        get() = if (hasThisArgument) arguments.drop(1) else arguments
 
     val thisObjectName: String?
         get() = if (hasThisArgument) arguments[0].name else null
@@ -56,8 +69,9 @@ data class PythonTestSet(
     val method: PythonMethod,
     val executions: List<UtExecution>,
     val errors: List<UtError>,
-    val mypyReport: List<MypyAnnotations.MypyReportLine>,
+    val mypyReport: List<MypyReportLine>,
     val classId: PythonClassId? = null,
+    val executionsNumber: Int = 0,
 )
 
 data class FunctionArguments(

@@ -7,8 +7,10 @@ import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelWithCompositeOriginConstructor
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import java.security.AccessControlException
 import java.util.*
@@ -17,7 +19,9 @@ import java.util.*
  * This phase of model construction from concrete values.
  */
 class ModelConstructionPhase(
-    private val traceHandler: TraceHandler
+    private val traceHandler: TraceHandler,
+    private val utModelWithCompositeOriginConstructorFinder: (ClassId) -> UtModelWithCompositeOriginConstructor?,
+    private val idGenerator: StateBeforeAwareIdGenerator,
 ) : ExecutionPhase {
 
     override fun wrapError(e: Throwable): ExecutionPhaseException {
@@ -25,24 +29,40 @@ class ModelConstructionPhase(
         return when (e) {
             is TimeoutException -> ExecutionPhaseStop(
                 message,
-                UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage())
+                PreliminaryUtConcreteExecutionResult(
+                    stateAfter = MissingState,
+                    result = UtTimeoutException(e),
+                    coverage = Coverage()
+                )
             )
 
             else -> ExecutionPhaseError(message, e)
         }
     }
 
+    private val constructorConfiguration = ConstructorConfiguration()
     private lateinit var constructor: UtModelConstructor
 
     class ConstructorConfiguration {
         lateinit var cache: IdentityHashMap<Any, UtModel>
         lateinit var strategy: UtCompositeModelStrategy
+        var maxDepth: Long = UtModelConstructor.DEFAULT_MAX_DEPTH
+    }
+
+    fun preconfigureConstructor(block: ConstructorConfiguration.() -> Unit) {
+        constructorConfiguration.block()
     }
 
     fun configureConstructor(block: ConstructorConfiguration.() -> Unit) {
-        ConstructorConfiguration().run {
+        constructorConfiguration.run {
             block()
-            constructor = UtModelConstructor(cache, strategy)
+            constructor = UtModelConstructor(
+                objectToModelCache = cache,
+                utModelWithCompositeOriginConstructorFinder = utModelWithCompositeOriginConstructorFinder,
+                compositeModelStrategy = strategy,
+                idGenerator = idGenerator,
+                maxDepth = maxDepth,
+            )
         }
     }
 

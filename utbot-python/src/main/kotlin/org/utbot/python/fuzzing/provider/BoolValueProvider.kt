@@ -9,21 +9,20 @@ import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 
-object BoolValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription>{
-    override fun accept(type: Type): Boolean {
-        return type.pythonTypeName() == pythonBoolClassId.canonicalName || type.isAny()
+object BoolValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription>{
+    override fun accept(type: UtType): Boolean {
+        return type.pythonTypeName() == pythonBoolClassId.canonicalName
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         yieldBool(Bool.TRUE()) { true }
         yieldBool(Bool.FALSE()) { false }
     }
 
-    private suspend fun <T : KnownValue> SequenceScope<Seed<Type, PythonFuzzedValue>>.yieldBool(value: T, block: T.() -> Boolean) {
+    private suspend fun <T : KnownValue<T>> SequenceScope<Seed<UtType, PythonFuzzedValue>>.yieldBool(value: T, block: T.() -> Boolean) {
         yield(Seed.Known(value) {
             PythonFuzzedValue(
                 PythonTree.fromBool(block(it)),

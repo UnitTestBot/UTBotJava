@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.id
 import soot.SootField
 import java.lang.reflect.Constructor
@@ -267,6 +268,8 @@ val primitiveByWrapper = mapOf(
 
 val wrapperByPrimitive = primitiveByWrapper.entries.associateBy({ it.value }) { it.key }
 
+fun replaceWithWrapperIfPrimitive(classId: ClassId): ClassId = wrapperByPrimitive[classId] ?: classId
+
 // We consider void primitive here
 // It is sometimes useful even if void is not technically a primitive type
 val primitives = setOf(
@@ -305,6 +308,9 @@ val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
 val collectionClassId = java.util.Collection::class.id
 
+val listClassId = List::class.id
+val setClassId = Set::class.id
+
 val baseStreamClassId = java.util.stream.BaseStream::class.id
 val streamClassId = java.util.stream.Stream::class.id
 val intStreamClassId = java.util.stream.IntStream::class.id
@@ -317,6 +323,11 @@ val doubleStreamToArrayMethodId = methodId(doubleStreamClassId, "toArray", doubl
 val streamToArrayMethodId = methodId(streamClassId, "toArray", objectArrayClassId)
 
 val dateClassId = java.util.Date::class.id
+
+fun getArrayClassIdByElementClassId(elementClassId: ClassId): ClassId{
+    val elementClass = utContext.classLoader.loadClass(elementClassId.name)
+    return java.lang.reflect.Array.newInstance(elementClass,0)::class.java.id
+}
 
 @Suppress("RemoveRedundantQualifierName")
 val primitiveToId: Map<Class<*>, ClassId> = mapOf(
@@ -444,6 +455,7 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
     doubleClassId -> UtPrimitiveModel(0.0)
     booleanClassId -> UtPrimitiveModel(false)
     charClassId -> UtPrimitiveModel('\u0000')
+    voidClassId -> UtVoidModel
     else -> UtNullModel(this)
 }
 
@@ -455,6 +467,13 @@ val ClassId.allDeclaredFieldIds: Sequence<FieldId>
 
 val SootField.fieldId: FieldId
     get() = FieldId(declaringClass.id, name)
+
+/**
+ * For some lambdas class names in byte code and in Soot don't match, so we may fail
+ * to convert some soot fields to Java fields, in such case `null` is returned.
+ */
+val SootField.jFieldOrNull: Field?
+    get() = runCatching { fieldId.jField }.getOrNull()
 
 // FieldId utils
 val FieldId.safeJField: Field?
@@ -541,7 +560,7 @@ val Constructor<*>.executableId: ConstructorId
 val ExecutableId.humanReadableName: String
     get() {
         val executableName = this.name
-        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
+        val parameters = this.parameters.joinToString(separator = ", ") { it.name }
         return "$executableName($parameters)"
     }
 

@@ -8,10 +8,6 @@ import org.utbot.testing.UtValueTestCaseChecker
 
 internal class PrivateConstructorExampleTest : UtValueTestCaseChecker(
     testClass = PrivateConstructorExample::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
 ) {
 
     /**

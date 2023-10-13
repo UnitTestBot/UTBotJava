@@ -237,6 +237,16 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L, 0, Long.MAX_VALUE)
 
     /**
+     * Find implementations of interfaces and abstract classes to fuzz.
+     */
+    var fuzzingImplementationOfAbstractClasses: Boolean by getBooleanProperty(true)
+
+    /**
+     * Use methods to mutate fields of classes different from class under test or not.
+     */
+    var tryMutateOtherClassesFieldsWithMethods: Boolean by getBooleanProperty(false)
+
+    /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
      * that throw Arithmetic Exception.
      */
@@ -462,6 +472,15 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var useSandbox by getBooleanProperty(true)
 
     /**
+     * Transform bytecode in the instrumented process.
+     *
+     * If true, bytecode transformation will help fuzzing to find interesting input data, but the size of bytecode can increase.
+     *
+     * If false, bytecode won`t be changed.
+     */
+    var useBytecodeTransformation by getBooleanProperty(false)
+
+    /**
      * Limit for number of generated tests per method (in each region)
      */
     var maxTestsPerMethodInRegion by getIntProperty(50, 1, Integer.MAX_VALUE)
@@ -571,6 +590,28 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var maxArraySize by getIntProperty(1024)
 
     // endregion
+
+    // region UTBot light related options
+    // Changes to improve symbolic engine for light version
+
+    var disableUnsatChecking by getBooleanProperty(false)
+
+    // endregion
+
+    // region Spring-related options
+
+    /**
+     * When generating integration tests we only partially reset context in between executions to save time.
+     * For example, entity id generators do not get reset. It may lead to non-reproduceable results if
+     * IDs leak to the output of the method under test.
+     *
+     * To cope with that, we rerun executions that are left after minimization, fully resetting Spring context
+     * between executions. However, full context reset is slow, so we use this setting to limit number of
+     * tests per method that are rerun with full context reset in case minimization outputs too many tests.
+     */
+    var maxSpringContextResetsPerMethod by getIntProperty(25, 0, Int.MAX_VALUE)
+
+    // endregion
 }
 
 /**
@@ -586,6 +627,11 @@ enum class PathSelectorType {
      * [InheritorsSelector]
      */
     INHERITORS_SELECTOR,
+
+    /**
+     * [BFSSelector]
+     */
+    BFS_SELECTOR,
 
     /**
      * [SubpathGuidedSelector]
@@ -632,7 +678,7 @@ enum class TestSelectionStrategyType {
     /**
      * Adds new test only if it increases coverage
      */
-    COVERAGE_STRATEGY
+    COVERAGE_STRATEGY,
 }
 
 /**

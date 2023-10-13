@@ -1,11 +1,13 @@
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+tasks.withType(KotlinCompile).configureEach {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17
         freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
     }
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_17
 }
@@ -16,22 +18,12 @@ configurations {
 
 dependencies {
     implementation project(':utbot-framework')
-    implementation project(':utbot-cli')
     implementation project(':utbot-python')
 
-    implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
-    // Without this dependency testng tests do not run.
-    implementation group: 'com.beust', name: 'jcommander', version: '1.48'
-    implementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4PlatformVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
     implementation group: 'com.github.ajalt.clikt', name: 'clikt', version: cliktVersion
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: junit5Version
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit5Version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2Version
-    implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
-    //noinspection GroovyAssignabilityCheck
-    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 }
 
 processResources {
@@ -40,7 +32,8 @@ processResources {
     }
 }
 
-task createProperties(dependsOn: processResources) {
+tasks.register('createProperties') {
+    dependsOn processResources
     doLast {
         new File("$buildDir/resources/main/version.properties").withWriter { w ->
             Properties properties = new Properties()

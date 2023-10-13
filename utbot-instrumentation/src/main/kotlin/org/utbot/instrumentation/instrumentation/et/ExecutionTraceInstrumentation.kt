@@ -57,4 +57,8 @@ class ExecutionTraceInstrumentation : Instrumentation<Trace> {
             classByteCode
         }
     }
+
+    object Factory : Instrumentation.Factory<Trace, ExecutionTraceInstrumentation> {
+        override fun create(): ExecutionTraceInstrumentation = ExecutionTraceInstrumentation()
+    }
 }

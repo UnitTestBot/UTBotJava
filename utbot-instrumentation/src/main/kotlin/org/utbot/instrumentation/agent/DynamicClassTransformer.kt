@@ -9,6 +9,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.nio.file.Paths
 import java.security.ProtectionDomain
 import kotlin.io.path.absolutePathString
+import kotlin.properties.Delegates
 
 
 private val logger = getLogger<DynamicClassTransformer>()
@@ -19,6 +20,7 @@ private val logger = getLogger<DynamicClassTransformer>()
 class DynamicClassTransformer : ClassFileTransformer {
     lateinit var transformer: ClassFileTransformer
 
+    var useBytecodeTransformation by Delegates.notNull<Boolean>()
     private val pathsToUserClasses = mutableSetOf<String>()
 
     fun addUserPaths(paths: Iterable<String>) {
@@ -33,7 +35,9 @@ class DynamicClassTransformer : ClassFileTransformer {
         classfileBuffer: ByteArray
     ): ByteArray? {
         try {
-            UtContext.currentContext()?.stopWatch?.stop()
+            // since we got here we have loaded a new class, meaning program is not stuck and some "meaningful"
+            // non-repeating actions are performed, so we assume that we should not time out for then next 65 ms
+            UtContext.currentContext()?.stopWatch?.stop(compensationMillis = 65)
             val pathToClassfile = protectionDomain.codeSource?.location?.toURI()?.let(Paths::get)?.absolutePathString()
             return if (pathToClassfile in pathsToUserClasses ||
                 packsToAlwaysTransform.any(className::startsWith)

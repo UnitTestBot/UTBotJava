@@ -8,7 +8,6 @@
 
 package org.utbot.framework.plugin.api
 
-import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
@@ -56,15 +55,11 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
-import org.utbot.common.isStatic
-import org.utbot.framework.isFromTrustedLibrary
-import org.utbot.framework.plugin.api.TypeReplacementMode.*
-import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
-import org.utbot.framework.plugin.api.util.fieldId
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
+import org.utbot.framework.plugin.api.mapper.map
+import org.utbot.framework.plugin.api.mapper.mapPreservingType
+import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.process.OpenModulesContainer
-import soot.SootField
 import soot.SootMethod
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
@@ -139,7 +134,19 @@ abstract class UtExecution(
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null
-) : UtResult()
+) : UtResult() {
+    abstract fun copy(
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
+    ): UtExecution
+
+    val executableToCall get() = stateBefore.executableToCall
+}
 
 /**
  * Symbolic execution.
@@ -175,6 +182,27 @@ class UtSymbolicExecution(
 
     var containsMocking: Boolean = false
 
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution = UtSymbolicExecution(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        instrumentation = instrumentation,
+        path = path,
+        fullPath = fullPath,
+        coverage = coverage,
+        summary = summary,
+        testMethodName = testMethodName,
+        displayName = displayName
+    )
+
     override fun toString(): String = buildString {
         append("UtSymbolicExecution(")
         appendLine()
@@ -199,25 +227,28 @@ class UtSymbolicExecution(
     }
 
     fun copy(
-        stateAfter: EnvironmentModels,
-        result: UtExecutionResult,
-        coverage: Coverage,
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
         instrumentation: List<UtInstrumentation> = this.instrumentation,
-    ): UtResult {
-        return UtSymbolicExecution(
-            stateBefore,
-            stateAfter,
-            result,
-            instrumentation,
-            path,
-            fullPath,
-            coverage,
-            summary,
-            testMethodName,
-            displayName,
-            symbolicSteps,
-        )
-    }
+        path: MutableList<Step> = this.path,
+        fullPath: List<Step> = this.fullPath
+    ): UtExecution = UtSymbolicExecution(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        instrumentation = instrumentation,
+        path = path,
+        fullPath = fullPath,
+        coverage = coverage,
+        summary = summary,
+        testMethodName = testMethodName,
+        displayName = displayName
+    )
 }
 
 /**
@@ -234,18 +265,59 @@ class UtSymbolicExecution(
  */
 class UtFailedExecution(
     stateBefore: EnvironmentModels,
-    result: UtExecutionFailure,
+    result: UtExecutionResult,
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
     displayName: String? = null
-) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName) {
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution {
+        return UtFailedExecution(
+            stateBefore,
+            result,
+            coverage,
+            summary,
+            testMethodName,
+            displayName
+        )
+    }
+}
 
+/**
+ * @property executableToCall executable that is called in the test body and whose result is used in asserts as `actual`.
+ *
+ * Most often [executableToCall] is just method under test, but it may be changed to different executable if more
+ * appropriate way of calling specific method is found (for example, Spring controller methods are called via `MockMvc`).
+ *
+ * `null` value of [executableToCall] indicates that method under test should be called in the test body.
+ */
 open class EnvironmentModels(
     val thisInstance: UtModel?,
     val parameters: List<UtModel>,
-    val statics: Map<FieldId, UtModel>
+    val statics: Map<FieldId, UtModel>,
+    val executableToCall: ExecutableId?,
 ) {
+    @Deprecated("Now `executableToCall` also need to be passed to `EnvironmentModels` constructor " +
+            "(see more details in `EnvironmentModels` class documentation)", level = DeprecationLevel.ERROR)
+    constructor(
+        thisInstance: UtModel?,
+        parameters: List<UtModel>,
+        statics: Map<FieldId, UtModel>,
+    ) : this(
+        thisInstance = thisInstance,
+        parameters = parameters,
+        statics = statics,
+        executableToCall = null,
+    )
+
     override fun toString() = buildString {
         append("this=$thisInstance")
         appendOptional("parameters", parameters)
@@ -259,8 +331,9 @@ open class EnvironmentModels(
     fun copy(
         thisInstance: UtModel? = this.thisInstance,
         parameters: List<UtModel> = this.parameters,
-        statics: Map<FieldId, UtModel> = this.statics
-    ) = EnvironmentModels(thisInstance, parameters, statics)
+        statics: Map<FieldId, UtModel> = this.statics,
+        executableToCall: ExecutableId? = this.executableToCall,
+    ) = EnvironmentModels(thisInstance, parameters, statics, executableToCall)
 }
 
 /**
@@ -269,11 +342,12 @@ open class EnvironmentModels(
 object MissingState : EnvironmentModels(
     thisInstance = null,
     parameters = emptyList(),
-    statics = emptyMap()
+    statics = emptyMap(),
+    executableToCall = null,
 )
 
 /**
- * Error happened in traverse.
+ * Error happened during test cases generation.
  */
 data class UtError(
     val description: String,
@@ -325,6 +399,15 @@ fun UtModel.hasDefaultValue() =
  * Checks if [UtModel] is a mock.
  */
 fun UtModel.isMockModel() = this is UtCompositeModel && isMock
+
+/**
+ * Checks that this [UtModel] must be constructed with @Spy annotation in generated tests.
+ * Used only for construct variables with @Spy annotation.
+ */
+fun UtModel.canBeSpied(): Boolean =
+    this is UtAssembleModel && spiedTypes.any { type -> type.isAssignableFrom(this.classId.jClass)}
+
+val spiedTypes = setOf(Collection::class.java, Map::class.java)
 
 /**
  * Get model id (symbolic null value for UtNullModel)
@@ -402,7 +485,7 @@ data class UtEnumConstantModel(
 data class UtClassRefModel(
     override val id: Int,
     override val classId: ClassId,
-    val value: Class<*>
+    val value: ClassId
 ) : UtReferenceModel(id, classId) {
     // Model id is included for debugging purposes
     override fun toString(): String = "$value@$id"
@@ -415,6 +498,12 @@ data class UtClassRefModel(
  * - isMock flag
  * - calculated field values (models)
  * - mocks for methods with return values
+ * - [canHaveRedundantOrMissingMocks] flag, which is set to `true` for mocks
+ *   created by:
+ *    - fuzzer which doesn't know which methods will actually be called
+ *    - engine which also doesn't know which methods will actually be
+ *      called during concrete execution that may be only **partially**
+ *      backed up by the symbolic analysis
  *
  * [fields] contains non-static fields
  */
@@ -424,6 +513,7 @@ data class UtCompositeModel(
     val isMock: Boolean,
     val fields: MutableMap<FieldId, UtModel> = mutableMapOf(),
     val mocks: MutableMap<ExecutableId, List<UtModel>> = mutableMapOf(),
+    val canHaveRedundantOrMissingMocks: Boolean = true,
 ) : UtReferenceModel(id, classId) {
     //TODO: SAT-891 - rewrite toString() method
     override fun toString() = withToStringThreadLocalReentrancyGuard {
@@ -505,6 +595,21 @@ data class UtArrayModel(
 }
 
 /**
+ * Wrapper of [origin] model, that can be handled in a different
+ * way in some situations (e.g. during value construction).
+ */
+sealed class UtModelWithCompositeOrigin(
+    id: Int?,
+    classId: ClassId,
+    modelName: String = id.toString(),
+    open val origin: UtCompositeModel?,
+) : UtReferenceModel(
+    id = id,
+    classId = classId,
+    modelName = modelName
+)
+
+/**
  * Model for complex objects with assemble instructions.
  *
  * The default constructor is made private to enforce using a safe constructor.
@@ -518,8 +623,8 @@ data class UtAssembleModel private constructor(
     override val modelName: String,
     val instantiationCall: UtStatementCallModel,
     val modificationsChain: List<UtStatementModel>,
-    val origin: UtCompositeModel?
-) : UtReferenceModel(id, classId, modelName) {
+    override val origin: UtCompositeModel?
+) : UtModelWithCompositeOrigin(id, classId, modelName, origin) {
 
     /**
      * Creates a new [UtAssembleModel].
@@ -657,45 +762,73 @@ class UtLambdaModel(
     }
 }
 
-abstract class UtAutowiredBaseModel(
-    override val id: Int?,
-    override val classId: ClassId,
-    val origin: UtModel,
-    modelName: String
-) : UtReferenceModel(
-    id, classId, modelName
-)
-
-class UtAutowiredStateBeforeModel(
+/**
+ * Common parent of all framework-specific models (e.g. Spring-specific models)
+ */
+abstract class UtCustomModel(
     id: Int?,
     classId: ClassId,
-    origin: UtModel,
-    val beanName: String,
-    val repositoriesContent: List<RepositoryContentModel>,
-) : UtAutowiredBaseModel(
-    id, classId, origin, modelName = "@Autowired $beanName#$id"
-)
+    modelName: String = id.toString(),
+    override val origin: UtCompositeModel? = null,
+) : UtModelWithCompositeOrigin(id, classId, modelName, origin) {
+    abstract fun shallowMap(mapper: UtModelMapper): UtCustomModel
+}
 
-data class RepositoryContentModel(
+object UtSpringContextModel : UtCustomModel(
+    id = null,
+    classId = SpringModelUtils.applicationContextClassId,
+    modelName = "applicationContext"
+) {
+    override fun shallowMap(mapper: UtModelMapper) = this
+
+    // NOTE that overriding equals is required just because without it
+    // we will lose equality for objects after deserialization
+    override fun equals(other: Any?): Boolean = other is UtSpringContextModel
+
+    override fun hashCode(): Int = 0
+}
+
+class UtSpringEntityManagerModel : UtCustomModel(
+    id = null,
+    classId = SpringModelUtils.entityManagerClassIds.first(),
+    modelName = "entityManager"
+) {
+    override fun shallowMap(mapper: UtModelMapper) = this
+
+    // NOTE that overriding equals is required just because without it
+    // we will lose equality for objects after deserialization
+    override fun equals(other: Any?): Boolean = other is UtSpringEntityManagerModel
+
+    override fun hashCode(): Int = 0
+}
+
+data class SpringRepositoryId(
     val repositoryBeanName: String,
-    val entityModels: List<UtModel>,
+    val repositoryClassId: ClassId,
+    val entityClassId: ClassId,
 )
 
-class UtAutowiredStateAfterModel(
-    id: Int?,
-    classId: ClassId,
-    origin: UtModel,
-    val repositoryInteractions: List<RepositoryInteractionModel>,
-) : UtAutowiredBaseModel(
-    id, classId, origin, modelName = "@Autowired ${classId.name}#$id"
-)
-
-data class RepositoryInteractionModel(
-    val beanName: String,
-    val executableId: ExecutableId,
-    val args: List<UtModel>,
-    val result: UtExecutionResult
-)
+data class UtSpringMockMvcResultActionsModel(
+    override val id: Int?,
+    override val origin: UtCompositeModel?,
+    val status: Int,
+    val errorMessage: String?,
+    val contentAsString: String,
+    val viewName: String?,
+    // model for mvcResult.modelAndView?.model
+    val model: UtModel?
+    // TODO add headers and other data
+) : UtCustomModel(
+    origin = origin,
+    classId = SpringModelUtils.resultActionsClassId,
+    id = id,
+    modelName = "mockMvcResultActions@$id"
+) {
+    override fun shallowMap(mapper: UtModelMapper) = copy(
+        origin = origin?.mapPreservingType<UtCompositeModel>(mapper),
+        model = model?.map(mapper)
+    )
+}
 
 /**
  * Model for a step to obtain [UtAssembleModel].
@@ -711,6 +844,7 @@ sealed class UtStatementCallModel(
     override val instance: UtReferenceModel?,
     open val statement: StatementId,
     open val params: List<UtModel>,
+    var thrownConcreteException: ClassId? = null
 ): UtStatementModel(instance) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
@@ -1146,6 +1280,14 @@ sealed class ExecutableId : StatementId() {
     abstract val returnType: ClassId
     abstract val parameters: List<ClassId>
 
+    /**
+     * Normally during concrete execution every executable is executed in a
+     * [sandbox](https://github.com/UnitTestBot/UTBotJava/blob/main/docs/Sandboxing.md).
+     *
+     * However, if this flag is set to `true`, then `this` particular executable is executed without a sandbox.
+     */
+    abstract val bypassesSandbox: Boolean
+
     abstract val modifiers: Int
 
     val signature: String
@@ -1186,6 +1328,7 @@ open class MethodId(
     override val name: String,
     override val returnType: ClassId,
     override val parameters: List<ClassId>,
+    override val bypassesSandbox: Boolean = false,
 ) : ExecutableId() {
     override val modifiers: Int
         get() = method.modifiers
@@ -1193,7 +1336,8 @@ open class MethodId(
 
 open class ConstructorId(
     override val classId: ClassId,
-    override val parameters: List<ClassId>
+    override val parameters: List<ClassId>,
+    override val bypassesSandbox: Boolean = false,
 ) : ExecutableId() {
     final override val name: String = "<init>"
     final override val returnType: ClassId = voidClassId
@@ -1208,12 +1352,13 @@ class BuiltinMethodId(
     name: String,
     returnType: ClassId,
     parameters: List<ClassId>,
+    bypassesSandbox: Boolean = false,
     // by default we assume that the builtin method is non-static and public
     isStatic: Boolean = false,
     isPublic: Boolean = true,
     isProtected: Boolean = false,
     isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters) {
+) : MethodId(classId, name, returnType, parameters, bypassesSandbox) {
     override val modifiers: Int = ModifierFactory {
         static = isStatic
         public = isPublic
@@ -1225,11 +1370,12 @@ class BuiltinMethodId(
 class BuiltinConstructorId(
     classId: ClassId,
     parameters: List<ClassId>,
+    bypassesSandbox: Boolean = false,
     // by default, we assume that the builtin constructor is public
     isPublic: Boolean = true,
     isProtected: Boolean = false,
     isPrivate: Boolean = false
-) : ConstructorId(classId, parameters) {
+) : ConstructorId(classId, parameters, bypassesSandbox) {
     override val modifiers: Int = ModifierFactory {
         public = isPublic
         private = isPrivate
@@ -1279,196 +1425,76 @@ enum class TypeReplacementMode {
     NoImplementors,
 }
 
-/**
- * A context to use when no specific data is required.
- *
- * @param mockFrameworkInstalled shows if we have installed framework dependencies
- * @param staticsMockingIsConfigured shows if we have installed static mocking tools
- */
-open class ApplicationContext(
-    val mockFrameworkInstalled: Boolean = true,
-    staticsMockingIsConfigured: Boolean = true,
-) {
-    var staticsMockingIsConfigured = staticsMockingIsConfigured
-        private set
+sealed class SpringConfiguration(val fullDisplayName: String) {
+    abstract class JavaBasedConfiguration(open val configBinaryName: String) : SpringConfiguration(configBinaryName)
 
-    init {
-        /**
-         * Situation when mock framework is not installed but static mocking is configured is semantically incorrect.
-         *
-         * However, it may be obtained in real application after this actions:
-         * - fully configure mocking (dependency installed + resource file created)
-         * - remove mockito-core dependency from project
-         * - forget to remove mock-maker file from resource directory
-         *
-         * Here we transform this configuration to semantically correct.
-         */
-        if (!mockFrameworkInstalled && staticsMockingIsConfigured) {
-            this.staticsMockingIsConfigured = false
-        }
+    class JavaConfiguration(override val configBinaryName: String) : JavaBasedConfiguration(configBinaryName)
+
+    class SpringBootConfiguration(
+        override val configBinaryName: String,
+        val isDefinitelyUnique: Boolean
+    ) : JavaBasedConfiguration(configBinaryName)
+
+    class XMLConfiguration(val absolutePath: String) : SpringConfiguration(absolutePath)
+}
+
+sealed interface SpringSettings {
+    object AbsentSpringSettings : SpringSettings {
+        // NOTE that overriding equals is required just because without it
+        // we will lose equality for objects after deserialization
+        override fun equals(other: Any?): Boolean = other is AbsentSpringSettings
+
+        override fun hashCode(): Int = 0
     }
 
-    /**
-     * Shows if there are any restrictions on type implementors.
-     */
-    open val typeReplacementMode: TypeReplacementMode = AnyImplementor
-
-    /**
-     * Finds a type to replace the original abstract type
-     * if it is guided with some additional information.
-     */
-    open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
-
-    /**
-     * Sets the restrictions on speculative not null
-     * constraints in current application context.
-     *
-     * @see docs/SpeculativeFieldNonNullability.md for more information.
-     */
-    open fun avoidSpeculativeNotNullChecks(field: SootField): Boolean =
-        UtSettings.maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()
-
-    /**
-     * Checks whether accessing [field] (with a method invocation or field access) speculatively
-     * cannot produce [NullPointerException] (according to its finality or accessibility).
-     *
-     * @see docs/SpeculativeFieldNonNullability.md for more information.
-     */
-    open fun speculativelyCannotProduceNullPointerException(
-        field: SootField,
-        classUnderTest: ClassId,
-    ): Boolean = field.isFinal || !field.isPublic
-}
-
-sealed class TypeReplacementApproach {
-    /**
-     * Do not replace interfaces and abstract classes with concrete implementors.
-     * Use mocking instead of it.
-     */
-    object DoNotReplace : TypeReplacementApproach()
-
-    /**
-     * Try to replace interfaces and abstract classes with concrete implementors
-     * obtained from bean definitions.
-     * If it is impossible, use mocking.
-     *
-     * Currently used in Spring applications only.
-     */
-    class ReplaceIfPossible(val config: String) : TypeReplacementApproach()
+    data class PresentSpringSettings(
+        val configuration: SpringConfiguration,
+        val profiles: List<String>
+    ) : SpringSettings
 }
 
 /**
- * Data we get from Spring application context
- * to manage engine and code generator behaviour.
+ * Result of loading concrete execution context (e.g. Spring application context).
  *
- * @param beanDefinitions describes bean definitions (bean name, type, some optional additional data)
- * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
+ * [contextLoaded] can be `true` while [exceptions] is not empty. For example, we may fail
+ * to load context with most specific SpringApi available (e.g. SpringBoot),
+ * but successfully fall back to less specific SpringApi (e.g. PureSpring).
  */
-// TODO move this class to utbot-framework so we can use it as abstract factory
-//  to get rid of numerous `when`s and polymorphically create things like:
-//    - Instrumentation<UtConcreteExecutionResult>
-//    - FuzzedType (to get rid of thisInstanceFuzzedTypeWrapper)
-//    - JavaValueProvider
-//    - CgVariableConstructor
-//    - CodeGeneratorResult (generateForSpringClass)
-//  Right now this refactoring is blocked because some interfaces need to get extracted and moved to utbot-framework-api
-//  As an alternative we can just move ApplicationContext itself to utbot-framework
-class SpringApplicationContext(
-    mockInstalled: Boolean,
-    staticsMockingIsConfigured: Boolean,
-    val beanDefinitions: List<BeanDefinitionData> = emptyList(),
-    private val shouldUseImplementors: Boolean,
-    val typeReplacementApproach: TypeReplacementApproach,
-    val testType: SpringTestsType
-): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+class ConcreteContextLoadingResult(
+    val contextLoaded: Boolean,
+    val exceptions: List<Throwable>
+) {
+    val utErrors: List<UtError> get() =
+        exceptions.map { UtError(it.message ?: "Concrete context loading failed", it) }
+
+    fun andThen(onSuccess: () -> ConcreteContextLoadingResult) =
+        if (contextLoaded) {
+            val otherResult = onSuccess()
+            ConcreteContextLoadingResult(
+                contextLoaded = otherResult.contextLoaded,
+                exceptions = exceptions + otherResult.exceptions
+            )
+        } else this
 
     companion object {
-        private val logger = KotlinLogging.logger {}
+        fun successWithoutExceptions() = ConcreteContextLoadingResult(
+            contextLoaded = true,
+            exceptions = emptyList()
+        )
     }
-
-    private var areInjectedClassesInitialized : Boolean = false
-
-    // Classes representing concrete types that are actually used in Spring application
-    private val springInjectedClasses: Set<ClassId>
-        get() {
-            if (!areInjectedClassesInitialized) {
-                // TODO: use more info from SpringBeanDefinitionData than beanTypeFqn offers here
-                for (beanFqn in beanDefinitions.map { it.beanTypeFqn }) {
-                    try {
-                        val beanClass = utContext.classLoader.loadClass(beanFqn)
-                        if (!beanClass.isAbstract && !beanClass.isInterface &&
-                            !beanClass.isLocalClass && (!beanClass.isMemberClass || beanClass.isStatic)) {
-                            springInjectedClassesStorage += beanClass.id
-                        }
-                    } catch (e: Throwable) {
-                        // For some Spring beans (e.g. with anonymous classes)
-                        // it is possible to have problems with classes loading.
-                        when (e) {
-                            is ClassNotFoundException, is NoClassDefFoundError, is IllegalAccessError ->
-                                logger.warn { "Failed to load bean class for $beanFqn (${e.message})" }
-
-                            else -> throw e
-                        }
-                    }
-                }
-
-                // This is done to be sure that this storage is not empty after the first class loading iteration.
-                // So, even if all loaded classes were filtered out, we will not try to load them again.
-                areInjectedClassesInitialized = true
-            }
-
-            return springInjectedClassesStorage
-        }
-
-    // This is a service field to model the lazy behavior of [springInjectedClasses].
-    // Do not call it outside the getter.
-    //
-    // Actually, we should just call [springInjectedClasses] with `by lazy`, but  we had problems
-    // with a strange `kotlin.UNINITIALIZED_VALUE` in `speculativelyCannotProduceNullPointerException` method call.
-    private val springInjectedClassesStorage = mutableSetOf<ClassId>()
-
-    override val typeReplacementMode: TypeReplacementMode =
-        if (shouldUseImplementors) KnownImplementor else NoImplementors
-
-    /**
-     * Replaces an interface type with its implementor type
-     * if there is the unique implementor in bean definitions.
-     */
-    override fun replaceTypeIfNeeded(type: RefType): ClassId? =
-        if (type.isAbstractType) {
-            springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
-        } else {
-            null
-        }
-
-    override fun avoidSpeculativeNotNullChecks(field: SootField): Boolean = false
-
-    /**
-     * In Spring applications we can mark as speculatively not null
-     * fields if they are mocked and injecting into class under test so on.
-     *
-     * Fields are not mocked if their actual type is obtained from [springInjectedClasses].
-     *
-     */
-    override fun speculativelyCannotProduceNullPointerException(
-        field: SootField,
-        classUnderTest: ClassId,
-    ): Boolean = field.fieldId in classUnderTest.allDeclaredFieldIds && field.declaringClass.id !in springInjectedClasses
 }
 
-enum class SpringTestsType(
+enum class SpringTestType(
     override val id: String,
     override val displayName: String,
     override val description: String,
-    // Integration tests generation requires spring test framework being installed
-    var frameworkInstalled: Boolean = false,
 ) : CodeGenerationSettingItem {
-    UNIT_TESTS(
+    UNIT_TEST(
         "Unit tests",
         "Unit tests",
         "Generate unit tests mocking other classes"
     ),
-    INTEGRATION_TESTS(
+    INTEGRATION_TEST(
         "Integration tests",
         "Integration tests",
         "Generate integration tests autowiring real instance"
@@ -1477,8 +1503,8 @@ enum class SpringTestsType(
     override fun toString() = id
 
     companion object : CodeGenerationSettingBox {
-        override val defaultItem = UNIT_TESTS
-        override val allItems: List<SpringTestsType> = values().toList()
+        override val defaultItem = UNIT_TEST
+        override val allItems: List<SpringTestType> = values().toList()
     }
 }
 
@@ -1486,10 +1512,12 @@ enum class SpringTestsType(
  * Describes information about beans obtained from Spring analysis process.
  *
  * Contains the name of the bean, its type (class or interface) and optional additional data.
+ *
+ * @param beanTypeName a name in a form obtained by [java.lang.Class.getName] method.
  */
 data class BeanDefinitionData(
     val beanName: String,
-    val beanTypeFqn: String,
+    val beanTypeName: String,
     val additionalData: BeanAdditionalData?,
 )
 
@@ -1498,11 +1526,13 @@ data class BeanDefinitionData(
  *
  * Sometimes the actual type of the bean can not be obtained from bean definition.
  * Then we try to recover it by method and class defining bean (e.g. using Psi elements).
+ *
+ * @param configClassName a name in a form obtained by [java.lang.Class.getName] method.
  */
 data class BeanAdditionalData(
     val factoryMethodName: String,
     val parameterTypes: List<String>,
-    val configClassFqn: String,
+    val configClassName: String,
 )
 
 val RefType.isAbstractType
@@ -1550,6 +1580,8 @@ enum class MockStrategyApi(
         // We use OTHER_CLASSES strategy as default one in `No configuration` mode
         // and as unique acceptable in other modes (combined with type replacement).
         val springDefaultItem = OTHER_CLASSES
+        // We use NO_MOCKS strategy in integration tests because they are based on fuzzer that is not compatible with mocks
+        val springIntegrationTestItem = NO_MOCKS
     }
 }
 

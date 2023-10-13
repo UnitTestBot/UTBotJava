@@ -3,6 +3,7 @@
 package org.utbot.intellij.plugin.settings
 
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
@@ -37,13 +38,14 @@ import kotlin.reflect.KClass
 import org.utbot.common.isWindows
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.UnknownTestFramework
-import org.utbot.framework.plugin.api.SpringTestsType
+import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 @State(
     name = "UtBotSettings",
     storages = [Storage("utbot-settings.xml")]
 )
+@Service(Service.Level.PROJECT)
 class Settings(val project: Project) : PersistentStateComponent<Settings.State> {
     data class State(
         var sourceRootHistory: MutableList<String> = mutableListOf(),
@@ -63,13 +65,14 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
-        var springTestsType: SpringTestsType = SpringTestsType.defaultItem,
+        var springTestType: SpringTestType = SpringTestType.defaultItem,
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
         var summariesGenerationType: SummariesGenerationType = UtSettings.summaryGenerationType,
         var generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
         var enableExperimentalLanguagesSupport: Boolean = false,
+        var isSpringHandled: Boolean = false,
     ) {
 
         override fun equals(other: Any?): Boolean {
@@ -92,7 +95,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (treatOverflowAsError != other.treatOverflowAsError) return false
             if (parametrizedTestSource != other.parametrizedTestSource) return false
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
-            if (springTestsType != other.springTestsType) return false
+            if (springTestType != other.springTestType) return false
             if (fuzzingValue != other.fuzzingValue) return false
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
             if (commentStyle != other.commentStyle) return false
@@ -116,7 +119,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + treatOverflowAsError.hashCode()
             result = 31 * result + parametrizedTestSource.hashCode()
             result = 31 * result + classesToMockAlways.contentHashCode()
-            result = 31 * result + springTestsType.hashCode()
+            result = 31 * result + springTestType.hashCode()
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
             result = 31 * result + summariesGenerationType.hashCode()
@@ -165,7 +168,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     val classesToMockAlways: Set<String> get() = state.classesToMockAlways.toSet()
 
-    val springTestsType: SpringTestsType get() = state.springTestsType
+    val springTestType: SpringTestType get() = state.springTestType
 
     val javaDocCommentStyle: JavaDocCommentStyle get() = state.commentStyle
 
@@ -177,6 +180,16 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
 
     var enableSummariesGeneration = state.summariesGenerationType
+
+    /**
+     * Defaults in Spring are slightly different, so for every Spring project we update settings, but only
+     * do it once so user is not stuck with defaults, hence this flag is needed to avoid repeated updates.
+     */
+    var isSpringHandled: Boolean
+        get() = state.isSpringHandled
+        set(value) {
+            state.isSpringHandled = value
+        }
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()

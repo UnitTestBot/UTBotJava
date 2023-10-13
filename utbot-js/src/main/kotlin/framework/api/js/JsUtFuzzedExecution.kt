@@ -1,11 +1,25 @@
 package framework.api.js
 
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.*
 
 class JsUtFuzzedExecution(
     stateBefore: EnvironmentModels,
     stateAfter: EnvironmentModels,
     result: UtExecutionResult
-) : UtExecution(stateBefore, stateAfter, result, null, null, null, null)
+) : UtExecution(stateBefore, stateAfter, result, null, null, null, null) {
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution {
+        return JsUtFuzzedExecution(
+            stateBefore = stateBefore,
+            stateAfter = stateAfter,
+            result = result
+        )
+    }
+}

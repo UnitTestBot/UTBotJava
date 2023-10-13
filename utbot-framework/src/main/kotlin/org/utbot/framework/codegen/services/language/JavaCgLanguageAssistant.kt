@@ -6,9 +6,9 @@ import org.utbot.framework.codegen.renderer.CgJavaRenderer
 import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JVMTestFrameworkManager
-import org.utbot.framework.plugin.api.utils.testClassNameGenerator
+import org.utbot.framework.plugin.api.utils.ClassNameUtils.generateTestClassName
 
-object JavaCgLanguageAssistant : CgLanguageAssistant() {
+object JavaCgLanguageAssistant : AbstractCgLanguageAssistant() {
 
     override val extension: String
         get() = ".java"
@@ -26,7 +26,7 @@ object JavaCgLanguageAssistant : CgLanguageAssistant() {
         testClassPackageName: String,
         classUnderTest: ClassId
     ): Pair<String, String> {
-        return testClassNameGenerator(testClassCustomName, testClassPackageName, classUnderTest)
+        return generateTestClassName(testClassCustomName, testClassPackageName, classUnderTest)
     }
 
     override fun getLanguageTestFrameworkManager() = JVMTestFrameworkManager()

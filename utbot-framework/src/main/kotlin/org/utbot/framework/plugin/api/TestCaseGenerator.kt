@@ -5,15 +5,15 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
-import org.utbot.common.measureTime
-import org.utbot.common.runBlockingWithCancellationPredicate
-import org.utbot.common.runIgnoringCancellationException
-import org.utbot.common.trace
+import org.utbot.common.*
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -25,6 +25,9 @@ import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.disableCoroutinesDebug
 import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.simple.SimpleApplicationContext
+import org.utbot.framework.context.simple.SimpleMockerContext
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.minimization.minimizeTestCase
 import org.utbot.framework.plugin.api.util.id
@@ -36,7 +39,7 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
@@ -63,25 +66,21 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
-    val applicationContext: ApplicationContext = ApplicationContext(),
+    val applicationContext: ApplicationContext = SimpleApplicationContext(
+        SimpleMockerContext(
+            mockFrameworkInstalled = true,
+            staticsMockingIsConfigured = true
+        )
+    ),
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
-    private val executionInstrumentation by lazy {
-        when (applicationContext) {
-            is SpringApplicationContext -> when (val approach = applicationContext.typeReplacementApproach) {
-                is TypeReplacementApproach.ReplaceIfPossible ->
-                    when (applicationContext.testType) {
-                        SpringTestsType.UNIT_TESTS -> UtExecutionInstrumentation
-                        SpringTestsType.INTEGRATION_TESTS -> SpringUtExecutionInstrumentation(UtExecutionInstrumentation, approach.config)
-                    }
-                is TypeReplacementApproach.DoNotReplace -> UtExecutionInstrumentation
-            }
-            else -> UtExecutionInstrumentation
-        }
-    }
+    protected val concreteExecutionContext = applicationContext.createConcreteExecutionContext(
+        fullClasspath = classpathForEngine,
+        classpathWithoutDependencies = buildDirs.joinToString(File.pathSeparator)
+    )
 
-    private val classpathForEngine: String
+    protected val classpathForEngine: String
         get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
 
     init {
@@ -102,8 +101,9 @@ open class TestCaseGenerator(
             //warmup
             if (warmupConcreteExecution) {
                 // force pool to create an appropriate executor
+                // TODO ensure that instrumented process that starts here is properly terminated
                 ConcreteExecutor(
-                    executionInstrumentation,
+                    concreteExecutionContext.instrumentationFactory,
                     classpathForEngine,
                 ).apply {
                     warmup()
@@ -112,11 +112,25 @@ open class TestCaseGenerator(
         }
     }
 
-    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
-        if (UtSettings.testMinimizationStrategyType == TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY) {
-            executions
-        } else {
-            minimizeTestCase(executions) { it.result::class.java }
+    fun minimizeExecutions(
+        methodUnderTest: ExecutableId,
+        executions: List<UtExecution>,
+        rerunExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
+    ): List<UtExecution> =
+        when (UtSettings.testMinimizationStrategyType) {
+            TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
+            TestSelectionStrategyType.COVERAGE_STRATEGY ->
+                concreteExecutionContext.transformExecutionsAfterMinimization(
+                    minimizeTestCase(
+                        concreteExecutionContext.transformExecutionsBeforeMinimization(
+                            executions,
+                            methodUnderTest,
+                        ),
+                        executionToTestSuite = { it.result::class.java }
+                    ),
+                    methodUnderTest,
+                    rerunExecutor = rerunExecutor,
+                )
         }
 
     @Throws(CancellationException::class)
@@ -127,7 +141,15 @@ open class TestCaseGenerator(
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
         userTaintConfigurationProvider: TaintConfigurationProvider? = null,
-    ): Flow<UtResult> {
+    ): Flow<UtResult> = flow {
+        if (isCanceled())
+            return@flow
+
+        val contextLoadingResult = loadConcreteExecutionContext()
+        emitAll(flowOf(*contextLoadingResult.utErrors.toTypedArray()))
+        if (!contextLoadingResult.contextLoaded)
+            return@flow
+
         try {
             val engine = createSymbolicEngine(
                 controller,
@@ -140,7 +162,7 @@ open class TestCaseGenerator(
             )
             engineActions.map { engine.apply(it) }
             engineActions.clear()
-            return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
+            emitAll(defaultTestFlow(engine, executionTimeEstimator.userTimeout))
         } catch (e: Exception) {
             logger.error(e) {"Generate async failed"}
             throw e
@@ -154,8 +176,17 @@ open class TestCaseGenerator(
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
         userTaintConfigurationProvider: TaintConfigurationProvider? = null,
         generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
-    ): List<UtMethodTestSet> {
-        if (isCanceled()) return methods.map { UtMethodTestSet(it) }
+    ): List<UtMethodTestSet> = ConcreteExecutor.defaultPool.use { _ -> // TODO: think on appropriate way to close instrumented processes
+        if (isCanceled()) return@use methods.map { UtMethodTestSet(it) }
+
+        val contextLoadingResult = loadConcreteExecutionContext()
+
+        val method2errors: Map<ExecutableId, MutableMap<String, Int>> = methods.associateWith {
+            contextLoadingResult.utErrors.associateTo(mutableMapOf()) { it.description to 1 }
+        }
+
+        if (!contextLoadingResult.contextLoaded)
+            return@use methods.map { method -> UtMethodTestSet(method, errors = method2errors.getValue(method)) }
 
         val executionStartInMillis = System.currentTimeMillis()
         val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
@@ -164,7 +195,6 @@ open class TestCaseGenerator(
 
         val method2controller = methods.associateWith { EngineController() }
         val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
-        val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
         val conflictTriggers = ConflictTriggers()
         val forceMockListener = ForceMockListener.create(this, conflictTriggers)
@@ -256,15 +286,18 @@ open class TestCaseGenerator(
                 }
             }
         }
-        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close instrumented processes
 
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 
-        return methods.map { method ->
+        return@use methods.map { method ->
             UtMethodTestSet(
                 method,
-                minimizeExecutions(method2executions.getValue(method)),
+                minimizeExecutions(
+                    method,
+                    method2executions.getValue(method),
+                    rerunExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
+                ),
                 jimpleBody(method),
                 method2errors.getValue(method)
             )
@@ -289,7 +322,7 @@ open class TestCaseGenerator(
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             applicationContext = applicationContext,
-            executionInstrumentation = executionInstrumentation,
+            concreteExecutionContext = concreteExecutionContext,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
             userTaintConfigurationProvider = userTaintConfigurationProvider,
         )
@@ -347,6 +380,9 @@ open class TestCaseGenerator(
         }
     }
 
+    private fun loadConcreteExecutionContext(): ConcreteContextLoadingResult {
+        // force pool to create an appropriate executor
+        val concreteExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
+        return concreteExecutionContext.loadContext(concreteExecutor)
+    }
 }
-
-

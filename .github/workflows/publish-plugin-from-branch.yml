@@ -39,15 +39,15 @@ on:
         default: ""
 
 jobs:
-  publish_plugin_and_cli:
+  publish_plugin:
     strategy:
       fail-fast: false  # force to execute all jobs even though some of them have failed
       matrix:
         configuration:
           - plugin_type: IC
-            extra_options: "-PideType=IC"
+            extra_options: "-PideType=IC -PprojectType=Community"
           - plugin_type: IU
-            extra_options: "-PideType=IU"
+            extra_options: "-PideType=IU -PprojectType=Ultimate"
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
     steps:
@@ -65,11 +65,13 @@ jobs:
         if: ${{ github.event.inputs.custom_version != '' }}
         run: |
           echo "VERSION=${{ github.event.inputs.custom_version }}" >> $GITHUB_ENV
+          echo "VERSION_ARCHIVE=${{ github.event.inputs.custom_version }}" >> $GITHUB_ENV
       - name: Setup version
         if: ${{ github.event.inputs.custom_version == '' }}
         shell: bash
         run: |
-          echo "VERSION=${GITHUB_REF_NAME:0:4}-$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          echo "VERSION=$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          echo "VERSION_ARCHIVE=${GITHUB_REF_NAME:0:4}-$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
 
       - name: Print environment variables
         run: printenv
@@ -85,5 +87,5 @@ jobs:
         if: ${{ inputs.upload-artifact == 'true' }}
         uses: actions/upload-artifact@v3
         with:
-          name: utbot-intellij-${{ matrix.configuration.plugin_type }}-${{ env.VERSION }}
+          name: utbot-intellij-${{ matrix.configuration.plugin_type }}-${{ env.VERSION_ARCHIVE }}
           path: utbot-intellij/build/distributions/*

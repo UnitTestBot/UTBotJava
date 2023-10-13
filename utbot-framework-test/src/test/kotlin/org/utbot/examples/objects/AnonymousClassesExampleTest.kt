@@ -3,18 +3,12 @@ package org.utbot.examples.objects
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.Compilation
 import org.utbot.testing.Full
-import org.utbot.testing.TestExecution
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isException
 
 class AnonymousClassesExampleTest : UtValueTestCaseChecker(
     testClass = AnonymousClassesExample::class,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN)
-    )
 ) {
     @Test
     fun testAnonymousClassAsParam() {

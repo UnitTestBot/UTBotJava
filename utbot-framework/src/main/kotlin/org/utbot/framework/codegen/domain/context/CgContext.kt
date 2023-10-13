@@ -7,28 +7,21 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgExecutableCall
-import org.utbot.framework.codegen.domain.models.CgStatement
-import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
-import org.utbot.framework.codegen.domain.models.CgTestMethod
-import org.utbot.framework.codegen.domain.models.CgThisInstance
-import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.domain.models.CgVariable
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.common.DynamicProperty
+import org.utbot.common.MutableDynamicProperties
+import org.utbot.common.mutableDynamicPropertiesOf
 import org.utbot.framework.codegen.domain.UtModelWrapper
 import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
-import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
-import org.utbot.framework.codegen.domain.models.CgParameterKind
+import org.utbot.framework.codegen.domain.models.*
 import org.utbot.framework.codegen.services.access.Block
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
@@ -42,11 +35,13 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.jClass
+
+typealias CgContextProperties = MutableDynamicProperties<CgContext>
+typealias CgContextProperty<T> = DynamicProperty<CgContext, T>
 
 /**
  * Interface for all code generation context aware entities
@@ -55,7 +50,7 @@ import org.utbot.framework.plugin.api.util.jClass
  * Although, some of the properties are declared as 'var' so that
  * they can be reassigned as well as modified
  *
- * For example, [outerMostTestClass] and [currentExecutable] can be reassigned
+ * For example, [outerMostTestClass] and [currentExecution] can be reassigned
  * when we start generating another method or test class
  *
  * [existingVariableNames] is a 'var' property
@@ -80,7 +75,13 @@ interface CgContextOwner {
     val utilMethodProvider: UtilMethodProvider
 
     // current executable under test
-    var currentExecutable: ExecutableId?
+    // NOTE: may differ from `executableToCall`
+    var currentExecutableUnderTest: ExecutableId?
+
+    // executable that is called in the current test method body and whose result is used in asserts as `actual`
+    // NOTE: may differ from `executableUnderTest`
+    val currentExecutableToCall: ExecutableId? get() =
+        currentExecution?.stateBefore?.executableToCall ?: currentExecutableUnderTest
 
     // ClassInfo for the outermost class currently being generated
     val outerMostTestClassContext: TestClassContext
@@ -246,6 +247,18 @@ interface CgContextOwner {
      */
     var successfulExecutionsModels: List<UtModel>
 
+    /**
+     * Many of [CgContext] properties are only needed in some specific scenarios
+     * (e.g. Spring-related properties and parametrized test specific properties).
+     *
+     * To avoid overly inflating [CgContext] interface such properties should
+     * be added as dynamic properties.
+     *
+     * @see DynamicProperty
+     */
+    // TODO make parameterized test specific properties dynamic
+    val properties: CgContextProperties
+
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
         return try {
@@ -269,8 +282,8 @@ interface CgContextOwner {
             currentBlock = currentBlock.add(it)
         }
 
-    fun updateCurrentExecutable(executableId: ExecutableId) {
-        currentExecutable = executableId
+    fun updateExecutableUnderTest(executableId: ExecutableId) {
+        currentExecutableUnderTest = executableId
     }
 
     fun <R> withTestSetIdScope(testSetId: Int, block: () -> R): R {
@@ -283,32 +296,16 @@ interface CgContextOwner {
         return block()
     }
 
-    fun addExceptionIfNeeded(exception: ClassId) {
-        if (exception !is BuiltinClassId) {
-            require(exception isSubtypeOf Throwable::class.id) {
-                "Class $exception which is not a Throwable was passed"
-            }
+    fun addExceptionIfNeeded(exception: ClassId)
+    fun <T> runWithoutCollectingExceptions(block: () -> T): T
 
-            val isUnchecked = !exception.jClass.isCheckedException
-            val alreadyAdded =
-                collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
-
-            if (isUnchecked || alreadyAdded) return
-
-            collectedExceptions
-                .removeIf { existingException -> existingException isSubtypeOf exception }
+    fun createGetClassExpression(id: ClassId, codegenLanguage: CodegenLanguage): CgGetClass =
+        when (codegenLanguage) {
+            CodegenLanguage.JAVA -> CgGetJavaClass(id)
+            CodegenLanguage.KOTLIN -> CgGetKotlinClass(id)
+        }.also {
+            importIfNeeded(id)
         }
-
-        if (collectedExceptions.add(exception)) {
-            importIfNeeded(exception)
-        }
-    }
-
-    fun addAnnotation(annotation: CgAnnotation) {
-        if (collectedMethodAnnotations.add(annotation)) {
-            importIfNeeded(annotation.classId) // TODO: check how JUnit annotations are loaded
-        }
-    }
 
     /**
      * This method sets up context for a new test class file generation and executes the given [block].
@@ -337,14 +334,9 @@ interface CgContextOwner {
         return result
     }
 
-    fun updateVariableScope(variable: CgVariable, model: UtModel? = null) {
+    fun rememberVariableForModel(variable: CgVariable, model: UtModel? = null) {
         model?.let {
             valueByUtModelWrapper[it.wrap()] = variable
-            (model as UtReferenceModel).let { refModel ->
-                refModel.id.let {
-                    valueByUtModelWrapper[model.wrap()] = variable
-                }
-            }
         }
     }
 
@@ -459,7 +451,12 @@ interface CgContextOwner {
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
 
-    fun UtModel.wrap(): UtModelWrapper
+    fun UtModel.wrap(): UtModelWrapper =
+        UtModelWrapper(
+            testSetId = currentTestSetId,
+            executionId = currentExecutionId,
+            model = this,
+        )
 }
 
 /**
@@ -469,7 +466,7 @@ class CgContext(
     override val classUnderTest: ClassId,
     override val projectType: ProjectType,
     val generateUtilClassFile: Boolean = false,
-    override var currentExecutable: ExecutableId? = null,
+    override var currentExecutableUnderTest: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
@@ -506,6 +503,7 @@ class CgContext(
     override val hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
     override val enableTestsTimeout: Boolean = true,
     override var containsReflectiveCall: Boolean = false,
+    override val properties: CgContextProperties = mutableDynamicPropertiesOf(),
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
@@ -588,13 +586,6 @@ class CgContext(
         }
     }
 
-    override fun UtModel.wrap(): UtModelWrapper =
-        UtModelWrapper(
-            testSetId = currentTestSetId,
-            executionId = currentExecutionId,
-            model = this
-        )
-
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
@@ -613,6 +604,40 @@ class CgContext(
         requiredUtilMethods.clear()
         valueByUtModelWrapper.clear()
         mockFrameworkUsed = false
+    }
+
+    // number of times collection of exceptions was suspended
+    private var exceptionCollectionSuspensionDepth = 0
+
+    override fun <T> runWithoutCollectingExceptions(block: () -> T): T {
+        exceptionCollectionSuspensionDepth++
+        return try {
+            block()
+        } finally {
+            exceptionCollectionSuspensionDepth--
+        }
+    }
+
+    override fun addExceptionIfNeeded(exception: ClassId) {
+        if (exceptionCollectionSuspensionDepth > 0) return
+        if (exception !is BuiltinClassId) {
+            require(exception isSubtypeOf Throwable::class.id) {
+                "Class $exception which is not a Throwable was passed"
+            }
+
+            val isUnchecked = !exception.jClass.isCheckedException
+            val alreadyAdded =
+                collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
+
+            if (isUnchecked || alreadyAdded) return
+
+            collectedExceptions
+                .removeIf { existingException -> existingException isSubtypeOf exception }
+        }
+
+        if (collectedExceptions.add(exception)) {
+            importIfNeeded(exception)
+        }
     }
 
     override var currentTestSetId: Int = -1
@@ -635,7 +660,7 @@ class CgContext(
         classUnderTest = this.classUnderTest,
         projectType = this.projectType,
         generateUtilClassFile = this.generateUtilClassFile,
-        currentExecutable = this.currentExecutable,
+        currentExecutableUnderTest = this.currentExecutableUnderTest,
         collectedExceptions =this.collectedExceptions,
         collectedMethodAnnotations = this.collectedMethodAnnotations,
         collectedImports = this.collectedImports,
@@ -669,5 +694,6 @@ class CgContext(
         hangingTestsTimeout = this.hangingTestsTimeout,
         enableTestsTimeout = this.enableTestsTimeout,
         containsReflectiveCall = this.containsReflectiveCall,
+        properties = this.properties,
     )
 }

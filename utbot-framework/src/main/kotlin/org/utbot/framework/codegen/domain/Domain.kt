@@ -190,6 +190,8 @@ abstract class TestFramework(
 
     open val testSuperClass: ClassId? = null
 
+    open val assertSame by lazy { assertionId("assertSame", objectClassId, objectClassId) }
+
     open val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
     val assertFloatEquals by lazy { assertionId("assertEquals", floatClassId, floatClassId, floatClassId) }
@@ -711,29 +713,6 @@ enum class ProjectType {
     JavaScript,
 }
 
-abstract class DependencyInjectionFramework(
-    override val id: String,
-    override val displayName: String,
-    override val description: String = "Use $displayName as dependency injection framework",
-) : CodeGenerationSettingItem {
-    var isInstalled = false
-
-    companion object : CodeGenerationSettingBox {
-        override val defaultItem: DependencyInjectionFramework get() = SpringBoot
-        override val allItems: List<DependencyInjectionFramework> get() = listOf(SpringBoot, SpringBeans)
-    }
-}
-
-object SpringBeans : DependencyInjectionFramework(
-    id = "spring-beans",
-    displayName = "Spring Beans"
-)
-
-object SpringBoot : DependencyInjectionFramework(
-    id = "spring-boot",
-    displayName = "Spring Boot"
-)
-
 /**
  * Extended [UtModel] model with testSet id and execution id.
  *
@@ -743,5 +722,5 @@ object SpringBoot : DependencyInjectionFramework(
 data class UtModelWrapper(
     val testSetId: Int,
     val executionId: Int,
-    val model: UtModel
+    val model: UtModel,
 )

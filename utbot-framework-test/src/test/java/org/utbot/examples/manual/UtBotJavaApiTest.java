@@ -18,6 +18,7 @@ import org.utbot.examples.manual.examples.customer.B;
 import org.utbot.examples.manual.examples.customer.C;
 import org.utbot.examples.manual.examples.customer.Demo9;
 import org.utbot.external.api.TestMethodInfo;
+import org.utbot.external.api.UnitTestBotLight;
 import org.utbot.external.api.UtBotJavaApi;
 import org.utbot.external.api.UtModelFactory;
 import org.utbot.framework.codegen.domain.ForceStaticMocking;
@@ -1306,7 +1307,16 @@ public class UtBotJavaApiTest {
 
     @NotNull
     private String getClassPath(Class<?> clazz) {
-        return clazz.getProtectionDomain().getCodeSource().getLocation().getPath();
+        try {
+            return normalizePath(clazz.getProtectionDomain().getCodeSource().getLocation());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @NotNull
+    private String normalizePath(URL url) throws URISyntaxException {
+        return new File(url.toURI()).getPath();
     }
 
     @NotNull
@@ -1375,5 +1385,38 @@ public class UtBotJavaApiTest {
         return modelFactory.produceCompositeModel(
                 classIdOfArrayOfComplexArraysClass,
                 Collections.singletonMap("array", arrayOfComplexArrayClasses));
+    }
+
+    @Test
+    public void testUnitTestBotLight() {
+        String classpath = getClassPath(Trivial.class);
+        String dependencyClassPath = getDependencyClassPath();
+
+        UtCompositeModel model = modelFactory.
+                produceCompositeModel(
+                        classIdForType(Trivial.class)
+                );
+
+        EnvironmentModels environmentModels = new EnvironmentModels(
+                model,
+                Collections.singletonList(new UtPrimitiveModel(2)),
+                Collections.emptyMap()
+        );
+
+        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+                Trivial.class,
+                "aMethod",
+                int.class
+        );
+
+        UnitTestBotLight.run(
+                (engine, state) -> System.err.println("Got a call:" + state.getStmt()),
+                new TestMethodInfo(
+                        methodUnderTest,
+                        environmentModels
+                ),
+                classpath,
+                dependencyClassPath
+        );
     }
 }

@@ -686,7 +686,7 @@ class Resolver(
         val modeledNumDimensions = holder.eval(numDimensionsArray.select(addrExpression)).intValue()
 
         val classRef = classRefByName(modeledType, modeledNumDimensions)
-        val model = UtClassRefModel(addr, CLASS_REF_CLASS_ID, classRef)
+        val model = UtClassRefModel(addr, CLASS_REF_CLASS_ID, classRef.id)
         addConstructedModel(addr, model)
 
         return model

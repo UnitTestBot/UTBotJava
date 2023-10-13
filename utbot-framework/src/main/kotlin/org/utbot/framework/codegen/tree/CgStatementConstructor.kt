@@ -4,33 +4,6 @@ import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.mockMethodId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
-import org.utbot.framework.codegen.domain.models.CgAllocateArray
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
-import org.utbot.framework.codegen.domain.models.CgComment
-import org.utbot.framework.codegen.domain.models.CgDeclaration
-import org.utbot.framework.codegen.domain.models.CgEmptyLine
-import org.utbot.framework.codegen.domain.models.CgEnumConstantAccess
-import org.utbot.framework.codegen.domain.models.CgErrorWrapper
-import org.utbot.framework.codegen.domain.models.CgExecutableCall
-import org.utbot.framework.codegen.domain.models.CgExpression
-import org.utbot.framework.codegen.domain.models.CgGetClass
-import org.utbot.framework.codegen.domain.models.CgIfStatement
-import org.utbot.framework.codegen.domain.models.CgInnerBlock
-import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgLogicalAnd
-import org.utbot.framework.codegen.domain.models.CgLogicalOr
-import org.utbot.framework.codegen.domain.models.CgMethodCall
-import org.utbot.framework.codegen.domain.models.CgMultilineComment
-import org.utbot.framework.codegen.domain.models.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.domain.models.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
-import org.utbot.framework.codegen.domain.models.CgReturnStatement
-import org.utbot.framework.codegen.domain.models.CgSingleArgAnnotation
-import org.utbot.framework.codegen.domain.models.CgSingleLineComment
-import org.utbot.framework.codegen.domain.models.CgThrowStatement
-import org.utbot.framework.codegen.domain.models.CgTryCatch
-import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.codegen.util.resolve
@@ -48,9 +21,8 @@ import fj.data.Either
 import org.utbot.framework.codegen.domain.builtin.getDeclaredConstructor
 import org.utbot.framework.codegen.domain.builtin.getDeclaredField
 import org.utbot.framework.codegen.domain.builtin.getDeclaredMethod
-import org.utbot.framework.codegen.domain.models.CgArrayInitializer
-import org.utbot.framework.codegen.domain.models.CgGetJavaClass
-import org.utbot.framework.codegen.domain.models.CgIsInstance
+import org.utbot.framework.codegen.domain.models.*
+import org.utbot.framework.codegen.domain.models.AnnotationTarget
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
 import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
@@ -72,6 +44,7 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.kotlinFunction
 
 interface CgStatementConstructor {
+
     fun newVar(baseType: ClassId, baseName: String? = null, init: () -> CgExpression): CgVariable =
         newVar(baseType, model = null, baseName, isMutable = false, init)
 
@@ -153,11 +126,18 @@ interface CgStatementConstructor {
 
     fun lambda(type: ClassId, vararg parameters: CgVariable, body: () -> Unit): CgAnonymousFunction
 
-    fun annotation(classId: ClassId, argument: Any?): CgAnnotation
-    fun annotation(classId: ClassId, namedArguments: List<Pair<String, CgExpression>>): CgAnnotation
-    fun annotation(
+    fun addAnnotation(classId: ClassId, argument: Any?, target: AnnotationTarget): CgAnnotation
+
+    fun addAnnotation(
         classId: ClassId,
-        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit = {}
+        namedArguments: List<CgNamedAnnotationArgument>,
+        target: AnnotationTarget,
+        ): CgAnnotation
+
+    fun addAnnotation(
+        classId: ClassId,
+        target: AnnotationTarget,
+        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit = {},
     ): CgAnnotation
 
     fun returnStatement(expression: () -> CgExpression)
@@ -229,7 +209,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         }
 
         classRef?.let { declaredClassRefs = declaredClassRefs.put(it, declaration.variable) }
-        updateVariableScope(declaration.variable, model)
+        rememberVariableForModel(declaration.variable, model)
 
         return Either.left(declaration)
     }
@@ -421,31 +401,47 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         }
     }
 
-    override fun annotation(classId: ClassId, argument: Any?): CgAnnotation {
-        val annotation = CgSingleArgAnnotation(classId, argument.resolve())
+    override fun addAnnotation(classId: ClassId, argument: Any?, target: AnnotationTarget): CgAnnotation {
+        val annotation = CgSingleArgAnnotation(classId, argument.resolve(), target)
         addAnnotation(annotation)
         return annotation
     }
 
-    override fun annotation(classId: ClassId, namedArguments: List<Pair<String, CgExpression>>): CgAnnotation {
-        val annotation = CgMultipleArgsAnnotation(
-            classId,
-            namedArguments.mapTo(mutableListOf()) { (name, value) -> CgNamedAnnotationArgument(name, value) }
-        )
-        addAnnotation(annotation)
-        return annotation
-    }
-
-    override fun annotation(
+    override fun addAnnotation(
         classId: ClassId,
-        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit
+        namedArguments: List<CgNamedAnnotationArgument>,
+        target: AnnotationTarget,
+        ): CgAnnotation {
+        val annotation = CgMultipleArgsAnnotation(classId, namedArguments.toMutableList(), target)
+
+        addAnnotation(annotation)
+        return annotation
+    }
+
+    override fun addAnnotation(
+        classId: ClassId,
+        target: AnnotationTarget,
+        buildArguments: MutableList<Pair<String, CgExpression>>.() -> Unit,
     ): CgAnnotation {
         val arguments = mutableListOf<Pair<String, CgExpression>>()
             .apply(buildArguments)
             .map { (name, value) -> CgNamedAnnotationArgument(name, value) }
-        val annotation = CgMultipleArgsAnnotation(classId, arguments.toMutableList())
+        val annotation = CgMultipleArgsAnnotation(classId, arguments.toMutableList(), target)
+
         addAnnotation(annotation)
         return annotation
+    }
+
+    private fun addAnnotation(annotation: CgAnnotation) {
+        when (annotation.target) {
+            AnnotationTarget.Method -> collectedMethodAnnotations.add(annotation)
+            AnnotationTarget.Class -> currentTestClassContext.collectedTestClassAnnotations.add(annotation)
+            // TODO: possibly introduce some scope cache like in methods and constructions processing.
+            // It may allow to avoid return type in CgAnnotation method.
+            AnnotationTarget.Field -> { }
+        }
+
+        importIfNeeded(annotation.classId)
     }
 
     override fun returnStatement(expression: () -> CgExpression) {
@@ -473,7 +469,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
 
     override fun declareVariable(type: ClassId, name: String): CgVariable =
         CgVariable(name, type).also {
-            updateVariableScope(it)
+            rememberVariableForModel(it)
         }
 
     override fun wrapTypeIfRequired(baseType: ClassId): ClassId =

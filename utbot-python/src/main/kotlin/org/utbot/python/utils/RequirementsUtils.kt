@@ -1,10 +1,24 @@
 package org.utbot.python.utils
 
+import org.utbot.python.UtbotExecutor
+import org.utbot.python.newtyping.mypy.MypyInfoBuild
+
 object RequirementsUtils {
+    private val utbotMypyRunnerVersion =
+        MypyInfoBuild::class.java.getResource("/utbot_mypy_runner_version")!!.readText()
+    private val utbotExecutorVersion =
+        UtbotExecutor::class.java.getResource("/utbot_executor_version")!!.readText()
+    private val useLocalPythonPackages =  // "true" must be set only for debugging
+        this::class.java.getResource("/local_pip_setup/use_local_python_packages")?.readText()?.toBoolean() ?: false
+    private val localMypyRunnerPath =
+        this::class.java.getResource("/local_pip_setup/local_utbot_mypy_path")?.readText()
+    private val localExecutorPath =
+        this::class.java.getResource("/local_pip_setup/local_utbot_executor_path")?.readText()
+    private val pipFindLinks: List<String> =
+        if (useLocalPythonPackages) listOfNotNull(localMypyRunnerPath, localExecutorPath) else emptyList()
     val requirements: List<String> = listOf(
-        "mypy==1.0.0",
-        "utbot-executor==1.4.26",
-        "utbot-mypy-runner==0.2.8",
+        "utbot-mypy-runner==$utbotMypyRunnerVersion",
+        "utbot-executor==$utbotExecutorVersion",
     )
 
     private val requirementsScriptContent: String =
@@ -40,7 +54,8 @@ object RequirementsUtils {
                 "-m",
                 "pip",
                 "install"
-            ) + moduleNames
+            ) + moduleNames,
+            environmentVariables = mapOf("PIP_FIND_LINKS" to pipFindLinks.joinToString(" "))
         )
     }
 }

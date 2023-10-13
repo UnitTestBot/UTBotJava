@@ -1,7 +1,8 @@
 package org.utbot.framework.codegen.domain.models
 
-import org.utbot.framework.codegen.domain.models.builders.TypedModelWrappers
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.mapStateBeforeModels
 
 /**
  * Stores method test sets in a structure that replicates structure of their methods in [classUnderTest].
@@ -20,17 +21,13 @@ class SimpleTestClassModel(
     nestedClasses: List<SimpleTestClassModel> = listOf(),
 ): TestClassModel(classUnderTest, methodTestSets, nestedClasses)
 
-/**
- * Extended [SimpleTestClassModel] for Spring analysis reasons
- *
- * @param injectingMocksClass a class to inject other mocks into
- * @param mockedClasses variables of test class to represent mocked instances
- */
-class SpringTestClassModel(
-    classUnderTest: ClassId,
-    methodTestSets: List<CgMethodTestSet>,
-    nestedClasses: List<SimpleTestClassModel>,
-    val thisInstanceModels: TypedModelWrappers = mapOf(),
-    val thisInstanceDependentMocks: TypedModelWrappers = mapOf(),
-): TestClassModel(classUnderTest, methodTestSets, nestedClasses)
-
+fun SimpleTestClassModel.mapStateBeforeModels(mapperProvider: () -> UtModelDeepMapper) =
+    SimpleTestClassModel(
+        classUnderTest = classUnderTest,
+        nestedClasses = nestedClasses,
+        methodTestSets = methodTestSets.map { testSet ->
+            testSet.substituteExecutions(
+                testSet.executions.map { execution -> execution.mapStateBeforeModels(mapperProvider()) }
+            )
+        }
+    )

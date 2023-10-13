@@ -116,7 +116,9 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.isFromTrustedLibrary
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.context.ApplicationContext
+import org.utbot.framework.context.NonNullSpeculator
+import org.utbot.framework.context.TypeReplacer
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -239,7 +241,8 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
-    private val applicationContext: ApplicationContext,
+    private val typeReplacer: TypeReplacer,
+    private val nonNullSpeculator: NonNullSpeculator,
     private val taintContext: TaintContext,
 ) : UtContextInitializer() {
 
@@ -1393,8 +1396,8 @@ class Traverser(
         // However, if we have the restriction on implementor type (it may be obtained
         // from Spring bean definitions, for example), we can just create a symbolic object
         // with hard constraint on the mentioned type.
-        val replacedClassId = when (applicationContext.typeReplacementMode) {
-            KnownImplementor -> applicationContext.replaceTypeIfNeeded(type)
+        val replacedClassId = when (typeReplacer.typeReplacementMode) {
+            KnownImplementor -> typeReplacer.replaceTypeIfNeeded(type.id)
             AnyImplementor,
             NoImplementors -> null
         }
@@ -1512,7 +1515,7 @@ class Traverser(
             return createMockedObject(addr, type, mockInfoGenerator, nullEqualityConstraint)
         }
 
-        val concreteImplementation: Concrete? = when (applicationContext.typeReplacementMode) {
+        val concreteImplementation: Concrete? = when (typeReplacer.typeReplacementMode) {
             AnyImplementor -> findConcreteImplementation(addr, type, typeHardConstraint)
 
             // If our type is not abstract, both in `KnownImplementors` and `NoImplementors` mode,
@@ -2336,12 +2339,8 @@ class Traverser(
      * See more detailed documentation in [ApplicationContext] mentioned methods.
      */
     private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
-        if (applicationContext.avoidSpeculativeNotNullChecks(field) ||
-                !applicationContext.speculativelyCannotProduceNullPointerException(field, methodUnderTest.classId)) {
-            return
-        }
-
-        markAsSpeculativelyNotNull(createdField.addr)
+        if (nonNullSpeculator.speculativelyCannotProduceNullPointerException(field, methodUnderTest.classId))
+            markAsSpeculativelyNotNull(createdField.addr)
     }
 
     private fun createArray(pName: String, type: ArrayType): ArrayValue {
@@ -4061,12 +4060,14 @@ class Traverser(
         val memory = symbolicState.memory
         val solver = symbolicState.solver
 
-        //no need to respect soft constraints in NestedMethod
-        val holder = solver.check(respectSoft = !environment.state.isInNestedMethod())
+        if (!UtSettings.disableUnsatChecking) {
+            //no need to respect soft constraints in NestedMethod
+            val holder = solver.check(respectSoft = !environment.state.isInNestedMethod())
 
-        if (holder !is UtSolverStatusSAT) {
-            logger.trace { "processResult<${environment.method.signature}> UNSAT" }
-            return
+            if (holder !is UtSolverStatusSAT) {
+                logger.trace { "processResult<${environment.method.signature}> UNSAT" }
+                return
+            }
         }
         val methodResult = MethodResult(symbolicResult)
 

@@ -77,7 +77,16 @@ class InstrumentedProcessDeathException(cause: Throwable) :
         cause
     )
 
-data class UtConcreteExecutionFailure(override val exception: InstrumentedProcessDeathException) : UtExecutionFailure()
+data class UtConcreteExecutionFailure(override val exception: Throwable) : UtExecutionFailure()
+
+/**
+ * Represents a failure in instrumented process
+ * that is not actually caused by concrete method under test call.
+ *
+ * For example, failure may have occurred during method arguments preparation
+ * or statics initializers processing during object instance creation.
+ */
+data class UtConcreteExecutionProcessedFailure(override val exception: Throwable) : UtExecutionFailure()
 
 val UtExecutionResult.isSuccess: Boolean
     get() = this is UtExecutionSuccess

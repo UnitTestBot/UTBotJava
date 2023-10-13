@@ -25,11 +25,7 @@ private const val COMMENT_SEPARATOR = "-----------------------------------------
 open class SummaryTestCaseGeneratorTest(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = false,
-    pipelines: List<TestLastStage> = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, TestExecution)
-    )
-) : UtValueTestCaseChecker(testClass, testCodeGeneration, pipelines) {
+) : UtValueTestCaseChecker(testClass, testCodeGeneration) {
     private lateinit var cookie: AutoCloseable
 
     @BeforeEach

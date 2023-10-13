@@ -8,6 +8,8 @@ import java.util.IdentityHashMap
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.jClass
 
 abstract class BaseConstructorTest {
     private lateinit var cookie: AutoCloseable
@@ -23,11 +25,18 @@ abstract class BaseConstructorTest {
     }
 
     protected fun <T : Any> computeReconstructed(value: T): T {
-        val model = UtModelConstructor(IdentityHashMap()).construct(value, value::class.java.id)
+        val model = UtModelConstructor(
+            objectToModelCache = IdentityHashMap(),
+            idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
+            utModelWithCompositeOriginConstructorFinder = ::findUtCustomModelConstructor
+        ).construct(value, value::class.java.id)
 
         Assertions.assertTrue(model is UtAssembleModel)
 
         @Suppress("UNCHECKED_CAST")
         return ValueConstructor().construct(listOf(model)).single().value as T
     }
+
+    protected open fun findUtCustomModelConstructor(classId: ClassId): UtModelWithCompositeOriginConstructor? =
+        javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
 }

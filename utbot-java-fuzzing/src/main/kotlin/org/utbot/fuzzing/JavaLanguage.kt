@@ -42,7 +42,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     FloatValueProvider,
     StringValueProvider,
     NumberValueProvider,
-    ObjectValueProvider(idGenerator),
+    anyObjectValueProvider(idGenerator),
     ArrayValueProvider(idGenerator),
     EnumValueProvider(idGenerator),
     ListSetValueProvider(idGenerator),
@@ -50,6 +50,7 @@ fun defaultValueProviders(idGenerator: IdentityPreservingIdGenerator<Int>) = lis
     IteratorValueProvider(idGenerator),
     EmptyCollectionValueProvider(idGenerator),
     DateValueProvider(idGenerator),
+    VoidValueProvider,
     NullValueProvider,
 )
 
@@ -58,7 +59,7 @@ suspend fun runJavaFuzzing(
     methodUnderTest: ExecutableId,
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
-    providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
+    providers: List<JavaValueProvider> = defaultValueProviders(idGenerator),
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val random = Random(0)
@@ -142,12 +143,35 @@ suspend fun runJavaFuzzing(
 }
 
 /**
+ * Traverse though type hierarchy of this fuzzed type.
+ * Ignores all set [FuzzedType.generics] of source type.
+ *
+ * todo Process types like `Fuzzed[Any, generics = T1, T2]` to match those T1 and T2 types with superclass and interfaces
+ */
+internal fun FuzzedType.traverseHierarchy(typeCache: MutableMap<Type, FuzzedType>): Sequence<FuzzedType> = sequence {
+    val typeQueue = mutableListOf(this@traverseHierarchy)
+    var index = 0
+    while (typeQueue.isNotEmpty()) {
+        val next = typeQueue.removeFirst()
+        if (index++ > 0) {
+            yield(next)
+        }
+        val jClass = next.classId.jClass
+        val superclass = jClass.genericSuperclass
+        if (superclass != null) {
+            typeQueue += toFuzzerType(superclass, typeCache)
+        }
+        typeQueue += jClass.genericInterfaces.asSequence().map { toFuzzerType(it, typeCache) }
+    }
+}
+
+/**
  * Resolve a fuzzer type that has class info and some generics.
  *
  * @param type to be resolved
  * @param cache is used to store same [FuzzedType] for same java types
  */
-internal fun toFuzzerType(type: Type, cache: MutableMap<Type, FuzzedType>): FuzzedType {
+fun toFuzzerType(type: Type, cache: MutableMap<Type, FuzzedType>): FuzzedType {
     return toFuzzerType(
         type = type,
         classId = { t -> toClassId(t, cache) },

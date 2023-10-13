@@ -76,7 +76,7 @@ fun Class<*>.singleConstructor(signature: String): Constructor<*> =
 
 fun Class<*>.singleMethodOrNull(signature: String): Method? =
         generateSequence(this) { it.superclass }.mapNotNull { clazz ->
-            clazz.declaredMethods.firstOrNull { it.signature == signature }
+            (clazz.methods + clazz.declaredMethods).firstOrNull { it.signature == signature }
         }.firstOrNull()
 
 /**

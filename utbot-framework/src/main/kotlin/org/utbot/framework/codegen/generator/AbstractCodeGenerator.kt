@@ -1,64 +1,37 @@
 package org.utbot.framework.codegen.generator
 
 import mu.KotlinLogging
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.HangingTestsTimeout
-import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.ProjectType
-import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
-import org.utbot.framework.codegen.services.language.CgLanguageAssistant
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-abstract class AbstractCodeGenerator(
-    classUnderTest: ClassId,
-    projectType: ProjectType,
-    paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
-    generateUtilClassFile: Boolean = false,
-    testFramework: TestFramework = TestFramework.defaultItem,
-    mockFramework: MockFramework = MockFramework.defaultItem,
-    staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
-    forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
-    generateWarningsForStaticMocking: Boolean = true,
-    codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-    cgLanguageAssistant: CgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
-    parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
-    runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
-    hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
-    enableTestsTimeout: Boolean = true,
-    testClassPackageName: String = classUnderTest.packageName,
-) {
+abstract class AbstractCodeGenerator(params: CodeGeneratorParams) {
     protected val logger = KotlinLogging.logger {}
 
-    open var context: CgContext = CgContext(
-        classUnderTest = classUnderTest,
-        projectType = projectType,
-        generateUtilClassFile = generateUtilClassFile,
-        paramNames = paramNames,
-        testFramework = testFramework,
-        mockFramework = mockFramework,
-        codegenLanguage = codegenLanguage,
-        cgLanguageAssistant = cgLanguageAssistant,
-        parametrizedTestSource = parameterizedTestSource,
-        staticsMocking = staticsMocking,
-        forceStaticMocking = forceStaticMocking,
-        generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-        runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-        hangingTestsTimeout = hangingTestsTimeout,
-        enableTestsTimeout = enableTestsTimeout,
-        testClassPackageName = testClassPackageName
-    )
+    open var context: CgContext = with(params) {
+        CgContext(
+            classUnderTest = classUnderTest,
+            projectType = projectType,
+            generateUtilClassFile = generateUtilClassFile,
+            paramNames = paramNames,
+            testFramework = testFramework,
+            mockFramework = mockFramework,
+            codegenLanguage = codegenLanguage,
+            cgLanguageAssistant = cgLanguageAssistant,
+            parametrizedTestSource = parameterizedTestSource,
+            staticsMocking = staticsMocking,
+            forceStaticMocking = forceStaticMocking,
+            generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+            runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
+            hangingTestsTimeout = hangingTestsTimeout,
+            enableTestsTimeout = enableTestsTimeout,
+            testClassPackageName = testClassPackageName
+        )
+    }
 
     //TODO: we support custom test class name only in utbot-online, probably support them in plugin as well
     fun generateAsString(testSets: Collection<UtMethodTestSet>, testClassCustomName: String? = null): String =

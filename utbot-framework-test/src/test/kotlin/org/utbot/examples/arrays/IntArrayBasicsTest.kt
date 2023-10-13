@@ -1,11 +1,9 @@
 package org.utbot.examples.arrays
 
 import org.junit.jupiter.api.Disabled
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.ignoreExecutionsNumber
 import org.utbot.testing.isException
@@ -14,10 +12,7 @@ import org.utbot.testing.isException
 internal class IntArrayBasicsTest : UtValueTestCaseChecker(
     testClass = IntArrayBasics::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testIntArrayWithAssumeOrExecuteConcretely() {

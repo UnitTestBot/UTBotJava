@@ -4,7 +4,7 @@ import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.MockFramework
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.LibraryOrderEntry
-import org.utbot.framework.codegen.domain.DependencyInjectionFramework
+import org.utbot.framework.codegen.domain.SpringModule
 import org.utbot.framework.plugin.api.utils.Patterns
 import org.utbot.framework.plugin.api.utils.parametrizedTestsPatterns
 import org.utbot.framework.plugin.api.utils.patterns
@@ -30,15 +30,15 @@ fun findParametrizedTestsLibrary(
 
 fun findDependencyInjectionLibrary(
     module: Module,
-    springFrameworkType: DependencyInjectionFramework,
+    springModule: SpringModule,
     scope: LibrarySearchScope = LibrarySearchScope.Module
-): LibraryOrderEntry? = findMatchingLibraryOrNull(module, springFrameworkType.patterns(), scope)
+): LibraryOrderEntry? = findMatchingLibraryOrNull(module, springModule.patterns(), scope)
 
 fun findDependencyInjectionTestLibrary(
     module: Module,
-    springFrameworkType: DependencyInjectionFramework,
+    springModule: SpringModule,
     scope: LibrarySearchScope = LibrarySearchScope.Module
-): LibraryOrderEntry? = findMatchingLibraryOrNull(module, springFrameworkType.testPatterns(), scope)
+): LibraryOrderEntry? = findMatchingLibraryOrNull(module, springModule.testPatterns(), scope)
 
 private fun findMatchingLibraryOrNull(
     module: Module,

@@ -3,7 +3,7 @@ package org.utbot.python.evaluation
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
-import org.utbot.python.evaluation.serialiation.MemoryDump
+import org.utbot.python.evaluation.serialization.MemoryDump
 
 interface PythonCodeExecutor {
     val method: PythonMethod

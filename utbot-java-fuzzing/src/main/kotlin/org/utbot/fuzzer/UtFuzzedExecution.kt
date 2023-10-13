@@ -32,6 +32,29 @@ class UtFuzzedExecution(
     val staticFields: Set<FieldId>
         get() = stateBefore.statics.keys // TODO: should we keep it for the Fuzzed Execution?
 
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution {
+        return UtFuzzedExecution(
+            stateBefore,
+            stateAfter,
+            result,
+            coverage,
+            summary,
+            testMethodName,
+            displayName,
+            fuzzingValues = fuzzingValues,
+            fuzzedMethodDescription = fuzzedMethodDescription,
+            instrumentation = instrumentation,
+        )
+    }
+
     override fun toString(): String = buildString {
         append("UtFuzzedExecution(")
         appendLine()
@@ -51,4 +74,28 @@ class UtFuzzedExecution(
         append(result)
         append(")")
     }
+
+    fun copy(
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
+        fuzzingValues: List<FuzzedValue>? = this.fuzzingValues,
+        fuzzedMethodDescription: FuzzedMethodDescription? = this.fuzzedMethodDescription,
+        instrumentation: List<UtInstrumentation> = this.instrumentation,
+    ): UtExecution = UtFuzzedExecution(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        coverage = coverage,
+        summary = summary,
+        testMethodName = testMethodName,
+        displayName = displayName,
+        fuzzingValues = fuzzingValues,
+        fuzzedMethodDescription = fuzzedMethodDescription,
+        instrumentation = instrumentation,
+    )
 }

@@ -1,3 +1,7 @@
+val projectType: String by rootProject
+val communityEdition: String by rootProject
+val ultimateEdition: String by rootProject
+
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
@@ -37,6 +41,10 @@ intellij {
         "java"
     )
 
+    val kotlinPlugins = mutableListOf(
+        "org.jetbrains.kotlin"
+    )
+
     androidStudioPath?.let { jvmPlugins += androidPlugins }
 
     val pythonCommunityPlugins = listOf(
@@ -59,13 +67,19 @@ intellij {
         "org.jetbrains.idea.maven"
     )
 
+    val basePluginSet = jvmPlugins + kotlinPlugins + mavenUtilsPlugins + androidPlugins
+
     plugins.set(
-        when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins + mavenUtilsPlugins
-            "PC" -> pythonCommunityPlugins
-            "PY" -> pythonUltimatePlugins // something else, JS?
-            else -> jvmPlugins
+        when (projectType) {
+            communityEdition -> basePluginSet + pythonCommunityPlugins
+            ultimateEdition -> when (ideType) {
+                "IC" -> basePluginSet + pythonCommunityPlugins
+                "IU" -> basePluginSet + pythonUltimatePlugins + jsPlugins + goPlugins
+                "PC" -> pythonCommunityPlugins
+                "PY" -> pythonUltimatePlugins // something else, JS?
+                else -> basePluginSet
+            }
+            else -> basePluginSet
         }
     )
 
@@ -98,7 +112,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("223")
-        untilBuild.set("231.*")
+        untilBuild.set("232.*")
         version.set(semVer)
     }
 
@@ -143,6 +157,7 @@ dependencies {
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = jacksonVersion)
 
     implementation(project(":utbot-framework")) { exclude(group = "org.slf4j", module = "slf4j-api") }
+    implementation(project(":utbot-spring-framework")) { exclude(group = "org.slf4j", module = "slf4j-api") }
     implementation(project(":utbot-java-fuzzing"))
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")
@@ -151,19 +166,22 @@ dependencies {
     implementation(project(":utbot-ui-commons"))
 
     //Family
+
     if (pythonIde?.split(',')?.contains(ideType) == true) {
         implementation(project(":utbot-python"))
         implementation(project(":utbot-intellij-python"))
     }
 
-    if (jsIde?.split(',')?.contains(ideType) == true) {
-        implementation(project(":utbot-js"))
-        implementation(project(":utbot-intellij-js"))
-    }
+    if (projectType == ultimateEdition) {
+        if (jsIde?.split(',')?.contains(ideType) == true) {
+            implementation(project(":utbot-js"))
+            implementation(project(":utbot-intellij-js"))
+        }
 
-    if (goIde?.split(',')?.contains(ideType) == true) {
-        implementation(project(":utbot-go"))
-        implementation(project(":utbot-intellij-go"))
+        if (goIde?.split(',')?.contains(ideType) == true) {
+            implementation(project(":utbot-go"))
+            implementation(project(":utbot-intellij-go"))
+        }
     }
 
     implementation(project(":utbot-android-studio"))

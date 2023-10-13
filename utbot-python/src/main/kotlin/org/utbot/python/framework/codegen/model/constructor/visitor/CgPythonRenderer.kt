@@ -66,9 +66,10 @@ import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.codegen.model.constructor.util.dropBuiltins
 import org.utbot.python.framework.codegen.model.tree.*
 import java.lang.StringBuilder
-import org.utbot.python.framework.codegen.toPythonRawString
+import org.utbot.python.framework.codegen.utils.toRelativeRawPath
 
 internal class CgPythonRenderer(
     context: CgRendererContext,
@@ -234,7 +235,12 @@ internal class CgPythonRenderer(
 
     override fun visit(element: CgEqualTo) {
         element.left.accept(this)
-        print(" == ")
+        val isCompareTypes = listOf("builtins.bool", "types.NoneType")
+        if (isCompareTypes.contains(element.right.type.canonicalName)) {
+            print(" is ")
+        } else {
+            print(" == ")
+        }
         element.right.accept(this)
     }
 
@@ -295,7 +301,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgConstructorCall) {
-        print(element.executableId.classId.name)
+        print(element.executableId.classId.name.dropBuiltins())
         renderExecutableCallArguments(element)
     }
 
@@ -318,7 +324,7 @@ internal class CgPythonRenderer(
     fun renderPythonImport(pythonImport: PythonImport) {
         val importBuilder = StringBuilder()
         if (pythonImport is PythonSysPathImport) {
-            importBuilder.append("sys.path.append(${pythonImport.sysPath.toPythonRawString()})")
+            importBuilder.append("sys.path.append(${pythonImport.sysPath.toRelativeRawPath()})")
         } else if (pythonImport.moduleName == null) {
             importBuilder.append("import ${pythonImport.importName}")
         } else {
@@ -448,19 +454,10 @@ internal class CgPythonRenderer(
     override fun visit(block: List<CgStatement>, printNextLine: Boolean) {
         println(":")
 
-        val isBlockTooLarge = workaround(WorkaroundReason.LONG_CODE_FRAGMENTS) { block.size > 120 }
-
         withIndent {
-            if (isBlockTooLarge) {
-                print("\"\"\"")
-                println(" This block of code is ${block.size} lines long and could lead to compilation error")
-            }
-
             for (statement in block) {
                 statement.accept(this)
             }
-
-            if (isBlockTooLarge) println("\"\"\"")
         }
 
         if (printNextLine) println()
@@ -499,7 +496,18 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonRepr) {
-        print(element.content)
+        val content = element.content.dropBuiltins()
+        if (content.startsWith("\"") && content.endsWith("\"")) {
+            val realContent = content.slice(1 until content.length - 1)
+            if (realContent.startsWith("r\\\"") && realContent.endsWith("\\\"")) {  // raw string
+                val innerContent = realContent.slice(5 until realContent.length - 4)
+                print("r\"${innerContent.replace("\r", "\\r").replace("\n", "\\n")}\"")
+            } else {
+                print("\"${realContent.replace("\r", "\\r").replace("\n", "\\n")}\"")
+            }
+        } else {
+            print(content.dropBuiltins())
+        }
     }
 
     override fun visit(element: CgPythonIndex) {
@@ -510,7 +518,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonFunctionCall) {
-        print(element.name)
+        print(element.name.dropBuiltins())
         print("(")
         val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
         element.parameters.renderSeparated(newLinesNeeded)
@@ -573,6 +581,11 @@ internal class CgPythonRenderer(
         withIndent { element.statements.forEach { it.accept(this) } }
     }
 
+    override fun visit(element: CgPythonNamedArgument) {
+        element.name?.let { print("$it=") }
+        element.value.accept(this)
+    }
+
     override fun visit(element: CgPythonDict) {
         print("{")
         element.elements.map { (key, value) ->
@@ -594,7 +607,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgLiteral) {
-        print(element.value.toString())
+        print(element.value.toString().dropBuiltins())
     }
 
     override fun visit(element: CgFormattedString) {

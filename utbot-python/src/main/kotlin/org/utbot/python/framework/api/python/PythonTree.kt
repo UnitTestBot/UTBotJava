@@ -11,7 +11,7 @@ import org.utbot.python.framework.api.python.util.pythonSetClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.framework.api.python.util.toPythonRepr
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -25,6 +25,9 @@ object PythonTree {
     }
 
     private fun isRecursiveObjectDFS(tree: PythonTreeNode, visited: MutableSet<PythonTreeNode>): Boolean {
+        if (tree is PrimitiveNode) {
+            return false
+        }
         if (visited.contains(tree))
             return true
         visited.add(tree)
@@ -51,7 +54,13 @@ object PythonTree {
     ) {
         constructor(type: PythonClassId, comparable: Boolean = true) : this(PythonIdGenerator.createId(), type, comparable)
 
+        fun PythonTreeNode.wrap(): PythonTreeWrapper = PythonTreeWrapper(this)
+
         open val children: List<PythonTreeNode> = emptyList()
+
+        fun isRecursive(): Boolean {
+            return isRecursiveObject(this)
+        }
 
         override fun toString(): String {
             return type.name + children.toString()
@@ -68,7 +77,7 @@ object PythonTree {
             if (other !is PythonTreeNode) {
                 return false
             }
-            return id == other.id
+            return this.wrap() == other.wrap()
         }
 
         override fun hashCode(): Int {
@@ -212,6 +221,7 @@ object PythonTree {
         var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
+        var customState: Boolean = false,  // if this field is true, state must have structure {'state': <PythonTreeNode>}
     ) : PythonTreeNode(id, type) {
         constructor(
             type: PythonClassId,
@@ -317,7 +327,7 @@ object PythonTree {
         )
     }
 
-    fun fromParsedConstant(value: Pair<Type, Any>): PythonTreeNode? {
+    fun fromParsedConstant(value: Pair<UtType, Any>): PythonTreeNode? {
         return when (value.first.pythonTypeName()) {
             "builtins.int" -> fromInt(value.second as? BigInteger ?: return null)
             "builtins.float" -> fromFloat((value.second as? BigDecimal)?.toDouble() ?: return null)
@@ -325,7 +335,7 @@ object PythonTree {
                 val elemsUntyped = (value.second as? List<*>) ?: return null
                 val elems = elemsUntyped.map {
                     val pair = it as? Pair<*,*> ?: return null
-                    Pair(pair.first as? Type ?: return null, pair.second ?: return null)
+                    Pair(pair.first as? UtType ?: return null, pair.second ?: return null)
                 }
                 TupleNode(
                     elems.mapIndexed { index, pair ->
@@ -359,7 +369,7 @@ class PythonTreeWrapper(val tree: PythonTree.PythonTreeNode) {
         if (other !is PythonTreeWrapper)
             return false
         if (PythonTree.isRecursiveObject(tree) || PythonTree.isRecursiveObject(other.tree))
-            return tree == other.tree
+            return tree.id == other.tree.id
         return tree.softEquals(other.tree)
     }
 

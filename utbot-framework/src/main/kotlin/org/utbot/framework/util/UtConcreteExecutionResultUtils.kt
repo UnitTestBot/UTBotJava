@@ -8,27 +8,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import java.util.IdentityHashMap
 
-private fun UtConcreteExecutionResult.updateWithAssembleModels(
-    assembledUtModels: IdentityHashMap<UtModel, UtModel>
-): UtConcreteExecutionResult {
-    val toAssemble: (UtModel) -> UtModel = { assembledUtModels.getOrDefault(it, it) }
-
-    val resolvedStateAfter = if (stateAfter is MissingState) MissingState else EnvironmentModels(
-        stateAfter.thisInstance?.let { toAssemble(it) },
-        stateAfter.parameters.map { toAssemble(it) },
-        stateAfter.statics.mapValues { toAssemble(it.value) }
-    )
-    val resolvedResult =
-        (result as? UtExecutionSuccess)?.model?.let { UtExecutionSuccess(toAssemble(it)) } ?: result
-
-    return UtConcreteExecutionResult(
-        resolvedStateAfter,
-        resolvedResult,
-        coverage,
-        newInstrumentation
-    )
-}
-
 /**
  * Tries to convert all models from [UtExecutionResult] to [UtAssembleModel] if possible.
  *
@@ -41,10 +20,42 @@ fun UtConcreteExecutionResult.convertToAssemble(packageName: String): UtConcrete
     return updateWithAssembleModels(modelsToAssembleModels)
 }
 
+private fun UtConcreteExecutionResult.updateWithAssembleModels(
+    assembledUtModels: IdentityHashMap<UtModel, UtModel>
+): UtConcreteExecutionResult {
+    val toAssemble: (UtModel) -> UtModel = { assembledUtModels.getOrDefault(it, it) }
+
+    val resolvedStateBefore = stateBefore.resolveState(toAssemble)
+    val resolvedStateAfter = stateAfter.resolveState(toAssemble)
+    val resolvedResult = (result as? UtExecutionSuccess)?.model?.let { UtExecutionSuccess(toAssemble(it)) } ?: result
+
+    return copy(
+        stateBefore = resolvedStateBefore,
+        stateAfter = resolvedStateAfter,
+        result = resolvedResult,
+    )
+}
+
+private fun EnvironmentModels.resolveState(toAssemble: (UtModel) -> UtModel): EnvironmentModels =
+    if (this is MissingState) {
+        MissingState
+    } else {
+        copy(
+            thisInstance = thisInstance?.let { toAssemble(it) },
+            parameters = parameters.map { toAssemble(it) },
+            statics = statics.mapValues { toAssemble(it.value) },
+        )
+    }
+
 private fun UtConcreteExecutionResult.collectAllModels(): List<UtModel> {
-    val allModels = listOfNotNull(stateAfter.thisInstance).toMutableList()
-    allModels += stateAfter.parameters
-    allModels += stateAfter.statics.values
+    val allModels = mutableListOf<UtModel>()
+
+    allModels += stateBefore.utModels
+    allModels += stateAfter.utModels
     allModels += listOfNotNull((result as? UtExecutionSuccess)?.model)
+
     return allModels
 }
+
+private val EnvironmentModels.utModels: List<UtModel>
+    get() = listOfNotNull(thisInstance) + parameters + statics.values

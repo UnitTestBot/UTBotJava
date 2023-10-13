@@ -1,3 +1,7 @@
+val projectType: String by settings
+val communityEdition: String by settings
+val ultimateEdition: String by settings
+
 val ideType: String by settings
 val buildType: String by settings
 
@@ -22,6 +26,7 @@ rootProject.name = "utbot"
 include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
+include("utbot-modificators-analyzer")
 include("utbot-intellij")
 include("utbot-sample")
 include("utbot-java-fuzzing")
@@ -51,25 +56,35 @@ if (includeRiderInBuild.toBoolean()) {
 
 include("utbot-ui-commons")
 
+include("utbot-spring-framework")
+include("utbot-spring-commons-api")
+include("utbot-spring-commons")
+include("utbot-spring-analyzer")
+
 if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python")
     include("utbot-cli-python")
     include("utbot-intellij-python")
     include("utbot-python-parser")
+    include("utbot-python-types")
+    include("utbot-python-executor")
 }
 
-if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
-    include("utbot-js")
-    include("utbot-cli-js")
-    include("utbot-intellij-js")
+include("utbot-spring-sample")
+include("utbot-spring-test")
+
+if (projectType == ultimateEdition) {
+    if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
+        include("utbot-js")
+        include("utbot-cli-js")
+        include("utbot-intellij-js")
+    }
+
+    if (goIde.split(",").contains(ideType)) {
+        include("utbot-go")
+        include("utbot-cli-go")
+        include("utbot-intellij-go")
+    }
 }
 
-if (goIde.split(",").contains(ideType)) {
-    include("utbot-go")
-    include("utbot-cli-go")
-    include("utbot-intellij-go")
-}
-
-include("utbot-spring-analyzer")
-include("utbot-spring-commons")
-include("utbot-spring-commons-api")
+include("utbot-light")

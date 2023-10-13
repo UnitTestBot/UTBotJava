@@ -5,7 +5,7 @@ package org.utbot.intellij.plugin.ui.utils
  * Contains three standard components: major, minor and patch.
  *
  * Major and minor components are always numbers, while patch
- * may contain a number with some postfix like -RELEASE.
+ * may contain a number with some optional postfix like `-RELEASE` or `.RELEASE`.
  *
  * Sometimes patch is empty, e.g. for TestNg 7.5 version.
  *
@@ -18,9 +18,10 @@ data class Version(
     val plainText: String? = null,
 ) {
     fun isCompatibleWith(another: Version): Boolean {
-        //Non-numeric versions can't be compared to each other, so we cannot be sure that current is compatible
+        // Non-numeric versions can't be compared to each other,
+        // so we cannot be sure that current is compatible unless it's the exact match
         if (!hasNumericOrEmptyPatch() || !hasNumericOrEmptyPatch()) {
-            return false
+            return plainText == another.plainText
         }
 
         return major > another.major ||
@@ -35,10 +36,11 @@ data class Version(
 fun String.parseVersion(): Version? {
     val lastSemicolon = lastIndexOf(':')
     val versionText = substring(lastSemicolon + 1)
-    val versionComponents = versionText.split('.')
 
     // Components must be: major, minor and (optional) patch
-    if (versionComponents.size < 2 || versionComponents.size > 3) {
+    val versionComponents = versionText.split('.', limit = 3)
+
+    if (versionComponents.size < 2) {
         return null
     }
 

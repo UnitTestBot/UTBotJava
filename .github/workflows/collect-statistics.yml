@@ -1,4 +1,4 @@
-name: "UTBot Java: collect statistics"
+name: "[M] UTBot Java: collect statistics"
 
 on:
   workflow_call:
@@ -96,16 +96,16 @@ jobs:
     needs: setup_matrix
     continue-on-error: true
     strategy:
-      max-parallel: 3
+      # temporary commented, remove completely after 10.23 if all pipelines worked well
+      #max-parallel: 3
       matrix:
         project: ${{ fromJson(needs.setup_matrix.outputs.projects) }}
         value: ${{ fromJson(needs.setup_matrix.outputs.matrix) }}
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java17-zulu-jdk-fx-gradle7.6.1-kotlinc1.8.0
+    container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
     steps:
       - name: Install git
         run: |
-          apt-get upgrade -y
           apt-get update -y
           apt-get install git -y
           git config --global --add safe.directory $(pwd)
@@ -119,6 +119,25 @@ jobs:
           ref: ${{ env.data_branch }}
           path: ${{ env.data_path }}
 
+      - name: Expand system swap
+        shell: bash
+        # trying to configure swap on host from running container
+        run: |
+          docker run -d --rm --name busybox --privileged --net=host --pid=host --ipc=host --volume /:/host busybox sleep infinity
+          docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "swapoff /mnt/swapfile"'
+          docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "dd if=/dev/zero of=/mnt/swapfile bs=1M count=8192 oflag=append conv=notrunc"'
+          docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "mkswap /mnt/swapfile"'
+          docker exec busybox /bin/sh -c 'chroot /host /bin/bash -c "swapon /mnt/swapfile"'
+
+      - name: Run system monitoring
+        # secret uploaded using base64 encoding to have one-line output:
+        # cat file | base64 -w 0
+        continue-on-error: true
+        run: |
+          chmod +x ./scripts/project/monitoring.sh
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
@@ -129,6 +148,56 @@ jobs:
           for i in $(seq ${{ inputs.run_number }})
           do
             java -jar \
+              --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED \
+              --add-opens java.base/java.lang.invoke=ALL-UNNAMED \
+              --add-opens java.base/java.util.concurrent=ALL-UNNAMED \
+              --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED \
+              --add-opens java.base/java.text=ALL-UNNAMED \
+              --add-opens java.base/java.time=ALL-UNNAMED \
+              --add-opens java.base/java.io=ALL-UNNAMED \
+              --add-opens java.base/java.nio=ALL-UNNAMED \
+              --add-opens java.base/java.nio.file=ALL-UNNAMED \
+              --add-opens java.base/java.net=ALL-UNNAMED \
+              --add-opens java.base/sun.security.util=ALL-UNNAMED \
+              --add-opens java.base/sun.reflect.generics.repository=ALL-UNNAMED \
+              --add-opens java.base/sun.net.util=ALL-UNNAMED \
+              --add-opens java.base/sun.net.fs=ALL-UNNAMED \
+              --add-opens java.base/java.security=ALL-UNNAMED \
+              --add-opens java.base/java.lang.ref=ALL-UNNAMED \
+              --add-opens java.base/java.math=ALL-UNNAMED \
+              --add-opens java.base/java.util.stream=ALL-UNNAMED \
+              --add-opens java.base/java.util=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
+              --add-opens java.base/java.lang=ALL-UNNAMED \
+              --add-opens java.base/java.lang.reflect=ALL-UNNAMED \
+              --add-opens java.base/sun.security.provider=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.event=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.jimage=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.jimage.decompressor=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.jmod=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.jtrfs=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.loader=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.logger=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.math=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.module=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.org.objectweb.asm.commons=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.org.objectweb.asm.signature=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.org.objectweb.asm.tree.analysis=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.org.objectweb.asm.util=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.org.xml.sax=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.org.xml.sax.helpers=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.perf=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.platform=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.ref=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.util=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.util.jar=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.util.xml=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.util.xml.impl=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.vm=ALL-UNNAMED \
+              --add-opens java.base/jdk.internal.vm.annotation=ALL-UNNAMED \
               -Dutbot.monitoring.settings.path=$monitoring_projects/${{ matrix.project }}/monitoring.properties \
               utbot-junit-contest/build/libs/monitoring.jar \
               stats-$i.json

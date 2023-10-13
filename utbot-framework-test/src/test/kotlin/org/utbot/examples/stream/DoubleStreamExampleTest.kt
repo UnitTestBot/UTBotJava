@@ -2,12 +2,10 @@ package org.utbot.examples.stream
 
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPathSelectorStepsLimit
 import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testing.AtLeast
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.Full
 import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
@@ -21,11 +19,7 @@ import kotlin.streams.toList
 @Tag("slow") // we do not really need to always use this test in CI because it is almost the same as BaseStreamExampleTest
 class DoubleStreamExampleTest : UtValueTestCaseChecker(
     testClass = DoubleStreamExample::class,
-    testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun testReturningStreamAsParameterExample() {

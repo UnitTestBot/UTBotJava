@@ -12,11 +12,15 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.UtFuzzedExecution
 
-data class CgMethodTestSet constructor(
-    val executableId: ExecutableId,
+data class CgMethodTestSet(
+    val executableUnderTest: ExecutableId,
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>>,
 ) {
+    val executablesToCall get() =
+        executions.map { it.executableToCall ?: executableUnderTest }
+            .distinctBy { it.classId to it.signature }
+
     var executions: List<UtExecution> = emptyList()
         private set
 
@@ -55,8 +59,11 @@ data class CgMethodTestSet constructor(
      *
      * Tries to find a unique result type in testSets or
      * gets executable return type.
+     *
+     * Returns `null` if there are multiple distinct [executablesToCall].
      */
-    fun resultType(): ClassId {
+    fun getCommonResultTypeOrNull(): ClassId? {
+        val executableId = executablesToCall.singleOrNull() ?: return null
         return when (executableId.returnType) {
             voidClassId -> executableId.returnType
             else -> {
@@ -128,6 +135,6 @@ data class CgMethodTestSet constructor(
         return substituteExecutions(symbolicExecutionsWithoutMocking)
     }
 
-    private fun substituteExecutions(newExecutions: List<UtExecution>): CgMethodTestSet =
+    fun substituteExecutions(newExecutions: List<UtExecution>): CgMethodTestSet =
         copy().apply { executions = newExecutions }
 }

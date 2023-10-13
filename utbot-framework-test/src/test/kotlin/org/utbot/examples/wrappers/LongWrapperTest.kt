@@ -1,21 +1,16 @@
 package org.utbot.examples.wrappers
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutMinimization
-import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 
 internal class LongWrapperTest : UtValueTestCaseChecker(
     testClass = LongWrapper::class,
     testCodeGeneration = true,
-    pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA),
-        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
+    configurations = ignoreKotlinCompilationConfigurations,
 ) {
     @Test
     fun primitiveToWrapperTest() {

@@ -13,9 +13,9 @@ fun TextEditorFixture.typeAdditionFunction(className: String): String {
         enterText("public int addition(")
         enterText("int a, int b")
         key(KeyEvent.VK_END)
-        enterText("{")
+        enterText(" {")
         enter()
-        enterText("// UTBot UI ${TEST_RUN_NUMBER} test")
+        enterText("// Test run ${TEST_RUN_NUMBER}")
         enter()
         enterText("return a + b;")
     }
@@ -30,9 +30,9 @@ fun TextEditorFixture.typeDivisionFunction(className: String) : String {
         enterText("public int division(")
         enterText("int a, int b")
         key(KeyEvent.VK_END)
-        enterText("{")
+        enterText(" {")
         enter()
-        enterText("// UTBot UI ${TEST_RUN_NUMBER} test")
+        enterText("// Test run ${TEST_RUN_NUMBER}")
         enter()
         enterText("return a / b;")
     }

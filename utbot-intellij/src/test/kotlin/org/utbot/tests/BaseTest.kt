@@ -4,25 +4,24 @@ import com.intellij.remoterobot.RemoteRobot
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.provider.Arguments
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
-import org.utbot.pages.IdeaFrame
-import org.utbot.pages.IdeaGradleFrame
-import org.utbot.pages.IdeaMavenFrame
-import org.utbot.pages.idea
+import org.utbot.pages.*
 import org.utbot.utils.RemoteRobotExtension
 import org.utbot.utils.StepsLogger
 import java.time.Duration.ofSeconds
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(RemoteRobotExtension::class)
 open class BaseTest {
     fun getIdeaFrameForBuildSystem(remoteRobot: RemoteRobot, ideaBuildSystem: IdeaBuildSystem): IdeaFrame {
-        when (ideaBuildSystem) {
-            IdeaBuildSystem.INTELLIJ -> return remoteRobot.find(IdeaFrame::class.java, ofSeconds(10))
-            IdeaBuildSystem.GRADLE -> return remoteRobot.find(IdeaGradleFrame::class.java, ofSeconds(10))
-            IdeaBuildSystem.MAVEN -> return remoteRobot.find(IdeaMavenFrame::class.java, ofSeconds(10))
+        return when (ideaBuildSystem) {
+            IdeaBuildSystem.INTELLIJ -> remoteRobot.find(IdeaFrame::class.java, ofSeconds(10))
+            IdeaBuildSystem.GRADLE -> remoteRobot.find(IdeaGradleFrame::class.java, ofSeconds(10))
+            IdeaBuildSystem.MAVEN -> remoteRobot.find(IdeaMavenFrame::class.java, ofSeconds(10))
         }
     }
 
@@ -45,11 +44,11 @@ open class BaseTest {
     companion object {
         @BeforeAll
         @JvmStatic
-        fun init(remoteRobot: RemoteRobot): Unit = with(remoteRobot) {
+        fun init(remoteRobot: RemoteRobot) {
             StepsLogger.init()
         }
 
-        private val supportedProjectsList: List<Arguments> =
+        internal val supportedProjectsList: List<Arguments> =
             addPairsToList(true)
         private val unsupportedProjectsList: List<Arguments> =
             addPairsToList(false)

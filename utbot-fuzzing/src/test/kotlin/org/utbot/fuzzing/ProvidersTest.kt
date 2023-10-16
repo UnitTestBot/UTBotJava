@@ -112,7 +112,7 @@ class ProvidersTest {
     }
 
     @Test
-    fun `test fallback unwrapping from providers`() {
+    fun `test using except on provider with fallback`() {
         val provider1 = p { 2 }
         val provider2 = p { 3 }
         val fallback = p { 4 }
@@ -128,8 +128,9 @@ class ProvidersTest {
         val providers2 = providers1.except(provider1)
 
         val seq2 = providers2.generate(description, Unit).toSet()
-        Assertions.assertEquals(1, seq2.count())
-        Assertions.assertEquals(3, (seq2.first() as Seed.Simple).value)
+        Assertions.assertEquals(2, seq2.count())
+        Assertions.assertEquals(4, (seq2.first() as Seed.Simple).value)
+        Assertions.assertEquals(3, (seq2.drop(1).first() as Seed.Simple).value)
     }
 
     @Test

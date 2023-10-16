@@ -1439,7 +1439,7 @@ sealed class SpringConfiguration(val fullDisplayName: String) {
 }
 
 sealed interface SpringSettings {
-    object AbsentSpringSettings : SpringSettings {
+    companion object AbsentSpringSettings : SpringSettings {
         // NOTE that overriding equals is required just because without it
         // we will lose equality for objects after deserialization
         override fun equals(other: Any?): Boolean = other is AbsentSpringSettings

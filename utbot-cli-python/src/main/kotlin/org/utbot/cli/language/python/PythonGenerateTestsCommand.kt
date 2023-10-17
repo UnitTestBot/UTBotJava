@@ -18,7 +18,6 @@ import org.utbot.python.TestFileInformation
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.code.PythonCode
 import org.utbot.python.evaluation.coverage.PythonCoverageMode
-import org.utbot.python.evaluation.coverage.toPythonCoverageMode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
@@ -127,9 +126,9 @@ class PythonGenerateTestsCommand : CliktCommand(
     private val doNotSendCoverageContinuously by option("--do-not-send-coverage-continuously", help = "Do not send coverage during execution.")
         .flag(default = false)
 
-    private val coverageOutputFormat by option("--coverage-output-format", help = "Use Lines, Instructions or TopFrameInstructions.")
-        .choice("Instructions", "Lines", "TopFrameInstructions")
-        .default("Instructions")
+    private val coverageOutputFormat by option("--coverage-output-format", help = "Use LINES, INSTRUCTIONS or TOPFRAMEINSTRUCTIONS.")
+        .choice("INSTRUCTIONS", "LINES", "TOPFRAMEINSTRUCTIONS")
+        .default("LINES")
 
     private val testFramework: TestFramework
         get() =
@@ -267,9 +266,9 @@ class PythonGenerateTestsCommand : CliktCommand(
             withMinimization = !doNotMinimize,
             isCanceled = { false },
             runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
-            coverageMeasureMode = coverageMeasureMode.toPythonCoverageMode() ?: PythonCoverageMode.Instructions,
+            coverageMeasureMode = PythonCoverageMode.parse(coverageMeasureMode),
             sendCoverageContinuously = !doNotSendCoverageContinuously,
-            coverageOutputFormat = CoverageOutputFormat.valueOf(coverageOutputFormat),
+            coverageOutputFormat = CoverageOutputFormat.parse(coverageOutputFormat),
         )
 
         val processor = PythonCliProcessor(

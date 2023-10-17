@@ -77,17 +77,19 @@ class UtTracer:
         self.ignore_dirs = ignore_dirs
         self.sender = sender
         self.mode = mode
-        self.depth = 0
+        self.global_offset = 0
+        self.local_offset = 0
+        self.offsets = {}
 
     def runfunc(self, func, /, *args, **kw):
         result = None
-        self.depth = 0
+        self.global_offset = 0
         sys.settrace(self.globaltrace)
         try:
             result = func(*args, **kw)
         finally:
             sys.settrace(None)
-            self.depth = 0
+            self.global_offset = 0
         return result
 
     def coverage(self, filename: str) -> typing.List[int]:
@@ -98,10 +100,12 @@ class UtTracer:
         filename = frame.f_code.co_filename
         lineno = frame.f_lineno
         if pathlib.Path(filename) == self.tested_file and lineno is not None:
-            offset = lineno * 2
+            offset = 0
             if why == "opcode":
                 offset = frame.f_lasti
-            key = UtInstruction(lineno, offset, self.depth)
+            self.local_offset = offset
+            key = UtInstruction(lineno, offset, self.global_offset)
+            print(key)
             if key not in self.counts:
                 message = key.serialize()
                 try:
@@ -112,7 +116,11 @@ class UtTracer:
         return self.localtrace
 
     def globaltrace_lt(self, frame, why, arg):
-        self.depth += 1
+        print("Global", frame, id(frame), frame.f_lasti, self.global_offset)
+        if frame not in self.offsets:
+            self.offsets[frame] = self.global_offset + self.local_offset
+        self.global_offset = self.offsets[frame]
+
         if why == 'call':
             if self.mode == TraceMode.Instructions:
                 frame.f_trace_opcodes = True

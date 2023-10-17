@@ -286,19 +286,21 @@ abstract class PythonTestGenerationProcessor {
         }
     }
 
-    data class InstructionIdCoverage(val line: Int, val id: Long) : CoverageFormat() {
+    data class InstructionIdCoverage(val line: Int, val offset: Long, val globalOffset: Long) : CoverageFormat() {
         override fun equals(other: Any?): Boolean {
-            if (other is InstructionCoverage) {
-                return line == other.line && id == other.offset
+            if (other is InstructionIdCoverage) {
+                return line == other.line && offset == other.offset && globalOffset == other.globalOffset
             }
             return false
         }
 
         override fun hashCode(): Int {
             var result = line
-            result = 31 * result + id.hashCode()
+            result = 31 * result + offset.hashCode()
+            result = 31 * result + globalOffset.hashCode()
             return result
         }
+
     }
 
     data class CoverageInfo<T: CoverageFormat>(
@@ -324,7 +326,7 @@ abstract class PythonTestGenerationProcessor {
         missed.filterNot { missedInstruction -> covered.any { it.start <= missedInstruction.lineNumber && missedInstruction.lineNumber <= it.end } }
 
     private fun getInstructionsListWithId(instructions: Collection<PyInstruction>): List<CoverageFormat> =
-        instructions.map { InstructionIdCoverage(it.lineNumber, it.id) }.toSet().toList()
+        instructions.map { InstructionIdCoverage(it.lineNumber, it.offset, it.globalOffset) }.toSet().toList()
 
     private fun getInstructionsListWithOffset(instructions: Collection<PyInstruction>): List<CoverageFormat> =
         instructions.map { InstructionCoverage(it.lineNumber, it.offset) }.toSet().toList()
@@ -349,8 +351,8 @@ abstract class PythonTestGenerationProcessor {
             }
             CoverageOutputFormat.Instructions -> CoverageInfo(getInstructionsListWithId(covered), getInstructionsListWithId(missed))
             CoverageOutputFormat.TopFrameInstructions -> {
-                val filteredCovered = covered.filter { it.id.toPair().second == 0L }
-                val filteredMissed = missed.filter { it.id.toPair().second == 0L }
+                val filteredCovered = covered.filter { it.id.toPair().first == it.id.toPair().second }
+                val filteredMissed = missed.filter { it.id.toPair().first == it.id.toPair().second }
 
                 val coveredInstructions = getInstructionsListWithOffset(filteredCovered)
                 val missedInstructions = getInstructionsListWithOffset(filteredMissed)
@@ -371,7 +373,7 @@ abstract class PythonTestGenerationProcessor {
         return when (coverageFormat) {
             is LineCoverage -> "{\"start\": ${coverageFormat.start}, \"end\": ${coverageFormat.end}}"
             is InstructionCoverage -> "{\"line\": ${coverageFormat.line}, \"offset\": ${coverageFormat.offset}}"
-            is InstructionIdCoverage -> "{\"line\": ${coverageFormat.line}, \"id\": ${coverageFormat.id}}"
+            is InstructionIdCoverage -> "{\"line\": ${coverageFormat.line}, \"offset\": ${coverageFormat.offset}, \"globalOffset\": ${coverageFormat.globalOffset}}"
         }
     }
 

@@ -13,28 +13,28 @@ enum class PythonCoverageMode {
 
     Instructions {
         override fun toString() = "instructions"
-    }
-}
+    };
 
-fun String.toPythonCoverageMode(): PythonCoverageMode? {
-    return when (this.lowercase()) {
-        "lines" -> PythonCoverageMode.Lines
-        "instructions" -> PythonCoverageMode.Instructions
-        else -> null
+    companion object {
+        fun parse(name: String): PythonCoverageMode {
+            return PythonCoverageMode.values().first {
+                it.name.lowercase() == name.lowercase()
+            }
+        }
     }
 }
 
 data class PyInstruction(
     val lineNumber: Int,
     val offset: Long,
-    val depth: Int,
+    val globalOffset: Long,
 ) {
-    override fun toString(): String = listOf(lineNumber, offset, depth).joinToString(":")
+    override fun toString(): String = listOf(lineNumber, offset, globalOffset).joinToString(":")
 
-    val id: Long = (offset to depth.toLong()).toCoverageId()
+    val id: Long = (offset to globalOffset).toCoverageId()
 
     constructor(lineNumber: Int) : this(lineNumber, lineNumber.toLong(), 0)
-    constructor(lineNumber: Int, id: Long) : this(lineNumber, id.toPair().first, id.toPair().second.toInt())
+    constructor(lineNumber: Int, id: Long) : this(lineNumber, id.toPair().first, id.toPair().second)
 }
 
 fun String.toPyInstruction(): PyInstruction? {
@@ -43,8 +43,8 @@ fun String.toPyInstruction(): PyInstruction? {
         3 -> {
             val line = data[0].toInt()
             val offset = data[1].toLong()
-            val depth = data[2].toInt()
-            return PyInstruction(line, offset, depth)
+            val globalOffset = data[2].toLong()
+            return PyInstruction(line, offset, globalOffset)
         }
         2 -> {
             val line = data[0].toInt()
@@ -106,4 +106,12 @@ enum class CoverageOutputFormat {
     Lines,
     Instructions,
     TopFrameInstructions;
+
+    companion object {
+        fun parse(name: String): CoverageOutputFormat {
+            return CoverageOutputFormat.values().first {
+                it.name.lowercase() == name.lowercase()
+            }
+        }
+    }
 }

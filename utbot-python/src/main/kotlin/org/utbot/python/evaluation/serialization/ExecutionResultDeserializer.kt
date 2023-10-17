@@ -4,7 +4,6 @@ import com.squareup.moshi.JsonEncodingException
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.python.evaluation.utils.PyInstruction
 
 object ExecutionResultDeserializer {
     private val moshi = Moshi.Builder()

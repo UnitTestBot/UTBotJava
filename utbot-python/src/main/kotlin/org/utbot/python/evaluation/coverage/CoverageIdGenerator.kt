@@ -1,11 +1,11 @@
-package org.utbot.python.evaluation.utils
+package org.utbot.python.evaluation.coverage
 
 import java.util.concurrent.atomic.AtomicLong
 
 object CoverageIdGenerator {
-    private const val lower_bound: Long = 1500_000_000
+    private const val LOWER_BOUND: Long = 1500_000_000
 
-    private val lastId: AtomicLong = AtomicLong(lower_bound)
+    private val lastId: AtomicLong = AtomicLong(LOWER_BOUND)
 
     fun createId(): String {
         return lastId.incrementAndGet().toString(radix = 16)

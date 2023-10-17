@@ -1,3 +1,5 @@
+import dis
+import inspect
 import logging
 import os
 import pathlib
@@ -7,7 +9,7 @@ import sys
 import typing
 from concurrent.futures import ThreadPoolExecutor
 
-from utbot_executor.utils import TraceMode
+from utbot_executor.utils import TraceMode, UtInstruction
 
 
 def _modname(path):
@@ -55,6 +57,11 @@ class UtCoverageSender:
             self.send_message(message)
 
 
+class PureSender(UtCoverageSender):
+    def __init__(self):
+        super().__init__("000000", "localhost", 0, use_thread=False, send_coverage=False)
+
+
 class UtTracer:
     def __init__(
         self,
@@ -64,20 +71,23 @@ class UtTracer:
         mode: TraceMode = TraceMode.Instructions,
     ):
         self.tested_file = tested_file
-        self.counts = {}
+        self.counts: dict[UtInstruction, int] = {}
         self.localtrace = self.localtrace_count
         self.globaltrace = self.globaltrace_lt
         self.ignore_dirs = ignore_dirs
         self.sender = sender
         self.mode = mode
+        self.depth = 0
 
     def runfunc(self, func, /, *args, **kw):
         result = None
+        self.depth = 0
         sys.settrace(self.globaltrace)
         try:
             result = func(*args, **kw)
         finally:
             sys.settrace(None)
+            self.depth = 0
         return result
 
     def coverage(self, filename: str) -> typing.List[int]:
@@ -91,9 +101,9 @@ class UtTracer:
             offset = lineno * 2
             if why == "opcode":
                 offset = frame.f_lasti
-            key = (lineno, offset)
+            key = UtInstruction(lineno, offset, self.depth)
             if key not in self.counts:
-                message = ":".join(map(str, key))
+                message = key.serialize()
                 try:
                     self.sender.put_message(message)
                 except Exception:
@@ -102,11 +112,12 @@ class UtTracer:
         return self.localtrace
 
     def globaltrace_lt(self, frame, why, arg):
+        self.depth += 1
         if why == 'call':
             if self.mode == TraceMode.Instructions:
                 frame.f_trace_opcodes = True
                 frame.f_trace_lines = False
-            filename = frame.f_globals.get('__file__', None)
+            filename = frame.f_code.co_filename
             if filename and all(not filename.startswith(d + os.sep) for d in self.ignore_dirs):
                 modulename = _modname(filename)
                 if modulename is not None:
@@ -121,3 +132,15 @@ class PureTracer:
 
     def runfunc(self, func, /, *args, **kw):
         return func(*args, **kw)
+
+
+def f(x):
+    def g(x):
+        xs = [[j for j in range(i)] for i in range(10)]
+        return x * 2
+    return x * g(x) + 2
+
+
+if __name__ == "__main__":
+    tracer = UtTracer(pathlib.Path(__file__), [], PureSender())
+    tracer.runfunc(f, 2)

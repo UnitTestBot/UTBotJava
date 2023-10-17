@@ -1,7 +1,5 @@
 package org.utbot.python
 
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
@@ -12,6 +10,9 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.python.code.PythonCode
+import org.utbot.python.evaluation.coverage.CoverageOutputFormat
+import org.utbot.python.evaluation.coverage.PyInstruction
+import org.utbot.python.evaluation.coverage.toPair
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
@@ -53,6 +54,8 @@ abstract class PythonTestGenerationProcessor {
             MypyBuildDirectory(mypyBuildRoot, configuration.sysPathDirectories)
         )
     }
+
+
 
     fun testGenerate(mypyStorage: MypyInfoBuild): List<PythonTestSet> {
         val startTime = System.currentTimeMillis()
@@ -255,56 +258,128 @@ abstract class PythonTestGenerationProcessor {
             paths
         }
 
-    data class InstructionSet(
-        val start: Int,
-        val end: Int
-    )
-
-    data class CoverageInfo(
-        val covered: List<InstructionSet>,
-        val notCovered: List<InstructionSet>
-    )
-
-    private val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
-    private val jsonAdapter = moshi.adapter(CoverageInfo::class.java)
-
-    private fun getInstructionSetList(instructions: Collection<Int>): List<InstructionSet> =
-        instructions.sorted().fold(emptyList()) { acc, lineNumber ->
-            if (acc.isEmpty())
-                return@fold listOf(InstructionSet(lineNumber, lineNumber))
-            val elem = acc.last()
-            if (elem.end + 1 == lineNumber)
-                acc.dropLast(1) + listOf(InstructionSet(elem.start, lineNumber))
-            else
-                acc + listOf(InstructionSet(lineNumber, lineNumber))
+    sealed class CoverageFormat
+    data class LineCoverage(val start: Int, val end: Int) : CoverageFormat() {
+        override fun equals(other: Any?): Boolean {
+            if (other is LineCoverage) {
+                return start == other.start && end == other.end
+            }
+            return false
         }
-    protected fun getCoverageInfo(testSets: List<PythonTestSet>): CoverageInfo {
-        val covered = mutableSetOf<Int>()
-        val missed = mutableSetOf<Set<Int>>()
+
+        override fun hashCode(): Int {
+            var result = start
+            result = 31 * result + end
+            return result
+        }
+    }
+    data class InstructionCoverage(val line: Int, val offset: Long) : CoverageFormat() {
+        override fun equals(other: Any?): Boolean {
+            if (other is InstructionCoverage) {
+                return line == other.line && offset == other.offset
+            }
+            return false
+        }
+
+        override fun hashCode(): Int {
+            var result = line
+            result = 31 * result + offset.hashCode()
+            return result
+        }
+    }
+
+    data class InstructionIdCoverage(val line: Int, val id: Long) : CoverageFormat() {
+        override fun equals(other: Any?): Boolean {
+            if (other is InstructionCoverage) {
+                return line == other.line && id == other.offset
+            }
+            return false
+        }
+
+        override fun hashCode(): Int {
+            var result = line
+            result = 31 * result + id.hashCode()
+            return result
+        }
+    }
+
+    data class CoverageInfo<T: CoverageFormat>(
+        val covered: List<T>,
+        val notCovered: List<T>,
+    )
+
+    private fun getLinesList(instructions: Collection<PyInstruction>): List<LineCoverage> =
+        instructions
+            .map { it.lineNumber }
+            .sorted()
+            .fold(emptyList()) { acc, lineNumber ->
+                if (acc.isEmpty())
+                    return@fold listOf(LineCoverage(lineNumber, lineNumber))
+                val elem = acc.last()
+                if (elem.end + 1 == lineNumber || elem.end == lineNumber )
+                    acc.dropLast(1) + listOf(LineCoverage(elem.start, lineNumber))
+                else
+                    acc + listOf(LineCoverage(lineNumber, lineNumber))
+            }
+
+    private fun filterMissedLines(covered: Collection<LineCoverage>, missed: Collection<PyInstruction>): List<PyInstruction> =
+        missed.filterNot { missedInstruction -> covered.any { it.start <= missedInstruction.lineNumber && missedInstruction.lineNumber <= it.end } }
+
+    private fun getInstructionsListWithId(instructions: Collection<PyInstruction>): List<CoverageFormat> =
+        instructions.map { InstructionIdCoverage(it.lineNumber, it.id) }.toSet().toList()
+
+    private fun getInstructionsListWithOffset(instructions: Collection<PyInstruction>): List<CoverageFormat> =
+        instructions.map { InstructionCoverage(it.lineNumber, it.offset) }.toSet().toList()
+
+    private fun getCoverageInfo(testSets: List<PythonTestSet>): CoverageInfo<CoverageFormat> {
+        val covered = mutableSetOf<PyInstruction>()
+        val missed = mutableSetOf<PyInstruction>()
         testSets.forEach { testSet ->
             testSet.executions.forEach inner@{ execution ->
                 val coverage = execution.coverage ?: return@inner
-                coverage.coveredInstructions.forEach { covered.add(it.lineNumber) }
-                missed.add(coverage.missedInstructions.map { it.lineNumber }.toSet())
+                covered.addAll(coverage.coveredInstructions.map { PyInstruction(it.lineNumber, it.id) })
+                missed.addAll(coverage.missedInstructions.map { PyInstruction(it.lineNumber, it.id) })
             }
         }
-        val coveredInstructionSets = getInstructionSetList(covered)
-        val missedInstructionSets =
-            if (missed.isEmpty())
-                emptyList()
-            else
-                getInstructionSetList(missed.reduce { a, b -> a intersect b })
+        missed -= covered
+        val info = when (this.configuration.coverageOutputFormat) {
+            CoverageOutputFormat.Lines -> {
+                val coveredLines = getLinesList(covered)
+                val filteredMissed = filterMissedLines(coveredLines, missed)
+                val missedLines = getLinesList(filteredMissed)
+                CoverageInfo(coveredLines, missedLines)
+            }
+            CoverageOutputFormat.Instructions -> CoverageInfo(getInstructionsListWithId(covered), getInstructionsListWithId(missed))
+            CoverageOutputFormat.TopFrameInstructions -> {
+                val filteredCovered = covered.filter { it.id.toPair().second == 0L }
+                val filteredMissed = missed.filter { it.id.toPair().second == 0L }
 
-        return CoverageInfo(
-            coveredInstructionSets,
-            missedInstructionSets
-        )
+                val coveredInstructions = getInstructionsListWithOffset(filteredCovered)
+                val missedInstructions = getInstructionsListWithOffset(filteredMissed)
+
+                CoverageInfo(coveredInstructions, (missedInstructions.toSet() - coveredInstructions.toSet()).toList())
+            }
+        }
+        return CoverageInfo(info.covered.toSet().toList(), info.notCovered.toSet().toList())
+    }
+
+    private fun toJson(coverageInfo: CoverageInfo<CoverageFormat>): String {
+        val covered = coverageInfo.covered.map { toJson(it) }
+        val notCovered = coverageInfo.notCovered.map { toJson(it) }
+        return "{\"covered\": [${covered.joinToString(", ")}], \"notCovered\": [${notCovered.joinToString(", ")}]}"
+    }
+
+    private fun toJson(coverageFormat: CoverageFormat): String {
+        return when (coverageFormat) {
+            is LineCoverage -> "{\"start\": ${coverageFormat.start}, \"end\": ${coverageFormat.end}}"
+            is InstructionCoverage -> "{\"line\": ${coverageFormat.line}, \"offset\": ${coverageFormat.offset}}"
+            is InstructionIdCoverage -> "{\"line\": ${coverageFormat.line}, \"id\": ${coverageFormat.id}}"
+        }
     }
 
     protected fun getStringCoverageInfo(testSets: List<PythonTestSet>): String {
-        return jsonAdapter.toJson(
-            getCoverageInfo(testSets)
-        )
+        val value = getCoverageInfo(testSets)
+        return toJson(value)
     }
 
 }

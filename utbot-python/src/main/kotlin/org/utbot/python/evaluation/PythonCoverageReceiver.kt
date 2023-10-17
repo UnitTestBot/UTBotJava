@@ -1,8 +1,8 @@
 package org.utbot.python.evaluation
 
 import mu.KotlinLogging
-import org.utbot.python.evaluation.utils.PyInstruction
-import org.utbot.python.evaluation.utils.toPyInstruction
+import org.utbot.python.evaluation.coverage.PyInstruction
+import org.utbot.python.evaluation.coverage.toPyInstruction
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket

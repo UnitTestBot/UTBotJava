@@ -20,7 +20,7 @@ from utbot_executor.utils import (
     suppress_stdout as __suppress_stdout,
     get_instructions,
     filter_instructions,
-    TraceMode,
+    TraceMode, UtInstruction,
 )
 
 __all__ = ['PythonExecutor']
@@ -181,7 +181,7 @@ def _run_calculate_function_value(
     __is_exception = False
 
     _, __start = inspect.getsourcelines(function)
-    __all_code_lines = filter_instructions(get_instructions(function, __start), tracer.mode)
+    __all_code_stmts = filter_instructions(get_instructions(function, __start), tracer.mode)
 
     __tracer = tracer
 
@@ -195,14 +195,13 @@ def _run_calculate_function_value(
 
     logging.debug("Coverage: %s", __tracer.counts)
     logging.debug("Fullpath: %s", fullpath)
-    __stmts = [x for x in __tracer.counts]
-    __stmts_with_def = [(__start, 0)] + __stmts
-    __missed_filtered = [x for x in __all_code_lines if x not in __stmts_with_def]
+    __stmts_with_def = [UtInstruction(__start, 0, 0)] + list(__tracer.counts.keys())
+    __missed_filtered = [x for x in __all_code_stmts if x not in __stmts_with_def]
     logging.debug("Covered lines: %s", __stmts_with_def)
     logging.debug("Missed lines: %s", __missed_filtered)
 
-    __str_statements = [":".join(map(str, x)) for x in __stmts_with_def]
-    __str_missed_statements = [":".join(map(str, x)) for x in __missed_filtered]
+    __str_statements = [x.serialize() for x in __stmts_with_def]
+    __str_missed_statements = [x.serialize() for x in __missed_filtered]
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
     ids = args_ids + list(kwargs_ids.values())

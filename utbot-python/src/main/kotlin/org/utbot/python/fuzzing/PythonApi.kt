@@ -1,11 +1,11 @@
 package org.utbot.python.fuzzing
 
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
+import org.utbot.python.evaluation.coverage.PyInstruction
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.provider.*
@@ -35,7 +35,7 @@ class PythonMethodDescription(
     parameters: List<UtType>,
     val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
     val pythonTypeStorage: PythonTypeHintsStorage,
-    val tracer: Trie<Instruction, *>,
+    val tracer: Trie<PyInstruction, *>,
     val random: Random,
     val limitManager: TestGenerationLimitManager,
     val type: FunctionType,
@@ -56,7 +56,7 @@ data class PythonExecutionResult(
 
 data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
-    val result: Trie.Node<Instruction> = Trie.emptyNode(),
+    val result: Trie.Node<PyInstruction> = Trie.emptyNode(),
     val typeInferenceFeedback: InferredTypeFeedback = InvalidTypeFeedback,
     val fromCache: Boolean = false,
 ) : Feedback<UtType, PythonFuzzedValue> {

@@ -2,7 +2,8 @@ package org.utbot.python
 
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.python.evaluation.utils.PythonCoverageMode
+import org.utbot.python.evaluation.coverage.CoverageOutputFormat
+import org.utbot.python.evaluation.coverage.PythonCoverageMode
 import java.nio.file.Path
 
 data class TestFileInformation(
@@ -25,4 +26,5 @@ class PythonTestGenerationConfig(
     val runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour,
     val coverageMeasureMode: PythonCoverageMode = PythonCoverageMode.Instructions,
     val sendCoverageContinuously: Boolean = true,
+    val coverageOutputFormat: CoverageOutputFormat = CoverageOutputFormat.Lines,
 )

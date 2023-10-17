@@ -51,6 +51,10 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
         +assertions[jsAssertEquals](expected, actual)
     }
 
+    override fun assertSame(expected: CgValue, actual: CgValue) {
+        error("assertSame does not exist in Mocha")
+    }
+
     override fun disableTestMethod(reason: String) {
 
     }

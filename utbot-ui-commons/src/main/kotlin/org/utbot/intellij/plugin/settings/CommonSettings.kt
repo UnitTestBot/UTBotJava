@@ -3,6 +3,7 @@
 package org.utbot.intellij.plugin.settings
 
 import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
@@ -44,6 +45,7 @@ import org.utbot.framework.plugin.api.isSummarizationCompatible
     name = "UtBotSettings",
     storages = [Storage("utbot-settings.xml")]
 )
+@Service(Service.Level.PROJECT)
 class Settings(val project: Project) : PersistentStateComponent<Settings.State> {
     data class State(
         var sourceRootHistory: MutableList<String> = mutableListOf(),

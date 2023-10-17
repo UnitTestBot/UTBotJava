@@ -12,8 +12,8 @@ class IdeaMavenFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     override val buildSystemToUse = IdeaBuildSystem.MAVEN
 
-    override fun waitProjectIsOpened() {
-        super.waitProjectIsOpened()
+    override fun waitProjectIsBuilt() {
+        super.waitProjectIsBuilt()
         waitForIgnoringError (ofSeconds(60)) {
             projectViewTree.hasText("Main.java").not()
             projectViewTree.hasText("Main")

@@ -11,7 +11,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.GotItTooltip
 import javax.swing.event.HyperlinkEvent
@@ -187,9 +187,9 @@ object TestReportUrlOpeningListener: NotificationListener.Adapter() {
         callbacks[descriptionSuffix]?.map { it() } ?: error("No such command with #utbot prefix: $descriptionSuffix")
 }
 
-object GotItTooltipActivity : StartupActivity {
+object GotItTooltipActivity : ProjectActivity {
     private const val KEY = "UTBot.GotItMessageWasShown"
-    override fun runActivity(project: Project) {
+    override suspend fun execute(project: Project) {
         ApplicationManager.getApplication().invokeLater {
             val shortcut = ActionManager.getInstance()
                 .getKeyboardShortcut("org.utbot.intellij.plugin.ui.actions.GenerateTestsAction")?:return@invokeLater

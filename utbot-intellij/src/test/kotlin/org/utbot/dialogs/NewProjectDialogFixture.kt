@@ -8,10 +8,10 @@ import com.intellij.remoterobot.stepsProcessing.step
 import com.intellij.remoterobot.utils.Keyboard
 import com.intellij.remoterobot.utils.keyboard
 import com.intellij.remoterobot.utils.waitForIgnoringError
-import org.utbot.data.DEFAULT_PROJECT_DIRECTORY
 import org.utbot.data.IdeaBuildSystem
 import org.utbot.data.JDKVersion
 import java.awt.event.KeyEvent
+import java.io.File
 import java.time.Duration
 import java.time.Duration.ofSeconds
 
@@ -73,7 +73,7 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
     }
 
     fun fillDialog(projectName: String,
-                   location: String = "",
+                   location: String = "", locationPart: String = "",
                    language: String = "Java",
                    buildSystem: IdeaBuildSystem = IdeaBuildSystem.INTELLIJ,
                    jdkVersion: JDKVersion,
@@ -82,15 +82,11 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
             nameInput.doubleClick()
             keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
             keyboard.enterText(projectName)
-            var input = DEFAULT_PROJECT_DIRECTORY
-            if (location != "") {
-                input = location
-            }
-            if (locationInput.hasText(input).not()) {
+            if (!locationInput.hasText{it.text.contains(locationPart)}) {
                 locationInput.click()
                 keyboard{
                     hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A)
-                    enterText(input.replace("\\", "\\\\"))
+                    enterText(location.replace(File.separator, File.separator + File.separator))
                 }
             }
             this.findText(language).click()

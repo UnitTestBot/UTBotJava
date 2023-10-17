@@ -44,6 +44,8 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     val assertions = context.testFramework.assertionsClass
 
+    val assertSame = context.testFramework.assertSame
+
     val assertEquals = context.testFramework.assertEquals
     val assertFloatEquals = context.testFramework.assertFloatEquals
     val assertDoubleEquals = context.testFramework.assertDoubleEquals
@@ -84,6 +86,10 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     open fun assertEquals(expected: CgValue, actual: CgValue) {
         +assertions[assertEquals](expected, actual)
+    }
+
+    open fun assertSame(expected: CgValue, actual: CgValue) {
+        +assertions[assertSame](expected, actual)
     }
 
     open fun assertFloatEquals(expected: CgExpression, actual: CgExpression, delta: Any) {

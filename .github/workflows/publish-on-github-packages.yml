@@ -33,7 +33,7 @@ jobs:
         git fetch
         git checkout ${{ github.event.inputs.commit_sha }}
 
-    - uses: gradle/gradle-build-action@v2
+    - uses: gradle/gradle-build-action@v2.9.0
       with:
         gradle-version: 7.4.2
         arguments: publish

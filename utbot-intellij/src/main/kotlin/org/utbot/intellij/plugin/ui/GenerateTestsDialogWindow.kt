@@ -520,7 +520,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 text = run {
                     val sdkVersion = findSdkVersionOrNull(this@GenerateTestsDialogWindow.model.srcModule)?.feature
                     if (sdkVersion != null) {
-                        "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}, ${JavaSdkVersion.JDK_11} or ${JavaSdkVersion.JDK_17}"
+                        "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8.toReadableString()}, ${JavaSdkVersion.JDK_11.toReadableString()} or ${JavaSdkVersion.JDK_17.toReadableString()} instead."
                     } else {
                         "SDK is not defined"
                     }
@@ -532,6 +532,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 add(createCloseAction())
             })
         }
+
+        fun JavaSdkVersion.toReadableString() : String = toString().replace("JDK_", "").replace('_', '.')
 
         override fun getBackground(): Color? =
             EditorColorsManager.getInstance().globalScheme.getColor(HintUtil.ERROR_COLOR_KEY) ?: super.getBackground()
@@ -725,7 +727,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                             if (springBootConfigs.contains(classBinaryName)) {
                                 SpringConfiguration.SpringBootConfiguration(
                                     configBinaryName = classBinaryName,
-                                    isUnique = springBootConfigs.size == 1,
+                                    isDefinitelyUnique = springBootConfigs.size == 1,
                                     )
                             } else {
                                 SpringConfiguration.JavaConfiguration(classBinaryName)

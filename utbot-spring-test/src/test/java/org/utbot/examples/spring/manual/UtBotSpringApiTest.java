@@ -28,7 +28,7 @@ public class UtBotSpringApiTest {
     public void testOnAbsentSpringSettings() {
         SpringApplicationContext springApplicationContext =
                 UtBotSpringApi.createSpringApplicationContext(
-                        SpringSettings.AbsentSpringSettings.INSTANCE,
+                        SpringSettings.AbsentSpringSettings,
                         SpringTestType.UNIT_TEST,
                         new ArrayList<>()
                 );
@@ -147,14 +147,14 @@ public class UtBotSpringApiTest {
         assertEquals(expected, actual);
     }
 
-    private List<BeanDefinitionData> getBeansFromSampleProject(
+    static List<BeanDefinitionData> getBeansFromSampleProject(
             SpringConfiguration configuration,
             List<String> profiles
     ) {
         return getBeansFromSampleProject(configuration, profiles, new ArrayList<>());
     }
 
-    private List<BeanDefinitionData> getBeansFromSampleProject(
+    static List<BeanDefinitionData> getBeansFromSampleProject(
             SpringConfiguration configuration,
             List<String> profiles,
             List<String> additionalClasspath

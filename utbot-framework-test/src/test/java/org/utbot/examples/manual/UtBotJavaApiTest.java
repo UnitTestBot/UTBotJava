@@ -1,12 +1,9 @@
 package org.utbot.examples.manual;
 
 import kotlin.Pair;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.utbot.common.PathUtil;
+import org.utbot.api.java.AbstractUtBotJavaApiTest;
 import org.utbot.examples.assemble.DirectAccess;
 import org.utbot.examples.assemble.PrimitiveFields;
 import org.utbot.examples.assemble.ArrayOfComplexArrays;
@@ -20,69 +17,42 @@ import org.utbot.examples.manual.examples.customer.Demo9;
 import org.utbot.external.api.TestMethodInfo;
 import org.utbot.external.api.UnitTestBotLight;
 import org.utbot.external.api.UtBotJavaApi;
-import org.utbot.external.api.UtModelFactory;
-import org.utbot.framework.codegen.domain.ForceStaticMocking;
-import org.utbot.framework.codegen.domain.Junit4;
-import org.utbot.framework.codegen.domain.MockitoStaticMocking;
-import org.utbot.framework.codegen.domain.ProjectType;
+import org.utbot.framework.codegen.domain.*;
+import org.utbot.framework.context.simple.SimpleApplicationContext;
 import org.utbot.framework.plugin.api.*;
-import org.utbot.framework.plugin.api.util.UtContext;
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider;
 import org.utbot.framework.util.Snippet;
 import org.utbot.framework.util.SootUtils;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import static java.util.Collections.*;
 import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
 import static org.utbot.framework.plugin.api.MockFramework.MOCKITO;
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getIntArrayClassId;
+import static org.utbot.framework.plugin.api.util.IdUtilKt.*;
 import static org.utbot.framework.util.TestUtilsKt.compileClassAndGetClassPath;
 import static org.utbot.framework.util.TestUtilsKt.compileClassFile;
 
-class PredefinedGeneratorParameters {
+/**
+ * Tests for UnitTestBot Java API (Examples at the same time)
+ */
+public class UtBotJavaApiTest extends AbstractUtBotJavaApiTest {
 
-    static String destinationClassName = "GeneratedTest";
 
-    static Method getMethodByName(Class<?> clazz, String name, Class<?>... parameters) {
-        try {
-            return clazz.getDeclaredMethod(name, parameters);
-        } catch (NoSuchMethodException ignored) {
-            Assertions.fail();
-        }
-        throw new RuntimeException();
-    }
-}
-
-public class UtBotJavaApiTest {
-    private AutoCloseable context;
-    private UtModelFactory modelFactory;
-
-    @BeforeEach
-    public void setUp() {
-        context = UtContext.Companion.setUtContext(new UtContext(PrimitiveFields.class.getClassLoader()));
-        modelFactory = new UtModelFactory();
-    }
-
-    @AfterEach
-    public void tearDown() {
-        try {
-            context.close();
-            modelFactory = null;
-        } catch (Exception e) {
-            Assertions.fail();
-        }
-    }
-
+    /** Uses {@link MultiMethodExample} as a class under test. Demonstrates how to gather information for multiple
+     * methods analysis and pass it to {@link UtBotJavaApi#generateTestSetsForMethods} in order to produce set
+     * of information needed for the test generation. After that shows how to use {@link UtBotJavaApi#generateTestCode}
+     * in order to generate tests code.
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
+     */
     @Test
     public void testMultiMethodClass() {
 
@@ -95,58 +65,31 @@ public class UtBotJavaApiTest {
                 classIdForType(MultiMethodExample.class)
         );
 
-        EnvironmentModels initialState = new EnvironmentModels(
-                classUnderTestModel,
-                Collections.emptyList(),
-                Collections.emptyMap()
-        );
+        Method firstMethodUnderTest = getMethodByName(MultiMethodExample.class, "firstMethod");
+        Method secondMethodUnderTest = getMethodByName(MultiMethodExample.class, "secondMethod");
+        Method thirdMethodUnderTest = getMethodByName(MultiMethodExample.class, "thirdMethod", String.class);
 
-        EnvironmentModels thirdMethodState = new EnvironmentModels(
-                classUnderTestModel,
-                Collections.singletonList(new UtPrimitiveModel("some")),
-                Collections.emptyMap()
-        );
+        // To find test sets, you need only {@link Method} instances
+        // and some configuration
 
-
-        Method firstMethodUnderTest = PredefinedGeneratorParameters.getMethodByName(
-                MultiMethodExample.class,
-                "firstMethod"
-        );
-
-        Method secondMethodUnderTest = PredefinedGeneratorParameters.getMethodByName(
-                MultiMethodExample.class,
-                "secondMethod"
-        );
-
-        Method thirdMethodUnderTest = PredefinedGeneratorParameters.getMethodByName(
-                MultiMethodExample.class,
-                "thirdMethod",
-                String.class
-        );
-
-        TestMethodInfo firstTestMethodInfo = new TestMethodInfo(
-                firstMethodUnderTest,
-                initialState);
-        TestMethodInfo secondTestMethodInfo = new TestMethodInfo(
-                secondMethodUnderTest,
-                initialState);
-        TestMethodInfo thirdTestMethodInfo = new TestMethodInfo(
-                thirdMethodUnderTest,
-                thirdMethodState);
-
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Arrays.asList(firstTestMethodInfo, secondTestMethodInfo, thirdTestMethodInfo),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Arrays.asList(
+                        firstMethodUnderTest,
+                        secondMethodUnderTest,
+                        thirdMethodUnderTest
+                ),
                 MultiMethodExample.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 MultiMethodExample.class,
@@ -157,30 +100,64 @@ public class UtBotJavaApiTest {
                 MockitoStaticMocking.INSTANCE,
                 false,
                 ForceStaticMocking.DO_NOT_FORCE,
-                MultiMethodExample.class.getPackage().getName()
+                MultiMethodExample.class.getPackage().getName(),
+                new SimpleApplicationContext()
+        );
+
+        TestMethodInfo firstTestMethodInfo = buildTestMethodInfo(
+                firstMethodUnderTest,
+                classUnderTestModel,
+                emptyList(),
+                Collections.emptyMap()
+        );
+
+        TestMethodInfo secondTestMethodInfo = buildTestMethodInfo(
+                firstMethodUnderTest,
+                classUnderTestModel,
+                emptyList(),
+                Collections.emptyMap()
+        );
+
+        TestMethodInfo thirdTestMethodInfo = buildTestMethodInfo(
+                thirdMethodUnderTest,
+                classUnderTestModel,
+                Collections.singletonList(new UtPrimitiveModel("some")),
+                Collections.emptyMap()
         );
 
         Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Arrays.asList(firstTestMethodInfo, secondTestMethodInfo, thirdTestMethodInfo),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Arrays.asList(
+                        firstTestMethodInfo,
+                        secondTestMethodInfo,
+                        thirdTestMethodInfo
+                ),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
-                MultiMethodExample.class
+                MultiMethodExample.class,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
+    /** Uses {@link ClassRefExample} as a class under test. Demonstrates how to specify custom package name for the
+     * generate tests.
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
+     */
     @Test
     public void testCustomPackage() {
 
         UtBotJavaApi.setStopConcreteExecutorOnExit(false);
 
-        String classpath = getClassPath(DirectAccess.class);
+        String classpath = getClassPath(ClassRefExample.class);
         String dependencyClassPath = getDependencyClassPath();
 
         HashMap<String, UtModel> fields = new HashMap<>();
@@ -193,35 +170,53 @@ public class UtBotJavaApiTest {
 
         UtClassRefModel classRefModel = modelFactory.produceClassRefModel(Class.class);
 
-        EnvironmentModels initialState = new EnvironmentModels(
+        Method methodUnderTest = getMethodByName(
+                ClassRefExample.class,
+                "assertInstance",
+                Class.class);
+
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUnderTest),
+                ClassRefExample.class,
+                classpath,
+                dependencyClassPath,
+                MockStrategyApi.OTHER_PACKAGES,
+                3000L,
+                new SimpleApplicationContext()
+        );
+
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
+                testSets,
+                GENERATED_TEST_CLASS_NAME,
+                classpath,
+                dependencyClassPath,
+                ClassRefExample.class,
+                ProjectType.PureJvm,
+                Junit4.INSTANCE,
+                MOCKITO,
+                CodegenLanguage.JAVA,
+                MockitoStaticMocking.INSTANCE,
+                false,
+                ForceStaticMocking.DO_NOT_FORCE,
+                "some.custom.name",
+                new SimpleApplicationContext()
+        );
+
+        Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
+
+        TestMethodInfo testMethodInfo = buildTestMethodInfo(
+                methodUnderTest,
                 classUnderTestModel,
                 Collections.singletonList(classRefModel),
                 Collections.emptyMap()
         );
 
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
-                ClassRefExample.class,
-                "assertInstance",
-                Class.class
-        );
-
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                ClassRefExample.class,
-                classpath,
-                dependencyClassPath,
-                MockStrategyApi.OTHER_PACKAGES,
-                3000L
-        );
-
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
-                testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(testMethodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 ClassRefExample.class,
@@ -232,43 +227,27 @@ public class UtBotJavaApiTest {
                 MockitoStaticMocking.INSTANCE,
                 false,
                 ForceStaticMocking.DO_NOT_FORCE,
-                "some.custom.name"
-        );
-
-        Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
-
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
-                classpath,
-                dependencyClassPath,
-                ClassRefExample.class,
-                ProjectType.PureJvm,
-                Junit4.INSTANCE,
-                MOCKITO,
-                CodegenLanguage.JAVA,
-                MockitoStaticMocking.INSTANCE,
-                false,
-                ForceStaticMocking.DO_NOT_FORCE,
-                "some.custom.name"
+                "some.custom.name",
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
+    /** Uses {@link AssignedArrayExample} as a class under test. Demonstrates how to specify custom package name for the
+     * generate tests.
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
+     */
     @Test
     public void testOnObjectWithAssignedArrayField() {
 
         UtBotJavaApi.setStopConcreteExecutorOnExit(false);
 
-        String classpath = getClassPath(DirectAccess.class);
+        String classpath = getClassPath(AssignedArray.class);
         String dependencyClassPath = getDependencyClassPath();
 
         ClassId classIdAssignedArray = classIdForType(AssignedArray.class);
@@ -293,36 +272,26 @@ public class UtBotJavaApiTest {
                 classIdForType(AssignedArrayExample.class)
         );
 
-        EnvironmentModels initialState = new EnvironmentModels(
-                classUnderTestModel,
-                Collections.singletonList(compositeModel),
-                Collections.emptyMap()
-        );
-
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 AssignedArrayExample.class,
                 "foo",
                 AssignedArray.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUnderTest),
                 AssignedArrayExample.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 AssignedArrayExample.class,
@@ -332,129 +301,53 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
 
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
-                classpath,
-                dependencyClassPath,
-                AssignedArrayExample.class,
-                ProjectType.PureJvm,
-                Junit4.INSTANCE,
-                MOCKITO,
-                CodegenLanguage.JAVA,
-                MockitoStaticMocking.INSTANCE,
-                false,
-                ForceStaticMocking.DO_NOT_FORCE
-        );
-
-        Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
-    }
-
-    @Test
-    public void testClassRef() {
-
-        UtBotJavaApi.setStopConcreteExecutorOnExit(false);
-
-        String classpath = getClassPath(DirectAccess.class);
-        String dependencyClassPath = getDependencyClassPath();
-
-        HashMap<String, UtModel> fields = new HashMap<>();
-        fields.put("stringClass", modelFactory.produceClassRefModel(String.class));
-
-        UtCompositeModel classUnderTestModel = modelFactory.produceCompositeModel(
-                classIdForType(ClassRefExample.class),
-                fields
-        );
-
-        UtClassRefModel classRefModel = modelFactory.produceClassRefModel(Class.class);
-
-        EnvironmentModels initialState = new EnvironmentModels(
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
                 classUnderTestModel,
-                Collections.singletonList(classRefModel),
+                Collections.singletonList(compositeModel),
                 Collections.emptyMap()
         );
 
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
-                ClassRefExample.class,
-                "assertInstance",
-                Class.class
-        );
-
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                ClassRefExample.class,
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(methodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
-                MockStrategyApi.OTHER_PACKAGES,
-                3000L
-        );
-
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
-                testSets,
-                PredefinedGeneratorParameters.destinationClassName,
-                classpath,
-                dependencyClassPath,
-                ClassRefExample.class,
+                AssignedArrayExample.class,
                 ProjectType.PureJvm,
                 Junit4.INSTANCE,
                 MOCKITO,
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
-        );
-
-
-        Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
-
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
-                classpath,
-                dependencyClassPath,
-                ClassRefExample.class,
-                ProjectType.PureJvm,
-                Junit4.INSTANCE,
-                MOCKITO,
-                CodegenLanguage.JAVA,
-                MockitoStaticMocking.INSTANCE,
-                false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
+    /** Uses {@link DirectAccessExample} as a class under test. Demonstrates how to test objects with public fields.
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
+     */
     @Test
     public void testObjectWithPublicFields() {
 
         UtBotJavaApi.setStopConcreteExecutorOnExit(false);
 
-        String classpath = getClassPath(DirectAccess.class);
+        String classpath = getClassPath(DirectAccessExample.class);
         String dependencyClassPath = getDependencyClassPath();
 
         ClassId testClassId = classIdForType(DirectAccess.class);
@@ -486,36 +379,26 @@ public class UtBotJavaApiTest {
                 classIdForType(DirectAccessExample.class)
         );
 
-        EnvironmentModels initialState = new EnvironmentModels(
-                classUnderTestModel,
-                Collections.singletonList(compositeModel),
-                Collections.emptyMap()
-        );
-
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 DirectAccessExample.class,
                 "foo",
                 DirectAccess.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUnderTest),
                 DirectAccessExample.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 DirectAccessExample.class,
@@ -525,20 +408,24 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
 
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                classUnderTestModel,
+                Collections.singletonList(compositeModel),
+                Collections.emptyMap()
+        );
+
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(methodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 DirectAccessExample.class,
@@ -548,96 +435,21 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
-    @Test
-    public void testObjectWithPublicFieldsWithAssembleModel() {
-
-        UtBotJavaApi.setStopConcreteExecutorOnExit(false);
-
-        String classpath = getClassPath(DirectAccess.class);
-        String dependencyClassPath = getDependencyClassPath();
-
-        ClassId testClassId = classIdForType(DirectAccess.class);
-        ClassId innerClassId = classIdForType(PrimitiveFields.class);
-
-        HashMap<String, UtModel> primitiveFields = new HashMap<>();
-        primitiveFields.put("a", new UtPrimitiveModel(2));
-        primitiveFields.put("b", new UtPrimitiveModel(4));
-
-        HashMap<String, UtModel> fields = new HashMap<>();
-        fields.put("a", new UtPrimitiveModel(2));
-        fields.put("b", new UtPrimitiveModel(4));
-        fields.put("s",
-                modelFactory.produceCompositeModel(
-                        innerClassId,
-                        primitiveFields,
-                        Collections.emptyMap()
-                )
-        );
-
-        UtCompositeModel compositeModel = modelFactory.produceCompositeModel(
-                testClassId,
-                fields,
-                Collections.emptyMap()
-        );
-
-        // This class does not contain any fields. Using overloads
-        UtCompositeModel classUnderTestModel = modelFactory.produceCompositeModel(
-                classIdForType(DirectAccessExample.class)
-        );
-
-        EnvironmentModels initialState = new EnvironmentModels(
-                classUnderTestModel,
-                Collections.singletonList(compositeModel),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
-                DirectAccessExample.class,
-                "foo",
-                DirectAccess.class
-        );
-
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                DirectAccessExample.class,
-                classpath,
-                dependencyClassPath,
-                MockStrategyApi.OTHER_PACKAGES,
-                3000L
-        );
-
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
-                testSets,
-                PredefinedGeneratorParameters.destinationClassName,
-                classpath,
-                dependencyClassPath,
-                DirectAccessExample.class,
-                ProjectType.PureJvm,
-                Junit4.INSTANCE,
-                MOCKITO,
-                CodegenLanguage.JAVA,
-                MockitoStaticMocking.INSTANCE,
-                false,
-                ForceStaticMocking.DO_NOT_FORCE
-        );
-
-        Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
-    }
-
-
+    /** Uses {@link ArrayOfPrimitiveArraysExample} as a class under test. Demonstrates how to test code that uses arrays of primitives
+     * inside arrays.
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
+     */
     @Test
     public void testOnObjectWithArrayOfPrimitiveArrays() {
 
@@ -673,44 +485,35 @@ public class UtBotJavaApiTest {
                 enclosingArrayParameters
         );
 
-        UtCompositeModel cmArrayOfPrimitiveArrays = modelFactory.produceCompositeModel(
+        UtCompositeModel compositeModelArrayOfPrimitiveArrays = modelFactory.produceCompositeModel(
                 classIdArrayOfPrimitiveArraysClass,
                 Collections.singletonMap("array", enclosingArrayOfPrimitiveArrayModel)
         );
 
-        UtCompositeModel testClassCompositeModel = modelFactory.produceCompositeModel(
+        UtCompositeModel classUnderTestModel = modelFactory.produceCompositeModel(
                 cidArrayOfPrimitiveArraysTest
         );
 
-        EnvironmentModels initialState = new EnvironmentModels(
-                testClassCompositeModel,
-                Collections.singletonList(cmArrayOfPrimitiveArrays),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 ArrayOfPrimitiveArraysExample.class,
                 "assign10",
                 ArrayOfPrimitiveArrays.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUnderTest),
                 ArrayOfPrimitiveArraysExample.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 ArrayOfPrimitiveArraysExample.class,
@@ -720,20 +523,24 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet);
 
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState)
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                classUnderTestModel,
+                Collections.singletonList(compositeModelArrayOfPrimitiveArrays),
+                Collections.emptyMap()
+        );
+
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(methodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 ArrayOfPrimitiveArraysExample.class,
@@ -743,15 +550,19 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
-    /**
-     * The test is inspired by the API customers
+    /** Example provided by customers.
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
      */
     @Test
     public void testProvided3() {
@@ -779,36 +590,27 @@ public class UtBotJavaApiTest {
                         Collections.singletonMap("b0", bClassModel)
                 );
 
-        EnvironmentModels environmentModels = new EnvironmentModels(
-                demo9Model,
-                Collections.singletonList(bClassModel),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 Demo9.class,
                 "test",
                 B.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                environmentModels
-                        )
-                ),
+
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                singletonList(methodUnderTest),
                 Demo9.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 Demo9.class,
@@ -818,70 +620,72 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
 
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                environmentModels
-                        )
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                demo9Model,
+                Collections.singletonList(bClassModel),
+                Collections.emptyMap()
+        );
+
+
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(methodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
-                Demo9.class
+                Demo9.class,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
+    /** Trivial example.
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
+     */
     @Test
     public void testCustomAssertion() {
+
         String classpath = getClassPath(Trivial.class);
         String dependencyClassPath = getDependencyClassPath();
 
-        UtCompositeModel model = modelFactory.
+        UtCompositeModel trivialModel = modelFactory.
                 produceCompositeModel(
                         classIdForType(Trivial.class)
                 );
 
-        EnvironmentModels environmentModels = new EnvironmentModels(
-                model,
-                Collections.singletonList(new UtPrimitiveModel(2)),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 Trivial.class,
                 "aMethod",
                 int.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                environmentModels
-                        )
-                ),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUnderTest),
                 Trivial.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 Trivial.class,
@@ -891,21 +695,24 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
 
-        String generationResult2 = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                environmentModels
-                        )
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                trivialModel,
+                Collections.singletonList(new UtPrimitiveModel(2)),
+                Collections.emptyMap()
+        );
+
+        String generationResult2 = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(methodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 Trivial.class,
@@ -915,11 +722,12 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResult2);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
     /**
@@ -960,42 +768,26 @@ public class UtBotJavaApiTest {
             Assertions.fail("Failed to load the class");
         }
 
-        UtCompositeModel demo9Model = modelFactory.
-                produceCompositeModel(
-                        classIdForType(compiledClass),
-                        Collections.emptyMap()
-                );
-
-        EnvironmentModels environmentModels = new EnvironmentModels(
-                demo9Model,
-                Collections.singletonList(new UtPrimitiveModel(3)),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUderTest = getMethodByName(
                 compiledClass,
                 "test",
                 int.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                environmentModels
-                        )
-                ),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUderTest),
                 compiledClass,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 compiledClass,
@@ -1005,11 +797,12 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet);
 
         // The test compiles and everything goes well.
         // Let's recompile the initial clas file
@@ -1039,37 +832,26 @@ public class UtBotJavaApiTest {
             Assertions.fail("Failed to load the class after recompilation");
         }
 
-        EnvironmentModels environmentModels2 = new EnvironmentModels(
-                demo9Model,
-                Arrays.asList(new UtPrimitiveModel(4), new UtPrimitiveModel("Some String")),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest2 = PredefinedGeneratorParameters.getMethodByName(
+        Method recompiledMethod = getMethodByName(
                 recompiledClass,
                 "test",
-                int.class,
-                String.class
+                int.class, String.class
         );
 
-        List<UtMethodTestSet> testSets1 = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest2,
-                                environmentModels
-                        )
-                ),
+        List<UtMethodTestSet> testSets1 = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(recompiledMethod),
                 recompiledClass,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResultWithConcreteExecutionOnly2 = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResultWithConcreteExecutionOnly2 = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets1,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 recompiledClass,
@@ -1079,13 +861,20 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly2);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
+    /** A test provided by our customer. Demonstrates how to use the API in
+     * <br>
+     * The tests are generated with and without concrete execution.
+     * <br>
+     * Note, that you can use the {@code Snippet} instance in order to evaluate the test generation result.
+     */
     @Test
     public void testProvided1() {
 
@@ -1106,36 +895,26 @@ public class UtBotJavaApiTest {
                 new UtPrimitiveModel("Some Text")
         );
 
-        EnvironmentModels initialState = new EnvironmentModels(
-                providedTestModel,
-                parameters,
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 ProvidedExample.class,
                 "test0",
                 int.class, int.class, String.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState
-                        )
-                ),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUnderTest),
                 ProvidedExample.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 ProvidedExample.class,
@@ -1145,28 +924,32 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
 
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState
-                        )
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                providedTestModel,
+                parameters,
+                Collections.emptyMap()
+        );
+
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(methodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
-                ProvidedExample.class
+                ProvidedExample.class,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
     @Test
@@ -1183,36 +966,26 @@ public class UtBotJavaApiTest {
                 classIdForType(ArrayOfComplexArraysExample.class)
         );
 
-        EnvironmentModels initialState = new EnvironmentModels(
-                testClassCompositeModel,
-                Collections.singletonList(cmArrayOfComplexArrays),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 ArrayOfComplexArraysExample.class,
                 "getValue",
                 ArrayOfComplexArrays.class
         );
 
-        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState
-                        )
-                ),
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSetsForMethods(
+                Collections.singletonList(methodUnderTest),
                 ArrayOfComplexArraysExample.class,
                 classpath,
                 dependencyClassPath,
                 MockStrategyApi.OTHER_PACKAGES,
-                3000L
+                3000L,
+                new SimpleApplicationContext()
         );
 
-        String generationResult = UtBotJavaApi.generate(
-                Collections.emptyList(),
+        String generationResult = UtBotJavaApi.generateTestCode(
+                emptyList(),
                 testSets,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
                 ArrayOfComplexArraysExample.class,
@@ -1222,28 +995,33 @@ public class UtBotJavaApiTest {
                 CodegenLanguage.JAVA,
                 MockitoStaticMocking.INSTANCE,
                 false,
-                ForceStaticMocking.DO_NOT_FORCE
+                ForceStaticMocking.DO_NOT_FORCE,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet1 = new Snippet(CodegenLanguage.JAVA, generationResult);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet1);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet1);
 
-        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
-                Collections.singletonList(
-                        new TestMethodInfo(
-                                methodUnderTest,
-                                initialState
-                        )
-                ),
-                Collections.emptyList(),
-                PredefinedGeneratorParameters.destinationClassName,
+
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                testClassCompositeModel,
+                Collections.singletonList(cmArrayOfComplexArrays),
+                Collections.emptyMap()
+        );
+
+        String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generateTestCode(
+                Collections.singletonList(methodInfo),
+                emptyList(),
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
-                ArrayOfComplexArraysExample.class
+                ArrayOfComplexArraysExample.class,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
     @Test
@@ -1258,27 +1036,14 @@ public class UtBotJavaApiTest {
                 classIdForType(StringSwitchExample.class)
         );
 
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(StringSwitchExample.class, "validate", String.class, int.class, int.class);
-
-        IdentityHashMap<UtModel, UtModel> models = modelFactory.produceAssembleModel(
-                methodUnderTest,
+        Method methodUnderTest = getMethodByName(
                 StringSwitchExample.class,
-                Collections.singletonList(classUnderTestModel)
+                "validate",
+                String.class, int.class, int.class
         );
 
-        EnvironmentModels methodState = new EnvironmentModels(
-                models.get(classUnderTestModel),
-                Arrays.asList(new UtPrimitiveModel("initial model"), new UtPrimitiveModel(-10), new UtPrimitiveModel(0)),
-                Collections.emptyMap()
-        );
-
-        TestMethodInfo methodInfo = new TestMethodInfo(
-                methodUnderTest,
-                methodState);
         List<UtMethodTestSet> testSets1 = UtBotJavaApi.fuzzingTestSets(
-                Collections.singletonList(
-                        methodInfo
-                ),
+                Collections.singletonList(methodUnderTest),
                 StringSwitchExample.class,
                 classpath,
                 dependencyClassPath,
@@ -1289,53 +1054,31 @@ public class UtBotJavaApiTest {
                         return Arrays.asList(0, Integer.MIN_VALUE, Integer.MAX_VALUE);
                     }
                     return null;
-                }
+                },
+                new SimpleApplicationContext()
         );
 
-        String generate = UtBotJavaApi.generate(
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                classUnderTestModel,
+                Arrays.asList(new UtPrimitiveModel("Some"), new UtPrimitiveModel(-10), new UtPrimitiveModel(0)),
+                Collections.emptyMap()
+        );
+
+        String generate = UtBotJavaApi.generateTestCode(
                 Collections.singletonList(methodInfo),
                 testSets1,
-                PredefinedGeneratorParameters.destinationClassName,
+                GENERATED_TEST_CLASS_NAME,
                 classpath,
                 dependencyClassPath,
-                StringSwitchExample.class
+                StringSwitchExample.class,
+                new SimpleApplicationContext()
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generate);
-        compileClassFile(PredefinedGeneratorParameters.destinationClassName, snippet2);
+        compileClassFile(GENERATED_TEST_CLASS_NAME, snippet2);
     }
 
-    @NotNull
-    private String getClassPath(Class<?> clazz) {
-        try {
-            return normalizePath(clazz.getProtectionDomain().getCodeSource().getLocation());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @NotNull
-    private String normalizePath(URL url) throws URISyntaxException {
-        return new File(url.toURI()).getPath();
-    }
-
-    @NotNull
-    private String getDependencyClassPath() {
-
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        URL[] urls = PathUtil.getUrlsFromClassLoader(contextClassLoader);
-
-
-        return Arrays.stream(urls).map(url ->
-        {
-            try {
-                return new File(url.toURI()).toString();
-            } catch (URISyntaxException e) {
-                Assertions.fail(e);
-            }
-            throw new RuntimeException();
-        }).collect(Collectors.joining(File.pathSeparator));
-    }
     public UtCompositeModel createArrayOfComplexArraysModel() {
         ClassId classIdOfArrayOfComplexArraysClass = classIdForType(ArrayOfComplexArrays.class);
         ClassId classIdOfComplexArray = classIdForType(ComplexArray.class);
@@ -1397,24 +1140,22 @@ public class UtBotJavaApiTest {
                         classIdForType(Trivial.class)
                 );
 
-        EnvironmentModels environmentModels = new EnvironmentModels(
-                model,
-                Collections.singletonList(new UtPrimitiveModel(2)),
-                Collections.emptyMap()
-        );
-
-        Method methodUnderTest = PredefinedGeneratorParameters.getMethodByName(
+        Method methodUnderTest = getMethodByName(
                 Trivial.class,
                 "aMethod",
                 int.class
         );
 
+        TestMethodInfo methodInfo = buildTestMethodInfo(
+                methodUnderTest,
+                model,
+                Collections.singletonList(new UtPrimitiveModel(2)),
+                Collections.emptyMap()
+        );
+
         UnitTestBotLight.run(
                 (engine, state) -> System.err.println("Got a call:" + state.getStmt()),
-                new TestMethodInfo(
-                        methodUnderTest,
-                        environmentModels
-                ),
+                methodInfo,
                 classpath,
                 dependencyClassPath
         );

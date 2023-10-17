@@ -27,13 +27,13 @@ fun String.toPythonCoverageMode(): PythonCoverageMode? {
 data class PyInstruction(
     val lineNumber: Int,
     val offset: Long,
-    val depth: Int = 0,
+    val depth: Int,
 ) {
     override fun toString(): String = listOf(lineNumber, offset, depth).joinToString(":")
 
     val id: Long = (offset to depth.toLong()).toCoverageId()
 
-    constructor(lineNumber: Int) : this(lineNumber, lineNumber.toLong())
+    constructor(lineNumber: Int) : this(lineNumber, lineNumber.toLong(), 0)
     constructor(lineNumber: Int, id: Long) : this(lineNumber, id.toPair().first, id.toPair().second.toInt())
 }
 
@@ -49,7 +49,7 @@ fun String.toPyInstruction(): PyInstruction? {
         2 -> {
             val line = data[0].toInt()
             val offset = data[1].toLong()
-            return PyInstruction(line, offset)
+            return PyInstruction(line, offset, 0)
         }
         1 -> {
             val line = data[0].toInt()

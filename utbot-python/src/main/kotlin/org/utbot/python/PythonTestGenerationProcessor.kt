@@ -55,8 +55,6 @@ abstract class PythonTestGenerationProcessor {
         )
     }
 
-
-
     fun testGenerate(mypyStorage: MypyInfoBuild): List<PythonTestSet> {
         val startTime = System.currentTimeMillis()
 

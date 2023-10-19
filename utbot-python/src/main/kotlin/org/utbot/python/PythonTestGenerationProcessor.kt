@@ -12,7 +12,6 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.python.code.PythonCode
 import org.utbot.python.evaluation.coverage.CoverageOutputFormat
 import org.utbot.python.evaluation.coverage.PyInstruction
-import org.utbot.python.evaluation.coverage.toPair
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
@@ -286,23 +285,6 @@ abstract class PythonTestGenerationProcessor {
         }
     }
 
-    data class InstructionIdCoverage(val line: Int, val offset: Long, val globalOffset: Long) : CoverageFormat() {
-        override fun equals(other: Any?): Boolean {
-            if (other is InstructionIdCoverage) {
-                return line == other.line && offset == other.offset && globalOffset == other.globalOffset
-            }
-            return false
-        }
-
-        override fun hashCode(): Int {
-            var result = line
-            result = 31 * result + offset.hashCode()
-            result = 31 * result + globalOffset.hashCode()
-            return result
-        }
-
-    }
-
     data class CoverageInfo<T: CoverageFormat>(
         val covered: List<T>,
         val notCovered: List<T>,
@@ -325,10 +307,7 @@ abstract class PythonTestGenerationProcessor {
     private fun filterMissedLines(covered: Collection<LineCoverage>, missed: Collection<PyInstruction>): List<PyInstruction> =
         missed.filterNot { missedInstruction -> covered.any { it.start <= missedInstruction.lineNumber && missedInstruction.lineNumber <= it.end } }
 
-    private fun getInstructionsListWithId(instructions: Collection<PyInstruction>): List<CoverageFormat> =
-        instructions.map { InstructionIdCoverage(it.lineNumber, it.offset, it.globalOffset) }.toSet().toList()
-
-    private fun getInstructionsListWithOffset(instructions: Collection<PyInstruction>): List<CoverageFormat> =
+    private fun getInstructionsList(instructions: Collection<PyInstruction>): List<CoverageFormat> =
         instructions.map { InstructionCoverage(it.lineNumber, it.offset) }.toSet().toList()
 
     private fun getCoverageInfo(testSets: List<PythonTestSet>): CoverageInfo<CoverageFormat> {
@@ -349,16 +328,7 @@ abstract class PythonTestGenerationProcessor {
                 val missedLines = getLinesList(filteredMissed)
                 CoverageInfo(coveredLines, missedLines)
             }
-            CoverageOutputFormat.Instructions -> CoverageInfo(getInstructionsListWithId(covered), getInstructionsListWithId(missed))
-            CoverageOutputFormat.TopFrameInstructions -> {
-                val filteredCovered = covered.filter { it.id.toPair().first == it.id.toPair().second }
-                val filteredMissed = missed.filter { it.id.toPair().first == it.id.toPair().second }
-
-                val coveredInstructions = getInstructionsListWithOffset(filteredCovered)
-                val missedInstructions = getInstructionsListWithOffset(filteredMissed)
-
-                CoverageInfo(coveredInstructions, (missedInstructions.toSet() - coveredInstructions.toSet()).toList())
-            }
+            CoverageOutputFormat.Instructions -> CoverageInfo(getInstructionsList(covered), getInstructionsList(missed))
         }
         return CoverageInfo(info.covered.toSet().toList(), info.notCovered.toSet().toList())
     }
@@ -373,7 +343,6 @@ abstract class PythonTestGenerationProcessor {
         return when (coverageFormat) {
             is LineCoverage -> "{\"start\": ${coverageFormat.start}, \"end\": ${coverageFormat.end}}"
             is InstructionCoverage -> "{\"line\": ${coverageFormat.line}, \"offset\": ${coverageFormat.offset}}"
-            is InstructionIdCoverage -> "{\"line\": ${coverageFormat.line}, \"offset\": ${coverageFormat.offset}, \"globalOffset\": ${coverageFormat.globalOffset}}"
         }
     }
 

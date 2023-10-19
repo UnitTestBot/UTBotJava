@@ -1,10 +1,11 @@
+from __future__ import annotations
 import dataclasses
-import dis
 import enum
 import os
 import sys
 import typing
 from contextlib import contextmanager
+from types import CodeType
 
 
 class TraceMode(enum.Enum):
@@ -16,13 +17,13 @@ class TraceMode(enum.Enum):
 class UtInstruction:
     line: int
     offset: int
-    global_offset: int
+    from_main_frame: bool
 
     def serialize(self) -> str:
-        return ":".join(map(str, [self.line, self.offset, self.global_offset]))
+        return ":".join(map(str, [self.line, self.offset, int(self.from_main_frame)]))
 
     def __hash__(self):
-        return hash((self.line, self.offset, self.global_offset))
+        return hash((self.line, self.offset, self.from_main_frame))
 
 
 @contextmanager
@@ -36,15 +37,8 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
-def get_instructions(obj: object, start_line: int) -> typing.Iterator[UtInstruction]:
-    def inner_get_instructions(x, current_line, offset):
-        for i, el in enumerate(dis.get_instructions(x)):
-            if el.starts_line is not None:
-                current_line = el.starts_line
-            yield UtInstruction(current_line, el.offset, el.offset + offset)
-            if any(t in str(type(el.argval)) for t in ["<class 'code'>"]):
-                inner_get_instructions(el.argval, current_line, el.offset + offset)
-    return inner_get_instructions(obj, start_line, 0)
+def get_instructions(obj: CodeType) -> list[UtInstruction]:
+    return [UtInstruction(line, start_offset, True) for start_offset, _, line in obj.co_lines() if None not in {start_offset, line}]
 
 
 def filter_instructions(
@@ -52,5 +46,9 @@ def filter_instructions(
     mode: TraceMode = TraceMode.Instructions,
 ) -> list[UtInstruction]:
     if mode == TraceMode.Lines:
-        return list({UtInstruction(it.line, 0, 0) for it in instructions})
+        return list({UtInstruction(it.line, 0, True) for it in instructions})
     return list(instructions)
+
+
+def get_lines(instructions: typing.Iterable[UtInstruction]) -> list[int]:
+    return [instruction.line for instruction in filter_instructions(instructions)]

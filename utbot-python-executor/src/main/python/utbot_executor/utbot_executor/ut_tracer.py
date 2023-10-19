@@ -77,19 +77,15 @@ class UtTracer:
         self.ignore_dirs = ignore_dirs
         self.sender = sender
         self.mode = mode
-        self.global_offset = 0
-        self.local_offset = 0
-        self.offsets = {}
 
     def runfunc(self, func, /, *args, **kw):
         result = None
-        self.global_offset = 0
         sys.settrace(self.globaltrace)
+        self.f_code = func.__code__
         try:
             result = func(*args, **kw)
         finally:
             sys.settrace(None)
-            self.global_offset = 0
         return result
 
     def coverage(self, filename: str) -> typing.List[int]:
@@ -100,12 +96,11 @@ class UtTracer:
         filename = frame.f_code.co_filename
         lineno = frame.f_lineno
         if pathlib.Path(filename) == self.tested_file and lineno is not None:
-            offset = 0
-            if why == "opcode":
+            if self.mode == TraceMode.Instructions and frame.f_lasti is not None:
                 offset = frame.f_lasti
-            self.local_offset = offset
-            key = UtInstruction(lineno, offset, self.global_offset)
-            print(key)
+            else:
+                offset = 0
+            key = UtInstruction(lineno, offset, frame.f_code == self.f_code)
             if key not in self.counts:
                 message = key.serialize()
                 try:
@@ -116,16 +111,11 @@ class UtTracer:
         return self.localtrace
 
     def globaltrace_lt(self, frame, why, arg):
-        print("Global", frame, id(frame), frame.f_lasti, self.global_offset)
-        if frame not in self.offsets:
-            self.offsets[frame] = self.global_offset + self.local_offset
-        self.global_offset = self.offsets[frame]
-
         if why == 'call':
             if self.mode == TraceMode.Instructions:
                 frame.f_trace_opcodes = True
                 frame.f_trace_lines = False
-            filename = frame.f_code.co_filename
+            filename = frame.f_globals.get('__file__', None)
             if filename and all(not filename.startswith(d + os.sep) for d in self.ignore_dirs):
                 modulename = _modname(filename)
                 if modulename is not None:
@@ -142,13 +132,18 @@ class PureTracer:
         return func(*args, **kw)
 
 
+def g1(x):
+    return x * 2
+
+
 def f(x):
     def g(x):
         xs = [[j for j in range(i)] for i in range(10)]
         return x * 2
-    return x * g(x) + 2
+    return g1(x) * g(x) + 2
 
 
 if __name__ == "__main__":
     tracer = UtTracer(pathlib.Path(__file__), [], PureSender())
     tracer.runfunc(f, 2)
+    print(tracer.counts)

@@ -126,8 +126,8 @@ class PythonGenerateTestsCommand : CliktCommand(
     private val doNotSendCoverageContinuously by option("--do-not-send-coverage-continuously", help = "Do not send coverage during execution.")
         .flag(default = false)
 
-    private val coverageOutputFormat by option("--coverage-output-format", help = "Use LINES, INSTRUCTIONS or TOPFRAMEINSTRUCTIONS.")
-        .choice("INSTRUCTIONS", "LINES", "TOPFRAMEINSTRUCTIONS")
+    private val coverageOutputFormat by option("--coverage-output-format", help = "Use LINES, INSTRUCTIONS (only from function frame).")
+        .choice("INSTRUCTIONS", "LINES")
         .default("LINES")
 
     private val testFramework: TestFramework

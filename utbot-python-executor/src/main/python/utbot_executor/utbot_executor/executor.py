@@ -6,6 +6,7 @@ import logging
 import pathlib
 import sys
 import traceback
+import types
 from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 from utbot_executor.deep_serialization.deep_serialization import serialize_memory_dump, \
@@ -96,7 +97,7 @@ class PythonExecutor:
                     importlib.import_module(request.function_module),
                     request.function_name
                     )
-            if not callable(function):
+            if not isinstance(function, types.FunctionType):
                 return ExecutionFailResponse(
                         "fail",
                         f"Invalid function path {request.function_module}.{request.function_name}"
@@ -165,7 +166,7 @@ def _serialize_state(
 
 
 def _run_calculate_function_value(
-        function: Callable,
+        function: types.FunctionType,
         args: List[Any],
         kwargs: Dict[str, Any],
         fullpath: str,
@@ -181,7 +182,7 @@ def _run_calculate_function_value(
     __is_exception = False
 
     _, __start = inspect.getsourcelines(function)
-    __all_code_stmts = filter_instructions(get_instructions(function, __start), tracer.mode)
+    __all_code_stmts = filter_instructions(get_instructions(function.__code__), tracer.mode)
 
     __tracer = tracer
 
@@ -195,7 +196,7 @@ def _run_calculate_function_value(
 
     logging.debug("Coverage: %s", __tracer.counts)
     logging.debug("Fullpath: %s", fullpath)
-    __stmts_with_def = [UtInstruction(__start, 0, 0)] + list(__tracer.counts.keys())
+    __stmts_with_def = [UtInstruction(__start, 0, True)] + list(__tracer.counts.keys())
     __missed_filtered = [x for x in __all_code_stmts if x not in __stmts_with_def]
     logging.debug("Covered lines: %s", __stmts_with_def)
     logging.debug("Missed lines: %s", __missed_filtered)

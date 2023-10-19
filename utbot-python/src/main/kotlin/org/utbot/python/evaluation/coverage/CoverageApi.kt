@@ -27,14 +27,14 @@ enum class PythonCoverageMode {
 data class PyInstruction(
     val lineNumber: Int,
     val offset: Long,
-    val globalOffset: Long,
+    val fromMainFrame: Boolean,
 ) {
-    override fun toString(): String = listOf(lineNumber, offset, globalOffset).joinToString(":")
+    override fun toString(): String = listOf(lineNumber, offset, fromMainFrame).joinToString(":")
 
-    val id: Long = (offset to globalOffset).toCoverageId()
+    val id: Long = (lineNumber.toLong() to offset).toCoverageId()
 
-    constructor(lineNumber: Int) : this(lineNumber, lineNumber.toLong(), 0)
-    constructor(lineNumber: Int, id: Long) : this(lineNumber, id.toPair().first, id.toPair().second)
+    constructor(lineNumber: Int) : this(lineNumber, lineNumber.toLong(), true)
+    constructor(lineNumber: Int, id: Long) : this(lineNumber, id.toPair().second, true)
 }
 
 fun String.toPyInstruction(): PyInstruction? {
@@ -43,13 +43,13 @@ fun String.toPyInstruction(): PyInstruction? {
         3 -> {
             val line = data[0].toInt()
             val offset = data[1].toLong()
-            val globalOffset = data[2].toLong()
-            return PyInstruction(line, offset, globalOffset)
+            val fromMainFrame = data[2].toInt() != 0
+            return PyInstruction(line, offset, fromMainFrame)
         }
         2 -> {
             val line = data[0].toInt()
             val offset = data[1].toLong()
-            return PyInstruction(line, offset, 0)
+            return PyInstruction(line, offset, true)
         }
         1 -> {
             val line = data[0].toInt()
@@ -80,7 +80,7 @@ fun calculateCoverage(coverage: PyCoverage, method: PythonMethod): Coverage {
 }
 
 fun calculateCoverage(statements: List<PyInstruction>, missedStatements: List<PyInstruction>, method: PythonMethod): Coverage {
-    val covered = statements.filter { it !in missedStatements }
+    val covered = statements.filter { it !in missedStatements && it.fromMainFrame }
     return Coverage(
         coveredInstructions=covered.map {
             Instruction(
@@ -104,8 +104,7 @@ fun calculateCoverage(statements: List<PyInstruction>, missedStatements: List<Py
 
 enum class CoverageOutputFormat {
     Lines,
-    Instructions,
-    TopFrameInstructions;
+    Instructions;
 
     companion object {
         fun parse(name: String): CoverageOutputFormat {

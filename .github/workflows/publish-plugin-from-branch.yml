@@ -49,7 +49,7 @@ jobs:
           - plugin_type: IU
             extra_options: "-PideType=IU -PprojectType=Ultimate"
           - plugin_type: PY
-            extra_options: "-PideType=PY -PprojectType=Ultimate -PideVersion=2023.2"
+            extra_options: "-PideType=PY -PprojectType=Ultimate"
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
     steps:

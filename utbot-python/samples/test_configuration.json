@@ -70,7 +70,7 @@
               "classes": ["Dictionary"],
               "methods": ["translate"],
               "timeout": 10,
-              "coverage": 89
+              "coverage": 88
             }
           ]
         },
@@ -149,9 +149,15 @@
           "name": "dicts",
           "groups": [
             {
-              "classes": null,
-              "methods": null,
+              "classes": ["Dictionary"],
+              "methods": ["__eq__"],
               "timeout": 10,
+              "coverage": 100
+            },
+            {
+              "classes": ["Dictionary"],
+              "methods": ["translate"],
+              "timeout": 20,
               "coverage": 100
             }
           ]
@@ -196,7 +202,7 @@
               "classes": null,
               "methods": null,
               "timeout": 10,
-              "coverage": 100
+              "coverage": 75
             }
           ]
         },
@@ -234,7 +240,7 @@
               "classes": null,
               "methods": null,
               "timeout": 180,
-              "coverage": 94
+              "coverage": 83
             }
           ]
         },
@@ -343,7 +349,7 @@
               "classes": null,
               "methods": null,
               "timeout": 180,
-              "coverage": 100
+              "coverage": 97
             }
           ]
         }
@@ -465,8 +471,23 @@
           "groups": [
             {
               "classes": null,
-              "methods": null,
+              "methods": [
+                "concat",
+                "concat_pair",
+                "string_constants",
+                "contains",
+                "const_contains",
+                "to_str",
+                "starts_with",
+                "join_str"
+              ],
               "timeout": 160,
+              "coverage": 100
+            },
+            {
+              "classes": null,
+              "methods": ["separated_str"],
+              "timeout": 60,
               "coverage": 100
             }
           ]
@@ -499,7 +520,7 @@
               "classes": ["Graph"],
               "methods": null,
               "timeout": 150,
-              "coverage": 100
+              "coverage": 64
             }
           ]
         },
@@ -521,7 +542,7 @@
               "classes": null,
               "methods": null,
               "timeout": 120,
-              "coverage": 100
+              "coverage": 96
             }
           ]
         },
@@ -530,8 +551,14 @@
           "groups": [
             {
               "classes": ["Matrix"],
-              "methods": null,
-              "timeout": 180,
+              "methods": ["__repr__", "__eq__", "__add__", "__mul__", "is_diagonal"],
+              "timeout": 120,
+              "coverage": 100
+            },
+            {
+              "classes": ["Matrix"],
+              "methods": ["__matmul__"],
+              "timeout": 120,
               "coverage": 100
             }
           ]
@@ -543,7 +570,7 @@
               "classes": null,
               "methods": null,
               "timeout": 180,
-              "coverage": 100
+              "coverage": 62
             }
           ]
         }

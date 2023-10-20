@@ -50,7 +50,7 @@ class Matrix:
         else:
             raise MatrixException("Wrong Type")
 
-    def __matmul__(self, other):
+    def __matmul__(self, other: Matrix):
         if isinstance(other, Matrix):
             if self.dim[1] == other.dim[0]:
                 result = [[0 for _ in range(self.dim[0])] * other.dim[1]]

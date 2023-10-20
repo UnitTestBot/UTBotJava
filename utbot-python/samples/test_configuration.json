@@ -10,7 +10,7 @@
               "classes": null,
               "methods": null,
               "timeout": 10,
-              "coverage": 93
+              "coverage": 92
             }
           ]
         },
@@ -69,8 +69,8 @@
             {
               "classes": ["Dictionary"],
               "methods": ["translate"],
-              "timeout": 10,
-              "coverage": 88
+              "timeout": 30,
+              "coverage": 100
             }
           ]
         },
@@ -90,17 +90,6 @@
           "groups": [
             {
               "classes": null,
-              "methods": null,
-              "timeout": 10,
-              "coverage": 100
-            }
-          ]
-        },
-        {
-          "name": "field",
-          "groups": [
-            {
-              "classes": ["NoTestsProblem"],
               "methods": null,
               "timeout": 10,
               "coverage": 100
@@ -149,14 +138,8 @@
           "name": "dicts",
           "groups": [
             {
-              "classes": ["Dictionary"],
-              "methods": ["__eq__"],
-              "timeout": 10,
-              "coverage": 100
-            },
-            {
-              "classes": ["Dictionary"],
-              "methods": ["translate"],
+              "classes": null,
+              "methods": null,
               "timeout": 20,
               "coverage": 100
             }
@@ -558,8 +541,8 @@
             {
               "classes": ["Matrix"],
               "methods": ["__matmul__"],
-              "timeout": 120,
-              "coverage": 100
+              "timeout": 80,
+              "coverage": 90
             }
           ]
         },

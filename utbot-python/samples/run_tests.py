@@ -110,10 +110,15 @@ def check_coverage(
     coverage: typing.Dict[str, typing.Tuple[float, float]] = {}
     for part in config["parts"]:
         for file in part["files"]:
-            for group in file["groups"]:
+            for i, group in enumerate(file["groups"]):
+                if i > 0:
+                    suffix = f"_{i}"
+                else:
+                    suffix = ""
+
                 expected_coverage = group.get("coverage", 0)
 
-                file_suffix = f"{part['path'].replace('/', '_')}_{file['name']}"
+                file_suffix = f"{part['path'].replace('/', '_')}_{file['name']}{suffix}"
                 coverage_output_file = pathlib.Path(
                     coverage_output_dir, f"coverage_{file_suffix}.json"
                 )
@@ -161,17 +166,22 @@ def main_test_generation(args):
             for file in tqdm.tqdm(
                 part["files"], file=orig_stdout, dynamic_ncols=True, desc=part["path"]
             ):
-                for group in file["groups"]:
+                for i, group in enumerate(file["groups"]):
+                    if i > 0:
+                        suffix = f"_{i}"
+                    else:
+                        suffix = ""
+
                     full_name = pathlib.PurePath(
                         args.path_to_test_dir, part["path"], file["name"]
                     )
                     output_file = pathlib.PurePath(
                         args.output_dir,
-                        f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}.py",
+                        f"utbot_tests_{part['path'].replace('/', '_')}_{file['name']}{suffix}.py",
                     )
                     coverage_output_file = pathlib.PurePath(
                         args.coverage_output_dir,
-                        f"coverage_{part['path'].replace('/', '_')}_{file['name']}.json",
+                        f"coverage_{part['path'].replace('/', '_')}_{file['name']}{suffix}.json",
                     )
                     generate_tests(
                         args.java,

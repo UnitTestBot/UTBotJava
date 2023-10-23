@@ -157,6 +157,11 @@ tasks {
     }
 }
 
+repositories {
+    maven("https://jitpack.io")
+    maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+}
+
 dependencies {
     implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
     implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)

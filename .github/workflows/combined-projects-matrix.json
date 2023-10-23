@@ -1,7 +1,7 @@
 {
   "projects": [
     {
-      "FIRST": "utbot-intellij-main",
+      "FIRST": "utbot-intellij",
       "SECOND": "utbot-cli"
     },
     {

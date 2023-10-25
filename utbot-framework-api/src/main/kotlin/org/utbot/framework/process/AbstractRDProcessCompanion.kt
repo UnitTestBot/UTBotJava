@@ -32,7 +32,10 @@ abstract class AbstractRDProcessCompanion(
         if (javaVersionSpecificArgs.isNotEmpty()) {
             addAll(javaVersionSpecificArgs)
         }
-        add(UtSettings.engineProcessJavaOptionalArguments)
+        UtSettings.engineProcessJavaOptionalArguments.split("\\s+".toRegex()).
+        takeIf {it.size > 1 || it[0].isNotEmpty() }?.forEach {
+            add(it)
+        }
         debugArgument?.let { add(it) }
     }
 }

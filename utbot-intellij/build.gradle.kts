@@ -21,7 +21,7 @@ val androidStudioPath: String? by rootProject
 
 val ideaVersion: String? by rootProject
 val pycharmVersion: String? by rootProject
-val goVersion: String? by rootProject
+val golandVersion: String? by rootProject
 
 val javaIde: String? by rootProject
 val pythonIde: String? by rootProject
@@ -30,7 +30,7 @@ val goIde: String? by rootProject
 
 val ideVersion = when(ideType) {
     "PC", "PY" -> pycharmVersion
-    "GO" -> goVersion
+    "GO" -> golandVersion
     else -> ideaVersion
 }
 

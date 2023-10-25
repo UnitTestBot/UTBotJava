@@ -3,7 +3,7 @@ package org.utbot.python.evaluation
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
 import org.utbot.python.evaluation.serialization.MemoryDump
-import org.utbot.python.evaluation.coverage.PyCoverage
+import org.utbot.python.coverage.PyInstruction
 
 interface PythonCodeExecutor {
     val method: PythonMethod
@@ -40,7 +40,8 @@ data class PythonEvaluationTimeout(
 
 data class PythonEvaluationSuccess(
     val isException: Boolean,
-    val coverage: PyCoverage,
+    val coveredStatements: List<PyInstruction>,
+    val missedStatements: List<PyInstruction>,
     val stateInit: MemoryDump,
     val stateBefore: MemoryDump,
     val stateAfter: MemoryDump,

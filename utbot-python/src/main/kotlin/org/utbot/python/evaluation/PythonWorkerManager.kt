@@ -11,7 +11,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
 import org.apache.logging.log4j.LogManager
-import org.utbot.python.evaluation.coverage.PythonCoverageMode
+import org.utbot.python.coverage.PythonCoverageMode
 
 private val logger = KotlinLogging.logger {}
 

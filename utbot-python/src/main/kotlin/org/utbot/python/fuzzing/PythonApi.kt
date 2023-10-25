@@ -5,7 +5,7 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
-import org.utbot.python.evaluation.coverage.PyInstruction
+import org.utbot.python.coverage.PyInstruction
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.provider.*

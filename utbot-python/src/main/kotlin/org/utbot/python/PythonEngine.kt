@@ -16,11 +16,10 @@ import org.utbot.python.evaluation.PythonEvaluationSuccess
 import org.utbot.python.evaluation.PythonEvaluationTimeout
 import org.utbot.python.evaluation.PythonWorker
 import org.utbot.python.evaluation.PythonWorkerManager
-import org.utbot.python.evaluation.coverage.CoverageIdGenerator
-import org.utbot.python.evaluation.coverage.PyInstruction
-import org.utbot.python.evaluation.coverage.PythonCoverageMode
-import org.utbot.python.evaluation.coverage.calculateCoverage
-import org.utbot.python.evaluation.coverage.makeInstructions
+import org.utbot.python.coverage.CoverageIdGenerator
+import org.utbot.python.coverage.PyInstruction
+import org.utbot.python.coverage.PythonCoverageMode
+import org.utbot.python.coverage.buildCoverage
 import org.utbot.python.evaluation.serialization.MemoryDump
 import org.utbot.python.evaluation.serialization.toPythonTree
 import org.utbot.python.framework.api.python.PythonTree
@@ -121,7 +120,7 @@ class PythonEngine(
         val beforeThisObject = beforeThisObjectTree?.let { PythonTreeModel(it.tree) }
         val beforeModelList = beforeModelListTree.map { PythonTreeModel(it.tree) }
 
-        val coverage = Coverage(makeInstructions(coveredInstructions, methodUnderTest))
+        val coverage = Coverage(coveredInstructions)
         val utFuzzedExecution = PythonUtExecution(
             stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
             stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
@@ -185,7 +184,7 @@ class PythonEngine(
             stateAfter = EnvironmentModels(afterThisObject, afterModelList, emptyMap(), executableToCall = null),
             diffIds = evaluationResult.diffIds,
             result = executionResult,
-            coverage = calculateCoverage(evaluationResult.coverage, methodUnderTest),
+            coverage = buildCoverage(evaluationResult.coveredStatements, evaluationResult.missedStatements),
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
             displayName = testMethodName.displayName,
             summary = summary.map { DocRegularStmt(it) },
@@ -263,7 +262,7 @@ class PythonEngine(
                 }
 
                 is PythonEvaluationSuccess -> {
-                    val coveredInstructions = evaluationResult.coverage.coveredInstructions
+                    val coveredInstructions = evaluationResult.coveredStatements
 
                     val result = handleSuccessResult(
                        arguments,

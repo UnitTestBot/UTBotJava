@@ -10,16 +10,13 @@ import org.utbot.python.evaluation.serialization.FailExecution
 import org.utbot.python.evaluation.serialization.PythonExecutionResult
 import org.utbot.python.evaluation.serialization.SuccessExecution
 import org.utbot.python.evaluation.serialization.serializeObjects
-import org.utbot.python.evaluation.coverage.CoverageIdGenerator
-import org.utbot.python.evaluation.coverage.PyCoverage
-import org.utbot.python.evaluation.coverage.toPyInstruction
+import org.utbot.python.coverage.CoverageIdGenerator
+import org.utbot.python.coverage.toPyInstruction
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.utils.isNamed
 import java.net.SocketException
-
-private val logger = KotlinLogging.logger {}
 
 class PythonCodeSocketExecutor(
     override val method: PythonMethod,
@@ -134,7 +131,8 @@ class PythonCodeSocketExecutor(
                 val missedStatements = executionResult.missedStatements.mapNotNull { it.toPyInstruction() }
                 PythonEvaluationSuccess(
                     executionResult.isException,
-                    PyCoverage(statements, missedStatements),
+                    statements,
+                    missedStatements,
                     stateInit,
                     stateBefore,
                     stateAfter,

@@ -1,4 +1,4 @@
-package org.utbot.python.evaluation.coverage
+package org.utbot.python.coverage
 
 import java.util.concurrent.atomic.AtomicLong
 

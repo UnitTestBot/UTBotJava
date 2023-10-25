@@ -10,8 +10,13 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.python.code.PythonCode
-import org.utbot.python.evaluation.coverage.CoverageOutputFormat
-import org.utbot.python.evaluation.coverage.PyInstruction
+import org.utbot.python.coverage.CoverageFormat
+import org.utbot.python.coverage.CoverageInfo
+import org.utbot.python.coverage.CoverageOutputFormat
+import org.utbot.python.coverage.PyInstruction
+import org.utbot.python.coverage.filterMissedLines
+import org.utbot.python.coverage.getInstructionsList
+import org.utbot.python.coverage.getLinesList
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
@@ -255,69 +260,14 @@ abstract class PythonTestGenerationProcessor {
             paths
         }
 
-    sealed class CoverageFormat
-    data class LineCoverage(val start: Int, val end: Int) : CoverageFormat() {
-        override fun equals(other: Any?): Boolean {
-            if (other is LineCoverage) {
-                return start == other.start && end == other.end
-            }
-            return false
-        }
-
-        override fun hashCode(): Int {
-            var result = start
-            result = 31 * result + end
-            return result
-        }
-    }
-    data class InstructionCoverage(val line: Int, val offset: Long) : CoverageFormat() {
-        override fun equals(other: Any?): Boolean {
-            if (other is InstructionCoverage) {
-                return line == other.line && offset == other.offset
-            }
-            return false
-        }
-
-        override fun hashCode(): Int {
-            var result = line
-            result = 31 * result + offset.hashCode()
-            return result
-        }
-    }
-
-    data class CoverageInfo<T: CoverageFormat>(
-        val covered: List<T>,
-        val notCovered: List<T>,
-    )
-
-    private fun getLinesList(instructions: Collection<PyInstruction>): List<LineCoverage> =
-        instructions
-            .map { it.lineNumber }
-            .sorted()
-            .fold(emptyList()) { acc, lineNumber ->
-                if (acc.isEmpty())
-                    return@fold listOf(LineCoverage(lineNumber, lineNumber))
-                val elem = acc.last()
-                if (elem.end + 1 == lineNumber || elem.end == lineNumber )
-                    acc.dropLast(1) + listOf(LineCoverage(elem.start, lineNumber))
-                else
-                    acc + listOf(LineCoverage(lineNumber, lineNumber))
-            }
-
-    private fun filterMissedLines(covered: Collection<LineCoverage>, missed: Collection<PyInstruction>): List<PyInstruction> =
-        missed.filterNot { missedInstruction -> covered.any { it.start <= missedInstruction.lineNumber && missedInstruction.lineNumber <= it.end } }
-
-    private fun getInstructionsList(instructions: Collection<PyInstruction>): List<CoverageFormat> =
-        instructions.map { InstructionCoverage(it.lineNumber, it.offset) }.toSet().toList()
-
     private fun getCoverageInfo(testSets: List<PythonTestSet>): CoverageInfo<CoverageFormat> {
         val covered = mutableSetOf<PyInstruction>()
         val missed = mutableSetOf<PyInstruction>()
         testSets.forEach { testSet ->
             testSet.executions.forEach inner@{ execution ->
                 val coverage = execution.coverage ?: return@inner
-                covered.addAll(coverage.coveredInstructions.map { PyInstruction(it.lineNumber, it.id) })
-                missed.addAll(coverage.missedInstructions.map { PyInstruction(it.lineNumber, it.id) })
+                covered.addAll(coverage.coveredInstructions.filterIsInstance<PyInstruction>())
+                missed.addAll(coverage.missedInstructions.filterIsInstance<PyInstruction>())
             }
         }
         missed -= covered
@@ -328,29 +278,20 @@ abstract class PythonTestGenerationProcessor {
                 val missedLines = getLinesList(filteredMissed)
                 CoverageInfo(coveredLines, missedLines)
             }
-            CoverageOutputFormat.Instructions -> CoverageInfo(getInstructionsList(covered), getInstructionsList(missed))
+            CoverageOutputFormat.Instructions -> CoverageInfo(
+                getInstructionsList(covered),
+                getInstructionsList(missed)
+            )
         }
         return CoverageInfo(info.covered.toSet().toList(), info.notCovered.toSet().toList())
     }
 
-    private fun toJson(coverageInfo: CoverageInfo<CoverageFormat>): String {
-        val covered = coverageInfo.covered.map { toJson(it) }
-        val notCovered = coverageInfo.notCovered.map { toJson(it) }
+    protected fun getStringCoverageInfo(testSets: List<PythonTestSet>): String {
+        val coverageInfo = getCoverageInfo(testSets)
+        val covered = coverageInfo.covered.map { it.toJson() }
+        val notCovered = coverageInfo.notCovered.map { it.toJson() }
         return "{\"covered\": [${covered.joinToString(", ")}], \"notCovered\": [${notCovered.joinToString(", ")}]}"
     }
-
-    private fun toJson(coverageFormat: CoverageFormat): String {
-        return when (coverageFormat) {
-            is LineCoverage -> "{\"start\": ${coverageFormat.start}, \"end\": ${coverageFormat.end}}"
-            is InstructionCoverage -> "{\"line\": ${coverageFormat.line}, \"offset\": ${coverageFormat.offset}}"
-        }
-    }
-
-    protected fun getStringCoverageInfo(testSets: List<PythonTestSet>): String {
-        val value = getCoverageInfo(testSets)
-        return toJson(value)
-    }
-
 }
 
 data class SelectedMethodIsNotAFunctionDefinition(val methodName: String): Exception()

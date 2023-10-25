@@ -6,7 +6,7 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.python.evaluation.coverage.PythonCoverageMode
+import org.utbot.python.coverage.PythonCoverageMode
 import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.fuzzing.*

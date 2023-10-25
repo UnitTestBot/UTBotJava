@@ -10,11 +10,11 @@ package org.utbot.framework.plugin.api
  *
  * @see <a href="CONFLUENCE:Test+Minimization">Test minimization</a>
  */
-data class Instruction(
+open class Instruction(
     val internalName: String,
     val methodSignature: String,
-    val lineNumber: Int,
-    val id: Long
+    open val lineNumber: Int,
+    open val id: Long
 ) {
     val className: String get() = internalName.replace('/', '.')
 }

@@ -1,4 +1,4 @@
-package org.utbot.python.evaluation.coverage
+package org.utbot.python.coverage
 
 import kotlin.math.ceil
 import kotlin.math.max

@@ -10,14 +10,14 @@ import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.python.evaluation.coverage.CoverageOutputFormat
+import org.utbot.python.coverage.CoverageOutputFormat
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestSet
 import org.utbot.python.TestFileInformation
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.code.PythonCode
-import org.utbot.python.evaluation.coverage.PythonCoverageMode
+import org.utbot.python.coverage.PythonCoverageMode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest

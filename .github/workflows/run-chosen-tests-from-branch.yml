@@ -18,7 +18,7 @@ on:
           - utbot-gradle
           - utbot-instrumentation-tests
           - utbot-instrumentation
-          - utbot-intellij-main
+          - utbot-intellij
           - utbot-sample
           - utbot-summary
           - utbot-summary-tests

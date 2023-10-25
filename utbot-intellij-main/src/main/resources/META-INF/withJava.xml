@@ -4,5 +4,19 @@
         <projectConfigurable dynamic="true" parentId="org.utbot.intellij.plugin.settings.Configurable" instance="org.utbot.intellij.plugin.settings.JavaConfigurable"
                              id="org.utbot.intellij.plugin.settings.JavaConfigurable"
                              displayName="Java"/>
+        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtMavenProjectModelModifier" order="first"/>
+        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtIdeaProjectModelModifier" order="first"/>
+        <!--Documentation-->
+        <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>
+        <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>
+
+        <globalInspection language="JAVA"
+                          displayName="Errors detected by UnitTestBot"
+                          groupPath="Java"
+                          groupBundle="messages.InspectionsBundle"
+                          groupKey="group.names.probable.bugs"
+                          enabledByDefault="true"
+                          level="ERROR"
+                          implementationClass="org.utbot.intellij.plugin.inspection.UnitTestBotInspectionTool"/>
     </extensions>
 </idea-plugin>

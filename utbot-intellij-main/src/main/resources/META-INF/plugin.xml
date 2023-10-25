@@ -31,13 +31,7 @@
                                  displayName="UnitTestBot"/>
         <!--suppress PluginXmlValidity -->
         <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
-        <postStartupActivity implementation="org.utbot.intellij.plugin.ui.GotItTooltipActivity"/>
         <projectModelModifier implementation="org.androidstudio.plugin.util.UtAndroidGradleJavaProjectModelModifierWrapper" order="first"/>
-        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtMavenProjectModelModifier" order="first"/>
-        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtIdeaProjectModelModifier" order="first"/>
-        <!--Documentation-->
-        <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>
-        <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>
     </extensions>
 
     <!-- Minimum and maximum build of IDE compatible with the plugin -->
@@ -89,15 +83,4 @@
         </ul>
         ]]>
     </change-notes>
-    <extensions defaultExtensionNs="com.intellij">
-        <globalInspection language="JAVA"
-                          displayName="Errors detected by UnitTestBot"
-                          groupPath="Java"
-                          groupBundle="messages.InspectionsBundle"
-                          groupKey="group.names.probable.bugs"
-                          enabledByDefault="true"
-                          level="ERROR"
-                          implementationClass="org.utbot.intellij.plugin.inspection.UnitTestBotInspectionTool"/>
-    </extensions>
-
 </idea-plugin>

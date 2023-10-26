@@ -25,10 +25,12 @@ data class PyInstruction(
     override val lineNumber: Int,
     val offset: Long,
     val fromMainFrame: Boolean,
-): Instruction("", "", lineNumber, 0) {
+) : Instruction(
+    "",
+    "",
+    lineNumber,
+    (lineNumber.toLong() to offset).toCoverageId() * 2 + fromMainFrame.toLong()) {
     override fun toString(): String = listOf(lineNumber, offset, fromMainFrame).joinToString(":")
-
-    override val id: Long = (lineNumber.toLong() to offset).toCoverageId() * 2 + fromMainFrame.toLong()
 
     constructor(lineNumber: Int) : this(lineNumber, lineNumber.toLong(), true)
     constructor(lineNumber: Int, id: Long) : this(lineNumber, id.floorDiv(2).toPair().second, id % 2 == 1L)

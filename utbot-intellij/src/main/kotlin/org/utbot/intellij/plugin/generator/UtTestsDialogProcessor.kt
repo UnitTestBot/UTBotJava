@@ -576,7 +576,7 @@ object UtTestsDialogProcessor {
             val classpathList = pathsList.pathList
             Pair(classpath, classpathList)
         }
-        val pluginJarsPath = Paths.get(PathManager.getPluginsPath(), "utbot-intellij", "lib").toFile().listFiles()
+        val pluginJarsPath = Paths.get(PathManager.getPluginsPath(), "utbot-intellij-main", "lib").toFile().listFiles()
             ?: error("Can't find plugin folder.")
         return BuildPaths(buildDirs, classpath, classpathList, pluginJarsPath.map { it.path })
     }

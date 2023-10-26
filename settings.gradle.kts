@@ -5,6 +5,7 @@ val ultimateEdition: String by settings
 val ideType: String by settings
 val buildType: String by settings
 
+val javaIde: String by settings
 val pythonIde: String by settings
 val jsIde: String by settings
 val jsBuild: String by settings
@@ -27,7 +28,6 @@ include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
 include("utbot-modificators-analyzer")
-include("utbot-intellij")
 include("utbot-sample")
 include("utbot-java-fuzzing")
 include("utbot-fuzzing")
@@ -60,6 +60,12 @@ include("utbot-spring-framework")
 include("utbot-spring-commons-api")
 include("utbot-spring-commons")
 include("utbot-spring-analyzer")
+include("utbot-spring-sample")
+include("utbot-spring-test")
+
+if (javaIde.split(",").contains(ideType)) {
+    include("utbot-intellij")
+}
 
 if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python")
@@ -69,9 +75,6 @@ if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python-types")
     include("utbot-python-executor")
 }
-
-include("utbot-spring-sample")
-include("utbot-spring-test")
 
 if (projectType == ultimateEdition) {
     if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
@@ -88,3 +91,4 @@ if (projectType == ultimateEdition) {
 }
 
 include("utbot-light")
+include("utbot-intellij-main")

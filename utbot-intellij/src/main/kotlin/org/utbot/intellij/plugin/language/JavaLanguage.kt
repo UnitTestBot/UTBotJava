@@ -32,6 +32,7 @@ import org.utbot.intellij.plugin.ui.InvalidClassNotifier
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 
+@Suppress("unused") // is used in org.utbot.intellij.plugin.language.agnostic.LanguageAssistant via reflection
 object JvmLanguageAssistant : LanguageAssistant() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
@@ -100,7 +101,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
                         val memberInfoList = runReadAction<List<MemberInfo>> {
                             it.extractFirstLevelMembers(false)
                         }
-                        if (memberInfoList.isNullOrEmpty())
+                        if (memberInfoList.isEmpty())
                             return null
                     }
 

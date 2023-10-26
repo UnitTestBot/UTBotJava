@@ -71,7 +71,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
         var summariesGenerationType: SummariesGenerationType = UtSettings.summaryGenerationType,
         var generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
-        var enableExperimentalLanguagesSupport: Boolean = false,
+        var enableExperimentalLanguagesSupport: Boolean = true,
         var isSpringHandled: Boolean = false,
     ) {
 

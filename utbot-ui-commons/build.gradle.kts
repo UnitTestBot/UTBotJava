@@ -1,23 +1,47 @@
 val kotlinLoggingVersion: String by rootProject
-val ideType: String by rootProject
-val ideVersion: String by rootProject
 val semVer: String? by rootProject
 val slf4jVersion: String by rootProject
+
+// === IDE settings ===
+val projectType: String by rootProject
+val communityEdition: String by rootProject
+val ultimateEdition: String by rootProject
+
+val ideType: String by rootProject
 val androidStudioPath: String? by rootProject
+
+val ideaVersion: String? by rootProject
+val pycharmVersion: String? by rootProject
+val golandVersion: String? by rootProject
+
+val javaIde: String? by rootProject
+val pythonIde: String? by rootProject
+val jsIde: String? by rootProject
+val goIde: String? by rootProject
+
+val ideVersion = when(ideType) {
+    "PC", "PY" -> pycharmVersion
+    "GO" -> golandVersion
+    else -> ideaVersion
+}
+
+val pythonCommunityPluginVersion: String? by rootProject
+val pythonUltimatePluginVersion: String? by rootProject
+val goPluginVersion: String? by rootProject
+
+// https://plugins.jetbrains.com/docs/intellij/android-studio.html#configuring-the-plugin-pluginxml-file
+val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
+
+project.tasks.asMap["runIde"]?.enabled = false
+// === IDE settings ===
 
 plugins {
     id("org.jetbrains.intellij") version "1.13.1"
 }
-project.tasks.asMap["runIde"]?.enabled = false
 
 intellij {
     version.set(ideVersion)
     type.set(ideType)
-
-    plugins.set(listOf(
-        "java",
-        "org.jetbrains.android"
-    ))
 }
 
 tasks {
@@ -37,7 +61,6 @@ tasks {
     runIde {
         jvmArgs("-Xmx2048m")
         jvmArgs("--add-exports", "java.desktop/sun.awt.windows=ALL-UNNAMED")
-        androidStudioPath?.let { ideDir.set(file(it)) }
     }
 
     patchPluginXml {

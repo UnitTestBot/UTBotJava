@@ -25,5 +25,4 @@ fun writeToFileAndSave(filename: String, fileContent: String) {
     val file = File(filename)
     file.parentFile?.mkdirs()
     file.writeText(fileContent)
-    file.createNewFile()
 }

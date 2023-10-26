@@ -1,6 +1,8 @@
 package org.utbot.python.evaluation
 
 import mu.KotlinLogging
+import org.utbot.python.coverage.PyInstruction
+import org.utbot.python.coverage.toPyInstruction
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -11,7 +13,7 @@ import kotlin.math.max
 class PythonCoverageReceiver(
     val until: Long,
 ) : Thread() {
-    val coverageStorage = mutableMapOf<String, MutableSet<Int>>()
+    val coverageStorage = mutableMapOf<String, MutableList<PyInstruction>>()
     private val socket = DatagramSocket()
     private val logger = KotlinLogging.logger {}
 
@@ -39,11 +41,13 @@ class PythonCoverageReceiver(
                 val buf = ByteArray(256)
                 val request = DatagramPacket(buf, buf.size)
                 socket.receive(request)
-                val requestData = request.data.decodeToString().take(request.length).split(":")
+                val requestData = request.data.decodeToString().take(request.length).split(":", limit=2)
                 if (requestData.size == 2) {
                     val (id, line) = requestData
-                    val lineNumber = line.toInt()
-                    coverageStorage.getOrPut(id) { mutableSetOf() }.add(lineNumber)
+                    val instruction = line.toPyInstruction()
+                    if (instruction != null) {
+                        coverageStorage.getOrPut(id) { mutableListOf() }.add(instruction)
+                    }
                 }
             }
         } catch (ex: SocketException) {

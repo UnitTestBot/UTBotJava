@@ -1,6 +1,6 @@
 import dataclasses
 import json
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
 
 @dataclasses.dataclass
@@ -24,8 +24,8 @@ class ExecutionResponse:
 class ExecutionSuccessResponse(ExecutionResponse):
     status: str
     is_exception: bool
-    statements: List[int]
-    missed_statements: List[int]
+    statements: List[str]
+    missed_statements: List[str]
     state_init: str
     state_before: str
     state_after: str

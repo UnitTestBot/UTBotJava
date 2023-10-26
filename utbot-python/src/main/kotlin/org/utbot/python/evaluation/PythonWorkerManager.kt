@@ -11,6 +11,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
 import org.apache.logging.log4j.LogManager
+import org.utbot.python.coverage.PythonCoverageMode
 
 private val logger = KotlinLogging.logger {}
 
@@ -18,6 +19,8 @@ class PythonWorkerManager(
     private val serverSocket: ServerSocket,
     val pythonPath: String,
     val until: Long,
+    private val coverageMeasureMode: PythonCoverageMode = PythonCoverageMode.Instructions,
+    private val sendCoverageContinuously: Boolean = true,
     val pythonCodeExecutorConstructor: (PythonWorker) -> PythonCodeExecutor,
 ) {
     var timeout: Long = 0
@@ -47,6 +50,8 @@ class PythonWorkerManager(
             coverageReceiver.address().second,
             "--logfile", logfile.absolutePath,
             "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
+            "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
+            sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
         ))
         timeout = max(until - processStartTime, 0)
         if (this::workerSocket.isInitialized && !workerSocket.isClosed) {
@@ -120,5 +125,13 @@ class PythonWorkerManager(
 
     companion object {
         val logfile = TemporaryFileManager.createTemporaryFile("", "utbot_executor.log", "log", true)
+
+        fun Boolean.toSendCoverageContinuouslyString(): String {
+            return if (this) {
+                "--send_coverage"
+            } else {
+                "--no-send_coverage"
+            }
+        }
     }
 }

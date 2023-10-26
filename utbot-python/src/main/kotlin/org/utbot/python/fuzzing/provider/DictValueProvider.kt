@@ -39,10 +39,9 @@ object DictValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethod
             }
         })
         yield(Seed.Recursive(
-            construct = Routine.Create(params) { v ->
-                val items = mapOf(v[0].tree to v[1].tree).toMutableMap()
+            construct = Routine.Create(emptyList()) { v ->
                 PythonFuzzedValue(
-                    PythonTree.DictNode(items),
+                    PythonTree.DictNode(mutableMapOf()),
                     "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },

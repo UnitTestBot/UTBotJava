@@ -1,8 +1,6 @@
 package org.utbot.python.evaluation
 
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.Instruction
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
 import org.utbot.python.evaluation.serialization.ExecutionRequest
@@ -12,16 +10,13 @@ import org.utbot.python.evaluation.serialization.FailExecution
 import org.utbot.python.evaluation.serialization.PythonExecutionResult
 import org.utbot.python.evaluation.serialization.SuccessExecution
 import org.utbot.python.evaluation.serialization.serializeObjects
-import org.utbot.python.evaluation.utils.CoverageIdGenerator
-import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.coverage.CoverageIdGenerator
+import org.utbot.python.coverage.toPyInstruction
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.newtyping.utils.isNamed
 import java.net.SocketException
-
-private val logger = KotlinLogging.logger {}
 
 class PythonCodeSocketExecutor(
     override val method: PythonMethod,
@@ -132,9 +127,12 @@ class PythonCodeSocketExecutor(
                 val stateBefore = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateBefore) ?: return parsingException
                 val stateAfter = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateAfter) ?: return parsingException
                 val diffIds = executionResult.diffIds.map {it.toLong()}
+                val statements = executionResult.statements.mapNotNull { it.toPyInstruction() }
+                val missedStatements = executionResult.missedStatements.mapNotNull { it.toPyInstruction() }
                 PythonEvaluationSuccess(
                     executionResult.isException,
-                    calculateCoverage(executionResult.statements, executionResult.missedStatements),
+                    statements,
+                    missedStatements,
                     stateInit,
                     stateBefore,
                     stateAfter,
@@ -149,29 +147,6 @@ class PythonCodeSocketExecutor(
                 executionResult.exception.split(System.lineSeparator()),
             )
         }
-    }
-
-    private fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>): Coverage {
-        val covered = statements.filter { it !in missedStatements }
-        return Coverage(
-            coveredInstructions=covered.map {
-                Instruction(
-                    method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
-                    method.methodSignature(),
-                    it,
-                    it.toLong()
-                )
-            },
-            instructionsCount = statements.size.toLong(),
-            missedInstructions = missedStatements.map {
-                Instruction(
-                    method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
-                    method.methodSignature(),
-                    it,
-                    it.toLong()
-                )
-            }
-        )
     }
 
     override fun stop() {

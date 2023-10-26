@@ -8,11 +8,20 @@ import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.NoSeedValueException
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
-import org.utbot.python.evaluation.*
+import org.utbot.python.evaluation.EvaluationCache
+import org.utbot.python.evaluation.PythonCodeExecutor
+import org.utbot.python.evaluation.PythonCodeSocketExecutor
+import org.utbot.python.evaluation.PythonEvaluationError
+import org.utbot.python.evaluation.PythonEvaluationSuccess
+import org.utbot.python.evaluation.PythonEvaluationTimeout
+import org.utbot.python.evaluation.PythonWorker
+import org.utbot.python.evaluation.PythonWorkerManager
+import org.utbot.python.coverage.CoverageIdGenerator
+import org.utbot.python.coverage.PyInstruction
+import org.utbot.python.coverage.PythonCoverageMode
+import org.utbot.python.coverage.buildCoverage
 import org.utbot.python.evaluation.serialization.MemoryDump
 import org.utbot.python.evaluation.serialization.toPythonTree
-import org.utbot.python.evaluation.utils.CoverageIdGenerator
-import org.utbot.python.evaluation.utils.coveredLinesToInstructions
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
@@ -42,6 +51,8 @@ class PythonEngine(
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
     private val pythonTypeStorage: PythonTypeHintsStorage,
+    private val coverageMode: PythonCoverageMode = PythonCoverageMode.Instructions,
+    private val sendCoverageContinuously: Boolean = true,
 ) {
 
     private val cache = EvaluationCache()
@@ -92,7 +103,7 @@ class PythonEngine(
     private fun handleTimeoutResult(
         arguments: List<PythonFuzzedValue>,
         methodUnderTestDescription: PythonMethodDescription,
-        coveredLines: Collection<Int>,
+        coveredInstructions: List<PyInstruction>,
     ): FuzzingExecutionFeedback {
         val summary = arguments
             .zip(methodUnderTest.arguments)
@@ -109,7 +120,6 @@ class PythonEngine(
         val beforeThisObject = beforeThisObjectTree?.let { PythonTreeModel(it.tree) }
         val beforeModelList = beforeModelListTree.map { PythonTreeModel(it.tree) }
 
-        val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
         val coverage = Coverage(coveredInstructions)
         val utFuzzedExecution = PythonUtExecution(
             stateInit = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap(), executableToCall = null),
@@ -134,7 +144,8 @@ class PythonEngine(
     ): FuzzingExecutionFeedback {
         val prohibitedExceptions = listOf(
             "builtins.AttributeError",
-            "builtins.TypeError"
+            "builtins.TypeError",
+            "builtins.NotImplementedError",
         )
 
         val summary = arguments
@@ -173,7 +184,7 @@ class PythonEngine(
             stateAfter = EnvironmentModels(afterThisObject, afterModelList, emptyMap(), executableToCall = null),
             diffIds = evaluationResult.diffIds,
             result = executionResult,
-            coverage = evaluationResult.coverage,
+            coverage = buildCoverage(evaluationResult.coveredStatements, evaluationResult.missedStatements),
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
             displayName = testMethodName.displayName,
             summary = summary.map { DocRegularStmt(it) },
@@ -235,11 +246,10 @@ class PythonEngine(
                 }
 
                 is PythonEvaluationTimeout -> {
-                    val coveredLines =
-                        manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableSetOf())
-                    val utTimeoutException = handleTimeoutResult(arguments, description, coveredLines)
-                    val coveredInstructions = coveredLinesToInstructions(coveredLines, methodUnderTest)
-                    val trieNode: Trie.Node<Instruction> =
+                    val coveredInstructions =
+                        manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableListOf())
+                    val utTimeoutException = handleTimeoutResult(arguments, description, coveredInstructions)
+                    val trieNode: Trie.Node<PyInstruction> =
                         if (coveredInstructions.isEmpty())
                             Trie.emptyNode()
                         else
@@ -252,7 +262,7 @@ class PythonEngine(
                 }
 
                 is PythonEvaluationSuccess -> {
-                    val coveredInstructions = evaluationResult.coverage.coveredInstructions
+                    val coveredInstructions = evaluationResult.coveredStatements
 
                     val result = handleSuccessResult(
                        arguments,
@@ -263,7 +273,7 @@ class PythonEngine(
                     val typeInferenceFeedback = if (result is ValidExecution) SuccessFeedback else InvalidTypeFeedback
                     when (result) {
                         is ValidExecution -> {
-                            val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
+                            val trieNode: Trie.Node<PyInstruction> = description.tracer.add(coveredInstructions)
                             description.limitManager.addSuccessExecution()
                             PythonExecutionResult(
                                 result,
@@ -300,6 +310,8 @@ class PythonEngine(
                     serverSocket,
                     pythonPath,
                     until,
+                    coverageMode,
+                    sendCoverageContinuously,
                 ) { constructEvaluationInput(it) }
             } catch (_: TimeoutException) {
                 return@flow
@@ -311,7 +323,7 @@ class PythonEngine(
                 parameters,
                 fuzzedConcreteValues,
                 pythonTypeStorage,
-                Trie(Instruction::id),
+                Trie(PyInstruction::id),
                 Random(0),
                 TestGenerationLimitManager(ExecutionWithTimoutMode, until, isRootManager = true),
                 methodUnderTest.definition.type,
@@ -347,7 +359,7 @@ class PythonEngine(
                             val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
                             val mem = cache.get(pair)
                             if (mem != null) {
-                                logger.debug("Repeat in fuzzing ${arguments.map {it.tree}}")
+                                logger.debug { "Repeat in fuzzing ${arguments.map {it.tree}}" }
                                 description.limitManager.addSuccessExecution()
                                 emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
                                 return@PythonFuzzing mem.fuzzingPlatformFeedback.fromCache()

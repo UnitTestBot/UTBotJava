@@ -4,10 +4,9 @@ import importlib
 import inspect
 import logging
 import pathlib
-import socket
 import sys
 import traceback
-import typing
+import types
 from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 from utbot_executor.deep_serialization.deep_serialization import serialize_memory_dump, \
@@ -17,8 +16,13 @@ from utbot_executor.deep_serialization.memory_objects import MemoryDump, PythonS
 from utbot_executor.deep_serialization.utils import PythonId, getattr_by_path
 from utbot_executor.memory_compressor import compress_memory
 from utbot_executor.parser import ExecutionRequest, ExecutionResponse, ExecutionFailResponse, ExecutionSuccessResponse
-from utbot_executor.ut_tracer import UtTracer
-from utbot_executor.utils import suppress_stdout as __suppress_stdout
+from utbot_executor.ut_tracer import UtTracer, UtCoverageSender
+from utbot_executor.utils import (
+    suppress_stdout as __suppress_stdout,
+    get_instructions,
+    filter_instructions,
+    TraceMode, UtInstruction,
+)
 
 __all__ = ['PythonExecutor']
 
@@ -41,9 +45,11 @@ def _load_objects(objs: List[Any]) -> MemoryDump:
 
 
 class PythonExecutor:
-    def __init__(self, coverage_hostname: str, coverage_port: int):
+    def __init__(self, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode, send_coverage: bool):
         self.coverage_hostname = coverage_hostname
         self.coverage_port = coverage_port
+        self.trace_mode = trace_mode
+        self.send_coverage = send_coverage
 
     @staticmethod
     def add_syspaths(syspaths: Iterable[str]):
@@ -91,7 +97,7 @@ class PythonExecutor:
                     importlib.import_module(request.function_module),
                     request.function_name
                     )
-            if not callable(function):
+            if not isinstance(function, types.FunctionType):
                 return ExecutionFailResponse(
                         "fail",
                         f"Invalid function path {request.function_module}.{request.function_name}"
@@ -111,23 +117,26 @@ class PythonExecutor:
             state_init = _update_states(loader.reload_id(), state_init_memory)
             serialized_state_init = serialize_memory_dump(state_init)
 
-            def _coverage_sender(info: typing.Tuple[str, int]):
-                if pathlib.Path(info[0]) == pathlib.Path(request.filepath):
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    logging.debug("Coverage message: %s:%d", request.coverage_id, info[1])
-                    logging.debug("Port: %d", self.coverage_port)
-                    message = bytes(f'{request.coverage_id}:{info[1]}', encoding='utf-8')
-                    sock.sendto(message, (self.coverage_hostname, self.coverage_port))
-                    logging.debug("ID: %s, Coverage: %s", request.coverage_id, info)
+            _coverage_sender = UtCoverageSender(
+                request.coverage_id,
+                self.coverage_hostname,
+                self.coverage_port,
+                send_coverage=self.send_coverage,
+            )
 
             value = _run_calculate_function_value(
-                    function,
-                    args,
-                    kwargs,
-                    request.filepath,
-                    serialized_state_init,
-                    tracer=UtTracer(_coverage_sender)
-                    )
+                function,
+                args,
+                kwargs,
+                request.filepath,
+                serialized_state_init,
+                tracer=UtTracer(
+                    pathlib.Path(request.filepath),
+                    [sys.prefix, sys.exec_prefix],
+                    _coverage_sender,
+                    self.trace_mode,
+                ),
+            )
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
             return ExecutionFailResponse("fail", traceback.format_exc())
@@ -157,7 +166,7 @@ def _serialize_state(
 
 
 def _run_calculate_function_value(
-        function: Callable,
+        function: types.FunctionType,
         args: List[Any],
         kwargs: Dict[str, Any],
         fullpath: str,
@@ -172,10 +181,8 @@ def _run_calculate_function_value(
 
     __is_exception = False
 
-    (__sources, __start, ) = inspect.getsourcelines(function)
-    __not_empty_lines = [i for i, line in enumerate(__sources, __start) if len(line.strip()) != 0]
-    logging.debug("Not empty lines %s", __not_empty_lines)
-    __end = __start + len(__sources)
+    _, __start = inspect.getsourcelines(function)
+    __all_code_stmts = filter_instructions(get_instructions(function.__code__), tracer.mode)
 
     __tracer = tracer
 
@@ -189,24 +196,23 @@ def _run_calculate_function_value(
 
     logging.debug("Coverage: %s", __tracer.counts)
     logging.debug("Fullpath: %s", fullpath)
-    module_path = pathlib.Path(fullpath)
-    __stmts = [x[1] for x in __tracer.counts if pathlib.Path(x[0]) == module_path]
-    __stmts_filtered = [x for x in __not_empty_lines if x in __stmts]
-    __stmts_filtered_with_def = [__start] + __stmts_filtered
-    __missed_filtered = [x for x in __not_empty_lines if x not in __stmts_filtered_with_def]
-    logging.debug("Covered lines: %s", __stmts_filtered_with_def)
+    __stmts_with_def = [UtInstruction(__start, 0, True)] + list(__tracer.counts.keys())
+    __missed_filtered = [x for x in __all_code_stmts if x not in __stmts_with_def]
+    logging.debug("Covered lines: %s", __stmts_with_def)
     logging.debug("Missed lines: %s", __missed_filtered)
+
+    __str_statements = [x.serialize() for x in __stmts_with_def]
+    __str_missed_statements = [x.serialize() for x in __missed_filtered]
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
     ids = args_ids + list(kwargs_ids.values())
-    # state_before, state_after = compress_memory(ids, state_before, state_after)
     diff_ids = compress_memory(ids, state_before, state_after)
 
     return ExecutionSuccessResponse(
             status="success",
             is_exception=__is_exception,
-            statements=__stmts_filtered_with_def,
-            missed_statements=__missed_filtered,
+            statements=__str_statements,
+            missed_statements=__str_missed_statements,
             state_init=state_init,
             state_before=serialized_state_before,
             state_after=serialized_state_after,

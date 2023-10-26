@@ -43,8 +43,8 @@ sealed class PythonExecutionResult
 
 data class SuccessExecution(
     val isException: Boolean,
-    val statements: List<Int>,
-    val missedStatements: List<Int>,
+    val statements: List<String>,
+    val missedStatements: List<String>,
     val stateInit: String,
     val stateBefore: String,
     val stateAfter: String,

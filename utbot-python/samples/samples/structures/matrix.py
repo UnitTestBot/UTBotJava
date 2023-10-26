@@ -10,15 +10,16 @@ class MatrixException(Exception):
 
 class Matrix:
     def __init__(self, elements: List[List[float]]):
-        self.dim = (
-            len(elements),
-            max(len(elements[i]) for i in range(len(elements)))
-            if len(elements) > 0 else 0
+        assert all(len(elements[i-1]) == len(row) for i, row in enumerate(elements))
+        self.elements = elements
+
+    @property
+    def dim(self) -> tuple[int, int]:
+        return (
+            len(self.elements),
+            max(len(self.elements[i]) for i in range(len(self.elements)))
+            if len(self.elements) > 0 else 0
         )
-        self.elements = [
-            row + [0] * (self.dim[1] - len(row))
-            for row in elements
-        ]
 
     def __repr__(self):
         return str(self.elements)
@@ -49,7 +50,7 @@ class Matrix:
         else:
             raise MatrixException("Wrong Type")
 
-    def __matmul__(self, other):
+    def __matmul__(self, other: Matrix):
         if isinstance(other, Matrix):
             if self.dim[1] == other.dim[0]:
                 result = [[0 for _ in range(self.dim[0])] * other.dim[1]]
@@ -59,6 +60,8 @@ class Matrix:
                         for k in range(self.dim[1])
                     )
                 return Matrix(result)
+            else:
+                MatrixException("Wrong dimensions")
         else:
             raise MatrixException("Wrong Type")
 

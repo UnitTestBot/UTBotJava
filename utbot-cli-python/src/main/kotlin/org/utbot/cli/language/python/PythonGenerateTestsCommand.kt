@@ -10,12 +10,14 @@ import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.python.coverage.CoverageOutputFormat
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestSet
-import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.TestFileInformation
+import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.code.PythonCode
+import org.utbot.python.coverage.PythonCoverageMode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
@@ -114,8 +116,19 @@ class PythonGenerateTestsCommand : CliktCommand(
         .choice("PASS", "FAIL")
         .default("FAIL")
 
-    private val doNotGenerateRegressionSuite by option("--do-not-generate-regression-suite", help = "Do not generate regression test suite")
+    private val doNotGenerateRegressionSuite by option("--do-not-generate-regression-suite", help = "Do not generate regression test suite.")
         .flag(default = false)
+
+    private val coverageMeasureMode by option("--coverage-measure-mode", help = "Use LINES or INSTRUCTIONS for coverage measurement.")
+        .choice("INSTRUCTIONS", "LINES")
+        .default("INSTRUCTIONS")
+
+    private val doNotSendCoverageContinuously by option("--do-not-send-coverage-continuously", help = "Do not send coverage during execution.")
+        .flag(default = false)
+
+    private val coverageOutputFormat by option("--coverage-output-format", help = "Use LINES, INSTRUCTIONS (only from function frame).")
+        .choice("INSTRUCTIONS", "LINES")
+        .default("LINES")
 
     private val testFramework: TestFramework
         get() =
@@ -252,7 +265,10 @@ class PythonGenerateTestsCommand : CliktCommand(
             testSourceRootPath = Paths.get(output.toAbsolutePath()).parent.toAbsolutePath(),
             withMinimization = !doNotMinimize,
             isCanceled = { false },
-            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour)
+            runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
+            coverageMeasureMode = PythonCoverageMode.parse(coverageMeasureMode),
+            sendCoverageContinuously = !doNotSendCoverageContinuously,
+            coverageOutputFormat = CoverageOutputFormat.parse(coverageOutputFormat),
         )
 
         val processor = PythonCliProcessor(

@@ -30,7 +30,7 @@ public class SettingsTemplateHelper {
     public static void proceed(Project project) {
         File settingsSourceDir = new File(project.getBuildDir().getParentFile().getParentFile(), "utbot-framework-api/src/main/kotlin/org/utbot/framework/");
         String sourceFileName = "UtSettings.kt";
-        File settingsResourceDir = new File(project.getBuildDir().getParentFile().getParentFile(), "utbot-intellij/src/main/resources/");
+        File settingsResourceDir = new File(project.getBuildDir().getParentFile().getParentFile(), "utbot-intellij-main/src/main/resources/");
         String settingsFileName = "settings.properties";
 
         Map<String, String> dictionary = new HashMap<>();

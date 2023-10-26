@@ -11,8 +11,7 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileSystemItem
-import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
-import org.jetbrains.kotlin.idea.core.util.toPsiFile
+import com.intellij.psi.PsiManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -84,9 +83,12 @@ abstract class LanguageAssistant {
         }
 
         private fun findLanguageRecursively(project: Project, virtualFiles: Array<VirtualFile>): Language? {
-            val psiFiles = virtualFiles.mapNotNull { it.toPsiFile(project) }
-            val psiDirectories = virtualFiles.mapNotNull { it.toPsiDirectory(project) }
-
+            val psiFiles = virtualFiles.mapNotNull {
+                PsiManager.getInstance(project).findFile(it)
+            }
+            val psiDirectories = virtualFiles.mapNotNull {
+                PsiManager.getInstance(project).findDirectory(it)
+            }
 
             val fileLanguage = psiFiles.firstNotNullOfOrNull { getLanguageFromFile(it) }
             return fileLanguage ?: psiDirectories.firstNotNullOfOrNull { findLanguageRecursively(it) }
@@ -97,9 +99,9 @@ abstract class LanguageAssistant {
 private fun loadWithException(language: Language): Class<*>? {
     try {
         return when (language.id) {
-            "Python" -> Class.forName("org.utbot.intellij.plugin.language.python.PythonLanguageAssistant")
-            "ECMAScript 6" -> Class.forName("org.utbot.intellij.plugin.language.js.JsLanguageAssistant")
-            "go" -> Class.forName("org.utbot.intellij.plugin.language.go.GoLanguageAssistant")
+            "Python" -> Class.forName("org.utbot.intellij.plugin.python.language.PythonLanguageAssistant")
+            "ECMAScript 6" -> Class.forName("org.utbot.intellij.plugin.js.language.JsLanguageAssistant")
+            "go" -> Class.forName("org.utbot.intellij.plugin.go.language.GoLanguageAssistant")
             "JAVA", "kotlin" -> Class.forName("org.utbot.intellij.plugin.language.JvmLanguageAssistant")
             else -> error("Unknown language id: ${language.id}")
         }

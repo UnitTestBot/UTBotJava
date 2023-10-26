@@ -22,14 +22,14 @@ enum class PythonCoverageMode {
 }
 
 data class PyInstruction(
-    override val lineNumber: Int,
+    val pyLineNumber: Int,
     val offset: Long,
     val fromMainFrame: Boolean,
 ) : Instruction(
     "",
     "",
-    lineNumber,
-    (lineNumber.toLong() to offset).toCoverageId() * 2 + fromMainFrame.toLong()) {
+    pyLineNumber,
+    (pyLineNumber.toLong() to offset).toCoverageId() * 2 + fromMainFrame.toLong()) {
     override fun toString(): String = listOf(lineNumber, offset, fromMainFrame).joinToString(":")
 
     constructor(lineNumber: Int) : this(lineNumber, lineNumber.toLong(), true)

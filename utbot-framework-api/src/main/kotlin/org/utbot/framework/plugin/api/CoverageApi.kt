@@ -13,8 +13,8 @@ package org.utbot.framework.plugin.api
 open class Instruction(
     val internalName: String,
     val methodSignature: String,
-    open val lineNumber: Int,
-    open val id: Long
+    val lineNumber: Int,
+    val id: Long
 ) {
     val className: String get() = internalName.replace('/', '.')
 }

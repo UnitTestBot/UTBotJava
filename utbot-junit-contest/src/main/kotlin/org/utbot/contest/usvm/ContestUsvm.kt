@@ -224,7 +224,6 @@ fun runUsvmGeneration(
         }
     }
 
-// TODO usvm-sbft: there was no minimization in UtBot's `runGeneration`, do we need it here?
 // TODO usvm-sbft: codegen, requires proper UtUsvmExecution creation (not just coverage)
 
 //    val testSets = testsByMethod.map { (method, executions) ->

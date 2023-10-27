@@ -91,4 +91,8 @@ if (projectType == ultimateEdition) {
 }
 
 include("utbot-light")
+
 include("utbot-intellij-main")
+
+// TODO usvm-sbft-merge: add if here if we want merge contest it into main
+includeBuild("../usvm")

@@ -1,8 +1,14 @@
 package org.utbot.contest.usvm
 
 import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.jcdbSignature
-import org.usvm.api.JcCoverage
+import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionInitFailedResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
@@ -39,7 +45,7 @@ class JcToUtExecutionConverter(
             stateBefore = MissingState,
             stateAfter = MissingState,
             result = UtExecutionSuccess(UtVoidModel),
-            coverage = convertCoverage(jcExecution.coverage, jcExecution.method.enclosingType.jcClass),
+            coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass),
             instrumentation = emptyList()
         )
 //        val coverage = Coverage(convertCoverage())
@@ -70,9 +76,16 @@ class JcToUtExecutionConverter(
 //        }
     }
 
-    private fun convertCoverage(jcCoverage: JcCoverage, jcClass: JcClassOrInterface) = Coverage(
-        coveredInstructions = jcCoverage.targetClassToCoverage.values.flatMap { jcClassCoverage ->
-            jcClassCoverage.visitedStmts.map {
+    private fun getTrace(executionResult: UTestExecutionResult): List<JcInst>? = when (executionResult) {
+        is UTestExecutionExceptionResult -> executionResult.trace
+        is UTestExecutionInitFailedResult -> executionResult.trace
+        is UTestExecutionSuccessResult -> executionResult.trace
+        is UTestExecutionFailedResult -> emptyList()
+        is UTestExecutionTimedOutResult -> emptyList()
+    }
+
+    private fun convertCoverage(jcCoverage: List<JcInst>?, jcClass: JcClassOrInterface) = Coverage(
+        coveredInstructions = jcCoverage.orEmpty().map {
                 val methodSignature = it.enclosingMethod.jcdbSignature
                 Instruction(
                     internalName = it.enclosingClass.name.replace('.', '/'),
@@ -80,7 +93,6 @@ class JcToUtExecutionConverter(
                     lineNumber = it.lineNumber,
                     id = instructionIdProvider.provideInstructionId(methodSignature, it.location.index)
                 )
-            }
         },
         // TODO usvm-sbft: maybe add cache here
         // TODO usvm-sbft: make sure static initializers are included into instructions count

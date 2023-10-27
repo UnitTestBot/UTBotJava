@@ -99,6 +99,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtExecutionWithInstrumentation
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
@@ -201,8 +202,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
 
     protected fun setupInstrumentation() {
         val instrumentation = when (val execution = currentExecution) {
-            is UtSymbolicExecution -> execution.instrumentation
-            is UtFuzzedExecution -> execution.instrumentation
+            is UtExecutionWithInstrumentation -> execution.instrumentation
             else -> return
         }
         if (instrumentation.isEmpty()) return

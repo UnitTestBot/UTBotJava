@@ -139,6 +139,15 @@ dependencies {
     implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
     implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     implementation 'junit:junit:4.13.2'
+
+    implementation('org.usvm:usvm-core')
+    implementation('org.usvm:usvm-jvm')
+    implementation('org.usvm:usvm-jvm-instrumentation')
+
+    implementation group: "org.jacodb", name: "jacodb-core", version: jacoDbVersion
+    implementation group: "org.jacodb", name: "jacodb-analysis", version: jacoDbVersion
+    implementation group: "org.jacodb", name: "jacodb-approximations", version: jacoDbVersion
+
     testImplementation fileTree(dir: 'src/main/resources/projects/', include: '*/*.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-1.2.0.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-standalone-runtime-1.2.0.jar')

@@ -148,6 +148,10 @@ abstract class UtExecution(
     val executableToCall get() = stateBefore.executableToCall
 }
 
+interface UtExecutionWithInstrumentation {
+    val instrumentation: List<UtInstrumentation>
+}
+
 /**
  * Symbolic execution.
  *
@@ -163,7 +167,7 @@ class UtSymbolicExecution(
     stateBefore: EnvironmentModels,
     stateAfter: EnvironmentModels,
     result: UtExecutionResult,
-    val instrumentation: List<UtInstrumentation>,
+    override val instrumentation: List<UtInstrumentation>,
     val path: MutableList<Step>,
     val fullPath: List<Step>,
     coverage: Coverage? = null,
@@ -171,7 +175,7 @@ class UtSymbolicExecution(
     testMethodName: String? = null,
     displayName: String? = null,
     /** Convenient view of the full symbolic path */ val symbolicSteps: List<SymbolicStep> = listOf(),
-) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
+) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName), UtExecutionWithInstrumentation {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
      * It means that it is not possible for a field to be present at 'before' and to be absent at 'after'.

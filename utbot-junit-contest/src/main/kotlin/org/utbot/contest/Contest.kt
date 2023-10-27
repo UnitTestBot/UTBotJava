@@ -417,7 +417,7 @@ fun runGeneration(
     statsForClass
 }
 
-private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
+fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
     //1. all methods from cut
     val methods = javaClazz.declaredMethods
         .filterNot { it.isAbstract }
@@ -491,11 +491,13 @@ internal fun File.toUrl(): URL = toURI().toURL()
 
 internal fun testMethodName(name: String, num: Int): String = "test${name.capitalize()}$num"
 
+// TODO usvm-sbft: does SBFT allow to generate tests for private methods and constructors
+//  If no, add more filtering here
 internal val Method.isVisibleFromGeneratedTest: Boolean
     get() = (this.modifiers and Modifier.ABSTRACT) == 0
             && (this.modifiers and Modifier.NATIVE) == 0
 
-private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
+fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
     coverage.update(newCoverage, isNewClass)
     // other coverage type updates by empty coverage to respect new class
     val emptyCoverage = newCoverage.copy(

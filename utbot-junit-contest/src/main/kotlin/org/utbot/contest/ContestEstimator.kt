@@ -26,6 +26,7 @@ import org.utbot.contest.Paths.evosuiteReportFile
 import org.utbot.contest.Paths.jarsDir
 import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
+import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.framework.PathSelectorType
@@ -125,10 +126,20 @@ object Paths {
 }
 
 @Suppress("unused")
-enum class Tool {
-    UtBot {
-        @OptIn(ObsoleteCoroutinesApi::class)
-        @Suppress("EXPERIMENTAL_API_USAGE")
+interface Tool {
+    abstract class UtBotBasedTool : Tool {
+        abstract fun runGeneration(
+            project: ProjectToEstimate,
+            cut: ClassUnderTest,
+            timeLimit: Long,
+            fuzzingRatio: Double,
+            methodNameFilter: String?,
+            statsForProject: StatsForProject,
+            compiledTestDir: File,
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
+        ) : StatsForClass
+
         override fun run(
             project: ProjectToEstimate,
             cut: ClassUnderTest,
@@ -142,19 +153,21 @@ enum class Tool {
         ) = withUtContext(ContextManager.createNewContext(project.classloader)) {
             val classStats: StatsForClass = try {
                 runGeneration(
-                    project.name,
+                    project,
                     cut,
                     timeLimit,
                     fuzzingRatio,
-                    project.sootClasspathString,
-                    runFromEstimator = true,
-                    expectedExceptions,
-                    methodNameFilter
+                    methodNameFilter,
+                    statsForProject,
+                    compiledTestDir,
+                    classFqn,
+                    expectedExceptions
                 )
             } catch (e: CancellationException) {
                 logger.info { "[$classFqn] finished with CancellationException" }
                 return
             } catch (e: Throwable) {
+                logger.error(e) { "ISOLATION: $e" }
                 logger.info { "ISOLATION: $e" }
                 logger.info { "continue without compilation" }
                 return
@@ -198,8 +211,61 @@ enum class Tool {
         override fun moveProducedFilesIfNeeded() {
             // don't do anything
         }
-    },
-    EvoSuite {
+    }
+
+    object UtBot : UtBotBasedTool() {
+        @OptIn(ObsoleteCoroutinesApi::class)
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        override fun runGeneration(
+            project: ProjectToEstimate,
+            cut: ClassUnderTest,
+            timeLimit: Long,
+            fuzzingRatio: Double,
+            methodNameFilter: String?,
+            statsForProject: StatsForProject,
+            compiledTestDir: File,
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
+        ): StatsForClass {
+            return runGeneration(
+                project.name,
+                cut,
+                timeLimit,
+                fuzzingRatio,
+                project.sootClasspathString,
+                runFromEstimator = true,
+                expectedExceptions,
+                methodNameFilter
+            )
+        }
+    }
+
+    object USVM : UtBotBasedTool() {
+        @OptIn(ObsoleteCoroutinesApi::class)
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        override fun runGeneration(
+            project: ProjectToEstimate,
+            cut: ClassUnderTest,
+            timeLimit: Long,
+            fuzzingRatio: Double,
+            methodNameFilter: String?,
+            statsForProject: StatsForProject,
+            compiledTestDir: File,
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
+        ): StatsForClass = runUsvmGeneration(
+            project.name,
+            cut,
+            timeLimit,
+            fuzzingRatio,
+            project.sootClasspathString,
+            runFromEstimator = true,
+            expectedExceptions,
+            methodNameFilter
+        )
+    }
+
+    object EvoSuite : Tool {
         override fun run(
             project: ProjectToEstimate,
             cut: ClassUnderTest,
@@ -272,7 +338,7 @@ enum class Tool {
         }
     };
 
-    abstract fun run(
+    fun run(
         project: ProjectToEstimate,
         cut: ClassUnderTest,
         timeLimit: Long,
@@ -284,7 +350,7 @@ enum class Tool {
         expectedExceptions: ExpectedExceptionsForClass
     )
 
-    abstract fun moveProducedFilesIfNeeded()
+    fun moveProducedFilesIfNeeded()
 }
 
 fun main(args: Array<String>) {
@@ -295,7 +361,7 @@ fun main(args: Array<String>) {
     val tools: List<Tool>
 
     // very special case when you run your project directly from IntellijIDEA omitting command line arguments
-    if (args.isEmpty() && System.getProperty("os.name")?.run { contains("win", ignoreCase = true) } == true) {
+    if (args.isEmpty()) {
         processedClassesThreshold = 9999 //change to change number of classes to run
         val timeLimit = 20 // increase if you want to debug something
         val fuzzingRatio = 0.1 // sets fuzzing ratio to total test generation
@@ -319,7 +385,8 @@ fun main(args: Array<String>) {
         // config for SBST 2022
         methodFilter = null
         projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
-        tools = listOf(Tool.UtBot)
+        // TODO usvm-sbft-merge: add if here if we want merge contest it into main
+        tools = listOf(Tool.USVM)
 
         estimatorArgs = arrayOf(
             classesLists,
@@ -339,7 +406,8 @@ fun main(args: Array<String>) {
         processedClassesThreshold = 9999
         methodFilter = null
         projectFilter = null
-        tools = listOf(Tool.UtBot)
+        // TODO usvm-sbft-merge: add if here if we want merge contest it into main
+        tools = listOf(Tool.USVM)
     }
 
     JdkInfoService.jdkInfoProvider = ContestEstimatorJdkInfoProvider(javaHome)

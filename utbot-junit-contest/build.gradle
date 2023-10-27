@@ -148,6 +148,10 @@ dependencies {
     implementation group: "org.jacodb", name: "jacodb-analysis", version: jacoDbVersion
     implementation group: "org.jacodb", name: "jacodb-approximations", version: jacoDbVersion
 
+    // TODO uvms-sbft-hack: UtBot has `fastutil:8.3.0` on the classpath that overrides classes from
+    //  `fastutil-core:8.5.11` that USVM adds. Solution: bump `fastutil` version to `8.5.11`
+    runtimeOnly("it.unimi.dsi:fastutil:8.5.11")
+
     testImplementation fileTree(dir: 'src/main/resources/projects/', include: '*/*.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-1.2.0.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-standalone-runtime-1.2.0.jar')

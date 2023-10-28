@@ -14,6 +14,7 @@ import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.utbot.contest.usvm.executor.JcExecution
 import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtExecution
@@ -29,51 +30,49 @@ import java.util.*
 class JcToUtExecutionConverter(
     private val instructionIdProvider: InstructionIdProvider
 ) {
-    private val valueConstructor = Descriptor2ValueConverter(utContext.classLoader)
 
-    private val utModelConstructor = UtModelConstructor(
-        objectToModelCache = IdentityHashMap(),
-        idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
-        utModelWithCompositeOriginConstructorFinder = { classId ->
-            javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
-        }
-    )
+    private val modelConverter = JcToUtModelConverter()
 
     fun convert(jcExecution: JcExecution): UtExecution? {
-        // TODO usvm-sbft: convert everything other than coverage
-        return UtUsvmExecution(
-            stateBefore = MissingState,
-            stateAfter = MissingState,
-            result = UtExecutionSuccess(UtVoidModel),
-            coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass),
-            instrumentation = emptyList()
-        )
-//        val coverage = Coverage(convertCoverage())
-//        return when (jcExecution.uTestExecutionResult) {
-//            is UTestExecutionSuccessResult -> {
-//
-//                TODO("usvm-sbft")
-//            }
-//            is UTestExecutionExceptionResult -> TODO("usvm-sbft")
-//            is UTestExecutionInitFailedResult -> {
-//                val exception =
-//                    valueConstructor.buildObjectFromDescriptor(jcExecution.uTestExecutionResult.cause) as Throwable
-//                logger.error(exception) { "Concrete executor failed" }
-//                null
-//            }
-//            is UTestExecutionFailedResult -> {
-//                val exception =
-//                    valueConstructor.buildObjectFromDescriptor(jcExecution.uTestExecutionResult.cause) as Throwable
-//                if (!jcExecution.uTestExecutionResult.cause.raisedByUserCode)
-//                    logger.error(exception) { "Concrete executor failed" }
-//                // TODO usvm-sbft
-//                null
-//            }
-//            is UTestExecutionTimedOutResult -> {
-//                // TODO usvm-sbft
-//                null
-//            }
-//        }
+        val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
+
+        val executionResult = jcExecution.uTestExecutionResult
+        return when (executionResult) {
+            is UTestExecutionSuccessResult -> {
+                val result = UtExecutionSuccess(modelConverter.convert(executionResult.result))
+
+                UtUsvmExecution(
+                    stateBefore = MissingState,
+                    stateAfter = MissingState,
+                    result = result,
+                    coverage = coverage,
+                    instrumentation = emptyList()
+                )
+            }
+
+            is UTestExecutionExceptionResult -> TODO("usvm-sbft")
+            is UTestExecutionInitFailedResult -> {
+                val exception =
+                    valueConstructor.buildObjectFromDescriptor(jcExecution.uTestExecutionResult.cause) as Throwable
+                logger.error(exception) { "Concrete executor failed" }
+                null
+            }
+
+            is UTestExecutionFailedResult -> {
+                val exception =
+                    valueConstructor.buildObjectFromDescriptor(jcExecution.uTestExecutionResult.cause) as Throwable
+                if (!jcExecution.uTestExecutionResult.cause.raisedByUserCode)
+                    logger.error(exception) { "Concrete executor failed" }
+                // TODO usvm-sbft
+                null
+            }
+
+            is UTestExecutionTimedOutResult -> {
+                // TODO usvm-sbft
+                null
+            }
+        }
+
     }
 
     private fun getTrace(executionResult: UTestExecutionResult): List<JcInst>? = when (executionResult) {
@@ -86,13 +85,13 @@ class JcToUtExecutionConverter(
 
     private fun convertCoverage(jcCoverage: List<JcInst>?, jcClass: JcClassOrInterface) = Coverage(
         coveredInstructions = jcCoverage.orEmpty().map {
-                val methodSignature = it.enclosingMethod.jcdbSignature
-                Instruction(
-                    internalName = it.enclosingClass.name.replace('.', '/'),
-                    methodSignature = methodSignature,
-                    lineNumber = it.lineNumber,
-                    id = instructionIdProvider.provideInstructionId(methodSignature, it.location.index)
-                )
+            val methodSignature = it.enclosingMethod.jcdbSignature
+            Instruction(
+                internalName = it.enclosingClass.name.replace('.', '/'),
+                methodSignature = methodSignature,
+                lineNumber = it.lineNumber,
+                id = instructionIdProvider.provideInstructionId(methodSignature, it.location.index)
+            )
         },
         // TODO usvm-sbft: maybe add cache here
         // TODO usvm-sbft: make sure static initializers are included into instructions count

@@ -5,7 +5,6 @@ import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -59,22 +58,13 @@ abstract class PythonTestGenerationProcessor {
         )
     }
 
-    fun testGenerate(mypyStorage: MypyInfoBuild): List<PythonTestSet> {
+    fun testGenerate(mypyStorage: MypyInfoBuild, mypyReport: List<MypyReportLine>): List<PythonTestSet> {
         val startTime = System.currentTimeMillis()
 
         val testCaseGenerator = PythonTestCaseGenerator(
-            withMinimization = configuration.withMinimization,
-            directoriesForSysPath = configuration.sysPathDirectories,
-            curModule = configuration.testFileInformation.moduleName,
-            pythonPath = configuration.pythonPath,
-            fileOfMethod = configuration.testFileInformation.testedFilePath,
-            isCancelled = configuration.isCanceled,
-            timeoutForRun = configuration.timeoutForRun,
-            sourceFileContent = configuration.testFileInformation.testedFileContent,
+            configuration = configuration,
             mypyStorage = mypyStorage,
-            mypyReportLine = emptyList(),
-            coverageMode = configuration.coverageMeasureMode,
-            sendCoverageContinuously = configuration.sendCoverageContinuously,
+            mypyReportLine = mypyReport,
         )
 
         val until = startTime + configuration.timeout
@@ -93,11 +83,16 @@ abstract class PythonTestGenerationProcessor {
                 logger.warn { "Skipping method ${e.methodName}: did not find its function definition" }
                 null
             }
-        }
-        val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
+        }.flatten()
+        val notEmptyTests = tests.filter { it.executions.isNotEmpty() }
 
-        if (emptyTestSets.isNotEmpty()) {
-            notGeneratedTestsAction(emptyTestSets.map { it.method.name })
+        val emptyTests = tests
+            .groupBy { it.method }
+            .filter { it.value.all { testSet -> testSet.executions.isEmpty() } }
+            .map { it.key.name }
+
+        if (emptyTests.isNotEmpty()) {
+            notGeneratedTestsAction(emptyTests)
         }
 
         return notEmptyTests
@@ -142,12 +137,10 @@ abstract class PythonTestGenerationProcessor {
             )
             val testCode = codegen.pythonGenerateAsStringWithTestReport(
                 testSets.map { testSet ->
-                    val intRange = testSet.executions.indices
-                    val clusterInfo = listOf(Pair(UtClusterInfo("FUZZER"), intRange))
                     CgMethodTestSet(
                         executableId = methodIds[testSet.method] as ExecutableId,
                         executions = testSet.executions,
-                        clustersInfo = clusterInfo,
+                        clustersInfo = testSet.clustersInfo,
                     )
                 },
                 allImports

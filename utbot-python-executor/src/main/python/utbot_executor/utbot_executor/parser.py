@@ -1,6 +1,12 @@
 import dataclasses
+import enum
 import json
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Union, Tuple, Literal
+
+
+class MemoryMode(enum.StrEnum):
+    PICKLE = "PICKLE"
+    REDUCE = "REDUCE"
 
 
 @dataclasses.dataclass
@@ -12,6 +18,7 @@ class ExecutionRequest:
     arguments_ids: List[str]
     kwarguments_ids: Dict[str, str]
     serialized_memory: str
+    memory_mode: MemoryMode
     filepath: str
     coverage_id: str
 
@@ -41,7 +48,7 @@ class ExecutionFailResponse(ExecutionResponse):
     exception: str
 
 
-def as_execution_result(dct: Dict) -> Union[ExecutionRequest, Dict]:
+def as_execution_request(dct: Dict) -> Union[ExecutionRequest, Dict]:
     if set(dct.keys()) == {
             'functionName',
             'functionModule',
@@ -50,6 +57,7 @@ def as_execution_result(dct: Dict) -> Union[ExecutionRequest, Dict]:
             'argumentsIds',
             'kwargumentsIds',
             'serializedMemory',
+            'memoryMode',
             'filepath',
             'coverageId',
             }:
@@ -61,6 +69,7 @@ def as_execution_result(dct: Dict) -> Union[ExecutionRequest, Dict]:
                 dct['argumentsIds'],
                 dct['kwargumentsIds'],
                 dct['serializedMemory'],
+                MemoryMode(dct['memoryMode']),
                 dct['filepath'],
                 dct['coverageId'],
                 )
@@ -68,7 +77,7 @@ def as_execution_result(dct: Dict) -> Union[ExecutionRequest, Dict]:
 
 
 def parse_request(request: str) -> ExecutionRequest:
-    return json.loads(request, object_hook=as_execution_result)
+    return json.loads(request, object_hook=as_execution_request)
 
 
 class ResponseEncoder(json.JSONEncoder):

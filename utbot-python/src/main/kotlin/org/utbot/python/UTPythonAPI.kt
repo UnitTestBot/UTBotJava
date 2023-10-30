@@ -1,6 +1,7 @@
 package org.utbot.python
 
 import org.parsers.python.ast.Block
+import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.python.framework.api.python.PythonClassId
@@ -8,7 +9,6 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.utils.isNamed
 
 data class PythonArgument(
@@ -69,9 +69,8 @@ data class PythonTestSet(
     val method: PythonMethod,
     val executions: List<UtExecution>,
     val errors: List<UtError>,
-    val mypyReport: List<MypyReportLine>,
-    val classId: PythonClassId? = null,
     val executionsNumber: Int = 0,
+    val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
 )
 
 data class FunctionArguments(

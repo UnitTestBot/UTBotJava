@@ -23,6 +23,11 @@ interface PythonCodeExecutor {
         coverageId: String,
     ): PythonEvaluationResult
 
+    fun runWithCoverage(
+        pickledArguments: String,
+        coverageId: String,
+    ): PythonEvaluationResult
+
     fun stop()
 }
 

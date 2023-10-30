@@ -1,6 +1,7 @@
 import copy
 import importlib
 import json
+import pickle
 import sys
 from typing import Dict, Iterable, Union
 from utbot_executor.deep_serialization.memory_objects import (
@@ -51,7 +52,7 @@ class MemoryDumpEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def as_repr_object(dct: Dict) -> Union[MemoryObject, Dict]:
+def as_reduce_object(dct: Dict) -> Union[MemoryObject, Dict]:
     if "strategy" in dct:
         obj: MemoryObject
         if dct["strategy"] == "repr":
@@ -97,7 +98,7 @@ def as_repr_object(dct: Dict) -> Union[MemoryObject, Dict]:
 
 
 def deserialize_memory_objects(memory_dump: str) -> MemoryDump:
-    parsed_data = json.loads(memory_dump, object_hook=as_repr_object)
+    parsed_data = json.loads(memory_dump, object_hook=as_reduce_object)
     return MemoryDump(parsed_data["objects"])
 
 

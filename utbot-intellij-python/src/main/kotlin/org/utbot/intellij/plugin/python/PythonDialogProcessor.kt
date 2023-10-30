@@ -287,7 +287,7 @@ object PythonDialogProcessor {
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 0.5)
 
-                        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+                        val (mypyStorage, mypyReport) = processor.sourceCodeAnalyze()
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 1.0)
 
@@ -300,7 +300,7 @@ object PythonDialogProcessor {
                             model.timeout,
                         )
                         try {
-                            val testSets = processor.testGenerate(mypyStorage)
+                            val testSets = processor.testGenerate(mypyStorage, mypyReport)
                             timerHandler.cancel(true)
                             if (testSets.isEmpty()) return@forEachIndexed
 

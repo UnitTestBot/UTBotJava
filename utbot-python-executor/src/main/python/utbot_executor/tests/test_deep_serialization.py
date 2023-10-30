@@ -3,6 +3,7 @@ import dataclasses
 import datetime
 import importlib.metadata
 import json
+import pickle
 import re
 import sys
 import typing
@@ -47,6 +48,7 @@ def template_test_assert(obj: typing.Any, imports: typing.List[str]):
         ({},),
         ((1, 2, 3),),
         (tuple(),),
+        (pickle.dumps(((2, [1, 2]), {})),),
     ],
 )
 def test_primitives(obj: typing.Any):

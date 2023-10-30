@@ -1,6 +1,5 @@
 package org.utbot.python.evaluation
 
-import mu.KotlinLogging
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
 import org.utbot.python.evaluation.serialization.ExecutionRequest
@@ -12,6 +11,7 @@ import org.utbot.python.evaluation.serialization.SuccessExecution
 import org.utbot.python.evaluation.serialization.serializeObjects
 import org.utbot.python.coverage.CoverageIdGenerator
 import org.utbot.python.coverage.toPyInstruction
+import org.utbot.python.evaluation.serialization.MemoryMode
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeName
@@ -87,6 +87,7 @@ class PythonCodeSocketExecutor(
             positionalArguments.map { it.first },
             namedArguments.associate { it.second!! to it.first },  // here can be only-kwargs arguments
             memory,
+            MemoryMode.REDUCE,
             method.moduleFilename,
             coverageId,
         )
@@ -115,6 +116,52 @@ class PythonCodeSocketExecutor(
         }
     }
 
+    override fun runWithCoverage(pickledArguments: String, coverageId: String): PythonEvaluationResult {
+        val containingClass = method.containingPythonClass
+        val functionTextName =
+            if (containingClass == null)
+                method.name
+            else {
+                val fullname = "${containingClass.pythonTypeName()}.${method.name}"
+                fullname.drop(moduleToImport.length).removePrefix(".")
+            }
+
+        val request = ExecutionRequest(
+            functionTextName,
+            moduleToImport,
+            emptyList(),
+            syspathDirectories.toList(),
+            emptyList(),
+            emptyMap(),
+            pickledArguments,
+            MemoryMode.PICKLE,
+            method.moduleFilename,
+            coverageId,
+        )
+        val message = ExecutionRequestSerializer.serializeRequest(request) ?: error("Cannot serialize request to python executor")
+        try {
+            pythonWorker.sendData(message)
+        } catch (_: SocketException) {
+            return parseExecutionResult(FailExecution("Send data error"))
+        }
+
+        val (status, response) = UtExecutorThread.run(pythonWorker, executionTimeout)
+        return when (status) {
+            UtExecutorThread.Status.TIMEOUT -> {
+                PythonEvaluationTimeout()
+            }
+
+            UtExecutorThread.Status.OK -> {
+                val executionResult = response?.let {
+                    ExecutionResultDeserializer.parseExecutionResult(it)
+                        ?: error("Cannot parse execution result: $it")
+                } ?: FailExecution("Execution result error")
+
+                parseExecutionResult(executionResult)
+            }
+        }
+    }
+
     private fun parseExecutionResult(executionResult: PythonExecutionResult): PythonEvaluationResult {
         val parsingException = PythonEvaluationError(
             -1,
@@ -123,9 +170,9 @@ class PythonCodeSocketExecutor(
         )
         return when (executionResult) {
             is SuccessExecution -> {
-                val stateInit = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateInit) ?: return parsingException
                 val stateBefore = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateBefore) ?: return parsingException
                 val stateAfter = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateAfter) ?: return parsingException
+                val stateInit = ExecutionResultDeserializer.parseMemoryDump(executionResult.stateInit) ?: stateBefore
                 val diffIds = executionResult.diffIds.map {it.toLong()}
                 val statements = executionResult.statements.mapNotNull { it.toPyInstruction() }
                 val missedStatements = executionResult.missedStatements.mapNotNull { it.toPyInstruction() }
@@ -141,11 +188,13 @@ class PythonCodeSocketExecutor(
                     executionResult.resultId,
                 )
             }
-            is FailExecution -> PythonEvaluationError(
-                -2,
-                "Fail Execution",
-                executionResult.exception.split(System.lineSeparator()),
-            )
+            is FailExecution -> {
+                PythonEvaluationError(
+                    -2,
+                    "Fail Execution",
+                    executionResult.exception.split(System.lineSeparator()),
+                )
+            }
         }
     }
 

@@ -1,13 +1,12 @@
 package org.utbot.python.fuzzing
 
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.UtError
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.coverage.PyInstruction
+import org.utbot.python.engine.ExecutionFeedback
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.*
@@ -32,25 +31,16 @@ data class PythonFuzzedConcreteValue(
 
 class PythonMethodDescription(
     val name: String,
-    parameters: List<UtType>,
     val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
     val pythonTypeStorage: PythonTypeHintsStorage,
     val tracer: Trie<PyInstruction, *>,
     val random: Random,
     val limitManager: TestGenerationLimitManager,
     val type: FunctionType,
-) : Description<UtType>(parameters)
-
-sealed interface FuzzingExecutionFeedback
-class ValidExecution(val utFuzzedExecution: PythonUtExecution): FuzzingExecutionFeedback
-class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
-class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
-class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
-class CachedExecutionFeedback(val cachedFeedback: FuzzingExecutionFeedback) : FuzzingExecutionFeedback
-object FakeNodeFeedback : FuzzingExecutionFeedback
+) : Description<UtType>(type.arguments)
 
 data class PythonExecutionResult(
-    val fuzzingExecutionFeedback: FuzzingExecutionFeedback,
+    val executionFeedback: ExecutionFeedback,
     val fuzzingPlatformFeedback: PythonFeedback
 )
 
@@ -150,16 +140,14 @@ class PythonFuzzing(
     private suspend fun forkType(description: PythonMethodDescription, stats: Statistic<UtType, PythonFuzzedValue>) {
         val type: UtType? = typeInferenceAlgorithm.expandState()
         if (type != null) {
-            val newTypes = (type as FunctionType).arguments
             val d = PythonMethodDescription(
                 description.name,
-                newTypes,
                 description.concreteValues,
                 description.pythonTypeStorage,
                 description.tracer,
                 description.random,
                 TestGenerationLimitManager(ExecutionWithTimoutMode, description.limitManager.until),
-                type
+                type as FunctionType
             )
             if (!d.limitManager.isCancelled()) {
                 logger.debug { "Fork new type" }

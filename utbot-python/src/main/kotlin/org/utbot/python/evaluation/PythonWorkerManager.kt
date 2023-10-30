@@ -12,6 +12,7 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 import org.apache.logging.log4j.LogManager
 import org.utbot.python.coverage.PythonCoverageMode
+import java.net.SocketException
 
 private val logger = KotlinLogging.logger {}
 
@@ -65,6 +66,9 @@ class PythonWorkerManager(
             logger.debug { "utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}, stdout: ${result.stdout}." }
             process.destroy()
             throw TimeoutException("Worker not connected")
+        } catch (e: SocketException) {
+            logger.debug { e.message }
+            throw TimeoutException("Worker not connected")
         }
         logger.debug { "Worker connected successfully" }
 
@@ -95,6 +99,23 @@ class PythonWorkerManager(
     ): PythonEvaluationResult {
         val evaluationResult = try {
             codeExecutor.runWithCoverage(fuzzedValues, additionalModulesToImport, coverageId)
+        } catch (_: SocketTimeoutException) {
+            logger.debug { "Socket timeout" }
+            reconnect()
+            PythonEvaluationTimeout()
+        }
+        if (evaluationResult is PythonEvaluationError || evaluationResult is PythonEvaluationTimeout) {
+            reconnect()
+        }
+        return evaluationResult
+    }
+
+    fun runWithCoverage(
+        pickledArguments: String,
+        coverageId: String
+    ): PythonEvaluationResult {
+        val evaluationResult = try {
+            codeExecutor.runWithCoverage(pickledArguments, coverageId)
         } catch (_: SocketTimeoutException) {
             logger.debug { "Socket timeout" }
             reconnect()

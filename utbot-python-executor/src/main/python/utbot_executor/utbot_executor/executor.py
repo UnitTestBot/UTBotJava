@@ -4,6 +4,7 @@ import importlib
 import inspect
 import logging
 import pathlib
+import pickle
 import sys
 import traceback
 import types
@@ -15,7 +16,8 @@ from utbot_executor.deep_serialization.json_converter import DumpLoader, deseria
 from utbot_executor.deep_serialization.memory_objects import MemoryDump, PythonSerializer
 from utbot_executor.deep_serialization.utils import PythonId, getattr_by_path
 from utbot_executor.memory_compressor import compress_memory
-from utbot_executor.parser import ExecutionRequest, ExecutionResponse, ExecutionFailResponse, ExecutionSuccessResponse
+from utbot_executor.parser import ExecutionRequest, ExecutionResponse, ExecutionFailResponse, ExecutionSuccessResponse, \
+    MemoryMode
 from utbot_executor.ut_tracer import UtTracer, UtCoverageSender
 from utbot_executor.utils import (
     suppress_stdout as __suppress_stdout,
@@ -71,6 +73,13 @@ class PythonExecutor:
                 logging.debug("Submodule #%d: OK", i)
 
     def run_function(self, request: ExecutionRequest) -> ExecutionResponse:
+        match request.memory_mode:
+            case MemoryMode.PICKLE:
+                return self.run_pickle_function(request)
+            case MemoryMode.REDUCE:
+                return self.run_reduce_function(request)
+
+    def run_reduce_function(self, request: ExecutionRequest) -> ExecutionResponse:
         logging.debug("Prepare to run function `%s`", request.function_name)
         try:
             memory_dump = deserialize_memory_objects(request.serialized_memory)
@@ -130,6 +139,64 @@ class PythonExecutor:
                 kwargs,
                 request.filepath,
                 serialized_state_init,
+                tracer=UtTracer(
+                    pathlib.Path(request.filepath),
+                    [sys.prefix, sys.exec_prefix],
+                    _coverage_sender,
+                    self.trace_mode,
+                ),
+            )
+        except Exception as _:
+            logging.debug("Error \n%s", traceback.format_exc())
+            return ExecutionFailResponse("fail", traceback.format_exc())
+        logging.debug("Value have been calculated: %s", value)
+        return value
+
+    def run_pickle_function(self, request: ExecutionRequest) -> ExecutionResponse:
+        logging.debug("Prepare to run function `%s`", request.function_name)
+        try:
+            logging.debug("Imports: %s", request.imports)
+            logging.debug("Syspaths: %s", request.syspaths)
+            self.add_syspaths(request.syspaths)
+            self.add_imports(request.imports)
+        except Exception as _:
+            logging.debug("Error \n%s", traceback.format_exc())
+            return ExecutionFailResponse("fail", traceback.format_exc())
+        logging.debug("Imports have been added")
+
+        try:
+            function = getattr_by_path(
+                importlib.import_module(request.function_module),
+                request.function_name
+            )
+            if not isinstance(function, types.FunctionType):
+                return ExecutionFailResponse(
+                    "fail",
+                    f"Invalid function path {request.function_module}.{request.function_name}"
+                )
+            logging.debug("Function initialized")
+            args, kwargs = pickle.loads(eval(request.serialized_memory))
+            logging.debug("Arguments: %s", args)
+            logging.debug("Kwarguments: %s", kwargs)
+        except Exception as _:
+            logging.debug("Error \n%s", traceback.format_exc())
+            return ExecutionFailResponse("fail", traceback.format_exc())
+        logging.debug("Arguments have been created")
+
+        try:
+            _coverage_sender = UtCoverageSender(
+                request.coverage_id,
+                self.coverage_hostname,
+                self.coverage_port,
+                send_coverage=self.send_coverage,
+            )
+
+            value = _run_calculate_function_value(
+                function,
+                list(args),
+                kwargs,
+                request.filepath,
+                "",
                 tracer=UtTracer(
                     pathlib.Path(request.filepath),
                     [sys.prefix, sys.exec_prefix],

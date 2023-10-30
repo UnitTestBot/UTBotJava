@@ -35,7 +35,11 @@ object ExecutionResultDeserializer {
     }
 
     fun parseMemoryDump(content: String): MemoryDump? {
-        return jsonAdapterMemoryDump.fromJson(content)
+        return if (content.isNotEmpty()) {
+            jsonAdapterMemoryDump.fromJson(content)
+        } else {
+            null
+        }
     }
 }
 

@@ -280,10 +280,10 @@ class PythonGenerateTestsCommand : CliktCommand(
         )
 
         logger.info("Loading information about Python types...")
-        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+        val (mypyStorage, mypyReport) = processor.sourceCodeAnalyze()
 
         logger.info("Generating tests...")
-        var testSets = processor.testGenerate(mypyStorage)
+        var testSets = processor.testGenerate(mypyStorage, mypyReport)
         if (testSets.isEmpty()) return
         if (doNotGenerateRegressionSuite) {
             testSets = testSets.map { testSet ->
@@ -291,8 +291,6 @@ class PythonGenerateTestsCommand : CliktCommand(
                     testSet.method,
                     testSet.executions.filterNot { it.result is UtExecutionSuccess },
                     testSet.errors,
-                    testSet.mypyReport,
-                    testSet.classId,
                     testSet.executionsNumber
                 )
             }

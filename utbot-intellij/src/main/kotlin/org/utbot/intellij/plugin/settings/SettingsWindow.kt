@@ -64,7 +64,7 @@ class SettingsWindow(val project: Project) {
                         enableSummarizationGenerationCheckBox.isSelected = false
                     }
                 }
-            }.bottomGap(BottomGap.MEDIUM)
+            }
 
             row("Overflow detection:") {
                 createCombo(TreatOverflowAsError::class, TreatOverflowAsError.values())

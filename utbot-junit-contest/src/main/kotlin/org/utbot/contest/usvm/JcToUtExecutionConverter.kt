@@ -1,25 +1,33 @@
 package org.utbot.contest.usvm
 
 import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcMethod
+import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.jcdbSignature
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionInitFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionState
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
+import org.usvm.instrumentation.util.toJavaField
 import org.utbot.contest.usvm.executor.JcExecution
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
@@ -40,6 +48,7 @@ class JcToUtExecutionConverter(
         return when (executionResult) {
             is UTestExecutionSuccessResult -> {
                 val result = UtExecutionSuccess(modelConverter.convert(executionResult.result))
+
 
                 UtUsvmExecution(
                     stateBefore = MissingState,
@@ -81,6 +90,22 @@ class JcToUtExecutionConverter(
         is UTestExecutionSuccessResult -> executionResult.trace
         is UTestExecutionFailedResult -> emptyList()
         is UTestExecutionTimedOutResult -> emptyList()
+    }
+
+    private fun convertState(state: UTestExecutionState, method: JcTypedMethod): EnvironmentModels {
+        val thisInstance = modelConverter.convert(state.instanceDescriptor?.valueDescriptor)
+        val parameters = state.argsDescriptors.map { modelConverter.convert(it!!.valueDescriptor) }
+        val statics = state.statics
+            .entries
+            .associate { (jcField, uTestDescr) ->
+                val fieldType = jcField.toJavaField(utContext.classLoader)!!.fieldId.type
+                val fieldId = FieldId(fieldType, jcField.name)
+                val fieldModel = modelConverter.convert(uTestDescr)
+
+                fieldId to fieldModel
+            }
+        val executableId: ExecutableId = MethodId(...)
+        return EnvironmentModels(thisInstance, parameters, statics, executableId)
     }
 
     private fun convertCoverage(jcCoverage: List<JcInst>?, jcClass: JcClassOrInterface) = Coverage(

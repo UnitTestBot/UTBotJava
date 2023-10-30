@@ -1,6 +1,5 @@
 package org.utbot.contest.usvm
 
-import org.jacodb.analysis.library.analyzers.thisInstance
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestMock
@@ -13,7 +12,6 @@ import org.usvm.instrumentation.util.toJavaClass
 import org.usvm.instrumentation.util.toJavaField
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -60,6 +58,7 @@ class JcToUtModelConverter {
 
             val mocklessModel = utModelConstructor.construct(concreteValue, objectType)
 
+            //TODO: think about assemble models, arrays, with inner mocks; may be enums
             if (mocklessModel !is UtCompositeModel) {
                 return mocklessModel
             }
@@ -102,15 +101,11 @@ class JcToUtModelConverter {
                 val fieldModel = convert(fieldModelDescr)
                 fieldId to fieldModel
             }
-            .toMutableMap()
 
         mocks += mockExpr.methods
             .entries
             .associate { (jcMethod, uTestExprs) ->
-                val type = jcMethod.thisInstance.type.classId
-                val returnType = jcMethod.returnType.classId
-                val parameters = jcMethod.parameters.map { it.type.classId }
-                val executableId: ExecutableId = MethodId(type, jcMethod.name, returnType, parameters)
+                val executableId: ExecutableId = jcMethod.toExecutableId()
 
                 val models = uTestExprs
                     .map { expr -> exprToDescriptor(expr) }
@@ -118,7 +113,6 @@ class JcToUtModelConverter {
 
                 executableId to models
             }
-            .toMutableMap()
 
         return finalModel
     }

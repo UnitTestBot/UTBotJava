@@ -17,6 +17,8 @@ import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.usvm.instrumentation.util.toJavaField
 import org.utbot.contest.usvm.executor.JcExecution
+import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -29,6 +31,7 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
@@ -36,10 +39,14 @@ import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdL
 import java.util.*
 
 class JcToUtExecutionConverter(
-    private val instructionIdProvider: InstructionIdProvider
+    private val instructionIdProvider: InstructionIdProvider,
 ) {
+    //TODO: obtain in somehow from [JcExecution] or somewhere else
+    private val testClassId: ClassId = objectClassId
+    private val utilMethodProvider = TestClassUtilMethodProvider(testClassId)
 
-    private val modelConverter = JcToUtModelConverter()
+    private val modelConverter = JcToUtModelConverter(utilMethodProvider)
+    private val instConverter = UTestInst2UtModelConverter(utilMethodProvider)
 
     fun convert(jcExecution: JcExecution): UtExecution? {
         val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
@@ -93,8 +100,8 @@ class JcToUtExecutionConverter(
     }
 
     private fun convertState(state: UTestExecutionState, method: JcTypedMethod): EnvironmentModels {
-        val thisInstance = modelConverter.convert(state.instanceDescriptor?.valueDescriptor)
-        val parameters = state.argsDescriptors.map { modelConverter.convert(it!!.valueDescriptor) }
+        val thisInstance = instConverter.convert(state.instanceDescriptor?.origin!!)
+        val parameters = state.argsDescriptors.map { instConverter.convert(it?.origin!!) }
         val statics = state.statics
             .entries
             .associate { (jcField, uTestDescr) ->
@@ -104,7 +111,7 @@ class JcToUtExecutionConverter(
 
                 fieldId to fieldModel
             }
-        val executableId: ExecutableId = MethodId(...)
+        val executableId: ExecutableId = method.method.toExecutableId()
         return EnvironmentModels(thisInstance, parameters, statics, executableId)
     }
 

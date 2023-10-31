@@ -1,21 +1,19 @@
 package org.utbot.contest.usvm
 
-import org.usvm.instrumentation.classloader.WorkerClassLoader
-import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.api.UTestMock
-import org.usvm.instrumentation.testcase.api.UTestMockObject
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
-import org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter
-import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.util.toJavaClass
-import org.usvm.instrumentation.util.toJavaField
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
+import org.utbot.framework.plugin.api.UtEnumConstantModel
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.util.fieldId
+import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -25,14 +23,11 @@ import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelC
 import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdLibModelWithCompositeOriginConstructors
 import java.util.*
 
-class JcToUtModelConverter {
+class JcToUtModelConverter(utilMethodProvider: UtilMethodProvider) {
 
     private val classLoader = utContext.classLoader
     private val toValueConverter = Descriptor2ValueConverter(classLoader)
-
-    // TODO: properly deal with test executor and related features
-    private val testExecutor = UTestExpressionExecutor()
-    private val toDescriptorConverter = Value2DescriptorConverter(WorkerClassLoader(), null)
+    private val inst2modelConverter = UTestInst2UtModelConverter(utilMethodProvider)
 
 
     private val utModelConstructor = UtModelConstructor(
@@ -43,7 +38,6 @@ class JcToUtModelConverter {
         }
     )
 
-    private val exprToModelCache = mutableMapOf<UTestMock, UtCompositeModel>()
     private val descrToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
 
     fun convert(valueDescriptor: UTestValueDescriptor?): UtModel {
@@ -56,70 +50,24 @@ class JcToUtModelConverter {
             val concreteValue = toValueConverter.buildObjectFromDescriptor(valueDescriptor)
             val objectType = valueDescriptor.type.toJavaClass(classLoader).id
 
-            val mocklessModel = utModelConstructor.construct(concreteValue, objectType)
+            val missingMocksModel = utModelConstructor.construct(concreteValue, objectType)
 
-            //TODO: think about assemble models, arrays, with inner mocks; may be enums
-            if (mocklessModel !is UtCompositeModel) {
-                return mocklessModel
+            return when (missingMocksModel) {
+                is UtNullModel,
+                is UtPrimitiveModel,
+                is UtClassRefModel,
+                is UtEnumConstantModel,
+                is UtLambdaModel -> missingMocksModel
+                is UtCompositeModel,
+                is UtArrayModel,
+                is UtAssembleModel -> {
+                    valueDescriptor.origin
+                    ?.let { inst2modelConverter.convert(it) }
+                        ?: missingMocksModel
+                }
+                is UtCustomModel -> error("Custom models are not supported in Contest")
+                else -> error("The type of $missingMocksModel is not supported in Contest")
             }
-
-            val instantiatingExpr: UTestMock = // TODO: valueDescriptor.instantiatingExpr
-                UTestMockObject(valueDescriptor.type, emptyMap(), emptyMap())
-
-            restoreMockInfo(instantiatingExpr, mocklessModel)
         }
     }
-
-
-    private fun restoreMockInfo(
-        mockExpr: UTestMock,
-        mocklessModel: UtCompositeModel,
-    ): UtModel {
-
-        exprToModelCache[mockExpr]?.let { return it }
-
-        val fields = mutableMapOf<FieldId, UtModel>()
-        val mocks = mutableMapOf<ExecutableId, List<UtModel>>()
-
-        val finalModel = UtCompositeModel(
-            id = mocklessModel.id,
-            classId = mocklessModel.classId,
-            isMock = true,
-            fields = fields,
-            mocks = mocks,
-        )
-        exprToModelCache[mockExpr] = finalModel
-
-        fields += mockExpr.fields
-            .entries
-            .associate { (jcField, uTestExpr) ->
-                val fieldType = jcField.toJavaField(classLoader)!!.fieldId.type
-                val fieldId = FieldId(fieldType, jcField.name)
-
-                val fieldModelDescr = exprToDescriptor(uTestExpr)
-
-                val fieldModel = convert(fieldModelDescr)
-                fieldId to fieldModel
-            }
-
-        mocks += mockExpr.methods
-            .entries
-            .associate { (jcMethod, uTestExprs) ->
-                val executableId: ExecutableId = jcMethod.toExecutableId()
-
-                val models = uTestExprs
-                    .map { expr -> exprToDescriptor(expr) }
-                    .map { descr -> convert(descr) }
-
-                executableId to models
-            }
-
-        return finalModel
-    }
-
-    private fun exprToDescriptor(expr: UTestExpression): UTestValueDescriptor =
-        toDescriptorConverter
-            .buildDescriptorFromUTestExpr(expr, testExecutor)
-            ?.getOrNull()!!
-            .valueDescriptor!!
 }

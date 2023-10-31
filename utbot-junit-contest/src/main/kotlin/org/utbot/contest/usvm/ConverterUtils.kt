@@ -5,6 +5,9 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.TypeName
+import org.usvm.instrumentation.testcase.api.UTestInst
+import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
+import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.usvm.instrumentation.util.toJavaClass
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -33,3 +36,6 @@ val JcClassOrInterface.classId: ClassId
 
 val TypeName.classId: ClassId
     get() = ClassId(this.typeName)
+
+val UTestValueDescriptor.origin: UTestInst?
+    get() = (this as UTestObjectDescriptor)?.originUTestExpr

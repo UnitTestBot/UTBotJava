@@ -1,5 +1,6 @@
 package org.utbot.contest.usvm
 
+import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
 import org.usvm.instrumentation.testcase.api.UTestArithmeticExpression
 import org.usvm.instrumentation.testcase.api.UTestArrayGetExpression
@@ -15,14 +16,16 @@ import org.usvm.instrumentation.testcase.api.UTestClassExpression
 import org.usvm.instrumentation.testcase.api.UTestConstructorCall
 import org.usvm.instrumentation.testcase.api.UTestCreateArrayExpression
 import org.usvm.instrumentation.testcase.api.UTestDoubleExpression
+import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestFloatExpression
 import org.usvm.instrumentation.testcase.api.UTestGetFieldExpression
 import org.usvm.instrumentation.testcase.api.UTestGetStaticFieldExpression
+import org.usvm.instrumentation.testcase.api.UTestGlobalMock
 import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.api.UTestIntExpression
 import org.usvm.instrumentation.testcase.api.UTestLongExpression
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
-import org.usvm.instrumentation.testcase.api.UTestMock
+import org.usvm.instrumentation.testcase.api.UTestMockObject
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.testcase.api.UTestSetFieldStatement
 import org.usvm.instrumentation.testcase.api.UTestSetStaticFieldStatement
@@ -37,24 +40,41 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 
+data class UTestInstOutput(
+    val exprToModelCache: Map<UTestExpression, UtModel>,
+    val instrumentations: List<UtInstrumentation>,
+    )
+
 class UTestInst2UtModelConverter(
     private val utilMethodProvider: UtilMethodProvider
 ) {
 
     private val idGenerator = ReferencePreservingIntIdGenerator()
-    private val exprToModelCache = mutableMapOf<UTestInst, UtModel>()
+    private val exprToModelCache = mutableMapOf<UTestExpression, UtModel>()
+    private val instrumentations = mutableListOf<UtInstrumentation>()
 
-    fun convert(uTestInst: UTestInst): UtModel {
-        exprToModelCache[uTestInst]?.let { return it }
+    fun processUTest(uTest: UTest): UTestInstOutput {
+        exprToModelCache.clear()
+        instrumentations.clear()
 
-        return when (uTestInst) {
+        uTest.initStatements.forEach { uInst -> processInst(uInst) }
+
+        return UTestInstOutput(exprToModelCache, instrumentations)
+    }
+
+    private fun processInst(uTestInst: UTestInst) {
+        exprToModelCache[uTestInst]?.let { return }
+
+        when (uTestInst) {
             is UTestAllocateMemoryCall -> {
                 val newModel = UtAssembleModel(
                     id = idGenerator.createId(),
@@ -67,14 +87,16 @@ class UTestInst2UtModelConverter(
                     ),
                 )
                 exprToModelCache[uTestInst] = newModel
-                newModel
             }
 
             is UTestConstructorCall -> {
                 val constructorCall = UtExecutableCallModel(
                     instance = null,
                     executable = uTestInst.method.toExecutableId(),
-                    params = uTestInst.args.map { convert(it) },
+                    params = uTestInst.args.map { arg ->
+                        processInst(arg)
+                        exprToModelCache[arg] ?: error("UtModel for $arg should have also been created")
+                    },
                 )
 
                 val newModel = UtAssembleModel(
@@ -85,17 +107,23 @@ class UTestInst2UtModelConverter(
                 )
 
                 exprToModelCache[uTestInst] = newModel
-                newModel
             }
 
             is UTestMethodCall -> {
-                val instanceModel = uTestInst.instance?.let { convert(it) }
+                val instanceExpr = uTestInst.instance
+                instanceExpr?.let { processInst(it) }
+
+                val instanceModel = exprToModelCache[instanceExpr]
+                    ?: error("UtModel for $instanceExpr should have also been created")
                 require(instanceModel is UtAssembleModel)
 
                 val methodCall = UtExecutableCallModel(
                     instance = instanceModel,
                     executable = uTestInst.method.toExecutableId(),
-                    params = uTestInst.args.map { convert(it) },
+                    params = uTestInst.args.map { arg ->
+                        processInst(arg)
+                        exprToModelCache[arg] ?: error("UtModel for $arg should have also been created")
+                    },
                 )
 
                 instanceModel?.let {
@@ -110,7 +138,6 @@ class UTestInst2UtModelConverter(
                 )
 
                 exprToModelCache[uTestInst] = newModel
-                newModel
             }
 
             is UTestClassExpression -> UtClassRefModel(
@@ -145,7 +172,6 @@ class UTestInst2UtModelConverter(
                 )
 
                 exprToModelCache[uTestInst] = newModel
-                newModel
             }
 
             is UTestArraySetStatement -> {
@@ -156,12 +182,21 @@ class UTestInst2UtModelConverter(
                 require(uTestInst.index is UTestIntExpression)
                 val storeIndex = uTestInst.index as UTestIntExpression
 
-                arrayModel.stores[storeIndex.value] = convert(uTestInst.setValueExpression)
+                val setValueExpression = uTestInst.setValueExpression
+                processInst(setValueExpression)
+                val elementModel = exprToModelCache[setValueExpression]
+                    ?: error("UtModel for $setValueExpression should have also been created")
 
-                arrayModel
+                arrayModel.stores[storeIndex.value] = elementModel
             }
 
             is UTestGetFieldExpression -> {
+                val instanceExpr = uTestInst.instance
+                instanceExpr?.let { processInst(it) }
+
+                val instanceModel = exprToModelCache[instanceExpr]
+                    ?: error("UtModel for $instanceExpr should have also been created")
+
                 val newModel = UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestInst.type.classId,
@@ -170,7 +205,7 @@ class UTestInst2UtModelConverter(
                         instance = null,
                         executable = utilMethodProvider.getFieldValueMethodId,
                         params = listOf(
-                            convert(uTestInst.instance),
+                            instanceModel,
                             UtPrimitiveModel(uTestInst.field.type.classId.name),
                             UtPrimitiveModel(uTestInst.field.name),
                             ),
@@ -178,7 +213,6 @@ class UTestInst2UtModelConverter(
                 )
 
                 exprToModelCache[uTestInst] = newModel
-                newModel
             }
 
             is UTestGetStaticFieldExpression -> {
@@ -197,11 +231,10 @@ class UTestInst2UtModelConverter(
                 )
 
                 exprToModelCache[uTestInst] = newModel
-                newModel
             }
 
             // TODO: Is in correct to process [UTestMockObject] and [UTestGlobalMock] similarly?
-            is UTestMock -> {
+            is UTestMockObject -> {
                 val fields = mutableMapOf<FieldId, UtModel>()
                 val mocks = mutableMapOf<ExecutableId, List<UtModel>>()
 
@@ -218,7 +251,10 @@ class UTestInst2UtModelConverter(
                     .entries
                     .associate { (jcField, uTestExpr) ->
                         val fieldId = FieldId(jcField.type.classId, jcField.name)
-                        val fieldModel = convert(uTestExpr)
+
+                        processInst(uTestExpr)
+                        val fieldModel = exprToModelCache[uTestExpr]
+                            ?: error("UtModel for $uTestExpr should have also been created")
                         fieldId to fieldModel
                     }
 
@@ -226,41 +262,56 @@ class UTestInst2UtModelConverter(
                     .entries
                     .associate { (jcMethod, uTestExprs) ->
                         val executableId: ExecutableId = jcMethod.toExecutableId()
-                        val models = uTestExprs.map { expr -> convert(expr) }
+                        val models = uTestExprs.map { expr ->
+                            processInst(expr)
+                            exprToModelCache[expr] ?: error("UtModel for $expr should have also been created")
+                        }
 
                         executableId to models
                     }
-
-                newModel
             }
 
             is UTestSetFieldStatement -> {
-                val instanceModel = uTestInst.instance?.let { convert(it) }
+                val instanceExpr = uTestInst.instance
+
+                instanceExpr?.let { processInst(it) }
+                val instanceModel = exprToModelCache[instanceExpr]
+                    ?: error("UtModel for $instanceExpr should have also been created")
                 require(instanceModel is UtAssembleModel)
+
                 val fieldType = uTestInst.field.type.classId
                 val fieldName = uTestInst.field.name
+
+                val setValueExpr = uTestInst.value
+                processInst(setValueExpr)
+                val setValueModel = exprToModelCache[setValueExpr]
+                    ?: error("UtModel for $setValueExpr should have also been created")
 
                 val methodCall = UtExecutableCallModel(
                     instance = instanceModel,
                     executable = utilMethodProvider.setFieldMethodId,
                     params = listOf(
-                        convert(uTestInst.instance),
+                        instanceModel,
                         UtPrimitiveModel(fieldType.name),
                         UtPrimitiveModel(fieldName),
-                        convert(uTestInst.value),
+                        setValueModel,
                     ),
                 )
 
                 instanceModel?.let {
                     (it.modificationsChain as MutableList).add(methodCall)
                 }
-
-                instanceModel
             }
 
             is UTestSetStaticFieldStatement -> {
+                // TODO: seems we do not need this snippet as we store only expressions in cache
                 val fieldType = uTestInst.field.type.classId
                 val fieldName = uTestInst.field.name
+
+                val setValueExpr = uTestInst.value
+                processInst(setValueExpr)
+                val setValueModel = exprToModelCache[setValueExpr]
+                    ?: error("UtModel for $setValueExpr should have also been created")
 
                 val methodCall = UtExecutableCallModel(
                     instance = null,
@@ -268,19 +319,13 @@ class UTestInst2UtModelConverter(
                     params = listOf(
                         UtPrimitiveModel(fieldType.name),
                         UtPrimitiveModel(fieldName),
-                        convert(uTestInst.value),
+                        setValueModel,
                     ),
                 )
+            }
 
-                val newModel = UtAssembleModel(
-                    id = idGenerator.createId(),
-                    classId = objectClassId,
-                    modelName = "",
-                    instantiationCall = methodCall,
-                )
-
-                exprToModelCache[uTestInst] = newModel
-                newModel
+            is UTestGlobalMock -> {
+                // TODO: collect instrumentations here
             }
 
 

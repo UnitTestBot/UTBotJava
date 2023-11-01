@@ -42,26 +42,28 @@ class JcToUtExecutionConverter(
     private val testClassId: ClassId = objectClassId
     private val utilMethodProvider = TestClassUtilMethodProvider(testClassId)
 
-    private val modelConverter = JcToUtModelConverter()
     private val instConverter = UTestInst2UtModelConverter(utilMethodProvider)
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
     fun convert(jcExecution: JcExecution): UtExecution? {
+        val instToModelCache = instConverter.processUTest(jcExecution.uTest)
+        val modelConverter = JcToUtModelConverter(instToModelCache)
+
         val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
         val instrumentation = emptyList<UtInstrumentation>() // TODO usvm-sbft: fill up instrumentation with data from UTest
 
         return when (val executionResult = jcExecution.uTestExecutionResult) {
             is UTestExecutionSuccessResult -> UtUsvmExecution(
-                stateBefore = convertState(executionResult.initialState, jcExecution.method),
-                stateAfter = convertState(executionResult.resultState, jcExecution.method),
+                stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
+                stateAfter = convertState(executionResult.resultState, jcExecution.method, modelConverter),
                 result = UtExecutionSuccess(modelConverter.convert(executionResult.result)),
                 coverage = coverage,
                 instrumentation = instrumentation,
             )
             is UTestExecutionExceptionResult -> toUserRaisedException(executionResult.cause)?.let { exception ->
                 UtUsvmExecution(
-                    stateBefore = convertState(executionResult.initialState, jcExecution.method),
-                    stateAfter = convertState(executionResult.resultState, jcExecution.method),
+                    stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
+                    stateAfter = convertState(executionResult.resultState, jcExecution.method, modelConverter),
                     result = createExecutionFailureResult(
                         exception,
                         jcExecution.method,
@@ -111,7 +113,11 @@ class JcToUtExecutionConverter(
         is UTestExecutionTimedOutResult -> emptyList()
     }
 
-    private fun convertState(state: UTestExecutionState, method: JcTypedMethod): EnvironmentModels {
+    private fun convertState(
+        state: UTestExecutionState,
+        method: JcTypedMethod,
+        modelConverter: JcToUtModelConverter,
+        ): EnvironmentModels {
         val thisInstance =
             if (method.isStatic) null
             else modelConverter.convert(state.instanceDescriptor)

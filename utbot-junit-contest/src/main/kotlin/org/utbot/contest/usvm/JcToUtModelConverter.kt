@@ -1,5 +1,6 @@
 package org.utbot.contest.usvm
 
+import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.usvm.instrumentation.util.toJavaClass
@@ -23,7 +24,9 @@ import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelC
 import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdLibModelWithCompositeOriginConstructors
 import java.util.*
 
-class JcToUtModelConverter {
+class JcToUtModelConverter(
+    private val instToModelCache: Map<UTestExpression, UtModel>,
+) {
 
     private val classLoader = utContext.classLoader
     private val toValueConverter = Descriptor2ValueConverter(classLoader)
@@ -46,6 +49,19 @@ class JcToUtModelConverter {
         val concreteValue = toValueConverter.buildObjectFromDescriptor(valueDescriptor)
         val objectType = valueDescriptor.type.toJavaClass(classLoader).id
 
-        return utModelConstructor.construct(concreteValue, objectType)
+        val missingMocksModel = utModelConstructor.construct(concreteValue, objectType)
+
+        return when (missingMocksModel) {
+            is UtNullModel,
+            is UtPrimitiveModel,
+            is UtClassRefModel,
+            is UtEnumConstantModel,
+            is UtLambdaModel -> missingMocksModel
+            is UtCompositeModel,
+            is UtArrayModel,
+            is UtAssembleModel -> instToModelCache[valueDescriptor.origin] ?: missingMocksModel
+            is UtCustomModel -> error("Custom models are not supported in Contest")
+            else -> error("The type of $missingMocksModel is not supported in Contest")
+        }
     }
 }

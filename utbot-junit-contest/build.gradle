@@ -140,6 +140,8 @@ dependencies {
     implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     implementation 'junit:junit:4.13.2'
 
+    implementation "org.burningwave:core:12.62.7"
+
     implementation('org.usvm:usvm-core')
     implementation('org.usvm:usvm-jvm')
     implementation('org.usvm:usvm-jvm-instrumentation')

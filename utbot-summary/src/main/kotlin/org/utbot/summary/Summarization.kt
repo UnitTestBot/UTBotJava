@@ -283,14 +283,26 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 utExecution.summary = testMethodName?.javaDoc
             }
 
-            val clusteredExecutions = groupFuzzedExecutions(methodTestSet)
-            clusteredExecutions.forEach {
-                clustersToReturn.add(
-                    UtExecutionCluster(
-                        UtClusterInfo(it.header),
-                        it.executions
+            when(descriptionSource){
+                MethodDescriptionSource.FUZZER -> {
+                    val clusteredExecutions = groupFuzzedExecutions(methodTestSet)
+                    clusteredExecutions.forEach {
+                        clustersToReturn.add(
+                            UtExecutionCluster(
+                                UtClusterInfo(it.header),
+                                it.executions
+                            )
+                        )
+                    }
+                }
+                MethodDescriptionSource.SYMBOLIC -> {
+                    clustersToReturn.add(
+                        UtExecutionCluster(
+                            UtClusterInfo(),
+                            methodTestSet.executions
+                        )
                     )
-                )
+                }
             }
         }
 

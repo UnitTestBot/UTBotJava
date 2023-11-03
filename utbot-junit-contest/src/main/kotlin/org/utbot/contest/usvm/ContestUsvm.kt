@@ -33,6 +33,7 @@ import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfoService
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.summarizeAll
 import java.io.File
@@ -84,6 +85,8 @@ fun runUsvmGeneration(
     }
 
     val resolver by lazy { JcTestExecutor(jcDbContainer.cp) }
+
+    val idGenerator = ReferencePreservingIntIdGenerator()
 
     val instructionIds = mutableMapOf<Pair<String, Int>, Long>()
     val instructionIdProvider = InstructionIdProvider { methodSignature, instrIndex ->
@@ -214,7 +217,11 @@ fun runUsvmGeneration(
 
                 val utExecutions: List<UtExecution> = jcExecutions.mapNotNull {
                     logger.debug().measureTime({ "Convert JcExecution" }) {
-                        JcToUtExecutionConverter(instructionIdProvider).convert(it)
+                        JcToUtExecutionConverter(
+                            jcExecution = it,
+                            idGenerator = idGenerator,
+                            instructionIdProvider = instructionIdProvider
+                        ).convert()
                     }
                 }
 

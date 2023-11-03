@@ -4,7 +4,6 @@ import mu.KotlinLogging
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.jcdbSignature
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
@@ -69,15 +68,13 @@ class JcToUtExecutionConverter(
                 coverage = coverage,
                 instrumentation = instrumentation,
             )
-
-            is UTestExecutionExceptionResult -> toUserRaisedException(executionResult.cause)?.let { exception ->
+            is UTestExecutionExceptionResult -> {
                 UtUsvmExecution(
                     stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
                     stateAfter = convertState(executionResult.resultState, jcExecution.method, modelConverter),
                     result = createExecutionFailureResult(
-                        exception,
+                        executionResult.cause,
                         jcExecution.method,
-                        executionResult.trace
                     ),
                     coverage = coverage,
                     instrumentation = instrumentation,
@@ -85,17 +82,17 @@ class JcToUtExecutionConverter(
             }
 
             is UTestExecutionInitFailedResult -> {
-                toUserRaisedException(executionResult.cause)?.let { e ->
-                    logger.warn(e) { "Execution failed before method under test call" }
+                logger.warn(convertException(executionResult.cause)) {
+                    "Execution failed before method under test call"
                 }
                 null
             }
 
             is UTestExecutionFailedResult -> {
-                toUserRaisedException(executionResult.cause)?.let { e ->
-                    // TODO usvm-sbft
-                    null
+                logger.error(convertException(executionResult.cause)) {
+                    "Concrete execution failed"
                 }
+                null
             }
 
             is UTestExecutionTimedOutResult -> {
@@ -107,15 +104,10 @@ class JcToUtExecutionConverter(
         return utUsvmExecution
     }
 
-    private fun toUserRaisedException(exceptionDescriptor: UTestExceptionDescriptor): Throwable? {
-        val exception =
-            toValueConverter.buildObjectFromDescriptor(exceptionDescriptor) as Throwable
-        return if (exceptionDescriptor.raisedByUserCode) exception
-        else {
-            logger.error(exception) { "Concrete execution failed" }
-            null
-        }
-    }
+    private fun convertException(exceptionDescriptor: UTestExceptionDescriptor): Throwable =
+        toValueConverter.buildObjectFromDescriptor(exceptionDescriptor.dropStaticFields(
+            cache = mutableMapOf()
+        )) as Throwable
 
     private fun getTrace(executionResult: UTestExecutionResult): List<JcInst>? = when (executionResult) {
         is UTestExecutionExceptionResult -> executionResult.trace
@@ -144,18 +136,19 @@ class JcToUtExecutionConverter(
     }
 
     private fun createExecutionFailureResult(
-        exception: Throwable,
+        exceptionDescriptor: UTestExceptionDescriptor,
         jcTypedMethod: JcTypedMethod,
-        jcCoverage: List<JcInst>?
     ): UtExecutionFailure {
-        // TODO usvm-sbft: test that exceptions are correctly classified
-        val lastJcInst = jcCoverage.orEmpty().lastOrNull()
-            ?: return UtImplicitlyThrownException(exception, fromNestedMethod = false)
-        val fromNestedMethod = lastJcInst.enclosingMethod != jcTypedMethod.method
-        return if (lastJcInst is JcThrowInst)
+        val exception = convertException(exceptionDescriptor)
+        val fromNestedMethod = exception.stackTrace.firstOrNull()?.let { stackTraceElement ->
+            stackTraceElement.className != jcTypedMethod.enclosingType.jcClass.name ||
+                    stackTraceElement.methodName != jcTypedMethod.name
+        } ?: false
+        return if (exceptionDescriptor.raisedByUserCode) {
             UtExplicitlyThrownException(exception, fromNestedMethod)
-        else
+        } else {
             UtImplicitlyThrownException(exception, fromNestedMethod)
+        }
     }
 
     private fun convertCoverage(jcCoverage: List<JcInst>?, jcClass: JcClassOrInterface) = Coverage(

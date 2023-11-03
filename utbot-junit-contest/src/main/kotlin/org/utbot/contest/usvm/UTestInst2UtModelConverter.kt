@@ -47,6 +47,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 
 data class UTestInstOutput(
@@ -55,10 +56,9 @@ data class UTestInstOutput(
     )
 
 class UTestInst2UtModelConverter(
-    private val utilMethodProvider: UtilMethodProvider
+    private val idGenerator: IdGenerator<Int>,
+    private val utilMethodProvider: UtilMethodProvider,
 ) {
-
-    private val idGenerator = ReferencePreservingIntIdGenerator()
     private val exprToModelCache = mutableMapOf<UTestExpression, UtModel>()
     private val instrumentations = mutableListOf<UtInstrumentation>()
 

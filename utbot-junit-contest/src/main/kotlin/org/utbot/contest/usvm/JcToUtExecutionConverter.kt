@@ -30,27 +30,33 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
-import org.utbot.framework.plugin.api.mapper.mapStateBeforeModels
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.fuzzer.IdGenerator
 
 private val logger = KotlinLogging.logger {}
 
 class JcToUtExecutionConverter(
+    private val jcExecution: JcExecution,
+    private val idGenerator: IdGenerator<Int>,
     private val instructionIdProvider: InstructionIdProvider,
 ) {
-    //TODO: obtain in somehow from [JcExecution] or somewhere else
+    //TODO usvm-sbft: obtain in somehow from [JcExecution] or somewhere else
     private val testClassId: ClassId = objectClassId
-    private val utilMethodProvider = TestClassUtilMethodProvider(testClassId)
 
-    private val instConverter = UTestInst2UtModelConverter(utilMethodProvider)
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
-    fun convert(jcExecution: JcExecution): UtExecution? {
-        val instToModelCache = instConverter.processUTest(jcExecution.uTest)
-        val modelConverter = JcToUtModelConverter(instToModelCache)
+    private var modelConverter: JcToUtModelConverter
 
+    init {
+        val utilMethodProvider = TestClassUtilMethodProvider(testClassId)
+        val instToModelConverter = UTestInst2UtModelConverter(idGenerator, utilMethodProvider)
+        val uTestProcessResult = instToModelConverter.processUTest(jcExecution.uTest)
+
+        modelConverter = JcToUtModelConverter(idGenerator, uTestProcessResult.exprToModelCache)
+    }
+
+    fun convert(): UtExecution? {
         val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
         // TODO usvm-sbft: fill up instrumentation with data from UTest
         val instrumentation = emptyList<UtInstrumentation>()
@@ -98,14 +104,7 @@ class JcToUtExecutionConverter(
             }
         } ?: return null
 
-        return utUsvmExecution.mapModels(UtModelDeepMapper {
-            instToModelCache[
-                toValueConverter.cache.getValue(
-                    utModelConstructor.cache.getValue(it)
-                ).origin
-            ] ?: it
-        })
-        // TODO usvm-sbft: deep map UtExecution to substitute models build from UTest
+        return utUsvmExecution
     }
 
     private fun toUserRaisedException(exceptionDescriptor: UTestExceptionDescriptor): Throwable? {

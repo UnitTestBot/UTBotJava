@@ -15,6 +15,7 @@ import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestSet
 import org.utbot.python.TestFileInformation
+import org.utbot.python.UsvmConfig
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.code.PythonCode
 import org.utbot.python.coverage.PythonCoverageMode
@@ -129,6 +130,17 @@ class PythonGenerateTestsCommand : CliktCommand(
     private val coverageOutputFormat by option("--coverage-output-format", help = "Use LINES, INSTRUCTIONS (only from function frame).")
         .choice("INSTRUCTIONS", "LINES")
         .default("LINES")
+
+    private val javaCmd by option(
+        "--java-cmd",
+        help = "(required) Path to Java command (ONLY FOR USVM)."
+    ).required()
+
+    private val usvmDirectory by option(
+        "--usvm-dir",
+        help = "(required) Path to usvm directory (ONLY FOR USVM)."
+    ).required()
+
 
     private val testFramework: TestFramework
         get() =
@@ -269,6 +281,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             coverageMeasureMode = PythonCoverageMode.parse(coverageMeasureMode),
             sendCoverageContinuously = !doNotSendCoverageContinuously,
             coverageOutputFormat = CoverageOutputFormat.parse(coverageOutputFormat),
+            usvmConfig = UsvmConfig(javaCmd, usvmDirectory)
         )
 
         val processor = PythonCliProcessor(

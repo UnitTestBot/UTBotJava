@@ -30,6 +30,7 @@ class PythonTestGenerationConfig(
     val coverageMeasureMode: PythonCoverageMode = PythonCoverageMode.Instructions,
     val sendCoverageContinuously: Boolean = true,
     val coverageOutputFormat: CoverageOutputFormat = CoverageOutputFormat.Lines,
+    val usvmConfig: UsvmConfig = UsvmConfig.defaultConfig,
 )
 
 data class MypyConfig(
@@ -37,3 +38,15 @@ data class MypyConfig(
     val mypyReportLine: List<MypyReportLine>,
     val mypyBuildDirectory: MypyBuildDirectory,
 )
+
+data class UsvmConfig(
+    val javaCmd: String,
+    val usvmDirectory: String
+) {
+    companion object {
+        val usvmDirectory =
+            "/home/vyacheslav/IdeaProjects/NewUTBot/UTBotJava/utbot-python/src/main/kotlin/org/utbot/python/engine/symbolic/usvm-python"
+        val usvmJavaCmd = "${System.getProperty("java.home")}/bin/java"
+        val defaultConfig = UsvmConfig(usvmJavaCmd, usvmDirectory)
+    }
+}

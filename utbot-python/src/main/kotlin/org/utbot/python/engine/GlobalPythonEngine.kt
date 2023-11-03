@@ -11,13 +11,13 @@ import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.engine.fuzzing.FuzzingEngine
 import org.utbot.python.engine.symbolic.SymbolicEngine
 import org.utbot.python.engine.symbolic.USVMPythonAnalysisResultReceiverImpl
-import org.utbot.python.engine.symbolic.UsvmLoader
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import java.io.File
 import kotlin.concurrent.thread
 
 private val logger = KotlinLogging.logger {}
@@ -54,10 +54,9 @@ class GlobalPythonEngine(
     }
 
     private fun runSymbolic() {
-        val javaHome = System.getProperty("java.home")
         val usvmPythonConfig = USVMPythonConfig(
-            StandardLayout(UsvmLoader.usvmDirectory),
-            "$javaHome/bin/java",
+            StandardLayout(File(configuration.usvmConfig.usvmDirectory)),
+            configuration.usvmConfig.javaCmd,
             mypyConfig.mypyBuildDirectory.root.canonicalPath,
             configuration.sysPathDirectories
         )

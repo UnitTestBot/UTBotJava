@@ -108,7 +108,7 @@ class JcToUtModelConverter(
             is UTestConstantDescriptor.Short -> UtPrimitiveModel(valueDescriptor.value)
             is UTestConstantDescriptor.String -> UtPrimitiveModel(valueDescriptor.value)
 
-            is UTestCyclicReferenceDescriptor -> TODO()
+            is UTestCyclicReferenceDescriptor -> TODO() // создать кэш по рефайди, проверить, что уже есть модель с таким же, или еррор
             is UTestEnumValueDescriptor -> TODO()
             is UTestExceptionDescriptor -> TODO()
         }

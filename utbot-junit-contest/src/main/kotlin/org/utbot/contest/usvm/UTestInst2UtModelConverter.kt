@@ -234,7 +234,6 @@ class UTestInst2UtModelConverter(
                 exprToModelCache[uTestInst] = newModel
             }
 
-            // TODO: Is in correct to process [UTestMockObject] and [UTestGlobalMock] similarly?
             is UTestMockObject -> {
                 val fields = mutableMapOf<FieldId, UtModel>()
                 val mocks = mutableMapOf<ExecutableId, List<UtModel>>()
@@ -305,28 +304,12 @@ class UTestInst2UtModelConverter(
             }
 
             is UTestSetStaticFieldStatement -> {
-                // TODO: seems we do not need this snippet as we store only expressions in cache
-                val fieldType = uTestInst.field.type.classId
-                val fieldName = uTestInst.field.name
+                processInst(uTestInst.value)
 
-                val setValueExpr = uTestInst.value
-                processInst(setValueExpr)
-                val setValueModel = exprToModelCache[setValueExpr]
-                    ?: error("UtModel for $setValueExpr should have also been created")
-
-                val methodCall = UtExecutableCallModel(
-                    instance = null,
-                    executable = utilMethodProvider.setStaticFieldMethodId,
-                    params = listOf(
-                        UtPrimitiveModel(fieldType.name),
-                        UtPrimitiveModel(fieldName),
-                        setValueModel,
-                    ),
-                )
             }
 
             is UTestGlobalMock -> {
-                // TODO: collect instrumentations here
+                // TODO usvm-sbft: collect instrumentations here
             }
 
 

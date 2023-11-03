@@ -1,7 +1,6 @@
 package org.utbot.contest.usvm
 
 import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.testcase.descriptor.UTestArrayDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestClassDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
@@ -10,30 +9,16 @@ import org.usvm.instrumentation.testcase.descriptor.UTestEnumValueDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
-import org.usvm.instrumentation.util.toJavaClass
-import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtCustomModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
-import org.utbot.framework.plugin.api.mapper.map
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzer.IdGenerator
-import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdLibModelWithCompositeOriginConstructors
-import java.util.*
 
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
@@ -76,29 +61,77 @@ class JcToUtModelConverter(
                 model
             }
 
-            is UTestArrayDescriptor.Array -> TODO()
-            is UTestArrayDescriptor.BooleanArray -> TODO()
-            is UTestArrayDescriptor.ByteArray -> TODO()
-            is UTestArrayDescriptor.CharArray -> TODO()
-            is UTestArrayDescriptor.DoubleArray -> TODO()
-            is UTestArrayDescriptor.FloatArray -> TODO()
-            is UTestArrayDescriptor.IntArray -> TODO()
-            is UTestArrayDescriptor.LongArray -> TODO()
-            is UTestArrayDescriptor.ShortArray -> TODO()
-            is UTestClassDescriptor -> TODO()
-            is UTestConstantDescriptor.Boolean -> TODO()
-            is UTestConstantDescriptor.Byte -> TODO()
-            is UTestConstantDescriptor.Char -> TODO()
-            is UTestConstantDescriptor.Double -> TODO()
-            is UTestConstantDescriptor.Float -> TODO()
-            is UTestConstantDescriptor.Int -> TODO()
-            is UTestConstantDescriptor.Long -> TODO()
-            is UTestConstantDescriptor.Null -> TODO()
-            is UTestConstantDescriptor.Short -> TODO()
-            is UTestConstantDescriptor.String -> TODO()
+            is UTestArrayDescriptor.Array -> {
+                val stores = mutableMapOf<Int, UtModel>()
+
+                val model = UtArrayModel(
+                    id = idGenerator.createId(),
+                    classId = valueDescriptor.type.classId,
+                    length = valueDescriptor.length,
+                    constModel = UtNullModel(valueDescriptor.elementType.classId),
+                    stores = stores,
+                )
+
+                descriptorToModelCache[valueDescriptor] = model
+
+                valueDescriptor.value
+                    .map { elemDescr -> convert(elemDescr) }
+                    .forEachIndexed { index, elemModel -> stores += index to elemModel }
+
+                model
+            }
+
+            is UTestArrayDescriptor.BooleanArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.ByteArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.CharArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.DoubleArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.FloatArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.IntArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.LongArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.ShortArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+
+            is UTestClassDescriptor -> UtClassRefModel(
+                id = idGenerator.createId(),
+                classId = classClassId,
+                value = valueDescriptor.classType.classId,
+                )
+
+            is UTestConstantDescriptor.Null -> UtNullModel(valueDescriptor.type.classId)
+
+            is UTestConstantDescriptor.Boolean -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.Byte -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.Char -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.Double -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.Float -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.Int -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.Long -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.Short -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.String -> UtPrimitiveModel(valueDescriptor.value)
+
             is UTestCyclicReferenceDescriptor -> TODO()
             is UTestEnumValueDescriptor -> TODO()
             is UTestExceptionDescriptor -> TODO()
         }
     }
+
+    private fun constructArrayModel(valueDescriptor: UTestArrayDescriptor<*>, arrayContent: List<Any>): UtArrayModel {
+        val stores = mutableMapOf<Int, UtModel>()
+
+        val model = UtArrayModel(
+            id = idGenerator.createId(),
+            classId = valueDescriptor.type.classId,
+            length = valueDescriptor.length,
+            constModel = UtNullModel(valueDescriptor.elementType.classId),
+            stores = stores,
+        )
+
+        descriptorToModelCache[valueDescriptor] = model
+
+        arrayContent
+            .map { elemValue -> UtPrimitiveModel(elemValue) }
+            .forEachIndexed { index, elemModel -> stores += index to elemModel }
+
+        return model
+    }
+
 }

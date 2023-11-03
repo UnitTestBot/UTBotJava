@@ -45,6 +45,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.fuzzer.IdGenerator
@@ -142,7 +143,7 @@ class UTestInst2UtModelConverter(
 
             is UTestClassExpression -> UtClassRefModel(
                     id = idGenerator.createId(),
-                    classId = uTestInst.javaClass.id,
+                    classId = classClassId,
                     value = uTestInst.type.classId,
                 )
 

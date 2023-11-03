@@ -42,6 +42,26 @@ class UtUsvmExecution(
         summary,
         testMethodName,
         displayName,
-        instrumentation
+        instrumentation,
+    )
+
+    fun copy(
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
+        instrumentation: List<UtInstrumentation> = this.instrumentation,
+    ) = UtUsvmExecution(
+        stateBefore,
+        stateAfter,
+        result,
+        coverage,
+        summary,
+        testMethodName,
+        displayName,
+        instrumentation,
     )
 }

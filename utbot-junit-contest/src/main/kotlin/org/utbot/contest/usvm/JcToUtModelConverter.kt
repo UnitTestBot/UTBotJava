@@ -15,6 +15,8 @@ import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.map
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -41,7 +43,6 @@ class JcToUtModelConverter(
 
     fun convert(valueDescriptor: UTestValueDescriptor?): UtModel {
         // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
-        //WTF, how can it happen? but null can be passed here
         if (valueDescriptor == null) {
             return UtNullModel(objectClassId)
         }
@@ -49,19 +50,6 @@ class JcToUtModelConverter(
         val concreteValue = toValueConverter.buildObjectFromDescriptor(valueDescriptor)
         val objectType = valueDescriptor.type.toJavaClass(classLoader).id
 
-        val missingMocksModel = utModelConstructor.construct(concreteValue, objectType)
-
-        return when (missingMocksModel) {
-            is UtNullModel,
-            is UtPrimitiveModel,
-            is UtClassRefModel,
-            is UtEnumConstantModel,
-            is UtLambdaModel -> missingMocksModel
-            is UtCompositeModel,
-            is UtArrayModel,
-            is UtAssembleModel -> instToModelCache[valueDescriptor.origin] ?: missingMocksModel
-            is UtCustomModel -> error("Custom models are not supported in Contest")
-            else -> error("The type of $missingMocksModel is not supported in Contest")
-        }
+        return utModelConstructor.construct(concreteValue, objectType)
     }
 }

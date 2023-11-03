@@ -30,6 +30,8 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.mapStateBeforeModels
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
 
@@ -50,9 +52,10 @@ class JcToUtExecutionConverter(
         val modelConverter = JcToUtModelConverter(instToModelCache)
 
         val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
-        val instrumentation = emptyList<UtInstrumentation>() // TODO usvm-sbft: fill up instrumentation with data from UTest
+        // TODO usvm-sbft: fill up instrumentation with data from UTest
+        val instrumentation = emptyList<UtInstrumentation>()
 
-        return when (val executionResult = jcExecution.uTestExecutionResult) {
+        val utUsvmExecution: UtUsvmExecution = when (val executionResult = jcExecution.uTestExecutionResult) {
             is UTestExecutionSuccessResult -> UtUsvmExecution(
                 stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
                 stateAfter = convertState(executionResult.resultState, jcExecution.method, modelConverter),
@@ -60,6 +63,7 @@ class JcToUtExecutionConverter(
                 coverage = coverage,
                 instrumentation = instrumentation,
             )
+
             is UTestExecutionExceptionResult -> toUserRaisedException(executionResult.cause)?.let { exception ->
                 UtUsvmExecution(
                     stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
@@ -73,6 +77,7 @@ class JcToUtExecutionConverter(
                     instrumentation = instrumentation,
                 )
             }
+
             is UTestExecutionInitFailedResult -> {
                 toUserRaisedException(executionResult.cause)?.let { e ->
                     logger.warn(e) { "Execution failed before method under test call" }
@@ -91,7 +96,15 @@ class JcToUtExecutionConverter(
                 // TODO usvm-sbft
                 null
             }
-        }
+        } ?: return null
+
+        return utUsvmExecution.mapModels(UtModelDeepMapper {
+            instToModelCache[
+                toValueConverter.cache.getValue(
+                    utModelConstructor.cache.getValue(it)
+                ).origin
+            ] ?: it
+        })
         // TODO usvm-sbft: deep map UtExecution to substitute models build from UTest
     }
 

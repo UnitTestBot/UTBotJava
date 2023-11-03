@@ -110,7 +110,7 @@ class FuzzingEngine(
         }
     }
 
-    fun generateTests(
+    private fun generateTests(
         method: PythonMethod,
         additionalVars: String,
         until: Long,
@@ -154,7 +154,6 @@ class FuzzingEngine(
                 fuzzerCancellation,
                 until
             ).collect {
-                logger.info { "FUZZING: save new execution" }
                 executionStorage.saveFuzzingExecution(it)
             }
         }

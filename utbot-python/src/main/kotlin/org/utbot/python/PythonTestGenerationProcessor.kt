@@ -34,7 +34,6 @@ import org.utbot.python.newtyping.general.CompositeType
 import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
-import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.pythonName
 import org.utbot.python.utils.TemporaryFileManager
@@ -49,22 +48,23 @@ abstract class PythonTestGenerationProcessor {
     abstract val configuration: PythonTestGenerationConfig
     private val mypyBuildRoot = TemporaryFileManager.assignTemporaryFile(tag = "mypyBuildRoot")
 
-    fun sourceCodeAnalyze(): Pair<MypyInfoBuild, List<MypyReportLine>> {
-        return readMypyAnnotationStorageAndInitialErrors(
+    fun sourceCodeAnalyze(): MypyConfig {
+        val buildDirectory = MypyBuildDirectory(mypyBuildRoot, configuration.sysPathDirectories)
+        val (mypyInfoBuild, mypyReportLines) = readMypyAnnotationStorageAndInitialErrors(
             configuration.pythonPath,
             configuration.testFileInformation.testedFilePath,
             configuration.testFileInformation.moduleName,
-            MypyBuildDirectory(mypyBuildRoot, configuration.sysPathDirectories)
+            buildDirectory
         )
+        return MypyConfig(mypyInfoBuild, mypyReportLines, buildDirectory)
     }
 
-    fun testGenerate(mypyStorage: MypyInfoBuild, mypyReport: List<MypyReportLine>): List<PythonTestSet> {
+    fun testGenerate(mypyConfig: MypyConfig): List<PythonTestSet> {
         val startTime = System.currentTimeMillis()
 
         val testCaseGenerator = PythonTestCaseGenerator(
             configuration = configuration,
-            mypyStorage = mypyStorage,
-            mypyReportLine = mypyReport,
+            mypyConfig = mypyConfig,
         )
 
         val until = startTime + configuration.timeout
@@ -73,7 +73,7 @@ abstract class PythonTestGenerationProcessor {
             val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
             try {
                 val method = findMethodByHeader(
-                    mypyStorage,
+                    mypyConfig.mypyStorage,
                     methodHeader,
                     configuration.testFileInformation.moduleName,
                     configuration.testFileInformation.testedFileContent

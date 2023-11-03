@@ -1,5 +1,4 @@
 import java.text.SimpleDateFormat
-import org.gradle.api.JavaVersion.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "org.utbot"
@@ -137,6 +136,13 @@ allprojects {
         }
     }
 
+// from GRADLE_USER_HOME/gradle.properties
+    val githubUserFromHome: String? by project
+    val githubTokenFromHome: String? by project  // with permission to read packages
+
+    val githubUser: String = githubUserFromHome ?: System.getenv("GITHUB_ACTOR") ?: error("githubUser not defined")
+    val githubToken: String = githubTokenFromHome ?: System.getenv("GITHUB_TOKEN") ?: error("githubToken not defined")
+
     repositories {
         mavenCentral()
         maven("https://jitpack.io")
@@ -144,6 +150,13 @@ allprojects {
         maven("https://plugins.gradle.org/m2")
         maven("https://www.jetbrains.com/intellij-repository/releases")
         maven("https://cache-redirector.jetbrains.com/maven-central")
+        maven {
+            url = uri("https://maven.pkg.github.com/UnitTestBot/usvm")
+            credentials {
+                username = githubUser
+                password = githubToken
+            }
+        }
     }
 
     dependencies {
@@ -205,6 +218,32 @@ configure(
                     username = System.getenv("GITHUB_ACTOR")
                     password = System.getenv("GITHUB_TOKEN")
                 }
+            }
+        }
+    }
+}
+
+// from GRADLE_USER_HOME/gradle.properties
+val githubUserFromHome: String? by project
+val githubTokenFromHome: String? by project  // with permission to read packages
+
+val githubUser: String = githubUserFromHome ?: System.getenv("GITHUB_ACTOR") ?: error("githubUser not defined")
+val githubToken: String = githubTokenFromHome ?: System.getenv("GITHUB_TOKEN") ?: error("githubToken not defined")
+
+configure(
+    listOf(
+        project(":utbot-python"),
+        project(":utbot-intellij-python"),
+        project(":utbot-intellij-main"),
+        project(":utbot-cli-python"),
+    )
+) {
+    repositories {
+        maven {
+            url = uri("https://maven.pkg.github.com/UnitTestBot/usvm")
+            credentials {
+                username = githubUser
+                password = githubToken
             }
         }
     }

@@ -2,9 +2,6 @@ val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
-val ideType: String? by rootProject
-val pythonCommunityPluginVersion: String? by rootProject
-val pythonUltimatePluginVersion: String? by rootProject
 val log4j2Version: String? by rootProject
 
 dependencies {
@@ -13,6 +10,8 @@ dependencies {
     api(project(":utbot-python-parser"))
     api(project(":utbot-python-types"))
     api(project(":utbot-python-executor"))
+    api("org.usvm:usvm-python-runner:74d8ccc")
+
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation(group = "org.apache.commons", name = "commons-lang3", version = "3.12.0")

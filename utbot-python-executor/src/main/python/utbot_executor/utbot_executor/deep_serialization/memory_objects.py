@@ -332,7 +332,10 @@ class ReduceMemoryObject(MemoryObject):
                 for key, value in dictitems.items():
                     deserialized_obj[key] = value
 
-        comparable = self.obj == deserialized_obj
+        try:
+            comparable = self.obj == deserialized_obj
+        except:
+            comparable = False
 
         super()._initialize(deserialized_obj, comparable)
 

@@ -280,10 +280,10 @@ class PythonGenerateTestsCommand : CliktCommand(
         )
 
         logger.info("Loading information about Python types...")
-        val (mypyStorage, mypyReport) = processor.sourceCodeAnalyze()
+        val mypyConfig = processor.sourceCodeAnalyze()
 
         logger.info("Generating tests...")
-        var testSets = processor.testGenerate(mypyStorage, mypyReport)
+        var testSets = processor.testGenerate(mypyConfig)
         if (testSets.isEmpty()) return
         if (doNotGenerateRegressionSuite) {
             testSets = testSets.map { testSet ->

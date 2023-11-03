@@ -7,16 +7,13 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.engine.GlobalPythonEngine
 import org.utbot.python.framework.api.python.PythonUtExecution
-import org.utbot.python.newtyping.mypy.MypyInfoBuild
-import org.utbot.python.newtyping.mypy.MypyReportLine
 
 private val logger = KotlinLogging.logger {}
 private const val MAX_EMPTY_COVERAGE_TESTS = 5
 
 class PythonTestCaseGenerator(
     private val configuration: PythonTestGenerationConfig,
-    private val mypyStorage: MypyInfoBuild,
-    private val mypyReportLine: List<MypyReportLine>
+    private val mypyConfig: MypyConfig,
 ) {
     private val withMinimization = configuration.withMinimization
 
@@ -26,8 +23,7 @@ class PythonTestCaseGenerator(
         val engine = GlobalPythonEngine(
             method = method,
             configuration = configuration,
-            mypyStorage,
-            mypyReportLine,
+            mypyConfig,
             until,
         )
         try {

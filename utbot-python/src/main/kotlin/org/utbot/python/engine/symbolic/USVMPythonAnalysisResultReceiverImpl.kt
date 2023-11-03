@@ -1,6 +1,7 @@
 package org.utbot.python.engine.symbolic
 
 import mu.KotlinLogging
+import org.usvm.runner.USVMPythonAnalysisResultReceiver
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.UtError
@@ -14,6 +15,7 @@ import org.utbot.python.coverage.CoverageIdGenerator
 import org.utbot.python.coverage.PyInstruction
 import org.utbot.python.coverage.buildCoverage
 import org.utbot.python.engine.ExecutionFeedback
+import org.utbot.python.engine.ExecutionStorage
 import org.utbot.python.engine.InvalidExecution
 import org.utbot.python.engine.TypeErrorFeedback
 import org.utbot.python.engine.ValidExecution
@@ -29,65 +31,82 @@ import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
+import java.net.SocketException
 import java.util.concurrent.TimeoutException
 
 private val logger = KotlinLogging.logger {}
 
-class USVMPythonAnalysisResultReceiver(
+class USVMPythonAnalysisResultReceiverImpl(
     val method: PythonMethod,
     val configuration: PythonTestGenerationConfig,
+    val executionStorage: ExecutionStorage,
     val until: Long,
-) {
-    private val serverSocket = ServerSocket(0)
-    private val manager =
-        PythonWorkerManager(
-            serverSocket,
-            configuration.pythonPath,
-            until,
-            configuration.coverageMeasureMode,
-            configuration.sendCoverageContinuously,
-        ) {
-            PythonCodeSocketExecutor(
-                method,
-                configuration.testFileInformation.moduleName,
+) : USVMPythonAnalysisResultReceiver() {
+    private lateinit var serverSocket: ServerSocket
+    private lateinit var manager: PythonWorkerManager
+
+    init {
+        connect()
+    }
+
+    fun connect() {
+        serverSocket = ServerSocket(0)
+        manager =
+            PythonWorkerManager(
+                serverSocket,
                 configuration.pythonPath,
-                configuration.sysPathDirectories,
-                configuration.timeoutForRun,
-                it,
-            )
-        }
+                until,
+                configuration.coverageMeasureMode,
+                configuration.sendCoverageContinuously,
+            ) {
+                PythonCodeSocketExecutor(
+                    method,
+                    configuration.testFileInformation.moduleName,
+                    configuration.pythonPath,
+                    configuration.sysPathDirectories,
+                    configuration.timeoutForRun,
+                    it,
+                )
+            }
+    }
 
-    fun receivePickledInputValues(pickledTuple: String): ExecutionFeedback? {
-        serverSocket.use {
-            try {
-                val coverageId = CoverageIdGenerator.createId()
-                return when (
-                    val evaluationResult = manager.runWithCoverage(pickledTuple, coverageId)
-                ) {
-                    is PythonEvaluationError -> {
-                        val stackTraceMessage = evaluationResult.stackTrace.joinToString("\n")
-                        val utError = UtError(
-                            "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}\n${stackTraceMessage}",
-                            Throwable(stackTraceMessage)
-                        )
-                        logger.debug(stackTraceMessage)
-                        InvalidExecution(utError)
-                    }
+    fun close() {
+        manager.shutdown()
+        serverSocket.close()
+    }
 
-                    is PythonEvaluationTimeout -> {
+    fun receivePickledInputValuesWithFeedback(pickledTuple: String): ExecutionFeedback? {
+        try {
+            val coverageId = CoverageIdGenerator.createId()
+            return when (
+                val evaluationResult = manager.runWithCoverage(pickledTuple, coverageId)
+            ) {
+                is PythonEvaluationError -> {
+                    val stackTraceMessage = evaluationResult.stackTrace.joinToString("\n")
+                    val utError = UtError(
+                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}\n${stackTraceMessage}",
+                        Throwable(stackTraceMessage)
+                    )
+                    logger.debug(stackTraceMessage)
+                    InvalidExecution(utError)
+                }
+
+                is PythonEvaluationTimeout -> {
 //                        val coveredInstructions = manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableListOf())
 //                        handleTimeoutResult(method, coveredInstructions)
-                        null
-                    }
-
-                    is PythonEvaluationSuccess -> {
-                        handleSuccessResult(method, evaluationResult)
-                    }
+                    null
                 }
-            } catch (_: TimeoutException) {
-                logger.debug { "Fuzzing process was interrupted by timeout" }
-                return null
+
+                is PythonEvaluationSuccess -> {
+                    handleSuccessResult(method, evaluationResult)
+                }
             }
+        } catch (_: TimeoutException) {
+            logger.debug { "Symbolic process was interrupted by timeout" }
+            return null
+        } catch (_: SocketException) {
+            connect()
+            return null
         }
     }
 
@@ -125,7 +144,7 @@ class USVMPythonAnalysisResultReceiver(
         val resultModel = evaluationResult.stateAfter.getById(evaluationResult.resultId).toPythonTree(evaluationResult.stateAfter)
 
         if (evaluationResult.isException && (resultModel.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
-            val errorMessage = "Evaluation with prohibited exception. Substituted types: ???"  // TODO: improve message
+            val errorMessage = "Evaluation with prohibited exception. Error: $resultModel"
             logger.debug { errorMessage }
             return TypeErrorFeedback(errorMessage)
         }
@@ -155,10 +174,10 @@ class USVMPythonAnalysisResultReceiver(
         return ValidExecution(utFuzzedExecution)
     }
 
-    private fun handleTimeoutResult(
-        method: PythonMethod,
-        coveredInstructions: MutableList<PyInstruction>
-    ): ExecutionFeedback {
-        TODO()
+    override fun receivePickledInputValues(pickledTuple: String) {
+        logger.info { "SYMBOLIC: $pickledTuple" }
+        receivePickledInputValuesWithFeedback(pickledTuple)?.let {
+            executionStorage.saveSymbolicExecution(it)
+        }
     }
 }

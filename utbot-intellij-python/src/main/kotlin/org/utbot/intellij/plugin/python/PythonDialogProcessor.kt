@@ -287,7 +287,7 @@ object PythonDialogProcessor {
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 0.5)
 
-                        val (mypyStorage, mypyReport) = processor.sourceCodeAnalyze()
+                        val mypyConfig = processor.sourceCodeAnalyze()
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 1.0)
 
@@ -300,7 +300,7 @@ object PythonDialogProcessor {
                             model.timeout,
                         )
                         try {
-                            val testSets = processor.testGenerate(mypyStorage, mypyReport)
+                            val testSets = processor.testGenerate(mypyConfig)
                             timerHandler.cancel(true)
                             if (testSets.isEmpty()) return@forEachIndexed
 
@@ -312,7 +312,7 @@ object PythonDialogProcessor {
 
                             logger.info(
                                 "Finished test generation for the following functions: ${
-                                    testSets.joinToString { it.method.name }
+                                    testSets.map { it.method.name }.toSet().joinToString()
                                 }"
                             )
                         } finally {

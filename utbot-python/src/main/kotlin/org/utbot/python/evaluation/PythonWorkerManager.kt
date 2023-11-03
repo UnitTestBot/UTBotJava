@@ -42,6 +42,9 @@ class PythonWorkerManager(
             process.destroy()
         }
         val logLevel = LogManager.getRootLogger().level.name()
+        if (serverSocket.isClosed) {
+            serverSocket.accept()
+        }
         process = startProcess(listOf(
             pythonPath,
             "-m", "utbot_executor",
@@ -68,7 +71,7 @@ class PythonWorkerManager(
             throw TimeoutException("Worker not connected")
         } catch (e: SocketException) {
             logger.debug { e.message }
-            throw TimeoutException("Worker not connected")
+            throw SocketException("Worker not connected: $e")
         }
         logger.debug { "Worker connected successfully" }
 

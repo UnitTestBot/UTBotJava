@@ -39,18 +39,6 @@ class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
     private val instToModelCache: Map<UTestExpression, UtModel>,
 ) {
-
-    private val classLoader = utContext.classLoader
-    private val toValueConverter = Descriptor2ValueConverter(classLoader)
-
-    private val utModelConstructor = UtModelConstructor(
-        objectToModelCache = IdentityHashMap(),
-        idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
-        utModelWithCompositeOriginConstructorFinder = { classId ->
-            javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
-        }
-    )
-
     private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
 
     fun convert(valueDescriptor: UTestValueDescriptor?): UtModel {
@@ -63,7 +51,7 @@ class JcToUtModelConverter(
             return UtNullModel(objectClassId)
         }
 
-        when (valueDescriptor) {
+        return when (valueDescriptor) {
             is UTestObjectDescriptor -> {
                 val fields = mutableMapOf<FieldId, UtModel>()
 
@@ -76,7 +64,16 @@ class JcToUtModelConverter(
                 )
 
                 descriptorToModelCache[valueDescriptor] = model
-                // add fields
+
+                fields += valueDescriptor.fields
+                    .entries
+                    .associate { (jcField, fieldDescr) ->
+                        val fieldId = FieldId(jcField.type.classId, jcField.name)
+                        val fieldModel = convert(fieldDescr)
+                        fieldId to fieldModel
+                    }
+
+                model
             }
 
             is UTestArrayDescriptor.Array -> TODO()
@@ -103,10 +100,5 @@ class JcToUtModelConverter(
             is UTestEnumValueDescriptor -> TODO()
             is UTestExceptionDescriptor -> TODO()
         }
-
-        val concreteValue = toValueConverter.buildObjectFromDescriptor(valueDescriptor)
-        val objectType = valueDescriptor.type.toJavaClass(classLoader).id
-
-        return utModelConstructor.construct(concreteValue, objectType)
     }
 }

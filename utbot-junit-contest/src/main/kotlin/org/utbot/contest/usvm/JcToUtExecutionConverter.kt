@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
+import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzer.IdGenerator
@@ -64,7 +65,8 @@ class JcToUtExecutionConverter(
             is UTestExecutionSuccessResult -> UtUsvmExecution(
                 stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
                 stateAfter = convertState(executionResult.resultState, jcExecution.method, modelConverter),
-                result = UtExecutionSuccess(modelConverter.convert(executionResult.result)),
+                // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
+                result = UtExecutionSuccess(executionResult.result?.let { modelConverter.convert(it) } ?: UtVoidModel),
                 coverage = coverage,
                 instrumentation = instrumentation,
             )
@@ -124,8 +126,8 @@ class JcToUtExecutionConverter(
         ): EnvironmentModels {
         val thisInstance =
             if (method.isStatic) null
-            else modelConverter.convert(state.instanceDescriptor)
-        val parameters = state.argsDescriptors.map { modelConverter.convert(it) }
+            else modelConverter.convert(state.instanceDescriptor ?: error("Unexpected null instanceDescriptor"))
+        val parameters = state.argsDescriptors.map { modelConverter.convert(it ?: error("Unexpected null argDescriptor")) }
         val statics = state.statics
             .entries
             .associate { (jcField, uTestDescr) ->

@@ -21,7 +21,6 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.IdGenerator
 
@@ -32,14 +31,9 @@ class JcToUtModelConverter(
     private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
     private val refIdToDescriptorCache = mutableMapOf<Int, UTestValueDescriptor>()
 
-    fun convert(valueDescriptor: UTestValueDescriptor?): UtModel {
-        valueDescriptor?.origin?.let {
+    fun convert(valueDescriptor: UTestValueDescriptor): UtModel = descriptorToModelCache.getOrPut(valueDescriptor) {
+        valueDescriptor.origin?.let {
             return instToModelCache.getValue(it as UTestExpression)
-        }
-
-        // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
-        if (valueDescriptor == null) {
-            return UtNullModel(objectClassId)
         }
 
         if (valueDescriptor is UTestRefDescriptor)
@@ -90,14 +84,14 @@ class JcToUtModelConverter(
                 model
             }
 
-            is UTestArrayDescriptor.BooleanArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.ByteArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.CharArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.DoubleArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.FloatArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.IntArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.LongArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.ShortArray -> constructArrayModel(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.BooleanArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.ByteArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.CharArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.DoubleArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.FloatArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.IntArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.LongArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
+            is UTestArrayDescriptor.ShortArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
 
             is UTestClassDescriptor -> UtClassRefModel(
                 id = idGenerator.createId(),
@@ -140,7 +134,7 @@ class JcToUtModelConverter(
         }
     }
 
-    private fun constructArrayModel(valueDescriptor: UTestArrayDescriptor<*>, arrayContent: List<Any>): UtArrayModel {
+    private fun constructPrimitiveArray(valueDescriptor: UTestArrayDescriptor<*>, arrayContent: List<Any>): UtArrayModel {
         val stores = mutableMapOf<Int, UtModel>()
 
         val model = UtArrayModel(

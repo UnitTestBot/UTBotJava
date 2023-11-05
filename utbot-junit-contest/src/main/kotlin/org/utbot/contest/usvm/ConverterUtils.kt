@@ -45,4 +45,4 @@ val JcField.fieldId: FieldId
     get() = toJavaField(utContext.classLoader)!!.fieldId
 
 val UTestValueDescriptor.origin: UTestInst?
-    get() = (this as UTestObjectDescriptor)?.originUTestExpr
+    get() = (this as? UTestObjectDescriptor)?.originUTestExpr

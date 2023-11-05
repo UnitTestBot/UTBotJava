@@ -17,8 +17,7 @@ import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.utbot.contest.usvm.executor.JcExecution
-import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -30,7 +29,6 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzer.IdGenerator
 
@@ -40,16 +38,13 @@ class JcToUtExecutionConverter(
     private val jcExecution: JcExecution,
     private val idGenerator: IdGenerator<Int>,
     private val instructionIdProvider: InstructionIdProvider,
+    utilMethodProvider: UtilMethodProvider,
 ) {
-    //TODO usvm-sbft: obtain in somehow from [JcExecution] or somewhere else
-    private val testClassId: ClassId = objectClassId
-
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
     private var modelConverter: JcToUtModelConverter
 
     init {
-        val utilMethodProvider = TestClassUtilMethodProvider(testClassId)
         val instToModelConverter = UTestInst2UtModelConverter(idGenerator, utilMethodProvider)
         val uTestProcessResult = instToModelConverter.processUTest(jcExecution.uTest)
 

@@ -220,7 +220,8 @@ fun runUsvmGeneration(
                         JcToUtExecutionConverter(
                             jcExecution = it,
                             idGenerator = idGenerator,
-                            instructionIdProvider = instructionIdProvider
+                            instructionIdProvider = instructionIdProvider,
+                            utilMethodProvider = codeGenerator.context.utilMethodProvider
                         ).convert()
                     }
                 }

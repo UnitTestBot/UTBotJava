@@ -8,16 +8,21 @@ import org.usvm.instrumentation.testcase.descriptor.UTestCyclicReferenceDescript
 import org.usvm.instrumentation.testcase.descriptor.UTestEnumValueDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
+import org.usvm.instrumentation.testcase.descriptor.UTestRefDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.classClassId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.IdGenerator
 
 class JcToUtModelConverter(
@@ -25,6 +30,7 @@ class JcToUtModelConverter(
     private val instToModelCache: Map<UTestExpression, UtModel>,
 ) {
     private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
+    private val refIdToDescriptorCache = mutableMapOf<Int, UTestValueDescriptor>()
 
     fun convert(valueDescriptor: UTestValueDescriptor?): UtModel {
         valueDescriptor?.origin?.let {
@@ -35,6 +41,9 @@ class JcToUtModelConverter(
         if (valueDescriptor == null) {
             return UtNullModel(objectClassId)
         }
+
+        if (valueDescriptor is UTestRefDescriptor)
+            refIdToDescriptorCache[valueDescriptor.refId] = valueDescriptor
 
         return when (valueDescriptor) {
             is UTestObjectDescriptor -> {
@@ -108,9 +117,26 @@ class JcToUtModelConverter(
             is UTestConstantDescriptor.Short -> UtPrimitiveModel(valueDescriptor.value)
             is UTestConstantDescriptor.String -> UtPrimitiveModel(valueDescriptor.value)
 
-            is UTestCyclicReferenceDescriptor -> TODO() // создать кэш по рефайди, проверить, что уже есть модель с таким же, или еррор
-            is UTestEnumValueDescriptor -> TODO()
-            is UTestExceptionDescriptor -> TODO()
+            is UTestCyclicReferenceDescriptor -> descriptorToModelCache.getValue(
+                refIdToDescriptorCache.getValue(valueDescriptor.refId)
+            )
+            is UTestEnumValueDescriptor -> UtEnumConstantModel(
+                id = idGenerator.createId(),
+                classId = valueDescriptor.type.classId,
+                value = valueDescriptor.type.classId.jClass.enumConstants.find {
+                    (it as Enum<*>).name == valueDescriptor.enumValueName
+                } as Enum<*>
+            )
+            is UTestExceptionDescriptor -> UtCompositeModel(
+                id = idGenerator.createId(),
+                classId = valueDescriptor.type.classId,
+                isMock = false,
+                fields = mutableMapOf(
+                    FieldId(java.lang.Throwable::class.java.id, "detailMessage") to
+                            // TODO usvm-sbft: ask why `UTestExceptionDescriptor.message` is not nullable
+                            (valueDescriptor?.let { UtPrimitiveModel(it) } ?: UtNullModel(stringClassId))
+                )
+            )
         }
     }
 

@@ -38,6 +38,7 @@ import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.summarizeAll
 import java.io.File
 import java.net.URLClassLoader
+import java.util.*
 import kotlin.math.max
 
 private val logger = KotlinLogging.logger {}
@@ -217,12 +218,18 @@ fun runUsvmGeneration(
 
                 val utExecutions: List<UtExecution> = jcExecutions.mapNotNull {
                     logger.debug().measureTime({ "Convert JcExecution" }) {
-                        JcToUtExecutionConverter(
-                            jcExecution = it,
-                            idGenerator = idGenerator,
-                            instructionIdProvider = instructionIdProvider,
-                            utilMethodProvider = codeGenerator.context.utilMethodProvider
-                        ).convert()
+                        try {
+                            JcToUtExecutionConverter(
+                                jcExecution = it,
+                                idGenerator = idGenerator,
+                                instructionIdProvider = instructionIdProvider,
+                                utilMethodProvider = codeGenerator.context.utilMethodProvider
+                            ).convert()
+                        } catch (e: Exception) {
+                            val stackTrace = Arrays.toString(e.stackTrace);
+                            logger.error { "Can't convert execution for method ${method.name}, exception is  ${e.message}. \n $stackTrace" }
+                            null
+                        }
                     }
                 }
 

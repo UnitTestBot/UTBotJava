@@ -65,6 +65,7 @@ class UTestInst2UtModelConverter(
         instrumentations.clear()
 
         uTest.initStatements.forEach { uInst -> processInst(uInst) }
+        processInst(uTest.callMethodExpression)
 
         return UTestInstOutput(exprToModelCache, instrumentations)
     }

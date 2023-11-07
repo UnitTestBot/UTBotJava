@@ -7,4 +7,9 @@ org.utbot.examples.controlflow.Conditions
 org.utbot.examples.controlflow.CycleDependedCondition
 org.utbot.examples.controlflow.Cycles
 org.utbot.examples.controlflow.Switch
+org.utbot.examples.recursion.Recursion
+org.utbot.examples.math.BitOperators
+org.utbot.examples.math.DivRemExamples
+org.utbot.examples.math.DoubleFunctions
+
 

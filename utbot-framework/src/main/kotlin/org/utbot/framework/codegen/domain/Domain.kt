@@ -612,7 +612,7 @@ enum class RuntimeExceptionTestsBehaviour(
     // Get is mandatory because of the initialization order of the inheritors.
     // Otherwise, in some cases we could get an incorrect value
     companion object : CodeGenerationSettingBox {
-        override val defaultItem: RuntimeExceptionTestsBehaviour get() = FAIL
+        override val defaultItem: RuntimeExceptionTestsBehaviour get() = PASS
         override val allItems: List<RuntimeExceptionTestsBehaviour> = values().toList()
     }
 }

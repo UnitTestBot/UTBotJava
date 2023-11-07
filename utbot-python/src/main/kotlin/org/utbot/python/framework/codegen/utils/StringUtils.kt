@@ -4,5 +4,9 @@ import java.nio.file.FileSystems
 
 
 fun String.toRelativeRawPath(): String {
-    return "os.path.dirname(__file__) + r'${FileSystems.getDefault().separator}${this}'"
+    val dirname = "os.path.dirname(__file__)"
+    if (this.isEmpty()) {
+        return dirname
+    }
+    return "$dirname + r'${FileSystems.getDefault().separator}${this}'"
 }

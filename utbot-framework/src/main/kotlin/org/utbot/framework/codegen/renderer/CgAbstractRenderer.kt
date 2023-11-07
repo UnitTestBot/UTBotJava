@@ -408,18 +408,13 @@ abstract class CgAbstractRenderer(
 
         val isBlockTooLarge = workaround(LONG_CODE_FRAGMENTS) { block.size > LARGE_CODE_BLOCK_SIZE }
 
-        if (isBlockTooLarge) {
-            print("/*")
-            println(" This block of code is ${block.size} lines long and could lead to compilation error")
-        }
-
-        withIndent {
-            for (statement in block) {
-                statement.accept(this)
+        if (!isBlockTooLarge) {
+            withIndent {
+                for (statement in block) {
+                    statement.accept(this)
+                }
             }
         }
-
-        if (isBlockTooLarge) println("*/")
 
         print("}")
 
@@ -982,6 +977,6 @@ abstract class CgAbstractRenderer(
         /**
          * @see [LONG_CODE_FRAGMENTS]
          */
-        private const val LARGE_CODE_BLOCK_SIZE: Int = 1000
+        private const val LARGE_CODE_BLOCK_SIZE: Int = 150
     }
 }

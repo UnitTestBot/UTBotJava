@@ -98,7 +98,13 @@ abstract class PythonTestGenerationProcessor {
         return notEmptyTests
     }
 
-    fun testCodeGenerate(testSets: List<PythonTestSet>): String {
+    fun testCodeGenerateSplitImports(testSets: List<PythonTestSet>): Pair<String, Set<PythonImport>> {
+        val allImports = collectImports(testSets)
+        val code = testCodeGenerate(testSets, true)
+        return code to allImports
+    }
+
+    fun testCodeGenerate(testSets: List<PythonTestSet>, skipImports: Boolean = false): String {
         val containingClassName = getContainingClassName(testSets)
         val classId = PythonClassId(configuration.testFileInformation.moduleName, containingClassName)
 
@@ -123,7 +129,7 @@ abstract class PythonTestGenerationProcessor {
             methodIds[testSet.method] as ExecutableId to params
         }.toMutableMap()
 
-        val allImports = collectImports(testSets)
+        val allImports = if (skipImports) emptySet() else collectImports(testSets)
 
         val context = UtContext(this::class.java.classLoader)
         withUtContext(context) {

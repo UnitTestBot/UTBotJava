@@ -10,6 +10,7 @@ import mu.KotlinLogging
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.config.Configurator
 import org.slf4j.event.Level
+import org.utbot.cli.language.python.sbft.SbftGenerateTestsCommand
 import java.util.*
 import kotlin.system.exitProcess
 
@@ -29,10 +30,13 @@ class UtBotPythonCli : CliktCommand(name = "UnitTestBot Python Command Line Inte
 
 fun main(args: Array<String>) = try {
     UtBotPythonCli().subcommands(
-        PythonGenerateTestsCommand(),
-        PythonRunTestsCommand(),
-        PythonTypeInferenceCommand()
+        SbftGenerateTestsCommand()
     ).main(args)
+//    UtBotPythonCli().subcommands(
+//        PythonGenerateTestsCommand(),
+//        PythonRunTestsCommand(),
+//        PythonTypeInferenceCommand()
+//    ).main(args)
 } catch (ex: Throwable) {
     ex.printStackTrace()
     exitProcess(1)

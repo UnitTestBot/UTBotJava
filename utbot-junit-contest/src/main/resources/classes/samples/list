@@ -3,4 +3,8 @@ org.utbot.examples.primitives.ByteExamples
 org.utbot.examples.primitives.CharExamples
 org.utbot.examples.primitives.FloatExamples
 org.utbot.examples.primitives.DoubleExamples
+org.utbot.examples.controlflow.Conditions
+org.utbot.examples.controlflow.CycleDependedCondition
+org.utbot.examples.controlflow.Cycles
+org.utbot.examples.controlflow.Switch
 

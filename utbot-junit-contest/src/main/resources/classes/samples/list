@@ -1,1 +1,6 @@
 org.utbot.examples.primitives.IntExamples
+org.utbot.examples.primitives.ByteExamples
+org.utbot.examples.primitives.CharExamples
+org.utbot.examples.primitives.FloatExamples
+org.utbot.examples.primitives.DoubleExamples
+

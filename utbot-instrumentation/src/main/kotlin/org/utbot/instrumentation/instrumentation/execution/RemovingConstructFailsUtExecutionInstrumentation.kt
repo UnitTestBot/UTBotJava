@@ -94,6 +94,9 @@ class RemovingConstructFailsUtExecutionInstrumentation(
         }
     }
 
+    override fun getResultOfInstrumentation(className: String, methodSignature: String): ResultOfInstrumentation =
+        delegateInstrumentation.getResultOfInstrumentation(className, methodSignature)
+
     private fun shallowlyRemoveFailingCalls(model: UtModel): UtModel = when {
         model !is UtAssembleModel -> model
         model.instantiationCall.thrownConcreteException != null -> model.classId.defaultValueModel()

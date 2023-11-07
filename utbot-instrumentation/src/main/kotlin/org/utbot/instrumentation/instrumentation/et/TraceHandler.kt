@@ -52,7 +52,7 @@ data class PutStaticInstruction(
 
 private data class ClassToMethod(
     val className: String,
-    val methodName: String
+    val methodSignature: String
 )
 
 class ProcessingStorage {
@@ -65,6 +65,8 @@ class ProcessingStorage {
     private val instructionsData = mutableMapOf<Long, InstructionData>()
     private val classToInstructionsCount = mutableMapOf<String, Long>()
 
+    private val methodIdToInstructionsIds = mutableMapOf<Int, MutableList<Long>>()
+
     fun addClass(className: String): Int {
         val id = classToId.getOrPut(className) { classToId.size }
         idToClass.putIfAbsent(id, className)
@@ -75,8 +77,8 @@ class ProcessingStorage {
         return classToId[className]!!.toLong() * SHIFT + localId
     }
 
-    fun addClassMethod(className: String, methodName: String): Int {
-        val classToMethod = ClassToMethod(className, methodName)
+    fun addClassMethod(className: String, methodSignature: String): Int {
+        val classToMethod = ClassToMethod(className, methodSignature)
         val id = classMethodToId.getOrPut(classToMethod) { classMethodToId.size }
         idToClassMethod.putIfAbsent(id, classToMethod)
         return id
@@ -88,10 +90,11 @@ class ProcessingStorage {
         return className to localId
     }
 
-    fun addInstruction(id: Long, instructionData: InstructionData) {
+    fun addInstruction(id: Long, methodId: Int, instructionData: InstructionData) {
         instructionsData.computeIfAbsent(id) {
             val (className, _) = computeClassNameAndLocalId(id)
             classToInstructionsCount.merge(className, 1, Long::plus)
+            methodIdToInstructionsIds.getOrPut(methodId) { mutableListOf() }.add(id)
             instructionData
         }
     }
@@ -101,6 +104,11 @@ class ProcessingStorage {
 
     fun getInstruction(id: Long): InstructionData {
         return instructionsData.getValue(id)
+    }
+
+    fun getInstructionsIds(className: String, methodSignature: String): List<Long>? {
+        val methodId = classMethodToId[ClassToMethod(className, methodSignature)]
+        return methodIdToInstructionsIds[methodId]
     }
 
     companion object {

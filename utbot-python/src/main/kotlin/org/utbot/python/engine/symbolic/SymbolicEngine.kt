@@ -40,9 +40,7 @@ class SymbolicEngine(
         val symbolicCancellation = { configuration.isCanceled() || System.currentTimeMillis() > endTime }
         val symbolicRunner = PythonSymbolicAnalysisRunnerImpl(usvmPythonConfig)
         symbolicRunner.use {
-            logger.info { "Start symbolic ${System.currentTimeMillis()}" }
             it.analyze(runConfig, receiver, symbolicCancellation)
-            logger.info { "Stop symbolic ${System.currentTimeMillis()}" }
         }
     }
 }

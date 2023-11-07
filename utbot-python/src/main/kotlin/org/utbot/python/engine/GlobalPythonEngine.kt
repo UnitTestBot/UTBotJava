@@ -5,6 +5,7 @@ import org.usvm.runner.StandardLayout
 import org.usvm.runner.USVMPythonConfig
 import org.usvm.runner.USVMPythonFunctionConfig
 import org.usvm.runner.USVMPythonRunConfig
+import org.usvm.runner.venv.extractVenvConfig
 import org.utbot.python.MypyConfig
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationConfig
@@ -58,7 +59,8 @@ class GlobalPythonEngine(
             StandardLayout(File(configuration.usvmConfig.usvmDirectory)),
             configuration.usvmConfig.javaCmd,
             mypyConfig.mypyBuildDirectory.root.canonicalPath,
-            configuration.sysPathDirectories
+            configuration.sysPathDirectories,
+            extractVenvConfig(configuration.pythonPath)
         )
         val receiver = USVMPythonAnalysisResultReceiverImpl(
             method,

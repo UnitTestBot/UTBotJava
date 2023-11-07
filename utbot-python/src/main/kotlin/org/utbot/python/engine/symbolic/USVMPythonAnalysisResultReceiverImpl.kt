@@ -12,7 +12,6 @@ import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.coverage.CoverageIdGenerator
-import org.utbot.python.coverage.PyInstruction
 import org.utbot.python.coverage.buildCoverage
 import org.utbot.python.engine.ExecutionFeedback
 import org.utbot.python.engine.ExecutionStorage
@@ -175,7 +174,7 @@ class USVMPythonAnalysisResultReceiverImpl(
     }
 
     override fun receivePickledInputValues(pickledTuple: String) {
-        logger.info { "SYMBOLIC: $pickledTuple" }
+        logger.debug { "SYMBOLIC: $pickledTuple" }
         receivePickledInputValuesWithFeedback(pickledTuple)?.let {
             executionStorage.saveSymbolicExecution(it)
         }

@@ -138,14 +138,12 @@ class UTestInst2UtModelConverter(
                     params = listOf(UtPrimitiveModel(uTestExpr.clazz.classId.name)),
                 )
 
-                val newModel = UtAssembleModel(
+                UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.clazz.classId,
                     modelName = "",
                     instantiationCall = createInstanceCall,
                 )
-
-                newModel
             }
 
             is UTestConstructorCall -> {
@@ -157,14 +155,12 @@ class UTestInst2UtModelConverter(
                     },
                 )
 
-                val newModel = UtAssembleModel(
+                UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.type.classId,
                     modelName = "",
                     instantiationCall = constructorCall,
                 )
-
-                newModel
             }
 
             is UTestMethodCall -> {
@@ -174,21 +170,30 @@ class UTestInst2UtModelConverter(
                 val methodCall = UtExecutableCallModel(
                     instance = instanceModel,
                     executable = uTestExpr.method.toExecutableId(),
-                    params = uTestExpr.args.map { arg ->
-                        processExpr(arg)
-                    },
+                    params = uTestExpr.args.map { arg -> processExpr(arg) },
                 )
 
                 (instanceModel.modificationsChain as MutableList).add(methodCall)
 
-                val newModel = UtAssembleModel(
+                UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.type.classId,
                     modelName = "",
                     instantiationCall = methodCall,
                 )
+            }
 
-                newModel
+            is UTestStaticMethodCall -> {
+                UtAssembleModel(
+                    id = idGenerator.createId(),
+                    classId = uTestExpr.type.classId,
+                    modelName = "",
+                    instantiationCall = UtExecutableCallModel(
+                        instance = null,
+                        executable = uTestExpr.method.toExecutableId(),
+                        params = uTestExpr.args.map { arg -> processExpr(arg) },
+                    ),
+                )
             }
 
             is UTestClassExpression -> UtClassRefModel(
@@ -236,14 +241,12 @@ class UTestInst2UtModelConverter(
                     ),
                 )
 
-                val newModel = UtAssembleModel(
+                UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.type.classId,
                     modelName = "",
                     instantiationCall = getFieldCall,
                 )
-
-                newModel
             }
 
             is UTestGetStaticFieldExpression -> {
@@ -256,14 +259,12 @@ class UTestInst2UtModelConverter(
                     ),
                 )
 
-                val newModel = UtAssembleModel(
+                UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.type.classId,
                     modelName = "",
                     instantiationCall = getStaticFieldCall,
                 )
-
-                newModel
             }
 
             is UTestMockObject -> {
@@ -310,8 +311,6 @@ class UTestInst2UtModelConverter(
 
             is UTestArithmeticExpression -> error("This expression type is not supported")
             is UTestBinaryConditionExpression -> error("This expression type is not supported")
-
-            is UTestStaticMethodCall -> error("This expression type is not supported")
 
             is UTestCastExpression -> error("This expression type is not supported")
 

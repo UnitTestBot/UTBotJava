@@ -48,8 +48,9 @@ import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.fuzzer.IdGenerator
 
-data class UTestInstOutput(
+data class UTestProcessResult(
     val exprToModelCache: Map<UTestExpression, UtModel>,
+    val instantiationCallToAssembleModelCache: Map<UtExecutableCallModel, UtAssembleModel>,
     val instrumentations: List<UtInstrumentation>,
     )
 
@@ -58,16 +59,17 @@ class UTestInst2UtModelConverter(
     private val utilMethodProvider: UtilMethodProvider,
 ) {
     private val exprToModelCache = mutableMapOf<UTestExpression, UtModel>()
+    private val instantiationCallToAssembleModelCache = mutableMapOf<UtExecutableCallModel, UtAssembleModel>()
     private val instrumentations = mutableListOf<UtInstrumentation>()
 
-    fun processUTest(uTest: UTest): UTestInstOutput {
+    fun processUTest(uTest: UTest): UTestProcessResult {
         exprToModelCache.clear()
         instrumentations.clear()
 
         uTest.initStatements.forEach { uInst -> processInst(uInst) }
         processInst(uTest.callMethodExpression)
 
-        return UTestInstOutput(exprToModelCache, instrumentations)
+        return UTestProcessResult(exprToModelCache, instantiationCallToAssembleModelCache, instrumentations)
     }
 
     private fun processInst(uTestInst: UTestInst) {
@@ -121,16 +123,22 @@ class UTestInst2UtModelConverter(
     private fun processExpr(uTestExpr: UTestExpression): UtModel = exprToModelCache.getOrPut(uTestExpr) {
         when (uTestExpr) {
             is UTestAllocateMemoryCall -> {
-                UtAssembleModel(
+                val createInstanceCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = utilMethodProvider.createInstanceMethodId,
+                    params = listOf(UtPrimitiveModel(uTestExpr.clazz.classId.name)),
+                )
+
+                val newModel = UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.clazz.classId,
                     modelName = "",
-                    instantiationCall = UtExecutableCallModel(
-                        instance = null,
-                        executable = utilMethodProvider.createInstanceMethodId,
-                        params = listOf(UtPrimitiveModel(uTestExpr.clazz.classId.name)),
-                    ),
+                    instantiationCall = createInstanceCall,
                 )
+
+                instantiationCallToAssembleModelCache[createInstanceCall] = newModel
+
+                newModel
             }
 
             is UTestConstructorCall -> {
@@ -148,6 +156,8 @@ class UTestInst2UtModelConverter(
                     modelName = "",
                     instantiationCall = constructorCall,
                 )
+
+                instantiationCallToAssembleModelCache[constructorCall] = newModel
 
                 newModel
             }
@@ -172,6 +182,8 @@ class UTestInst2UtModelConverter(
                     modelName = "",
                     instantiationCall = methodCall,
                 )
+
+                instantiationCallToAssembleModelCache[methodCall] = newModel
 
                 newModel
             }
@@ -211,36 +223,48 @@ class UTestInst2UtModelConverter(
             is UTestGetFieldExpression -> {
                 val instanceModel = processExpr(uTestExpr.instance)
 
-                UtAssembleModel(
+                val getFieldCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = utilMethodProvider.getFieldValueMethodId,
+                    params = listOf(
+                        instanceModel,
+                        UtPrimitiveModel(uTestExpr.field.type.classId.name),
+                        UtPrimitiveModel(uTestExpr.field.name),
+                    ),
+                )
+
+                val newModel = UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.type.classId,
                     modelName = "",
-                    instantiationCall = UtExecutableCallModel(
-                        instance = null,
-                        executable = utilMethodProvider.getFieldValueMethodId,
-                        params = listOf(
-                            instanceModel,
-                            UtPrimitiveModel(uTestExpr.field.type.classId.name),
-                            UtPrimitiveModel(uTestExpr.field.name),
-                        ),
-                    ),
+                    instantiationCall = getFieldCall,
                 )
+
+                instantiationCallToAssembleModelCache[getFieldCall] = newModel
+
+                newModel
             }
 
             is UTestGetStaticFieldExpression -> {
-                UtAssembleModel(
+                val getStaticFieldCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = utilMethodProvider.getStaticFieldValueMethodId,
+                    params = listOf(
+                        UtPrimitiveModel(uTestExpr.field.type.classId.name),
+                        UtPrimitiveModel(uTestExpr.field.name),
+                    ),
+                )
+
+                val newModel = UtAssembleModel(
                     id = idGenerator.createId(),
                     classId = uTestExpr.type.classId,
                     modelName = "",
-                    instantiationCall = UtExecutableCallModel(
-                        instance = null,
-                        executable = utilMethodProvider.getStaticFieldValueMethodId,
-                        params = listOf(
-                            UtPrimitiveModel(uTestExpr.field.type.classId.name),
-                            UtPrimitiveModel(uTestExpr.field.name),
-                        ),
-                    ),
+                    instantiationCall = getStaticFieldCall,
                 )
+
+                instantiationCallToAssembleModelCache[getStaticFieldCall] = newModel
+
+                newModel
             }
 
             is UTestMockObject -> {

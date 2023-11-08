@@ -48,7 +48,7 @@ class JcToUtExecutionConverter(
         val instToModelConverter = UTestInst2UtModelConverter(idGenerator, utilMethodProvider)
         val uTestProcessResult = instToModelConverter.processUTest(jcExecution.uTest)
 
-        modelConverter = JcToUtModelConverter(idGenerator, uTestProcessResult.exprToModelCache)
+        modelConverter = JcToUtModelConverter(idGenerator, uTestProcessResult)
     }
 
     fun convert(): UtExecution? {

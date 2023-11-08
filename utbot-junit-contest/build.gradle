@@ -29,6 +29,7 @@ def testProjects = [
         'build/output/test/seata-core-0.5.0',
         'build/output/test/spoon',
         'build/output/test/spoon-core-7.0.0',
+        'build/output/test/samples',
 ]
 
 sourceSets {

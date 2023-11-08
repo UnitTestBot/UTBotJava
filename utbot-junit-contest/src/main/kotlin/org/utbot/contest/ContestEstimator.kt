@@ -355,7 +355,8 @@ interface Tool {
 
 fun main(args: Array<String>) {
     // See https://dzone.com/articles/how-to-export-all-modules-to-all-modules-at-runtime-in-java?preview=true
-    org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll()
+    // `Modules` is `null` on JDK 8 (see comment to StaticComponentContainer.Modules)
+    org.burningwave.core.assembler.StaticComponentContainer.Modules?.exportAllToAll()
 
     val estimatorArgs: Array<String>
     val methodFilter: String?

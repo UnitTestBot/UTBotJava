@@ -12,11 +12,9 @@ import org.usvm.instrumentation.testcase.descriptor.UTestRefDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -28,29 +26,14 @@ import org.utbot.fuzzer.IdGenerator
 
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
-    uTestProcessResult: UTestProcessResult,
+    private val instToUtModelConverter: UTestInst2UtModelConverter,
 ) {
     private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
     private val refIdToDescriptorCache = mutableMapOf<Int, UTestValueDescriptor>()
 
-    private val exprToModelCache = uTestProcessResult.exprToModelCache
-    private val instantiationCallToAssembleModelCache = uTestProcessResult.instantiationCallToAssembleModelCache
-
     fun convert(valueDescriptor: UTestValueDescriptor): UtModel = descriptorToModelCache.getOrPut(valueDescriptor) {
-        valueDescriptor.origin?.let {
-            val alreadyCreatedModel = exprToModelCache.getValue(it as UTestExpression)
-
-            if (alreadyCreatedModel is UtAssembleModel ) {
-                val instantiationCall = alreadyCreatedModel.instantiationCall
-                if (instantiationCall is UtExecutableCallModel)  {
-                    val instantiatedWithCallModel = instantiationCallToAssembleModelCache.getValue(instantiationCall)
-                    val modificationsChain = (instantiatedWithCallModel.modificationsChain as MutableList)
-
-                    modificationsChain.remove(alreadyCreatedModel.instantiationCall)
-                }
-            }
-
-            return alreadyCreatedModel
+        valueDescriptor.origin?.let { originExpr ->
+            return instToUtModelConverter.findModelByInst(originExpr as UTestExpression)
         }
 
         if (valueDescriptor is UTestRefDescriptor)

@@ -48,28 +48,37 @@ import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.fuzzer.IdGenerator
 
-data class UTestProcessResult(
-    val exprToModelCache: Map<UTestExpression, UtModel>,
-    val instantiationCallToAssembleModelCache: Map<UtExecutableCallModel, UtAssembleModel>,
-    val instrumentations: List<UtInstrumentation>,
-    )
-
 class UTestInst2UtModelConverter(
     private val idGenerator: IdGenerator<Int>,
     private val utilMethodProvider: UtilMethodProvider,
 ) {
     private val exprToModelCache = mutableMapOf<UTestExpression, UtModel>()
-    private val instantiationCallToAssembleModelCache = mutableMapOf<UtExecutableCallModel, UtAssembleModel>()
     private val instrumentations = mutableListOf<UtInstrumentation>()
 
-    fun processUTest(uTest: UTest): UTestProcessResult {
+    fun processUTest(uTest: UTest) {
         exprToModelCache.clear()
         instrumentations.clear()
 
         uTest.initStatements.forEach { uInst -> processInst(uInst) }
-        processInst(uTest.callMethodExpression)
+        removeInstantiationCallFromThisInstanceModificationChain(processExpr(uTest.callMethodExpression))
+    }
 
-        return UTestProcessResult(exprToModelCache, instantiationCallToAssembleModelCache, instrumentations)
+    fun findModelByInst(expr: UTestExpression): UtModel {
+        val alreadyCreatedModel = exprToModelCache.getValue(expr)
+        removeInstantiationCallFromThisInstanceModificationChain(alreadyCreatedModel)
+        return alreadyCreatedModel
+    }
+
+    private fun removeInstantiationCallFromThisInstanceModificationChain(model: UtModel) {
+        if (model is UtAssembleModel) {
+            val instantiationCall = model.instantiationCall
+            if (instantiationCall is UtExecutableCallModel) {
+                val instanceModel = instantiationCall.instance as? UtAssembleModel
+                instanceModel?.let {
+                    (it.modificationsChain as MutableList).remove(instantiationCall)
+                }
+            }
+        }
     }
 
     private fun processInst(uTestInst: UTestInst) {
@@ -136,8 +145,6 @@ class UTestInst2UtModelConverter(
                     instantiationCall = createInstanceCall,
                 )
 
-                instantiationCallToAssembleModelCache[createInstanceCall] = newModel
-
                 newModel
             }
 
@@ -156,8 +163,6 @@ class UTestInst2UtModelConverter(
                     modelName = "",
                     instantiationCall = constructorCall,
                 )
-
-                instantiationCallToAssembleModelCache[constructorCall] = newModel
 
                 newModel
             }
@@ -182,8 +187,6 @@ class UTestInst2UtModelConverter(
                     modelName = "",
                     instantiationCall = methodCall,
                 )
-
-                instantiationCallToAssembleModelCache[methodCall] = newModel
 
                 newModel
             }
@@ -240,8 +243,6 @@ class UTestInst2UtModelConverter(
                     instantiationCall = getFieldCall,
                 )
 
-                instantiationCallToAssembleModelCache[getFieldCall] = newModel
-
                 newModel
             }
 
@@ -261,8 +262,6 @@ class UTestInst2UtModelConverter(
                     modelName = "",
                     instantiationCall = getStaticFieldCall,
                 )
-
-                instantiationCallToAssembleModelCache[getStaticFieldCall] = newModel
 
                 newModel
             }

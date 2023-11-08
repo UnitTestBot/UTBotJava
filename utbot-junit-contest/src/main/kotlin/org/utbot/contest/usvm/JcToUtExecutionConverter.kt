@@ -42,13 +42,13 @@ class JcToUtExecutionConverter(
 ) {
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
-    private var modelConverter: JcToUtModelConverter
+    private var jcToUtModelConverter: JcToUtModelConverter
 
     init {
         val instToModelConverter = UTestInst2UtModelConverter(idGenerator, utilMethodProvider)
-        val uTestProcessResult = instToModelConverter.processUTest(jcExecution.uTest)
 
-        modelConverter = JcToUtModelConverter(idGenerator, uTestProcessResult)
+        instToModelConverter.processUTest(jcExecution.uTest)
+        jcToUtModelConverter = JcToUtModelConverter(idGenerator, instToModelConverter)
     }
 
     fun convert(): UtExecution? {
@@ -58,17 +58,17 @@ class JcToUtExecutionConverter(
 
         val utUsvmExecution: UtUsvmExecution = when (val executionResult = jcExecution.uTestExecutionResult) {
             is UTestExecutionSuccessResult -> UtUsvmExecution(
-                stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
-                stateAfter = convertState(executionResult.resultState, jcExecution.method, modelConverter),
+                stateBefore = convertState(executionResult.initialState, jcExecution.method, jcToUtModelConverter),
+                stateAfter = convertState(executionResult.resultState, jcExecution.method, jcToUtModelConverter),
                 // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
-                result = UtExecutionSuccess(executionResult.result?.let { modelConverter.convert(it) } ?: UtVoidModel),
+                result = UtExecutionSuccess(executionResult.result?.let { jcToUtModelConverter.convert(it) } ?: UtVoidModel),
                 coverage = coverage,
                 instrumentation = instrumentation,
             )
             is UTestExecutionExceptionResult -> {
                 UtUsvmExecution(
-                    stateBefore = convertState(executionResult.initialState, jcExecution.method, modelConverter),
-                    stateAfter = convertState(executionResult.resultState, jcExecution.method, modelConverter),
+                    stateBefore = convertState(executionResult.initialState, jcExecution.method, jcToUtModelConverter),
+                    stateAfter = convertState(executionResult.resultState, jcExecution.method, jcToUtModelConverter),
                     result = createExecutionFailureResult(
                         executionResult.cause,
                         jcExecution.method,

@@ -315,12 +315,6 @@ class FuzzingEngine(
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
     ): ExecutionFeedback {
-        val prohibitedExceptions = listOf(
-            "builtins.AttributeError",
-            "builtins.TypeError",
-            "builtins.NotImplementedError",
-        )
-
         val summary = arguments
             .zip(method.arguments)
             .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
@@ -328,7 +322,7 @@ class FuzzingEngine(
 
         val resultModel = evaluationResult.stateAfter.getById(evaluationResult.resultId).toPythonTree(evaluationResult.stateAfter)
 
-        if (evaluationResult.isException && (resultModel.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
+        if (evaluationResult.isException && (resultModel.type.name in configuration.prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
             val errorMessage = "Evaluation with prohibited exception. Substituted types: ${
                 types.joinToString { it.pythonTypeRepresentation() }
             }. Exception type: ${resultModel.type.name}"

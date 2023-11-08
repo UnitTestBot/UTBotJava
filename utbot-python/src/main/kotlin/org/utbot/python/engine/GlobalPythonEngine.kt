@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.usvm.runner.StandardLayout
 import org.usvm.runner.USVMPythonConfig
 import org.usvm.runner.USVMPythonFunctionConfig
+import org.usvm.runner.USVMPythonMethodConfig
 import org.usvm.runner.USVMPythonRunConfig
 import org.usvm.runner.venv.extractVenvConfig
 import org.utbot.python.MypyConfig
@@ -18,6 +19,7 @@ import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import org.utbot.python.newtyping.pythonName
 import java.io.File
 import kotlin.concurrent.thread
 
@@ -68,15 +70,20 @@ class GlobalPythonEngine(
             executionStorage,
             System.currentTimeMillis() + configuration.timeout
         )
+        val config = if (method.containingPythonClass == null) {
+            USVMPythonFunctionConfig(configuration.testFileInformation.moduleName, method.name)
+        } else {
+            USVMPythonMethodConfig(
+                configuration.testFileInformation.moduleName,
+                method.name,
+                method.containingPythonClass.pythonName()
+            )
+        }
         SymbolicEngine(
             usvmPythonConfig,
             configuration,
         ).analyze(
-            USVMPythonRunConfig(
-                USVMPythonFunctionConfig(configuration.testFileInformation.moduleName, method.name),
-                configuration.timeout,
-                configuration.timeoutForRun * 3
-            ),
+            USVMPythonRunConfig(config, configuration.timeout, configuration.timeoutForRun * 3),
             receiver
         )
         logger.info { "Symbolic: stop receiver" }

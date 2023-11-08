@@ -31,7 +31,16 @@ class PythonTestGenerationConfig(
     val sendCoverageContinuously: Boolean = true,
     val coverageOutputFormat: CoverageOutputFormat = CoverageOutputFormat.Lines,
     val usvmConfig: UsvmConfig = UsvmConfig.defaultConfig,
-)
+    val prohibitedExceptions: List<String> = defaultProhibitedExceptions,
+) {
+    companion object {
+        val defaultProhibitedExceptions = listOf(
+            "builtins.AttributeError",
+            "builtins.TypeError",
+            "builtins.NotImplementedError",
+        )
+    }
+}
 
 data class MypyConfig(
     val mypyStorage: MypyInfoBuild,

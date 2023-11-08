@@ -91,6 +91,10 @@ class SbftGenerateTestsCommand : CliktCommand(
     private val doNotSendCoverageContinuously by option("--do-not-send-coverage-continuously", help = "Do not send coverage during execution.")
         .flag(default = false)
 
+    private val prohibitedExceptions by option("--prohibited-exceptions", help = "Do not generate tests with these exceptions. Set '-' to generate tests for all exceptions.")
+        .split(",")
+        .default(PythonTestGenerationConfig.defaultProhibitedExceptions)
+
     private val javaCmd by option(
         "--java-cmd",
         help = "(required) Path to Java command (ONLY FOR USVM)."
@@ -166,7 +170,8 @@ class SbftGenerateTestsCommand : CliktCommand(
                 coverageMeasureMode = PythonCoverageMode.parse(coverageMeasureMode),
                 sendCoverageContinuously = !doNotSendCoverageContinuously,
                 coverageOutputFormat = CoverageOutputFormat.Lines,
-                usvmConfig = UsvmConfig(javaCmd, usvmDirectory)
+                usvmConfig = UsvmConfig(javaCmd, usvmDirectory),
+                prohibitedExceptions = if (prohibitedExceptions == listOf("-")) emptyList() else prohibitedExceptions,
             )
 
             val processor = SbftCliProcessor(config)
@@ -176,10 +181,11 @@ class SbftGenerateTestsCommand : CliktCommand(
 
             logger.info("Generating tests...")
             val testSets = processor.testGenerate(mypyConfig)
-
-            val (testCode, imports) = processor.testCodeGenerateSplitImports(testSets)
-            globalCodeCollection.add(testCode)
-            globalImportCollection.addAll(imports)
+            if (testSets.isNotEmpty()) {
+                val (testCode, imports) = processor.testCodeGenerateSplitImports(testSets)
+                globalCodeCollection.add(testCode)
+                globalImportCollection.addAll(imports)
+            }
         }
         logger.info("Saving tests...")
         val importCode = globalImportCollection

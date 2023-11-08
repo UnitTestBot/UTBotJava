@@ -132,17 +132,11 @@ class USVMPythonAnalysisResultReceiverImpl(
         method: PythonMethod,
         evaluationResult: PythonEvaluationSuccess
     ): ExecutionFeedback {
-        val prohibitedExceptions = listOf(
-            "builtins.AttributeError",
-            "builtins.TypeError",
-            "builtins.NotImplementedError",
-        )
-
         val summary = emptyList<String>()  // TODO: improve
         val hasThisObject = method.hasThisArgument
         val resultModel = evaluationResult.stateAfter.getById(evaluationResult.resultId).toPythonTree(evaluationResult.stateAfter)
 
-        if (evaluationResult.isException && (resultModel.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
+        if (evaluationResult.isException && (resultModel.type.name in configuration.prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
             val errorMessage = "Evaluation with prohibited exception. Error: $resultModel"
             logger.debug { errorMessage }
             return TypeErrorFeedback(errorMessage)

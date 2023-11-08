@@ -121,6 +121,7 @@ class JcToUtExecutionConverter(
         ): EnvironmentModels {
         val thisInstance =
             if (method.isStatic) null
+            else if (method.method.isConstructor) null
             else modelConverter.convert(state.instanceDescriptor ?: error("Unexpected null instanceDescriptor"))
         val parameters = state.argsDescriptors.map { modelConverter.convert(it ?: error("Unexpected null argDescriptor")) }
         val statics = state.statics

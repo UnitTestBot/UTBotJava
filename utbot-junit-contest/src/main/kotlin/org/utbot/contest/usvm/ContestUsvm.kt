@@ -226,8 +226,9 @@ fun runUsvmGeneration(
                                 utilMethodProvider = codeGenerator.context.utilMethodProvider
                             ).convert()
                         } catch (e: Exception) {
-                            val stackTrace = Arrays.toString(e.stackTrace);
-                            logger.error(e) { "Can't convert execution for method ${method.name}, exception is  ${e.message}. \n $stackTrace" }
+                            logger.error(e) {
+                                "Can't convert execution for method ${method.name}, exception is  ${e.message}"
+                            }
                             null
                         }
                     }

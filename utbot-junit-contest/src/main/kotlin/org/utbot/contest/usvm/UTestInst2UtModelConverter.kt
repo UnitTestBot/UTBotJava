@@ -89,9 +89,7 @@ class UTestInst2UtModelConverter(
                 val arrayModel = processExpr(uTestInst.arrayInstance)
                 require(arrayModel is UtArrayModel)
 
-                require(uTestInst.index is UTestIntExpression)
                 val storeIndex = uTestInst.index as UTestIntExpression
-
                 val elementModel = processExpr(uTestInst.setValueExpression)
 
                 arrayModel.stores[storeIndex.value] = elementModel
@@ -302,6 +300,8 @@ class UTestInst2UtModelConverter(
 
             is UTestGlobalMock -> {
                 // TODO usvm-sbft: collect instrumentations here
+                // UtClassRefModel is returned here for consistency with [Descriptor2ValueConverter]
+                // which returns Class<*> instance for [UTestGlobalMock] descriptors.
                 UtClassRefModel(
                     id = idGenerator.createId(),
                     classId = classClassId,

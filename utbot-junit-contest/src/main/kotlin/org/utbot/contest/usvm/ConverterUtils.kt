@@ -33,11 +33,13 @@ fun JcMethod.toExecutableId(): ExecutableId {
 }
 
 val JcType?.classId: ClassId
-    get() = this?.toJavaClass(utContext.classLoader)?.id ?: objectClassId
+    get() = this?.toJavaClass(utContext.classLoader)?.id
+        ?: error("Can not construct classId for $this")
 
 val JcClassOrInterface.classId: ClassId
     get() = this.toJavaClass(utContext.classLoader).id
 
+//TODO usvm-sbft: incorrectly converts types of com.google.common.util.concurrent.AtomicDoubleArray.<init> parameters
 val TypeName.classId: ClassId
     get() = ClassId(this.typeName)
 

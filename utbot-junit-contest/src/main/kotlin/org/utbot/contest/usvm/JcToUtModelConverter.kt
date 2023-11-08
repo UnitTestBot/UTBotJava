@@ -23,6 +23,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.IdGenerator
+import java.lang.Throwable
 
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
@@ -126,9 +127,7 @@ class JcToUtModelConverter(
                 classId = valueDescriptor.type.classId,
                 isMock = false,
                 fields = mutableMapOf(
-                    FieldId(java.lang.Throwable::class.java.id, "detailMessage") to
-                            // TODO usvm-sbft: ask why `UTestExceptionDescriptor.message` is not nullable
-                            (valueDescriptor?.let { UtPrimitiveModel(it) } ?: UtNullModel(stringClassId))
+                    FieldId(Throwable::class.java.id, "detailMessage") to UtPrimitiveModel(valueDescriptor.message)
                 )
             )
         }

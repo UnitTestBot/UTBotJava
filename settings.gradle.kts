@@ -48,13 +48,13 @@ include("utbot-summary-tests")
 include("utbot-framework-test")
 include("utbot-testing")
 include("utbot-rd")
-include("utbot-android-studio")
+//include("utbot-android-studio")
 
-if (includeRiderInBuild.toBoolean()) {
-    include("utbot-rider")
-}
+//if (includeRiderInBuild.toBoolean()) {
+//    include("utbot-rider")
+//}
 
-include("utbot-ui-commons")
+//include("utbot-ui-commons")
 
 include("utbot-spring-framework")
 include("utbot-spring-commons-api")
@@ -63,14 +63,14 @@ include("utbot-spring-analyzer")
 include("utbot-spring-sample")
 include("utbot-spring-test")
 
-if (javaIde.split(",").contains(ideType)) {
-    include("utbot-intellij")
-}
+//if (javaIde.split(",").contains(ideType)) {
+//   include("utbot-intellij")
+//}
 
 if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python")
     include("utbot-cli-python")
-    include("utbot-intellij-python")
+//    include("utbot-intellij-python")
     include("utbot-python-parser")
     include("utbot-python-types")
     include("utbot-python-executor")
@@ -80,19 +80,19 @@ if (projectType == ultimateEdition) {
     if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
         include("utbot-js")
         include("utbot-cli-js")
-        include("utbot-intellij-js")
+//        include("utbot-intellij-js")
     }
 
     if (goIde.split(",").contains(ideType)) {
         include("utbot-go")
         include("utbot-cli-go")
-        include("utbot-intellij-go")
+//        include("utbot-intellij-go")
     }
 }
 
 include("utbot-light")
 
-include("utbot-intellij-main")
+//include("utbot-intellij-main")
 
 // TODO usvm-sbft-merge: add if here if we want merge contest it into main
 includeBuild("../usvm")

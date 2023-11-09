@@ -11,6 +11,9 @@ import org.objectweb.asm.Type
 import org.usvm.UMachineOptions
 import org.usvm.instrumentation.util.toJcdbSignature
 import org.usvm.machine.JcMachine
+import org.usvm.machine.state.JcState
+import org.utbot.common.ThreadBasedExecutor
+import org.utbot.common.debug
 import org.utbot.common.info
 import org.utbot.common.measureTime
 import org.utbot.contest.*
@@ -24,14 +27,18 @@ import org.utbot.framework.codegen.domain.junitByVersion
 import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfoService
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.summary.summarizeAll
 import java.io.File
 import java.net.URLClassLoader
+import java.util.*
 import kotlin.math.max
 
 private val logger = KotlinLogging.logger {}
@@ -80,6 +87,8 @@ fun runUsvmGeneration(
 
     val resolver by lazy { JcTestExecutor(jcDbContainer.cp) }
 
+    val idGenerator = ReferencePreservingIntIdGenerator()
+
     val instructionIds = mutableMapOf<Pair<String, Int>, Long>()
     val instructionIdProvider = InstructionIdProvider { methodSignature, instrIndex ->
         instructionIds.getOrPut(methodSignature to instrIndex) { instructionIds.size.toLong() }
@@ -98,6 +107,7 @@ fun runUsvmGeneration(
 
     //remaining budget
     val startTime = System.currentTimeMillis()
+    logger.debug { "STARTED COUNTING BUDGET FOR ${cut.classId.name}" }
     fun remainingBudgetMillisWithoutCodegen() =
         max(0, generationTimeoutMillisWithoutCodegen - (System.currentTimeMillis() - startTime))
 
@@ -139,6 +149,8 @@ fun runUsvmGeneration(
         val totalBudgetPerMethod = remainingBudgetMillisWithoutCodegen() / filteredMethods.size
         val concreteBudgetMsPerMethod = 500L
             .coerceIn((totalBudgetPerMethod / 10L).. (totalBudgetPerMethod / 2L))
+        val symbolicBudgetPerMethod = totalBudgetPerMethod - concreteBudgetMsPerMethod
+        logger.debug { "Symbolic budget per method: $symbolicBudgetPerMethod" }
 
         // TODO usvm-sbft: reuse same machine for different classes,
         //  right now I can't do that, because `timeoutMs` can't be changed after machine creation
@@ -146,7 +158,7 @@ fun runUsvmGeneration(
             JcMachine(
                 cp = jcDbContainer.cp,
                 // TODO usvm-sbft: we may want to tune UMachineOptions for contest
-                options = UMachineOptions(timeoutMs = totalBudgetPerMethod - concreteBudgetMsPerMethod)
+                options = UMachineOptions(timeoutMs = symbolicBudgetPerMethod)
             )
         }.use { machine ->
             val jcClass = jcDbContainer.cp.findClass(cut.fqn)
@@ -167,7 +179,17 @@ fun runUsvmGeneration(
                     logger.error { "Method [$method] not found in jcClass [$jcClass]" }
                     continue
                 }
-                val states = machine.analyze(jcTypedMethod.method)
+                val states = logger.debug().measureTime({ "machine.analyze(${method.classId}.${method.signature})" }) {
+                    ((ThreadBasedExecutor.threadLocal.invokeWithTimeout(10 * symbolicBudgetPerMethod) {
+                        machine.analyze(jcTypedMethod.method)
+                    } as? Result<List<JcState>>) ?: run {
+                        logger.error { "machine.analyze(${jcTypedMethod.method}) timed out" }
+                        Result.success(emptyList())
+                    }).getOrElse { e ->
+                        logger.error("JcMachine failed", e)
+                        emptyList()
+                    }
+                }
                 val jcExecutions = states.mapNotNull {
                     // TODO usvm-sbft: if we have less than `runner.timeout` budget we should only let resolver run
                     //  for `remainingBudgetMillisWithoutCodegen()` ms, right now last resolver call may exceed budget,
@@ -176,11 +198,13 @@ fun runUsvmGeneration(
                         // TODO usvm-sbft: right now this call fails unless you set:
                         //  - "usvm-jvm-instrumentation-jar" environment variable to something like "/home/ilya/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-1.0.jar"
                         //  - "usvm-jvm-collectors-jar"  environment variable to something like "/home/ilya/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-collectors.jar"
-                        runCatching {
-                            resolver.resolve(jcTypedMethod, it)
-                        }.getOrElse { e ->
-                            logger.error(e) { "Resolver failed" }
-                            null
+                        logger.debug().measureTime({ "resolver.resolve(${method.classId}.${method.signature}, ...)" }) {
+                            runCatching {
+                                resolver.resolve(jcTypedMethod, it)
+                            }.getOrElse { e ->
+                                logger.error(e) { "Resolver failed" }
+                                null
+                            }
                         }
                     else null
                 }
@@ -193,7 +217,21 @@ fun runUsvmGeneration(
                 statsForClass.statsForMethods.add(statsForMethod)
 
                 val utExecutions: List<UtExecution> = jcExecutions.mapNotNull {
-                    JcToUtExecutionConverter(instructionIdProvider).convert(it)
+                    logger.debug().measureTime({ "Convert JcExecution" }) {
+                        try {
+                            JcToUtExecutionConverter(
+                                jcExecution = it,
+                                idGenerator = idGenerator,
+                                instructionIdProvider = instructionIdProvider,
+                                utilMethodProvider = codeGenerator.context.utilMethodProvider
+                            ).convert()
+                        } catch (e: Exception) {
+                            logger.error(e) {
+                                "Can't convert execution for method ${method.name}, exception is  ${e.message}"
+                            }
+                            null
+                        }
+                    }
                 }
 
                 utExecutions.forEach { result ->
@@ -220,19 +258,20 @@ fun runUsvmGeneration(
                         logger.error(e) { "Test generation failed during stats update" }
                     }
                 }
+                logger.debug { "Finished $method" }
             }
         }
     }
 
-// TODO usvm-sbft: codegen, requires proper UtUsvmExecution creation (not just coverage)
+    val testSets = testsByMethod.map { (method, executions) ->
+        UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody = null)
+    }.summarizeAll(cut.classfileDir.toPath(), sourceFile = null)
 
-//    val testSets = testsByMethod.map { (method, executions) ->
-//        UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody(method))
-//    }.summarizeAll(cut.classfileDir.toPath(), sourceFile = null)
-//
-//    logger.info().measureTime({ "Flushing tests for [${cut.simpleName}] on disk" }) {
-//        writeTestClass(cut, codeGenerator.generateAsString(testSets))
-//    }
+    logger.info().measureTime({ "Flushing tests for [${cut.simpleName}] on disk" }) {
+        writeTestClass(cut, codeGenerator.generateAsString(testSets))
+    }
+
+    logger.debug { "STOPPED COUNTING BUDGET FOR ${cut.classId.name}" }
 
     statsForClass
 }

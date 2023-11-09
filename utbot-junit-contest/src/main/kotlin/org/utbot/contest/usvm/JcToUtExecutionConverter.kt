@@ -1,80 +1,110 @@
 package org.utbot.contest.usvm
 
+import mu.KotlinLogging
 import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.jcdbSignature
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionInitFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionState
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
+import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.utbot.contest.usvm.executor.JcExecution
+import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtImplicitlyThrownException
+import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.instrumentation.instrumentation.execution.constructors.StateBeforeAwareIdGenerator
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.constructors.javaStdLibModelWithCompositeOriginConstructors
-import java.util.*
+import org.utbot.fuzzer.IdGenerator
+
+private val logger = KotlinLogging.logger {}
 
 class JcToUtExecutionConverter(
-    private val instructionIdProvider: InstructionIdProvider
+    private val jcExecution: JcExecution,
+    private val idGenerator: IdGenerator<Int>,
+    private val instructionIdProvider: InstructionIdProvider,
+    utilMethodProvider: UtilMethodProvider,
 ) {
-    private val valueConstructor = Descriptor2ValueConverter(utContext.classLoader)
+    private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
-    private val utModelConstructor = UtModelConstructor(
-        objectToModelCache = IdentityHashMap(),
-        idGenerator = StateBeforeAwareIdGenerator(allPreExistingModels = emptySet()),
-        utModelWithCompositeOriginConstructorFinder = { classId ->
-            javaStdLibModelWithCompositeOriginConstructors[classId.jClass]?.invoke()
-        }
-    )
+    private var jcToUtModelConverter: JcToUtModelConverter
 
-    fun convert(jcExecution: JcExecution): UtExecution? {
-        // TODO usvm-sbft: convert everything other than coverage
-        return UtUsvmExecution(
-            stateBefore = MissingState,
-            stateAfter = MissingState,
-            result = UtExecutionSuccess(UtVoidModel),
-            coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass),
-            instrumentation = emptyList()
-        )
-//        val coverage = Coverage(convertCoverage())
-//        return when (jcExecution.uTestExecutionResult) {
-//            is UTestExecutionSuccessResult -> {
-//
-//                TODO("usvm-sbft")
-//            }
-//            is UTestExecutionExceptionResult -> TODO("usvm-sbft")
-//            is UTestExecutionInitFailedResult -> {
-//                val exception =
-//                    valueConstructor.buildObjectFromDescriptor(jcExecution.uTestExecutionResult.cause) as Throwable
-//                logger.error(exception) { "Concrete executor failed" }
-//                null
-//            }
-//            is UTestExecutionFailedResult -> {
-//                val exception =
-//                    valueConstructor.buildObjectFromDescriptor(jcExecution.uTestExecutionResult.cause) as Throwable
-//                if (!jcExecution.uTestExecutionResult.cause.raisedByUserCode)
-//                    logger.error(exception) { "Concrete executor failed" }
-//                // TODO usvm-sbft
-//                null
-//            }
-//            is UTestExecutionTimedOutResult -> {
-//                // TODO usvm-sbft
-//                null
-//            }
-//        }
+    init {
+        val instToModelConverter = UTestInst2UtModelConverter(idGenerator, utilMethodProvider)
+
+        instToModelConverter.processUTest(jcExecution.uTest)
+        jcToUtModelConverter = JcToUtModelConverter(idGenerator, instToModelConverter)
     }
+
+    fun convert(): UtExecution? {
+        val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
+        // TODO usvm-sbft: fill up instrumentation with data from UTest
+        val instrumentation = emptyList<UtInstrumentation>()
+
+        val utUsvmExecution: UtUsvmExecution = when (val executionResult = jcExecution.uTestExecutionResult) {
+            is UTestExecutionSuccessResult -> UtUsvmExecution(
+                stateBefore = convertState(executionResult.initialState, jcExecution.method, jcToUtModelConverter),
+                stateAfter = convertState(executionResult.resultState, jcExecution.method, jcToUtModelConverter),
+                // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
+                result = UtExecutionSuccess(executionResult.result?.let { jcToUtModelConverter.convert(it) } ?: UtVoidModel),
+                coverage = coverage,
+                instrumentation = instrumentation,
+            )
+            is UTestExecutionExceptionResult -> {
+                UtUsvmExecution(
+                    stateBefore = convertState(executionResult.initialState, jcExecution.method, jcToUtModelConverter),
+                    stateAfter = convertState(executionResult.resultState, jcExecution.method, jcToUtModelConverter),
+                    result = createExecutionFailureResult(
+                        executionResult.cause,
+                        jcExecution.method,
+                    ),
+                    coverage = coverage,
+                    instrumentation = instrumentation,
+                )
+            }
+
+            is UTestExecutionInitFailedResult -> {
+                logger.warn(convertException(executionResult.cause)) {
+                    "Execution failed before method under test call"
+                }
+                null
+            }
+
+            is UTestExecutionFailedResult -> {
+                logger.error(convertException(executionResult.cause)) {
+                    "Concrete execution failed"
+                }
+                null
+            }
+
+            is UTestExecutionTimedOutResult -> {
+                // TODO usvm-sbft
+                null
+            }
+        } ?: return null
+
+        return utUsvmExecution
+    }
+
+    private fun convertException(exceptionDescriptor: UTestExceptionDescriptor): Throwable =
+        toValueConverter.buildObjectFromDescriptor(exceptionDescriptor.dropStaticFields(
+            cache = mutableMapOf()
+        )) as Throwable
 
     private fun getTrace(executionResult: UTestExecutionResult): List<JcInst>? = when (executionResult) {
         is UTestExecutionExceptionResult -> executionResult.trace
@@ -84,15 +114,50 @@ class JcToUtExecutionConverter(
         is UTestExecutionTimedOutResult -> emptyList()
     }
 
+    private fun convertState(
+        state: UTestExecutionState,
+        method: JcTypedMethod,
+        modelConverter: JcToUtModelConverter,
+        ): EnvironmentModels {
+        val thisInstance =
+            if (method.isStatic) null
+            else if (method.method.isConstructor) null
+            else modelConverter.convert(state.instanceDescriptor ?: error("Unexpected null instanceDescriptor"))
+        val parameters = state.argsDescriptors.map { modelConverter.convert(it ?: error("Unexpected null argDescriptor")) }
+        val statics = state.statics
+            .entries
+            .associate { (jcField, uTestDescr) ->
+                jcField.fieldId to modelConverter.convert(uTestDescr)
+            }
+        val executableId: ExecutableId = method.method.toExecutableId()
+        return EnvironmentModels(thisInstance, parameters, statics, executableId)
+    }
+
+    private fun createExecutionFailureResult(
+        exceptionDescriptor: UTestExceptionDescriptor,
+        jcTypedMethod: JcTypedMethod,
+    ): UtExecutionFailure {
+        val exception = convertException(exceptionDescriptor)
+        val fromNestedMethod = exception.stackTrace.firstOrNull()?.let { stackTraceElement ->
+            stackTraceElement.className != jcTypedMethod.enclosingType.jcClass.name ||
+                    stackTraceElement.methodName != jcTypedMethod.name
+        } ?: false
+        return if (exceptionDescriptor.raisedByUserCode) {
+            UtExplicitlyThrownException(exception, fromNestedMethod)
+        } else {
+            UtImplicitlyThrownException(exception, fromNestedMethod)
+        }
+    }
+
     private fun convertCoverage(jcCoverage: List<JcInst>?, jcClass: JcClassOrInterface) = Coverage(
         coveredInstructions = jcCoverage.orEmpty().map {
-                val methodSignature = it.enclosingMethod.jcdbSignature
-                Instruction(
-                    internalName = it.enclosingClass.name.replace('.', '/'),
-                    methodSignature = methodSignature,
-                    lineNumber = it.lineNumber,
-                    id = instructionIdProvider.provideInstructionId(methodSignature, it.location.index)
-                )
+            val methodSignature = it.enclosingMethod.jcdbSignature
+            Instruction(
+                internalName = it.enclosingClass.name.replace('.', '/'),
+                methodSignature = methodSignature,
+                lineNumber = it.lineNumber,
+                id = instructionIdProvider.provideInstructionId(methodSignature, it.location.index)
+            )
         },
         // TODO usvm-sbft: maybe add cache here
         // TODO usvm-sbft: make sure static initializers are included into instructions count

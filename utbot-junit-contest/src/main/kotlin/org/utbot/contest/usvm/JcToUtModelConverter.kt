@@ -127,6 +127,7 @@ class JcToUtModelConverter(
                 classId = valueDescriptor.type.classId,
                 isMock = false,
                 fields = mutableMapOf(
+                    // TODO usvm-sbft: ask why `UTestExceptionDescriptor.message` is not nullable, support it here
                     FieldId(Throwable::class.java.id, "detailMessage") to UtPrimitiveModel(valueDescriptor.message)
                 )
             )

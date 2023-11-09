@@ -193,5 +193,6 @@ class SbftGenerateTestsCommand : CliktCommand(
             .map { renderPythonImport(it) }
         val testCode = (listOf(importCode.joinToString("\n")) + globalCodeCollection).joinToString("\n\n\n")
         writeToFileAndSave(output, testCode)
+        System.exit(0)
     }
 }

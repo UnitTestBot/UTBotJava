@@ -16,19 +16,27 @@ import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
+import org.utbot.common.isPublic
 import org.utbot.contest.usvm.executor.JcExecution
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
+import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzer.IdGenerator
 
@@ -98,7 +106,42 @@ class JcToUtExecutionConverter(
             }
         } ?: return null
 
-        return utUsvmExecution
+        return utUsvmExecution.mapModels(constructAssemblingMapper())
+    }
+
+    private fun constructAssemblingMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
+        // TODO usvm-sbft: support constructors with parameters here if it is really required
+        // Unfortunately, it is not possible to use [AssembleModelGeneral] as it requires soot being initialized.
+        if (model !is UtAssembleModel
+            || model.instantiationCall.statement.name != "createInstance" || model.modificationsChain.isNotEmpty()) {
+            return@UtModelDeepMapper model
+        }
+
+        val instantiatingClassName = model
+            .instantiationCall
+            .params
+            .mapNotNull { (it as? UtPrimitiveModel)?.value.toString() }
+            .singleOrNull()
+            ?: return@UtModelDeepMapper model
+
+        val defaultConstructor = ClassId(instantiatingClassName)
+            .jClass
+            .constructors
+            .firstOrNull { it.isPublic && it.parameters.isEmpty() }
+
+
+        defaultConstructor?.let { ctor ->
+            UtAssembleModel(
+                id = idGenerator.createId(),
+                classId = model.classId,
+                modelName = "",
+                instantiationCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = ctor.executableId,
+                    params = emptyList(),
+                )
+            )
+        } ?: model
     }
 
     private fun convertException(exceptionDescriptor: UTestExceptionDescriptor): Throwable =

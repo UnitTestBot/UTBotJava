@@ -44,7 +44,7 @@ val JcClassOrInterface.classId: ClassId
     get() = this.toJavaClass(utContext.classLoader).id
 
 fun TypeName.findClassId(classpath: JcClasspath): ClassId =
-    classpath.findClassOrNull(this.typeName)?.classId
+    classpath.findTypeOrNull(this.typeName)?.classId
         ?: error("Can not construct classId for $this")
 
 val JcField.fieldId: FieldId

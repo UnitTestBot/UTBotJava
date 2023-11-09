@@ -221,6 +221,7 @@ fun runUsvmGeneration(
                         try {
                             JcToUtExecutionConverter(
                                 jcExecution = it,
+                                jcClasspath = jcDbContainer.cp,
                                 idGenerator = idGenerator,
                                 instructionIdProvider = instructionIdProvider,
                                 utilMethodProvider = codeGenerator.context.utilMethodProvider

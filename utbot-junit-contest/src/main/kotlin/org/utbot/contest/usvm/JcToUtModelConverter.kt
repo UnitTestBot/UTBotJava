@@ -1,5 +1,6 @@
 package org.utbot.contest.usvm
 
+import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.descriptor.UTestArrayDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestClassDescriptor
@@ -27,6 +28,7 @@ import java.lang.Throwable
 
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
+    private val jcClasspath: JcClasspath,
     private val instToUtModelConverter: UTestInst2UtModelConverter,
 ) {
     private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
@@ -57,7 +59,7 @@ class JcToUtModelConverter(
                 fields += valueDescriptor.fields
                     .entries
                     .associate { (jcField, fieldDescr) ->
-                        val fieldId = FieldId(jcField.type.classId, jcField.name)
+                        val fieldId = FieldId(jcField.type.findClassId(jcClasspath), jcField.name)
                         val fieldModel = convert(fieldDescr)
                         fieldId to fieldModel
                     }

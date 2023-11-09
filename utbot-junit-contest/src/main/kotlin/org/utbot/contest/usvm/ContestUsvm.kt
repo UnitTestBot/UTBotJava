@@ -35,7 +35,7 @@ import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.summary.summarizeAll
+import org.utbot.summary.usvm.summarizeAll
 import java.io.File
 import java.net.URLClassLoader
 import java.util.*
@@ -265,7 +265,7 @@ fun runUsvmGeneration(
 
     val testSets = testsByMethod.map { (method, executions) ->
         UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody = null)
-    }.summarizeAll(cut.classfileDir.toPath(), sourceFile = null)
+    }.summarizeAll(sourceFile = null)
 
     logger.info().measureTime({ "Flushing tests for [${cut.simpleName}] on disk" }) {
         writeTestClass(cut, codeGenerator.generateAsString(testSets))

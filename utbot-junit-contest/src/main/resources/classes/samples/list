@@ -1,3 +1,24 @@
+org.utbot.examples.primitives.IntExamples
+org.utbot.examples.primitives.ByteExamples
+org.utbot.examples.primitives.CharExamples
+org.utbot.examples.primitives.FloatExamples
+org.utbot.examples.primitives.DoubleExamples
+org.utbot.examples.controlflow.Conditions
+org.utbot.examples.controlflow.CycleDependedCondition
+org.utbot.examples.controlflow.Cycles
+org.utbot.examples.controlflow.Switch
+org.utbot.examples.recursion.Recursion
+org.utbot.examples.math.BitOperators
+org.utbot.examples.math.DivRemExamples
+org.utbot.examples.math.DoubleFunctions
+org.utbot.examples.wrappers.ShortWrapper
+org.utbot.examples.wrappers.LongWrapper
+org.utbot.examples.wrappers.IntegerWrapper
+org.utbot.examples.wrappers.FloatWrapper
+org.utbot.examples.wrappers.DoubleWrapper
+org.utbot.examples.wrappers.CharacterWrapper
+org.utbot.examples.wrappers.ByteWrapper
+org.utbot.examples.wrappers.BooleanWrapper
 org.utbot.examples.arrays.PrimitiveArrays
 
 

@@ -1,0 +1,56 @@
+<!--suppress HttpUrlsUsage -->
+<idea-plugin>
+
+    <id>org.utbot.pycharm</id>
+    <name>UnitTestBot Pycharm</name>
+    <vendor>utbot.org</vendor>
+    <depends>com.intellij.modules.platform</depends>
+
+    <depends config-file="withPython.xml">com.intellij.modules.python</depends>
+
+    <actions>
+        <action id="org.utbot.intellij.plugin.python.ui.actions.GenerateTestsAction"
+                class="org.utbot.intellij.plugin.python.ui.actions.GenerateTestsAction"
+                text="Generate Tests with UnitTestBot..."
+                description="Cover code with auto-generated tests">
+            <add-to-group group-id="ProjectViewPopupMenu"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt shift U"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt U" second-keystroke="alt T"/>
+        </action>
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable dynamic="true" parentId="tools" instance="org.utbot.intellij.plugin.settings.Configurable"
+                                 id="org.utbot.intellij.plugin.settings.Configurable"
+                                 displayName="UnitTestBot"/>
+        <!--suppress PluginXmlValidity -->
+        <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
+    </extensions>
+
+    <!-- Minimum and maximum build of IDE compatible with the plugin -->
+    <description>
+        <![CDATA[
+        UnitTestBot is the tool for automated unit test generation and precise code analysis.
+        <br/><br/>
+        Discover UnitTestBot key features in our latest release:
+        <ul>
+            <li>generating ready-to-use test cases — with valid inputs, method bodies, assertions, and comments</li>
+            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a> in <i>regression suite</i> while keeping the number of tests minimized</li>
+            <li>finding deeply hidden code defects and expressing them as tests</li>
+            <li>smart fuzzing platform</li>
+        </ul>
+        Try <a href="https://www.utbot.org/demo/?language=Python">UnitTestBot online demo</a> to see how it generates tests for your code in real time.
+        <br/>
+        Contribute to UnitTestBot via <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub</a>.
+        <br/>
+        Found a bug? File an <a href="https://github.com/UnitTestBot/UTBotJava/issues">issue</a>.
+        <br/>
+        Have an idea? Start a <a href="https://github.com/UnitTestBot/UTBotJava/discussions">discussion</a>.
+        ]]>
+    </description>
+    <change-notes>
+        <![CDATA[
+        UnitTestBot can now generate tests from PyCharm.
+        ]]>
+    </change-notes>
+</idea-plugin>

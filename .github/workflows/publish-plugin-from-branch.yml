@@ -46,10 +46,13 @@ jobs:
         configuration:
           - plugin_type: IC
             extra_options: "-PideType=IC -PprojectType=Community"
+            directory: utbot-intellij-main
           - plugin_type: IU
             extra_options: "-PideType=IU -PprojectType=Ultimate"
+            directory: utbot-intellij-main
           - plugin_type: PY
             extra_options: "-PideType=PY -PprojectType=Ultimate"
+            directory: utbot-intellij-python
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
     steps:
@@ -81,13 +84,13 @@ jobs:
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
           gradle clean buildPlugin --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
-          cd utbot-intellij-main/build/distributions
-          unzip utbot-intellij-main-${{ env.VERSION }}.zip
-          rm utbot-intellij-main-${{ env.VERSION }}.zip
+          cd ${{ matrix.configuration.directory }}/build/distributions
+          unzip ${{ matrix.configuration.directory }}-${{ env.VERSION }}.zip
+          rm ${{ matrix.configuration.directory }}-${{ env.VERSION }}.zip
 
       - name: Archive UTBot IntelliJ IDEA plugin
         if: ${{ inputs.upload-artifact == 'true' }}
         uses: actions/upload-artifact@v3
         with:
           name: utbot-intellij-${{ matrix.configuration.plugin_type }}-${{ env.VERSION_ARCHIVE }}
-          path: utbot-intellij-main/build/distributions/*
+          path: ${{ matrix.configuration.directory }}/build/distributions/*

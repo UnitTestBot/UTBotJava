@@ -48,9 +48,4 @@
         Have an idea? Start a <a href="https://github.com/UnitTestBot/UTBotJava/discussions">discussion</a>.
         ]]>
     </description>
-    <change-notes>
-        <![CDATA[
-        UnitTestBot can now generate tests from PyCharm.
-        ]]>
-    </change-notes>
 </idea-plugin>

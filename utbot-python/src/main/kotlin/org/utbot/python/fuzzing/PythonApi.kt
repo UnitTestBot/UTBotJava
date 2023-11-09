@@ -2,7 +2,6 @@ package org.utbot.python.fuzzing
 
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.coverage.PyInstruction
@@ -27,7 +26,6 @@ private val logger = KotlinLogging.logger {}
 data class PythonFuzzedConcreteValue(
     val type: UtType,
     val value: Any,
-    val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
 )
 
 class PythonMethodDescription(

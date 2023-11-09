@@ -9,8 +9,6 @@ import org.utbot.framework.codegen.services.CgNameGenerator
 import org.utbot.framework.codegen.services.CgNameGeneratorImpl
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl
-import org.utbot.framework.codegen.services.access.CgFieldStateManager
-import org.utbot.framework.codegen.services.access.CgFieldStateManagerImpl
 import org.utbot.framework.codegen.tree.CgCustomAssertConstructor
 import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.codegen.tree.CgSimpleCustomAssertConstructor
@@ -23,7 +21,9 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 interface CgLanguageAssistant {
 
     companion object {
-        fun getByCodegenLanguage(language: CodegenLanguage)  { throw UnsupportedOperationException() }
+        fun getByCodegenLanguage(language: CodegenLanguage): CgLanguageAssistant {
+            throw UnsupportedOperationException()
+        }
     }
 
     val outerMostTestClassContent: TestClassContext?
@@ -48,8 +48,6 @@ interface CgLanguageAssistant {
 
     fun getCustomAssertConstructorBy(context: CgContext): CgCustomAssertConstructor
 
-    fun getCgFieldStateManager(context: CgContext): CgFieldStateManager
-
     fun getLanguageTestFrameworkManager(): LanguageTestFrameworkManager
     fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer
 }
@@ -65,7 +63,6 @@ abstract class AbstractCgLanguageAssistant : CgLanguageAssistant {
     override fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = CgVariableConstructor(context)
 
     override fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = CgMethodConstructor(context)
-    override fun getCgFieldStateManager(context: CgContext): CgFieldStateManager = CgFieldStateManagerImpl(context)
 
     override fun getCustomAssertConstructorBy(context: CgContext): CgCustomAssertConstructor =
         CgSimpleCustomAssertConstructor(context)

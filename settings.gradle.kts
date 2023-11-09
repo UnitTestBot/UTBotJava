@@ -92,3 +92,5 @@ if (projectType == ultimateEdition) {
 
 include("utbot-light")
 include("utbot-intellij-main")
+include("utbot-framework-light")
+include("utbot-summary-light")

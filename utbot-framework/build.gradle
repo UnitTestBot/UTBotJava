@@ -12,6 +12,7 @@ dependencies {
     api project(':utbot-instrumentation')
     api project(':utbot-summary')
     api project(':utbot-framework-api')
+    api project(':utbot-framework-light')
     api project(':utbot-rd')
     api project(':utbot-modificators-analyzer')
 

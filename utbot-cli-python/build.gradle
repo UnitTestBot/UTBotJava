@@ -17,7 +17,6 @@ configurations {
 }
 
 dependencies {
-    implementation project(':utbot-framework')
     implementation project(':utbot-python')
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion

@@ -9,7 +9,8 @@ val log4j2Version: String? by rootProject
 
 dependencies {
     api(project(":utbot-fuzzing"))
-    api(project(":utbot-framework"))
+    api(project(":utbot-framework-light"))
+    api(project(":utbot-summary-light"))
     api(project(":utbot-python-parser"))
     api(project(":utbot-python-types"))
     api(project(":utbot-python-executor"))

@@ -46,7 +46,7 @@ class JcToUtExecutionConverter(
     private val jcExecution: JcExecution,
     private val idGenerator: IdGenerator<Int>,
     private val instructionIdProvider: InstructionIdProvider,
-    utilMethodProvider: UtilMethodProvider,
+    private val utilMethodProvider: UtilMethodProvider,
 ) {
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
@@ -113,16 +113,15 @@ class JcToUtExecutionConverter(
         // TODO usvm-sbft: support constructors with parameters here if it is really required
         // Unfortunately, it is not possible to use [AssembleModelGeneral] as it requires soot being initialized.
         if (model !is UtAssembleModel
-            || model.instantiationCall.statement.name != "createInstance" || model.modificationsChain.isNotEmpty()) {
+            || utilMethodProvider.createInstanceMethodId != model.instantiationCall.statement
+            || model.modificationsChain.isNotEmpty()) {
             return@UtModelDeepMapper model
         }
 
-        val instantiatingClassName = model
+        val instantiatingClassName = (model
             .instantiationCall
             .params
-            .mapNotNull { (it as? UtPrimitiveModel)?.value.toString() }
-            .singleOrNull()
-            ?: return@UtModelDeepMapper model
+            .single() as UtPrimitiveModel).value.toString()
 
         val defaultConstructor = ClassId(instantiatingClassName)
             .jClass

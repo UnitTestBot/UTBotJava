@@ -19,5 +19,6 @@ org.utbot.examples.wrappers.DoubleWrapper
 org.utbot.examples.wrappers.CharacterWrapper
 org.utbot.examples.wrappers.ByteWrapper
 org.utbot.examples.wrappers.BooleanWrapper
+org.utbot.examples.arrays.PrimitiveArrays
 
 

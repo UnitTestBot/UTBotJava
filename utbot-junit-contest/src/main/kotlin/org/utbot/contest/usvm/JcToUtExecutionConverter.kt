@@ -2,6 +2,7 @@ package org.utbot.contest.usvm
 
 import mu.KotlinLogging
 import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.jcdbSignature
@@ -36,6 +37,7 @@ private val logger = KotlinLogging.logger {}
 
 class JcToUtExecutionConverter(
     private val jcExecution: JcExecution,
+    private val jcClasspath: JcClasspath,
     private val idGenerator: IdGenerator<Int>,
     private val instructionIdProvider: InstructionIdProvider,
     utilMethodProvider: UtilMethodProvider,
@@ -45,10 +47,10 @@ class JcToUtExecutionConverter(
     private var jcToUtModelConverter: JcToUtModelConverter
 
     init {
-        val instToModelConverter = UTestInst2UtModelConverter(idGenerator, utilMethodProvider)
+        val instToModelConverter = UTestInst2UtModelConverter(idGenerator, jcClasspath, utilMethodProvider)
 
         instToModelConverter.processUTest(jcExecution.uTest)
-        jcToUtModelConverter = JcToUtModelConverter(idGenerator, instToModelConverter)
+        jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)
     }
 
     fun convert(): UtExecution? {
@@ -129,7 +131,7 @@ class JcToUtExecutionConverter(
             .associate { (jcField, uTestDescr) ->
                 jcField.fieldId to modelConverter.convert(uTestDescr)
             }
-        val executableId: ExecutableId = method.method.toExecutableId()
+        val executableId: ExecutableId = method.method.toExecutableId(jcClasspath)
         return EnvironmentModels(thisInstance, parameters, statics, executableId)
     }
 

@@ -1,5 +1,6 @@
 package org.utbot.contest.usvm
 
+import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
 import org.usvm.instrumentation.testcase.api.UTestArithmeticExpression
@@ -50,6 +51,7 @@ import org.utbot.fuzzer.IdGenerator
 
 class UTestInst2UtModelConverter(
     private val idGenerator: IdGenerator<Int>,
+    private val jcClasspath: JcClasspath,
     private val utilMethodProvider: UtilMethodProvider,
 ) {
     private val exprToModelCache = mutableMapOf<UTestExpression, UtModel>()
@@ -101,7 +103,7 @@ class UTestInst2UtModelConverter(
                 val instanceModel = processExpr(instanceExpr)
                 require(instanceModel is UtAssembleModel)
 
-                val fieldType = uTestInst.field.type.classId
+                val fieldType = uTestInst.field.type.findClassId(jcClasspath)
                 val fieldName = uTestInst.field.name
                 val setValueModel = processExpr(uTestInst.value)
 
@@ -147,7 +149,7 @@ class UTestInst2UtModelConverter(
             is UTestConstructorCall -> {
                 val constructorCall = UtExecutableCallModel(
                     instance = null,
-                    executable = uTestExpr.method.toExecutableId(),
+                    executable = uTestExpr.method.toExecutableId(jcClasspath),
                     params = uTestExpr.args.map { arg ->
                         processExpr(arg)
                     },
@@ -167,7 +169,7 @@ class UTestInst2UtModelConverter(
 
                 val methodCall = UtExecutableCallModel(
                     instance = instanceModel,
-                    executable = uTestExpr.method.toExecutableId(),
+                    executable = uTestExpr.method.toExecutableId(jcClasspath),
                     params = uTestExpr.args.map { arg -> processExpr(arg) },
                 )
 
@@ -188,7 +190,7 @@ class UTestInst2UtModelConverter(
                     modelName = "",
                     instantiationCall = UtExecutableCallModel(
                         instance = null,
-                        executable = uTestExpr.method.toExecutableId(),
+                        executable = uTestExpr.method.toExecutableId(jcClasspath),
                         params = uTestExpr.args.map { arg -> processExpr(arg) },
                     ),
                 )
@@ -234,7 +236,7 @@ class UTestInst2UtModelConverter(
                     executable = utilMethodProvider.getFieldValueMethodId,
                     params = listOf(
                         instanceModel,
-                        UtPrimitiveModel(uTestExpr.field.type.classId.name),
+                        UtPrimitiveModel(uTestExpr.field.type),
                         UtPrimitiveModel(uTestExpr.field.name),
                     ),
                 )
@@ -252,7 +254,7 @@ class UTestInst2UtModelConverter(
                     instance = null,
                     executable = utilMethodProvider.getStaticFieldValueMethodId,
                     params = listOf(
-                        UtPrimitiveModel(uTestExpr.field.type.classId.name),
+                        UtPrimitiveModel(uTestExpr.field.type),
                         UtPrimitiveModel(uTestExpr.field.name),
                     ),
                 )
@@ -287,7 +289,7 @@ class UTestInst2UtModelConverter(
                 mocks += uTestExpr.methods
                     .entries
                     .associate { (jcMethod, uTestExprs) ->
-                        val executableId: ExecutableId = jcMethod.toExecutableId()
+                        val executableId: ExecutableId = jcMethod.toExecutableId(jcClasspath)
                         val models = uTestExprs.map { expr ->
                             processExpr(expr)
                         }

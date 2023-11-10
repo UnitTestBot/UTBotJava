@@ -150,6 +150,7 @@ class FuzzingEngine(
         val fuzzerCancellation = { configuration.isCanceled() || timeoutLimitManager.isCancelled() }
         runBlocking {
             runFuzzing(
+                method,
                 algo,
                 fuzzerCancellation,
                 until
@@ -160,6 +161,7 @@ class FuzzingEngine(
     }
 
     private fun runFuzzing(
+        method: PythonMethod,
         typeInferenceAlgorithm: BaselineAlgorithm,
         isCancelled: () -> Boolean,
         until: Long

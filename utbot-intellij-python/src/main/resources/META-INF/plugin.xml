@@ -2,7 +2,7 @@
 <idea-plugin>
 
     <id>org.utbot.pycharm</id>
-    <name>UnitTestBot Pycharm</name>
+    <name>UnitTestBot PyCharm</name>
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.platform</depends>
 
@@ -24,7 +24,6 @@
                                  id="org.utbot.intellij.plugin.settings.Configurable"
                                  displayName="UnitTestBot"/>
         <!--suppress PluginXmlValidity -->
-        <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
     </extensions>
 
     <!-- Minimum and maximum build of IDE compatible with the plugin -->

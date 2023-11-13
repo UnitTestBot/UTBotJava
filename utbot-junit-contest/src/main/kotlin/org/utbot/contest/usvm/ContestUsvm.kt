@@ -161,14 +161,14 @@ fun runUsvmGeneration(
                 options = UMachineOptions(timeoutMs = symbolicBudgetPerMethod)
             )
         }.use { machine ->
-            val jcClass = jcDbContainer.cp.findClass(cut.fqn)
-
             statsForClass.methodsCount = filteredMethods.size
 
             // nothing to process further
             if (filteredMethods.isEmpty()) return@runBlocking statsForClass
 
             for (method in filteredMethods) {
+                val jcClass = jcDbContainer.cp.findClass(method.classId.name)
+
                 val jcTypedMethod = jcClass.toType().declaredMethods.firstOrNull {
                     it.name == method.name && it.method.jcdbSignature == when (method) {
                         is ConstructorId -> method.constructor.toJcdbSignature()

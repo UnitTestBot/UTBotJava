@@ -265,7 +265,7 @@ fun runUsvmGeneration(
 
     val testSets = testsByMethod.map { (method, executions) ->
         UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody = null)
-    }.summarizeAll(sourceFile = null)
+    }.summarizeAll()
 
     logger.info().measureTime({ "Flushing tests for [${cut.simpleName}] on disk" }) {
         writeTestClass(cut, codeGenerator.generateAsString(testSets))

@@ -26,18 +26,18 @@ To generate summary, use the following settings:
 - *enableJavaDocGeneration = true*
  */
 
-fun Collection<UtMethodTestSet>.summarizeAll(sourceFile: File?): List<UtMethodTestSet> =
+fun Collection<UtMethodTestSet>.summarizeAll(): List<UtMethodTestSet> =
     logger.info().measureTime({
         "----------------------------------------------------------------------------------------\n" +
                 "-------------------Summarization started for ${this.size} test cases--------------------\n" +
                 "----------------------------------------------------------------------------------------"
     }) {
         this.map {
-            it.summarizeOne(sourceFile)
+            it.summarizeOne()
         }
     }
 
-private fun UtMethodTestSet.summarizeOne(sourceFile: File?): UtMethodTestSet =
+private fun UtMethodTestSet.summarizeOne(): UtMethodTestSet =
     logger.info().measureTime({ "Summarization for ${this.method}" }) {
 
         if (summaryGenerationType != LIGHT || !enableTestNamesGeneration || enableDisplayNameGeneration || !enableJavaDocGeneration) {
@@ -47,7 +47,7 @@ private fun UtMethodTestSet.summarizeOne(sourceFile: File?): UtMethodTestSet =
             return this
         }
 
-        USummarization(sourceFile, invokeDescriptions = emptyList()).fillSummaries(this)
+        USummarization(sourceFile = null, invokeDescriptions = emptyList()).fillSummaries(this)
         return this
     }
 

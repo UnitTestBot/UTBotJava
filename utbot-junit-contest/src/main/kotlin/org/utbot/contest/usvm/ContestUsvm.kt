@@ -81,7 +81,8 @@ fun runUsvmGeneration(
     }
 
     val runner by lazy {
-        UTestRunner.initRunner(classpathFiles.map { it.absolutePath }, jcDbContainer.cp)
+        if (!UTestRunner.isInitialized())
+            UTestRunner.initRunner(classpathFiles.map { it.absolutePath }, jcDbContainer.cp)
         UTestRunner.runner
     }
 

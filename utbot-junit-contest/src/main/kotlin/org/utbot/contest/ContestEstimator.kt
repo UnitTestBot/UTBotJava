@@ -26,6 +26,7 @@ import org.utbot.contest.Paths.evosuiteReportFile
 import org.utbot.contest.Paths.jarsDir
 import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
+import org.utbot.contest.usvm.executor.UTestRunner
 import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
@@ -263,6 +264,11 @@ interface Tool {
             expectedExceptions,
             methodNameFilter
         )
+
+        override fun close() {
+            if (UTestRunner.isInitialized())
+                UTestRunner.runner.close()
+        }
     }
 
     object EvoSuite : Tool {
@@ -351,6 +357,8 @@ interface Tool {
     )
 
     fun moveProducedFilesIfNeeded()
+
+    fun close() {}
 }
 
 fun main(args: Array<String>) {
@@ -508,52 +516,56 @@ fun runEstimator(
 
     try {
         tools.forEach { tool ->
-            var classIndex = 0
+            try {
+                var classIndex = 0
 
-            outer@ for (project in projects) {
-                if (projectFilter != null && project.name !in projectFilter) continue
+                outer@ for (project in projects) {
+                    if (projectFilter != null && project.name !in projectFilter) continue
 
-                val statsForProject = StatsForProject(project.name)
-                globalStats.projectStats.add(statsForProject)
+                    val statsForProject = StatsForProject(project.name)
+                    globalStats.projectStats.add(statsForProject)
 
-                logger.info { "------------- project [${project.name}] ---- " }
+                    logger.info { "------------- project [${project.name}] ---- " }
 
-                // take all the classes from the corresponding jar if a list of the specified classes is empty
-                val extendedClassFqn = project.classFQNs.ifEmpty { project.classNames }
+                    // take all the classes from the corresponding jar if a list of the specified classes is empty
+                    val extendedClassFqn = project.classFQNs.ifEmpty { project.classNames }
 
-                for (classFqn in extendedClassFqn.filter { classFqnFilter?.equals(it) ?: true }) {
-                    classIndex++
-                    if (classIndex > processedClassesThreshold) {
-                        logger.info { "Reached limit of $processedClassesThreshold classes" }
-                        break@outer
-                    }
+                    for (classFqn in extendedClassFqn.filter { classFqnFilter?.equals(it) ?: true }) {
+                        classIndex++
+                        if (classIndex > processedClassesThreshold) {
+                            logger.info { "Reached limit of $processedClassesThreshold classes" }
+                            break@outer
+                        }
 
-                    try {
-                        val cut =
-                            ClassUnderTest(
-                                project.classloader.loadClass(classFqn).id,
-                                project.outputTestSrcFolder,
-                                project.unzippedDir
+                        try {
+                            val cut =
+                                ClassUnderTest(
+                                    project.classloader.loadClass(classFqn).id,
+                                    project.outputTestSrcFolder,
+                                    project.unzippedDir
+                                )
+
+                            logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
+
+                            tool.run(
+                                project,
+                                cut,
+                                timeLimit,
+                                fuzzingRatio,
+                                methodNameFilter,
+                                statsForProject,
+                                compiledTestDir,
+                                classFqn,
+                                project.expectedExceptions.getForClass(classFqn)
                             )
-
-                        logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
-
-                        tool.run(
-                            project,
-                            cut,
-                            timeLimit,
-                            fuzzingRatio,
-                            methodNameFilter,
-                            statsForProject,
-                            compiledTestDir,
-                            classFqn,
-                            project.expectedExceptions.getForClass(classFqn)
-                        )
-                    }
-                    catch (e: Throwable) {
-                        logger.warn(e) { "===================== ERROR IN [${project.name}] FOR [$classIndex:$classFqn] ============" }
+                        }
+                        catch (e: Throwable) {
+                            logger.warn(e) { "===================== ERROR IN [${project.name}] FOR [$classIndex:$classFqn] ============" }
+                        }
                     }
                 }
+            } finally {
+                tool.close()
             }
         }
     } finally {

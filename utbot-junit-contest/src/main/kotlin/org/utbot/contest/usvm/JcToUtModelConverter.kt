@@ -59,7 +59,7 @@ class JcToUtModelConverter(
                 fields += valueDescriptor.fields
                     .entries
                     .associate { (jcField, fieldDescr) ->
-                        val fieldId = FieldId(jcField.type.findClassId(jcClasspath), jcField.name)
+                        val fieldId = FieldId(jcField.enclosingClass.classId, jcField.name)
                         val fieldModel = convert(fieldDescr)
                         fieldId to fieldModel
                     }

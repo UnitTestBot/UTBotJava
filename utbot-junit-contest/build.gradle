@@ -3,9 +3,29 @@ plugins {
 }
 apply plugin: 'jacoco'
 
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    maven {
+        url = uri('https://maven.pkg.github.com/UnitTestBot/usvm')
+        credentials {
+            // Generate token here -- https://github.com/settings/tokens/new (select `read:packages` checkbox)
+            username = "<github username>"// System.getenv("GITHUB_ACTOR")
+            password = "<github token>"// System.getenv("GITHUB_TOKEN")
+        }
+    }
+}
+
 configurations {
     fetchInstrumentationJar
+    approximations
+    usvmApproximationsApi
+    usvmInstrumentationCollector
+    usvmInstrumentationRunner
 }
+
+def approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
+def approximationsVersion = "53ceeb23ea"
 
 compileJava {
     options.compilerArgs << '-XDignore.symbol.file'
@@ -136,6 +156,7 @@ dependencies {
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1'
+    implementation group: 'com.google.guava', name: 'guava', version: guavaVersion
     // need for tests
     implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
     implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
@@ -143,9 +164,11 @@ dependencies {
 
     implementation "org.burningwave:core:12.62.7"
 
-    implementation('org.usvm:usvm-core')
-    implementation('org.usvm:usvm-jvm')
-    implementation('org.usvm:usvm-jvm-instrumentation')
+    implementation group: "org.usvm", name: "usvm-core", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm-api", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm-instrumentation", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm-instrumentation-collectors", version: usvmVersion
 
     implementation group: "org.jacodb", name: "jacodb-core", version: jacoDbVersion
     implementation group: "org.jacodb", name: "jacodb-analysis", version: jacoDbVersion
@@ -160,6 +183,12 @@ dependencies {
     testImplementation files('src/main/resources/evosuite/evosuite-standalone-runtime-1.2.0.jar')
 
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
+
+    approximations "$approximationsRepo:approximations:$approximationsVersion"
+    usvmApproximationsApi "org.usvm:usvm-jvm-api:$usvmVersion"
+    usvmInstrumentationCollector "org.usvm:usvm-jvm-instrumentation-collectors:$usvmVersion"
+    usvmInstrumentationRunner "org.usvm:usvm-jvm-instrumentation:$usvmVersion"
+    usvmInstrumentationRunner "org.usvm:usvm-jvm-instrumentation-collectors:$usvmVersion"
 }
 
 processResources {
@@ -213,4 +242,41 @@ task monitoringJar(type: Jar) {
     }
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// TODO usvm-sbft-saloed: replace with runner from usvm (unavailable due to huge jar size)
+task usvmInstrumentationRunnerJar(type: Jar) {
+    archiveBaseName = "usvm-instrumentation-runner"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes(
+                "Main-Class": "org.usvm.instrumentation.rd.InstrumentedProcessKt",
+                "Premain-Class": "org.usvm.instrumentation.agent.Agent",
+                "Can-Retransform-Classes": "true",
+                "Can-Redefine-Classes": "true"
+        )
+    }
+
+    from {
+        configurations.usvmInstrumentationRunner.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
+task run(type: JavaExec) {
+    mainClass.set("org.utbot.contest.ContestEstimatorKt")
+    classpath = sourceSets.main.runtimeClasspath
+    workingDir = project.rootProject.projectDir
+
+    def usvmApproximationJarPath = configurations.approximations.resolve().iterator().next()
+    def usvmApproximationApiJarPath = configurations.usvmApproximationsApi.resolve().iterator().next()
+    environment "usvm.jvm.api.jar.path", usvmApproximationApiJarPath.absolutePath
+    environment "usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath
+
+    def usvmInstrumentationCollectorJarPath = configurations.usvmInstrumentationCollector.resolve().iterator().next()
+    environment "usvm-jvm-collectors-jar", usvmInstrumentationCollectorJarPath.absolutePath
+
+    dependsOn(usvmInstrumentationRunnerJar)
+    environment "usvm-jvm-instrumentation-jar", usvmInstrumentationRunnerJar.outputs.files.singleFile
 }

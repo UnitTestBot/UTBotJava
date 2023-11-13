@@ -103,7 +103,7 @@ class UTestInst2UtModelConverter(
                 val instanceModel = processExpr(instanceExpr)
                 require(instanceModel is UtAssembleModel)
 
-                val fieldType = uTestInst.field.type.findClassId(jcClasspath)
+                val fieldType = uTestInst.field.enclosingClass.classId
                 val fieldName = uTestInst.field.name
                 val setValueModel = processExpr(uTestInst.value)
 

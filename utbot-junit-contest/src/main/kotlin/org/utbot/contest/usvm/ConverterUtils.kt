@@ -22,6 +22,7 @@ import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.util.voidClassId
 
 fun JcMethod.toExecutableId(classpath: JcClasspath): ExecutableId {
     val type = this.thisInstance.type.classId
@@ -43,9 +44,15 @@ val JcType?.classId: ClassId
 val JcClassOrInterface.classId: ClassId
     get() = this.toJavaClass(utContext.classLoader).id
 
-fun TypeName.findClassId(classpath: JcClasspath): ClassId =
-    classpath.findTypeOrNull(this.typeName)?.classId
+fun TypeName.findClassId(classpath: JcClasspath): ClassId {
+    // TODO usvm-sbft: fix it properly with Alexey Volkov
+    if (this.typeName == "void") {
+        return voidClassId
+    }
+
+    return classpath.findTypeOrNull(this.typeName)?.classId
         ?: error("Can not construct classId for $this")
+}
 
 val JcField.fieldId: FieldId
     get() = toJavaField(utContext.classLoader)!!.fieldId

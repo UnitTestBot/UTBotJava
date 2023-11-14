@@ -175,7 +175,7 @@ class SbftGenerateTestsCommand : CliktCommand(
                 )
             }
 
-            val localTimeout = separateTimeout(timeout - mypyTime, pythonMethodGroups, pythonMethods)
+            val localTimeout = max(separateTimeout(timeout, pythonMethodGroups, pythonMethods) - mypyTime, 0)
             logger.info { "Timout for current group: ${localTimeout}ms" }
 
             val config = PythonTestGenerationConfig(
@@ -218,7 +218,7 @@ class SbftGenerateTestsCommand : CliktCommand(
 
     companion object {
         fun separateTimeout(timeout: Long, groups: List<List<PythonMethodHeader>>, group: List<PythonMethodHeader>): Long {
-            return max(timeout, 0) * group.size / groups.sumOf { it.size }
+            return timeout * group.size / groups.sumOf { it.size }
         }
     }
 }

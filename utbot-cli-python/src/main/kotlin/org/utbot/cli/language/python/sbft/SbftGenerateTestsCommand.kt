@@ -159,24 +159,24 @@ class SbftGenerateTestsCommand : CliktCommand(
 
         val pythonMethodGroups = getPythonMethods().let { if (checkUsvm) it.take(1) else it }
 
+        val sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet()
+        val testFile = TestFileInformation(absPathToSourceFile, sourceFileContent, currentPythonModule.dropInitFile())
+
+        val mypyConfig: MypyConfig
+        val mypyTime = measureTimeMillis {
+            logger.info("Loading information about Python types...")
+            mypyConfig = PythonTestGenerationProcessor.sourceCodeAnalyze(
+                sysPathDirectories,
+                pythonPath,
+                testFile,
+            )
+        }
+
         val globalImportCollection = mutableSetOf<PythonImport>()
         val globalCodeCollection = mutableListOf<String>()
         pythonMethodGroups.map { pythonMethods ->
-            val sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet()
-            val testFile = TestFileInformation(absPathToSourceFile, sourceFileContent, currentPythonModule.dropInitFile())
-
-            val mypyConfig: MypyConfig
-            val mypyTime = measureTimeMillis {
-                logger.info("Loading information about Python types...")
-                mypyConfig = PythonTestGenerationProcessor.sourceCodeAnalyze(
-                    sysPathDirectories,
-                    pythonPath,
-                    testFile,
-                )
-            }
-
-            val localTimeout = max(separateTimeout(timeout, pythonMethodGroups, pythonMethods) - mypyTime, 0)
-            logger.info { "Timout for current group: ${localTimeout}ms" }
+            val localTimeout = max(separateTimeout(timeout - mypyTime, pythonMethodGroups, pythonMethods), 0)
+            logger.info { "Timeout for current group: ${localTimeout}ms" }
 
             val config = PythonTestGenerationConfig(
                 pythonPath = pythonPath,

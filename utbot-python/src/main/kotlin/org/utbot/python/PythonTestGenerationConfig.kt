@@ -32,6 +32,7 @@ class PythonTestGenerationConfig(
     val coverageOutputFormat: CoverageOutputFormat = CoverageOutputFormat.Lines,
     val usvmConfig: UsvmConfig = UsvmConfig.defaultConfig,
     val prohibitedExceptions: List<String> = defaultProhibitedExceptions,
+    val checkUsvm: Boolean = false,
 ) {
     companion object {
         val defaultProhibitedExceptions = listOf(

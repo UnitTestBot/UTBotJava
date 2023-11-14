@@ -56,7 +56,7 @@ class GlobalPythonEngine(
         ).start()
     }
 
-    private fun runSymbolic() {
+    private fun runSymbolic(debug: Boolean = false) {
         val usvmPythonConfig = USVMPythonConfig(
             StandardLayout(File(configuration.usvmConfig.usvmDirectory)),
             configuration.usvmConfig.javaCmd,
@@ -79,13 +79,19 @@ class GlobalPythonEngine(
                 method.containingPythonClass.pythonName()
             )
         }
-        SymbolicEngine(
+        val engine = SymbolicEngine(
             usvmPythonConfig,
             configuration,
-        ).analyze(
-            USVMPythonRunConfig(config, configuration.timeout, configuration.timeoutForRun * 3),
-            receiver
         )
+        val usvmConfig = USVMPythonRunConfig(config, configuration.timeout, configuration.timeoutForRun * 3)
+        if (debug) {
+            engine.debugRun(usvmConfig)
+        } else {
+            engine.analyze(
+                usvmConfig,
+                receiver
+            )
+        }
         logger.info { "Symbolic: stop receiver" }
         receiver.close()
     }
@@ -110,6 +116,18 @@ class GlobalPythonEngine(
             logger.info { " ======= Finish symbolic ======= " }
         }
         fuzzing.join()
+        symbolic.join()
+    }
+
+    fun debugUsvmRun() {
+        val symbolic = thread(
+            start = true,
+            isDaemon = true,
+            name = "Symbolic"
+        ) {
+            logger.info { " ...... Checking symbolic ...... " }
+            runSymbolic(debug = true)
+        }
         symbolic.join()
     }
 

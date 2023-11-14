@@ -105,6 +105,9 @@ class SbftGenerateTestsCommand : CliktCommand(
         help = "(required) Path to usvm directory (ONLY FOR USVM)."
     ).required()
 
+    private val checkUsvm by option("--check-usvm", help = "Check usvm (ONLY FOR USVM).")
+        .flag(default = false)
+
     private fun getPythonMethods(): List<List<PythonMethodHeader>> {
         val parsedModule = PythonParser(sourceFileContent).Module()
 
@@ -150,7 +153,7 @@ class SbftGenerateTestsCommand : CliktCommand(
             return
         }
 
-        val pythonMethodGroups = getPythonMethods()
+        val pythonMethodGroups = getPythonMethods().let { if (checkUsvm) it.take(1) else it }
 
         val globalImportCollection = mutableSetOf<PythonImport>()
         val globalCodeCollection = mutableListOf<String>()
@@ -172,6 +175,7 @@ class SbftGenerateTestsCommand : CliktCommand(
                 coverageOutputFormat = CoverageOutputFormat.Lines,
                 usvmConfig = UsvmConfig(javaCmd, usvmDirectory),
                 prohibitedExceptions = if (prohibitedExceptions == listOf("-")) emptyList() else prohibitedExceptions,
+                checkUsvm = checkUsvm,
             )
 
             val processor = SbftCliProcessor(config)

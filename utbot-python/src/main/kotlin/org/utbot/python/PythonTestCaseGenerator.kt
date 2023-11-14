@@ -18,7 +18,6 @@ class PythonTestCaseGenerator(
     private val withMinimization = configuration.withMinimization
 
     fun generate(method: PythonMethod, until: Long): List<PythonTestSet> {
-
         logger.info { "Start test generation for ${method.name}" }
         val engine = GlobalPythonEngine(
             method = method,
@@ -27,7 +26,11 @@ class PythonTestCaseGenerator(
             until,
         )
         try {
-            engine.run()
+            if (configuration.checkUsvm) {
+                engine.debugUsvmRun()
+            } else {
+                engine.run()
+            }
         } catch (_: OutOfMemoryError) {
             logger.debug { "Out of memory error. Stop test generation process" }
         }

@@ -1,6 +1,7 @@
 package org.utbot.python.engine.symbolic
 
 import mu.KotlinLogging
+import org.usvm.runner.DebugRunner
 import org.usvm.runner.PythonSymbolicAnalysisRunnerImpl
 import org.usvm.runner.USVMPythonConfig
 import org.usvm.runner.USVMPythonRunConfig
@@ -41,6 +42,16 @@ class SymbolicEngine(
         val symbolicRunner = PythonSymbolicAnalysisRunnerImpl(usvmPythonConfig)
         symbolicRunner.use {
             it.analyze(runConfig, receiver, symbolicCancellation)
+        }
+    }
+
+    fun debugRun(runConfig: USVMPythonRunConfig) {
+        val debugRunner = DebugRunner(usvmPythonConfig)
+        try {
+            debugRunner.runProcessAndPrintInfo(runConfig)
+        } catch (ex: Exception) {
+            logger.error { ex.message }
+            logger.error { ex.stackTrace }
         }
     }
 }

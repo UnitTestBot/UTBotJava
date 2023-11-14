@@ -21,4 +21,13 @@ org.usvm.samples.wrappers.ByteWrapper
 org.usvm.samples.wrappers.BooleanWrapper
 org.usvm.samples.arrays.PrimitiveArrays
 org.usvm.samples.arrays.IntArrayBasics
+org.usvm.samples.arrays.ArraysOfArrays
+org.usvm.samples.arrays.ArrayOfObjects
+org.usvm.samples.arrays.ArraysOverwriteValue
+org.usvm.samples.arrays.ArrayStoreExceptionExamples
+org.usvm.samples.arrays.CopyOfExample
+org.usvm.samples.arrays.FinalStaticFieldArray
+org.usvm.samples.arrays.MultiDimensional
+org.usvm.samples.arrays.OneDimensional
+
 

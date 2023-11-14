@@ -46,17 +46,13 @@ private val logger = KotlinLogging.logger {}
 // TODO: add asserts that one or less of containing classes and only one file
 abstract class PythonTestGenerationProcessor {
     abstract val configuration: PythonTestGenerationConfig
-    private val mypyBuildRoot = TemporaryFileManager.assignTemporaryFile(tag = "mypyBuildRoot")
 
     fun sourceCodeAnalyze(): MypyConfig {
-        val buildDirectory = MypyBuildDirectory(mypyBuildRoot, configuration.sysPathDirectories)
-        val (mypyInfoBuild, mypyReportLines) = readMypyAnnotationStorageAndInitialErrors(
+        return sourceCodeAnalyze(
+            configuration.sysPathDirectories,
             configuration.pythonPath,
-            configuration.testFileInformation.testedFilePath,
-            configuration.testFileInformation.moduleName,
-            buildDirectory
+            configuration.testFileInformation,
         )
-        return MypyConfig(mypyInfoBuild, mypyReportLines, buildDirectory)
     }
 
     fun testGenerate(mypyConfig: MypyConfig): List<PythonTestSet> {
@@ -290,6 +286,25 @@ abstract class PythonTestGenerationProcessor {
         val covered = coverageInfo.covered.map { it.toJson() }
         val notCovered = coverageInfo.notCovered.map { it.toJson() }
         return "{\"covered\": [${covered.joinToString(", ")}], \"notCovered\": [${notCovered.joinToString(", ")}]}"
+    }
+
+    companion object {
+        fun sourceCodeAnalyze(
+            sysPathDirectories: Set<String>,
+            pythonPath: String,
+            testFileInformation: TestFileInformation,
+        ): MypyConfig {
+            val mypyBuildRoot = TemporaryFileManager.assignTemporaryFile(tag = "mypyBuildRoot")
+            val buildDirectory = MypyBuildDirectory(mypyBuildRoot, sysPathDirectories)
+            val (mypyInfoBuild, mypyReportLines) = readMypyAnnotationStorageAndInitialErrors(
+                pythonPath,
+                testFileInformation.testedFilePath,
+                testFileInformation.moduleName,
+                buildDirectory
+            )
+            return MypyConfig(mypyInfoBuild, mypyReportLines, buildDirectory)
+        }
+
     }
 }
 

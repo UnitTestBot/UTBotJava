@@ -16,8 +16,10 @@ import org.utbot.cli.language.python.findCurrentPythonModule
 import org.utbot.cli.language.python.toAbsolutePath
 import org.utbot.cli.language.python.writeToFileAndSave
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.python.MypyConfig
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
+import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.TestFileInformation
 import org.utbot.python.UsvmConfig
 import org.utbot.python.code.PythonCode
@@ -33,6 +35,8 @@ import org.utbot.python.utils.Fail
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.Success
 import java.io.File
+import kotlin.math.max
+import kotlin.system.measureTimeMillis
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
 private const val DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS = 2000L
@@ -157,13 +161,29 @@ class SbftGenerateTestsCommand : CliktCommand(
 
         val globalImportCollection = mutableSetOf<PythonImport>()
         val globalCodeCollection = mutableListOf<String>()
-        pythonMethodGroups.map {  pythonMethods ->
+        pythonMethodGroups.map { pythonMethods ->
+            val sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet()
+            val testFile = TestFileInformation(absPathToSourceFile, sourceFileContent, currentPythonModule.dropInitFile())
+
+            val mypyConfig: MypyConfig
+            val mypyTime = measureTimeMillis {
+                logger.info("Loading information about Python types...")
+                mypyConfig = PythonTestGenerationProcessor.sourceCodeAnalyze(
+                    sysPathDirectories,
+                    pythonPath,
+                    testFile,
+                )
+            }
+
+            val localTimeout = separateTimeout(timeout - mypyTime, pythonMethodGroups, pythonMethods)
+            logger.info { "Timout for current group: ${localTimeout}ms" }
+
             val config = PythonTestGenerationConfig(
                 pythonPath = pythonPath,
-                testFileInformation = TestFileInformation(absPathToSourceFile, sourceFileContent, currentPythonModule.dropInitFile()),
-                sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
+                testFileInformation = testFile,
+                sysPathDirectories = sysPathDirectories,
                 testedMethods = pythonMethods,
-                timeout = timeout,
+                timeout = localTimeout,
                 timeoutForRun = timeoutForRun,
                 testFramework = testFramework,
                 testSourceRootPath = null,
@@ -177,11 +197,7 @@ class SbftGenerateTestsCommand : CliktCommand(
                 prohibitedExceptions = if (prohibitedExceptions == listOf("-")) emptyList() else prohibitedExceptions,
                 checkUsvm = checkUsvm,
             )
-
             val processor = SbftCliProcessor(config)
-
-            logger.info("Loading information about Python types...")
-            val mypyConfig = processor.sourceCodeAnalyze()
 
             logger.info("Generating tests...")
             val testSets = processor.testGenerate(mypyConfig)
@@ -198,5 +214,11 @@ class SbftGenerateTestsCommand : CliktCommand(
         val testCode = (listOf(importCode.joinToString("\n")) + globalCodeCollection).joinToString("\n\n\n")
         writeToFileAndSave(output, testCode)
         System.exit(0)
+    }
+
+    companion object {
+        fun separateTimeout(timeout: Long, groups: List<List<PythonMethodHeader>>, group: List<PythonMethodHeader>): Long {
+            return max(timeout, 0) * group.size / groups.sumOf { it.size }
+        }
     }
 }

@@ -9,9 +9,8 @@ repositories {
     maven {
         url = uri('https://maven.pkg.github.com/UnitTestBot/usvm')
         credentials {
-            // Generate token here -- https://github.com/settings/tokens/new (select `read:packages` checkbox)
-            username = "<github username>"// System.getenv("GITHUB_ACTOR")
-            password = "<github token>"// System.getenv("GITHUB_TOKEN")
+            username = project.githubActor // System.getenv("GITHUB_ACTOR")
+            password = project.githubToken // System.getenv("GITHUB_TOKEN")
         }
     }
 }
@@ -64,7 +63,10 @@ sourceSets {
 
 test {
     useJUnit()
-    jvmArgs =[
+    if (JavaVersion.current() < JavaVersion.VERSION_1_9) {
+        jvmArgs = []
+    } else {
+        jvmArgs = [
             "--add-opens", "java.base/java.util.concurrent.atomic=ALL-UNNAMED",
             "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED",
             "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
@@ -115,7 +117,8 @@ test {
             "--add-opens", "java.base/jdk.internal.util.xml.impl=ALL-UNNAMED",
             "--add-opens", "java.base/jdk.internal.vm=ALL-UNNAMED",
             "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
-    ]
+        ]
+    }
     finalizedBy jacocoTestReport
 }
 
@@ -269,14 +272,22 @@ task run(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     workingDir = project.rootProject.projectDir
 
-    def usvmApproximationJarPath = configurations.approximations.resolve().iterator().next()
-    def usvmApproximationApiJarPath = configurations.usvmApproximationsApi.resolve().iterator().next()
+    def usvmApproximationJarPath = configurations.approximations.resolvedConfiguration.files.find()
+    def usvmApproximationApiJarPath = configurations.usvmApproximationsApi.resolvedConfiguration.files.find()
     environment "usvm.jvm.api.jar.path", usvmApproximationApiJarPath.absolutePath
     environment "usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath
 
-    def usvmInstrumentationCollectorJarPath = configurations.usvmInstrumentationCollector.resolve().iterator().next()
+    def usvmInstrumentationCollectorJarPath = configurations.usvmInstrumentationCollector.resolvedConfiguration.files.find()
     environment "usvm-jvm-collectors-jar", usvmInstrumentationCollectorJarPath.absolutePath
 
     dependsOn(usvmInstrumentationRunnerJar)
     environment "usvm-jvm-instrumentation-jar", usvmInstrumentationRunnerJar.outputs.files.singleFile
+
+    // "JAVA_HOME" specifies Java path for instrumented process and JacoDB,
+    // while `System.getProperty('java.home')` is Java used by this process.
+    // We want both of them to be the same and we also need JDK (not JRE), since we use `javac` to compile tests.
+    def javaHome = System.getProperty('java.home')
+    def jreSuffix = "${File.separatorChar}jre"
+    if (javaHome.endsWith(jreSuffix)) javaHome = javaHome.dropRight(jreSuffix.length())
+    environment "JAVA_HOME", javaHome
 }

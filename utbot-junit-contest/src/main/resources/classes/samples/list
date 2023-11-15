@@ -35,3 +35,9 @@ org.usvm.samples.types.PathDependentGenericsExample
 org.usvm.samples.types.TypeBorders
 org.usvm.samples.types.TypeMatches
 org.usvm.samples.ternary.Ternary
+org.usvm.samples.invokes.InvokeExample
+org.usvm.samples.invokes.NativeExample
+org.usvm.samples.invokes.SimpleInterfaceExample
+org.usvm.samples.invokes.StaticInvokeExample
+org.usvm.samples.invokes.VirtualInvokeExample
+org.usvm.samples.invokes.VirtualInvokeNestedIteExample

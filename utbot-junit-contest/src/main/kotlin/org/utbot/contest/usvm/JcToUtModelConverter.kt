@@ -11,6 +11,7 @@ import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestRefDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
+import org.usvm.instrumentation.util.InstrumentationModuleConstants.nameForExistingButNullString
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -112,7 +113,7 @@ class JcToUtModelConverter(
             is UTestConstantDescriptor.Int -> UtPrimitiveModel(valueDescriptor.value)
             is UTestConstantDescriptor.Long -> UtPrimitiveModel(valueDescriptor.value)
             is UTestConstantDescriptor.Short -> UtPrimitiveModel(valueDescriptor.value)
-            is UTestConstantDescriptor.String -> UtPrimitiveModel(valueDescriptor.value)
+            is UTestConstantDescriptor.String -> constructString(valueDescriptor.value)
 
             is UTestCyclicReferenceDescriptor -> descriptorToModelCache.getValue(
                 refIdToDescriptorCache.getValue(valueDescriptor.refId)
@@ -154,6 +155,13 @@ class JcToUtModelConverter(
             .forEachIndexed { index, elemModel -> stores += index to elemModel }
 
         return model
+    }
+
+    private fun constructString(valueDescriptorValue: String): UtModel {
+        if(valueDescriptorValue == nameForExistingButNullString){
+            return UtNullModel(stringClassId)
+        }
+        return UtPrimitiveModel(valueDescriptorValue)
     }
 
 }

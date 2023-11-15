@@ -34,6 +34,7 @@ org.usvm.samples.types.Generics
 org.usvm.samples.types.PathDependentGenericsExample
 org.usvm.samples.types.TypeBorders
 org.usvm.samples.types.TypeMatches
+org.usvm.samples.ternary.Ternary
 
 
 

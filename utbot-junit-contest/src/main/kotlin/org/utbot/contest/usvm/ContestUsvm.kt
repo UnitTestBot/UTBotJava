@@ -9,7 +9,7 @@ import org.jacodb.approximation.Approximations
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.objectweb.asm.Type
 import org.usvm.UMachineOptions
-import org.usvm.instrumentation.util.toJcdbSignature
+import org.usvm.instrumentation.util.jcdbSignature
 import org.usvm.machine.JcMachine
 import org.usvm.machine.state.JcState
 import org.utbot.common.ThreadBasedExecutor
@@ -172,8 +172,8 @@ fun runUsvmGeneration(
 
                 val jcTypedMethod = jcClass.toType().declaredMethods.firstOrNull {
                     it.name == method.name && it.method.jcdbSignature == when (method) {
-                        is ConstructorId -> method.constructor.toJcdbSignature()
-                        is MethodId -> method.method.toJcdbSignature()
+                        is ConstructorId -> method.constructor.jcdbSignature
+                        is MethodId -> method.method.jcdbSignature
                     }
                 }
                 if (jcTypedMethod == null) {

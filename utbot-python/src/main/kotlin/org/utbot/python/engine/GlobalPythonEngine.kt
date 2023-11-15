@@ -68,7 +68,7 @@ class GlobalPythonEngine(
             method,
             configuration,
             executionStorage,
-            System.currentTimeMillis() + configuration.timeout
+            until,
         )
         val config = if (method.containingPythonClass == null) {
             USVMPythonFunctionConfig(configuration.testFileInformation.moduleName, method.name)
@@ -102,16 +102,16 @@ class GlobalPythonEngine(
             isDaemon = true,
             name = "Fuzzer"
         ) {
-            logger.info { " ======= Start fuzzer ======= " }
+            logger.info { " >>>>>>> Start fuzzer >>>>>>> " }
             runFuzzing()
-            logger.info { " ======= Finish fuzzer ======= " }
+            logger.info { " <<<<<<< Finish fuzzer <<<<<<< " }
         }
         val symbolic = thread(
             start = true,
             isDaemon = true,
             name = "Symbolic"
         ) {
-            logger.info { " ======= Start symbolic ======= " }
+            logger.info { " ------- Start symbolic ------- " }
             runSymbolic()
             logger.info { " ======= Finish symbolic ======= " }
         }

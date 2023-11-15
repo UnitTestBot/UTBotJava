@@ -4,6 +4,7 @@ import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.framework.api.python.util.pythonDictClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonIteratorClassId
 import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonObjectClassId
@@ -210,6 +211,24 @@ object PythonTree {
             } else {
                 false
             }
+        }
+    }
+
+    class IteratorNode(
+        id: Long,
+        val items: MutableMap<Int, PythonTreeNode>
+    ) : PythonTreeNode(id, pythonIteratorClassId) {
+        constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
+        override val children: List<PythonTreeNode>
+            get() = items.values.toList()
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is ListNode)
+                children.zip(other.children).all {
+                    it.first.typeEquals(it.second)
+                }
+            else false
         }
     }
 

@@ -12,6 +12,9 @@ def compress_memory(
     diff_ids: typing.List[PythonId] = []
     for id_ in ids:
         if id_ in state_before.objects and id_ in state_after.objects:
-            if state_before.objects[id_].obj != state_after.objects[id_].obj:
-                diff_ids.append(id_)
+            try:
+                if state_before.objects[id_].obj != state_after.objects[id_].obj:
+                    diff_ids.append(id_)
+            except AttributeError as _:
+                pass
     return diff_ids

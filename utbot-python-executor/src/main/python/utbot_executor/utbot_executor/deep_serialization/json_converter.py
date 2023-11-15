@@ -4,13 +4,15 @@ import json
 import pickle
 import sys
 from typing import Dict, Iterable, Union
+
+from utbot_executor.deep_serialization.iterator_wrapper import IteratorWrapper
 from utbot_executor.deep_serialization.memory_objects import (
     MemoryObject,
     ReprMemoryObject,
     ListMemoryObject,
     DictMemoryObject,
     ReduceMemoryObject,
-    MemoryDump,
+    MemoryDump, IteratorMemoryObject,
 )
 from utbot_executor.deep_serialization.utils import PythonId, TypeInfo
 
@@ -26,7 +28,7 @@ class MemoryObjectEncoder(json.JSONEncoder):
             }
             if isinstance(o, ReprMemoryObject):
                 base_json["value"] = o.value
-            elif isinstance(o, (ListMemoryObject, DictMemoryObject)):
+            elif isinstance(o, (ListMemoryObject, DictMemoryObject, IteratorMemoryObject)):
                 base_json["items"] = o.items
             elif isinstance(o, ReduceMemoryObject):
                 base_json["constructor"] = o.constructor
@@ -79,6 +81,14 @@ def as_reduce_object(dct: Dict) -> Union[MemoryObject, Dict]:
             )
             obj.comparable = dct["comparable"]
             return obj
+        if dct["strategy"] == "iterator":
+            obj = IteratorMemoryObject.__new__(IteratorMemoryObject)
+            obj.items = dct["items"]
+            obj.typeinfo = TypeInfo(
+                kind=dct["typeinfo"]["kind"], module=dct["typeinfo"]["module"]
+            )
+            obj.comparable = dct["comparable"]
+            return obj
         if dct["strategy"] == "reduce":
             obj = ReduceMemoryObject.__new__(ReduceMemoryObject)
             obj.constructor = TypeInfo(
@@ -111,12 +121,19 @@ class DumpLoader:
     def reload_id(self) -> MemoryDump:
         new_memory_objects: Dict[PythonId, MemoryObject] = {}
         for id_, obj in self.memory_dump.objects.items():
-            new_memory_object = copy.deepcopy(obj)
-            read_id = self.dump_id_to_real_id[id_]
-            new_memory_object.obj = self.memory[read_id]
+            try:
+                new_memory_object = copy.deepcopy(obj)
+            except TypeError as _:
+                new_memory_object = self
+            real_id = self.dump_id_to_real_id[id_]
+            new_memory_object.obj = self.memory[real_id]
             if isinstance(new_memory_object, ReprMemoryObject):
                 pass
             elif isinstance(new_memory_object, ListMemoryObject):
+                new_memory_object.items = [
+                    self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
+                ]
+            elif isinstance(new_memory_object, IteratorMemoryObject):
                 new_memory_object.items = [
                     self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
                 ]
@@ -136,7 +153,7 @@ class DumpLoader:
                 new_memory_object.dictitems = self.dump_id_to_real_id[
                     new_memory_object.dictitems
                 ]
-            new_memory_objects[self.dump_id_to_real_id[id_]] = new_memory_object
+            new_memory_objects[real_id] = new_memory_object
         return MemoryDump(new_memory_objects)
 
     @staticmethod
@@ -185,6 +202,13 @@ class DumpLoader:
 
             for key, value in dump_object.items.items():
                 real_object[self.load_object(key)] = self.load_object(value)
+        elif isinstance(dump_object, IteratorMemoryObject):
+            real_object = IteratorWrapper.from_list(
+                [self.load_object(item) for item in dump_object.items]
+            )
+            id_ = PythonId(str(id(real_object)))
+            self.dump_id_to_real_id[python_id] = id_
+            self.memory[id_] = real_object
         elif isinstance(dump_object, ReduceMemoryObject):
             constructor = eval(dump_object.constructor.qualname)
             args = self.load_object(dump_object.args)

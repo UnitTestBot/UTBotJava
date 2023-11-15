@@ -5,7 +5,6 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgGetLength
-import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgMultilineComment
 import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
@@ -339,6 +338,39 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         pythonAssertElementsByKey(expectedNode, expectedCollection, actual, iterator, elementName)
     }
 
+    private fun pythonAssertIterators(
+        expectedNode: PythonTree.IteratorNode,
+        expected: CgValue,
+        actual: CgVariable,
+    ) {
+        val zip = CgPythonZip(
+            actual,
+            variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode)),
+        )
+        val index = newVar(pythonNoneClassId, "pair") {
+            CgPythonRepr(pythonNoneClassId, "None")
+        }
+        forEachLoop {
+            innerBlock {
+                condition = index
+                iterable = zip
+                testFrameworkManager.assertEquals(
+                    CgPythonIndex(
+                        pythonIntClassId,
+                        index,
+                        CgPythonRepr(pythonIntClassId, "1")
+                    ),
+                    CgPythonIndex(
+                        pythonIntClassId,
+                        index,
+                        CgPythonRepr(pythonIntClassId, "0")
+                    )
+                )
+                statements = currentBlock
+            }
+        }
+    }
+
     private fun pythonDeepTreeEquals(
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgValue,
@@ -358,10 +390,18 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             } else {
                 variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode))
             }
-            testFrameworkManager.assertEquals(
-                expectedValue,
-                actual,
-            )
+            if (expectedNode is PythonTree.IteratorNode) {
+                pythonAssertIterators(
+                    expectedNode,
+                    expected,
+                    actual
+                )
+            } else {
+                testFrameworkManager.assertEquals(
+                    expectedValue,
+                    actual,
+                )
+            }
             return
         }
         when (expectedNode) {
@@ -402,6 +442,14 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     actual,
                     "expected_dict",
                     "key"
+                )
+            }
+
+            is PythonTree.IteratorNode -> {
+                pythonAssertIterators(
+                    expectedNode,
+                    expected,
+                    actual
                 )
             }
 

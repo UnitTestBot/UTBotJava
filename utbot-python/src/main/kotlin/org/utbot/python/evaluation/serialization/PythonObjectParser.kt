@@ -14,6 +14,7 @@ object PythonObjectParser {
                 .withSubtype(ListMemoryObject::class.java, "list")
                 .withSubtype(DictMemoryObject::class.java, "dict")
                 .withSubtype(ReduceMemoryObject::class.java, "reduce")
+                .withSubtype(IteratorMemoryObject::class.java, "iterator")
         )
         .addLast(KotlinJsonAdapterFactory())
         .build()
@@ -81,6 +82,13 @@ class DictMemoryObject(
     val items: Map<String, String>,
 ) : MemoryObject(id, typeinfo, comparable)
 
+class IteratorMemoryObject(
+    id: String,
+    typeinfo: TypeInfo,
+    comparable: Boolean,
+    val items: List<String>,
+) : MemoryObject(id, typeinfo, comparable)
+
 class ReduceMemoryObject(
     id: String,
     typeinfo: TypeInfo,
@@ -136,6 +144,12 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
                     it.key.toMemoryObject(memoryDump) to it.value.toMemoryObject(memoryDump)
                 }
             DictMemoryObject(id, typeinfo, this.comparable, items)
+        }
+
+        is PythonTree.IteratorNode -> {
+            val items = this.items.entries
+                .map { it.value.toMemoryObject(memoryDump) }
+            IteratorMemoryObject(id, typeinfo, this.comparable, items)
         }
 
         is PythonTree.ReduceNode -> {
@@ -232,6 +246,18 @@ fun MemoryObject.toPythonTree(
                         is PythonTree.ListNode -> draft.items[index] = value
                         else -> {}
                     }
+                }
+                draft
+            }
+
+            is IteratorMemoryObject -> {
+                val draft = PythonTree.IteratorNode(id, mutableMapOf())
+
+                visited[this.id] = draft
+
+                items.mapIndexed { index, valueId ->
+                    val value = memoryDump.getById(valueId).toPythonTree(memoryDump, visited)
+                    draft.items[index] = value
                 }
                 draft
             }

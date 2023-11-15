@@ -29,6 +29,11 @@ def template_test_assert(obj: typing.Any, imports: typing.List[str]):
     assert obj == get_deserialized_obj(obj, imports)
 
 
+def template_test_assert_for_generators(obj: typing.Any, imports: typing.List[str]):
+    items = list(obj)
+    assert items == list(get_deserialized_obj(iter(items), imports).content)
+
+
 @pytest.mark.parametrize(
     "obj",
     [
@@ -185,6 +190,36 @@ class MyClassWithSlots:
 )
 def test_classes_with_slots(obj: typing.Any, imports: typing.List[str]):
     template_test_assert(obj, imports)
+
+
+def square_iter(x: int):
+    for i in range(x):
+        yield i ** 2
+
+
+@pytest.mark.parametrize(
+    "obj,imports",
+    [
+        (
+                range(10),
+                ["tests.test_deep_serialization", "copyreg"],
+        ),
+        (
+                map(int, "1 1 2 3 4 12 1 239".split()),
+                ["tests.test_deep_serialization", "copyreg"],
+        ),
+        (
+                square_iter(5),
+                ["tests.test_deep_serialization", "copyreg"],
+        ),
+        (
+                iter([1, 2, 5]),
+                ["tests.test_deep_serialization", "copyreg"],
+        ),
+    ],
+)
+def test_base_generators(obj: typing.Any, imports: typing.List[str]):
+    template_test_assert_for_generators(obj, imports)
 
 
 def test_comparable():

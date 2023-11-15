@@ -8,9 +8,10 @@ import sys
 import typing
 from itertools import zip_longest
 import pickle
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Iterable
+from typing import Any, Callable, Dict, List, Optional, Set, Type, Iterator, Iterable
 
 from utbot_executor.deep_serialization.config import PICKLE_PROTO
+from utbot_executor.deep_serialization.iterator_wrapper import IteratorWrapper
 from utbot_executor.deep_serialization.utils import (
     PythonId,
     get_kind,
@@ -32,11 +33,13 @@ class MemoryObject:
     is_draft: bool
     deserialized_obj: object
     obj: object
+    id_: PythonId | None = None
 
     def __init__(self, obj: object) -> None:
         self.is_draft = True
         self.typeinfo = get_kind(obj)
         self.obj = obj
+        self.id_ = PythonId(str(id(self.obj)))
 
     def _initialize(
         self, deserialized_obj: object = None, comparable: bool = True
@@ -49,7 +52,9 @@ class MemoryObject:
         self._initialize()
 
     def id_value(self) -> str:
-        return str(id(self.obj))
+        if self.id_ is not None:
+            return self.id_
+        return PythonId(str(id(self.obj)))
 
     def __repr__(self) -> str:
         if hasattr(self, "obj"):
@@ -144,6 +149,45 @@ class DictMemoryObject(MemoryObject):
             for value_id in self.items.values()
         )
 
+        super()._initialize(deserialized_obj, comparable)
+
+    def __repr__(self) -> str:
+        if hasattr(self, "obj"):
+            return str(self.obj)
+        return f"{self.typeinfo.kind}{self.items}"
+
+
+class IteratorMemoryObject(MemoryObject):
+    strategy: str = "iterator"
+    items: List[PythonId]
+
+    MAX_SIZE = 1_000
+
+    def __init__(self, iterator_object: object) -> None:
+        self.items = []
+        if not isinstance(iterator_object, IteratorWrapper):
+            iterator_object = IteratorWrapper(iterator_object)
+        super().__init__(iterator_object)
+
+    def initialize(self) -> None:
+        self.obj: IteratorWrapper
+        serializer = PythonSerializer()
+        self.comparable = False
+
+        for item in self.obj.content:
+            elem_id = serializer.write_object_to_memory(item)
+            self.items.append(elem_id)
+
+        items = [
+            serializer.get_by_id(elem_id)
+            for elem_id in self.items
+        ]
+        comparable = all(
+            item.comparable
+            for item in items
+        )
+
+        deserialized_obj = IteratorWrapper.from_list(items)
         super()._initialize(deserialized_obj, comparable)
 
     def __repr__(self) -> str:
@@ -362,6 +406,14 @@ class DictMemoryObjectProvider(MemoryObjectProvider):
         return None
 
 
+class IteratorMemoryObjectProvider(MemoryObjectProvider):
+    @staticmethod
+    def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
+        if isinstance(obj, (typing.Iterator, IteratorWrapper)):
+            return IteratorMemoryObject
+        return None
+
+
 class ReduceMemoryObjectProvider(MemoryObjectProvider):
     @staticmethod
     def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
@@ -405,6 +457,7 @@ class PythonSerializer:
     providers: List[MemoryObjectProvider] = [
         ListMemoryObjectProvider,
         DictMemoryObjectProvider,
+        IteratorMemoryObjectProvider,
         ReduceMemoryObjectProvider,
         ReprMemoryObjectProvider,
         ReduceExMemoryObjectProvider,

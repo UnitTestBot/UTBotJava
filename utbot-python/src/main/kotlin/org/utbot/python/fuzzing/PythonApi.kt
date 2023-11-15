@@ -84,6 +84,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     RePatternValueProvider,
     ConstantValueProvider,
     TypeAliasValueProvider,
+    IteratorValueProvider,
     SubtypeValueProvider(typeStorage)
 )
 

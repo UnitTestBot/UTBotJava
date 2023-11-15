@@ -97,6 +97,11 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 }
             }
 
+            is PythonTree.IteratorNode -> {
+                val items = objectNode.items.values.map { pythonBuildObject(it) }
+                Pair(CgPythonIterator(items.map {it.first}), items.flatMap { it.second })
+            }
+
             is PythonTree.ReduceNode -> {
                 if (assistant.memoryObjects.containsKey(id)) {
                     val tree = assistant.memoryObjectsModels[id]

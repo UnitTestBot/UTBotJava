@@ -29,5 +29,11 @@ org.usvm.samples.arrays.CopyOfExample
 org.usvm.samples.arrays.FinalStaticFieldArray
 org.usvm.samples.arrays.MultiDimensional
 org.usvm.samples.arrays.OneDimensional
+org.usvm.samples.types.CastExamples
+org.usvm.samples.types.Generics
+org.usvm.samples.types.PathDependentGenericsExample
+org.usvm.samples.types.TypeBorders
+org.usvm.samples.types.TypeMatches
+
 
 

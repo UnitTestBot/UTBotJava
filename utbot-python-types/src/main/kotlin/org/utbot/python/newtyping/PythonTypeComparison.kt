@@ -406,6 +406,18 @@ class PythonSubtypeChecker(
 
         val rightCallAttribute = rightCallAttributeAbstract as? FunctionType ?: return false
 
+        // __call__(*args): in this case check only return type
+        if (leftMeta.argumentKinds.contains(PythonCallableTypeDescription.ArgKind.ARG_STAR)) {
+            return PythonSubtypeChecker(
+                left = leftAsFunctionType.returnValue,
+                right = rightCallAttribute.returnValue,
+                pythonTypeStorage,
+                typeParameterCorrespondence,
+                nextAssumingSubtypePairs,
+                recursionDepth + 1
+            ).rightIsSubtypeOfLeft()
+        }
+
         if (rightCallAttribute.arguments.size != leftAsFunctionType.arguments.size)
             return false
         val leftBounded = leftAsFunctionType.getBoundedParameters()

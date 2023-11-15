@@ -178,6 +178,18 @@ class PythonExecutor:
             args, kwargs = pickle.loads(eval(request.serialized_memory))
             logging.debug("Arguments: %s", args)
             logging.debug("Kwarguments: %s", kwargs)
+            class_name = request.get_class_name()
+            if class_name is not None:
+                real_class = getattr_by_path(
+                    importlib.import_module(request.function_module),
+                    class_name
+                )
+                if not isinstance(args[0], real_class):
+                    error_message = f"Invalid self argument \n{type(args[0])} instead of {class_name}"
+                    logging.debug(error_message)
+                    return ExecutionFailResponse("fail", error_message)
+
+
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
             return ExecutionFailResponse("fail", traceback.format_exc())

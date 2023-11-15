@@ -22,6 +22,11 @@ class ExecutionRequest:
     filepath: str
     coverage_id: str
 
+    def get_class_name(self) -> str | None:
+        if "." in self.function_name:
+            return self.function_name.split(".")[0]
+        return None
+
 
 class ExecutionResponse:
     status: str

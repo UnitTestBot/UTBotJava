@@ -629,7 +629,7 @@ class ProjectToEstimate(
 ) {
     val outputTestSrcFolder = File(testCandidatesDir, name).apply { mkdirs() }
     val unzippedDir = File(unzippedJars, name)
-    val classloader = URLClassLoader(jars.map { it.toUrl() }.toTypedArray(), null)
+    val classloader = URLClassLoader(jars.map { it.toUrl() }.toTypedArray(), ClassLoader.getSystemClassLoader().parent)
     val sootClasspathString get() = jars.joinToString(classPathSeparator)
     val compileClasspathString
         get() = arrayOf(outputTestSrcFolder.absolutePath, sootClasspathString, dependenciesJars)

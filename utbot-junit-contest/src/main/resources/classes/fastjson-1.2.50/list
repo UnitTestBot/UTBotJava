@@ -15,5 +15,4 @@ com.alibaba.fastjson.serializer.ClobSeriliazer
 com.alibaba.fastjson.serializer.JSONSerializer
 com.alibaba.fastjson.serializer.StringCodec
 com.alibaba.fastjson.support.hsf.HSFJSONUtils
-com.alibaba.fastjson.support.spring.FastJsonHttpMessageConverter
 com.alibaba.fastjson.util.IOUtils

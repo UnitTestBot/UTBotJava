@@ -218,7 +218,11 @@ class SbftGenerateTestsCommand : CliktCommand(
 
     companion object {
         fun separateTimeout(timeout: Long, groups: List<List<PythonMethodHeader>>, group: List<PythonMethodHeader>): Long {
-            return timeout * group.size / groups.sumOf { it.size }
+            val totalFunctions = groups.sumOf { it.size }
+            return if (totalFunctions == 0)
+                0
+            else
+                timeout * group.size / totalFunctions
         }
     }
 }

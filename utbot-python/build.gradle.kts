@@ -10,7 +10,7 @@ dependencies {
     api(project(":utbot-python-parser"))
     api(project(":utbot-python-types"))
     api(project(":utbot-python-executor"))
-    api("org.usvm:usvm-python-runner:c73361f")
+    api("org.usvm:usvm-python-runner:d3b3a68")
 
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")

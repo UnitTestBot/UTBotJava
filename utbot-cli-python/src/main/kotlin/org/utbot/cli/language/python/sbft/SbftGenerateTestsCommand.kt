@@ -34,6 +34,7 @@ import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utbot.python.utils.Fail
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.Success
+import org.utbot.python.utils.separateTimeout
 import java.io.File
 import kotlin.math.max
 import kotlin.system.measureTimeMillis
@@ -171,11 +172,16 @@ class SbftGenerateTestsCommand : CliktCommand(
                 testFile,
             )
         }
+        logger.info { "Mypy time: $mypyTime" }
 
         val globalImportCollection = mutableSetOf<PythonImport>()
         val globalCodeCollection = mutableListOf<String>()
-        pythonMethodGroups.map { pythonMethods ->
-            val localTimeout = max(separateTimeout(timeout - mypyTime, pythonMethodGroups, pythonMethods), 0)
+        val until = max(System.currentTimeMillis() + timeout - mypyTime, 0)
+        pythonMethodGroups.mapIndexed { index, pythonMethods ->
+            val localTimeout = pythonMethods.size * separateTimeout(
+                until,
+                pythonMethodGroups.take(index).sumOf { it.size },
+                pythonMethodGroups.sumOf { it.size })
             logger.info { "Timeout for current group: ${localTimeout}ms" }
 
             val config = PythonTestGenerationConfig(
@@ -214,15 +220,5 @@ class SbftGenerateTestsCommand : CliktCommand(
         val testCode = (listOf(importCode.joinToString("\n")) + globalCodeCollection).joinToString("\n\n\n")
         writeToFileAndSave(output, testCode)
         System.exit(0)
-    }
-
-    companion object {
-        fun separateTimeout(timeout: Long, groups: List<List<PythonMethodHeader>>, group: List<PythonMethodHeader>): Long {
-            val totalFunctions = groups.sumOf { it.size }
-            return if (totalFunctions == 0)
-                0
-            else
-                timeout * group.size / totalFunctions
-        }
     }
 }

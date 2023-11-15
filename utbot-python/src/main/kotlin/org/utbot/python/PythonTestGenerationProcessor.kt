@@ -37,6 +37,7 @@ import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.pythonName
 import org.utbot.python.utils.TemporaryFileManager
+import org.utbot.python.utils.separateUntil
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
@@ -65,8 +66,7 @@ abstract class PythonTestGenerationProcessor {
 
         val until = startTime + configuration.timeout
         val tests = configuration.testedMethods.mapIndexedNotNull { index, methodHeader ->
-            val methodsLeft = configuration.testedMethods.size - index
-            val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
+            val localUntil = separateUntil(until, index, configuration.testedMethods.size)
             try {
                 val method = findMethodByHeader(
                     mypyConfig.mypyStorage,

@@ -71,6 +71,7 @@ import org.utbot.python.utils.ExecutionWithTimoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.TimeoutMode
 import org.utbot.python.utils.camelToSnakeCase
+import org.utbot.python.utils.separateUntil
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
 import kotlin.random.Random
@@ -103,10 +104,9 @@ class FuzzingEngine(
 
     fun start() {
         val modifications = createMethodAnnotationModifications(method, typeStorage)
-        val now = System.currentTimeMillis()
-        val timeout = (until - now) / modifications.size
-        modifications.forEach { (modifiedMethod, additionalVars) ->
-            generateTests(modifiedMethod, additionalVars, System.currentTimeMillis() + timeout)
+        modifications.forEachIndexed { index, (modifiedMethod, additionalVars) ->
+            val localTimeout = separateUntil(until, index, modifications.size)
+            generateTests(modifiedMethod, additionalVars, localTimeout)
         }
     }
 
@@ -182,6 +182,7 @@ class FuzzingEngine(
                             configuration.pythonPath,
                             configuration.sysPathDirectories,
                             configuration.timeoutForRun,
+                            until,
                             it,
                         )
                     }

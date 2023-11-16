@@ -49,7 +49,7 @@ class BaselineAlgorithm(
     private val simpleTypes = simplestTypes(storage)
     private val mixtureType = createPythonUnionType(simpleTypes)
 
-    private val openedStates: MutableMap<UtType, Pair<BaselineAlgorithmState, BaselineAlgorithmState>> = mutableMapOf()
+    private val expandedStates: MutableMap<UtType, Pair<BaselineAlgorithmState, BaselineAlgorithmState>> = mutableMapOf()
     private val statistic: MutableMap<UtType, Int> = mutableMapOf()
 
     private val checkedSignatures: MutableSet<UtType> = mutableSetOf()
@@ -60,7 +60,7 @@ class BaselineAlgorithm(
         val newState = expandState(state, storage, state.anyNodes.map { mixtureType })
         if (newState != null) {
             logger.info("Random type: ${newState.signature.pythonTypeRepresentation()}")
-            openedStates[newState.signature] = newState to state
+            expandedStates[newState.signature] = newState to state
             return newState.signature
         }
         return null
@@ -97,7 +97,7 @@ class BaselineAlgorithm(
             logger.info("Checking new state ${newState.signature.pythonTypeRepresentation()}")
             if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
                 logger.debug("Found new state!")
-                openedStates[newState.signature] = newState to state
+                expandedStates[newState.signature] = newState to state
                 return newState.signature
             }
         } else if (state.anyNodes.isEmpty()) {
@@ -118,7 +118,7 @@ class BaselineAlgorithm(
     }
 
     fun feedbackState(signature: UtType, feedback: InferredTypeFeedback) {
-        val stateInfo = openedStates[signature]
+        val stateInfo = expandedStates[signature]
         if (stateInfo != null) {
             val (newState, parent) = stateInfo
             when (feedback) {
@@ -126,9 +126,16 @@ class BaselineAlgorithm(
                     states.add(newState)
                     parent.children += 1
                 }
-                InvalidTypeFeedback -> {}
+
+                InvalidTypeFeedback -> {
+                    states.remove(newState)
+                }
             }
-            openedStates.remove(signature)
+            expandedStates.remove(signature)
+        } else if (typesAreEqual(signature, initialState.signature)) {
+            if (feedback is InvalidTypeFeedback) {
+                states.remove(initialState)
+            }
         }
     }
 
@@ -208,7 +215,7 @@ class BaselineAlgorithm(
         generalRating: List<UtType>
     ): BaselineAlgorithmState {
         val paramNames = pythonMethodCopy.arguments.map { it.name }
-        val root = PartialTypeNode(hintCollectorResult.initialSignature, true)
+        val root = PartialTypeNode(pythonMethodCopy.definition.type, true)
         val allNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf(root)
         val argumentRootNodes = paramNames.map { hintCollectorResult.parameterToNode[it]!! }
         argumentRootNodes.forEachIndexed { index, node ->

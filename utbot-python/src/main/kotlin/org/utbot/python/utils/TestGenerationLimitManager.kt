@@ -77,3 +77,9 @@ object ExecutionWithTimoutMode : LimitManagerMode {
         return ExecutionMode.isCancelled(manager) || TimeoutMode.isCancelled(manager)
     }
 }
+
+object FakeWithTimeoutMode : LimitManagerMode {
+    override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
+        return manager.fakeNodeExecutions <= 0 || TimeoutMode.isCancelled(manager)
+    }
+}

@@ -17,8 +17,8 @@ import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.utils.ExecutionWithTimoutMode
+import org.utbot.python.utils.FakeWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
-import org.utbot.python.utils.TimeoutMode
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
@@ -155,7 +155,7 @@ class PythonFuzzing(
             }
             logger.debug { "Fork ended" }
         } else {
-            description.limitManager.mode = TimeoutMode
+            description.limitManager.mode = FakeWithTimeoutMode
         }
     }
 
@@ -166,7 +166,7 @@ class PythonFuzzing(
         if (description.limitManager.isCancelled() || description.parameters.any { it.isAny() }) {
             forkType(description, stats)
             if (description.limitManager.isRootManager) {
-                return TimeoutMode.isCancelled(description.limitManager)
+                return FakeWithTimeoutMode.isCancelled(description.limitManager)
             }
         }
         return description.limitManager.isCancelled()

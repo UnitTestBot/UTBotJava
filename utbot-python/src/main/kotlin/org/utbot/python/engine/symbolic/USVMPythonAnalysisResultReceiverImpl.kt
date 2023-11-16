@@ -64,7 +64,6 @@ class USVMPythonAnalysisResultReceiverImpl(
                     configuration.pythonPath,
                     configuration.sysPathDirectories,
                     configuration.timeoutForRun,
-                    until,
                     it,
                 )
             }

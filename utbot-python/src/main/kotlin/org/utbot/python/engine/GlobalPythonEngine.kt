@@ -20,6 +20,7 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.pythonName
+import org.utbot.python.utils.convertToTime
 import java.io.File
 import kotlin.concurrent.thread
 
@@ -57,6 +58,7 @@ class GlobalPythonEngine(
     }
 
     private fun runSymbolic(debug: Boolean = false) {
+        logger.info { "Symbolic until: ${until.convertToTime()}" }
         val usvmPythonConfig = USVMPythonConfig(
             StandardLayout(File(configuration.usvmConfig.usvmDirectory)),
             configuration.usvmConfig.javaCmd,

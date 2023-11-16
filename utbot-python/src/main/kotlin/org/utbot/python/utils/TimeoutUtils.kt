@@ -1,5 +1,7 @@
 package org.utbot.python.utils
 
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.max
 
 fun separateUntil(until: Long, currentIndex: Int, itemsCount: Int): Long {
@@ -25,4 +27,10 @@ fun separateTimeout(until: Long, currentIndex: Int, itemsCount: Int): Long {
             max((until - now) / itemsLeft, 0)
         }
     }
+}
+
+fun Long.convertToTime(): String {
+    val date = Date(this)
+    val format = SimpleDateFormat("HH:mm:ss.SSS")
+    return format.format(date)
 }

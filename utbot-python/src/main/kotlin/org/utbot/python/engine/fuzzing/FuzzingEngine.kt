@@ -71,6 +71,7 @@ import org.utbot.python.utils.ExecutionWithTimoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.TimeoutMode
 import org.utbot.python.utils.camelToSnakeCase
+import org.utbot.python.utils.convertToTime
 import org.utbot.python.utils.separateUntil
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
@@ -103,11 +104,18 @@ class FuzzingEngine(
         }
 
     fun start() {
+        logger.info { "Fuzzing until: ${until.convertToTime()}" }
         val modifications = createMethodAnnotationModifications(method, typeStorage)
-        modifications.forEachIndexed { index, (modifiedMethod, additionalVars) ->
-            val localTimeout = separateUntil(until, index, modifications.size)
-            generateTests(modifiedMethod, additionalVars, localTimeout)
-        }
+        val now = System.currentTimeMillis()
+        val filterModifications = modifications
+            .take(minOf(modifications.size, maxOf(((until - now) / MINIMAL_TIMEOUT_FOR_SUBSTITUTION).toInt(), 1)))
+        filterModifications
+            .forEachIndexed { index, (modifiedMethod, additionalVars) ->
+                logger.info { "Modified method: ${modifiedMethod.methodSignature()}" }
+                val localUntil = separateUntil(until, index, filterModifications.size)
+                logger.info { "Fuzzing local until: ${localUntil.convertToTime()}" }
+                generateTests(modifiedMethod, additionalVars, localUntil)
+            }
     }
 
     private fun generateTests(
@@ -182,7 +190,6 @@ class FuzzingEngine(
                             configuration.pythonPath,
                             configuration.sysPathDirectories,
                             configuration.timeoutForRun,
-                            until,
                             it,
                         )
                     }

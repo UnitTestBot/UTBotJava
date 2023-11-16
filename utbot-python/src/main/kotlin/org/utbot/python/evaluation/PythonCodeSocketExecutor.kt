@@ -17,7 +17,6 @@ import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.utils.isNamed
 import java.net.SocketException
-import kotlin.math.min
 
 class PythonCodeSocketExecutor(
     override val method: PythonMethod,
@@ -44,23 +43,6 @@ class PythonCodeSocketExecutor(
     ) {
         this.pythonWorker = pythonWorker
     }
-
-    constructor(
-        method: PythonMethod,
-        moduleToImport: String,
-        pythonPath: String,
-        syspathDirectories: Set<String>,
-        executionTimeout: Long,
-        until: Long,
-        pythonWorker: PythonWorker
-    ) : this(
-        method,
-        moduleToImport,
-        pythonPath,
-        syspathDirectories,
-        min(executionTimeout, until - System.currentTimeMillis()),
-        pythonWorker
-    )
 
     override fun run(
         fuzzedValues: FunctionArguments,

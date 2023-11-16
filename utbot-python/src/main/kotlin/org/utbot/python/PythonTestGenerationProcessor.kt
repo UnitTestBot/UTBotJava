@@ -58,17 +58,24 @@ abstract class PythonTestGenerationProcessor {
     }
 
     fun testGenerate(mypyConfig: MypyConfig): List<PythonTestSet> {
-//        val startTime = System.currentTimeMillis()
-
         val testCaseGenerator = PythonTestCaseGenerator(
             configuration = configuration,
             mypyConfig = mypyConfig,
         )
 
-//        val until = startTime + configuration.timeout
+        val oneFunctionTimeout = separateTimeout(configuration.timeout, configuration.testedMethods.size)
+        val countOfFunctions = configuration.testedMethods.size
+        val startTime = System.currentTimeMillis()
+
         val tests = configuration.testedMethods.mapIndexedNotNull { index, methodHeader ->
-//            val localUntil = separateUntil(until, index, configuration.testedMethods.size)
-            val localUntil = System.currentTimeMillis() + separateTimeout(configuration.timeout, configuration.testedMethods.size)
+            val usedTime = System.currentTimeMillis() - startTime
+            val expectedTime = index * oneFunctionTimeout
+            val localOneFunctionTimeout = if (usedTime < expectedTime) {
+                separateTimeout(configuration.timeout - usedTime, countOfFunctions - index)
+            } else {
+                oneFunctionTimeout
+            }
+            val localUntil = System.currentTimeMillis() + localOneFunctionTimeout
             logger.info { "Local timeout ${configuration.timeout / configuration.testedMethods.size}ms. Until ${localUntil.convertToTime()}" }
             try {
                 val method = findMethodByHeader(

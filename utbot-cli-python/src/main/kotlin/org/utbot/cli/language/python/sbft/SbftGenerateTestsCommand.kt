@@ -158,7 +158,7 @@ class SbftGenerateTestsCommand : CliktCommand(
             return
         }
 
-        val pythonMethodGroups = getPythonMethods().let { if (checkUsvm) it.take(1) else it }
+        val pythonMethodGroups = getPythonMethods().let { if (checkUsvm) it.take(1).map { it.take(1) } else it }
 
         val sysPathDirectories = directoriesForSysPath.map { it.toAbsolutePath() } .toSet()
         val testFile = TestFileInformation(absPathToSourceFile, sourceFileContent, currentPythonModule.dropInitFile())

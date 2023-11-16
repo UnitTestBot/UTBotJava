@@ -83,7 +83,7 @@ class GlobalPythonEngine(
             usvmPythonConfig,
             configuration,
         )
-        val usvmConfig = USVMPythonRunConfig(config, configuration.timeout, configuration.timeoutForRun * 3)
+        val usvmConfig = USVMPythonRunConfig(config, until - System.currentTimeMillis(), configuration.timeoutForRun * 3)
         if (debug) {
             engine.debugRun(usvmConfig)
         } else {

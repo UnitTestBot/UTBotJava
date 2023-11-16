@@ -177,14 +177,24 @@ class SbftGenerateTestsCommand : CliktCommand(
         val globalImportCollection = mutableSetOf<PythonImport>()
         val globalCodeCollection = mutableListOf<String>()
 //        val until = max(System.currentTimeMillis() + timeout - mypyTime, 0)
-        val oneFunctionTimeout = separateTimeout(timeout - mypyTime, pythonMethodGroups.sumOf { it.size })
-        logger.info { "One function timeout: ${oneFunctionTimeout}ms. x${pythonMethodGroups.sumOf { it.size }}" }
+        val startTime = System.currentTimeMillis()
+        val countOfFunctions = pythonMethodGroups.sumOf { it.size }
+        val oneFunctionTimeout = separateTimeout(timeout - mypyTime, countOfFunctions)
+        logger.info { "One function timeout: ${oneFunctionTimeout}ms. x${countOfFunctions}" }
         pythonMethodGroups.mapIndexed { index, pythonMethods ->
 //            val localTimeout = pythonMethods.size * separateTimeout(
 //                until,
 //                pythonMethodGroups.take(index).sumOf { it.size },
 //                pythonMethodGroups.sumOf { it.size })
-            val localTimeout = pythonMethods.size * oneFunctionTimeout
+            val usedTime = System.currentTimeMillis() - startTime
+            val countOfTestedFunctions = pythonMethodGroups.take(index).sumOf { it.size }
+            val expectedTime = countOfTestedFunctions * oneFunctionTimeout
+            val localOneFunctionTimeout = if (usedTime < expectedTime) {
+                separateTimeout(timeout - mypyTime - usedTime, countOfFunctions - countOfTestedFunctions)
+            } else {
+                oneFunctionTimeout
+            }
+            val localTimeout = pythonMethods.size * localOneFunctionTimeout
             logger.info { "Timeout for current group: ${localTimeout}ms" }
 
             val config = PythonTestGenerationConfig(

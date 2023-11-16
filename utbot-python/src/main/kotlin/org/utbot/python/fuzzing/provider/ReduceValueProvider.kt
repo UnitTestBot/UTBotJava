@@ -33,6 +33,7 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
         pythonFloatClassId.canonicalName,
         pythonStrClassId.canonicalName,
         pythonBoolClassId.canonicalName,
+        pythonObjectClassId.canonicalName,
     )
 
     override fun accept(type: UtType): Boolean {

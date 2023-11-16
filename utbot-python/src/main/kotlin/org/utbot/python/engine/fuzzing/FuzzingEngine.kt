@@ -79,6 +79,7 @@ import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
+private const val MINIMAL_TIMEOUT_FOR_SUBSTITUTION = 4_000  // ms
 
 class FuzzingEngine(
     val method: PythonMethod,

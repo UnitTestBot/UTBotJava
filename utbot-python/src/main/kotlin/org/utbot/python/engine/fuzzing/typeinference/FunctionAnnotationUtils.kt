@@ -17,11 +17,18 @@ import org.utbot.python.newtyping.general.hasBoundedParameters
 import org.utbot.python.newtyping.getPythonAttributeByName
 import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonDescription
+import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.newtyping.utils.isRequired
 import org.utbot.python.utils.PriorityCartesianProduct
 
 private const val MAX_SUBSTITUTIONS = 10
+private val BAD_TYPES = setOf(
+    "builtins.function",
+    "builtins.super",
+    "builtins.type",
+    "builtins.slice",
+)
 
 fun getCandidates(param: TypeParameter, typeStorage: PythonTypeHintsStorage): List<UtType> {
     val meta = param.pythonDescription() as PythonTypeVarDescription
@@ -43,9 +50,11 @@ fun getCandidates(param: TypeParameter, typeStorage: PythonTypeHintsStorage): Li
 
 fun generateTypesAfterSubstitution(type: UtType, typeStorage: PythonTypeHintsStorage): List<UtType> {
     val params = type.getBoundedParameters()
-    return PriorityCartesianProduct(params.map { getCandidates(it, typeStorage) }).getSequence().map { subst ->
-        DefaultSubstitutionProvider.substitute(type, (params zip subst).associate { it })
-    }.take(MAX_SUBSTITUTIONS).toList()
+    return PriorityCartesianProduct(params.map { getCandidates(it, typeStorage) }).getSequence()
+        .filter { it.all { it.pythonTypeName() !in BAD_TYPES } }
+        .map { subst ->
+            DefaultSubstitutionProvider.substitute(type, (params zip subst).associate { it })
+        }.take(MAX_SUBSTITUTIONS).toList()
 }
 
 fun substituteTypeParameters(

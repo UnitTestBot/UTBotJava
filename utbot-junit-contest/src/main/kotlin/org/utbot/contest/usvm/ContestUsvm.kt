@@ -196,9 +196,6 @@ fun runUsvmGeneration(
                     //  for `remainingBudgetMillisWithoutCodegen()` ms, right now last resolver call may exceed budget,
                     //  essentially stealing some time from codegen
                     if (remainingBudgetMillisWithoutCodegen() > 0)
-                        // TODO usvm-sbft: right now this call fails unless you set:
-                        //  - "usvm-jvm-instrumentation-jar" environment variable to something like "/home/ilya/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-1.0.jar"
-                        //  - "usvm-jvm-collectors-jar"  environment variable to something like "/home/ilya/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-collectors.jar"
                         logger.debug().measureTime({ "resolver.resolve(${method.classId}.${method.signature}, ...)" }) {
                             runCatching {
                                 resolver.resolve(jcTypedMethod, it)

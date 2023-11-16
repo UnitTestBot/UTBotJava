@@ -235,6 +235,8 @@ class FuzzingEngine(
                                     description.limitManager.addFakeNodeExecutions()
                                     emit(FakeNodeFeedback)
                                     return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+                                } else {
+                                    description.limitManager.restartFakeNode()
                                 }
 
                                 val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })

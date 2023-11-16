@@ -56,18 +56,20 @@ class JcToUtExecutionConverter(
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
     private var jcToUtModelConverter: JcToUtModelConverter
+    private var instrumentation: List<UtInstrumentation>
 
     init {
         val instToModelConverter = UTestInstToUtModelConverter(idGenerator, jcClasspath, utilMethodProvider)
 
-        instToModelConverter.processUTest(jcExecution.uTest)
+        instToModelConverter.processUTest(jcExecution.uTest).also {
+            instrumentation = instToModelConverter.findInstrumentations()
+        }
+
         jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)
     }
 
     fun convert(): UtExecution? {
         val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
-        // TODO usvm-sbft: fill up instrumentation with data from UTest
-        val instrumentation = emptyList<UtInstrumentation>()
 
         val utUsvmExecution: UtUsvmExecution = when (val executionResult = jcExecution.uTestExecutionResult) {
             is UTestExecutionSuccessResult -> UtUsvmExecution(

@@ -34,8 +34,10 @@ import org.usvm.instrumentation.testcase.api.UTestShortExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.testcase.api.UTestStringExpression
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
+import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -43,8 +45,10 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.fuzzer.IdGenerator
@@ -70,6 +74,8 @@ class UTestInstToUtModelConverter(
         removeInstantiationCallFromThisInstanceModificationChain(alreadyCreatedModel)
         return alreadyCreatedModel
     }
+
+    fun findInstrumentations(): List<UtInstrumentation> = instrumentations
 
     private fun removeInstantiationCallFromThisInstanceModificationChain(model: UtModel) {
         if (model is UtAssembleModel) {
@@ -301,7 +307,36 @@ class UTestInstToUtModelConverter(
             }
 
             is UTestGlobalMock -> {
-                // TODO usvm-sbft: collect instrumentations here
+                // Daniil said that we can miss [type] and [fields] when converting to [UtInstrumentation]
+                val methodsToExprs = uTestExpr.methods.entries
+
+                methodsToExprs
+                    .filter { it.key is MethodId }
+                    .forEach { (jcMethod, uTestExprs) ->
+                        val methodId = jcMethod.toExecutableId(jcClasspath) as MethodId
+                        val valueModels = uTestExprs.map { expr -> processExpr(expr) }
+                        val methodInstrumentation = UtStaticMethodInstrumentation(
+                            methodId = methodId,
+                            values = valueModels,
+                            )
+
+                        instrumentations += methodInstrumentation
+                    }
+
+                methodsToExprs
+                    .filter { it.key is ConstructorId }
+                    .forEach { (jcMethod, uTestExprs) ->
+                        val valueModels = uTestExprs.map { expr -> processExpr(expr) }
+                        val methodInstrumentation = UtNewInstanceInstrumentation(
+                            // TODO usvm-sbft looking at [Traverser] ln 1682, this classId does not seem correct
+                            classId = jcMethod.enclosingClass.classId,
+                            instances = valueModels,
+                            callSites = setOf(jcMethod.enclosingClass.classId),
+                            )
+
+                        instrumentations += methodInstrumentation
+                    }
+
                 // UtClassRefModel is returned here for consistency with [Descriptor2ValueConverter]
                 // which returns Class<*> instance for [UTestGlobalMock] descriptors.
                 UtClassRefModel(

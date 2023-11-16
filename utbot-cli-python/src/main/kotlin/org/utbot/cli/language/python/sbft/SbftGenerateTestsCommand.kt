@@ -31,12 +31,11 @@ import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.newtyping.mypy.dropInitFile
+import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.Fail
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.Success
-import org.utbot.python.utils.separateTimeout
 import java.io.File
-import kotlin.math.max
 import kotlin.system.measureTimeMillis
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
@@ -222,6 +221,8 @@ class SbftGenerateTestsCommand : CliktCommand(
             .map { renderPythonImport(it) }
         val testCode = (listOf(importCode.joinToString("\n")) + globalCodeCollection).joinToString("\n\n\n")
         writeToFileAndSave(output, testCode)
+
+        Cleaner.doCleaning()
         System.exit(0)
     }
 }

@@ -122,7 +122,8 @@ class JcToUtModelConverter(
                 id = idGenerator.createId(),
                 classId = valueDescriptor.type.classId,
                 value = valueDescriptor.type.classId.jClass.enumConstants.find {
-                    (it as Enum<*>).name == valueDescriptor.enumValueName
+                    // [valueDescriptor.enumValueName] is the enum value to which toString() was applied
+                    (it as Enum<*>).toString() == valueDescriptor.enumValueName
                 } as Enum<*>
             )
             is UTestExceptionDescriptor -> UtCompositeModel(

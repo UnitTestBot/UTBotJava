@@ -44,3 +44,4 @@ org.usvm.samples.invokes.VirtualInvokeNestedIteExample
 org.usvm.samples.loops.While
 org.usvm.samples.enums.SimpleEnumExample
 org.usvm.samples.enums.ComplexEnumExamples
+org.usvm.samples.enums.ClassWithEnum

@@ -38,6 +38,7 @@ import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.pythonName
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.convertToTime
+import org.utbot.python.utils.separateTimeout
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
@@ -57,7 +58,7 @@ abstract class PythonTestGenerationProcessor {
     }
 
     fun testGenerate(mypyConfig: MypyConfig): List<PythonTestSet> {
-        val startTime = System.currentTimeMillis()
+//        val startTime = System.currentTimeMillis()
 
         val testCaseGenerator = PythonTestCaseGenerator(
             configuration = configuration,
@@ -67,7 +68,7 @@ abstract class PythonTestGenerationProcessor {
 //        val until = startTime + configuration.timeout
         val tests = configuration.testedMethods.mapIndexedNotNull { index, methodHeader ->
 //            val localUntil = separateUntil(until, index, configuration.testedMethods.size)
-            val localUntil = System.currentTimeMillis() + configuration.timeout / configuration.testedMethods.size
+            val localUntil = System.currentTimeMillis() + separateTimeout(configuration.timeout, configuration.testedMethods.size)
             logger.info { "Local timeout ${configuration.timeout / configuration.testedMethods.size}ms. Until ${localUntil.convertToTime()}" }
             try {
                 val method = findMethodByHeader(

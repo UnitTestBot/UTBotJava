@@ -15,16 +15,11 @@ fun separateUntil(until: Long, currentIndex: Int, itemsCount: Int): Long {
     }
 }
 
-fun separateTimeout(until: Long, currentIndex: Int, itemsCount: Int): Long {
-    return when (val itemsLeft = itemsCount - currentIndex) {
+fun separateTimeout(timeout: Long, itemsCount: Int): Long {
+    return when (itemsCount) {
         0 -> 0
-        1 -> {
-            val now = System.currentTimeMillis()
-            until - now
-        }
         else -> {
-            val now = System.currentTimeMillis()
-            max((until - now) / itemsLeft, 0)
+            timeout / itemsCount
         }
     }
 }

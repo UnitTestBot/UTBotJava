@@ -35,6 +35,7 @@ import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.Fail
 import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.Success
+import org.utbot.python.utils.separateTimeout
 import java.io.File
 import kotlin.system.measureTimeMillis
 
@@ -176,7 +177,7 @@ class SbftGenerateTestsCommand : CliktCommand(
         val globalImportCollection = mutableSetOf<PythonImport>()
         val globalCodeCollection = mutableListOf<String>()
 //        val until = max(System.currentTimeMillis() + timeout - mypyTime, 0)
-        val oneFunctionTimeout = (timeout - mypyTime) / pythonMethodGroups.sumOf { it.size }
+        val oneFunctionTimeout = separateTimeout(timeout - mypyTime, pythonMethodGroups.sumOf { it.size })
         logger.info { "One function timeout: ${oneFunctionTimeout}ms. x${pythonMethodGroups.sumOf { it.size }}" }
         pythonMethodGroups.mapIndexed { index, pythonMethods ->
 //            val localTimeout = pythonMethods.size * separateTimeout(

@@ -25,6 +25,7 @@ import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
@@ -34,12 +35,14 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.fuzzer.IdGenerator
+import java.util.IdentityHashMap
 
 private val logger = KotlinLogging.logger {}
 
@@ -110,7 +113,10 @@ class JcToUtExecutionConverter(
             }
         } ?: return null
 
-        return utUsvmExecution.mapModels(constructAssemblingMapper())
+        return utUsvmExecution
+            .mapModels(constructAssemblingMapper())
+            .mapModels(constructAssembleToCompositeModelMapper())
+            .mapModels(constructConstArrayModelMapper())
     }
 
     private fun constructAssemblingMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
@@ -145,6 +151,31 @@ class JcToUtExecutionConverter(
                 )
             )
         } ?: model
+    }
+
+    private fun constructConstArrayModelMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
+        if (model is UtArrayModel) {
+            val storeGroups = model.stores.entries.groupByTo(IdentityHashMap()) { it.value }
+            val mostCommonStore = storeGroups.maxBy { it.value.size }
+            if (mostCommonStore.value.size > 1) {
+                model.constModel = mostCommonStore.key
+                mostCommonStore.value.forEach { (index, _) -> model.stores.remove(index) }
+            }
+        }
+        model
+    }
+
+    private fun constructAssembleToCompositeModelMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
+        if (model is UtAssembleModel
+            && utilMethodProvider.createInstanceMethodId == model.instantiationCall.statement
+            && model.modificationsChain.all {
+                utilMethodProvider.setFieldMethodId == (it as? UtStatementCallModel)?.statement
+            }
+        ) {
+            model.origin ?: model
+        } else {
+            model
+        }
     }
 
     private fun convertException(exceptionDescriptor: UTestExceptionDescriptor): Throwable =

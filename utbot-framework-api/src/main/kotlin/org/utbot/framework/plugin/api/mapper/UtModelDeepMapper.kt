@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import java.util.IdentityHashMap
 
 /**
  * Performs deep mapping of [UtModel]s.
@@ -30,7 +31,7 @@ class UtModelDeepMapper private constructor(
      * Values are models that have been deeply mapped by this [UtModelDeepMapper].
      * Models are only associated with models of the same type (i.e. the cache type is actually `MutableMap<T, T>`)
      */
-    private val cache = mutableMapOf<UtModel, UtModel>()
+    private val cache = IdentityHashMap<UtModel, UtModel>()
 
     private val allInputtedModels get() = cache.keys
     private val allOutputtedModels get() = cache.values

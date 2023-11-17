@@ -21,6 +21,8 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
 import org.utbot.fuzzer.UtFuzzedExecution
@@ -260,6 +262,13 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
         // sometimes we don't have initial state of the field, e.g. if it is static and we didn't `touch` it
         // during the analysis, but the concrete executor included it in the modelAfter
         val initial = previousFields[path] ?: return false
+
+        // TODO usvm-sbft: In USVM descriptors for classes, enums, and throwables don't implement `UTestRefDescriptor`
+        //  and don't have `refId`, which causes `UtReferenceModel.id` to diverge in `stateBefore` and `stateAfter`
+        if (initial is UtClassRefModel) return initial.value != ((model as? UtClassRefModel)?.value)
+        if (initial is UtEnumConstantModel) return initial.value != ((model as? UtEnumConstantModel)?.value)
+        if (initial.classId isSubtypeOf java.lang.Throwable::class.id) return initial.classId != model.classId
+
         return initial != model
     }
 }

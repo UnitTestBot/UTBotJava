@@ -13,14 +13,13 @@ fun UTestValueDescriptor.dropStaticFields(
     cache: MutableMap<UTestValueDescriptor, UTestValueDescriptor>
 ): UTestValueDescriptor = cache.getOrPut(this) {
     when (this) {
-        is UTestArrayDescriptor.Array -> UTestArrayDescriptor.Array(
+        is UTestArrayDescriptor -> UTestArrayDescriptor(
             elementType = elementType,
             length = length,
             value = value.map { it.dropStaticFields(cache) },
             refId = refId
         )
 
-        is UTestArrayDescriptor<*> -> this
         is UTestClassDescriptor -> this
         is UTestConstantDescriptor -> this
         is UTestCyclicReferenceDescriptor -> this

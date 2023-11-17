@@ -68,7 +68,7 @@ class JcToUtModelConverter(
                 model
             }
 
-            is UTestArrayDescriptor.Array -> {
+            is UTestArrayDescriptor -> {
                 val stores = mutableMapOf<Int, UtModel>()
 
                 val model = UtArrayModel(
@@ -87,15 +87,6 @@ class JcToUtModelConverter(
 
                 model
             }
-
-            is UTestArrayDescriptor.BooleanArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.ByteArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.CharArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.DoubleArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.FloatArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.IntArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.LongArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
-            is UTestArrayDescriptor.ShortArray -> constructPrimitiveArray(valueDescriptor, valueDescriptor.value.toList())
 
             is UTestClassDescriptor -> UtClassRefModel(
                 id = idGenerator.createId(),
@@ -136,26 +127,6 @@ class JcToUtModelConverter(
                 )
             )
         }
-    }
-
-    private fun constructPrimitiveArray(valueDescriptor: UTestArrayDescriptor<*>, arrayContent: List<Any>): UtArrayModel {
-        val stores = mutableMapOf<Int, UtModel>()
-
-        val model = UtArrayModel(
-            id = idGenerator.createId(),
-            classId = valueDescriptor.type.classId,
-            length = valueDescriptor.length,
-            constModel = UtNullModel(valueDescriptor.elementType.classId),
-            stores = stores,
-        )
-
-        descriptorToModelCache[valueDescriptor] = model
-
-        arrayContent
-            .map { elemValue -> UtPrimitiveModel(elemValue) }
-            .forEachIndexed { index, elemModel -> stores += index to elemModel }
-
-        return model
     }
 
     private fun constructString(valueDescriptorValue: String): UtModel {

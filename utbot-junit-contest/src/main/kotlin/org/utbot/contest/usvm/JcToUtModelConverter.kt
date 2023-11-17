@@ -2,6 +2,7 @@ package org.utbot.contest.usvm
 
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestMock
 import org.usvm.instrumentation.testcase.descriptor.UTestArrayDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestClassDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
@@ -14,18 +15,19 @@ import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants.nameForExistingButNullString
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.IdGenerator
-import java.lang.Throwable
 
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
@@ -33,22 +35,57 @@ class JcToUtModelConverter(
     private val instToUtModelConverter: UTestInst2UtModelConverter,
 ) {
     private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
-    private val refIdToDescriptorCache = mutableMapOf<Int, UTestValueDescriptor>()
+    private val refIdAndStateKindToDescriptorCache =
+        mutableMapOf<Pair<Int, EnvironmentStateKind>, UTestValueDescriptor>()
 
-    fun convert(valueDescriptor: UTestValueDescriptor): UtModel = descriptorToModelCache.getOrPut(valueDescriptor) {
-        valueDescriptor.origin?.let { originExpr ->
-            return instToUtModelConverter.findModelByInst(originExpr as UTestExpression)
+    fun convert(
+        valueDescriptor: UTestValueDescriptor,
+        stateKind: EnvironmentStateKind,
+    ): UtModel = descriptorToModelCache.getOrPut(valueDescriptor) {
+        if (stateKind == EnvironmentStateKind.INITIAL || valueDescriptor.origin is UTestMock)
+            valueDescriptor.origin?.let { originExpr ->
+                val model = instToUtModelConverter.findModelByInst(originExpr as UTestExpression)
+                if (model is UtAssembleModel && model.origin == null) {
+                    val compositeOrigin = convertIgnoringOriginExprForThisModel(
+                        valueDescriptor = valueDescriptor,
+                        stateKind = stateKind,
+                        curModelId = model.id ?: idGenerator.createId(),
+                    )
+                    if (compositeOrigin is UtCompositeModel)
+                        return@getOrPut model.copy(origin = compositeOrigin)
+                }
+                return@getOrPut model
+            }
+
+        val previousStateModel =
+            if (stateKind == EnvironmentStateKind.FINAL && valueDescriptor is UTestRefDescriptor) {
+                (getModelByRefIdAndStateKind(valueDescriptor.refId, EnvironmentStateKind.INITIAL) as? UtReferenceModel)
+            } else {
+                null
+            }
+
+        return@getOrPut convertIgnoringOriginExprForThisModel(
+            valueDescriptor,
+            stateKind,
+            curModelId = previousStateModel?.id ?: idGenerator.createId()
+        )
+    }
+
+    private fun convertIgnoringOriginExprForThisModel(
+        valueDescriptor: UTestValueDescriptor,
+        stateKind: EnvironmentStateKind,
+        curModelId: Int,
+    ): UtModel = descriptorToModelCache.getOrPut(valueDescriptor) {
+        if (valueDescriptor is UTestRefDescriptor) {
+            refIdAndStateKindToDescriptorCache[valueDescriptor.refId to stateKind] = valueDescriptor
         }
-
-        if (valueDescriptor is UTestRefDescriptor)
-            refIdToDescriptorCache[valueDescriptor.refId] = valueDescriptor
 
         return when (valueDescriptor) {
             is UTestObjectDescriptor -> {
                 val fields = mutableMapOf<FieldId, UtModel>()
 
                 val model = UtCompositeModel(
-                    id = idGenerator.createId(),
+                    id = curModelId,
                     classId = valueDescriptor.type.classId,
                     isMock = false,
                     mocks = mutableMapOf(),
@@ -61,7 +98,7 @@ class JcToUtModelConverter(
                     .entries
                     .associate { (jcField, fieldDescr) ->
                         val fieldId = FieldId(jcField.enclosingClass.classId, jcField.name)
-                        val fieldModel = convert(fieldDescr)
+                        val fieldModel = convert(fieldDescr, stateKind)
                         fieldId to fieldModel
                     }
 
@@ -72,7 +109,7 @@ class JcToUtModelConverter(
                 val stores = mutableMapOf<Int, UtModel>()
 
                 val model = UtArrayModel(
-                    id = idGenerator.createId(),
+                    id = curModelId,
                     classId = valueDescriptor.type.classId,
                     length = valueDescriptor.length,
                     constModel = UtNullModel(valueDescriptor.elementType.classId),
@@ -82,17 +119,17 @@ class JcToUtModelConverter(
                 descriptorToModelCache[valueDescriptor] = model
 
                 valueDescriptor.value
-                    .map { elemDescr -> convert(elemDescr) }
+                    .map { elemDescr -> convert(elemDescr, stateKind) }
                     .forEachIndexed { index, elemModel -> stores += index to elemModel }
 
                 model
             }
 
             is UTestClassDescriptor -> UtClassRefModel(
-                id = idGenerator.createId(),
+                id = curModelId,
                 classId = classClassId,
                 value = valueDescriptor.classType.classId,
-                )
+            )
 
             is UTestConstantDescriptor.Null -> UtNullModel(valueDescriptor.type.classId)
 
@@ -106,11 +143,11 @@ class JcToUtModelConverter(
             is UTestConstantDescriptor.Short -> UtPrimitiveModel(valueDescriptor.value)
             is UTestConstantDescriptor.String -> constructString(valueDescriptor.value)
 
-            is UTestCyclicReferenceDescriptor -> descriptorToModelCache.getValue(
-                refIdToDescriptorCache.getValue(valueDescriptor.refId)
-            )
+            is UTestCyclicReferenceDescriptor -> getModelByRefIdAndStateKind(valueDescriptor.refId, stateKind)
+                ?: error("Invalid UTestCyclicReferenceDescriptor: $valueDescriptor")
+
             is UTestEnumValueDescriptor -> UtEnumConstantModel(
-                id = idGenerator.createId(),
+                id = curModelId,
                 classId = valueDescriptor.type.classId,
                 value = valueDescriptor.type.classId.jClass.enumConstants.find {
                     // [valueDescriptor.enumValueName] is the enum value to which toString() was applied
@@ -118,7 +155,7 @@ class JcToUtModelConverter(
                 } as Enum<*>
             )
             is UTestExceptionDescriptor -> UtCompositeModel(
-                id = idGenerator.createId(),
+                id = curModelId,
                 classId = valueDescriptor.type.classId,
                 isMock = false,
                 fields = mutableMapOf(
@@ -136,4 +173,11 @@ class JcToUtModelConverter(
         return UtPrimitiveModel(valueDescriptorValue)
     }
 
+    private fun getModelByRefIdAndStateKind(
+        refId: Int,
+        stateKind: EnvironmentStateKind
+    ): UtModel? =
+        refIdAndStateKindToDescriptorCache[refId to stateKind]?.let {
+            descriptorToModelCache[it]
+        }
 }

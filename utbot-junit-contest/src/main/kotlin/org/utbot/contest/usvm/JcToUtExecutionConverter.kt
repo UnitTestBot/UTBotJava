@@ -68,17 +68,19 @@ class JcToUtExecutionConverter(
 
         val utUsvmExecution: UtUsvmExecution = when (val executionResult = jcExecution.uTestExecutionResult) {
             is UTestExecutionSuccessResult -> UtUsvmExecution(
-                stateBefore = convertState(executionResult.initialState, jcExecution.method, jcToUtModelConverter),
-                stateAfter = convertState(executionResult.resultState, jcExecution.method, jcToUtModelConverter),
+                stateBefore = convertState(executionResult.initialState, EnvironmentStateKind.INITIAL, jcExecution.method),
+                stateAfter = convertState(executionResult.resultState, EnvironmentStateKind.FINAL, jcExecution.method),
                 // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
-                result = UtExecutionSuccess(executionResult.result?.let { jcToUtModelConverter.convert(it) } ?: UtVoidModel),
+                result = UtExecutionSuccess(executionResult.result?.let {
+                    jcToUtModelConverter.convert(it, EnvironmentStateKind.FINAL)
+                } ?: UtVoidModel),
                 coverage = coverage,
                 instrumentation = instrumentation,
             )
             is UTestExecutionExceptionResult -> {
                 UtUsvmExecution(
-                    stateBefore = convertState(executionResult.initialState, jcExecution.method, jcToUtModelConverter),
-                    stateAfter = convertState(executionResult.resultState, jcExecution.method, jcToUtModelConverter),
+                    stateBefore = convertState(executionResult.initialState, EnvironmentStateKind.INITIAL, jcExecution.method),
+                    stateAfter = convertState(executionResult.resultState, EnvironmentStateKind.FINAL, jcExecution.method),
                     result = createExecutionFailureResult(
                         executionResult.cause,
                         jcExecution.method,
@@ -160,18 +162,20 @@ class JcToUtExecutionConverter(
 
     private fun convertState(
         state: UTestExecutionState,
+        stateKind: EnvironmentStateKind,
         method: JcTypedMethod,
-        modelConverter: JcToUtModelConverter,
-        ): EnvironmentModels {
+    ): EnvironmentModels {
         val thisInstance =
             if (method.isStatic) null
             else if (method.method.isConstructor) null
-            else modelConverter.convert(state.instanceDescriptor ?: error("Unexpected null instanceDescriptor"))
-        val parameters = state.argsDescriptors.map { modelConverter.convert(it ?: error("Unexpected null argDescriptor")) }
+            else jcToUtModelConverter.convert(state.instanceDescriptor ?: error("Unexpected null instanceDescriptor"), stateKind)
+        val parameters = state.argsDescriptors.map {
+            jcToUtModelConverter.convert(it ?: error("Unexpected null argDescriptor"), stateKind)
+        }
         val statics = state.statics
             .entries
             .associate { (jcField, uTestDescr) ->
-                jcField.fieldId to modelConverter.convert(uTestDescr)
+                jcField.fieldId to jcToUtModelConverter.convert(uTestDescr, stateKind)
             }
         val executableId: ExecutableId = method.method.toExecutableId(jcClasspath)
         return EnvironmentModels(thisInstance, parameters, statics, executableId)

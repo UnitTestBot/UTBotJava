@@ -106,31 +106,23 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
         initialPath: FieldPath = FieldPath()
     ): FieldStatesInfo {
         var modelBefore = before
+        var modelAfter = after
 
         if (before::class != after::class) {
-            if (before is UtModelWithCompositeOrigin && after is UtModelWithCompositeOrigin && before.origin != null) {
-                modelBefore = before.origin ?: unreachableBranch("We have already checked the origin for a null value")
-            } else {
-                doNotRun {
-                    // it is ok because we might have modelBefore with some absent fields (i.e. statics), but
-                    // modelAfter (constructed by concrete executor) will consist all these fields,
-                    // therefore, AssembleModelGenerator won't be able to transform the given composite model
+            if (before is UtModelWithCompositeOrigin)
+                modelBefore = before.origin ?: before
+            if (after is UtModelWithCompositeOrigin)
+                modelAfter = after.origin ?: after
+        }
 
-                    val reason = if (before is UtModelWithCompositeOrigin && after is UtCompositeModel) {
-                        "ModelBefore is an UtModelWithOrigin and ModelAfter " +
-                                "is a CompositeModel, but modelBefore doesn't have an origin model."
-                    } else {
-                        "The model before and the model after have different types: " +
-                                "model before is ${before::class}, but model after is ${after::class}."
-                    }
+        if (modelBefore::class != modelAfter::class) {
+            doNotRun {
+                error("Cannot analyze model fields modification, before: [$before], after: [$after]")
+            }
 
-                    error("Cannot analyze fields modification. $reason")
-                }
-
-                // remove it when we will fix assemble models in the resolver JIRA:1464
-                workaround(WorkaroundReason.IGNORE_MODEL_TYPES_INEQUALITY) {
-                    return FieldStatesInfo(fieldsBefore = emptyMap(), fieldsAfter = emptyMap())
-                }
+            // remove it when we will fix assemble models in the resolver JIRA:1464
+            workaround(WorkaroundReason.IGNORE_MODEL_TYPES_INEQUALITY) {
+                return FieldStatesInfo(fieldsBefore = emptyMap(), fieldsAfter = emptyMap())
             }
         }
 
@@ -141,7 +133,7 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
         modelBefore.accept(FieldStateVisitor(), dataBefore)
 
         val dataAfter = FieldData(FieldsVisitorMode.AFTER, fieldsAfter, initialPath, previousFields = fieldsBefore)
-        after.accept(FieldStateVisitor(), dataAfter)
+        modelAfter.accept(FieldStateVisitor(), dataAfter)
 
         return FieldStatesInfo(fieldsBefore, fieldsAfter)
     }

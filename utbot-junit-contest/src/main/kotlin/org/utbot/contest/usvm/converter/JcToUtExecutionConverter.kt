@@ -56,16 +56,13 @@ class JcToUtExecutionConverter(
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
     private var jcToUtModelConverter: JcToUtModelConverter
-    private var instrumentation: List<UtInstrumentation>
+    private var uTestProcessResult: UTestAnalysisResult
 
     init {
-        val instToModelConverter = UTestInstToUtModelConverter(idGenerator, jcClasspath, utilMethodProvider)
-
-        instToModelConverter.processUTest(jcExecution.uTest).also {
-            instrumentation = instToModelConverter.findInstrumentations()
-        }
-
+        val instToModelConverter = UTestInstToUtModelConverter(jcExecution.uTest, jcClasspath, idGenerator, utilMethodProvider)
         jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)
+
+        uTestProcessResult = instToModelConverter.processUTest()
     }
 
     fun convert(): UtExecution? {
@@ -80,7 +77,7 @@ class JcToUtExecutionConverter(
                     jcToUtModelConverter.convert(it, EnvironmentStateKind.FINAL)
                 } ?: UtVoidModel),
                 coverage = coverage,
-                instrumentation = instrumentation,
+                instrumentation = uTestProcessResult.instrumentation,
             )
             is UTestExecutionExceptionResult -> {
                 UtUsvmExecution(
@@ -91,7 +88,7 @@ class JcToUtExecutionConverter(
                         jcExecution.method,
                     ),
                     coverage = coverage,
-                    instrumentation = instrumentation,
+                    instrumentation = uTestProcessResult.instrumentation,
                 )
             }
 

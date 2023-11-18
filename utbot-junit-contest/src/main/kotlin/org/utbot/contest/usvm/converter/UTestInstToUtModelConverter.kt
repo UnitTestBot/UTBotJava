@@ -34,7 +34,6 @@ import org.usvm.instrumentation.testcase.api.UTestShortExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.testcase.api.UTestStringExpression
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
-import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
@@ -54,19 +53,19 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.fuzzer.IdGenerator
 
 class UTestInstToUtModelConverter(
-    private val idGenerator: IdGenerator<Int>,
+    private val uTest: UTest,
     private val jcClasspath: JcClasspath,
+    private val idGenerator: IdGenerator<Int>,
     private val utilMethodProvider: UtilMethodProvider,
 ) {
     private val exprToModelCache = mutableMapOf<UTestExpression, UtModel>()
     private val instrumentations = mutableListOf<UtInstrumentation>()
 
-    fun processUTest(uTest: UTest) {
-        exprToModelCache.clear()
-        instrumentations.clear()
-
+    fun processUTest(): UTestAnalysisResult {
         uTest.initStatements.forEach { uInst -> processInst(uInst) }
         removeInstantiationCallFromThisInstanceModificationChain(processExpr(uTest.callMethodExpression))
+
+        return UTestAnalysisResult(instrumentations)
     }
 
     fun findModelByInst(expr: UTestExpression): UtModel {
@@ -74,8 +73,6 @@ class UTestInstToUtModelConverter(
         removeInstantiationCallFromThisInstanceModificationChain(alreadyCreatedModel)
         return alreadyCreatedModel
     }
-
-    fun findInstrumentations(): List<UtInstrumentation> = instrumentations
 
     private fun removeInstantiationCallFromThisInstanceModificationChain(model: UtModel) {
         if (model is UtAssembleModel) {
@@ -307,11 +304,11 @@ class UTestInstToUtModelConverter(
             }
 
             is UTestGlobalMock -> {
-                // Daniil said that we can miss [type] and [fields] when converting to [UtInstrumentation]
                 val methodsToExprs = uTestExpr.methods.entries
+                val initMethodExprs = methodsToExprs.filter { it.key.isConstructor }
+                val otherMethodsExprs = methodsToExprs.minus(initMethodExprs.toSet())
 
-                methodsToExprs
-                    .filter { it.key is MethodId }
+                otherMethodsExprs
                     .forEach { (jcMethod, uTestExprs) ->
                         val methodId = jcMethod.toExecutableId(jcClasspath) as MethodId
                         val valueModels = uTestExprs.map { expr -> processExpr(expr) }
@@ -323,15 +320,15 @@ class UTestInstToUtModelConverter(
                         instrumentations += methodInstrumentation
                     }
 
-                methodsToExprs
-                    .filter { it.key is ConstructorId }
+                initMethodExprs
                     .forEach { (jcMethod, uTestExprs) ->
                         val valueModels = uTestExprs.map { expr -> processExpr(expr) }
                         val methodInstrumentation = UtNewInstanceInstrumentation(
-                            // TODO usvm-sbft looking at [Traverser] ln 1682, this classId does not seem correct
                             classId = jcMethod.enclosingClass.classId,
                             instances = valueModels,
-                            callSites = setOf(jcMethod.enclosingClass.classId),
+                            // [UTestGlobalMock] does not have an equivalent of [callSites],
+                            // but it is used only in UtBot instrumentation. We use USVM one, so it is not a problem.
+                            callSites = emptySet(),
                             )
 
                         instrumentations += methodInstrumentation
@@ -356,3 +353,7 @@ class UTestInstToUtModelConverter(
         }
     }
 }
+
+data class UTestAnalysisResult(
+    val instrumentation: List<UtInstrumentation>,
+)

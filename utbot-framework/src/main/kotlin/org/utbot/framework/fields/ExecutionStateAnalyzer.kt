@@ -21,6 +21,8 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
 import org.utbot.fuzzer.UtFuzzedExecution
@@ -104,31 +106,23 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
         initialPath: FieldPath = FieldPath()
     ): FieldStatesInfo {
         var modelBefore = before
+        var modelAfter = after
 
         if (before::class != after::class) {
-            if (before is UtModelWithCompositeOrigin && after is UtModelWithCompositeOrigin && before.origin != null) {
-                modelBefore = before.origin ?: unreachableBranch("We have already checked the origin for a null value")
-            } else {
-                doNotRun {
-                    // it is ok because we might have modelBefore with some absent fields (i.e. statics), but
-                    // modelAfter (constructed by concrete executor) will consist all these fields,
-                    // therefore, AssembleModelGenerator won't be able to transform the given composite model
+            if (before is UtModelWithCompositeOrigin)
+                modelBefore = before.origin ?: before
+            if (after is UtModelWithCompositeOrigin)
+                modelAfter = after.origin ?: after
+        }
 
-                    val reason = if (before is UtModelWithCompositeOrigin && after is UtCompositeModel) {
-                        "ModelBefore is an UtModelWithOrigin and ModelAfter " +
-                                "is a CompositeModel, but modelBefore doesn't have an origin model."
-                    } else {
-                        "The model before and the model after have different types: " +
-                                "model before is ${before::class}, but model after is ${after::class}."
-                    }
+        if (modelBefore::class != modelAfter::class) {
+            doNotRun {
+                error("Cannot analyze model fields modification, before: [$before], after: [$after]")
+            }
 
-                    error("Cannot analyze fields modification. $reason")
-                }
-
-                // remove it when we will fix assemble models in the resolver JIRA:1464
-                workaround(WorkaroundReason.IGNORE_MODEL_TYPES_INEQUALITY) {
-                    return FieldStatesInfo(fieldsBefore = emptyMap(), fieldsAfter = emptyMap())
-                }
+            // remove it when we will fix assemble models in the resolver JIRA:1464
+            workaround(WorkaroundReason.IGNORE_MODEL_TYPES_INEQUALITY) {
+                return FieldStatesInfo(fieldsBefore = emptyMap(), fieldsAfter = emptyMap())
             }
         }
 
@@ -139,7 +133,7 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
         modelBefore.accept(FieldStateVisitor(), dataBefore)
 
         val dataAfter = FieldData(FieldsVisitorMode.AFTER, fieldsAfter, initialPath, previousFields = fieldsBefore)
-        after.accept(FieldStateVisitor(), dataAfter)
+        modelAfter.accept(FieldStateVisitor(), dataAfter)
 
         return FieldStatesInfo(fieldsBefore, fieldsAfter)
     }
@@ -260,6 +254,13 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
         // sometimes we don't have initial state of the field, e.g. if it is static and we didn't `touch` it
         // during the analysis, but the concrete executor included it in the modelAfter
         val initial = previousFields[path] ?: return false
+
+        // TODO usvm-sbft: In USVM descriptors for classes, enums, and throwables don't implement `UTestRefDescriptor`
+        //  and don't have `refId`, which causes `UtReferenceModel.id` to diverge in `stateBefore` and `stateAfter`
+        if (initial is UtClassRefModel) return initial.value != ((model as? UtClassRefModel)?.value)
+        if (initial is UtEnumConstantModel) return initial.value != ((model as? UtEnumConstantModel)?.value)
+        if (initial.classId isSubtypeOf java.lang.Throwable::class.id) return initial.classId != model.classId
+
         return initial != model
     }
 }

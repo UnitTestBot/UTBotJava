@@ -156,7 +156,7 @@ class JcToUtExecutionConverter(
     private fun constructConstArrayModelMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
         if (model is UtArrayModel) {
             val storeGroups = model.stores.entries.groupByTo(IdentityHashMap()) { it.value }
-            val mostCommonStore = storeGroups.maxBy { it.value.size }
+            val mostCommonStore = storeGroups.maxByOrNull { it.value.size } ?: return@UtModelDeepMapper model
             if (mostCommonStore.value.size > 1) {
                 model.constModel = mostCommonStore.key
                 mostCommonStore.value.forEach { (index, _) -> model.stores.remove(index) }

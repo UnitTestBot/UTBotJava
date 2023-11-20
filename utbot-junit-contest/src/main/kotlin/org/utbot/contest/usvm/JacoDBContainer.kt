@@ -5,6 +5,7 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcDatabase
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.jacodb
+import org.usvm.util.classpathWithApproximations
 import java.io.File
 
 // TODO usvm-sbft-refactoring: copied from `usvm/usvm-jvm/test`, extract this class back to USVM project
@@ -18,8 +19,7 @@ class JacoDBContainer(
     init {
         val (db, cp) = runBlocking {
             val db = jacodb(builder)
-            // TODO usvm-sbft: do we need `db.classpath(classpath)` or `db.classpathWithApproximations(classpath)` for contest?
-            val cp = db.classpath(classpath)
+            val cp = db.classpathWithApproximations(classpath)
             db to cp
         }
         this.db = db

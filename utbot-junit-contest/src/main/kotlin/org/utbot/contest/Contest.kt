@@ -494,8 +494,6 @@ internal fun File.toUrl(): URL = toURI().toURL()
 
 internal fun testMethodName(name: String, num: Int): String = "test${name.capitalize()}$num"
 
-// TODO usvm-sbft: does SBFT allow to generate tests for private methods and constructors
-//  If no, add more filtering here
 internal val Method.isVisibleFromGeneratedTest: Boolean
     get() = (this.modifiers and Modifier.ABSTRACT) == 0
             && (this.modifiers and Modifier.NATIVE) == 0

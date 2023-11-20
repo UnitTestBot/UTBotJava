@@ -134,7 +134,6 @@ fun runUsvmGeneration(
     )
 
     logger.info().measureTime({ "class ${cut.fqn}" }, { statsForClass }) {
-        // TODO usvm-sbft: is it still needed for USVM?
         val filteredMethods = logger.info().measureTime({ "preparation class ${cut.clazz}: kotlin reflection :: run" }) {
             prepareClass(cut.clazz, methodNameFilter)
         }

@@ -1,23 +1,25 @@
 package org.utbot.contest.usvm
 
 import org.jacodb.analysis.library.analyzers.thisInstance
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
+import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.TypeName
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
-import org.jacodb.api.ext.findClassOrNull
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.void
+import org.jacodb.api.ext.toType
 import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
@@ -37,7 +39,6 @@ import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -55,10 +56,18 @@ fun JcMethod.toExecutableId(classpath: JcClasspath): ExecutableId {
     return MethodId(type, this.name, returnClassId, parameters)
 }
 
+private fun JcType.replaceToBoundIfGeneric(): JcType {
+    return when (this) {
+        is JcArrayType -> this.classpath.arrayTypeOf(elementType.replaceToBoundIfGeneric())
+        is JcRefType -> this.jcClass.toType()
+        else -> this
+    }
+}
+
 val JcType?.classId: ClassId
     get() {
         if (this !is JcPrimitiveType) {
-            return this?.toJavaClass(utContext.classLoader)?.id
+            return this?.replaceToBoundIfGeneric()?.toJavaClass(utContext.classLoader)?.id
                 ?: error("Can not construct classId for $this")
         }
 

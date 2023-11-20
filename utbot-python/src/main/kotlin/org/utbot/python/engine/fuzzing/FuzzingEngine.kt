@@ -232,7 +232,7 @@ class FuzzingEngine(
 
                                 if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
                                     logger.debug { "FakeNode in Python model" }
-//                                    description.limitManager.addFakeNodeExecutions()
+                                    description.limitManager.addFakeNodeExecutions()
                                     emit(FakeNodeFeedback)
                                     return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                                 } else {

@@ -192,10 +192,7 @@ fun runUsvmGeneration(
                     }
                 }
                 val jcExecutions = states.mapNotNull {
-                    // TODO usvm-sbft: if we have less than `runner.timeout` budget we should only let resolver run
-                    //  for `remainingBudgetMillisWithoutCodegen()` ms, right now last resolver call may exceed budget,
-                    //  essentially stealing some time from codegen
-                    if (remainingBudgetMillisWithoutCodegen() > 0)
+                    if (remainingBudgetMillisWithoutCodegen() > UTestRunner.CONTEST_TEST_EXECUTION_TIMEOUT.inWholeMilliseconds)
                         logger.debug().measureTime({ "resolver.resolve(${method.classId}.${method.signature}, ...)" }) {
                             runCatching {
                                 resolver.resolve(jcTypedMethod, it)

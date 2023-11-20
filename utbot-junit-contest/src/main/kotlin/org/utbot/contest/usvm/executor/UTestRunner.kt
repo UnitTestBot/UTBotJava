@@ -3,10 +3,11 @@ package org.utbot.contest.usvm.executor
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
-import org.usvm.instrumentation.util.InstrumentationModuleConstants
+import kotlin.time.Duration.Companion.seconds
 
 // TODO usvm-sbft-refactoring: copied from `usvm/usvm-jvm/test`, extract this class back to USVM project
 object UTestRunner {
+    val CONTEST_TEST_EXECUTION_TIMEOUT = 1.seconds
 
     lateinit var runner: UTestConcreteExecutor
 
@@ -18,7 +19,7 @@ object UTestRunner {
                 JcRuntimeTraceInstrumenterFactory::class,
                 pathToJars,
                 classpath,
-                InstrumentationModuleConstants.testExecutionTimeout
+                CONTEST_TEST_EXECUTION_TIMEOUT
             )
     }
 }

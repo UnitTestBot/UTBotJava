@@ -20,6 +20,7 @@ class JacoDBContainer(
     init {
         val (db, cp) = runBlocking {
             val db = jacodb(builder)
+            // TODO usvm-sbft: use classpathWithApproximations here
             val cp = db.classpath(classpath, listOf(UnknownClasses))
             db to cp
         }

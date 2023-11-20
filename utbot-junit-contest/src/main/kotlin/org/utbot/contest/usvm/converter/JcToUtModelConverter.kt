@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm
+package org.utbot.contest.usvm.converter
 
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.api.UTestExpression
@@ -29,10 +29,14 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.IdGenerator
 
+enum class EnvironmentStateKind {
+    INITIAL, FINAL
+}
+
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
     private val jcClasspath: JcClasspath,
-    private val instToUtModelConverter: UTestInst2UtModelConverter,
+    private val instToUtModelConverter: UTestInstToUtModelConverter,
 ) {
     private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
     private val refIdAndStateKindToDescriptorCache =

@@ -26,7 +26,7 @@ import org.utbot.contest.Paths.evosuiteReportFile
 import org.utbot.contest.Paths.jarsDir
 import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
-import org.utbot.contest.usvm.executor.UTestRunner
+import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
@@ -266,8 +266,7 @@ interface Tool {
         )
 
         override fun close() {
-            if (UTestRunner.isInitialized())
-                UTestRunner.runner.close()
+            JcContainer.close()
         }
     }
 

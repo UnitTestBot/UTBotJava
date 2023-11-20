@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm
+package org.utbot.contest.usvm.converter
 
 import org.usvm.instrumentation.testcase.descriptor.UTestArrayDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestClassDescriptor

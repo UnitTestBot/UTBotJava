@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm
+package org.utbot.contest.usvm.converter
 
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.DocStatement
@@ -7,6 +7,9 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionWithInstrumentation
 import org.utbot.framework.plugin.api.UtInstrumentation
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
+import org.utbot.framework.plugin.api.mapper.mapModelIfExists
+import org.utbot.framework.plugin.api.mapper.mapModels
 
 class UtUsvmExecution(
     stateBefore: EnvironmentModels,
@@ -65,3 +68,14 @@ class UtUsvmExecution(
         instrumentation,
     )
 }
+
+fun UtUsvmExecution.mapModels(mapper: UtModelMapper) = copy(
+    stateBefore = stateBefore.mapModels(mapper),
+    stateAfter = stateAfter.mapModels(mapper),
+    result = result.mapModelIfExists(mapper),
+    coverage = this.coverage,
+    summary = this.summary,
+    testMethodName = this.testMethodName,
+    displayName = this.displayName,
+    instrumentation = instrumentation.map { it.mapModels(mapper) },
+)

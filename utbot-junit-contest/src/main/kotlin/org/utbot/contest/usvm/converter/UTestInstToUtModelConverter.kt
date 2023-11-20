@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm
+package org.utbot.contest.usvm.converter
 
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.UTest
@@ -49,7 +49,7 @@ import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.fuzzer.IdGenerator
 
-class UTestInst2UtModelConverter(
+class UTestInstToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
     private val jcClasspath: JcClasspath,
     private val utilMethodProvider: UtilMethodProvider,

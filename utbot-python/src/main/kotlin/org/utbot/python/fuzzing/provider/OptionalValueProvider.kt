@@ -11,9 +11,9 @@ import org.utbot.python.newtyping.PythonUnionTypeDescription
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.pythonAnnotationParameters
 
-object UnionValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
+object OptionalValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: UtType): Boolean {
-        return type.meta is PythonUnionTypeDescription && type.parameters.all { it.meta !is PythonNoneTypeDescription }
+        return type.meta is PythonUnionTypeDescription && type.parameters.any { it.meta is PythonNoneTypeDescription }
     }
 
     override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
@@ -21,7 +21,7 @@ object UnionValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMetho
         params.forEach { unionParam ->
             yield(Seed.Recursive(
                 construct = Routine.Create(listOf(unionParam)) { v -> v.first() },
-                empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
+                empty = Routine.Empty { PythonFuzzedValue(PythonTree.fromNone()) }
             ))
         }
     }

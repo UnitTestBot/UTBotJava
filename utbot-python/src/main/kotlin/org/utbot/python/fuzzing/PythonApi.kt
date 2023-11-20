@@ -77,6 +77,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     DictValueProvider,
     TupleValueProvider,
     TupleFixSizeValueProvider,
+    OptionalValueProvider,
     UnionValueProvider,
     BytesValueProvider,
     BytearrayValueProvider,

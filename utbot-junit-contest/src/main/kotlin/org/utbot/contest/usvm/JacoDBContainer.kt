@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcDatabase
 import org.jacodb.impl.JcSettings
+import org.jacodb.impl.features.classpaths.UnknownClasses
 import org.jacodb.impl.jacodb
 import org.usvm.util.classpathWithApproximations
 import java.io.File
@@ -19,7 +20,7 @@ class JacoDBContainer(
     init {
         val (db, cp) = runBlocking {
             val db = jacodb(builder)
-            val cp = db.classpathWithApproximations(classpath)
+            val cp = db.classpath(classpath, listOf(UnknownClasses))
             db to cp
         }
         this.db = db

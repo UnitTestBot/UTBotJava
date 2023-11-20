@@ -9,7 +9,7 @@ class TestGenerationLimitManager(
     var executions: Int = 150,
     var invalidExecutions: Int = 10,
     var cacheNodeExecutions: Int = 20,
-    var fakeNodeExecutions: Int = 8,
+    var fakeNodeExecutions: Int = 10,
     var missedLines: Int? = null,
     val isRootManager: Boolean = false,
 ) {

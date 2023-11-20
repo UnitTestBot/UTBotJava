@@ -53,7 +53,7 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
                         obj.state[field.meta.name] = arguments.first().tree
                     }
                 })
-                yieldAll(callConstructors(type, it, modifications.asSequence()))
+                yieldAll(callConstructors(type, it, modifications.asSequence(), description))
             }
     }
 
@@ -93,10 +93,11 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
     private fun constructObject(
         type: UtType,
         constructorFunction: FunctionType,
-        modifications: Sequence<Routine.Call<UtType, PythonFuzzedValue>>
+        modifications: Sequence<Routine.Call<UtType, PythonFuzzedValue>>,
+        description: PythonMethodDescription,
     ): Seed.Recursive<UtType, PythonFuzzedValue> {
-        val description = constructorFunction.pythonDescription() as PythonCallableTypeDescription
-        val positionalArgs = description.argumentKinds.count { it == PythonCallableTypeDescription.ArgKind.ARG_POS }
+        val typeDescription = constructorFunction.pythonDescription() as PythonCallableTypeDescription
+        val positionalArgs = typeDescription.argumentKinds.count { it == PythonCallableTypeDescription.ArgKind.ARG_POS }
         val arguments = constructorFunction.arguments.take(positionalArgs)
         val nonSelfArgs = arguments.drop(1)
 
@@ -112,14 +113,33 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
                 )
             },
             modify = modifications,
-            empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
+            empty = Routine.Empty { PythonFuzzedValue(buildEmptyValue(type, description)) }
         )
+    }
+
+    private fun buildEmptyValue(
+        type: UtType,
+        description: PythonMethodDescription,
+        ): PythonTree.PythonTreeNode {
+        val newMethodName = "__new__"
+        val newMethod = type.getPythonAttributeByName(description.pythonTypeStorage, newMethodName)
+        return if (newMethod?.type?.parameters?.size == 1) {
+            val classId = PythonClassId(type.pythonModuleName(), type.pythonName())
+            PythonTree.ReduceNode(
+                classId,
+                PythonClassId(type.pythonModuleName(), "${type.pythonName()}.__new__"),
+                listOf(PythonTree.PrimitiveNode(classId, classId.name)),
+            )
+        } else {
+            PythonTree.FakeNode
+        }
     }
 
     private fun callConstructors(
         type: UtType,
         constructor: PythonDefinition,
-        modifications: Sequence<Routine.Call<UtType, PythonFuzzedValue>>
+        modifications: Sequence<Routine.Call<UtType, PythonFuzzedValue>>,
+        description: PythonMethodDescription,
     ): Sequence<Seed.Recursive<UtType, PythonFuzzedValue>> = sequence {
         val constructors = emptyList<FunctionType>().toMutableList()
         if (constructor.type.pythonTypeName() == "Overload") {
@@ -132,7 +152,7 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
             constructors.add(constructor.type as FunctionType)
         }
         constructors.forEach {
-            yield(constructObject(type, it, modifications))
+            yield(constructObject(type, it, modifications, description))
         }
     }
 }

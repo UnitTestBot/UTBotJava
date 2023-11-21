@@ -24,6 +24,14 @@ object ComplexValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMet
                 description.pythonTypeStorage.pythonInt
             )
         )
+        val emptyValue =
+            PythonFuzzedValue(
+                PythonTree.PrimitiveNode(
+                    pythonComplexClassId,
+                    "complex()"
+                ),
+                "%var% = ${type.pythonTypeRepresentation()}"
+            )
         yield(Seed.Recursive(
             construct = Routine.Create(
                 listOf(
@@ -31,26 +39,22 @@ object ComplexValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMet
                     numberType
                 )
             ) { v ->
-                val real = v[0].tree as PythonTree.PrimitiveNode
-                val imag = v[1].tree as PythonTree.PrimitiveNode
-                val repr = "complex(real=${real.repr}, imag=${imag.repr})"
-                PythonFuzzedValue(
-                    PythonTree.PrimitiveNode(
-                        pythonComplexClassId,
-                        repr
-                    ),
-                    "%var% = $repr"
-                )
+                if (v[0].tree is PythonTree.FakeNode || v[1].tree is PythonTree.FakeNode) {
+                    emptyValue
+                } else {
+                    val real = v[0].tree as PythonTree.PrimitiveNode
+                    val imag = v[1].tree as PythonTree.PrimitiveNode
+                    val repr = "complex(real=${real.repr}, imag=${imag.repr})"
+                    PythonFuzzedValue(
+                        PythonTree.PrimitiveNode(
+                            pythonComplexClassId,
+                            repr
+                        ),
+                        "%var% = $repr"
+                    )
+                }
             },
-            empty = Routine.Empty {
-                PythonFuzzedValue(
-                    PythonTree.PrimitiveNode(
-                        pythonComplexClassId,
-                        "complex()"
-                    ),
-                    "%var% = ${type.pythonTypeRepresentation()}"
-                )
-            }
+            empty = Routine.Empty { emptyValue }
         ))
     }
 }

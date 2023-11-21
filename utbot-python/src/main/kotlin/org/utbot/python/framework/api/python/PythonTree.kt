@@ -21,6 +21,9 @@ import java.util.concurrent.atomic.AtomicLong
 
 
 object PythonTree {
+
+    val MAX_ITERATOR_SIZE = 1000
+
     fun isRecursiveObject(tree: PythonTreeNode): Boolean {
         return isRecursiveObjectDFS(tree, mutableSetOf())
     }
@@ -218,6 +221,7 @@ object PythonTree {
         id: Long,
         val items: MutableMap<Int, PythonTreeNode>
     ) : PythonTreeNode(id, pythonIteratorClassId) {
+
         constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
 
         override val children: List<PythonTreeNode>

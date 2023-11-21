@@ -21,6 +21,7 @@ import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.pythonExceptionClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonStopIterationClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.python.framework.codegen.model.tree.*
@@ -367,6 +368,16 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     )
                 )
                 statements = currentBlock
+            }
+        }
+        if (expectedNode.items.size < PythonTree.MAX_ITERATOR_SIZE) {
+            testFrameworkManager.expectException(pythonStopIterationClassId) {
+                +CgPythonFunctionCall(
+                    PythonClassId("builtins.next"),
+                    "next",
+                    listOf(actual)
+                )
+                emptyLineIfNeeded()
             }
         }
     }

@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm
+package org.utbot.contest.usvm.converter
 
 import mu.KotlinLogging
 import org.jacodb.api.JcClassOrInterface
@@ -18,7 +18,7 @@ import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.utbot.common.isPublic
-import org.utbot.contest.usvm.executor.JcExecution
+import org.utbot.contest.usvm.jc.JcExecution
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.Coverage
@@ -58,7 +58,7 @@ class JcToUtExecutionConverter(
     private var jcToUtModelConverter: JcToUtModelConverter
 
     init {
-        val instToModelConverter = UTestInst2UtModelConverter(idGenerator, jcClasspath, utilMethodProvider)
+        val instToModelConverter = UTestInstToUtModelConverter(idGenerator, jcClasspath, utilMethodProvider)
 
         instToModelConverter.processUTest(jcExecution.uTest)
         jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)

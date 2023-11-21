@@ -1,11 +1,9 @@
-package org.utbot.contest.usvm.executor
+package org.utbot.contest.usvm.jc
 
 import io.ksmt.utils.asExpr
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.*
 import org.jacodb.api.ext.*
-import org.jacodb.impl.fs.BuildFolderLocation
-import org.jacodb.impl.fs.JarLocation
 import org.usvm.*
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcTest
@@ -37,29 +35,17 @@ import org.usvm.types.firstOrNull
 /**
  * A class, responsible for resolving a single [JcExecution] for a specific method from a symbolic state.
  *
- * Uses reflection to resolve objects.
+ * Uses concrete execution
  */
 // TODO usvm-sbft-refactoring: copied from `usvm/usvm-jvm/test`, extract this class back to USVM project
 class JcTestExecutor(
     val classpath: JcClasspath,
-) {
-
     private val runner: UTestConcreteExecutor
-        get() {
-            if (!UTestRunner.isInitialized()) {
-                val pathToJars =
-                    classpath.locations
-                        .filter { it is BuildFolderLocation || (it is JarLocation && it.type == LocationType.APP) }
-                        .map { it.path }
-                UTestRunner.initRunner(pathToJars, classpath)
-            }
-            return UTestRunner.runner
-        }
-
+) {
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
-    fun resolve(method: JcTypedMethod, state: JcState): JcExecution {
+    fun execute(method: JcTypedMethod, state: JcState): JcExecution {
         val model = state.models.first()
 
         val ctx = state.ctx
@@ -138,15 +124,41 @@ class JcTestExecutor(
         ): Pair<UTestExpression, List<UTestInst>> {
             val exprInModel = evaluateInModel(expr)
             return when (type) {
-                ctx.cp.boolean -> UTestBooleanExpression(extractBool(exprInModel) ?: false, ctx.cp.boolean)
-                ctx.cp.short -> UTestShortExpression(extractShort(exprInModel) ?: 0, ctx.cp.short)
-                ctx.cp.int -> UTestIntExpression(extractInt(exprInModel) ?: 0, ctx.cp.int)
-                ctx.cp.long -> UTestLongExpression(extractLong(exprInModel) ?: 0L, ctx.cp.long)
-                ctx.cp.float -> UTestFloatExpression(extractFloat(exprInModel) ?: 0.0f, ctx.cp.float)
-                ctx.cp.double -> UTestDoubleExpression(extractDouble(exprInModel) ?: 0.0, ctx.cp.double)
-                ctx.cp.byte -> UTestByteExpression(extractByte(exprInModel) ?: 0, ctx.cp.byte)
-                ctx.cp.char -> UTestCharExpression(extractChar(exprInModel) ?: '\u0000', ctx.cp.char)
-                ctx.cp.void -> UTestNullExpression(ctx.cp.void)
+                ctx.cp.boolean -> UTestBooleanExpression(
+                    value = extractBool(exprInModel) ?: false,
+                    type = ctx.cp.boolean
+                )
+                ctx.cp.short -> UTestShortExpression(
+                    value = extractShort(exprInModel) ?: 0,
+                    type = ctx.cp.short
+                )
+                ctx.cp.int -> UTestIntExpression(
+                    value = extractInt(exprInModel) ?: 0,
+                    type = ctx.cp.int
+                )
+                ctx.cp.long -> UTestLongExpression(
+                    value = extractLong(exprInModel) ?: 0L,
+                    type = ctx.cp.long
+                )
+                ctx.cp.float -> UTestFloatExpression(
+                    value = extractFloat(exprInModel) ?: 0.0f,
+                    type = ctx.cp.float
+                )
+                ctx.cp.double -> UTestDoubleExpression(
+                    value = extractDouble(exprInModel) ?: 0.0,
+                    type = ctx.cp.double
+                )
+                ctx.cp.byte -> UTestByteExpression(
+                    value = extractByte(exprInModel) ?: 0,
+                    type = ctx.cp.byte
+                )
+                ctx.cp.char -> UTestCharExpression(
+                    value = extractChar(exprInModel) ?: '\u0000',
+                    type = ctx.cp.char
+                )
+                ctx.cp.void -> UTestNullExpression(
+                    type = ctx.cp.void
+                )
                 else -> error("Unexpected type: ${type.typeName}")
             }.let { it to listOf() }
         }
@@ -206,7 +218,6 @@ class JcTestExecutor(
                 return resolveLValue(elemRef, type.elementType)
             }
 
-            //val arrLength = UTestIntExpression(length, ctx.cp.int)
             val arrayInstance = UTestCreateArrayExpression(type.elementType, length)
 
             val arraySetters = buildList {
@@ -307,7 +318,10 @@ class JcTestExecutor(
 
         // TODO simple org.jacodb.api.ext.JcClasses.isEnum does not work with enums with abstract methods
         private fun JcRefType.getEnumAncestorOrNull(): JcClassOrInterface? =
-            (sequenceOf(jcClass) + jcClass.allSuperHierarchySequence).firstOrNull { it.isEnum }
+            jcClass.getAllSuperHierarchyIncludingThis().firstOrNull { it.isEnum }
+
+        private fun JcClassOrInterface.getAllSuperHierarchyIncludingThis() =
+            (sequenceOf(this) + allSuperHierarchySequence)
     }
 
 }

@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.executor
+package org.utbot.contest.usvm.jc
 
 import org.jacodb.api.JcTypedMethod
 import org.usvm.api.JcCoverage

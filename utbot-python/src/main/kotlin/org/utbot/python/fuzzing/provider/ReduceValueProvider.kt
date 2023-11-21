@@ -73,21 +73,21 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
         val newMethodName = "__new__"
         val typeDescr = type.pythonDescription()
         return if (typeDescr is PythonCompositeTypeDescription) {
-                val mro = typeDescr.mro(description.pythonTypeStorage, type)
-                val initParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == initMethodName } }
-                val newParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == newMethodName } }
-                val initMethods = type.getPythonAttributeByName(description.pythonTypeStorage, initMethodName)
-                val newMethods = type.getPythonAttributeByName(description.pythonTypeStorage, newMethodName)
-                if (initParent <= newParent && initMethods != null) {
-                    listOf(initMethods)
-                } else if (newMethods != null) {
-                    listOf(newMethods)
-                } else {
-                    emptyList()  // probably not reachable (because of class object)
-                }
+            val mro = typeDescr.mro(description.pythonTypeStorage, type)
+            val initParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == initMethodName } }
+            val newParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == newMethodName } }
+            val initMethods = type.getPythonAttributeByName(description.pythonTypeStorage, initMethodName)
+            val newMethods = type.getPythonAttributeByName(description.pythonTypeStorage, newMethodName)
+            if (initParent <= newParent && initMethods != null) {
+                listOf(initMethods)
+            } else if (newMethods != null) {
+                listOf(newMethods)
             } else {
-                emptyList()
+                emptyList()  // probably not reachable (because of class object)
             }
+        } else {
+            emptyList()
+        }
     }
 
     private fun constructObject(
@@ -96,22 +96,8 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
         modifications: Sequence<Routine.Call<UtType, PythonFuzzedValue>>,
         description: PythonMethodDescription,
     ): Seed.Recursive<UtType, PythonFuzzedValue> {
-        val typeDescription = constructorFunction.pythonDescription() as PythonCallableTypeDescription
-        val positionalArgs = typeDescription.argumentKinds.count { it == PythonCallableTypeDescription.ArgKind.ARG_POS }
-        val arguments = constructorFunction.arguments.take(positionalArgs)
-        val nonSelfArgs = arguments.drop(1)
-
         return Seed.Recursive(
-            construct = Routine.Create(nonSelfArgs) { v ->
-                PythonFuzzedValue(
-                    PythonTree.ReduceNode(
-                        PythonClassId(type.pythonModuleName(), type.pythonName()),
-                        PythonClassId(type.pythonModuleName(), type.pythonName()),
-                        v.map { it.tree },
-                    ),
-                    "%var% = ${type.pythonTypeRepresentation()}"
-                )
-            },
+            construct = buildConstructor(type, constructorFunction, description),
             modify = modifications,
             empty = Routine.Empty { PythonFuzzedValue(buildEmptyValue(type, description)) }
         )
@@ -120,7 +106,7 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
     private fun buildEmptyValue(
         type: UtType,
         description: PythonMethodDescription,
-        ): PythonTree.PythonTreeNode {
+    ): PythonTree.PythonTreeNode {
         val newMethodName = "__new__"
         val newMethod = type.getPythonAttributeByName(description.pythonTypeStorage, newMethodName)
         return if (newMethod?.type?.parameters?.size == 1) {
@@ -134,6 +120,60 @@ object ReduceValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMeth
             PythonTree.FakeNode
         }
     }
+
+    private fun buildConstructor(
+        type: UtType,
+        constructorFunction: FunctionType,
+        description: PythonMethodDescription,
+    ): Routine.Create<UtType, PythonFuzzedValue> {
+        if (constructorFunction.pythonName().endsWith("__new__") && constructorFunction.arguments.any { it.isAny() }) {
+            val newMethodName = "__new__"
+            val newMethod = type.getPythonAttributeByName(description.pythonTypeStorage, newMethodName)
+            val newMethodArgs = (newMethod?.type as FunctionType?)?.arguments
+            return if (newMethodArgs != null && newMethodArgs.size == 1) {
+                val classId = PythonClassId(type.pythonModuleName(), type.pythonName())
+                Routine.Create(newMethodArgs) { v ->
+                    PythonFuzzedValue(
+                        PythonTree.ReduceNode(
+                            classId,
+                            PythonClassId(type.pythonModuleName(), "${type.pythonName()}.__new__"),
+                            listOf(PythonTree.PrimitiveNode(classId, classId.name)),
+                        ),
+                        "%var% = ${type.pythonTypeRepresentation()}"
+                    )
+                }
+            } else {
+                val classId = PythonClassId(type.pythonModuleName(), type.pythonName())
+                Routine.Create(listOf(pythonNoneType)) { v ->
+                    PythonFuzzedValue(
+                        PythonTree.ReduceNode(
+                            classId,
+                            PythonClassId(pythonObjectClassId.name, "${type.pythonName()}.__new__"),
+                            listOf(PythonTree.PrimitiveNode(classId, classId.name)),
+                        ),
+                        "%var% = ${type.pythonTypeRepresentation()}"
+                    )
+                }
+            }
+        } else {
+            val typeDescription = constructorFunction.pythonDescription() as PythonCallableTypeDescription
+            val positionalArgs = typeDescription.argumentKinds.count { it == PythonCallableTypeDescription.ArgKind.ARG_POS }
+            val arguments = constructorFunction.arguments.take(positionalArgs)
+            val nonSelfArgs = arguments.drop(1)
+            return Routine.Create(nonSelfArgs) { v ->
+                PythonFuzzedValue(
+                    PythonTree.ReduceNode(
+                        PythonClassId(type.pythonModuleName(), type.pythonName()),
+                        PythonClassId(type.pythonModuleName(), type.pythonName()),
+                        v.map { it.tree },
+                    ),
+                    "%var% = ${type.pythonTypeRepresentation()}"
+                )
+            }
+        }
+    }
+
+
 
     private fun callConstructors(
         type: UtType,

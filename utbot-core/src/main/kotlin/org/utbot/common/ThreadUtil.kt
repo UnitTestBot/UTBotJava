@@ -61,7 +61,12 @@ class ThreadBasedExecutor {
      *
      * [stopWatch] is used to respect specific situations (such as class loading and transforming) while invoking.
      */
-    fun invokeWithTimeout(timeoutMillis: Long, stopWatch: StopWatch? = null, action:() -> Any?) : Result<Any?>? {
+    fun invokeWithTimeout(
+        timeoutMillis: Long,
+        stopWatch: StopWatch? = null,
+        threadDeathThrowPeriodMillis: Long = 10_000,
+        action:() -> Any?
+    ) : Result<Any?>? {
         ensureThreadIsAlive()
 
         requestQueue.offer {
@@ -95,10 +100,10 @@ class ThreadBasedExecutor {
                         t.stop()
                     }
                     // If somebody catches `ThreadDeath`, for now we
-                    // just wait for at most 10s and throw another one.
+                    // just wait for [threadDeathThrowPeriod] and throw another one.
                     //
                     // A better approach may be to kill instrumented process.
-                    t.join(10_000)
+                    t.join(threadDeathThrowPeriodMillis)
                 }
             } catch (_: Throwable) {}
         }

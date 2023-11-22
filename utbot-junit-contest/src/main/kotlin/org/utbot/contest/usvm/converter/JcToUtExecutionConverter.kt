@@ -33,7 +33,6 @@ import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
@@ -94,14 +93,14 @@ class JcToUtExecutionConverter(
 
             is UTestExecutionInitFailedResult -> {
                 logger.warn(convertException(executionResult.cause)) {
-                    "Execution failed before method under test call"
+                    "Execution failed before method under test call on ${jcExecution.method.method}"
                 }
                 null
             }
 
             is UTestExecutionFailedResult -> {
                 logger.error(convertException(executionResult.cause)) {
-                    "Concrete execution failed"
+                    "Concrete execution failed on ${jcExecution.method.method}"
                 }
                 null
             }

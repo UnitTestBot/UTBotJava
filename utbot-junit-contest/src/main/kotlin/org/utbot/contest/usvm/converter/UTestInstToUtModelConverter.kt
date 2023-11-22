@@ -36,6 +36,7 @@ import org.usvm.instrumentation.testcase.api.UTestStringExpression
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -43,26 +44,29 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.IdGenerator
 
 class UTestInstToUtModelConverter(
-    private val idGenerator: IdGenerator<Int>,
+    private val uTest: UTest,
     private val jcClasspath: JcClasspath,
+    private val idGenerator: IdGenerator<Int>,
     private val utilMethodProvider: UtilMethodProvider,
 ) {
     private val exprToModelCache = mutableMapOf<UTestExpression, UtModel>()
     private val instrumentations = mutableListOf<UtInstrumentation>()
 
-    fun processUTest(uTest: UTest) {
-        exprToModelCache.clear()
-        instrumentations.clear()
-
+    fun processUTest(): UTestAnalysisResult {
         uTest.initStatements.forEach { uInst -> processInst(uInst) }
         removeInstantiationCallFromThisInstanceModificationChain(processExpr(uTest.callMethodExpression))
+
+        return UTestAnalysisResult(instrumentations)
     }
 
     fun findModelByInst(expr: UTestExpression): UtModel {
@@ -301,7 +305,43 @@ class UTestInstToUtModelConverter(
             }
 
             is UTestGlobalMock -> {
-                // TODO usvm-sbft: collect instrumentations here
+                val methodsToExprs = uTestExpr.methods.entries
+                val initMethodExprs = methodsToExprs.filter { it.key.isConstructor }
+                val otherMethodsExprs = methodsToExprs.minus(initMethodExprs.toSet())
+
+                otherMethodsExprs
+                    .forEach { (jcMethod, uTestExprs) ->
+                        val methodId = jcMethod.toExecutableId(jcClasspath) as MethodId
+                        val valueModels = uTestExprs.map { expr -> processExpr(expr) }
+                        val methodInstrumentation = UtStaticMethodInstrumentation(
+                            methodId = methodId,
+                            values = valueModels,
+                            )
+
+                        instrumentations += methodInstrumentation
+                    }
+
+                initMethodExprs
+                    .forEach { (jcMethod, uTestExprs) ->
+                        // TODO usvm-sbft-merge: it can be .map { expr -> processExpr(expr) } here
+                        // However, there's no special treatment for cases when <init> method occurs in a global mock
+                        val valueModels = uTestExprs.map { _ -> UtCompositeModel(
+                            id=idGenerator.createId(),
+                            classId = voidClassId,
+                            isMock = true,
+                            )
+                        }
+                        val methodInstrumentation = UtNewInstanceInstrumentation(
+                            classId = jcMethod.enclosingClass.classId,
+                            instances = valueModels,
+                            // [UTestGlobalMock] does not have an equivalent of [callSites],
+                            // but it is used only in UtBot instrumentation. We use USVM one, so it is not a problem.
+                            callSites = emptySet(),
+                            )
+
+                        instrumentations += methodInstrumentation
+                    }
+
                 // UtClassRefModel is returned here for consistency with [Descriptor2ValueConverter]
                 // which returns Class<*> instance for [UTestGlobalMock] descriptors.
                 UtClassRefModel(
@@ -321,3 +361,7 @@ class UTestInstToUtModelConverter(
         }
     }
 }
+
+data class UTestAnalysisResult(
+    val instrumentation: List<UtInstrumentation>,
+)

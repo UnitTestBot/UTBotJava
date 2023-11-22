@@ -38,14 +38,15 @@ class JcToUtModelConverter(
     private val jcClasspath: JcClasspath,
     private val instToUtModelConverter: UTestInstToUtModelConverter,
 ) {
-    private val descriptorToModelCache = mutableMapOf<UTestValueDescriptor, UtModel>()
+    private val descriptorToModelCache =
+        mutableMapOf<Pair<UTestValueDescriptor, EnvironmentStateKind>, UtModel>()
     private val refIdAndStateKindToDescriptorCache =
         mutableMapOf<Pair<Int, EnvironmentStateKind>, UTestValueDescriptor>()
 
     fun convert(
         valueDescriptor: UTestValueDescriptor,
         stateKind: EnvironmentStateKind,
-    ): UtModel = descriptorToModelCache.getOrPut(valueDescriptor) {
+    ): UtModel = descriptorToModelCache.getOrPut(valueDescriptor to stateKind) {
         if (stateKind == EnvironmentStateKind.INITIAL || valueDescriptor.origin is UTestMock)
             valueDescriptor.origin?.let { originExpr ->
                 val model = instToUtModelConverter.findModelByInst(originExpr as UTestExpression)
@@ -79,7 +80,7 @@ class JcToUtModelConverter(
         valueDescriptor: UTestValueDescriptor,
         stateKind: EnvironmentStateKind,
         curModelId: Int,
-    ): UtModel = descriptorToModelCache.getOrPut(valueDescriptor) {
+    ): UtModel = descriptorToModelCache.getOrPut(valueDescriptor to stateKind) {
         if (valueDescriptor is UTestRefDescriptor) {
             refIdAndStateKindToDescriptorCache[valueDescriptor.refId to stateKind] = valueDescriptor
         }
@@ -96,7 +97,7 @@ class JcToUtModelConverter(
                     fields = fields,
                 )
 
-                descriptorToModelCache[valueDescriptor] = model
+                descriptorToModelCache[valueDescriptor to stateKind] = model
 
                 fields += valueDescriptor.fields
                     .entries
@@ -120,7 +121,7 @@ class JcToUtModelConverter(
                     stores = stores,
                 )
 
-                descriptorToModelCache[valueDescriptor] = model
+                descriptorToModelCache[valueDescriptor to stateKind] = model
 
                 valueDescriptor.value
                     .map { elemDescr -> convert(elemDescr, stateKind) }
@@ -182,6 +183,6 @@ class JcToUtModelConverter(
         stateKind: EnvironmentStateKind
     ): UtModel? =
         refIdAndStateKindToDescriptorCache[refId to stateKind]?.let {
-            descriptorToModelCache[it]
+            descriptorToModelCache[it to stateKind]
         }
 }

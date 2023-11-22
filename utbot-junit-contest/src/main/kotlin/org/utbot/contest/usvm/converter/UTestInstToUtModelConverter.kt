@@ -50,6 +50,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.IdGenerator
 
 class UTestInstToUtModelConverter(
@@ -322,7 +323,14 @@ class UTestInstToUtModelConverter(
 
                 initMethodExprs
                     .forEach { (jcMethod, uTestExprs) ->
-                        val valueModels = uTestExprs.map { expr -> processExpr(expr) }
+                        // TODO usvm-sbft-merge: it can be .map { expr -> processExpr(expr) } here
+                        // However, there's no special treatment for cases when <init> method occurs in a global mock
+                        val valueModels = uTestExprs.map { _ -> UtCompositeModel(
+                            id=idGenerator.createId(),
+                            classId = voidClassId,
+                            isMock = true,
+                            )
+                        }
                         val methodInstrumentation = UtNewInstanceInstrumentation(
                             classId = jcMethod.enclosingClass.classId,
                             instances = valueModels,

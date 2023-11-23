@@ -90,7 +90,6 @@ fun runUsvmGeneration(
         ) {
             // TODO usvm-sbft: we may want to tune these JcSettings for contest
             useJavaRuntime(JdkInfoService.provide().path.toFile())
-            persistent("cachedb")
             installFeatures(InMemoryHierarchy, Approximations)
             loadByteCode(classpathFiles)
         }

@@ -263,7 +263,7 @@ abstract class PythonTestGenerationProcessor {
                 codeAsString = funcDef.body.source,
                 definition = definition,
                 ast = funcDef.body,
-                decorator = method.decorators.first()
+                decorator = decorators.first()
             )
         } else {
             throw SelectedMethodIsNotAFunctionDefinition(method.name)

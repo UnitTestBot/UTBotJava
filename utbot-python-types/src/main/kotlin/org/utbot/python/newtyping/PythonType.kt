@@ -228,22 +228,26 @@ class PythonCallableTypeDescription(
         }
     }
 
-    fun removeNotRequiredArgs(type: UtType): FunctionType {
+    fun removeNotRequiredArgs(type: UtType): FunctionType? {
         val functionType = castToCompatibleTypeApi(type)
-        return createPythonCallableType(
-            functionType.parameters.size,
-            argumentKinds.filter { isRequired(it) },
-            argumentNames.filterIndexed { index, _ -> isRequired(argumentKinds[index]) }
-        ) { self ->
-            val substitution = (functionType.parameters zip self.parameters).associate {
-                Pair(it.first as TypeParameter, it.second)
+        try {
+            return createPythonCallableType(
+                functionType.parameters.size,
+                argumentKinds.filter { isRequired(it) },
+                argumentNames.filterIndexed { index, _ -> isRequired(argumentKinds[index]) }
+            ) { self ->
+                val substitution = (functionType.parameters zip self.parameters).associate {
+                    Pair(it.first as TypeParameter, it.second)
+                }
+                FunctionTypeCreator.InitializationData(
+                    functionType.arguments
+                        .filterIndexed { index, _ -> isRequired(argumentKinds[index]) }
+                        .map { DefaultSubstitutionProvider.substitute(it, substitution) },
+                    DefaultSubstitutionProvider.substitute(functionType.returnValue, substitution)
+                )
             }
-            FunctionTypeCreator.InitializationData(
-                functionType.arguments
-                    .filterIndexed { index, _ -> isRequired(argumentKinds[index]) }
-                    .map { DefaultSubstitutionProvider.substitute(it, substitution) },
-                DefaultSubstitutionProvider.substitute(functionType.returnValue, substitution)
-            )
+        } catch (_: ClassCastException) {
+            return null
         }
     }
 }

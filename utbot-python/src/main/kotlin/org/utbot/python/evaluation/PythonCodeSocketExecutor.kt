@@ -59,7 +59,7 @@ class PythonCodeSocketExecutor(
     ): PythonEvaluationResult {
         val (arguments, memory) = serializeObjects(fuzzedValues.allArguments.map { it.tree })
 
-        val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
+        val meta = method.methodType.pythonDescription() as PythonCallableTypeDescription
         val argKinds = meta.argumentKinds
         val namedArgs = meta.argumentNames
             .filterIndexed { index, _ -> !isNamed(argKinds[index]) }

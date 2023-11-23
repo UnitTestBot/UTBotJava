@@ -187,10 +187,7 @@ class BaselineAlgorithm(
     }
 
     private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {
-        pythonMethodCopy.definition = PythonFunctionDefinition(
-            pythonMethodCopy.definition.meta,
-            signature
-        )
+        pythonMethodCopy.changeDefinition(signature)
         return checkSuggestedSignatureWithDMypy(
             pythonMethodCopy,
             directoriesForSysPath,
@@ -215,7 +212,7 @@ class BaselineAlgorithm(
         generalRating: List<UtType>
     ): BaselineAlgorithmState {
         val paramNames = pythonMethodCopy.arguments.map { it.name }
-        val root = PartialTypeNode(pythonMethodCopy.definition.type, true)
+        val root = PartialTypeNode(pythonMethodCopy.methodType, true)
         val allNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf(root)
         val argumentRootNodes = paramNames.map { hintCollectorResult.parameterToNode[it]!! }
         argumentRootNodes.forEachIndexed { index, node ->

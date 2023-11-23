@@ -117,7 +117,7 @@ abstract class PythonTestGenerationProcessor {
         val methodIds = testSets.associate { testSet ->
             testSet.method to PythonMethodId(
                 classId,
-                testSet.method.name,
+                testSet.method.renderMethodName(),
                 RawPythonAnnotation(pythonAnyClassId.name),
                 testSet.method.arguments.map { argument ->
                     argument.annotation?.let { annotation ->
@@ -233,7 +233,7 @@ abstract class PythonTestGenerationProcessor {
     ): PythonMethod {
         var containingClass: CompositeType? = null
         val containingClassName = method.containingPythonClassId?.simpleName
-        val functionDef = if (containingClassName == null) {
+        val definition = if (containingClassName == null) {
             mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
         } else {
             containingClass =
@@ -241,19 +241,34 @@ abstract class PythonTestGenerationProcessor {
             mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
                 it.meta.name == method.name
             }
-        } as? PythonFunctionDefinition ?: throw SelectedMethodIsNotAFunctionDefinition(method.name)
-
+        }
         val parsedFile = PythonParser(sourceFileContent).Module()
         val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
+        val decorators = funcDef.decorators.map { PyDecorator.decoratorByName(it.name.toString()) }
 
-        return PythonMethod(
-            name = method.name,
-            moduleFilename = method.moduleFilename,
-            containingPythonClass = containingClass,
-            codeAsString = funcDef.body.source,
-            definition = functionDef,
-            ast = funcDef.body
-        )
+        if (definition is PythonFunctionDefinition) {
+            return PythonBaseMethod(
+                name = method.name,
+                moduleFilename = method.moduleFilename,
+                containingPythonClass = containingClass,
+                codeAsString = funcDef.body.source,
+                definition = definition,
+                ast = funcDef.body
+            )
+        } else if (decorators == listOf(PyDecorator.StaticMethod)) {
+            return PythonDecoratedMethod(
+                name = method.name,
+                moduleFilename = method.moduleFilename,
+                containingPythonClass = containingClass,
+                codeAsString = funcDef.body.source,
+                definition = definition,
+                ast = funcDef.body,
+                decorator = method.decorators.first()
+            )
+        } else {
+            throw SelectedMethodIsNotAFunctionDefinition(method.name)
+        }
+
     }
 
     private fun relativizePaths(rootPath: Path?, paths: Set<String>): Set<String> =

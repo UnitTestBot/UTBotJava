@@ -29,6 +29,7 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import org.utbot.python.PyDecorator
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.utils.RequirementsInstaller
@@ -178,10 +179,17 @@ object PythonDialogProcessor {
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
                         val containingClassId = it.containingClass?.qualifiedName?.let{ cls -> PythonClassId(cls) }
                         PythonMethodHeader(
-                                functionName,
-                                moduleFilename,
-                                containingClassId,
-                            )
+                            functionName,
+                            moduleFilename,
+                            containingClassId,
+                            it.decoratorList?.decorators?.mapNotNull { decorator ->
+                                decorator.name?.let { name ->
+                                    PyDecorator.decoratorByName(
+                                        name
+                                    )
+                                }
+                            } ?: emptyList()
+                        )
                     }
                     .toSet()
                     .toList()

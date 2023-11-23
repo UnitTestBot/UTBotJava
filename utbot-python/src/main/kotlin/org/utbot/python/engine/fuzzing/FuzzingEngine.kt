@@ -206,11 +206,11 @@ class FuzzingEngine(
                     Trie(PyInstruction::id),
                     Random(0),
                     TestGenerationLimitManager(ExecutionWithTimoutMode, until, isRootManager = true),
-                    method.definition.type,
+                    method.methodType,
                 )
 
                 try {
-                    val parameters = method.definition.type.arguments
+                    val parameters = method.methodType.arguments
                     if (parameters.isEmpty()) {
                         val result = fuzzingResultHandler(pmd, emptyList(), parameters, manager)
                         result?.let {
@@ -397,7 +397,7 @@ class FuzzingEngine(
             thisObject,
             method.thisObjectName,
             modelList,
-            method.argumentsNames
+            method.argumentsNamesWithoutSelf
         )
         try {
             val coverageId = CoverageIdGenerator.createId()

@@ -4,7 +4,7 @@ import kotlinx.coroutines.runBlocking
 import org.parsers.python.PythonParser
 import org.parsers.python.ast.ClassDefinition
 import org.parsers.python.ast.FunctionDefinition
-import org.utbot.python.PythonMethod
+import org.utbot.python.PythonBaseMethod
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
@@ -84,7 +84,7 @@ class TypeInferenceProcessor(
             }
             val namesStorage = GlobalNamesStorage(mypyBuild)
             val collector =
-                HintCollector(pythonMethod.definition, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
+                HintCollector(pythonMethod, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
             val visitor = Visitor(listOf(collector))
             visitor.visit(pythonMethod.ast)
 
@@ -122,7 +122,7 @@ class TypeInferenceProcessor(
         }
     }
 
-    private fun getPythonMethod(mypyInfoBuild: MypyInfoBuild, typeStorage: PythonTypeHintsStorage): Optional<PythonMethod> {
+    private fun getPythonMethod(mypyInfoBuild: MypyInfoBuild, typeStorage: PythonTypeHintsStorage): Optional<PythonBaseMethod> {
         if (className == null) {
             val funcDef = parsedFile.children().firstNotNullOfOrNull { node ->
                 val res = (node as? FunctionDefinition)?.let { parseFunctionDefinition(it) }
@@ -133,7 +133,7 @@ class TypeInferenceProcessor(
                 mypyInfoBuild.definitions[moduleOfSourceFile]!![functionName]!!.getUtBotDefinition() as? PythonFunctionDefinition
                     ?: return Fail("$functionName is not a function")
 
-            val result = PythonMethod(
+            val result = PythonBaseMethod(
                 functionName,
                 path.toString(),
                 null,
@@ -160,7 +160,7 @@ class TypeInferenceProcessor(
 
         println(defOfFunc.type.pythonTypeRepresentation())
 
-        val result = PythonMethod(
+        val result = PythonBaseMethod(
             functionName,
             path.toString(),
             typeOfClass,

@@ -78,7 +78,7 @@ class GlobalPythonEngine(
             USVMPythonMethodConfig(
                 configuration.testFileInformation.moduleName,
                 method.name,
-                method.containingPythonClass.pythonName()
+                method.containingPythonClass!!.pythonName()
             )
         }
         val engine = SymbolicEngine(
@@ -153,7 +153,7 @@ class GlobalPythonEngine(
         } ?: emptyMap()
 
         val namesStorage = GlobalNamesStorage(mypyStorage)
-        val hintCollector = HintCollector(method.definition, typeStorage, mypyExpressionTypes, namesStorage, moduleName)
+        val hintCollector = HintCollector(method, typeStorage, mypyExpressionTypes, namesStorage, moduleName)
         val visitor = Visitor(listOf(hintCollector, constantCollector))
         visitor.visit(method.ast)
         return hintCollector

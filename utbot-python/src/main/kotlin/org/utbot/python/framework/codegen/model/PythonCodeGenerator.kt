@@ -106,7 +106,7 @@ class PythonCodeGenerator(
 
         imports.forEach { renderer.renderPythonImport(it) }
 
-        val paramNames = method.definition.meta.args.map { it.name }
+        val paramNames = method.argumentsNamesWithoutSelf
         val parameters = paramNames.map { argument ->
             "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }

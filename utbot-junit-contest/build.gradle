@@ -32,7 +32,9 @@ compileJava {
 
 compileTestJava {
     options.fork = true
-    options.compilerArgs << "-XDignore.symbol.file"
+    options.forkOptions.executable = "javac"
+    options.forkOptions.javaHome = file(System.getProperty("java.home"))
+    options.compilerArgs << "-XDignore.symbol.file=true"
 }
 
 def testProjects = [

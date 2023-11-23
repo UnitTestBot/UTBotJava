@@ -85,6 +85,11 @@ class SbftGenerateTestsCommand : CliktCommand(
         help = "Specify the maximum time in milliseconds to spend on one function run ($DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS by default)."
     ).long().default(DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS)
 
+    private val includeMypyAnalysisTime by option(
+        "--include-mypy-analysis-time",
+        help = "Include mypy static analysis time in the total timeout."
+    ).flag(default = false)
+
     private val runtimeExceptionTestsBehaviour by option("--runtime-exception-behaviour", help = "PASS or FAIL")
         .choice("PASS", "FAIL")
         .default("FAIL")
@@ -176,21 +181,17 @@ class SbftGenerateTestsCommand : CliktCommand(
 
         val globalImportCollection = mutableSetOf<PythonImport>()
         val globalCodeCollection = mutableListOf<String>()
-//        val until = max(System.currentTimeMillis() + timeout - mypyTime, 0)
         val startTime = System.currentTimeMillis()
         val countOfFunctions = pythonMethodGroups.sumOf { it.size }
-        val oneFunctionTimeout = separateTimeout(timeout - mypyTime, countOfFunctions)
+        val timeoutAfterMypy = if (includeMypyAnalysisTime) timeout - mypyTime else timeout
+        val oneFunctionTimeout = separateTimeout(timeoutAfterMypy, countOfFunctions)
         logger.info { "One function timeout: ${oneFunctionTimeout}ms. x${countOfFunctions}" }
         pythonMethodGroups.mapIndexed { index, pythonMethods ->
-//            val localTimeout = pythonMethods.size * separateTimeout(
-//                until,
-//                pythonMethodGroups.take(index).sumOf { it.size },
-//                pythonMethodGroups.sumOf { it.size })
             val usedTime = System.currentTimeMillis() - startTime
             val countOfTestedFunctions = pythonMethodGroups.take(index).sumOf { it.size }
             val expectedTime = countOfTestedFunctions * oneFunctionTimeout
             val localOneFunctionTimeout = if (usedTime < expectedTime) {
-                separateTimeout(timeout - mypyTime - usedTime, countOfFunctions - countOfTestedFunctions)
+                separateTimeout(timeoutAfterMypy - usedTime, countOfFunctions - countOfTestedFunctions)
             } else {
                 oneFunctionTimeout
             }

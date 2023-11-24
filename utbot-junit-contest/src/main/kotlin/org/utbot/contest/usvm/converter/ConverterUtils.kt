@@ -67,8 +67,11 @@ private fun JcType.replaceToBoundIfGeneric(): JcType {
 val JcType?.classId: ClassId
     get() {
         if (this !is JcPrimitiveType) {
-            return this?.replaceToBoundIfGeneric()?.toJavaClass(utContext.classLoader)?.id
-                ?: error("Can not construct classId for $this")
+            return runCatching {
+                this?.replaceToBoundIfGeneric()?.toJavaClass(utContext.classLoader)?.id ?: error("Can not construct classId for $this")
+            }.getOrElse { e ->
+                throw IllegalStateException("JcType.classId failed on ${this?.typeName}", e)
+            }
         }
 
         val cp = this.classpath

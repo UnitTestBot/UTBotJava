@@ -11,6 +11,7 @@ import org.usvm.UMachineOptions
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.machine.JcMachine
+import org.usvm.util.classpathWithApproximations
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
@@ -30,8 +31,7 @@ class JcContainer private constructor(
     init {
         val (db, cp) = runBlocking {
             val db = jacodb(builder)
-            // TODO usvm-sbft: use classpathWithApproximations here when approximation decoders are finished
-            val cp = db.classpath(classpath, listOf(UnknownClasses))
+            val cp = db.classpathWithApproximations(classpath, listOf(UnknownClasses))
             db to cp
         }
         this.db = db

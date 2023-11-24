@@ -4,6 +4,7 @@ plugins {
 apply plugin: 'jacoco'
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
     maven {

@@ -659,7 +659,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         }
                         // other primitives and string
                         else -> {
-                            require(expected.type.isPrimitive || expected.type == String::class.java) {
+                            require(expected.type.isPrimitive || expected.type == stringClassId) {
                                 "Expected primitive or String but got ${expected.type}"
                             }
                             assertions[assertEquals](expected, actual)

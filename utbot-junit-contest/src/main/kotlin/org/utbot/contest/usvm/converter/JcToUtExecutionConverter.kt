@@ -13,6 +13,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionState
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
+import org.usvm.instrumentation.testcase.api.UTestSetStaticFieldStatement
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.enclosingClass
@@ -26,6 +27,8 @@ import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.MissingState
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -37,6 +40,7 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
+import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
 import org.utbot.framework.plugin.api.util.executableId
@@ -56,15 +60,9 @@ class JcToUtExecutionConverter(
 ) {
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
-    private var jcToUtModelConverter: JcToUtModelConverter
-    private var uTestProcessResult: UTestAnalysisResult
-
-    init {
-        val instToModelConverter = UTestInstToUtModelConverter(jcExecution.uTest, jcClasspath, idGenerator, utilMethodProvider)
-        jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)
-
-        uTestProcessResult = instToModelConverter.processUTest()
-    }
+    private val instToModelConverter = UTestInstToUtModelConverter(jcExecution.uTest, jcClasspath, idGenerator, utilMethodProvider)
+    private var jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)
+    private var uTestProcessResult = instToModelConverter.processUTest()
 
     fun convert(): UtExecution? {
         val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
@@ -108,8 +106,14 @@ class JcToUtExecutionConverter(
             }
 
             is UTestExecutionTimedOutResult -> {
-                // TODO usvm-sbft
-                null
+                logger.warn { "Timeout on ${jcExecution.method.method}" }
+                UtUsvmExecution(
+                    stateBefore = constructStateBeforeFromUTest(),
+                    stateAfter = MissingState,
+                    result = UtTimeoutException(TimeoutException("Concrete execution timed out")),
+                    coverage = coverage,
+                    instrumentation = uTestProcessResult.instrumentation,
+                )
             }
         } ?: return null
 
@@ -225,6 +229,24 @@ class JcToUtExecutionConverter(
             .entries
             .associate { (jcField, uTestDescr) ->
                 jcField.fieldId to jcToUtModelConverter.convert(uTestDescr, stateKind)
+            }
+        val executableId: ExecutableId = method.method.toExecutableId(jcClasspath)
+        return EnvironmentModels(thisInstance, parameters, statics, executableId)
+    }
+
+    private fun constructStateBeforeFromUTest(): EnvironmentModels {
+        val uTest = jcExecution.uTest
+        val method = jcExecution.method
+        val thisInstance =
+            if (method.isStatic) null
+            else if (method.method.isConstructor) null
+            else instToModelConverter.findModelByInst(uTest.callMethodExpression.instance ?: error("Unexpected null instance expression"))
+        val parameters = uTest.callMethodExpression.args.map {
+            instToModelConverter.findModelByInst(it)
+        }
+        val statics = uTest.initStatements.filterIsInstance<UTestSetStaticFieldStatement>()
+            .associate {
+                it.field.fieldId to instToModelConverter.findModelByInst(it.value)
             }
         val executableId: ExecutableId = method.method.toExecutableId(jcClasspath)
         return EnvironmentModels(thisInstance, parameters, statics, executableId)

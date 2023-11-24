@@ -218,7 +218,7 @@ class FuzzingEngine(
                         }
                     } else {
                         try {
-                            PythonFuzzing(typeStorage, typeInferenceAlgorithm) { description, arguments ->
+                            PythonFuzzing(typeStorage, typeInferenceAlgorithm, isCancelled) { description, arguments ->
                                 if (isCancelled()) {
                                     logger.debug { "Fuzzing process was interrupted" }
                                     manager.disconnect()

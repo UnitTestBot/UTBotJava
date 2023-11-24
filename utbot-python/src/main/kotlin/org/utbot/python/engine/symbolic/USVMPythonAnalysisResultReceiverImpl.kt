@@ -48,25 +48,29 @@ class USVMPythonAnalysisResultReceiverImpl(
         connect()
     }
 
-    fun connect() {
-        serverSocket = ServerSocket(0)
-        manager =
-            PythonWorkerManager(
-                serverSocket,
-                configuration.pythonPath,
-                until,
-                configuration.coverageMeasureMode,
-                configuration.sendCoverageContinuously,
-            ) {
-                PythonCodeSocketExecutor(
-                    method,
-                    configuration.testFileInformation.moduleName,
+    private fun connect() {
+        try {
+            serverSocket = ServerSocket(0)
+            manager =
+                PythonWorkerManager(
+                    serverSocket,
                     configuration.pythonPath,
-                    configuration.sysPathDirectories,
-                    configuration.timeoutForRun,
-                    it,
-                )
-            }
+                    until,
+                    configuration.coverageMeasureMode,
+                    configuration.sendCoverageContinuously,
+                ) {
+                    PythonCodeSocketExecutor(
+                        method,
+                        configuration.testFileInformation.moduleName,
+                        configuration.pythonPath,
+                        configuration.sysPathDirectories,
+                        configuration.timeoutForRun,
+                        it,
+                    )
+                }
+        } catch (_: TimeoutException) {
+            close()
+        }
     }
 
     fun close() {

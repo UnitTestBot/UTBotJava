@@ -104,6 +104,7 @@ fun pythonAnyTypeValueProviders() = listOf(
 class PythonFuzzing(
     private val pythonTypeStorage: PythonTypeHintsStorage,
     private val typeInferenceAlgorithm: BaselineAlgorithm,
+    private val globalIsCancelled: () -> Boolean,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
 ) : Fuzzing<UtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
@@ -165,6 +166,10 @@ class PythonFuzzing(
         description: PythonMethodDescription,
         stats: Statistic<UtType, PythonFuzzedValue>
     ): Boolean {
+        if (globalIsCancelled()) {
+            logger.warn { "Cancellation in fuzzing" }
+            return true
+        }
         if (description.limitManager.isCancelled() || description.parameters.any { it.isAny() }) {
             forkType(description, stats)
             if (description.limitManager.isRootManager) {

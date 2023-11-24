@@ -101,7 +101,7 @@ class GlobalPythonEngine(
     fun run() {
         val fuzzing = thread(
             start = true,
-            isDaemon = true,
+            isDaemon = false,
             name = "Fuzzer"
         ) {
             logger.info { " >>>>>>> Start fuzzer >>>>>>> " }
@@ -110,7 +110,7 @@ class GlobalPythonEngine(
         }
         val symbolic = thread(
             start = true,
-            isDaemon = true,
+            isDaemon = false,
             name = "Symbolic"
         ) {
             logger.info { " ------- Start symbolic ------- " }

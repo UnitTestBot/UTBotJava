@@ -37,6 +37,7 @@ import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.utils.Success
 import org.utbot.python.utils.separateTimeout
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.measureTimeMillis
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
@@ -140,6 +141,39 @@ class SbftGenerateTestsCommand : CliktCommand(
         return methods + listOf(functions)
     }
 
+    private val globalImportCollection = mutableSetOf<PythonImport>()
+    private val globalCodeCollection = mutableListOf<String>()
+
+    private val shutdown: AtomicBoolean = AtomicBoolean(false)
+    private val alreadySaved: AtomicBoolean = AtomicBoolean(false)
+
+    private fun shutdownHook() {
+        Runtime.getRuntime().addShutdownHook(object : Thread() {
+            override fun run() {
+                shutdown.set(true)
+                try {
+                    if (!alreadySaved.get()) {
+                        saveTestsEndExit()
+                    }
+                } catch (_: InterruptedException) {
+                    logger.warn { "Interrupted exception" }
+                }
+            }
+        })
+    }
+
+    private fun saveTestsEndExit() {
+        logger.info("Saving tests...")
+        val importCode = globalImportCollection
+            .sortedBy { it.order }
+            .map { renderPythonImport(it) }
+        val testCode = (listOf(importCode.joinToString("\n")) + globalCodeCollection).joinToString("\n\n\n")
+        writeToFileAndSave(output, testCode)
+
+        Cleaner.doCleaning()
+        alreadySaved.set(true)
+    }
+
     override fun run() {
         absPathToSourceFile = sourceFile.toAbsolutePath()
         sourceFileContent = File(absPathToSourceFile).readText()
@@ -179,8 +213,8 @@ class SbftGenerateTestsCommand : CliktCommand(
         }
         logger.info { "Mypy time: $mypyTime" }
 
-        val globalImportCollection = mutableSetOf<PythonImport>()
-        val globalCodeCollection = mutableListOf<String>()
+        shutdownHook()
+
         val startTime = System.currentTimeMillis()
         val countOfFunctions = pythonMethodGroups.sumOf { it.size }
         val timeoutAfterMypy = if (includeMypyAnalysisTime) timeout - mypyTime else timeout
@@ -208,7 +242,7 @@ class SbftGenerateTestsCommand : CliktCommand(
                 testFramework = testFramework,
                 testSourceRootPath = null,
                 withMinimization = !doNotMinimize,
-                isCanceled = { false },
+                isCanceled = { shutdown.get() },
                 runtimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.valueOf(runtimeExceptionTestsBehaviour),
                 coverageMeasureMode = PythonCoverageMode.parse(coverageMeasureMode),
                 sendCoverageContinuously = !doNotSendCoverageContinuously,
@@ -227,14 +261,6 @@ class SbftGenerateTestsCommand : CliktCommand(
                 globalImportCollection.addAll(imports)
             }
         }
-        logger.info("Saving tests...")
-        val importCode = globalImportCollection
-            .sortedBy { it.order }
-            .map { renderPythonImport(it) }
-        val testCode = (listOf(importCode.joinToString("\n")) + globalCodeCollection).joinToString("\n\n\n")
-        writeToFileAndSave(output, testCode)
-
-        Cleaner.doCleaning()
-        System.exit(0)
+        saveTestsEndExit()
     }
 }

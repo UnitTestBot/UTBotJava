@@ -68,6 +68,9 @@ abstract class PythonTestGenerationProcessor {
         val startTime = System.currentTimeMillis()
 
         val tests = configuration.testedMethods.mapIndexedNotNull { index, methodHeader ->
+            if (configuration.isCanceled()) {
+                return emptyList()
+            }
             val usedTime = System.currentTimeMillis() - startTime
             val expectedTime = index * oneFunctionTimeout
             val localOneFunctionTimeout = if (usedTime < expectedTime) {

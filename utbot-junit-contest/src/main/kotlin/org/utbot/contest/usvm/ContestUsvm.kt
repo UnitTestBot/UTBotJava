@@ -47,7 +47,6 @@ import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.usvm.summarizeAll
 import java.io.File
 import java.net.URLClassLoader
-import kotlin.system.measureTimeMillis
 import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = KotlinLogging.logger {}
@@ -168,7 +167,7 @@ fun runUsvmGeneration(
             methods = jcMethods,
             targets = emptyList()
         ) { state ->
-            val jcExecution = accumulateMeasureTime("executor.execute(${cut.classId.name})", timeStats) {
+            val jcExecution = accumulateMeasureTime("executor.execute(${cut.classId.name})", timeStats, state.entrypoint) {
                 runCatching {
                     executor.execute(state.entrypoint.typedMethod, state)
                 }.getOrElse { e ->
@@ -177,7 +176,7 @@ fun runUsvmGeneration(
                 }
             }
             val methodId = jcExecution.method.method.toExecutableId(jcContainer.cp)
-            val utExecution = accumulateMeasureTime("JcToUtExecutionConverter.convert(${cut.classId.name})", timeStats) {
+            val utExecution = accumulateMeasureTime("JcToUtExecutionConverter.convert(${cut.classId.name})", timeStats, jcExecution.method.method) {
                 runCatching {
                     JcToUtExecutionConverter(
                         jcExecution = jcExecution,
@@ -281,14 +280,20 @@ fun JcMachine.analyzeAsync(
     } ?: logger.error { "analyzeAsync time exceeded hard time out" }
 }
 
-inline fun <T> accumulateMeasureTime(
+private inline fun <T> accumulateMeasureTime(
     regionName: String,
     timeAccumulatorMillis: MutableMap<String, Long>,
+    warnData: Any?,
+    millisWarnThreshold: Long = 2_000,
     block: () -> T
 ): T {
-    var res: T
-    timeAccumulatorMillis[regionName] = (timeAccumulatorMillis[regionName] ?: 0) + measureTimeMillis {
-        res = block()
+    val millisBefore = System.currentTimeMillis()
+    try {
+        return block()
+    } finally {
+        val millisTaken = System.currentTimeMillis() - millisBefore
+        if (millisTaken > millisWarnThreshold)
+            logger.warn("Spent $millisTaken ms on region [$regionName] for [$warnData]")
+        timeAccumulatorMillis[regionName] = (timeAccumulatorMillis[regionName] ?: 0) + millisTaken
     }
-    return res
 }

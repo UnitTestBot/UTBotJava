@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration>
+<Configuration packages="org.utbot.contest.usvm.log">
     <Appenders>
         <File name="FrameworkAppender"
               append="false"
@@ -9,9 +9,11 @@
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
         </File>
 
-        <Console name="Console" target="SYSTEM_OUT">
+        <Console name="ActualConsole" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %msg%n"/>
         </Console>
+
+        <ErrorCountingAppender name="Console" delegateAppender="ActualConsole"/>
     </Appenders>
     <Loggers>
         <Logger name="org.utbot.contest" level="debug">

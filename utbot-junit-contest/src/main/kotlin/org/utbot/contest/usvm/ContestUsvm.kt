@@ -28,6 +28,7 @@ import org.utbot.contest.usvm.converter.toExecutableId
 import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.jc.JcContainer.Companion.CONTEST_TEST_EXECUTION_TIMEOUT
 import org.utbot.contest.usvm.jc.JcTestExecutor
+import org.utbot.contest.usvm.log.ErrorCountingLoggerAppender
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.junitByVersion
@@ -63,6 +64,8 @@ fun runUsvmGeneration(
     expectedExceptions: ExpectedExceptionsForClass,
     methodNameFilter: String? = null // For debug purposes you can specify method name
 ): StatsForClass = runBlocking {
+    ErrorCountingLoggerAppender.resetOccurrenceCounter()
+
     val testsByMethod: MutableMap<ExecutableId, MutableList<UtExecution>> = mutableMapOf()
 
     val timeBudgetMs = timeLimitSec * 1000

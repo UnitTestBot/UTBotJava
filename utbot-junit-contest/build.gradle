@@ -160,6 +160,8 @@ dependencies {
     }
     implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.2'
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2Version
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1'
     implementation group: 'com.google.guava', name: 'guava', version: guavaVersion

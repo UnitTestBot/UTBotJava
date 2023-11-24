@@ -106,7 +106,7 @@ class PythonCodeGenerator(
 
         imports.forEach { renderer.renderPythonImport(it) }
 
-        val paramNames = method.argumentsNamesWithoutSelf
+        val paramNames = method.argumentsNames
         val parameters = paramNames.map { argument ->
             "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }
@@ -121,7 +121,7 @@ class PythonCodeGenerator(
             additionalVars,
             "",
             functionName,
-        ) + method.codeAsString.split("\n").map { "    $it" }
+        ) + method.codeAsString.split("\n")
        return mypyCheckCode.joinToString("\n")
     }
 }

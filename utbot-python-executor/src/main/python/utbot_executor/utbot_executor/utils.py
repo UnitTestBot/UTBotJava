@@ -1,11 +1,15 @@
 from __future__ import annotations
 import dataclasses
+import dis
 import enum
 import os
 import sys
 import typing
 from contextlib import contextmanager
-from types import CodeType
+from types import CodeType, MethodType, FunctionType, LambdaType
+
+
+InstructionType: typing.TypeAlias = MethodType | FunctionType | CodeType | type | LambdaType
 
 
 class TraceMode(enum.Enum):
@@ -37,8 +41,19 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
-def get_instructions(obj: CodeType) -> list[UtInstruction]:
-    return [UtInstruction(line, start_offset, True) for start_offset, _, line in obj.co_lines() if None not in {start_offset, line}]
+def get_instructions(obj: InstructionType) -> list[UtInstruction]:
+    if sys.version_info >= (3, 10):
+        code = obj.__code__
+        return [UtInstruction(line, start_offset, True) for start_offset, _, line in code.co_lines() if None not in {start_offset, line}]
+    else:
+        instructions: list[UtInstruction] = []
+        current_line = None
+        for instruction in dis.get_instructions(obj):
+            if current_line is None and instruction.starts_line:
+                current_line = instruction.starts_line
+            if current_line is not None:
+                instructions.append(UtInstruction(instruction.starts_line, instruction.offset, True))
+        return instructions
 
 
 def filter_instructions(

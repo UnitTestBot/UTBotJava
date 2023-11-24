@@ -240,7 +240,7 @@ class UTestInstToUtModelConverter(
                     executable = utilMethodProvider.getFieldValueMethodId,
                     params = listOf(
                         instanceModel,
-                        UtPrimitiveModel(uTestExpr.field.type),
+                        UtPrimitiveModel(uTestExpr.field.enclosingClass.classId.name),
                         UtPrimitiveModel(uTestExpr.field.name),
                     ),
                 )
@@ -258,7 +258,7 @@ class UTestInstToUtModelConverter(
                     instance = null,
                     executable = utilMethodProvider.getStaticFieldValueMethodId,
                     params = listOf(
-                        UtPrimitiveModel(uTestExpr.field.type),
+                        UtPrimitiveModel(uTestExpr.field.enclosingClass.classId.name),
                         UtPrimitiveModel(uTestExpr.field.name),
                     ),
                 )

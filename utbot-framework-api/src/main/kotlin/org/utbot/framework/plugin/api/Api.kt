@@ -1029,7 +1029,7 @@ open class ClassId @JvmOverloads constructor(
                 // so we create a specific name for them
                 isAnonymous -> "Anonymous${supertypeOfAnonymousClass.prettifiedName}"
                 // in other cases where canonical name is still null, we use ClassId.name instead
-                else -> jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
+                else -> runCatching { canonicalName }.getOrElse { name }
             }
             return baseName
                 .substringAfterLast(".")

@@ -24,9 +24,11 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
@@ -170,7 +172,25 @@ class JcToUtExecutionConverter(
                 utilMethodProvider.setFieldMethodId == (it as? UtStatementCallModel)?.statement
             }
         ) {
-            model.origin ?: model
+            UtCompositeModel(
+                id = model.id,
+                classId = model.classId,
+                isMock = false,
+                fields = model.modificationsChain.associateTo(mutableMapOf()) {
+                    // `setFieldMethodId` call example for reference:
+                    // setField(outputStream, "java.io.ByteArrayOutputStream", "buf", buf);
+
+                    val params = (it as UtStatementCallModel).params
+                    val fieldId = FieldId(
+                        declaringClass = ClassId((params[1] as UtPrimitiveModel).value as String),
+                        name = ((params[2] as UtPrimitiveModel).value as String)
+                    )
+                    // We prefer `model.origin?.fields?.get(fieldId)` over `params[3]`, because
+                    //   - `model.origin?.fields?.get(fieldId)` is created from concrete execution initial state
+                    //   - `params[3]` is created from jcMachine output, which could be a bit off
+                    fieldId to (model.origin?.fields?.get(fieldId) ?: params[3])
+                }
+            )
         } else {
             model
         }

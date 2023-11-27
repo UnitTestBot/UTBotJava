@@ -11,17 +11,21 @@ import org.usvm.instrumentation.testcase.api.UTestInst
 data class JcExecution(
     val method: JcTypedMethod,
     val uTest: UTest,
-    val uTestExecutionResult: UTestResult,
+    val uTestExecutionResultWrapper: UTestResultWrapper,
     val coverage: JcCoverage
 )
 
-sealed interface UTestResult
+sealed interface UTestResultWrapper
 
-class UTestConcreteExecutionResult(val uTestExecutionResult: UTestExecutionResult) : UTestResult
+class UTestConcreteExecutionResult(
+    val uTestExecutionResult: UTestExecutionResult
+) : UTestResultWrapper
 
-class UTestSymbolicExceptionResult(val exceptionType: JcType) : UTestResult
+class UTestSymbolicExceptionResult(
+    val exceptionType: JcType
+) : UTestResultWrapper
 
 class UTestSymbolicSuccessResult(
     val initStatements: List<UTestInst>,
     val result: UTestExpression
-) : UTestResult
+) : UTestResultWrapper

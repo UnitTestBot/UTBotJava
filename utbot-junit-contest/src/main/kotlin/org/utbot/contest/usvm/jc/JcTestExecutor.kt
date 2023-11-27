@@ -55,30 +55,27 @@ class JcTestExecutor(
             runner.executeAsync(uTest)
         }
 
-        val result = if (execResult !is UTestExecutionSuccessResult && execResult !is UTestExecutionExceptionResult) {
+        // sometimes symbolic result is preferable that concolic: e.g. if concrete times out
+        val preferableResult =
+            if (execResult !is UTestExecutionSuccessResult && execResult !is UTestExecutionExceptionResult) {
             val symbolicResult = state.methodResult
             when (symbolicResult) {
-                is JcMethodResult.JcException -> {
-                    UTestSymbolicExceptionResult(symbolicResult.type)
-                }
-
+                is JcMethodResult.JcException -> UTestSymbolicExceptionResult(symbolicResult.type)
                 is JcMethodResult.Success -> {
                     val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, method)
                     val resultExpr = resultScope.resolveExpr(symbolicResult.value, method.returnType)
                     val resultInitializer = resultScope.decoderApi.initializerInstructions()
                     UTestSymbolicSuccessResult(resultInitializer, resultExpr)
                 }
-
                 JcMethodResult.NoCall -> UTestConcreteExecutionResult(execResult)
             }
-
         } else {
             UTestConcreteExecutionResult(execResult)
         }
 
         val coverage = resolveCoverage(method, state)
 
-        return JcExecution(method, uTest, result, coverage)
+        return JcExecution(method, uTest, preferableResult, coverage)
     }
 
     @Suppress("UNUSED_PARAMETER")

@@ -20,10 +20,8 @@ class PythonExecuteServer:
         self.clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientsocket.connect((config.server.hostname, config.server.port))
         self.executor = PythonExecutor(
-            config.coverage.server.hostname,
-            config.coverage.server.port,
-            config.coverage.trace_mode,
-            config.coverage.send_coverage,
+            config.coverage,
+            config.state_assertions,
         )
         self.config = config
 

@@ -6,10 +6,8 @@ from utbot_executor.listener import PythonExecuteServer
 from utbot_executor.utils import TraceMode
 
 
-def main(
-        config: Config
-):
-    server = PythonExecuteServer(config)
+def main(executor_config: Config):
+    server = PythonExecuteServer(executor_config)
     server.run()
 
 

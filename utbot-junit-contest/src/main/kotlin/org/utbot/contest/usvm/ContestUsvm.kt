@@ -11,6 +11,7 @@ import org.jacodb.api.ext.toType
 import org.jacodb.approximation.Approximations
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.objectweb.asm.Type
+import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.JcTarget
 import org.usvm.instrumentation.util.jcdbSignature
@@ -87,7 +88,8 @@ fun runUsvmGeneration(
             machineOptions = UMachineOptions(
                 // TODO usvm-sbft: if we have less than CONTEST_TEST_EXECUTION_TIMEOUT time left, we should try execute
                 //  with smaller timeout, but instrumentation currently doesn't allow to change timeout for individual runs
-                timeout = generationTimeoutMillisWithoutCodegen.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT
+                timeout = generationTimeoutMillisWithoutCodegen.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT,
+                pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
             )
         ) {
             // TODO usvm-sbft: we may want to tune these JcSettings for contest

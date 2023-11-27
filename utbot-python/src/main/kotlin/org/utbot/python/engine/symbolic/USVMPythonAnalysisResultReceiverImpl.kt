@@ -80,6 +80,7 @@ class USVMPythonAnalysisResultReceiverImpl(
 
     fun receivePickledInputValuesWithFeedback(pickledTuple: String): ExecutionFeedback? {
         try {
+            // logger.info("Receiving $pickledTuple")
             val coverageId = CoverageIdGenerator.createId()
             return when (
                 val evaluationResult = manager.runWithCoverage(pickledTuple, coverageId)

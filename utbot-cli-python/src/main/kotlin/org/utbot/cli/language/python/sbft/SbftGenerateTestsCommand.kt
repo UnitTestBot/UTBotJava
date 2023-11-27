@@ -172,6 +172,7 @@ class SbftGenerateTestsCommand : CliktCommand(
 
         Cleaner.doCleaning()
         alreadySaved.set(true)
+        System.exit(0)
     }
 
     override fun run() {

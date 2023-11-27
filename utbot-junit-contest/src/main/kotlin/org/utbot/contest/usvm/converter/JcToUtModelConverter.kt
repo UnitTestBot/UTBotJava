@@ -13,16 +13,20 @@ import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestRefDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants.nameForExistingButNullString
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtCustomModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.UtModelMapper
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -31,6 +35,15 @@ import org.utbot.fuzzer.IdGenerator
 
 enum class EnvironmentStateKind {
     INITIAL, FINAL
+}
+
+data class UtCyclicReferenceModel(
+    override val id: Int?,
+    override val classId: ClassId,
+    val refId: Int,
+    val stateKind: EnvironmentStateKind,
+) : UtCustomModel(id, classId) {
+    override fun shallowMap(mapper: UtModelMapper): UtCustomModel = this
 }
 
 class JcToUtModelConverter(
@@ -42,6 +55,13 @@ class JcToUtModelConverter(
         mutableMapOf<Pair<UTestValueDescriptor, EnvironmentStateKind>, UtModel>()
     private val refIdAndStateKindToDescriptorCache =
         mutableMapOf<Pair<Int, EnvironmentStateKind>, UTestValueDescriptor>()
+    val utCyclicReferenceModelResolver = UtModelDeepMapper { model ->
+        when (model) {
+            is UtCyclicReferenceModel -> getModelByRefIdAndStateKind(model.refId, model.stateKind)
+                ?: error("Invalid UTestCyclicReferenceDescriptor: $model")
+            else -> model
+        }
+    }
 
     fun convert(
         valueDescriptor: UTestValueDescriptor,
@@ -149,7 +169,12 @@ class JcToUtModelConverter(
             is UTestConstantDescriptor.String -> constructString(valueDescriptor.value)
 
             is UTestCyclicReferenceDescriptor -> getModelByRefIdAndStateKind(valueDescriptor.refId, stateKind)
-                ?: error("Invalid UTestCyclicReferenceDescriptor: $valueDescriptor")
+                ?: UtCyclicReferenceModel(
+                    id = curModelId,
+                    classId = valueDescriptor.type.classId,
+                    refId = valueDescriptor.refId,
+                    stateKind = stateKind
+                )
 
             is UTestEnumValueDescriptor -> UtEnumConstantModel(
                 id = curModelId,

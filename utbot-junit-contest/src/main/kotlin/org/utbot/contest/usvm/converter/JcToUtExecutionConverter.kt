@@ -118,6 +118,7 @@ class JcToUtExecutionConverter(
         } ?: return null
 
         return utUsvmExecution
+            .mapModels(jcToUtModelConverter.utCyclicReferenceModelResolver)
             .mapModels(constructAssemblingMapper())
             .mapModels(constructAssembleToCompositeModelMapper())
             .mapModels(constructConstArrayModelMapper())

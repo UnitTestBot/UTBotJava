@@ -148,6 +148,16 @@ fun main(args: Array<String>) {
                 expectedExceptions = ExpectedExceptionsForClass(),
                 methodNameFilter = null
             )
+
+            val compiledClassFileDir = File(outputDir.absolutePath, "compiledClassFiles")
+            compiledClassFileDir.mkdirs()
+            compileClassAndRemoveUncompilableTests(
+                testDir = compiledClassFileDir.absolutePath,
+                classPath = classpathString,
+                testClass = cut.generatedTestFile.absolutePath
+            )
+            compiledClassFileDir.deleteRecursively()
+
             println("${ContestMessage.READY}")
         }
     }

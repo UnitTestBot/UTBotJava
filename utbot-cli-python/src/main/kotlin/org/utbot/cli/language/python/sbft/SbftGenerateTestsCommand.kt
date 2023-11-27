@@ -38,6 +38,7 @@ import org.utbot.python.utils.Success
 import org.utbot.python.utils.separateTimeout
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
@@ -153,22 +154,29 @@ class SbftGenerateTestsCommand : CliktCommand(
     private val shutdown: AtomicBoolean = AtomicBoolean(false)
     private val alreadySaved: AtomicBoolean = AtomicBoolean(false)
 
-    private fun shutdownHook() {
-        Runtime.getRuntime().addShutdownHook(object : Thread() {
+    private val shutdownThread =
+        object : Thread() {
             override fun run() {
                 shutdown.set(true)
                 try {
                     if (!alreadySaved.get()) {
-                        saveTestsEndExit()
+                        saveTests()
                     }
                 } catch (_: InterruptedException) {
                     logger.warn { "Interrupted exception" }
                 }
             }
-        })
+        }
+
+    private fun addShutdownHook() {
+        Runtime.getRuntime().addShutdownHook(shutdownThread)
     }
 
-    private fun saveTestsEndExit() {
+    private fun removeShutdownHook() {
+        Runtime.getRuntime().removeShutdownHook(shutdownThread)
+    }
+
+    private fun saveTests() {
         logger.info("Saving tests...")
         val importCode = globalImportCollection
             .sortedBy { it.order }
@@ -178,7 +186,6 @@ class SbftGenerateTestsCommand : CliktCommand(
 
         Cleaner.doCleaning()
         alreadySaved.set(true)
-//        System.exit(0)
     }
 
     override fun run() {
@@ -220,7 +227,7 @@ class SbftGenerateTestsCommand : CliktCommand(
         }
         logger.info { "Mypy time: $mypyTime" }
 
-        shutdownHook()
+        addShutdownHook()
 
         val startTime = System.currentTimeMillis()
         val countOfFunctions = pythonMethodGroups.sumOf { it.size }
@@ -269,6 +276,8 @@ class SbftGenerateTestsCommand : CliktCommand(
                 globalImportCollection.addAll(imports)
             }
         }
-        saveTestsEndExit()
+        saveTests()
+        removeShutdownHook()
+        exitProcess(0)
     }
 }

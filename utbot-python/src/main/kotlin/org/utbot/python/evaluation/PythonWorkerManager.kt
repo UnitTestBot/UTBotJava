@@ -58,7 +58,8 @@ class PythonWorkerManager(
                 "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
                 "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
                 sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
-            ) + if (doNotGenerateStateAssertions) listOf("--do_not_generate_state_assertions") else emptyList()
+                doNotGenerateStateAssertions.toGenerateStateAssertionsString()  // "--generate_state_assertions", "--no-generate_state_assertions"
+            )
         )
         timeout = max(until - processStartTime, 0)
         if (this::workerSocket.isInitialized && !workerSocket.isClosed) {
@@ -158,6 +159,14 @@ class PythonWorkerManager(
                 "--send_coverage"
             } else {
                 "--no-send_coverage"
+            }
+        }
+
+        fun Boolean.toGenerateStateAssertionsString(): String {
+            return if (this) {
+                "--no-generate_state_assertions"
+            } else {
+                "--generate_state_assertions"
             }
         }
     }

@@ -30,7 +30,7 @@ if __name__ == "__main__":
         "--coverage_type", choices=["lines", "instructions"], default="instructions"
     )
     parser.add_argument("--send_coverage", action=argparse.BooleanOptionalAction)
-    parser.add_argument("--do_not_generate_state_assertions", type=bool, default=False)
+    parser.add_argument("--generate_state_assertions", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     loglevel = {
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             HostConfig(args.coverage_hostname, args.coverage_port), trace_mode, args.send_coverage
         ),
         logging=LoggingConfig(args.logfile, loglevel),
-        state_assertions=not args.do_not_generate_state_assertions
+        state_assertions=args.generate_state_assertions
     )
 
     main(config)

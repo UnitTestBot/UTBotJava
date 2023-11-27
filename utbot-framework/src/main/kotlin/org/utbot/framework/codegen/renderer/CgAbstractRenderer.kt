@@ -251,12 +251,14 @@ abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgTestMethod) {
+        visit(CgSingleLineComment(TEST_METHOD_START_MARKER))
         renderMethodDocumentation(element)
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
         renderMethodSignature(element)
         visit(element as CgMethod)
+        visit(CgSingleLineComment(TEST_METHOD_END_MARKER))
     }
 
     override fun visit(element: CgErrorTestMethod) {
@@ -953,6 +955,9 @@ abstract class CgAbstractRenderer(
     private fun ClassId.isAccessibleBySimpleName(): Boolean = isAccessibleBySimpleNameImpl(this)
 
     companion object {
+        const val TEST_METHOD_START_MARKER = "test method start marker"
+        const val TEST_METHOD_END_MARKER = "test method end marker"
+
         fun makeRenderer(
             context: CgContext,
             printer: CgPrinter = CgPrinterImpl()

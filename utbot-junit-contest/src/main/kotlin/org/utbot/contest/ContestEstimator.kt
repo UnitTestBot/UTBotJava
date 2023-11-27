@@ -32,6 +32,7 @@ import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -49,7 +50,10 @@ private val javaHome = System.getenv("JAVA_HOME")
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
 
-private const val compileAttempts = 2
+// first attempt is for --add-opens
+// second attempt is for removing test methods that still don't compile
+// last attempt is for checking if final result compiles
+private const val compileAttempts = 3
 
 private data class UnnamedPackageInfo(val pack: String, val module: String)
 
@@ -62,7 +66,16 @@ private fun findAllNotExportedPackages(report: String): List<UnnamedPackageInfo>
     }.toList().distinct()
 }
 
-private fun compileClass(testDir: String, classPath: String, testClass: String): Int {
+private fun findErrorLines(report: String): List<Int> {
+    // (\d+) is line number
+    // (:(\d+)) is optional column number
+    val regex = """\.java:(\d+)(:(\d+))?: error""".toRegex()
+    return regex.findAll(report).map {
+        it.groupValues[1].toInt() - 1
+    }.toList().distinct()
+}
+
+fun compileClassAndRemoveUncompilableTests(testDir: String, classPath: String, testClass: String): Int = try {
     val exports = mutableSetOf<UnnamedPackageInfo>()
     var exitCode = 0
 
@@ -93,10 +106,48 @@ private fun compileClass(testDir: String, classPath: String, testClass: String):
             if (errors.isNotEmpty())
                 logger.error { "Compilation errors: $errors" }
             exports += findAllNotExportedPackages(errors)
+            if (attemptNumber >= 1) {
+                val testFile = File(testClass)
+                val testClassLines = testFile.readLines()
+                val testStarts = testClassLines.withIndex()
+                    .filter { it.value.contains(CgAbstractRenderer.TEST_METHOD_START_MARKER) }
+                    .map { it.index }
+                val testEnds = testClassLines.withIndex()
+                    .filter { it.value.contains(CgAbstractRenderer.TEST_METHOD_END_MARKER) }
+                    .map { it.index }
+                val errorLines = findErrorLines(errors)
+                val errorRanges = errorLines.map { errorLine ->
+                    // if error is outside test method, we can't fix that by removing test methods
+                    val testStart = testStarts.filter { it <= errorLine }.maxOrNull() ?: return exitCode
+                    val testEnd = testEnds.filter { it >= errorLine }.minOrNull() ?: return exitCode
+                    testStart..testEnd
+                }.distinct()
+                if (errorRanges.size > testStarts.size / 5.0) {
+                    logger.error { "Over 20% of test are uncompilable" }
+                    logger.error { "Speculating that something is wrong with compilation settings, keeping all tests" }
+                    return exitCode
+                }
+                val linesToRemove = mutableSetOf<Int>()
+                errorRanges.forEach { linesToRemove.addAll(it) }
+                val removedText = testClassLines.withIndex()
+                    .filter { it.index in linesToRemove }
+                    .joinToString("\n") { "${it.index}: ${it.value}" }
+                logger.info { "Removed uncompilable tests:\n$removedText" }
+                testFile.writeText(testClassLines.filterIndexed { i, _ -> i !in linesToRemove }.joinToString("\n"))
+            }
         }
     }
 
-    return exitCode
+    exitCode
+} catch (e: Throwable) {
+    logger.error(e) { "compileClass failed" }
+    1
+} finally {
+    val testFile = File(testClass)
+    testFile.writeText(testFile.readLines().filter {
+        !it.contains(CgAbstractRenderer.TEST_METHOD_START_MARKER)
+                && !it.contains(CgAbstractRenderer.TEST_METHOD_END_MARKER)
+    }.joinToString("\n"))
 }
 
 fun Array<String>.toText() = joinToString(separator = ",")
@@ -181,7 +232,7 @@ interface Tool {
                 classStats.testClassFile = testClass
 
                 logger.info().measureTime({ "Compiling class ${testClass.absolutePath}" }) {
-                    val exitCode = compileClass(
+                    val exitCode = compileClassAndRemoveUncompilableTests(
                         compiledTestDir.absolutePath,
                         project.compileClasspathString,
                         testClass.absolutePath
@@ -456,7 +507,7 @@ fun runEstimator(
     if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
     }
-    
+
     logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
     if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         logger.info { "RewardModelPath: ${UtSettings.modelPath}" }

@@ -1,18 +1,18 @@
 package org.utbot.python.evaluation
 
 import mu.KotlinLogging
+import org.apache.logging.log4j.LogManager
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.python.FunctionArguments
+import org.utbot.python.coverage.PythonCoverageMode
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
 import java.lang.Long.max
 import java.net.ServerSocket
 import java.net.Socket
-import java.net.SocketTimeoutException
-import org.apache.logging.log4j.LogManager
-import org.utbot.python.coverage.PythonCoverageMode
 import java.net.SocketException
+import java.net.SocketTimeoutException
 
 private val logger = KotlinLogging.logger {}
 
@@ -22,6 +22,7 @@ class PythonWorkerManager(
     val until: Long,
     private val coverageMeasureMode: PythonCoverageMode = PythonCoverageMode.Instructions,
     private val sendCoverageContinuously: Boolean = true,
+    private val doNotGenerateStateAssertions: Boolean,
     val pythonCodeExecutorConstructor: (PythonWorker) -> PythonCodeExecutor,
 ) {
     var timeout: Long = 0
@@ -45,18 +46,20 @@ class PythonWorkerManager(
         if (serverSocket.isClosed) {
             serverSocket.accept()
         }
-        process = startProcess(listOf(
-            pythonPath,
-            "-m", "utbot_executor",
-            "localhost",
-            serverSocket.localPort.toString(),
-            coverageReceiver.address().first,
-            coverageReceiver.address().second,
-            "--logfile", logfile.absolutePath,
-            "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
-            "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
-            sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
-        ))
+        process = startProcess(
+            listOf(
+                pythonPath,
+                "-m", "utbot_executor",
+                "localhost",
+                serverSocket.localPort.toString(),
+                coverageReceiver.address().first,
+                coverageReceiver.address().second,
+                "--logfile", logfile.absolutePath,
+                "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
+                "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
+                sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
+            ) + if (doNotGenerateStateAssertions) listOf("--do_not_generate_state_assertions") else emptyList()
+        )
         timeout = max(until - processStartTime, 0)
         if (this::workerSocket.isInitialized && !workerSocket.isClosed) {
             workerSocket.close()

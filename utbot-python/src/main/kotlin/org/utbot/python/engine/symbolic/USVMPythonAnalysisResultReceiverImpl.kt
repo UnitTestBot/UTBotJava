@@ -58,6 +58,7 @@ class USVMPythonAnalysisResultReceiverImpl(
                     until,
                     configuration.coverageMeasureMode,
                     configuration.sendCoverageContinuously,
+                    configuration.doNotGenerateStateAssertions,
                 ) {
                     PythonCodeSocketExecutor(
                         method,

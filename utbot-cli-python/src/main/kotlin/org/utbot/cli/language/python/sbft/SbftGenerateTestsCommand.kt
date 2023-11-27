@@ -106,6 +106,12 @@ class SbftGenerateTestsCommand : CliktCommand(
         .split(",")
         .default(PythonTestGenerationConfig.defaultProhibitedExceptions)
 
+    private val doNotGenerateStateAssertions by option(
+        "--do-not-generate-state-assertions",
+        help = "Do not generate state assertions for all functions excluding functions with None return value."
+    )
+        .flag(default = false)
+
     private val javaCmd by option(
         "--java-cmd",
         help = "(required) Path to Java command (ONLY FOR USVM)."
@@ -251,6 +257,7 @@ class SbftGenerateTestsCommand : CliktCommand(
                 usvmConfig = UsvmConfig(javaCmd, usvmDirectory),
                 prohibitedExceptions = if (prohibitedExceptions == listOf("-")) emptyList() else prohibitedExceptions,
                 checkUsvm = checkUsvm,
+                doNotGenerateStateAssertions = doNotGenerateStateAssertions,
             )
             val processor = SbftCliProcessor(config)
 

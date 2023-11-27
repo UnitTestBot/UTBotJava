@@ -184,6 +184,7 @@ class FuzzingEngine(
                         until,
                         configuration.coverageMeasureMode,
                         configuration.sendCoverageContinuously,
+                        configuration.doNotGenerateStateAssertions,
                     ) {
                         PythonCodeSocketExecutor(
                             method,

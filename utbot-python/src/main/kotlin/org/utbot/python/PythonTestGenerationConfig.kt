@@ -33,6 +33,7 @@ class PythonTestGenerationConfig(
     val usvmConfig: UsvmConfig = UsvmConfig.defaultConfig,
     val prohibitedExceptions: List<String> = defaultProhibitedExceptions,
     val checkUsvm: Boolean = false,
+    val doNotGenerateStateAssertions: Boolean = false,
 ) {
     companion object {
         val defaultProhibitedExceptions = listOf(
@@ -55,7 +56,7 @@ data class UsvmConfig(
 ) {
     companion object {
         val usvmDirectory =
-            "/home/vyacheslav/IdeaProjects/NewUTBot/UTBotJava/utbot-python/src/main/kotlin/org/utbot/python/engine/symbolic/usvm-python"
+            "utbot-python/src/main/kotlin/org/utbot/python/engine/symbolic/usvm-python"
         val usvmJavaCmd = "${System.getProperty("java.home")}/bin/java"
         val defaultConfig = UsvmConfig(usvmJavaCmd, usvmDirectory)
     }

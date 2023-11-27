@@ -8,8 +8,9 @@ import pickle
 import sys
 import traceback
 import types
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
+from utbot_executor.config import CoverageConfig
 from utbot_executor.deep_serialization.deep_serialization import serialize_memory_dump, \
     serialize_objects_dump
 from utbot_executor.deep_serialization.json_converter import DumpLoader, deserialize_memory_objects
@@ -23,7 +24,7 @@ from utbot_executor.utils import (
     suppress_stdout as __suppress_stdout,
     get_instructions,
     filter_instructions,
-    TraceMode, UtInstruction,
+    UtInstruction,
 )
 
 __all__ = ['PythonExecutor']
@@ -47,11 +48,12 @@ def _load_objects(objs: List[Any]) -> MemoryDump:
 
 
 class PythonExecutor:
-    def __init__(self, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode, send_coverage: bool):
-        self.coverage_hostname = coverage_hostname
-        self.coverage_port = coverage_port
-        self.trace_mode = trace_mode
-        self.send_coverage = send_coverage
+    def __init__(self, coverage_config: CoverageConfig, state_asserts: bool):
+        self.coverage_hostname = coverage_config.server.hostname
+        self.coverage_port = coverage_config.server.port
+        self.trace_mode = coverage_config.trace_mode
+        self.send_coverage = coverage_config.send_coverage
+        self.state_asserts = state_asserts
 
     @staticmethod
     def add_syspaths(syspaths: Iterable[str]):
@@ -145,6 +147,7 @@ class PythonExecutor:
                     _coverage_sender,
                     self.trace_mode,
                 ),
+                state_asserts=self.state_asserts,
             )
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
@@ -251,6 +254,7 @@ def _run_calculate_function_value(
         fullpath: str,
         state_init: str,
         tracer: UtTracer,
+        state_asserts: bool,
     ) -> ExecutionResponse:
     """ Calculate function evaluation result.
 
@@ -285,7 +289,10 @@ def _run_calculate_function_value(
 
     args_ids, kwargs_ids, result_id, state_after, serialized_state_after = _serialize_state(args, kwargs, __result)
     ids = args_ids + list(kwargs_ids.values())
-    diff_ids = compress_memory(ids, state_before, state_after)
+    if state_asserts or __result is None:
+        diff_ids = compress_memory(ids, state_before, state_after)
+    else:
+        diff_ids = []
 
     return ExecutionSuccessResponse(
             status="success",

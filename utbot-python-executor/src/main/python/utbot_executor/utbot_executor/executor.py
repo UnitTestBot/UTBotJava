@@ -218,6 +218,7 @@ class PythonExecutor:
                     _coverage_sender,
                     self.trace_mode,
                 ),
+                state_assertions=self.state_assertions
             )
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())

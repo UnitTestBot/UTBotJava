@@ -14,11 +14,14 @@ import org.usvm.api.util.JcTestStateResolver
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
+import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.machine.JcContext
+import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
@@ -52,9 +55,30 @@ class JcTestExecutor(
             runner.executeAsync(uTest)
         }
 
+        val result = if (execResult !is UTestExecutionSuccessResult && execResult !is UTestExecutionExceptionResult) {
+            val symbolicResult = state.methodResult
+            when (symbolicResult) {
+                is JcMethodResult.JcException -> {
+                    UTestSymbolicExceptionResult(symbolicResult.type)
+                }
+
+                is JcMethodResult.Success -> {
+                    val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, method)
+                    val resultExpr = resultScope.resolveExpr(symbolicResult.value, method.returnType)
+                    val resultInitializer = resultScope.decoderApi.initializerInstructions()
+                    UTestSymbolicSuccessResult(resultInitializer, resultExpr)
+                }
+
+                JcMethodResult.NoCall -> UTestConcreteExecutionResult(execResult)
+            }
+
+        } else {
+            UTestConcreteExecutionResult(execResult)
+        }
+
         val coverage = resolveCoverage(method, state)
 
-        return JcExecution(method, uTest, execResult, coverage)
+        return JcExecution(method, uTest, result, coverage)
     }
 
     @Suppress("UNUSED_PARAMETER")

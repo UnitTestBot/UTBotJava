@@ -9,7 +9,6 @@ import org.jacodb.api.ext.jcdbSignature
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionInitFailedResult
-import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionState
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
@@ -20,6 +19,10 @@ import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.utbot.common.isPublic
 import org.utbot.contest.usvm.jc.JcExecution
+import org.utbot.contest.usvm.jc.UTestConcreteExecutionResult
+import org.utbot.contest.usvm.jc.UTestResult
+import org.utbot.contest.usvm.jc.UTestSymbolicExceptionResult
+import org.utbot.contest.usvm.jc.UTestSymbolicSuccessResult
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.Coverage
@@ -67,23 +70,18 @@ class JcToUtExecutionConverter(
     fun convert(): UtExecution? {
         val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResult), jcExecution.method.enclosingType.jcClass)
 
-        val utUsvmExecution: UtUsvmExecution = when (val executionResult = jcExecution.uTestExecutionResult) {
-            is UTestExecutionSuccessResult -> UtUsvmExecution(
-                stateBefore = convertState(executionResult.initialState, EnvironmentStateKind.INITIAL, jcExecution.method),
-                stateAfter = convertState(executionResult.resultState, EnvironmentStateKind.FINAL, jcExecution.method),
-                // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
-                result = UtExecutionSuccess(executionResult.result?.let {
-                    jcToUtModelConverter.convert(it, EnvironmentStateKind.FINAL)
-                } ?: UtVoidModel),
-                coverage = coverage,
-                instrumentation = uTestProcessResult.instrumentation,
-            )
-            is UTestExecutionExceptionResult -> {
+        val utUsvmExecution: UtUsvmExecution = when (jcExecution.uTestExecutionResult) {
+            is UTestSymbolicExceptionResult -> {
                 UtUsvmExecution(
-                    stateBefore = convertState(executionResult.initialState, EnvironmentStateKind.INITIAL, jcExecution.method),
-                    stateAfter = convertState(executionResult.resultState, EnvironmentStateKind.FINAL, jcExecution.method),
+                    stateBefore = constructStateBeforeFromUTest(),
+                    stateAfter = MissingState,
                     result = createExecutionFailureResult(
-                        executionResult.cause,
+                        UTestExceptionDescriptor(
+                            type = jcExecution.uTestExecutionResult.exceptionType,
+                            message = "",
+                            stackTrace = emptyList(),
+                            raisedByUserCode = true
+                        ),
                         jcExecution.method,
                     ),
                     coverage = coverage,
@@ -91,29 +89,87 @@ class JcToUtExecutionConverter(
                 )
             }
 
-            is UTestExecutionInitFailedResult -> {
-                logger.warn(convertException(executionResult.cause)) {
-                    "Execution failed before method under test call on ${jcExecution.method.method}"
+            is UTestSymbolicSuccessResult -> {
+                val resultUtModel = jcExecution.uTestExecutionResult.let { res ->
+                    res.initStatements.forEach { instToModelConverter.processInst(it) }
+                    instToModelConverter.processInst(res.result)
+                    instToModelConverter.findModelByInst(res.result)
                 }
-                null
-            }
-
-            is UTestExecutionFailedResult -> {
-                logger.error(convertException(executionResult.cause)) {
-                    "Concrete execution failed on ${jcExecution.method.method}"
-                }
-                null
-            }
-
-            is UTestExecutionTimedOutResult -> {
-                logger.warn { "Timeout on ${jcExecution.method.method}" }
                 UtUsvmExecution(
                     stateBefore = constructStateBeforeFromUTest(),
                     stateAfter = MissingState,
-                    result = UtTimeoutException(TimeoutException("Concrete execution timed out")),
+                    result = UtExecutionSuccess(resultUtModel),
                     coverage = coverage,
                     instrumentation = uTestProcessResult.instrumentation,
                 )
+            }
+
+            is UTestConcreteExecutionResult -> when (val executionResult =
+                jcExecution.uTestExecutionResult.uTestExecutionResult) {
+                is UTestExecutionSuccessResult -> UtUsvmExecution(
+                    stateBefore = convertState(
+                        executionResult.initialState,
+                        EnvironmentStateKind.INITIAL,
+                        jcExecution.method
+                    ),
+                    stateAfter = convertState(
+                        executionResult.resultState,
+                        EnvironmentStateKind.FINAL,
+                        jcExecution.method
+                    ),
+                    // TODO usvm-sbft: ask why `UTestExecutionSuccessResult.result` is nullable
+                    result = UtExecutionSuccess(executionResult.result?.let {
+                        jcToUtModelConverter.convert(it, EnvironmentStateKind.FINAL)
+                    } ?: UtVoidModel),
+                    coverage = coverage,
+                    instrumentation = uTestProcessResult.instrumentation,
+                )
+
+                is UTestExecutionExceptionResult -> {
+                    UtUsvmExecution(
+                        stateBefore = convertState(
+                            executionResult.initialState,
+                            EnvironmentStateKind.INITIAL,
+                            jcExecution.method
+                        ),
+                        stateAfter = convertState(
+                            executionResult.resultState,
+                            EnvironmentStateKind.FINAL,
+                            jcExecution.method
+                        ),
+                        result = createExecutionFailureResult(
+                            executionResult.cause,
+                            jcExecution.method,
+                        ),
+                        coverage = coverage,
+                        instrumentation = uTestProcessResult.instrumentation,
+                    )
+                }
+
+                is UTestExecutionInitFailedResult -> {
+                    logger.warn(convertException(executionResult.cause)) {
+                        "Execution failed before method under test call on ${jcExecution.method.method}"
+                    }
+                    null
+                }
+
+                is UTestExecutionFailedResult -> {
+                    logger.error(convertException(executionResult.cause)) {
+                        "Concrete execution failed on ${jcExecution.method.method}"
+                    }
+                    null
+                }
+
+                is UTestExecutionTimedOutResult -> {
+                    logger.warn { "Timeout on ${jcExecution.method.method}" }
+                    UtUsvmExecution(
+                        stateBefore = constructStateBeforeFromUTest(),
+                        stateAfter = MissingState,
+                        result = UtTimeoutException(TimeoutException("Concrete execution timed out")),
+                        coverage = coverage,
+                        instrumentation = uTestProcessResult.instrumentation,
+                    )
+                }
             }
         } ?: return null
 
@@ -206,12 +262,16 @@ class JcToUtExecutionConverter(
             cache = mutableMapOf()
         )) as Throwable
 
-    private fun getTrace(executionResult: UTestExecutionResult): List<JcInst>? = when (executionResult) {
-        is UTestExecutionExceptionResult -> executionResult.trace
-        is UTestExecutionInitFailedResult -> executionResult.trace
-        is UTestExecutionSuccessResult -> executionResult.trace
-        is UTestExecutionFailedResult -> emptyList()
-        is UTestExecutionTimedOutResult -> emptyList()
+    private fun getTrace(executionResult: UTestResult): List<JcInst>? = when (executionResult) {
+        is UTestConcreteExecutionResult -> when (val res = executionResult.uTestExecutionResult) {
+            is UTestExecutionExceptionResult -> res.trace
+            is UTestExecutionInitFailedResult -> res.trace
+            is UTestExecutionSuccessResult -> res.trace
+            is UTestExecutionFailedResult -> emptyList()
+            is UTestExecutionTimedOutResult -> emptyList()
+        }
+        is UTestSymbolicExceptionResult -> emptyList()
+        is UTestSymbolicSuccessResult -> emptyList()
     }
 
     private fun convertState(

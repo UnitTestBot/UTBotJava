@@ -87,7 +87,7 @@ class UTestInstToUtModelConverter(
         }
     }
 
-    private fun processInst(uTestInst: UTestInst) {
+    fun processInst(uTestInst: UTestInst) {
         when (uTestInst) {
             is UTestExpression -> processExpr(uTestInst)
 

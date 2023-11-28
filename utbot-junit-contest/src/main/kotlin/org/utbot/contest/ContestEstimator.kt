@@ -425,7 +425,7 @@ fun main(args: Array<String>) {
     // very special case when you run your project directly from IntellijIDEA omitting command line arguments
     if (args.isEmpty()) {
         processedClassesThreshold = 9999 //change to change number of classes to run
-        val timeLimit = 20 // increase if you want to debug something
+        val timeLimit = 30 // increase if you want to debug something
         val fuzzingRatio = 0.1 // sets fuzzing ratio to total test generation
 
         // Uncomment it for debug purposes:
@@ -446,7 +446,7 @@ fun main(args: Array<String>) {
 
         // config for SBST 2022
         methodFilter = null
-        projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
+        projectFilter = listOf("seata-core-0.5.0")
         // TODO usvm-sbft-merge: add if here if we want merge contest it into main
         tools = listOf(Tool.USVM)
 

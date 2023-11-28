@@ -8,11 +8,9 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.findTypeOrNull
-import org.jacodb.api.ext.methods
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
 import org.jacodb.approximation.JcEnrichedVirtualField
-import org.jacodb.approximation.JcEnrichedVirtualMethod
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -165,17 +163,8 @@ class JcTestExecutor(
 
             val mockedMethodValues = mutableMapOf<JcMethod, MutableList<UIndexedMethodReturnValue<JcMethod, *>>>()
             mocks.filterIsInstance<UIndexedMethodReturnValue<JcMethod, *>>().forEach { mockValue ->
-                var method = mockValue.method
-
-                // Find original method
-                if (method is JcEnrichedVirtualMethod) {
-                    method = method.enclosingClass.methods
-                        .filter { it !is JcEnrichedVirtualMethod }
-                        .singleOrNull { it.name == method.name && it.description == method.description }
-                        ?: return@forEach
-                }
-
-                mockedMethodValues.getOrPut(method) { mutableListOf() }.add(mockValue)
+                // todo: filter out approximations-only methods
+                mockedMethodValues.getOrPut(mockValue.method) { mutableListOf() }.add(mockValue)
             }
 
             mockedMethodValues.forEach { (method, values) ->

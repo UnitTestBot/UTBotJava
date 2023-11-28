@@ -3,14 +3,23 @@ package org.utbot.contest.usvm.jc
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcField
+import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.objectType
+import org.jacodb.api.ext.toType
+import org.jacodb.approximation.JcEnrichedVirtualField
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.UIndexedMethodReturnValue
+import org.usvm.UMockSymbol
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcTest
 import org.usvm.api.util.JcTestStateResolver
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
@@ -18,10 +27,12 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
+import org.usvm.instrumentation.testcase.api.UTestMockObject
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
+import org.usvm.machine.JcMocker
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
@@ -47,7 +58,14 @@ class JcTestExecutor(
 
         val ctx = state.ctx
 
-        val memoryScope = MemoryScope(ctx, model, model, stringConstants, method)
+        val mocker = state.memory.mocker as JcMocker
+//        val staticMethodMocks = mocker.statics TODO global mocks?????????????????????????
+        val methodMocks = mocker.symbols
+
+        val resolvedMethodMocks = methodMocks.entries.groupBy({ model.eval(it.key) }, { it.value })
+            .mapValues { it.value.flatten() }
+
+        val memoryScope = MemoryScope(ctx, model, model, stringConstants, resolvedMethodMocks, method)
 
         val uTest = memoryScope.createUTest()
 
@@ -62,7 +80,7 @@ class JcTestExecutor(
             when (symbolicResult) {
                 is JcMethodResult.JcException -> UTestSymbolicExceptionResult(symbolicResult.type)
                 is JcMethodResult.Success -> {
-                    val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, method)
+                    val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, resolvedMethodMocks, method)
                     val resultExpr = resultScope.resolveExpr(symbolicResult.value, method.returnType)
                     val resultInitializer = resultScope.decoderApi.initializerInstructions()
                     UTestSymbolicSuccessResult(resultInitializer, resultExpr)
@@ -95,6 +113,7 @@ class JcTestExecutor(
         model: UModelBase<JcType>,
         memory: UReadOnlyMemory<JcType>,
         stringConstants: Map<String, UConcreteHeapRef>,
+        private val resolvedMethodMocks: Map<UHeapRef, List<UMockSymbol<*>>>,
         method: JcTypedMethod,
     ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, stringConstants, method) {
 
@@ -128,5 +147,50 @@ class JcTestExecutor(
 
         // todo: looks incorrect
         override fun allocateString(value: UTestExpression): UTestExpression = value
+
+        override fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): UTestExpression {
+            if (ref !in resolvedMethodMocks) {
+                return super.resolveObject(ref, heapRef, type)
+            }
+
+            val mocks = resolvedMethodMocks.getValue(ref)
+
+            val fieldValues = mutableMapOf<JcField, UTestExpression>()
+            val methods = mutableMapOf<JcMethod, List<UTestExpression>>()
+
+            val instance = UTestMockObject(type, fieldValues, methods)
+            saveResolvedRef(ref.address, instance)
+
+            val mockedMethodValues = mutableMapOf<JcMethod, MutableList<UIndexedMethodReturnValue<JcMethod, *>>>()
+            mocks.filterIsInstance<UIndexedMethodReturnValue<JcMethod, *>>().forEach { mockValue ->
+                // todo: filter out approximations-only methods
+                mockedMethodValues.getOrPut(mockValue.method) { mutableListOf() }.add(mockValue)
+            }
+
+            mockedMethodValues.forEach { (method, values) ->
+                val mockedValueType = requireNotNull(ctx.cp.findTypeOrNull(method.returnType)) {
+                    "No such type found: ${method.returnType}"
+                }
+
+                methods[method] = values
+                    .sortedBy { it.callIndex }
+                    .map { resolveExpr(it, mockedValueType) }
+            }
+
+            val fields = generateSequence(type.jcClass) { it.superClass }
+                .map { it.toType() }
+                .flatMap { it.declaredFields }
+                .filter { !it.isStatic }
+                .filterNot { it.field is JcEnrichedVirtualField }
+
+            for (field in fields) {
+                val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
+                val fieldValue = resolveLValue(lvalue, field.fieldType)
+
+                fieldValues[field.field] = fieldValue
+            }
+
+            return instance
+        }
     }
 }

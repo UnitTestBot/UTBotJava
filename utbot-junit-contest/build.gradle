@@ -25,7 +25,7 @@ configurations {
 }
 
 def approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-def approximationsVersion = "d9d6f30985"
+def approximationsVersion = "7d9120817a"
 
 compileJava {
     options.compilerArgs << '-XDignore.symbol.file'

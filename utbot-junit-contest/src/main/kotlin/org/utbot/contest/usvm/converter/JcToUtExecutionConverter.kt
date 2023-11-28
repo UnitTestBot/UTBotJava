@@ -244,6 +244,12 @@ class JcToUtExecutionConverter(
             cache = mutableMapOf()
         )) as Throwable
 
+    /**
+     * Gets trace from execution result if it is present.
+     *
+     * Otherwise, (e.g. we use symbolic result if concrete fails),
+     * minimization will take just 'UtSettings.maxUnknownCoverageExecutionsPerMethodPerResultType' executions.
+     */
     private fun getTrace(executionResult: UTestResultWrapper): List<JcInst>? = when (executionResult) {
         is UTestConcreteExecutionResult -> when (val res = executionResult.uTestExecutionResult) {
             is UTestExecutionExceptionResult -> res.trace

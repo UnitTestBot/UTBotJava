@@ -68,7 +68,11 @@ val JcType?.classId: ClassId
     get() {
         if (this !is JcPrimitiveType) {
             return runCatching {
-                this?.replaceToBoundIfGeneric()?.toJavaClass(utContext.classLoader)?.id ?: error("Can not construct classId for $this")
+                this
+                    ?.replaceToBoundIfGeneric()
+                    ?.toJavaClass(utContext.classLoader, initialize = false)
+                    ?.id
+                    ?: error("Can not construct classId for $this")
             }.getOrElse { e ->
                 throw IllegalStateException("JcType.classId failed on ${this?.typeName}", e)
             }
@@ -90,7 +94,7 @@ val JcType?.classId: ClassId
     }
 
 val JcClassOrInterface.classId: ClassId
-    get() = this.toJavaClass(utContext.classLoader).id
+    get() = this.toJavaClass(utContext.classLoader, initialize = false).id
 
 fun TypeName.findClassId(classpath: JcClasspath): ClassId =
     classpath.findTypeOrNull(this.typeName)?.classId

@@ -394,6 +394,12 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var minimizeCrashExecutions by getBooleanProperty(true)
 
     /**
+     * Determines maximum number of executions with unknown coverage per method per result type.
+     * In [ContestUsvm] it is useful if concrete fails, so we use symbolic execution result without trace.
+     */
+    var maxUnknownCoverageExecutionsPerMethodPerResultType by getIntProperty(10)
+
+    /**
      * Enable it to calculate unsat cores for hard constraints as well.
      * It may be usefull during debug.
      *

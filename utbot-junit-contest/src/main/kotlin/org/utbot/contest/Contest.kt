@@ -177,6 +177,7 @@ fun setOptions() {
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true
     UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY
+    UtSettings.maxUnknownCoverageExecutionsPerMethodPerResultType = 10
     UtSettings.ignoreStringLiterals = true
     UtSettings.maximizeCoverageUsingReflection = true
     UtSettings.useSandbox = false

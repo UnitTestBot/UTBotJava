@@ -111,7 +111,7 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
                 id,
                 typeinfo,
                 this.comparable,
-                this.repr.replace("\n", "\\\n").replace("\r", "\\\r")
+                this.repr.replace("\n", "\\n").replace("\r", "\\r")
             )
         }
 

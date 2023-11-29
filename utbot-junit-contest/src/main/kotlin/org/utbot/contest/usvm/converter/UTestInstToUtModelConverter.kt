@@ -1,5 +1,6 @@
 package org.utbot.contest.usvm.converter
 
+import mu.KotlinLogging
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
@@ -47,11 +48,14 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.IdGenerator
+
+private val logger = KotlinLogging.logger {}
 
 class UTestInstToUtModelConverter(
     private val uTest: UTest,
@@ -168,8 +172,7 @@ class UTestInstToUtModelConverter(
             }
 
             is UTestMethodCall -> {
-                val instanceModel = processExpr(uTestExpr.instance)
-                require(instanceModel is UtAssembleModel)
+                val instanceModel = processExpr(uTestExpr.instance) as UtReferenceModel
 
                 val methodCall = UtExecutableCallModel(
                     instance = instanceModel,
@@ -177,7 +180,12 @@ class UTestInstToUtModelConverter(
                     params = uTestExpr.args.map { arg -> processExpr(arg) },
                 )
 
-                (instanceModel.modificationsChain as MutableList).add(methodCall)
+                (instanceModel as? UtAssembleModel)?.let {
+                    (it.modificationsChain as MutableList).add(methodCall)
+                } ?: logger.warn {
+                    "Call ${uTestExpr.method} can't be added to a non-assemble model of type ${instanceModel::class}, " +
+                            "when generating tests for ${uTest.callMethodExpression.method}"
+                }
 
                 UtAssembleModel(
                     id = idGenerator.createId(),

@@ -8,10 +8,15 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestInst
 
+/**
+ * [uTestExecutionResultWrappers] may contain either:
+ *  - both concrete and symbolic results in priority decreasing order
+ *  - single symbolic or concrete result if we discarded one of the result kinds
+ */
 data class JcExecution(
     val method: JcTypedMethod,
     val uTest: UTest,
-    val uTestExecutionResultWrapper: UTestResultWrapper,
+    val uTestExecutionResultWrappers: Sequence<UTestResultWrapper>,
     val coverage: JcCoverage
 )
 

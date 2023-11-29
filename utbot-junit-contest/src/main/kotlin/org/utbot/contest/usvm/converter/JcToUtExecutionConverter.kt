@@ -67,17 +67,28 @@ class JcToUtExecutionConverter(
     private var jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)
     private var uTestProcessResult = instToModelConverter.processUTest()
 
-    fun convert(): UtExecution? {
-        val coverage = convertCoverage(getTrace(jcExecution.uTestExecutionResultWrapper), jcExecution.method.enclosingType.jcClass)
+    fun convert() = jcExecution.uTestExecutionResultWrappers.firstNotNullOfOrNull { result ->
+        runCatching { convert(result) }
+            .onFailure { e ->
+                logger.warn(e) {
+                    "Recoverable: JcToUtExecutionConverter.convert(${jcExecution.method.method}) " +
+                            "failed for ${result::class.java}"
+                }
+            }
+            .getOrNull()
+    } ?: error("Failed to construct UtExecution for all uTestExecutionResultWrappers on ${jcExecution.method.method}")
 
-        val utUsvmExecution: UtUsvmExecution = when (jcExecution.uTestExecutionResultWrapper) {
+    private fun convert(uTestResultWrapper: UTestResultWrapper): UtExecution? {
+        val coverage = convertCoverage(getTrace(uTestResultWrapper), jcExecution.method.enclosingType.jcClass)
+
+        val utUsvmExecution: UtUsvmExecution = when (uTestResultWrapper) {
             is UTestSymbolicExceptionResult -> {
                 UtUsvmExecution(
                     stateBefore = constructStateBeforeFromUTest(),
                     stateAfter = MissingState,
                     result = createExecutionFailureResult(
                         exceptionDescriptor = UTestExceptionDescriptor(
-                            type = jcExecution.uTestExecutionResultWrapper.exceptionType,
+                            type = uTestResultWrapper.exceptionType,
                             message = "",
                             stackTrace = emptyList(),
                             raisedByUserCode = true,
@@ -90,11 +101,10 @@ class JcToUtExecutionConverter(
             }
 
             is UTestSymbolicSuccessResult -> {
-                val resultWrapper = jcExecution.uTestExecutionResultWrapper
-                resultWrapper.initStatements.forEach { instToModelConverter.processInst(it) }
-                instToModelConverter.processInst(resultWrapper.result)
+                uTestResultWrapper.initStatements.forEach { instToModelConverter.processInst(it) }
+                instToModelConverter.processInst(uTestResultWrapper.result)
 
-                val resultUtModel = instToModelConverter.findModelByInst(resultWrapper.result)
+                val resultUtModel = instToModelConverter.findModelByInst(uTestResultWrapper.result)
 
                 UtUsvmExecution(
                     stateBefore = constructStateBeforeFromUTest(),
@@ -106,7 +116,7 @@ class JcToUtExecutionConverter(
             }
 
             is UTestConcreteExecutionResult ->
-                when (val executionResult = jcExecution.uTestExecutionResultWrapper.uTestExecutionResult) {
+                when (val executionResult = uTestResultWrapper.uTestExecutionResult) {
                     is UTestExecutionSuccessResult -> UtUsvmExecution(
                         stateBefore = convertState(executionResult.initialState, EnvironmentStateKind.INITIAL, jcExecution.method),
                         stateAfter = convertState(executionResult.resultState, EnvironmentStateKind.FINAL, jcExecution.method),

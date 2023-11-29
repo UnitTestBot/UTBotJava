@@ -78,37 +78,50 @@ class JcTestExecutor(
 
         val uTest = memoryScope.createUTest()
 
-        val execResult = runCatching {
+        val concreteResult = runCatching {
             runBlocking {
-                runner.executeAsync(uTest)
+                UTestConcreteExecutionResult(runner.executeAsync(uTest))
             }
         }
-            .onFailure { e -> logger.error(e) { "runner.executeAsync(uTest) failed on ${method.method}" } }
+            .onFailure { e -> logger.warn(e) { "Recoverable: runner.executeAsync(uTest) failed on ${method.method}" } }
             .getOrNull()
 
-        // sometimes symbolic result is preferable that concolic: e.g. if concrete times out
-        val preferableResult =
-            if (execResult !is UTestExecutionSuccessResult && execResult !is UTestExecutionExceptionResult) {
-            val symbolicResult = state.methodResult
-            when (symbolicResult) {
-                is JcMethodResult.JcException -> UTestSymbolicExceptionResult(symbolicResult.type)
+        val symbolicResult by lazy {
+            when (val methodResult = state.methodResult) {
+                is JcMethodResult.JcException -> UTestSymbolicExceptionResult(methodResult.type)
                 is JcMethodResult.Success -> {
                     val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, classConstants, resolvedMethodMocks, method)
-                    val resultExpr = resultScope.resolveExpr(symbolicResult.value, method.returnType)
+                    val resultExpr = resultScope.resolveExpr(methodResult.value, method.returnType)
                     val resultInitializer = resultScope.decoderApi.initializerInstructions()
                     UTestSymbolicSuccessResult(resultInitializer, resultExpr)
                 }
-                JcMethodResult.NoCall -> UTestConcreteExecutionResult(
-                    execResult ?: error("Can't create JcExecution, there's no symbolic nor concrete result on ${method.method}")
-                )
+                JcMethodResult.NoCall -> null
             }
-        } else {
-            UTestConcreteExecutionResult(execResult)
         }
+
+        // sometimes symbolic result more preferable than concolic: e.g. if concrete times out
+        val preferableResult =
+            if (concreteResult?.uTestExecutionResult is UTestExecutionSuccessResult
+                || concreteResult?.uTestExecutionResult is UTestExecutionExceptionResult) {
+                concreteResult
+            } else {
+                symbolicResult
+                    ?: concreteResult
+                    ?: error("Can't create JcExecution, there's no symbolic nor concrete result for ${method.method}")
+            }
 
         val coverage = resolveCoverage(method, state)
 
-        return JcExecution(method, uTest, preferableResult, coverage)
+        return JcExecution(
+            method = method,
+            uTest = uTest,
+            uTestExecutionResultWrappers = sequence {
+                yield(preferableResult)
+                if (preferableResult !== symbolicResult)
+                    symbolicResult?.let { yield(it) }
+            },
+            coverage = coverage
+        )
     }
 
     @Suppress("UNUSED_PARAMETER")

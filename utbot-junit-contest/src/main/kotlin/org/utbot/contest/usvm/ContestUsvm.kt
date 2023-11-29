@@ -12,6 +12,7 @@ import org.jacodb.approximation.Approximations
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.objectweb.asm.Type
 import org.usvm.PathSelectionStrategy
+import org.usvm.PathSelectorFairnessStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.JcTarget
@@ -85,12 +86,14 @@ fun runUsvmGeneration(
 
     val jcContainer by lazy {
         JcContainer(
+            usePersistence = true,
             classpath = classpathFiles,
             machineOptions = UMachineOptions(
                 // TODO usvm-sbft: if we have less than CONTEST_TEST_EXECUTION_TIMEOUT time left, we should try execute
                 //  with smaller timeout, but instrumentation currently doesn't allow to change timeout for individual runs
                 timeout = generationTimeoutMillisWithoutCodegen.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT,
                 pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
+                pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
                 solverType = SolverType.YICES,
             )
         ) {

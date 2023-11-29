@@ -22,6 +22,7 @@ configurations {
     usvmApproximationsApi
     usvmInstrumentationCollector
     usvmInstrumentationRunner
+    generatedTestCompile
 }
 
 def approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
@@ -170,6 +171,10 @@ dependencies {
     implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     implementation 'junit:junit:4.13.2'
 
+    generatedTestCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
+    generatedTestCompile group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
+    generatedTestCompile 'junit:junit:4.13.2'
+
     implementation "org.burningwave:core:12.62.7"
 
     implementation group: "org.usvm", name: "usvm-core", version: usvmVersion
@@ -215,6 +220,8 @@ jar {
         attributes 'Implementation-Title': 'UtBot JUnit contest'
         attributes 'JAR-Type': 'Fat JAR'
     }
+
+    processResources.exclude("*")
 
     version '1.0'
 
@@ -295,4 +302,53 @@ task run(type: JavaExec) {
     def jreSuffix = "${File.separatorChar}jre"
     if (javaHome.endsWith(jreSuffix)) javaHome = javaHome.dropRight(jreSuffix.length())
     environment "JAVA_HOME", javaHome
+}
+
+tasks.register("generateRuntool") {
+    dependsOn(jar, usvmInstrumentationRunnerJar)
+
+    def distDir = buildDir.toPath().resolve("utbot-usvm-runtool").toFile()
+    copy {
+        from jar.outputs
+        into distDir
+        rename { "utbot-usvm-tool.jar" }
+    }
+
+    copy {
+        from configurations.usvmApproximationsApi.resolvedConfiguration.files.find()
+        into distDir
+        rename { "usvm-api.jar" }
+    }
+
+    copy {
+        from configurations.approximations.resolvedConfiguration.files.find()
+        into distDir
+        rename { "usvm-approximations.jar" }
+    }
+
+    copy {
+        from configurations.usvmInstrumentationCollector.resolvedConfiguration.files.find()
+        into distDir
+        rename { "usvm-jvm-collectors.jar" }
+    }
+
+    copy {
+        from usvmInstrumentationRunnerJar.outputs
+        into distDir
+        rename { "usvm-jvm-instrumentation.jar" }
+    }
+
+    copy {
+        from projectDir.toPath().resolve("usvm-runtool")
+        into distDir
+        rename { "runtool" }
+    }
+
+    def libsDir = distDir.toPath().resolve("lib").toFile()
+    configurations.generatedTestCompile.resolvedConfiguration.files.forEach {f ->
+        copy {
+            from f
+            into libsDir
+        }
+    }
 }

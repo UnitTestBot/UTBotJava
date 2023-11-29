@@ -312,8 +312,9 @@ interface Tool {
             fuzzingRatio,
             project.sootClasspathString,
             runFromEstimator = true,
-            expectedExceptions,
-            methodNameFilter
+            expectedExceptions = expectedExceptions,
+            tmpDir = File("."),
+            methodNameFilter = methodNameFilter
         )
 
         override fun close() {

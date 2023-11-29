@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# switch to environment JVM as needed
+JAVA_HOME=/usr
+
+export JAVA_HOME=$JAVA_HOME
+
+# Resolve tool absolute path
+TOOL_DIR="$(dirname -- "$(readlink -f "${BASH_SOURCE}")")"
+
+# Create test compile classpath from all files in `lib` directory
+LIB_DIR="$TOOL_DIR/lib"
+export UTBOT_CONTEST_TEST_COMPILE_CP="$(find $LIB_DIR -type f -exec realpath {} \; | tr '\n' ':' |  sed 's/:$//')"
+
+TOOL="$TOOL_DIR/utbot-usvm-tool.jar"
+env usvm.jvm.api.jar.path="$TOOL_DIR/usvm-api.jar" \
+    usvm.jvm.approximations.jar.path="$TOOL_DIR/usvm-approximations.jar" \
+    usvm-jvm-collectors-jar="$TOOL_DIR/usvm-jvm-collectors.jar" \
+    usvm-jvm-instrumentation-jar="$TOOL_DIR/usvm-jvm-instrumentation.jar" \
+    $JAVA_HOME/bin/java -cp $TOOL sbst.runtool.Main

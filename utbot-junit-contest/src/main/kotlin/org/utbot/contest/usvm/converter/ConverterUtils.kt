@@ -101,7 +101,8 @@ fun TypeName.findClassId(classpath: JcClasspath): ClassId =
         ?: error("Can not construct classId for $this")
 
 val JcField.fieldId: FieldId
-    get() = toJavaField(utContext.classLoader)!!.fieldId
+    get() = toJavaField(utContext.classLoader)?.fieldId
+        ?: error("Can not construct fieldId for $this")
 
 val UTestValueDescriptor.origin: UTestInst?
     get() = (this as? UTestObjectDescriptor)?.originUTestExpr

@@ -47,6 +47,7 @@ import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.booleanWrapperClassId
+import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executable
@@ -60,6 +61,7 @@ import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.primitives
+import org.utbot.framework.plugin.api.util.replaceWithWrapperIfPrimitive
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
@@ -244,12 +246,23 @@ open class CgVariableConstructor(val context: CgContext) :
         val statementCall = model.instantiationCall
         val executable = statementCall.statement
         val params = statementCall.params
+        val singleParamOrNull = params.singleOrNull()
+
+        val isWrappingConstructor =
+            executable is ConstructorId && isPrimitiveWrapperOrString(model.classId) && singleParamOrNull != null &&
+                    replaceWithWrapperIfPrimitive(singleParamOrNull.classId) == model.classId
 
         // Don't use redundant constructors for primitives and String
-        val initExpr = if (executable is ConstructorId && isPrimitiveWrapperOrString(model.classId)) {
-            cgLiteralForWrapper(params)
-        } else {
-            createCgExecutableCallFromUtExecutableCall(statementCall)
+        val initExpr = when {
+            isWrappingConstructor -> cgLiteralForWrapper(params)
+            executable is ConstructorId && model.classId == stringClassId && singleParamOrNull is UtArrayModel
+                    && singleParamOrNull.classId.elementClassId == charClassId
+                    && List(singleParamOrNull.length) { i -> singleParamOrNull[i] }.all { it is UtPrimitiveModel } -> {
+                val stringValue = List(singleParamOrNull.length) { i -> (singleParamOrNull[i] as UtPrimitiveModel).value }
+                    .joinToString(separator = "")
+                cgLiteralForWrapper(params = listOf(UtPrimitiveModel(stringValue)))
+            }
+            else -> createCgExecutableCallFromUtExecutableCall(statementCall)
         }
 
         newVar(model.classId, model, baseName) { initExpr }

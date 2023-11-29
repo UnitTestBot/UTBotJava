@@ -7,8 +7,9 @@ import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.ext.constructors
 import org.jacodb.api.ext.objectType
+import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.toType
 import org.jacodb.approximation.JcEnrichedVirtualField
 import org.usvm.UConcreteHeapRef
@@ -53,7 +54,12 @@ class JcTestExecutor(
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
-    fun execute(method: JcTypedMethod, state: JcState, stringConstants: Map<String, UConcreteHeapRef>): JcExecution {
+    fun execute(
+        method: JcTypedMethod,
+        state: JcState,
+        stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>,
+    ): JcExecution {
         val model = state.models.first()
 
         val ctx = state.ctx
@@ -65,7 +71,7 @@ class JcTestExecutor(
         val resolvedMethodMocks = methodMocks.entries.groupBy({ model.eval(it.key) }, { it.value })
             .mapValues { it.value.flatten() }
 
-        val memoryScope = MemoryScope(ctx, model, model, stringConstants, resolvedMethodMocks, method)
+        val memoryScope = MemoryScope(ctx, model, model, stringConstants, classConstants, resolvedMethodMocks, method)
 
         val uTest = memoryScope.createUTest()
 
@@ -80,7 +86,7 @@ class JcTestExecutor(
             when (symbolicResult) {
                 is JcMethodResult.JcException -> UTestSymbolicExceptionResult(symbolicResult.type)
                 is JcMethodResult.Success -> {
-                    val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, resolvedMethodMocks, method)
+                    val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, classConstants, resolvedMethodMocks, method)
                     val resultExpr = resultScope.resolveExpr(symbolicResult.value, method.returnType)
                     val resultInitializer = resultScope.decoderApi.initializerInstructions()
                     UTestSymbolicSuccessResult(resultInitializer, resultExpr)
@@ -113,9 +119,10 @@ class JcTestExecutor(
         model: UModelBase<JcType>,
         memory: UReadOnlyMemory<JcType>,
         stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>,
         private val resolvedMethodMocks: Map<UHeapRef, List<UMockSymbol<*>>>,
         method: JcTypedMethod,
-    ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, stringConstants, method) {
+    ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, stringConstants, classConstants, method) {
 
         override val decoderApi = JcTestExecutorDecoderApi(ctx)
 
@@ -145,8 +152,12 @@ class JcTestExecutor(
         override fun allocateClassInstance(type: JcClassType): UTestExpression =
             UTestAllocateMemoryCall(type.jcClass)
 
-        // todo: looks incorrect
-        override fun allocateString(value: UTestExpression): UTestExpression = value
+        override fun allocateString(value: UTestExpression): UTestExpression {
+            val stringConstructor = ctx.stringType.constructors
+                .firstOrNull { it.parameters.size == 1 && it.parameters.single().type == value.type }
+                ?: error("Can't allocate string from value: $value")
+            return decoderApi.invokeMethod(stringConstructor.method, listOf(value))
+        }
 
         override fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): UTestExpression {
             if (ref !in resolvedMethodMocks || type.jcClass.name != "java.util.Random") {

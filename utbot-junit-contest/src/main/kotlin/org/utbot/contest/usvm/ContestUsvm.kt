@@ -176,7 +176,12 @@ fun runUsvmGeneration(
         ) { state ->
             val jcExecution = accumulateMeasureTime("executor.execute(${cut.classId.name})", timeStats, state.entrypoint) {
                 runCatching {
-                    executor.execute(state.entrypoint.typedMethod, state, jcContainer.machine.stringConstants)
+                    executor.execute(
+                        method = state.entrypoint.typedMethod,
+                        state = state,
+                        stringConstants = jcContainer.machine.stringConstants,
+                        classConstants = jcContainer.machine.classConstants
+                    )
                 }.getOrElse { e ->
                     logger.error(e) { "executor.execute(${state.entrypoint}) failed" }
                     return@analyzeAsync

@@ -2,20 +2,46 @@ package org.utbot.python.fuzzing
 
 import mu.KotlinLogging
 import org.utbot.fuzzer.FuzzedContext
-import org.utbot.fuzzing.*
+import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.Description
+import org.utbot.fuzzing.Feedback
+import org.utbot.fuzzing.Fuzzing
+import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.Statistic
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.coverage.PyInstruction
 import org.utbot.python.engine.ExecutionFeedback
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.fuzzing.provider.*
+import org.utbot.python.fuzzing.provider.BoolValueProvider
+import org.utbot.python.fuzzing.provider.BytearrayValueProvider
+import org.utbot.python.fuzzing.provider.BytesValueProvider
+import org.utbot.python.fuzzing.provider.ComplexValueProvider
+import org.utbot.python.fuzzing.provider.ConstantValueProvider
+import org.utbot.python.fuzzing.provider.DictValueProvider
+import org.utbot.python.fuzzing.provider.FloatValueProvider
+import org.utbot.python.fuzzing.provider.IntValueProvider
+import org.utbot.python.fuzzing.provider.IteratorValueProvider
+import org.utbot.python.fuzzing.provider.ListValueProvider
+import org.utbot.python.fuzzing.provider.NoneValueProvider
+import org.utbot.python.fuzzing.provider.OptionalValueProvider
+import org.utbot.python.fuzzing.provider.RePatternValueProvider
+import org.utbot.python.fuzzing.provider.ReduceValueProvider
+import org.utbot.python.fuzzing.provider.SetValueProvider
+import org.utbot.python.fuzzing.provider.StrValueProvider
+import org.utbot.python.fuzzing.provider.SubtypeValueProvider
+import org.utbot.python.fuzzing.provider.TupleFixSizeValueProvider
+import org.utbot.python.fuzzing.provider.TupleValueProvider
+import org.utbot.python.fuzzing.provider.TypeAliasValueProvider
+import org.utbot.python.fuzzing.provider.UnionValueProvider
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.InferredTypeFeedback
 import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.ExecutionWithTimoutMode
 import org.utbot.python.utils.FakeWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
@@ -167,7 +193,6 @@ class PythonFuzzing(
         stats: Statistic<UtType, PythonFuzzedValue>
     ): Boolean {
         if (globalIsCancelled()) {
-            logger.warn { "Cancellation in fuzzing" }
             return true
         }
         if (description.limitManager.isCancelled() || description.parameters.any { it.isAny() }) {

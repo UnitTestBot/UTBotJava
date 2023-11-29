@@ -56,10 +56,12 @@ import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.inference.baseline.MethodAndVars
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
@@ -72,14 +74,13 @@ import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.TimeoutMode
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.utils.convertToTime
-import org.utbot.python.utils.separateUntil
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
-private const val MINIMAL_TIMEOUT_FOR_SUBSTITUTION = 4_000  // ms
+private const val MINIMAL_TIMEOUT_FOR_SUBSTITUTION = 7_000  // ms
 
 class FuzzingEngine(
     val method: PythonMethod,
@@ -110,18 +111,16 @@ class FuzzingEngine(
         val now = System.currentTimeMillis()
         val filterModifications = modifications
             .take(minOf(modifications.size, maxOf(((until - now) / MINIMAL_TIMEOUT_FOR_SUBSTITUTION).toInt(), 1)))
-        filterModifications
-            .forEachIndexed { index, (modifiedMethod, additionalVars) ->
-                logger.info { "Modified method: ${modifiedMethod.methodSignature()}" }
-                val localUntil = separateUntil(until, index, filterModifications.size)
-                logger.info { "Fuzzing local until: ${localUntil.convertToTime()}" }
-                generateTests(modifiedMethod, additionalVars, localUntil)
+            .map { (modifiedMethod, additionalVars) ->
+                logger.info { "Substitution: ${modifiedMethod.methodSignature()}" }
+                MethodAndVars(modifiedMethod, additionalVars)
             }
+        generateTests(method, filterModifications, until)
     }
 
     private fun generateTests(
         method: PythonMethod,
-        additionalVars: String,
+        methodModifications: List<MethodAndVars>,
         until: Long,
     ) {
         val timeoutLimitManager = TestGenerationLimitManager(
@@ -140,7 +139,8 @@ class FuzzingEngine(
             typeStorage,
             hintCollector.result,
             configuration.pythonPath,
-            method,
+            MethodAndVars(method, ""),
+            methodModifications,
             configuration.sysPathDirectories,
             configuration.testFileInformation.moduleName,
             namesInModule,
@@ -151,7 +151,6 @@ class FuzzingEngine(
                 getOffsetLine(sourceFileContent, method.ast.endOffset)
             ),
             mypyStorage.buildRoot.configFile,
-            additionalVars,
             randomTypeFrequency = RANDOM_TYPE_FREQUENCY,
             dMypyTimeout = configuration.timeoutForRun,
         )
@@ -200,6 +199,8 @@ class FuzzingEngine(
                 }
                 logger.debug { "Executor manager was created successfully" }
 
+                val initialType = typeInferenceAlgorithm.expandState() as FunctionType
+
                 val pmd = PythonMethodDescription(
                     method.name,
                     constants,
@@ -207,7 +208,7 @@ class FuzzingEngine(
                     Trie(PyInstruction::id),
                     Random(0),
                     TestGenerationLimitManager(ExecutionWithTimoutMode, until, isRootManager = true),
-                    method.methodType,
+                    initialType,
                 )
 
                 try {

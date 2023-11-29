@@ -21,6 +21,9 @@ private val BAD_TYPES = setOf(
     "builtins.super",
     "builtins.type",
     "builtins.slice",
+    "builtins.range",
+    "builtins.memoryview",
+    "builtins.object",
 )
 
 fun getCandidates(param: TypeParameter, typeStorage: PythonTypeHintsStorage): List<UtType> {
@@ -44,7 +47,7 @@ fun getCandidates(param: TypeParameter, typeStorage: PythonTypeHintsStorage): Li
 fun generateTypesAfterSubstitution(type: UtType, typeStorage: PythonTypeHintsStorage): List<UtType> {
     val params = type.getBoundedParameters()
     return PriorityCartesianProduct(params.map { getCandidates(it, typeStorage) }).getSequence()
-        .filter { it.all { it.pythonTypeName() !in BAD_TYPES } }
+        .filter { types -> types.all { it.pythonTypeName() !in BAD_TYPES } }
         .map { subst ->
             DefaultSubstitutionProvider.substitute(type, (params zip subst).associate { it })
         }.take(MAX_SUBSTITUTIONS).toList()

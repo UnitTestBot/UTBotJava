@@ -28,14 +28,13 @@ object PythonTree {
         return isRecursiveObjectDFS(tree, mutableSetOf())
     }
 
-    private fun isRecursiveObjectDFS(tree: PythonTreeNode, visited: MutableSet<PythonTreeNode>): Boolean {
+    private fun isRecursiveObjectDFS(tree: PythonTreeNode, visited: Set<PythonTreeNode>): Boolean {
         if (tree is PrimitiveNode) {
             return false
         }
         if (visited.contains(tree))
             return true
-        visited.add(tree)
-        return tree.children.any { isRecursiveObjectDFS(it, visited) }
+        return tree.children.any { isRecursiveObjectDFS(it, visited + tree) }
     }
 
     fun containsFakeNode(tree: PythonTreeNode): Boolean {

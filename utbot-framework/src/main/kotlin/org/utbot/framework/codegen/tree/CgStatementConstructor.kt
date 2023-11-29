@@ -547,11 +547,12 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         // TODO: in order to check whether we are working with a TypeVariable or not
 //        val returnType = runCatching { call.executableId.kotlinFunction }.getOrNull()?.returnType?.javaType
 
-        if (call.executableId != mockMethodId) return guardExpression(baseType, call)
-
-        // call represents a call to mock() method
-        val wrappedType = wrapTypeIfRequired(baseType)
-        return ExpressionWithType(wrappedType, call)
+        if (call.executableId == mockMethodId && call.arguments[0] is CgGetJavaClass) {
+            // call represents a call to mock() method
+            val wrappedType = wrapTypeIfRequired(baseType)
+            return ExpressionWithType(wrappedType, call)
+        }
+        return guardExpression(baseType, call)
     }
 
     override fun guardExpression(baseType: ClassId, expression: CgExpression): ExpressionWithType {

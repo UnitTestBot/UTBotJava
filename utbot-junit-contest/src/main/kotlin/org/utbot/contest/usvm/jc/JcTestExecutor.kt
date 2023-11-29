@@ -1,6 +1,7 @@
 package org.utbot.contest.usvm.jc
 
 import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
@@ -41,6 +42,8 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 
+private val logger = KotlinLogging.logger {}
+
 /**
  * A class, responsible for resolving a single [JcExecution] for a specific method from a symbolic state.
  *
@@ -75,9 +78,13 @@ class JcTestExecutor(
 
         val uTest = memoryScope.createUTest()
 
-        val execResult = runBlocking {
-            runner.executeAsync(uTest)
+        val execResult = runCatching {
+            runBlocking {
+                runner.executeAsync(uTest)
+            }
         }
+            .onFailure { e -> logger.error(e) { "runner.executeAsync(uTest) failed on ${method.method}" } }
+            .getOrNull()
 
         // sometimes symbolic result is preferable that concolic: e.g. if concrete times out
         val preferableResult =
@@ -91,7 +98,9 @@ class JcTestExecutor(
                     val resultInitializer = resultScope.decoderApi.initializerInstructions()
                     UTestSymbolicSuccessResult(resultInitializer, resultExpr)
                 }
-                JcMethodResult.NoCall -> UTestConcreteExecutionResult(execResult)
+                JcMethodResult.NoCall -> UTestConcreteExecutionResult(
+                    execResult ?: error("Can't create JcExecution, there's no symbolic nor concrete result on ${method.method}")
+                )
             }
         } else {
             UTestConcreteExecutionResult(execResult)

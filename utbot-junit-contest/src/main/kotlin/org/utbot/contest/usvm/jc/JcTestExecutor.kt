@@ -149,9 +149,11 @@ class JcTestExecutor(
         override fun allocateString(value: UTestExpression): UTestExpression = value
 
         override fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): UTestExpression {
-            if (ref !in resolvedMethodMocks) {
+            if (ref !in resolvedMethodMocks || type.jcClass.name != "java.util.Random") {
                 return super.resolveObject(ref, heapRef, type)
             }
+
+            // Hack: mock only Random
 
             val mocks = resolvedMethodMocks.getValue(ref)
 

@@ -121,6 +121,7 @@ class JcToUtModelConverter(
 
                 fields += valueDescriptor.fields
                     .entries
+                    .filter { (jcField, _) -> !jcField.isStatic }
                     .associate { (jcField, fieldDescr) ->
                         val fieldId = FieldId(jcField.enclosingClass.classId, jcField.name)
                         val fieldModel = convert(fieldDescr, stateKind)

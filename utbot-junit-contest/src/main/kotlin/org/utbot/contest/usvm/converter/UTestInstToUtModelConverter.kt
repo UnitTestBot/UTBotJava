@@ -108,26 +108,32 @@ class UTestInstToUtModelConverter(
             is UTestSetFieldStatement -> {
                 val instanceExpr = uTestInst.instance
 
-                val instanceModel = processExpr(instanceExpr)
-                require(instanceModel is UtAssembleModel)
+                when (val instanceModel = processExpr(instanceExpr)) {
+                    is UtAssembleModel -> {
+                        val fieldType = uTestInst.field.enclosingClass.classId
+                        val fieldName = uTestInst.field.name
+                        val setValueModel = processExpr(uTestInst.value)
 
-                val fieldType = uTestInst.field.enclosingClass.classId
-                val fieldName = uTestInst.field.name
-                val setValueModel = processExpr(uTestInst.value)
+                        val methodCall = UtExecutableCallModel(
+                            instance = null,
+                            executable = utilMethodProvider.setFieldMethodId,
+                            params = listOf(
+                                instanceModel,
+                                UtPrimitiveModel(fieldType.name),
+                                UtPrimitiveModel(fieldName),
+                                setValueModel,
+                            ),
+                        )
 
-                val methodCall = UtExecutableCallModel(
-                    instance = null,
-                    executable = utilMethodProvider.setFieldMethodId,
-                    params = listOf(
-                        instanceModel,
-                        UtPrimitiveModel(fieldType.name),
-                        UtPrimitiveModel(fieldName),
-                        setValueModel,
-                    ),
-                )
-
-                instanceModel?.let {
-                    (it.modificationsChain as MutableList).add(methodCall)
+                        (instanceModel.modificationsChain as MutableList).add(methodCall)
+                    }
+                    is UtCompositeModel -> {
+                        instanceModel.fields[uTestInst.field.fieldId] = processExpr(uTestInst.value)
+                    }
+                    else -> logger.warn {
+                        "Field ${uTestInst.field} can't be set for a model of type ${instanceModel::class}, " +
+                                "when generating tests for ${uTest.callMethodExpression.method}"
+                    }
                 }
             }
 

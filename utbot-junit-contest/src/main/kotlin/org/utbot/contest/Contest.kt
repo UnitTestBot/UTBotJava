@@ -47,6 +47,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.utbot.contest.usvm.jc.JcContainer
+import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.generator.CodeGenerator
@@ -138,7 +140,7 @@ fun main(args: Array<String>) {
             val timeBudgetSec = cmd[2].toLong()
             val cut = ClassUnderTest(classLoader.loadClass(classUnderTestName).id, outputDir, classfileDir.toFile())
 
-            runGeneration(
+            runUsvmGeneration(
                 project = "Contest",
                 cut,
                 timeBudgetSec,
@@ -161,7 +163,7 @@ fun main(args: Array<String>) {
             println("${ContestMessage.READY}")
         }
     }
-    ConcreteExecutor.defaultPool.close()
+    JcContainer.close()
 }
 
 fun setOptions() {

@@ -8,7 +8,7 @@ com.google.common.base.internal.Finalizer
 com.google.common.io.FileBackedOutputStream
 com.google.common.collect.TreeRangeMap
 com.google.common.math.PairedStatsAccumulator
- com.google.common.primitives.Shorts
+com.google.common.primitives.Shorts
 com.google.common.base.Throwables
 com.google.common.collect.SparseImmutableTable
 com.google.common.collect.Queues

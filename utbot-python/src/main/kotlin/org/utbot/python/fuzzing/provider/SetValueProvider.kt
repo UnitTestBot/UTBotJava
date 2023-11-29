@@ -20,31 +20,18 @@ object SetValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodD
     override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         val params = type.pythonAnnotationParameters()
 
-        val modifications = emptyList<Routine.Call<UtType, PythonFuzzedValue>>().toMutableList()
-        modifications.add(Routine.Call(params) { instance, arguments ->
-            val set = instance.tree as PythonTree.SetNode
-            set.items.add(arguments.first().tree)
-        })
-        modifications.add(Routine.Call(params) { instance, arguments ->
-            val set = instance.tree as PythonTree.SetNode
-            val value = arguments.first().tree
-            if (set.items.contains(value)) {
-                set.items.remove(value)
-            }
-        })
-        yield(Seed.Recursive(
-            construct = Routine.Create(emptyList()) {
-                val items = emptySet<PythonTree.PythonTreeNode>().toMutableSet()
+        yield(Seed.Collection(
+            construct = Routine.Collection { _ ->
                 PythonFuzzedValue(
-                    PythonTree.SetNode(items),
-                    "%var% = ${type.pythonTypeRepresentation()}",
+                    PythonTree.SetNode(mutableSetOf()),
+                    "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },
-            modify = modifications.asSequence(),
-            empty = Routine.Empty { PythonFuzzedValue(
-                PythonTree.SetNode(emptySet<PythonTree.PythonTreeNode>().toMutableSet()),
-                "%var% = ${type.pythonTypeRepresentation()}",
-            )}
+            modify = Routine.ForEach(params) { instance, _, arguments ->
+                val item = arguments[0].tree
+                val set = instance.tree as PythonTree.SetNode
+                set.items.add(item)
+            },
         ))
     }
 }

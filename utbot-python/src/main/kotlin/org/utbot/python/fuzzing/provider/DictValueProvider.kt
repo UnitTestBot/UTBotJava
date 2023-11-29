@@ -20,36 +20,23 @@ object DictValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethod
     override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
         val params = type.pythonAnnotationParameters()
 
-        val modifications = emptyList<Routine.Call<UtType, PythonFuzzedValue>>().toMutableList()
-        modifications.add(Routine.Call(params) { instance, arguments ->
-            val key = arguments[0].tree
-            val value = arguments[1].tree
-            val dict = instance.tree as PythonTree.DictNode
-            if (dict.items.keys.toList().contains(key)) {
-                dict.items.replace(key, value)
-            } else {
-                dict.items[key] = value
-            }
-        })
-        modifications.add(Routine.Call(listOf(params[0])) { instance, arguments ->
-            val key = arguments[0].tree
-            val dict = instance.tree as PythonTree.DictNode
-            if (dict.items.keys.toList().contains(key)) {
-                dict.items.remove(key)
-            }
-        })
-        yield(Seed.Recursive(
-            construct = Routine.Create(emptyList()) { v ->
+        yield(Seed.Collection(
+            construct = Routine.Collection { _ ->
                 PythonFuzzedValue(
                     PythonTree.DictNode(mutableMapOf()),
                     "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },
-            modify = modifications.asSequence(),
-            empty = Routine.Empty { PythonFuzzedValue(
-                PythonTree.DictNode(emptyMap<PythonTree.PythonTreeNode, PythonTree.PythonTreeNode>().toMutableMap()),
-                "%var% = ${type.pythonTypeRepresentation()}"
-            )}
+            modify = Routine.ForEach(params) { instance, _, arguments ->
+                val key = arguments[0].tree
+                val value = arguments[1].tree
+                val dict = instance.tree as PythonTree.DictNode
+                if (dict.items.keys.toList().contains(key)) {
+                    dict.items.replace(key, value)
+                } else {
+                    dict.items[key] = value
+                }
+            },
         ))
     }
 }

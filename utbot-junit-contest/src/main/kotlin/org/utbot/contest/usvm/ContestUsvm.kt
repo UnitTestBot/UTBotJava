@@ -96,7 +96,7 @@ fun runUsvmGeneration(
                 timeout = generationTimeoutMillisWithoutCodegen.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT,
                 pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
                 pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
-                solverType = SolverType.YICES,
+                solverType = SolverType.Z3, // TODO: usvm-ksmt: Yices doesn't work on old linux
             )
         ) {
             // TODO usvm-sbft: we may want to tune these JcSettings for contest

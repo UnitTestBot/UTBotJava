@@ -309,48 +309,50 @@ task run(type: JavaExec) {
 tasks.register("generateRuntool") {
     dependsOn(jar, usvmInstrumentationRunnerJar)
 
-    def distDir = buildDir.toPath().resolve("utbot-usvm-runtool").toFile()
-    copy {
-        from jar.outputs
-        into distDir
-        rename { "utbot-usvm-tool.jar" }
-    }
-
-    copy {
-        from configurations.usvmApproximationsApi.resolvedConfiguration.files.find()
-        into distDir
-        rename { "usvm-api.jar" }
-    }
-
-    copy {
-        from configurations.approximations.resolvedConfiguration.files.find()
-        into distDir
-        rename { "usvm-approximations.jar" }
-    }
-
-    copy {
-        from configurations.usvmInstrumentationCollector.resolvedConfiguration.files.find()
-        into distDir
-        rename { "usvm-jvm-collectors.jar" }
-    }
-
-    copy {
-        from usvmInstrumentationRunnerJar.outputs
-        into distDir
-        rename { "usvm-jvm-instrumentation.jar" }
-    }
-
-    copy {
-        from projectDir.toPath().resolve("usvm-runtool")
-        into distDir
-        rename { "runtool" }
-    }
-
-    def libsDir = distDir.toPath().resolve("lib").toFile()
-    configurations.generatedTestCompile.resolvedConfiguration.files.forEach {f ->
+    doLast {
+        def distDir = buildDir.toPath().resolve("utbot-usvm-runtool").toFile()
         copy {
-            from f
-            into libsDir
+            from jar.outputs
+            into distDir
+            rename { "utbot-usvm-tool.jar" }
+        }
+
+        copy {
+            from configurations.usvmApproximationsApi.resolvedConfiguration.files.find()
+            into distDir
+            rename { "usvm-api.jar" }
+        }
+
+        copy {
+            from configurations.approximations.resolvedConfiguration.files.find()
+            into distDir
+            rename { "usvm-approximations.jar" }
+        }
+
+        copy {
+            from configurations.usvmInstrumentationCollector.resolvedConfiguration.files.find()
+            into distDir
+            rename { "usvm-jvm-collectors.jar" }
+        }
+
+        copy {
+            from usvmInstrumentationRunnerJar.outputs
+            into distDir
+            rename { "usvm-jvm-instrumentation.jar" }
+        }
+
+        copy {
+            from projectDir.toPath().resolve("usvm-runtool")
+            into distDir
+            rename { "runtool" }
+        }
+
+        def libsDir = distDir.toPath().resolve("lib").toFile()
+        configurations.generatedTestCompile.resolvedConfiguration.files.forEach { f ->
+            copy {
+                from f
+                into libsDir
+            }
         }
     }
 }

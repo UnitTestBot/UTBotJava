@@ -113,7 +113,7 @@ fun main(args: Array<String>) {
     val tmpDir = outputDir.resolveSibling("data")
 
     val cpEntries = classpathString.split(File.pathSeparator).map { File(it) }
-    val classLoader = URLClassLoader(cpEntries.map { it.toUrl() }.toTypedArray())
+    val classLoader = URLClassLoader(cpEntries.map { it.toUrl() }.toTypedArray(), null)
     val context = UtContext(classLoader)
 
     val testCompileCp = System.getenv("UTBOT_CONTEST_TEST_COMPILE_CP")

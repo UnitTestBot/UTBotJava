@@ -20,6 +20,7 @@ private val logger = KotlinLogging.logger {}
 // TODO usvm-sbft-refactoring: copied from `usvm/usvm-jvm/test`, extract this class back to USVM project
 class JcContainer private constructor(
     usePersistence: Boolean,
+    persistenceDir: File,
     classpath: List<File>,
     machineOptions: UMachineOptions,
     builder: JcSettings.() -> Unit,
@@ -38,7 +39,7 @@ class JcContainer private constructor(
          * 2. Faster analysis for classes from the same cp
          * */
         val persistenceLocation = if (usePersistence) {
-            "jcdb-persistence-${cpPath.hashCode()}"
+            persistenceDir.resolve("jcdb-persistence-${cpPath.hashCode()}").absolutePath
         } else {
             null
         }
@@ -83,6 +84,7 @@ class JcContainer private constructor(
 
         operator fun invoke(
             usePersistence: Boolean,
+            persistenceDir: File,
             classpath: List<File>,
             machineOptions: UMachineOptions,
             builder: JcSettings.() -> Unit,
@@ -92,7 +94,8 @@ class JcContainer private constructor(
                 // TODO usvm-sbft: right now max cache size is 1, do we need to increase it?
                 logger.info { "JcContainer cache miss" }
                 close()
-                JcContainer(usePersistence, classpath, machineOptions, builder).also { cache[cacheKey] = it }
+                JcContainer(usePersistence, persistenceDir, classpath, machineOptions, builder)
+                    .also { cache[cacheKey] = it }
             }
         }
 

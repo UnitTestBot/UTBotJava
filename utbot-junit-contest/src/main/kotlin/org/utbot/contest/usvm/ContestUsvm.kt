@@ -65,6 +65,7 @@ fun runUsvmGeneration(
     classpathString: String,
     runFromEstimator: Boolean,
     expectedExceptions: ExpectedExceptionsForClass,
+    tmpDir: File,
     methodNameFilter: String? = null // For debug purposes you can specify method name
 ): StatsForClass = runBlocking {
     ErrorCountingLoggerAppender.resetOccurrenceCounter()
@@ -87,6 +88,7 @@ fun runUsvmGeneration(
     val jcContainer by lazy {
         JcContainer(
             usePersistence = true,
+            persistenceDir = tmpDir,
             classpath = classpathFiles,
             machineOptions = UMachineOptions(
                 // TODO usvm-sbft: if we have less than CONTEST_TEST_EXECUTION_TIMEOUT time left, we should try execute
@@ -94,7 +96,7 @@ fun runUsvmGeneration(
                 timeout = generationTimeoutMillisWithoutCodegen.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT,
                 pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
                 pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
-                solverType = SolverType.YICES,
+                solverType = SolverType.Z3, // TODO: usvm-ksmt: Yices doesn't work on old linux
             )
         ) {
             // TODO usvm-sbft: we may want to tune these JcSettings for contest

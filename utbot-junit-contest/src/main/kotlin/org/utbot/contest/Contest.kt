@@ -47,6 +47,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.utbot.contest.usvm.jc.JcContainer
+import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.generator.CodeGenerator
@@ -107,20 +109,29 @@ fun main(args: Array<String>) {
 
     println("Started UtBot Contest, classfileDir = $classfileDir, classpathString=$classpathString, outputDir=$outputDir, mocks=$mockStrategyApi")
 
+    // TODO: tmp hack to retrieve tmp dir wrt contest rules
+    val tmpDir = outputDir.resolveSibling("data")
+
     val cpEntries = classpathString.split(File.pathSeparator).map { File(it) }
     val classLoader = URLClassLoader(cpEntries.map { it.toUrl() }.toTypedArray())
     val context = UtContext(classLoader)
 
+    val testCompileCp = System.getenv("UTBOT_CONTEST_TEST_COMPILE_CP")
+    var classpathStringForTestCompile = classpathString
+    if (!testCompileCp.isNullOrBlank()) {
+        classpathStringForTestCompile = "$classpathStringForTestCompile${File.pathSeparator}$testCompileCp"
+    }
 
     withUtContext(context) {
         // Initialize the soot before a contest is started.
         // This saves the time budget for real work instead of soot initialization.
         TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
 
-        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {
-            prepareClass(ConcreteExecutorPool::class.java, "")
-            prepareClass(Warmup::class.java, "")
-        }
+//        TODO usvm-sbft-merge: utbot instrumentation not used in usvm
+//        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {
+//            prepareClass(ConcreteExecutorPool::class.java, "")
+//            prepareClass(Warmup::class.java, "")
+//        }
 
         println("${ContestMessage.INIT}")
 
@@ -138,7 +149,8 @@ fun main(args: Array<String>) {
             val timeBudgetSec = cmd[2].toLong()
             val cut = ClassUnderTest(classLoader.loadClass(classUnderTestName).id, outputDir, classfileDir.toFile())
 
-            runGeneration(
+            // TODO usvm-sbft-merge: usvm generator use different entrypoint
+            runUsvmGeneration(
                 project = "Contest",
                 cut,
                 timeBudgetSec,
@@ -146,6 +158,7 @@ fun main(args: Array<String>) {
                 classpathString,
                 runFromEstimator = false,
                 expectedExceptions = ExpectedExceptionsForClass(),
+                tmpDir = tmpDir,
                 methodNameFilter = null
             )
 
@@ -153,7 +166,7 @@ fun main(args: Array<String>) {
             compiledClassFileDir.mkdirs()
             compileClassAndRemoveUncompilableTests(
                 testDir = compiledClassFileDir.absolutePath,
-                classPath = classpathString,
+                classPath = classpathStringForTestCompile,
                 testClass = cut.generatedTestFile.absolutePath
             )
             compiledClassFileDir.deleteRecursively()
@@ -161,7 +174,9 @@ fun main(args: Array<String>) {
             println("${ContestMessage.READY}")
         }
     }
+
     ConcreteExecutor.defaultPool.close()
+    JcContainer.close()
 }
 
 fun setOptions() {

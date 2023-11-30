@@ -26,6 +26,7 @@ import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
@@ -62,7 +63,7 @@ class JcTestExecutor(
         state: JcState,
         stringConstants: Map<String, UConcreteHeapRef>,
         classConstants: Map<JcType, UConcreteHeapRef>,
-    ): JcExecution {
+    ): JcExecution? {
         val model = state.models.first()
 
         val ctx = state.ctx
@@ -99,10 +100,17 @@ class JcTestExecutor(
             }
         }
 
-        // sometimes symbolic result more preferable than concolic: e.g. if concrete times out
+        val testExecutionResult = concreteResult?.uTestExecutionResult
+
+        // Drop crashed executions
+        if (testExecutionResult is UTestExecutionFailedResult) {
+            logger.warn { "JVM crash in concrete execution for method ${method.method}, dropping state" }
+            return null
+        }
+
+        // sometimes symbolic result more preferable than concolic
         val preferableResult =
-            if (concreteResult?.uTestExecutionResult is UTestExecutionSuccessResult
-                || concreteResult?.uTestExecutionResult is UTestExecutionExceptionResult) {
+            if (testExecutionResult is UTestExecutionSuccessResult || testExecutionResult is UTestExecutionExceptionResult) {
                 concreteResult
             } else {
                 symbolicResult

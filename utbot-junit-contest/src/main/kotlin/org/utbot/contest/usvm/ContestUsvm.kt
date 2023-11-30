@@ -186,7 +186,7 @@ fun runUsvmGeneration(
                         state = state,
                         stringConstants = jcContainer.machine.stringConstants,
                         classConstants = jcContainer.machine.classConstants
-                    )
+                    ) ?: return@analyzeAsync
                 }.getOrElse { e ->
                     logger.error(e) { "executor.execute(${state.entrypoint}) failed" }
                     return@analyzeAsync

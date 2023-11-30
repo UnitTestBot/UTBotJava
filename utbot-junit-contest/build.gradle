@@ -221,7 +221,9 @@ jar {
         attributes 'JAR-Type': 'Fat JAR'
     }
 
-    processResources.exclude("*")
+    processResources.exclude("classes/**")
+    processResources.exclude("projects/**")
+    processResources.exclude("evosuite/**")
 
     version '1.0'
 

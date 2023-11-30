@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.*
@@ -109,7 +110,7 @@ fun main(args: Array<String>) {
     println("Started UtBot Contest, classfileDir = $classfileDir, classpathString=$classpathString, outputDir=$outputDir, mocks=$mockStrategyApi")
 
     // TODO: tmp hack to retrieve tmp dir wrt contest rules
-    val tmpDir = outputDir.parentFile
+    val tmpDir = outputDir.resolveSibling("data")
 
     val cpEntries = classpathString.split(File.pathSeparator).map { File(it) }
     val classLoader = URLClassLoader(cpEntries.map { it.toUrl() }.toTypedArray())
@@ -173,7 +174,9 @@ fun main(args: Array<String>) {
             println("${ContestMessage.READY}")
         }
     }
-//    ConcreteExecutor.defaultPool.close()
+
+    ConcreteExecutor.defaultPool.close()
+    JcContainer.close()
 }
 
 fun setOptions() {

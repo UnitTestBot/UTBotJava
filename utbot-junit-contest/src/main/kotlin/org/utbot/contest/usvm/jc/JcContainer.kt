@@ -19,6 +19,7 @@ private val logger = KotlinLogging.logger {}
 
 // TODO usvm-sbft-refactoring: copied from `usvm/usvm-jvm/test`, extract this class back to USVM project
 class JcContainer private constructor(
+    usePersistence: Boolean,
     classpath: List<File>,
     machineOptions: UMachineOptions,
     builder: JcSettings.() -> Unit,
@@ -29,8 +30,27 @@ class JcContainer private constructor(
     val runner: UTestConcreteExecutor
 
     init {
+        val cpPath = classpath.map { it.absolutePath }.sorted()
+
+        /**
+         * Persist jacodb cp to achieve:
+         * 1. Faster concrete executor initialization
+         * 2. Faster analysis for classes from the same cp
+         * */
+        val persistenceLocation = if (usePersistence) {
+            "jcdb-persistence-${cpPath.hashCode()}"
+        } else {
+            null
+        }
+
         val (db, cp) = runBlocking {
-            val db = jacodb(builder)
+            val db = jacodb {
+                builder()
+
+                if (persistenceLocation != null) {
+                    persistent(location = persistenceLocation, clearOnStart = false)
+                }
+            }
             val cp = db.classpathWithApproximations(classpath, listOf(UnknownClasses))
             db to cp
         }
@@ -39,8 +59,9 @@ class JcContainer private constructor(
         this.machine = JcMachine(cp, machineOptions)
         this.runner = UTestConcreteExecutor(
             JcRuntimeTraceInstrumenterFactory::class,
-            classpath.map { it.absolutePath },
+            cpPath,
             cp,
+            persistenceLocation,
             CONTEST_TEST_EXECUTION_TIMEOUT
         )
         runBlocking {
@@ -61,6 +82,7 @@ class JcContainer private constructor(
         private val cache = HashMap<Pair<List<File>, UMachineOptions>, JcContainer>()
 
         operator fun invoke(
+            usePersistence: Boolean,
             classpath: List<File>,
             machineOptions: UMachineOptions,
             builder: JcSettings.() -> Unit,
@@ -70,7 +92,7 @@ class JcContainer private constructor(
                 // TODO usvm-sbft: right now max cache size is 1, do we need to increase it?
                 logger.info { "JcContainer cache miss" }
                 close()
-                JcContainer(classpath, machineOptions, builder).also { cache[cacheKey] = it }
+                JcContainer(usePersistence, classpath, machineOptions, builder).also { cache[cacheKey] = it }
             }
         }
 

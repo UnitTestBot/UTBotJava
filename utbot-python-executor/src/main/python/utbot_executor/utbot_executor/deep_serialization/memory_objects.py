@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import copyreg
 import inspect
 import logging
+import pickle
 import re
 import sys
 import typing
 from itertools import zip_longest
-import pickle
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Iterator, Iterable
-
+from typing import Any, Callable, Dict, List, Optional, Set, Type, Iterable
 from utbot_executor.deep_serialization.config import PICKLE_PROTO
 from utbot_executor.deep_serialization.iterator_wrapper import IteratorWrapper
 from utbot_executor.deep_serialization.utils import (
@@ -145,8 +143,8 @@ class DictMemoryObject(MemoryObject):
         deserialized_obj = self.deserialized_obj
         equals_len = len(self.obj) == len(deserialized_obj)
         comparable = equals_len and all(
-            serializer.get_by_id(value_id).comparable
-            for value_id in self.items.values()
+            serializer.get_by_id(value_id).comparable and serializer.get_by_id(key_id).comparable
+            for key_id, value_id in self.items.items()
         )
 
         super()._initialize(deserialized_obj, comparable)

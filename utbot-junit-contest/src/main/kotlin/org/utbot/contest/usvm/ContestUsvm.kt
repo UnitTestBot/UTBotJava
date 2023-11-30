@@ -93,6 +93,7 @@ fun runUsvmGeneration(
             usePersistence = false,
             persistenceDir = tmpDir,
             classpath = classpathFiles,
+            javaHome = JdkInfoService.provide().path.toFile(),
             machineOptions = UMachineOptions(
                 // TODO usvm-sbft: if we have less than CONTEST_TEST_EXECUTION_TIMEOUT time left, we should try execute
                 //  with smaller timeout, but instrumentation currently doesn't allow to change timeout for individual runs
@@ -103,7 +104,6 @@ fun runUsvmGeneration(
             )
         ) {
             // TODO usvm-sbft: we may want to tune these JcSettings for contest
-            useJavaRuntime(JdkInfoService.provide().path.toFile())
             // TODO: require usePersistence=false for ClassScorer
             installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
             loadByteCode(classpathFiles)

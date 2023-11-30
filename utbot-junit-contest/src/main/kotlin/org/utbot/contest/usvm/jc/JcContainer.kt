@@ -22,6 +22,7 @@ class JcContainer private constructor(
     usePersistence: Boolean,
     persistenceDir: File,
     classpath: List<File>,
+    javaHome: File,
     machineOptions: UMachineOptions,
     builder: JcSettings.() -> Unit,
 ) : AutoCloseable {
@@ -46,6 +47,8 @@ class JcContainer private constructor(
 
         val (db, cp) = runBlocking {
             val db = jacodb {
+                useJavaRuntime(javaHome)
+
                 builder()
 
                 if (persistenceLocation != null) {
@@ -62,6 +65,7 @@ class JcContainer private constructor(
             JcRuntimeTraceInstrumenterFactory::class,
             cpPath,
             cp,
+            javaHome.absolutePath,
             persistenceLocation,
             CONTEST_TEST_EXECUTION_TIMEOUT
         )
@@ -86,6 +90,7 @@ class JcContainer private constructor(
             usePersistence: Boolean,
             persistenceDir: File,
             classpath: List<File>,
+            javaHome: File,
             machineOptions: UMachineOptions,
             builder: JcSettings.() -> Unit,
         ): JcContainer {
@@ -94,7 +99,7 @@ class JcContainer private constructor(
                 // TODO usvm-sbft: right now max cache size is 1, do we need to increase it?
                 logger.info { "JcContainer cache miss" }
                 close()
-                JcContainer(usePersistence, persistenceDir, classpath, machineOptions, builder)
+                JcContainer(usePersistence, persistenceDir, classpath, javaHome, machineOptions, builder)
                     .also { cache[cacheKey] = it }
             }
         }

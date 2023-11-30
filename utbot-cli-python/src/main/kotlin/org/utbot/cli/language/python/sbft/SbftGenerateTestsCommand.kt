@@ -26,6 +26,7 @@ import org.utbot.python.code.PythonCode
 import org.utbot.python.coverage.CoverageOutputFormat
 import org.utbot.python.coverage.PythonCoverageMode
 import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.python.newtyping.ast.parseClassDefinition
@@ -136,15 +137,20 @@ class SbftGenerateTestsCommand : CliktCommand(
             .mapNotNull { parseFunctionDefinition(it) }
             .map { PythonMethodHeader(it.name.toString(), absPathToSourceFile, null) }
         val methods = topLevelClasses
-            .mapNotNull { parseClassDefinition(it) }
-            .map { cls ->
-                PythonCode.getClassMethods(cls.body)
-                    .mapNotNull { parseFunctionDefinition(it) }
-                    .map { function ->
-                        val parsedClassName = PythonClassId(cls.name.toString())
-                        PythonMethodHeader(function.name.toString(), absPathToSourceFile, parsedClassName)
-                    }
+            .mapNotNull { cls ->
+                val parsedClass = parseClassDefinition(cls) ?: return@mapNotNull null
+                val innerClasses = PythonCode.getInnerClasses(cls)
+                (listOf(parsedClass to null) + innerClasses.mapNotNull { innerClass -> parseClassDefinition(innerClass)?.let { it to parsedClass } }).map { (cls, parent) ->
+                    PythonCode.getClassMethods(cls.body)
+                        .mapNotNull { parseFunctionDefinition(it) }
+                        .map { function ->
+                            val clsName = (parent?.let { "${it.name}." } ?: "") + cls.name.toString()
+                            val parsedClassName = PythonClassId(pythonBuiltinsModuleName, clsName)
+                            PythonMethodHeader(function.name.toString(), absPathToSourceFile, parsedClassName)
+                        }
+                }
             }
+            .flatten()
         return methods + listOf(functions)
     }
 

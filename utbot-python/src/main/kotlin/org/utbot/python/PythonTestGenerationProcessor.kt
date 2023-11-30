@@ -171,7 +171,7 @@ abstract class PythonTestGenerationProcessor {
     abstract fun processCoverageInfo(testSets: List<PythonTestSet>)
 
     private fun getContainingClassName(testSets: List<PythonTestSet>): String {
-        val containingClasses = testSets.map { it.method.containingPythonClass?.pythonName() ?: "TopLevelFunctions" }
+        val containingClasses = testSets.map { it.method.containingPythonClass?.pythonName()?.replace(".", "") ?: "TopLevelFunctions" }
         return containingClasses.toSet().first()
     }
 

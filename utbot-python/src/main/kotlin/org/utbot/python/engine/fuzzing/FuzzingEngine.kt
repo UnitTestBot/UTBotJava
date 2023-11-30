@@ -199,7 +199,7 @@ class FuzzingEngine(
                 }
                 logger.debug { "Executor manager was created successfully" }
 
-                val initialType = typeInferenceAlgorithm.expandState() as FunctionType
+                val initialType = (typeInferenceAlgorithm.expandState() ?: method.methodType) as FunctionType
 
                 val pmd = PythonMethodDescription(
                     method.name,

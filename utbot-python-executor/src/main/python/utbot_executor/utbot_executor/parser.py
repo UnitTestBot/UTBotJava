@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 import json
-from typing import Dict, List, Union, Tuple, Literal
+from typing import Dict, List, Union
 
 
 class MemoryMode(enum.StrEnum):
@@ -24,7 +24,7 @@ class ExecutionRequest:
 
     def get_class_name(self) -> str | None:
         if "." in self.function_name:
-            return self.function_name.split(".")[0]
+            return self.function_name.rsplit(".", 1)[0]
         return None
 
 

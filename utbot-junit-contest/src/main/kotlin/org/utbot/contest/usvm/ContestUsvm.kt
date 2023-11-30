@@ -20,6 +20,9 @@ import org.usvm.instrumentation.util.jcdbSignature
 import org.usvm.machine.JcMachine
 import org.usvm.machine.state.JcState
 import org.usvm.statistics.collectors.StatesCollector
+import org.usvm.types.ClassScorer
+import org.usvm.types.TypeScorer
+import org.usvm.types.scoreClassNode
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.info
 import org.utbot.common.measureTime
@@ -87,7 +90,7 @@ fun runUsvmGeneration(
 
     val jcContainer by lazy {
         JcContainer(
-            usePersistence = true,
+            usePersistence = false,
             persistenceDir = tmpDir,
             classpath = classpathFiles,
             machineOptions = UMachineOptions(
@@ -101,7 +104,8 @@ fun runUsvmGeneration(
         ) {
             // TODO usvm-sbft: we may want to tune these JcSettings for contest
             useJavaRuntime(JdkInfoService.provide().path.toFile())
-            installFeatures(InMemoryHierarchy, Approximations)
+            // TODO: require usePersistence=false for ClassScorer
+            installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
             loadByteCode(classpathFiles)
         }
     }

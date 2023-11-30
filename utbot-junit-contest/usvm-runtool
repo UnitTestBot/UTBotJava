@@ -17,4 +17,4 @@ env usvm.jvm.api.jar.path="$TOOL_DIR/usvm-api.jar" \
     usvm.jvm.approximations.jar.path="$TOOL_DIR/usvm-approximations.jar" \
     usvm-jvm-collectors-jar="$TOOL_DIR/usvm-jvm-collectors.jar" \
     usvm-jvm-instrumentation-jar="$TOOL_DIR/usvm-jvm-instrumentation.jar" \
-    $JAVA_HOME/bin/java -cp $TOOL sbst.runtool.Main
+    $JAVA_HOME/bin/java -Dorg.jacodb.impl.storage.defaultBatchSize=2000 -cp $TOOL sbst.runtool.Main

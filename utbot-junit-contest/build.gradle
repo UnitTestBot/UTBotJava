@@ -290,6 +290,7 @@ task run(type: JavaExec) {
     def usvmApproximationApiJarPath = configurations.usvmApproximationsApi.resolvedConfiguration.files.find()
     environment "usvm.jvm.api.jar.path", usvmApproximationApiJarPath.absolutePath
     environment "usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath
+    systemProperty("org.jacodb.impl.storage.defaultBatchSize", 2000)
 
     def usvmInstrumentationCollectorJarPath = configurations.usvmInstrumentationCollector.resolvedConfiguration.files.find()
     environment "usvm-jvm-collectors-jar", usvmInstrumentationCollectorJarPath.absolutePath

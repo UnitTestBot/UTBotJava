@@ -147,16 +147,16 @@ fun runUsvmGeneration(
         )
     )
 
+    logger.info().measureTime({ "Contest preparation: ensure JacoDB is initialized (NOT counted in time budget)" }) {
+        jcContainer // force init lazy property
+    }
+    logger.info().measureTime({ "Contest preparation: ensure executor is started (NOT counted in time budget)" }) {
+        jcContainer.runner.ensureRunnerAlive()
+    }
+
     logger.info().measureTime({ "class ${cut.fqn}" }, { statsForClass }) {
         val filteredMethods = logger.info().measureTime({ "preparation class ${cut.clazz}: kotlin reflection :: run" }) {
             prepareClass(cut.clazz, methodNameFilter)
-        }
-
-        logger.info().measureTime({ "preparation: ensure JacoDB is initialized (counted in time budget)" }) {
-            jcContainer // force init lazy property
-        }
-        logger.info().measureTime({ "preparation: ensure executor is started (counted in time budget)" }) {
-            jcContainer.runner.ensureRunnerAlive()
         }
 
         statsForClass.methodsCount = filteredMethods.size

@@ -23,8 +23,8 @@ import org.jacodb.api.ext.toType
 import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
+import org.usvm.instrumentation.util.getFieldByName
 import org.usvm.instrumentation.util.toJavaClass
-import org.usvm.instrumentation.util.toJavaField
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -101,7 +101,7 @@ fun TypeName.findClassId(classpath: JcClasspath): ClassId =
         ?: error("Can not construct classId for $this")
 
 val JcField.fieldId: FieldId
-    get() = toJavaField(utContext.classLoader)?.fieldId
+    get() = enclosingClass.toType().toJavaClass(utContext.classLoader, initialize = false).getFieldByName(name)?.fieldId
         ?: error("Can not construct fieldId for $this")
 
 val UTestValueDescriptor.origin: UTestInst?

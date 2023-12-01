@@ -426,7 +426,7 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
         )
         val testAnnotation = collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
         if (testAnnotation is CgMultipleArgsAnnotation) {
-            testAnnotation.arguments += expected
+            testAnnotation.arguments.add(0, expected)
         } else {
             statementConstructor.addAnnotation(
                 classId = testFramework.testAnnotationId,

@@ -1,5 +1,3 @@
-import dis
-import inspect
 import logging
 import os
 import pathlib
@@ -19,7 +17,14 @@ def _modname(path):
 
 
 class UtCoverageSender:
-    def __init__(self, coverage_id: str, host: str, port: int, use_thread: bool = False, send_coverage: bool = True):
+    def __init__(
+        self,
+        coverage_id: str,
+        host: str,
+        port: int,
+        use_thread: bool = False,
+        send_coverage: bool = True,
+    ):
         self.coverage_id = coverage_id
         self.host = host
         self.port = port
@@ -59,7 +64,9 @@ class UtCoverageSender:
 
 class PureSender(UtCoverageSender):
     def __init__(self):
-        super().__init__("000000", "localhost", 0, use_thread=False, send_coverage=False)
+        super().__init__(
+            "000000", "localhost", 0, use_thread=False, send_coverage=False
+        )
 
 
 class UtTracer:
@@ -72,6 +79,7 @@ class UtTracer:
     ):
         self.tested_file = tested_file
         self.counts: dict[UtInstruction, int] = {}
+        self.instructions: list[UtInstruction] = []
         self.localtrace = self.localtrace_count
         self.globaltrace = self.globaltrace_lt
         self.ignore_dirs = ignore_dirs
@@ -87,10 +95,6 @@ class UtTracer:
         finally:
             sys.settrace(None)
         return result
-
-    def coverage(self, filename: str) -> typing.List[int]:
-        filename = _modname(filename)
-        return [line for file, line in self.counts.keys() if file == filename]
 
     def localtrace_count(self, frame, why, arg):
         filename = frame.f_code.co_filename
@@ -108,15 +112,18 @@ class UtTracer:
                 except Exception:
                     pass
             self.counts[key] = self.counts.get(key, 0) + 1
+            self.instructions.append(key)
         return self.localtrace
 
     def globaltrace_lt(self, frame, why, arg):
-        if why == 'call':
+        if why == "call":
             if self.mode == TraceMode.Instructions:
                 frame.f_trace_opcodes = True
                 frame.f_trace_lines = False
-            filename = frame.f_globals.get('__file__', None)
-            if filename and all(not filename.startswith(d + os.sep) for d in self.ignore_dirs):
+            filename = frame.f_globals.get("__file__", None)
+            if filename and all(
+                not filename.startswith(d + os.sep) for d in self.ignore_dirs
+            ):
                 modulename = _modname(filename)
                 if modulename is not None:
                     return self.localtrace
@@ -140,6 +147,7 @@ def f(x):
     def g(x):
         xs = [[j for j in range(i)] for i in range(10)]
         return x * 2
+
     return g1(x) * g(x) + 2
 
 

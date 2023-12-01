@@ -280,7 +280,7 @@ def _run_calculate_function_value(
 
     logging.debug("Coverage: %s", __tracer.counts)
     logging.debug("Fullpath: %s", fullpath)
-    __stmts_with_def = [UtInstruction(__start, 0, True)] + list(__tracer.counts.keys())
+    __stmts_with_def = [UtInstruction(__start, 0, True)] + __tracer.instructions
     __missed_filtered = [x for x in __all_code_stmts if x not in __stmts_with_def]
     logging.debug("Covered lines: %s", __stmts_with_def)
     logging.debug("Missed lines: %s", __missed_filtered)

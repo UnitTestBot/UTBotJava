@@ -105,12 +105,12 @@ class UtTracer:
             else:
                 offset = 0
             key = UtInstruction(lineno, offset, frame.f_code == self.f_code)
-            if key not in self.counts:
-                message = key.serialize()
-                try:
-                    self.sender.put_message(message)
-                except Exception:
-                    pass
+            # if key not in self.counts:
+            #     message = key.serialize()
+            #     try:
+            #         self.sender.put_message(message)
+            #     except Exception:
+            #         pass
             self.counts[key] = self.counts.get(key, 0) + 1
             self.instructions.append(key)
         return self.localtrace

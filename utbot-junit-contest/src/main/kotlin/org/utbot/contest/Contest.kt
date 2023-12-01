@@ -125,7 +125,8 @@ fun main(args: Array<String>) {
     withUtContext(context) {
         // Initialize the soot before a contest is started.
         // This saves the time budget for real work instead of soot initialization.
-        TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+        // TODO usvm-sbft-merge: Soot is not not used in usvm
+        // TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
 
 //        TODO usvm-sbft-merge: utbot instrumentation not used in usvm
 //        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {

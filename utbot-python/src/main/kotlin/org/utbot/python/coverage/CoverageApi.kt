@@ -36,6 +36,18 @@ data class PyInstruction(
     constructor(lineNumber: Int, id: Long) : this(lineNumber, id.floorDiv(2).toPair().second, id % 2 == 1L)
 }
 
+data class PyInstructionEdge(
+    val instruction1: PyInstruction,
+    val instruction2: PyInstruction,
+) : Instruction(
+    "",
+    "",
+    instruction2.pyLineNumber,
+    (instruction1.id to instruction2.id).toCoverageId()
+) {
+    override fun toString(): String = "$instruction1 -> $instruction2"
+}
+
 fun Boolean.toLong() = if (this) 1L else 0L
 
 fun String.toPyInstruction(): PyInstruction? {
@@ -61,8 +73,17 @@ fun String.toPyInstruction(): PyInstruction? {
 }
 
 fun buildCoverage(coveredStatements: List<PyInstruction>, missedStatements: List<PyInstruction>): Coverage {
+    return buildEdgeCoverage(coveredStatements, missedStatements)
+//    return Coverage(
+//        coveredInstructions = coveredStatements,
+//        instructionsCount = (coveredStatements.size + missedStatements.size).toLong(),
+//        missedInstructions = missedStatements
+//    )
+}
+
+fun buildEdgeCoverage(coveredStatements: List<PyInstruction>, missedStatements: List<PyInstruction>): Coverage {
     return Coverage(
-        coveredInstructions = coveredStatements,
+        coveredInstructions = coveredStatements.windowed(2, 1).map { PyInstructionEdge(it[0], it[1]) },
         instructionsCount = (coveredStatements.size + missedStatements.size).toLong(),
         missedInstructions = missedStatements
     )

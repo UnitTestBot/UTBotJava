@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.utbot.contest.usvm.createJcContainer
 import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.framework.SummariesGenerationType
@@ -127,6 +128,15 @@ fun main(args: Array<String>) {
         // This saves the time budget for real work instead of soot initialization.
         // TODO usvm-sbft-merge: Soot is not not used in usvm
         // TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+
+        // Initialize the JacoDB and start executor before contest is started.
+        // This saves the time budget for real work instead of initialization.
+        runBlocking {
+            createJcContainer(
+                tmpDir = tmpDir,
+                classpathFiles = classpathString.split(File.pathSeparator).map { File(it) }
+            ).runner.ensureRunnerAlive()
+        }
 
 //        TODO usvm-sbft-merge: utbot instrumentation not used in usvm
 //        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {

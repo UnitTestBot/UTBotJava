@@ -7,10 +7,8 @@ import org.jacodb.api.JcDatabase
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.classpaths.UnknownClasses
 import org.jacodb.impl.jacodb
-import org.usvm.UMachineOptions
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
-import org.usvm.machine.JcMachine
 import org.usvm.util.classpathWithApproximations
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
@@ -23,12 +21,10 @@ class JcContainer private constructor(
     persistenceDir: File,
     classpath: List<File>,
     javaHome: File,
-    machineOptions: UMachineOptions,
     builder: JcSettings.() -> Unit,
 ) : AutoCloseable {
     val db: JcDatabase
     val cp: JcClasspath
-    val machine: JcMachine
     val runner: UTestConcreteExecutor
 
     init {
@@ -60,7 +56,6 @@ class JcContainer private constructor(
         }
         this.db = db
         this.cp = cp
-        this.machine = JcMachine(cp, machineOptions)
         this.runner = UTestConcreteExecutor(
             JcRuntimeTraceInstrumenterFactory::class,
             cpPath,
@@ -77,30 +72,27 @@ class JcContainer private constructor(
     override fun close() {
         cp.close()
         db.close()
-        machine.close()
         runner.close()
     }
 
     companion object : AutoCloseable {
         val CONTEST_TEST_EXECUTION_TIMEOUT = 1.seconds
 
-        private val cache = HashMap<Pair<List<File>, UMachineOptions>, JcContainer>()
+        private val cache = HashMap<List<File>, JcContainer>()
 
         operator fun invoke(
             usePersistence: Boolean,
             persistenceDir: File,
             classpath: List<File>,
             javaHome: File,
-            machineOptions: UMachineOptions,
             builder: JcSettings.() -> Unit,
         ): JcContainer {
-            val cacheKey = classpath to machineOptions
-            return cache[cacheKey] ?: run {
+            return cache[classpath] ?: run {
                 // TODO usvm-sbft: right now max cache size is 1, do we need to increase it?
                 logger.info { "JcContainer cache miss" }
                 close()
-                JcContainer(usePersistence, persistenceDir, classpath, javaHome, machineOptions, builder)
-                    .also { cache[cacheKey] = it }
+                JcContainer(usePersistence, persistenceDir, classpath, javaHome, builder)
+                    .also { cache[classpath] = it }
             }
         }
 

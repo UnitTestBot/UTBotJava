@@ -88,27 +88,7 @@ fun runUsvmGeneration(
 
     val classpathFiles = classpathString.split(File.pathSeparator).map { File(it) }
 
-    val jcContainer by lazy {
-        JcContainer(
-            usePersistence = false,
-            persistenceDir = tmpDir,
-            classpath = classpathFiles,
-            javaHome = JdkInfoService.provide().path.toFile(),
-            machineOptions = UMachineOptions(
-                // TODO usvm-sbft: if we have less than CONTEST_TEST_EXECUTION_TIMEOUT time left, we should try execute
-                //  with smaller timeout, but instrumentation currently doesn't allow to change timeout for individual runs
-                timeout = generationTimeoutMillisWithoutCodegen.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT,
-                pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
-                pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
-                solverType = SolverType.Z3, // TODO: usvm-ksmt: Yices doesn't work on old linux
-            )
-        ) {
-            // TODO usvm-sbft: we may want to tune these JcSettings for contest
-            // TODO: require usePersistence=false for ClassScorer
-            installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
-            loadByteCode(classpathFiles)
-        }
-    }
+    val jcContainer by lazy { createJcContainer(tmpDir, classpathFiles) }
 
     val executor by lazy { JcTestExecutor(jcContainer.cp, jcContainer.runner) }
 
@@ -127,6 +107,7 @@ fun runUsvmGeneration(
     }
 
     logger.info { "STARTED COUNTING BUDGET FOR ${cut.classId.name}" }
+    val budgetStartTimeMillis = System.currentTimeMillis()
 
     if (cut.classLoader.javaClass != URLClassLoader::class.java) {
         logger.error("Seems like classloader for cut not valid (maybe it was backported to system): ${cut.classLoader}")
@@ -147,10 +128,10 @@ fun runUsvmGeneration(
         )
     )
 
-    logger.info().measureTime({ "Contest preparation: ensure JacoDB is initialized (NOT counted in time budget)" }) {
+    logger.info().measureTime({ "Contest preparation: ensure JacoDB is initialized (counted in time budget)" }) {
         jcContainer // force init lazy property
     }
-    logger.info().measureTime({ "Contest preparation: ensure executor is started (NOT counted in time budget)" }) {
+    logger.info().measureTime({ "Contest preparation: ensure executor is started (counted in time budget)" }) {
         jcContainer.runner.ensureRunnerAlive()
     }
 
@@ -178,59 +159,72 @@ fun runUsvmGeneration(
 
         val timeStats = mutableMapOf<String, Long>()
 
-        jcContainer.machine.analyzeAsync(
-            forceTerminationTimeout = (generationTimeoutMillisWithoutCodegen + timeBudgetMs) / 2,
-            methods = jcMethods,
-            targets = emptyList()
-        ) { state ->
-            val jcExecution = accumulateMeasureTime("executor.execute(${cut.classId.name})", timeStats, state.entrypoint) {
+        val alreadySpentBudgetMillis = System.currentTimeMillis() - budgetStartTimeMillis
+        JcMachine(
+            cp = jcContainer.cp,
+            options = UMachineOptions(
+                // TODO usvm-sbft: if we have less than CONTEST_TEST_EXECUTION_TIMEOUT time left, we should try execute
+                //  with smaller timeout, but instrumentation currently doesn't allow to change timeout for individual runs
+                timeout = generationTimeoutMillisWithoutCodegen.milliseconds - alreadySpentBudgetMillis.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT,
+                pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
+                pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
+                solverType = SolverType.Z3, // TODO: usvm-ksmt: Yices doesn't work on old linux
+            )
+        ).use { jcMachine ->
+            jcMachine.analyzeAsync(
+                forceTerminationTimeout = (generationTimeoutMillisWithoutCodegen + timeBudgetMs) / 2 - alreadySpentBudgetMillis,
+                methods = jcMethods,
+                targets = emptyList()
+            ) { state ->
+                val jcExecution = accumulateMeasureTime("executor.execute(${cut.classId.name})", timeStats, state.entrypoint) {
+                    runCatching {
+                        executor.execute(
+                            method = state.entrypoint.typedMethod,
+                            state = state,
+                            stringConstants = jcMachine.stringConstants,
+                            classConstants = jcMachine.classConstants
+                        ) ?: return@analyzeAsync
+                    }.getOrElse { e ->
+                        logger.error(e) { "executor.execute(${state.entrypoint}) failed" }
+                        return@analyzeAsync
+                    }
+                }
+                val methodId = jcExecution.method.method.toExecutableId(jcContainer.cp)
+                val utExecution = accumulateMeasureTime("JcToUtExecutionConverter.convert(${cut.classId.name})", timeStats, jcExecution.method.method) {
+                    runCatching {
+                        JcToUtExecutionConverter(
+                            jcExecution = jcExecution,
+                            jcClasspath = jcContainer.cp,
+                            idGenerator = utModelIdGenerator,
+                            instructionIdProvider = instructionIdGenerator,
+                            utilMethodProvider = codeGenerator.context.utilMethodProvider
+                        ).convert()
+                            // for some JcExecutions like RD faults we don't construct UtExecutions, converter logs such cases
+                            ?: return@analyzeAsync
+                    }.getOrElse { e ->
+                        logger.error(e) { "JcToUtExecutionConverter.convert(${jcExecution.method.method}) failed" }
+                        return@analyzeAsync
+                    }
+                }
                 runCatching {
-                    executor.execute(
-                        method = state.entrypoint.typedMethod,
-                        state = state,
-                        stringConstants = jcContainer.machine.stringConstants,
-                        classConstants = jcContainer.machine.classConstants
-                    ) ?: return@analyzeAsync
+                    val className = Type.getInternalName(methodId.classId.jClass)
+                    val statsForMethod = methodToStats.getValue(methodId)
+                    statsForMethod.testsGeneratedCount++
+                    utExecution.result.exceptionOrNull()?.let { exception ->
+                        statsForMethod.detectedExceptionFqns += exception::class.java.name
+                    }
+                    utExecution.coverage?.let {
+                        statsForClass.updateCoverage(
+                            newCoverage = it,
+                            isNewClass = !statsForClass.testedClassNames.contains(className),
+                            fromFuzzing = utExecution is UtFuzzedExecution
+                        )
+                    }
+                    statsForClass.testedClassNames.add(className)
+                    testsByMethod.getOrPut(methodId) { mutableListOf() } += utExecution
                 }.getOrElse { e ->
-                    logger.error(e) { "executor.execute(${state.entrypoint}) failed" }
-                    return@analyzeAsync
+                    logger.error(e) { "Test generation failed during stats update for $methodId" }
                 }
-            }
-            val methodId = jcExecution.method.method.toExecutableId(jcContainer.cp)
-            val utExecution = accumulateMeasureTime("JcToUtExecutionConverter.convert(${cut.classId.name})", timeStats, jcExecution.method.method) {
-                runCatching {
-                    JcToUtExecutionConverter(
-                        jcExecution = jcExecution,
-                        jcClasspath = jcContainer.cp,
-                        idGenerator = utModelIdGenerator,
-                        instructionIdProvider = instructionIdGenerator,
-                        utilMethodProvider = codeGenerator.context.utilMethodProvider
-                    ).convert()
-                        // for some JcExecutions like RD faults we don't construct UtExecutions, converter logs such cases
-                        ?: return@analyzeAsync
-                }.getOrElse { e ->
-                    logger.error(e) { "JcToUtExecutionConverter.convert(${jcExecution.method.method}) failed" }
-                    return@analyzeAsync
-                }
-            }
-            runCatching {
-                val className = Type.getInternalName(methodId.classId.jClass)
-                val statsForMethod = methodToStats.getValue(methodId)
-                statsForMethod.testsGeneratedCount++
-                utExecution.result.exceptionOrNull()?.let { exception ->
-                    statsForMethod.detectedExceptionFqns += exception::class.java.name
-                }
-                utExecution.coverage?.let {
-                    statsForClass.updateCoverage(
-                        newCoverage = it,
-                        isNewClass = !statsForClass.testedClassNames.contains(className),
-                        fromFuzzing = utExecution is UtFuzzedExecution
-                    )
-                }
-                statsForClass.testedClassNames.add(className)
-                testsByMethod.getOrPut(methodId) { mutableListOf() } += utExecution
-            }.getOrElse { e ->
-                logger.error(e) { "Test generation failed during stats update for $methodId" }
             }
         }
 
@@ -252,6 +246,21 @@ fun runUsvmGeneration(
     logger.info { "STOPPED COUNTING BUDGET FOR ${cut.classId.name}" }
 
     statsForClass
+}
+
+fun createJcContainer(
+    tmpDir: File,
+    classpathFiles: List<File>
+) = JcContainer(
+    usePersistence = false,
+    persistenceDir = tmpDir,
+    classpath = classpathFiles,
+    javaHome = JdkInfoService.provide().path.toFile(),
+) {
+    // TODO usvm-sbft: we may want to tune these JcSettings for contest
+    // TODO: require usePersistence=false for ClassScorer
+    installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
+    loadByteCode(classpathFiles)
 }
 
 fun JcClasspath.findMethodOrNull(method: ExecutableId): JcMethod? =

@@ -127,6 +127,7 @@ fun runUsvmGeneration(
     }
 
     logger.info { "STARTED COUNTING BUDGET FOR ${cut.classId.name}" }
+    val budgetStartTimeMillis = System.currentTimeMillis()
 
     if (cut.classLoader.javaClass != URLClassLoader::class.java) {
         logger.error("Seems like classloader for cut not valid (maybe it was backported to system): ${cut.classLoader}")
@@ -147,10 +148,10 @@ fun runUsvmGeneration(
         )
     )
 
-    logger.info().measureTime({ "Contest preparation: ensure JacoDB is initialized (NOT counted in time budget)" }) {
+    logger.info().measureTime({ "Contest preparation: ensure JacoDB is initialized (counted in time budget)" }) {
         jcContainer // force init lazy property
     }
-    logger.info().measureTime({ "Contest preparation: ensure executor is started (NOT counted in time budget)" }) {
+    logger.info().measureTime({ "Contest preparation: ensure executor is started (counted in time budget)" }) {
         jcContainer.runner.ensureRunnerAlive()
     }
 
@@ -178,8 +179,9 @@ fun runUsvmGeneration(
 
         val timeStats = mutableMapOf<String, Long>()
 
+        val alreadySpentBudgetMillis = System.currentTimeMillis() - budgetStartTimeMillis
         jcContainer.machine.analyzeAsync(
-            forceTerminationTimeout = (generationTimeoutMillisWithoutCodegen + timeBudgetMs) / 2,
+            forceTerminationTimeout = (generationTimeoutMillisWithoutCodegen + timeBudgetMs) / 2 - alreadySpentBudgetMillis,
             methods = jcMethods,
             targets = emptyList()
         ) { state ->

@@ -8,10 +8,12 @@ import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.Statistic
+import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.coverage.PyInstruction
 import org.utbot.python.engine.ExecutionFeedback
 import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.provider.BoolValueProvider
 import org.utbot.python.fuzzing.provider.BytearrayValueProvider
 import org.utbot.python.fuzzing.provider.BytesValueProvider
@@ -41,6 +43,9 @@ import org.utbot.python.newtyping.inference.InferredTypeFeedback
 import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.pythonModuleName
+import org.utbot.python.newtyping.pythonName
+import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.ExecutionWithTimoutMode
 import org.utbot.python.utils.FakeWithTimeoutMode
@@ -49,11 +54,32 @@ import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
+typealias PythonValueProvider = ValueProvider<FuzzedUtType, PythonFuzzedValue, PythonMethodDescription>
+
 data class PythonFuzzedConcreteValue(
     val type: UtType,
     val value: Any,
     val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
 )
+
+data class FuzzedUtType(
+    val utType: UtType,
+    val fuzzAny: Boolean = false,
+) {
+    fun activateAny() = FuzzedUtType(utType, true)
+
+    fun isAny(): Boolean = utType.isAny()
+    fun pythonName(): String = utType.pythonName()
+    fun pythonTypeName(): String = utType.pythonTypeName()
+    fun pythonModuleName(): String = utType.pythonModuleName()
+    fun pythonTypeRepresentation(): String = utType.pythonTypeRepresentation()
+
+    companion object {
+        fun Collection<UtType>.toFuzzed() = this.map { it.toFuzzed() }
+        fun UtType.toFuzzed() = FuzzedUtType(this)
+        fun Collection<FuzzedUtType>.activateAny() = this.map { it.activateAny() }
+    }
+}
 
 class PythonMethodDescription(
     val name: String,
@@ -63,7 +89,7 @@ class PythonMethodDescription(
     val random: Random,
     val limitManager: TestGenerationLimitManager,
     val type: FunctionType,
-) : Description<UtType>(type.arguments)
+) : Description<FuzzedUtType>(type.arguments.toFuzzed())
 
 data class PythonExecutionResult(
     val executionFeedback: ExecutionFeedback,
@@ -75,7 +101,7 @@ data class PythonFeedback(
     val result: Trie.Node<PyInstruction> = Trie.emptyNode(),
     val typeInferenceFeedback: InferredTypeFeedback = InvalidTypeFeedback,
     val fromCache: Boolean = false,
-) : Feedback<UtType, PythonFuzzedValue> {
+) : Feedback<FuzzedUtType, PythonFuzzedValue> {
     fun fromCache(): PythonFeedback {
         return PythonFeedback(
             control = control,
@@ -132,10 +158,10 @@ class PythonFuzzing(
     private val typeInferenceAlgorithm: BaselineAlgorithm,
     private val globalIsCancelled: () -> Boolean,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
-) : Fuzzing<UtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
+) : Fuzzing<FuzzedUtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
-    private fun generateDefault(description: PythonMethodDescription, type: UtType)= sequence {
-        pythonDefaultValueProviders(pythonTypeStorage).asSequence().forEach { provider ->
+    private fun generateDefault(providers: List<PythonValueProvider>, description: PythonMethodDescription, type: FuzzedUtType)= sequence {
+        providers.asSequence().forEach { provider ->
             if (provider.accept(type)) {
                 logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
                 yieldAll(provider.generate(description, type))
@@ -143,16 +169,27 @@ class PythonFuzzing(
         }
     }
 
-    override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> {
-        var providers = emptyList<Seed<UtType, PythonFuzzedValue>>().asSequence()
+    private fun generateAnyProviders(description: PythonMethodDescription, type: FuzzedUtType) = sequence {
+        pythonAnyTypeValueProviders().asSequence().forEach { provider ->
+            logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()} with activated any" }
+            yieldAll(provider.generate(description, type))
+        }
+    }
+
+    override fun generate(description: PythonMethodDescription, type: FuzzedUtType): Sequence<Seed<FuzzedUtType, PythonFuzzedValue>> {
+        val providers = mutableSetOf<Seed<FuzzedUtType, PythonFuzzedValue>>()
 
         if (type.isAny()) {
-            logger.debug("Any does not have provider")
+            if (type.fuzzAny) {
+                providers += generateAnyProviders(description, type)
+            } else {
+                logger.debug("Any does not have provider")
+            }
         } else {
-            providers += generateDefault(description, type)
+            providers += generateDefault(pythonDefaultValueProviders(pythonTypeStorage), description, type)
         }
 
-        return providers
+        return providers.asSequence()
     }
 
     override suspend fun handle(description: PythonMethodDescription, values: List<PythonFuzzedValue>): PythonFeedback {
@@ -166,7 +203,7 @@ class PythonFuzzing(
         return result
     }
 
-    private suspend fun forkType(description: PythonMethodDescription, stats: Statistic<UtType, PythonFuzzedValue>) {
+    private suspend fun forkType(description: PythonMethodDescription, stats: Statistic<FuzzedUtType, PythonFuzzedValue>) {
         val type: UtType? = typeInferenceAlgorithm.expandState()
         if (type != null) {
             val d = PythonMethodDescription(
@@ -190,12 +227,12 @@ class PythonFuzzing(
 
     override suspend fun isCancelled(
         description: PythonMethodDescription,
-        stats: Statistic<UtType, PythonFuzzedValue>
+        stats: Statistic<FuzzedUtType, PythonFuzzedValue>
     ): Boolean {
         if (globalIsCancelled()) {
             return true
         }
-        if (description.limitManager.isCancelled() || description.parameters.any { it.isAny() }) {
+        if (description.limitManager.isCancelled()) {// || description.parameters.any { it.isAny() }) {
             forkType(description, stats)
             if (description.limitManager.isRootManager) {
                 return FakeWithTimeoutMode.isCancelled(description.limitManager)

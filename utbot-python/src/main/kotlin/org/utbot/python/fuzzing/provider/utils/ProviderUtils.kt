@@ -1,24 +1,15 @@
 package org.utbot.python.fuzzing.provider.utils
 
-import org.utbot.fuzzing.Seed
-import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.fuzzing.PythonFuzzedValue
-import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.PythonAnyTypeDescription
+import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
+import org.utbot.python.newtyping.PythonDefinition
+import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utbot.python.newtyping.PythonVariableDescription
 import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.getPythonAttributeByName
 
 fun UtType.isAny(): Boolean {
     return meta is PythonAnyTypeDescription
-}
-
-fun getSuitableConstantsFromCode(description: PythonMethodDescription, type: UtType): List<Seed<UtType, PythonFuzzedValue>> {
-    return description.concreteValues.filter {
-        PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, it.type, description.pythonTypeStorage)
-    }.mapNotNull { value ->
-        PythonTree.fromParsedConstant(Pair(value.type, value.value))?.let {
-            Seed.Simple(PythonFuzzedValue(it))
-        }
-    }
 }
 
 fun isConcreteType(type: UtType): Boolean {

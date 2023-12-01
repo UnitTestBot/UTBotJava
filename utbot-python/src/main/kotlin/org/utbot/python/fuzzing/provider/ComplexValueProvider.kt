@@ -2,22 +2,21 @@ package org.utbot.python.fuzzing.provider
 
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonComplexClassId
+import org.utbot.python.fuzzing.FuzzedUtType
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.fuzzing.PythonValueProvider
 import org.utbot.python.newtyping.createPythonUnionType
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.newtyping.pythonTypeRepresentation
 
-object ComplexValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: UtType): Boolean {
+object ComplexValueProvider : PythonValueProvider {
+    override fun accept(type: FuzzedUtType): Boolean {
         return type.pythonTypeName() == pythonComplexClassId.canonicalName
     }
 
-    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
+    override fun generate(description: PythonMethodDescription, type: FuzzedUtType) = sequence {
         val numberType = createPythonUnionType(
             listOf(
                 description.pythonTypeStorage.pythonFloat,
@@ -37,7 +36,7 @@ object ComplexValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMet
                 listOf(
                     numberType,
                     numberType
-                )
+                ).toFuzzed()
             ) { v ->
                 if (v[0].tree is PythonTree.FakeNode || v[1].tree is PythonTree.FakeNode) {
                     emptyValue

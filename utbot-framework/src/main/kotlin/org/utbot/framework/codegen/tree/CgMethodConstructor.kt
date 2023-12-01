@@ -1331,11 +1331,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val constructorCall = currentExecutableId as ConstructorId
         val executionResult = currentExecution.result
 
-        // TODO usvm-sbft: delete require when #141 will be fixed
-        require(!constructorCall.classId.isInner) {
-            "Inner class ${constructorCall.classId} constructor testing is not supported yet"
-        }
-
         executionResult
             .onSuccess {
                 methodType = SUCCESSFUL

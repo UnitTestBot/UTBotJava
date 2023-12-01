@@ -151,7 +151,7 @@ class SbftGenerateTestsCommand : CliktCommand(
                 }
             }
             .flatten()
-        return methods + listOf(functions)
+        return (methods + listOf(functions)).filter { it.isNotEmpty() }
     }
 
     private val globalImportCollection = mutableSetOf<PythonImport>()

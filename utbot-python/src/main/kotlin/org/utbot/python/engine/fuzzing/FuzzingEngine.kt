@@ -417,19 +417,7 @@ class FuzzingEngine(
                 }
 
                 is PythonEvaluationTimeout -> {
-                    val coveredInstructions =
-                        manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableListOf())
-                    val utTimeoutException = handleTimeoutResult(arguments, description, coveredInstructions)
-                    val trieNode: Trie.Node<PyInstruction> =
-                        if (coveredInstructions.isEmpty())
-                            Trie.emptyNode()
-                        else
-                            description.tracer.add(coveredInstructions)
-                    description.limitManager.addInvalidExecution()
-                    PythonExecutionResult(
-                        utTimeoutException,
-                        PythonFeedback(control = Control.PASS, result = trieNode, SuccessFeedback)
-                    )
+                    null
                 }
 
                 is PythonEvaluationSuccess -> {

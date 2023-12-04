@@ -29,6 +29,7 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.PythonImport
+import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.newtyping.mypy.dropInitFile
@@ -185,6 +186,7 @@ class SbftGenerateTestsCommand : CliktCommand(
     private fun saveTests() {
         logger.info("Saving tests...")
         val importCode = globalImportCollection
+            .filterNot { it is PythonSysPathImport }
             .sortedBy { it.order }
             .map { renderPythonImport(it) }
         val testCode = (listOf(importCode.joinToString("\n")) + globalCodeCollection).joinToString("\n\n\n")

@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import pathlib
 import queue
@@ -70,6 +71,7 @@ class PureSender(UtCoverageSender):
 
 
 class UtTracer:
+    DEFAULT_LINE_FILTER = (-math.inf, math.inf)
     def __init__(
         self,
         tested_file: pathlib.Path,
@@ -85,8 +87,10 @@ class UtTracer:
         self.ignore_dirs = ignore_dirs
         self.sender = sender
         self.mode = mode
+        self.line_filter = UtTracer.DEFAULT_LINE_FILTER
 
-    def runfunc(self, func, /, *args, **kw):
+    def runfunc(self, func, line_filter, /, *args, **kw):
+        self.line_filter = line_filter
         result = None
         sys.settrace(self.globaltrace)
         self.f_code = func.__code__
@@ -99,7 +103,7 @@ class UtTracer:
     def localtrace_count(self, frame, why, arg):
         filename = frame.f_code.co_filename
         lineno = frame.f_lineno
-        if pathlib.Path(filename) == self.tested_file and lineno is not None:
+        if pathlib.Path(filename) == self.tested_file and lineno is not None and self.line_filter[0] <= lineno <= self.line_filter[1]:
             if self.mode == TraceMode.Instructions and frame.f_lasti is not None:
                 offset = frame.f_lasti
             else:
@@ -153,5 +157,5 @@ def f(x):
 
 if __name__ == "__main__":
     tracer = UtTracer(pathlib.Path(__file__), [], PureSender())
-    tracer.runfunc(f, 2)
+    tracer.runfunc(f, tracer.DEFAULT_LINE_FILTER, 2)
     print(tracer.counts)

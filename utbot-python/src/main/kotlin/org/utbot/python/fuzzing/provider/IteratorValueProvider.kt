@@ -5,7 +5,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonIteratorClassId
 import org.utbot.python.fuzzing.FuzzedUtType
-import org.utbot.python.fuzzing.FuzzedUtType.Companion.activateAny
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.activateAnyIf
 import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
@@ -29,7 +29,7 @@ object IteratorValueProvider : PythonValueProvider {
                         "%var% = ${type.pythonTypeRepresentation()}"
                     )
                 },
-                modify = Routine.ForEach(param.toFuzzed().activateAny()) { self, i, values ->
+                modify = Routine.ForEach(param.toFuzzed().activateAnyIf(type)) { self, i, values ->
                     (self.tree as PythonTree.IteratorNode).items[i] = values.first().tree
                 }
             ))

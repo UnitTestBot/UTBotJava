@@ -66,7 +66,6 @@ data class FuzzedUtType(
     val utType: UtType,
     val fuzzAny: Boolean = false,
 ) {
-    fun activateAny() = FuzzedUtType(utType, true)
 
     fun isAny(): Boolean = utType.isAny()
     fun pythonName(): String = utType.pythonName()
@@ -75,9 +74,12 @@ data class FuzzedUtType(
     fun pythonTypeRepresentation(): String = utType.pythonTypeRepresentation()
 
     companion object {
-        fun Collection<UtType>.toFuzzed() = this.map { it.toFuzzed() }
-        fun UtType.toFuzzed() = FuzzedUtType(this)
+        fun FuzzedUtType.activateAny() = FuzzedUtType(this.utType, true)
+        fun FuzzedUtType.activateAnyIf(parent: FuzzedUtType) = FuzzedUtType(this.utType, parent.fuzzAny)
         fun Collection<FuzzedUtType>.activateAny() = this.map { it.activateAny() }
+        fun Collection<FuzzedUtType>.activateAnyIf(parent: FuzzedUtType) = this.map { it.activateAnyIf(parent) }
+        fun UtType.toFuzzed() = FuzzedUtType(this)
+        fun Collection<UtType>.toFuzzed() = this.map { it.toFuzzed() }
     }
 }
 
@@ -232,7 +234,7 @@ class PythonFuzzing(
         if (globalIsCancelled()) {
             return true
         }
-        if (description.limitManager.isCancelled()) {// || description.parameters.any { it.isAny() }) {
+        if (description.limitManager.isCancelled() || description.parameters.any { it.isAny() }) {
             forkType(description, stats)
             if (description.limitManager.isRootManager) {
                 return FakeWithTimeoutMode.isCancelled(description.limitManager)

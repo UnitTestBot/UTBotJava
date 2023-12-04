@@ -4,6 +4,7 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.FuzzedUtType
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.activateAnyIf
 import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
@@ -22,7 +23,7 @@ object TypeAliasValueProvider : PythonValueProvider {
         val compositeType = PythonTypeAliasDescription.castToCompatibleTypeApi(type.utType)
         return sequenceOf(
             Seed.Recursive(
-                construct = Routine.Create(listOf(compositeType.members[0]).toFuzzed()) { v -> v.first() },
+                construct = Routine.Create(listOf(compositeType.members[0]).toFuzzed().activateAnyIf(type)) { v -> v.first() },
                 empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
             )
         )

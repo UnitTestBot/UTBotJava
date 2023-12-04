@@ -4,6 +4,7 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.FuzzedUtType
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.activateAnyIf
 import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
@@ -36,7 +37,7 @@ class SubtypeValueProvider(
         subtypes.forEach { subtype ->
             yield(
                 Seed.Recursive(
-                    construct = Routine.Create(listOf(subtype).toFuzzed()) { v -> v.first() },
+                    construct = Routine.Create(listOf(subtype).toFuzzed().activateAnyIf(type)) { v -> v.first() },
                     empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
                 ))
         }

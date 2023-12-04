@@ -4,7 +4,7 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.FuzzedUtType
-import org.utbot.python.fuzzing.FuzzedUtType.Companion.activateAny
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.activateAnyIf
 import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
@@ -22,12 +22,12 @@ object TupleFixSizeValueProvider : PythonValueProvider {
         val length = params.size
         val modifications = emptyList<Routine.Call<FuzzedUtType, PythonFuzzedValue>>().toMutableList()
         for (i in 0 until length) {
-            modifications.add(Routine.Call(listOf(params[i]).toFuzzed().activateAny()) { instance, arguments ->
+            modifications.add(Routine.Call(listOf(params[i]).toFuzzed().activateAnyIf(type)) { instance, arguments ->
                 (instance.tree as PythonTree.TupleNode).items[i] = arguments.first().tree
             })
         }
         yield(Seed.Recursive(
-            construct = Routine.Create(params.toFuzzed().activateAny()) { v ->
+            construct = Routine.Create(params.toFuzzed().activateAnyIf(type)) { v ->
                 PythonFuzzedValue(
                     PythonTree.TupleNode(v.withIndex().associate { it.index to it.value.tree }.toMutableMap()),
                     "%var% = ${type.pythonTypeRepresentation()}"

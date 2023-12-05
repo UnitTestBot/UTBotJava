@@ -70,7 +70,7 @@ object ReduceValueProvider : PythonValueProvider {
         val fields = findFields(description, type)
         val modifications = emptyList<Routine.Call<FuzzedUtType, PythonFuzzedValue>>().toMutableList()
         modifications.addAll(fields.map { field ->
-            Routine.Call(listOf(field.type).toFuzzed().activateAnyIf(type)) { instance, arguments ->
+            Routine.Call(listOf(field.type).toFuzzed().activateAny()) { instance, arguments ->
                 val obj = instance.tree as PythonTree.ReduceNode
                 obj.state[field.meta.name] = arguments.first().tree
             }

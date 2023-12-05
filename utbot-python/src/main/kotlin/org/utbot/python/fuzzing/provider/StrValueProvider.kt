@@ -50,7 +50,8 @@ object StrValueProvider : PythonValueProvider {
 
         val regexConstants = getRegexConstants(description.concreteValues)
         regexConstants.forEach {
-            yieldStrings(RegexValue(it, description.random), StringValue::value)
+            val maxLength = listOf(16, 256, 2048).random(description.random).coerceAtLeast(it.length)
+            yieldStrings(RegexValue(it, description.random, maxLength), StringValue::value)
         }
     }
 

@@ -45,10 +45,10 @@ class USVMPythonAnalysisResultReceiverImpl(
     val configuration: PythonTestGenerationConfig,
     val executionStorage: ExecutionStorage,
     val until: Long,
-    private val coroutineScope: CoroutineScope
 ) : USVMPythonAnalysisResultReceiver() {
     private lateinit var serverSocket: ServerSocket
     private lateinit var manager: PythonWorkerManager
+    lateinit var coroutineScope: CoroutineScope
 
     init {
         connect()

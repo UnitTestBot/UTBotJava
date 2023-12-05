@@ -85,8 +85,9 @@ class PythonWorkerManager(
     }
 
     fun disconnect() {
+        println("Destroying")
         workerSocket.close()
-        process.destroy()
+        process.destroyForcibly()
     }
 
     private fun reconnect() {

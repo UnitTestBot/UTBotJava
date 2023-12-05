@@ -67,14 +67,14 @@ class GlobalPythonEngine(
             configuration.sysPathDirectories,
             extractVenvConfig(configuration.pythonPath)
         )
+        val receiver = USVMPythonAnalysisResultReceiverImpl(
+            method,
+            configuration,
+            executionStorage,
+            until,
+        )
         runBlocking {
-            val receiver = USVMPythonAnalysisResultReceiverImpl(
-                method,
-                configuration,
-                executionStorage,
-                until,
-                this
-            )
+            receiver.coroutineScope = this
             val config = if (method.containingPythonClass == null) {
                 USVMPythonFunctionConfig(configuration.testFileInformation.moduleName, method.name)
             } else {
@@ -97,9 +97,9 @@ class GlobalPythonEngine(
                     receiver
                 )
             }
-            receiver.close()
         }
         logger.info { "Symbolic: stop receiver" }
+        receiver.close()
     }
 
     fun run() {

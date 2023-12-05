@@ -417,7 +417,13 @@ class FuzzingEngine(
                 }
 
                 is PythonEvaluationTimeout -> {
-                    null
+                    val utTimeoutException = handleTimeoutResult(arguments, description, emptyList())
+                    val trieNode: Trie.Node<PyInstruction> = Trie.emptyNode()
+                    description.limitManager.addInvalidExecution()
+                    PythonExecutionResult(
+                        utTimeoutException,
+                        PythonFeedback(control = Control.PASS, result = trieNode, SuccessFeedback)
+                    )
                 }
 
                 is PythonEvaluationSuccess -> {

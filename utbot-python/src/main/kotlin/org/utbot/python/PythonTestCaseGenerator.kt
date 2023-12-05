@@ -5,6 +5,7 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.python.engine.GlobalPythonEngine
 import org.utbot.python.framework.api.python.PythonUtExecution
 
@@ -48,7 +49,8 @@ class PythonTestCaseGenerator(
         errors: List<UtError>,
         clusterInfo: UtClusterInfo,
     ): PythonTestSet {
-        val (emptyCoverageExecutions, coverageExecutions) = executions.partition { it.coverage == null }
+        val notTimeout = executions.filter { it.result !is UtTimeoutException }
+        val (emptyCoverageExecutions, coverageExecutions) = notTimeout.partition { it.coverage == null }
         val (successfulExecutions, failedExecutions) = coverageExecutions.partition { it.result is UtExecutionSuccess }
         val minimized  =
             if (withMinimization)

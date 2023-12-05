@@ -121,6 +121,7 @@ class PythonWorkerManager(
         pickledArguments: String,
         coverageId: String
     ): PythonEvaluationResult {
+        logger.info("Here!")
         val evaluationResult = try {
             codeExecutor.runWithCoverage(pickledArguments, coverageId)
         } catch (_: SocketTimeoutException) {

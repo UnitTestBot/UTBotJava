@@ -1,5 +1,9 @@
 package org.utbot.python.engine.symbolic
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.usvm.runner.USVMPythonAnalysisResultReceiver
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -41,6 +45,7 @@ class USVMPythonAnalysisResultReceiverImpl(
     val configuration: PythonTestGenerationConfig,
     val executionStorage: ExecutionStorage,
     val until: Long,
+    private val coroutineScope: CoroutineScope
 ) : USVMPythonAnalysisResultReceiver() {
     private lateinit var serverSocket: ServerSocket
     private lateinit var manager: PythonWorkerManager
@@ -80,39 +85,48 @@ class USVMPythonAnalysisResultReceiverImpl(
         serverSocket.close()
     }
 
-    fun receivePickledInputValuesWithFeedback(pickledTuple: String): ExecutionFeedback? {
-        try {
-            // logger.info("Receiving $pickledTuple")
-            val coverageId = CoverageIdGenerator.createId()
-            return when (
-                val evaluationResult = manager.runWithCoverage(pickledTuple, coverageId)
-            ) {
-                is PythonEvaluationError -> {
-                    val stackTraceMessage = evaluationResult.stackTrace.joinToString("\n")
-                    val utError = UtError(
-                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}\n${stackTraceMessage}",
-                        Throwable(stackTraceMessage)
-                    )
-                    logger.debug(stackTraceMessage)
-                    InvalidExecution(utError)
-                }
+    private val mutex = Mutex()
 
-                is PythonEvaluationTimeout -> {
+    suspend fun receivePickledInputValuesWithFeedback(pickledTuple: String): ExecutionFeedback? {
+        if (System.currentTimeMillis() >= until)
+            return null
+        mutex.withLock {
+            try {
+                logger.info("Running $pickledTuple")
+                val coverageId = CoverageIdGenerator.createId()
+                return when (
+                    val evaluationResult = manager.runWithCoverage(pickledTuple, coverageId)
+                ) {
+                    is PythonEvaluationError -> {
+                        logger.info("PythonEvaluationError")
+                        val stackTraceMessage = evaluationResult.stackTrace.joinToString("\n")
+                        val utError = UtError(
+                            "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}\n${stackTraceMessage}",
+                            Throwable(stackTraceMessage)
+                        )
+                        logger.debug(stackTraceMessage)
+                        InvalidExecution(utError)
+                    }
+
+                    is PythonEvaluationTimeout -> {
 //                        val coveredInstructions = manager.coverageReceiver.coverageStorage.getOrDefault(coverageId, mutableListOf())
 //                        handleTimeoutResult(method, coveredInstructions)
-                    null
-                }
+                        logger.info("PythonEvaluationTimeout")
+                        null
+                    }
 
-                is PythonEvaluationSuccess -> {
-                    handleSuccessResult(method, evaluationResult)
+                    is PythonEvaluationSuccess -> {
+                        logger.info("PythonEvaluationSuccess")
+                        handleSuccessResult(method, evaluationResult)
+                    }
                 }
+            } catch (_: TimeoutException) {
+                logger.debug { "Symbolic process was interrupted by timeout" }
+                return null
+            } catch (_: SocketException) {
+                connect()
+                return null
             }
-        } catch (_: TimeoutException) {
-            logger.debug { "Symbolic process was interrupted by timeout" }
-            return null
-        } catch (_: SocketException) {
-            connect()
-            return null
         }
     }
 
@@ -176,8 +190,10 @@ class USVMPythonAnalysisResultReceiverImpl(
 
     override fun receivePickledInputValues(pickledTuple: String) {
         logger.debug { "SYMBOLIC: $pickledTuple" }
-        receivePickledInputValuesWithFeedback(pickledTuple)?.let {
-            executionStorage.saveSymbolicExecution(it)
+        coroutineScope.launch {
+            receivePickledInputValuesWithFeedback(pickledTuple)?.let {
+                executionStorage.saveSymbolicExecution(it)
+            }
         }
     }
 }

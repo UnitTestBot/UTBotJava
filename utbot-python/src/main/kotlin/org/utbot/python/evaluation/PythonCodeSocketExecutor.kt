@@ -1,5 +1,6 @@
 package org.utbot.python.evaluation
 
+import mu.KotlinLogging
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
 import org.utbot.python.evaluation.serialization.ExecutionRequest
@@ -17,6 +18,8 @@ import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.utils.isNamed
 import java.net.SocketException
+
+private val logger = KotlinLogging.logger {}
 
 class PythonCodeSocketExecutor(
     override val method: PythonMethod,
@@ -139,13 +142,18 @@ class PythonCodeSocketExecutor(
             coverageId,
         )
         val message = ExecutionRequestSerializer.serializeRequest(request) ?: error("Cannot serialize request to python executor")
+        logger.info("Serialized request")
         try {
             pythonWorker.sendData(message)
         } catch (_: SocketException) {
             return parseExecutionResult(FailExecution("Send data error"))
         }
+        logger.info("Sent data")
 
         val (status, response) = UtExecutorThread.run(pythonWorker, executionTimeout)
+
+        logger.info("Got response")
+
         return when (status) {
             UtExecutorThread.Status.TIMEOUT -> {
                 PythonEvaluationTimeout()

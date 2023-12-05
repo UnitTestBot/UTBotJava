@@ -6,7 +6,6 @@ import org.usvm.runner.PythonSymbolicAnalysisRunnerImpl
 import org.usvm.runner.USVMPythonConfig
 import org.usvm.runner.USVMPythonRunConfig
 import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.engine.ExecutionStorage
 
 private val logger = KotlinLogging.logger {}
 
@@ -14,6 +13,7 @@ interface SymbolicEngineApi {
     fun analyze(runConfig: USVMPythonRunConfig, receiver: USVMPythonAnalysisResultReceiverImpl)
 }
 
+/*
 class DummySymbolicEngine(
     val configuration: PythonTestGenerationConfig,
     val executionStorage: ExecutionStorage,
@@ -29,8 +29,8 @@ class DummySymbolicEngine(
             Thread.sleep(100)
         }
     }
-
 }
+*/
 
 class SymbolicEngine(
     val usvmPythonConfig: USVMPythonConfig,

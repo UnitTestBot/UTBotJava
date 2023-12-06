@@ -29,13 +29,11 @@ import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.PythonSystemImport
 import org.utbot.python.framework.codegen.model.PythonUserImport
-import org.utbot.python.newtyping.PythonFunctionDefinition
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.pythonName
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.convertToTime
 import org.utbot.python.utils.separateTimeout
@@ -241,6 +239,9 @@ abstract class PythonTestGenerationProcessor {
         } else {
             containingClass =
                 mypyStorage.definitions[curModule]!![containingClassName]!!.getUtBotType() as CompositeType
+            val descr = containingClass.pythonDescription()
+            if (descr !is PythonConcreteCompositeTypeDescription)
+                throw SelectedMethodIsNotAFunctionDefinition(method.name)
             mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
                 it.meta.name == method.name
             }

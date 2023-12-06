@@ -73,12 +73,13 @@ class PythonBaseMethod(
 
     override val arguments: List<PythonArgument>
         get() {
-                val meta = definition.type.pythonDescription() as PythonCallableTypeDescription
+                val meta = definition.meta
+                val description = definition.type.pythonDescription() as PythonCallableTypeDescription
                 return (definition.type.arguments).mapIndexed { index, type ->
                     PythonArgument(
-                        meta.argumentNames[index]!!,
+                        meta.args[index].name,
                         type.pythonTypeRepresentation(),  // TODO: improve pythonTypeRepresentation
-                        isNamed(meta.argumentKinds[index])
+                        isNamed(description.argumentKinds[index])
                     )
                 }
             }

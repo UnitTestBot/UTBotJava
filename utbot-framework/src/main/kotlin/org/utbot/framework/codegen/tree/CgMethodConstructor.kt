@@ -1942,9 +1942,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
 
         val result = currentExecution!!.result
-        // TODO usvm-sbft-merge: we add timeout for all test with exceptions, because USVM
-        //  instrumentation sometimes marks deadlocks as exceptions
-        if (result is UtExecutionFailure) {
+        if (result is UtTimeoutException) {
             testFrameworkManager.setTestExecutionTimeout(hangingTestsTimeout.timeoutMs)
         }
 

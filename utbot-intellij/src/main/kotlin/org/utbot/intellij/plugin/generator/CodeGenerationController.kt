@@ -776,6 +776,7 @@ object CodeGenerationController {
         }
 
         DumbService.getInstance(model.project).runWhenSmart {
+            OptimizeImportsProcessor(project, file).run()
             codeStyleManager.reformat(file)
             when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> {

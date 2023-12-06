@@ -103,35 +103,37 @@ class UtTracer:
     def localtrace_count(self, frame, why, arg):
         filename = frame.f_code.co_filename
         lineno = frame.f_lineno
-        if pathlib.Path(filename) == self.tested_file and lineno is not None and self.line_filter[0] <= lineno <= self.line_filter[1]:
+        if (
+            pathlib.Path(filename) == self.tested_file
+            and lineno is not None
+            and self.line_filter[0] <= lineno <= self.line_filter[1]
+        ):
             if self.mode == TraceMode.Instructions and frame.f_lasti is not None:
                 offset = frame.f_lasti
             else:
                 offset = 0
             key = UtInstruction(lineno, offset, frame.f_code == self.f_code)
-            # if key not in self.counts:
-            #     message = key.serialize()
-            #     try:
-            #         self.sender.put_message(message)
-            #     except Exception:
-            #         pass
             self.counts[key] = self.counts.get(key, 0) + 1
             self.instructions.append(key)
         return self.localtrace
 
     def globaltrace_lt(self, frame, why, arg):
         if why == "call":
-            if self.mode == TraceMode.Instructions:
-                frame.f_trace_opcodes = True
-                frame.f_trace_lines = False
-            filename = frame.f_globals.get("__file__", None)
-            if filename and all(
-                not filename.startswith(d + os.sep) for d in self.ignore_dirs
-            ):
+            filename = frame.f_code.co_filename
+            if filename and filename == str(self.tested_file.resolve()):
+                if self.mode == TraceMode.Instructions:
+                    frame.f_trace_opcodes = True
+                    frame.f_trace_lines = False
+                elif self.mode == TraceMode.Lines:
+                    frame.f_trace_opcodes = False
+                    frame.f_trace_lines = True
+
                 modulename = _modname(filename)
                 if modulename is not None:
                     return self.localtrace
             else:
+                frame.f_trace_opcodes = False
+                frame.f_trace_lines = False
                 return None
 
 

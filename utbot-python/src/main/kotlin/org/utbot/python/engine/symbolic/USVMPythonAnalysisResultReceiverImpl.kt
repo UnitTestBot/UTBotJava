@@ -32,6 +32,7 @@ import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
 import java.net.SocketException
 import java.util.concurrent.TimeoutException
+import kotlin.math.min
 
 private val logger = KotlinLogging.logger {}
 
@@ -65,7 +66,7 @@ class USVMPythonAnalysisResultReceiverImpl(
                         configuration.testFileInformation.moduleName,
                         configuration.pythonPath,
                         configuration.sysPathDirectories,
-                        configuration.timeoutForRun,
+                        min(configuration.timeoutForRun, System.currentTimeMillis() - until),
                         it,
                     )
                 }

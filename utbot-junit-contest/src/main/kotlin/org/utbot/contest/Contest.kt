@@ -124,25 +124,28 @@ fun main(args: Array<String>) {
     }
 
     withUtContext(context) {
-        // Initialize the soot before a contest is started.
-        // This saves the time budget for real work instead of soot initialization.
-        // TODO usvm-sbft-merge: Soot is not not used in usvm
-        // TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
-
-        // Initialize the JacoDB and start executor before contest is started.
-        // This saves the time budget for real work instead of initialization.
-        runBlocking {
-            createJcContainer(
-                tmpDir = tmpDir,
-                classpathFiles = classpathString.split(File.pathSeparator).map { File(it) }
-            ).runner.ensureRunnerAlive()
+        when (mainTool) {
+            Tool.USVM -> {
+                // Initialize the JacoDB and start executor before contest is started.
+                // This saves the time budget for real work instead of initialization.
+                runBlocking {
+                    createJcContainer(
+                        tmpDir = tmpDir,
+                        classpathFiles = classpathString.split(File.pathSeparator).map { File(it) }
+                    ).runner.ensureRunnerAlive()
+                }
+            }
+            Tool.UtBot -> {
+                // Initialize the soot before contest is started.
+                // This saves the time budget for real work instead of soot initialization.
+                TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+            }
         }
 
-//        TODO usvm-sbft-merge: utbot instrumentation not used in usvm
-//        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {
-//            prepareClass(ConcreteExecutorPool::class.java, "")
-//            prepareClass(Warmup::class.java, "")
-//        }
+        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {
+            prepareClass(ConcreteExecutorPool::class.java, "")
+            prepareClass(Warmup::class.java, "")
+        }
 
         println("${ContestMessage.INIT}")
 
@@ -160,18 +163,29 @@ fun main(args: Array<String>) {
             val timeBudgetSec = cmd[2].toLong()
             val cut = ClassUnderTest(classLoader.loadClass(classUnderTestName).id, outputDir, classfileDir.toFile())
 
-            // TODO usvm-sbft-merge: usvm generator use different entrypoint
-            runUsvmGeneration(
-                project = "Contest",
-                cut,
-                timeBudgetSec,
-                fuzzingRatio = 0.1,
-                classpathString,
-                runFromEstimator = false,
-                expectedExceptions = ExpectedExceptionsForClass(),
-                tmpDir = tmpDir,
-                methodNameFilter = null
-            )
+            when (mainTool) {
+                Tool.USVM -> runUsvmGeneration(
+                    project = "Contest",
+                    cut,
+                    timeBudgetSec,
+                    fuzzingRatio = 0.1,
+                    classpathString,
+                    runFromEstimator = false,
+                    expectedExceptions = ExpectedExceptionsForClass(),
+                    tmpDir = tmpDir,
+                    methodNameFilter = null
+                )
+                Tool.UtBot -> runGeneration(
+                    project = "Contest",
+                    cut,
+                    timeBudgetSec,
+                    fuzzingRatio = 0.1,
+                    classpathString,
+                    runFromEstimator = false,
+                    expectedExceptions = ExpectedExceptionsForClass(),
+                    methodNameFilter = null
+                )
+            }
 
             val compiledClassFileDir = File(outputDir.absolutePath, "compiledClassFiles")
             compiledClassFileDir.mkdirs()

@@ -337,7 +337,7 @@ class UTestInstToUtModelConverter(
 
                 initMethodExprs
                     .forEach { (jcMethod, uTestExprs) ->
-                        // TODO usvm-sbft-merge: it can be .map { expr -> processExpr(expr) } here
+                        // TODO usvm-sbft: it can be .map { expr -> processExpr(expr) } here
                         // However, there's no special treatment for cases when <init> method occurs in a global mock
                         val valueModels = uTestExprs.map { _ -> UtCompositeModel(
                             id=idGenerator.createId(),

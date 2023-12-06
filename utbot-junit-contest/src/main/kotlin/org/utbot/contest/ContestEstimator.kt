@@ -50,6 +50,8 @@ private val javaHome = System.getenv("JAVA_HOME")
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
 
+val mainTool: Tool.UtBotBasedTool = Tool.USVM
+
 // first attempt is for --add-opens
 // second attempt is for removing test methods that still don't compile
 // last attempt is for checking if final result compiles
@@ -179,7 +181,7 @@ object Paths {
 
 @Suppress("unused")
 interface Tool {
-    abstract class UtBotBasedTool : Tool {
+    sealed class UtBotBasedTool : Tool {
         abstract fun runGeneration(
             project: ProjectToEstimate,
             cut: ClassUnderTest,
@@ -448,8 +450,7 @@ fun main(args: Array<String>) {
         // config for SBST 2022
         methodFilter = null
         projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
-        // TODO usvm-sbft-merge: add if here if we want merge contest it into main
-        tools = listOf(Tool.USVM)
+        tools = listOf(mainTool)
 
         estimatorArgs = arrayOf(
             classesLists,
@@ -469,8 +470,7 @@ fun main(args: Array<String>) {
         processedClassesThreshold = 9999
         methodFilter = null
         projectFilter = null
-        // TODO usvm-sbft-merge: add if here if we want merge contest it into main
-        tools = listOf(Tool.USVM)
+        tools = listOf(mainTool)
     }
 
     JdkInfoService.jdkInfoProvider = ContestEstimatorJdkInfoProvider(javaHome)

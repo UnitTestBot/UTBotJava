@@ -618,6 +618,16 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var maxSpringContextResetsPerMethod by getIntProperty(25, 0, Int.MAX_VALUE)
 
     // endregion
+
+    // region codegen options
+
+    /**
+     * Add "test method start marker" and "test method end marker" around each test, can be used to
+     * detect uncompilable tests and remove them.
+     */
+    var addTestMethodMarkers by getBooleanProperty(false)
+
+    // endregion
 }
 
 /**

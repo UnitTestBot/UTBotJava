@@ -221,6 +221,7 @@ fun setOptions() {
     UtSettings.ignoreStringLiterals = true
     UtSettings.maximizeCoverageUsingReflection = true
     UtSettings.useSandbox = false
+    UtSettings.addTestMethodMarkers = true
 }
 
 

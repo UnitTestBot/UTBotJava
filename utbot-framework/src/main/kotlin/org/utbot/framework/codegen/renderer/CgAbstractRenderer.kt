@@ -251,14 +251,18 @@ abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgTestMethod) {
-        visit(CgSingleLineComment(TEST_METHOD_START_MARKER))
+        if (UtSettings.addTestMethodMarkers) {
+            visit(CgSingleLineComment(TEST_METHOD_START_MARKER))
+        }
         renderMethodDocumentation(element)
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
         renderMethodSignature(element)
         visit(element as CgMethod)
-        visit(CgSingleLineComment(TEST_METHOD_END_MARKER))
+        if (UtSettings.addTestMethodMarkers) {
+            visit(CgSingleLineComment(TEST_METHOD_END_MARKER))
+        }
     }
 
     override fun visit(element: CgErrorTestMethod) {

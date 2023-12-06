@@ -1,5 +1,5 @@
 plugins {
-    id 'com.jetbrains.rdgen' version "2023.1.2"
+    id 'com.jetbrains.rdgen' version "2023.2.0"
 }
 
 import com.jetbrains.rd.generator.gradle.RdGenExtension

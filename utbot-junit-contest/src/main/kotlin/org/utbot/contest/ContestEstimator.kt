@@ -50,7 +50,7 @@ private val javaHome = System.getenv("JAVA_HOME")
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
 
-val mainTool: Tool.UtBotBasedTool = Tool.USVM
+val mainTool: Tool.UtBotBasedTool = Tool.UtBot
 
 // first attempt is for --add-opens
 // second attempt is for removing test methods that still don't compile

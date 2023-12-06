@@ -142,17 +142,13 @@ class PythonCodeSocketExecutor(
             coverageId,
         )
         val message = ExecutionRequestSerializer.serializeRequest(request) ?: error("Cannot serialize request to python executor")
-        logger.info("Serialized request")
         try {
             pythonWorker.sendData(message)
         } catch (_: SocketException) {
             return parseExecutionResult(FailExecution("Send data error"))
         }
-        logger.info("Sent data")
 
         val (status, response) = UtExecutorThread.run(pythonWorker, executionTimeout)
-
-        logger.info("Got response")
 
         return when (status) {
             UtExecutorThread.Status.TIMEOUT -> {

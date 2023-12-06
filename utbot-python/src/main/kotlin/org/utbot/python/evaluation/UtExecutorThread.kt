@@ -20,7 +20,7 @@ class UtExecutorThread {
             val executor = Executors.newSingleThreadExecutor()
             val future = executor.submit(Task(worker))
 
-            logger.info("Running with timeout $executionTimeout")
+            logger.debug("Running with timeout $executionTimeout")
 
             val result = try {
                 Status.OK to future.get(executionTimeout, TimeUnit.MILLISECONDS)
@@ -29,7 +29,7 @@ class UtExecutorThread {
                 Status.TIMEOUT to null
             }
 
-            logger.info("Stopped running. Result: ${result.first}")
+            logger.debug("Stopped running. Result: {}", result.first)
 
             executor.shutdown()
             return result

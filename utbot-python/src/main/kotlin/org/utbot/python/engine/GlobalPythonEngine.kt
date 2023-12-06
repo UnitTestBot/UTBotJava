@@ -1,6 +1,5 @@
 package org.utbot.python.engine
 
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.usvm.runner.StandardLayout
 import org.usvm.runner.USVMPythonConfig
@@ -13,6 +12,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.engine.fuzzing.FuzzingEngine
 import org.utbot.python.engine.symbolic.SymbolicEngine
+import org.utbot.python.engine.symbolic.SymbolicExecutionEvaluator
 import org.utbot.python.engine.symbolic.USVMPythonAnalysisResultReceiverImpl
 import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.ast.visitor.Visitor
@@ -67,39 +67,41 @@ class GlobalPythonEngine(
             configuration.sysPathDirectories,
             extractVenvConfig(configuration.pythonPath)
         )
-        val receiver = USVMPythonAnalysisResultReceiverImpl(
+        val runner = SymbolicExecutionEvaluator(
             method,
             configuration,
             executionStorage,
-            until,
+            until
         )
-        runBlocking {
-            receiver.coroutineScope = this
-            val config = if (method.containingPythonClass == null) {
-                USVMPythonFunctionConfig(configuration.testFileInformation.moduleName, method.name)
-            } else {
-                USVMPythonMethodConfig(
-                    configuration.testFileInformation.moduleName,
-                    method.name,
-                    method.containingPythonClass!!.pythonName()
-                )
-            }
-            val engine = SymbolicEngine(
-                usvmPythonConfig,
-                configuration,
+        runner.start()
+        val receiver = USVMPythonAnalysisResultReceiverImpl(runner.executionQueue)
+        val config = if (method.containingPythonClass == null) {
+            USVMPythonFunctionConfig(configuration.testFileInformation.moduleName, method.name)
+        } else {
+            USVMPythonMethodConfig(
+                configuration.testFileInformation.moduleName,
+                method.name,
+                method.containingPythonClass!!.pythonName()
             )
-            val usvmConfig = USVMPythonRunConfig(config, until - System.currentTimeMillis(), configuration.timeoutForRun * 2)
-            if (debug) {
-                engine.debugRun(usvmConfig)
-            } else {
-                engine.analyze(
-                    usvmConfig,
-                    receiver
-                )
-            }
         }
-        logger.info { "Symbolic: stop receiver" }
-        receiver.close()
+        val engine = SymbolicEngine(
+            usvmPythonConfig,
+            configuration,
+        )
+        val usvmConfig = USVMPythonRunConfig(config, until - System.currentTimeMillis(), configuration.timeoutForRun * 2)
+        if (debug) {
+            engine.debugRun(usvmConfig)
+        } else {
+            engine.analyze(
+                usvmConfig,
+                receiver
+            )
+        }
+        logger.info { "Symbolic: stopped receiver" }
+        runner.receiverFinished = true
+        runner.join()
+        runner.close()
+        logger.info { "Symbolic: stopped runner" }
     }
 
     fun run() {

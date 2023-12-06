@@ -85,7 +85,6 @@ class PythonWorkerManager(
     }
 
     fun disconnect() {
-        println("Destroying")
         workerSocket.close()
         process.destroyForcibly()
     }
@@ -122,7 +121,6 @@ class PythonWorkerManager(
         pickledArguments: String,
         coverageId: String
     ): PythonEvaluationResult {
-        logger.info("Here!")
         val evaluationResult = try {
             codeExecutor.runWithCoverage(pickledArguments, coverageId)
         } catch (_: SocketTimeoutException) {

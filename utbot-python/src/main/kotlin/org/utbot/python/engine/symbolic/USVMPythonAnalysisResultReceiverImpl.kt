@@ -66,7 +66,7 @@ class USVMPythonAnalysisResultReceiverImpl(
                         configuration.testFileInformation.moduleName,
                         configuration.pythonPath,
                         configuration.sysPathDirectories,
-                        min(configuration.timeoutForRun, System.currentTimeMillis() - until),
+                        min(configuration.timeoutForRun, until - System.currentTimeMillis()),
                         it,
                     )
                 }

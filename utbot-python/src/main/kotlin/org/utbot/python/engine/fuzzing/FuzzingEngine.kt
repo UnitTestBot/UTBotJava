@@ -76,6 +76,7 @@ import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.utils.convertToTime
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
+import kotlin.math.min
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
@@ -190,7 +191,7 @@ class FuzzingEngine(
                             configuration.testFileInformation.moduleName,
                             configuration.pythonPath,
                             configuration.sysPathDirectories,
-                            configuration.timeoutForRun,
+                            min(configuration.timeoutForRun, until - System.currentTimeMillis()),
                             it,
                         )
                     }

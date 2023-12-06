@@ -35,11 +35,9 @@ import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.PythonCompositeTypeDescription
 import org.utbot.python.newtyping.PythonDefinition
 import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.getBoundedParameters
 import org.utbot.python.newtyping.getPythonAttributeByName
 import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.pythonDescription
-import org.utbot.python.newtyping.pythonName
 import org.utbot.python.newtyping.pythonNoneType
 import org.utbot.python.newtyping.pythonTypeName
 
@@ -118,18 +116,14 @@ object ReduceValueProvider : PythonValueProvider {
             val initWithoutAny = (initMethod?.type as? FunctionType)?.arguments?.drop(1)?.all { !it.isAny() } ?: false
             val newWithoutAny = (initMethod?.type as? FunctionType)?.arguments?.drop(1)?.all { !it.isAny() } ?: false
 
-            val isGeneric = type.utType.getBoundedParameters().isNotEmpty()
-
             if (initParent <= newParent && initMethod != null && initWithoutCallable && initWithoutAny) {
                 listOf(initMethod) to type
             } else if (newMethod != null && newWithoutCallable && newWithoutAny) {
                 listOf(newMethod) to type
             } else if (initMethod != null && initWithoutAny) {
                 listOf(initMethod) to type
-            } else if (!isGeneric) {
-                listOfNotNull(initMethod, newMethod) to type.activateAny()
             } else {
-                emptyList<PythonDefinition>() to type
+                listOfNotNull(initMethod, newMethod) to type.activateAny()
             }
         } else {
             emptyList<PythonDefinition>() to type
@@ -142,15 +136,15 @@ object ReduceValueProvider : PythonValueProvider {
         modifications: Sequence<Routine.Call<FuzzedUtType, PythonFuzzedValue>>,
         description: PythonMethodDescription,
     ): Sequence<Seed.Recursive<FuzzedUtType, PythonFuzzedValue>> = sequence {
-        val constructors = emptyList<FunctionType>().toMutableList()
+        val constructors = emptyList<Pair<FunctionType, String>>().toMutableList()
         if (constructor.type.pythonTypeName() == "Overload") {
             constructor.type.parameters.forEach {
                 if (it is FunctionType) {
-                    constructors.add(it)
+                    constructors.add(it to constructor.meta.name)
                 }
             }
         } else {
-            constructors.add(constructor.type as FunctionType)
+            constructors.add(constructor.type as FunctionType to constructor.meta.name)
         }
         constructors.forEach {
             yield(constructObject(type, it, modifications, description))
@@ -159,7 +153,7 @@ object ReduceValueProvider : PythonValueProvider {
 
     private fun constructObject(
         type: FuzzedUtType,
-        constructorFunction: FunctionType,
+        constructorFunction: Pair<FunctionType, String>,
         modifications: Sequence<Routine.Call<FuzzedUtType, PythonFuzzedValue>>,
         description: PythonMethodDescription,
     ): Seed.Recursive<FuzzedUtType, PythonFuzzedValue> {
@@ -190,16 +184,16 @@ object ReduceValueProvider : PythonValueProvider {
 
     private fun buildConstructor(
         type: FuzzedUtType,
-        constructorFunction: FunctionType,
+        constructor: Pair<FunctionType, String>,
         description: PythonMethodDescription,
     ): Routine.Create<FuzzedUtType, PythonFuzzedValue> {
-        if (constructorFunction.pythonName().endsWith("__new__") && constructorFunction.arguments.any { it.isAny() }) {
-            val newMethodName = "__new__"
-            val newMethod = type.utType.getPythonAttributeByName(description.pythonTypeStorage, newMethodName)
-            val newMethodArgs = (newMethod?.type as FunctionType?)?.arguments
-            return if (newMethodArgs != null && newMethodArgs.size == 1) {
+        val (constructorFunction, constructorName) = constructor
+        val newMethodName = "__new__"
+        if (constructorName == newMethodName) {
+            val newMethodArgs = constructorFunction.arguments
+            return if (newMethodArgs.size == 1) {
                 val classId = PythonClassId(type.pythonModuleName(), type.pythonName())
-                Routine.Create(newMethodArgs.toFuzzed().activateAnyIf(type)) { _ ->
+                Routine.Create(listOf(pythonNoneType).toFuzzed()) { _ ->
                     PythonFuzzedValue(
                         PythonTree.ReduceNode(
                             classId,
@@ -210,12 +204,13 @@ object ReduceValueProvider : PythonValueProvider {
                     )
                 }
             } else {
+                // TODO: remove it
                 val classId = PythonClassId(type.pythonModuleName(), type.pythonName())
                 Routine.Create(listOf(pythonNoneType).toFuzzed()) { v ->
                     PythonFuzzedValue(
                         PythonTree.ReduceNode(
                             classId,
-                            PythonClassId(pythonObjectClassId.name, "${type.pythonName()}.__new__"),
+                            PythonClassId(pythonObjectClassId.name, "${pythonObjectClassId.name}.__new__"),
                             listOf(PythonTree.PrimitiveNode(classId, classId.name)),
                         ),
                         "%var% = ${type.pythonTypeRepresentation()}"

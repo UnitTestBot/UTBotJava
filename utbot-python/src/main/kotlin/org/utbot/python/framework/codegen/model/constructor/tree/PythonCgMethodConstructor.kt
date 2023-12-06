@@ -16,15 +16,32 @@ import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.convertDocToCg
 import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.codegen.tree.buildTestMethod
-import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.*
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.TimeoutException
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionFailure
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtTimeoutException
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonMethodId
+import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.PythonTreeModel
+import org.utbot.python.framework.api.python.PythonUtExecution
 import org.utbot.python.framework.api.python.util.pythonExceptionClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
-import org.utbot.python.framework.api.python.util.pythonStopIterationClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.python.framework.codegen.model.tree.*
+import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
+import org.utbot.python.framework.codegen.model.tree.CgPythonIndex
+import org.utbot.python.framework.codegen.model.tree.CgPythonNamedArgument
+import org.utbot.python.framework.codegen.model.tree.CgPythonRange
+import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
+import org.utbot.python.framework.codegen.model.tree.CgPythonTree
+import org.utbot.python.framework.codegen.model.tree.CgPythonZip
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
     private val maxDepth: Int = 5
@@ -345,8 +362,8 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         actual: CgVariable,
     ) {
         val zip = CgPythonZip(
-            actual,
             variableConstructor.getOrCreateVariable(PythonTreeModel(expectedNode)),
+            actual,
         )
         val index = newVar(pythonNoneClassId, "pair") {
             CgPythonRepr(pythonNoneClassId, "None")
@@ -371,7 +388,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
         }
         if (expectedNode.items.size < PythonTree.MAX_ITERATOR_SIZE) {
-            testFrameworkManager.expectException(pythonStopIterationClassId) {
+            testFrameworkManager.expectException(expectedNode.exception) {
                 +CgPythonFunctionCall(
                     PythonClassId("builtins.next"),
                     "next",

@@ -1,7 +1,6 @@
 import copy
 import importlib
 import json
-import pickle
 import sys
 from typing import Dict, Iterable, Union
 
@@ -28,8 +27,11 @@ class MemoryObjectEncoder(json.JSONEncoder):
             }
             if isinstance(o, ReprMemoryObject):
                 base_json["value"] = o.value
-            elif isinstance(o, (ListMemoryObject, DictMemoryObject, IteratorMemoryObject)):
+            elif isinstance(o, (ListMemoryObject, DictMemoryObject)):
                 base_json["items"] = o.items
+            elif isinstance(o, IteratorMemoryObject):
+                base_json["items"] = o.items
+                base_json["exception"] = o.exception
             elif isinstance(o, ReduceMemoryObject):
                 base_json["constructor"] = o.constructor
                 base_json["args"] = o.args
@@ -84,6 +86,7 @@ def as_reduce_object(dct: Dict) -> Union[MemoryObject, Dict]:
         if dct["strategy"] == "iterator":
             obj = IteratorMemoryObject.__new__(IteratorMemoryObject)
             obj.items = dct["items"]
+            obj.exception = dct["exception"]
             obj.typeinfo = TypeInfo(
                 kind=dct["typeinfo"]["kind"], module=dct["typeinfo"]["module"]
             )
@@ -204,7 +207,8 @@ class DumpLoader:
                 real_object[self.load_object(key)] = self.load_object(value)
         elif isinstance(dump_object, IteratorMemoryObject):
             real_object = IteratorWrapper.from_list(
-                [self.load_object(item) for item in dump_object.items]
+                [self.load_object(item) for item in dump_object.items],
+                eval(dump_object.exception.qualname)
             )
             id_ = PythonId(str(id(real_object)))
             self.dump_id_to_real_id[python_id] = id_

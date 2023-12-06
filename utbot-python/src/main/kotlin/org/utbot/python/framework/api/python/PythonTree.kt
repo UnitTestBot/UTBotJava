@@ -9,6 +9,7 @@ import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonObjectClassId
 import org.utbot.python.framework.api.python.util.pythonSetClassId
+import org.utbot.python.framework.api.python.util.pythonStopIterationClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.framework.api.python.util.toPythonRepr
@@ -218,10 +219,11 @@ object PythonTree {
 
     class IteratorNode(
         id: Long,
-        val items: MutableMap<Int, PythonTreeNode>
+        val items: MutableMap<Int, PythonTreeNode>,
+        val exception: PythonClassId = pythonStopIterationClassId,
     ) : PythonTreeNode(id, pythonIteratorClassId) {
 
-        constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+        constructor(items: MutableMap<Int, PythonTreeNode>, stopException: PythonClassId = pythonStopIterationClassId) : this(PythonIdGenerator.createId(), items, stopException)
 
         override val children: List<PythonTreeNode>
             get() = items.values.toList()

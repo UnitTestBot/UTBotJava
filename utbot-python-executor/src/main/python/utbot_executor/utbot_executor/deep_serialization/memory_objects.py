@@ -158,6 +158,7 @@ class DictMemoryObject(MemoryObject):
 class IteratorMemoryObject(MemoryObject):
     strategy: str = "iterator"
     items: List[PythonId]
+    exception: TypeInfo
 
     MAX_SIZE = 1_000
 
@@ -175,6 +176,7 @@ class IteratorMemoryObject(MemoryObject):
         for item in self.obj.content:
             elem_id = serializer.write_object_to_memory(item)
             self.items.append(elem_id)
+        self.exception = get_kind(self.obj.stop_exception)
 
         items = [
             serializer.get_by_id(elem_id)

@@ -10,7 +10,13 @@ import org.utbot.framework.codegen.renderer.CgVisitor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.*
+import org.utbot.python.framework.api.python.util.pythonDictClassId
+import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonIteratorClassId
+import org.utbot.python.framework.api.python.util.pythonListClassId
+import org.utbot.python.framework.api.python.util.pythonRangeClassId
+import org.utbot.python.framework.api.python.util.pythonSetClassId
+import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonVisitor
 
 interface CgPythonElement : CgElement {
@@ -122,7 +128,8 @@ class CgPythonDict(
 }
 
 class CgPythonIterator(
-    val elements: List<CgValue>
+    val elements: List<CgValue>,
+    val stopException: PythonClassId,
 ) : CgValue, CgPythonElement {
     override val type: PythonClassId = pythonIteratorClassId
 }

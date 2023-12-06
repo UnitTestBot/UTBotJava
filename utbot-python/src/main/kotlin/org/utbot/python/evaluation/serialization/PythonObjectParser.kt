@@ -87,6 +87,7 @@ class IteratorMemoryObject(
     typeinfo: TypeInfo,
     comparable: Boolean,
     val items: List<String>,
+    val exception: TypeInfo,
 ) : MemoryObject(id, typeinfo, comparable)
 
 class ReduceMemoryObject(
@@ -149,7 +150,7 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
         is PythonTree.IteratorNode -> {
             val items = this.items.entries
                 .map { it.value.toMemoryObject(memoryDump) }
-            IteratorMemoryObject(id, typeinfo, this.comparable, items)
+            IteratorMemoryObject(id, typeinfo, this.comparable, items, TypeInfo(this.exception.moduleName, this.exception.typeName))
         }
 
         is PythonTree.ReduceNode -> {
@@ -251,7 +252,7 @@ fun MemoryObject.toPythonTree(
             }
 
             is IteratorMemoryObject -> {
-                val draft = PythonTree.IteratorNode(id, mutableMapOf())
+                val draft = PythonTree.IteratorNode(id, mutableMapOf(), PythonClassId(exception.module, exception.kind))
 
                 visited[this.id] = draft
 

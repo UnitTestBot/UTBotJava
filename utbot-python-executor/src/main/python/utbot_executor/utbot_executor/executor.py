@@ -293,17 +293,29 @@ def _run_calculate_function_value(
 
     with __suppress_stdout():
         try:
-            __result = __tracer.runfunc(function, __tracer.DEFAULT_LINE_FILTER, *args, **kwargs)
+            __result = __tracer.runfunc(
+                function, __tracer.DEFAULT_LINE_FILTER, *args, **kwargs
+            )
         except Exception as __exception:
             __result = __exception
             __is_exception = True
-        (
-            args_ids,
-            kwargs_ids,
-            result_id,
-            state_after,
-            serialized_state_after,
-        ) = __tracer.runfunc(_serialize_state, (__start, __end), args, kwargs, __result)
+        try:
+            (
+                args_ids,
+                kwargs_ids,
+                result_id,
+                state_after,
+                serialized_state_after,
+            ) = __tracer.runfunc(
+                _serialize_state, (__start, __end), args, kwargs, __result
+            )
+        except Exception as __exception:
+            _, _, e_traceback = sys.exc_info()
+            e_filename = e_traceback.tb_frame.f_code.co_filename
+            if e_filename == fullpath:
+                __result = __exception
+                __is_exception = True
+
     logging.debug("Function call finished: %s", __result)
 
     logging.debug("Coverage: %s", __tracer.counts)
@@ -317,7 +329,7 @@ def _run_calculate_function_value(
     __str_missed_statements = [x.serialize() for x in __missed_filtered]
 
     ids = args_ids + list(kwargs_ids.values())
-    if state_assertions or __result is None:
+    if (state_assertions or __result is None) and not inspect.isgenerator(__result):
         diff_ids = compress_memory(ids, state_before, state_after)
     else:
         diff_ids = []

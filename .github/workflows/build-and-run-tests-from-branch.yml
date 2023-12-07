@@ -141,7 +141,7 @@ jobs:
 
       - name: Run tests
         run: |
-          gradle --no-daemon --build-cache --no-parallel -PprojectType=Ultimate -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
+          gradle --no-daemon --build-cache --no-parallel -PprojectType=Ultimate -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
 
       - name: Upload logs
         if: ${{ always() }}
@@ -209,7 +209,7 @@ jobs:
       - name: Run tests
         run: |
           cd utbot-spring-test
-          gradle --no-daemon --build-cache --no-parallel -PprojectType=Community -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-spring-test:test
+          gradle --no-daemon --build-cache --no-parallel -PprojectType=Community -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-spring-test:test
 
       - name: Upload logs
         if: ${{ always() }}
@@ -285,13 +285,13 @@ jobs:
         id: first-project
         run: |
           cd ${{ matrix.projects.first }}
-          gradle build --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
+          gradle build --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
 
       - name: Build project ${{ matrix.projects.second }}
         if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
         run: |
           cd ${{ matrix.projects.second }}
-          gradle build --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
+          gradle build --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
 
       - name: Upload test report if tests have failed
         if: ${{ failure() }}
@@ -360,7 +360,7 @@ jobs:
       - name: Run tests
         run: |
           cd ${{ matrix.project }}
-          gradle build --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
+          gradle build --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
 
       - name: Upload test report if tests have failed
         if: ${{ failure() }}

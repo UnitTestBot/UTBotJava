@@ -29,11 +29,15 @@ import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.PythonSystemImport
 import org.utbot.python.framework.codegen.model.PythonUserImport
-import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
+import org.utbot.python.newtyping.PythonFunctionDefinition
 import org.utbot.python.newtyping.general.CompositeType
+import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.pythonDescription
+import org.utbot.python.newtyping.pythonName
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.convertToTime
 import org.utbot.python.utils.separateTimeout
@@ -136,7 +140,8 @@ abstract class PythonTestGenerationProcessor {
             methodIds[testSet.method] as ExecutableId to params
         }.toMutableMap()
 
-        val allImports = if (skipImports) emptySet() else collectImports(testSets)
+        val collectedImports = collectImports(testSets)
+        val allImports = if (skipImports) emptySet() else collectedImports
 
         val context = UtContext(this::class.java.classLoader)
         withUtContext(context) {
@@ -148,6 +153,7 @@ abstract class PythonTestGenerationProcessor {
                 hangingTestsTimeout = HangingTestsTimeout(configuration.timeoutForRun),
                 runtimeExceptionTestsBehaviour = configuration.runtimeExceptionTestsBehaviour,
             )
+            codegen.context.existingVariableNames = codegen.context.existingVariableNames.addAll(collectedImports.flatMap { listOfNotNull(it.moduleName, it.rootModuleName, it.importName) })
             val testCode = codegen.pythonGenerateAsStringWithTestReport(
                 testSets.map { testSet ->
                     CgMethodTestSet(

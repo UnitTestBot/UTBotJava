@@ -251,7 +251,7 @@ jobs:
         - "/home/runner/runners:/home/runner/runners"
         - "/tmp/filebeat:/tmp/filebeat"
     permissions:
-      packages: read
+      packages: write
     steps:
       - name: Print environment variables
         run: printenv

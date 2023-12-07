@@ -250,6 +250,8 @@ jobs:
       volumes:
         - "/home/runner/runners:/home/runner/runners"
         - "/tmp/filebeat:/tmp/filebeat"
+    permissions:
+      packages: read
     steps:
       - name: Print environment variables
         run: printenv

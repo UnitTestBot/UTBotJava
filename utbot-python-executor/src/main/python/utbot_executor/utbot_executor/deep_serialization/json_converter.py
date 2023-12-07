@@ -229,20 +229,14 @@ class DumpLoader:
                 state = self.load_object(dump_object.state)
                 if isinstance(state, dict):
                     for field, value in state.items():
-                        try:
-                            setattr(real_object, field, value)
-                        except AttributeError:
-                            pass
+                        setattr(real_object, field, value)
                 elif hasattr(real_object, "__setstate__"):
                     real_object.__setstate__(state)
                 if isinstance(state, tuple) and len(state) == 2:
                     _, slotstate = state
                     if slotstate:
                         for key, value in slotstate.items():
-                            try:
-                                setattr(real_object, key, value)
-                            except AttributeError:
-                                pass
+                            setattr(real_object, key, value)
 
                 listitems = self.load_object(dump_object.listitems)
                 if isinstance(listitems, Iterable):

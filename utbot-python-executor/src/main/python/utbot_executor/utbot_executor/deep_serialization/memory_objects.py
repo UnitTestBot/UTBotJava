@@ -351,20 +351,14 @@ class ReduceMemoryObject(MemoryObject):
             state = serializer[self.state]
             if isinstance(state, dict):
                 for key, value in state.items():
-                    try:
-                        setattr(deserialized_obj, key, value)
-                    except AttributeError:
-                        pass
+                    setattr(deserialized_obj, key, value)
             elif hasattr(deserialized_obj, "__setstate__"):
                 deserialized_obj.__setstate__(state)
             elif isinstance(state, tuple) and len(state) == 2:
                 _, slotstate = state
                 if slotstate:
                     for key, value in slotstate.items():
-                        try:
-                            setattr(deserialized_obj, key, value)
-                        except AttributeError:
-                            pass
+                        setattr(deserialized_obj, key, value)
 
             items = serializer[self.listitems]
             if isinstance(items, Iterable):

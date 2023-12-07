@@ -133,12 +133,6 @@ jobs:
           key: ${{ runner.os }}-gradle-framework-${{ hashFiles('./*.gradle*', './utbot-framework*/*.gradle*') }}
           restore-keys: ${{ runner.os }}-gradle-framework
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: false
-          sudo: false
-
       - name: Run tests
         run: |
           gradle --no-daemon --build-cache --no-parallel -PprojectType=Ultimate -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}

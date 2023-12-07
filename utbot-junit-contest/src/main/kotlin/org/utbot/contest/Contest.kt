@@ -211,9 +211,17 @@ fun setOptions() {
     // We need to use assemble model generator to increase readability
     UtSettings.useAssembleModelGenerator = true
     UtSettings.summaryGenerationType = SummariesGenerationType.LIGHT
-    UtSettings.enableTestNamesGeneration = true
-    UtSettings.enableDisplayNameGeneration = false
-    UtSettings.enableJavaDocGeneration = true
+    when(mainTool){
+        Tool.USVM -> {
+            UtSettings.enableTestNamesGeneration = true
+            UtSettings.enableDisplayNameGeneration = false
+            UtSettings.enableJavaDocGeneration = true
+        }
+        Tool.UtBot -> {
+            UtSettings.enableDisplayNameGeneration = true
+        }
+    }
+
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true
     UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY

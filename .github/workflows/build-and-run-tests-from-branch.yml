@@ -141,7 +141,8 @@ jobs:
 
       - name: Run tests
         run: |
-          gradle -PprojectType=Ultimate -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.GITHUB_TOKEN }} --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
+          echo ${{ secrets.PACKAGES_RO_TOKEN }} > /tmp/token
+          gradle -PprojectType=Ultimate -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
 
       - name: Upload logs
         if: ${{ always() }}

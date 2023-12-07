@@ -235,17 +235,18 @@ abstract class PythonTestGenerationProcessor {
         var containingClass: CompositeType? = null
         val containingClassName = method.containingPythonClassId?.simpleName
         val definition = if (containingClassName == null) {
-            mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
+            mypyStorage.definitions[curModule]?.get(method.name)?.getUtBotDefinition()
         } else {
             containingClass =
-                mypyStorage.definitions[curModule]!![containingClassName]!!.getUtBotType() as CompositeType
+                mypyStorage.definitions[curModule]?.get(containingClassName)?.getUtBotType() as? CompositeType
+                    ?: throw SelectedMethodIsNotAFunctionDefinition(method.name)
             val descr = containingClass.pythonDescription()
             if (descr !is PythonConcreteCompositeTypeDescription)
                 throw SelectedMethodIsNotAFunctionDefinition(method.name)
-            mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
+            mypyStorage.definitions[curModule]?.get(containingClassName)?.type?.asUtBotType?.getPythonAttributes()?.first {
                 it.meta.name == method.name
             }
-        }
+        } ?: throw SelectedMethodIsNotAFunctionDefinition(method.name)
         val parsedFile = PythonParser(sourceFileContent).Module()
         val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
         val decorators = funcDef.decorators.map { PyDecorator.decoratorByName(it.name.toString()) }

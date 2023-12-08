@@ -179,6 +179,7 @@ internal class ArrayOfArraysTest : UtValueTestCaseChecker(testClass = ArrayOfArr
     }
 
     @Test
+    @Disabled("Seems not aligning with ksmt version used in USVM")
     fun testReallyMultiDimensionalArray() {
         check(
             ArrayOfArrays::reallyMultiDimensionalArray,
@@ -205,6 +206,7 @@ internal class ArrayOfArraysTest : UtValueTestCaseChecker(testClass = ArrayOfArr
     }
 
     @Test
+    @Disabled("Seems not aligning with ksmt version used in USVM")
     fun testReallyMultiDimensionalArrayMutation() {
         checkParamsMutations(
             ArrayOfArrays::reallyMultiDimensionalArray,

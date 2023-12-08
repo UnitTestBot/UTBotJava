@@ -1,0 +1,1335 @@
+{
+    "version": 2,
+    "targets": [
+        {
+            "target": "guava",
+            "summarised": [
+                {
+                    "parameters": {
+                        "fuzzing_ratio": 0.0,
+                        "class_timeout_sec": 20,
+                        "run_timeout_min": 20
+                    },
+                    "metrics": {
+                        "total_classes": 20,
+                        "testcases_generated": 2548,
+                        "classes_failed_to_compile": 0,
+                        "classes_canceled_by_timeout": 1,
+                        "total_methods": 526,
+                        "methods_with_at_least_one_testcase_generated": 483,
+                        "methods_with_at_least_one_exception": 21,
+                        "methods_without_any_tests_and_exceptions": 27,
+                        "total_bytecode_instruction_coverage": 0.6331813881482755,
+                        "total_bytecode_instruction_coverage_by_fuzzing": 0.0,
+                        "total_bytecode_instruction_coverage_by_concolic": 0.6331813881482755,
+                        "averaged_bytecode_instruction_coverage_by_classes": 0.6683494411967635
+                    }
+                },
+                {
+                    "parameters": {
+                        "fuzzing_ratio": 0.05,
+                        "class_timeout_sec": 20,
+                        "run_timeout_min": 20
+                    },
+                    "metrics": {
+                        "total_classes": 20,
+                        "testcases_generated": 3347,
+                        "classes_failed_to_compile": 0,
+                        "classes_canceled_by_timeout": 1,
+                        "total_methods": 526,
+                        "methods_with_at_least_one_testcase_generated": 493,
+                        "methods_with_at_least_one_exception": 23,
+                        "methods_without_any_tests_and_exceptions": 21,
+                        "total_bytecode_instruction_coverage": 0.7249312557286893,
+                        "total_bytecode_instruction_coverage_by_fuzzing": 0.38056828597616865,
+                        "total_bytecode_instruction_coverage_by_concolic": 0.6759853345554537,
+                        "averaged_bytecode_instruction_coverage_by_classes": 0.7448473701133187
+                    }
+                },
+                {
+                    "parameters": {
+                        "fuzzing_ratio": 1.0,
+                        "class_timeout_sec": 20,
+                        "run_timeout_min": 20
+                    },
+                    "metrics": {
+                        "total_classes": 20,
+                        "testcases_generated": 3212,
+                        "classes_failed_to_compile": 0,
+                        "classes_canceled_by_timeout": 10,
+                        "total_methods": 526,
+                        "methods_with_at_least_one_testcase_generated": 225,
+                        "methods_with_at_least_one_exception": 1,
+                        "methods_without_any_tests_and_exceptions": 300,
+                        "total_bytecode_instruction_coverage": 0.4305168986083499,
+                        "total_bytecode_instruction_coverage_by_fuzzing": 0.4305168986083499,
+                        "total_bytecode_instruction_coverage_by_concolic": 0.0,
+                        "averaged_bytecode_instruction_coverage_by_classes": 0.41369107233735003
+                    }
+                }
+            ],
+            "by_class": [
+                {
+                    "class_name": "com.google.common.collect.MinMaxPriorityQueue",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 129,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 70,
+                                "methods_with_at_least_one_testcase_generated": 48,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 22,
+                                "total_bytecode_instruction_coverage_in_class": 0.5265068990559186,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.5265068990559186
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 153,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 70,
+                                "methods_with_at_least_one_testcase_generated": 49,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 21,
+                                "total_bytecode_instruction_coverage_in_class": 0.5533769063180828,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.08278867102396514,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.5533769063180828
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 16,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 70,
+                                "methods_with_at_least_one_testcase_generated": 10,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 60,
+                                "total_bytecode_instruction_coverage_in_class": 0.1278648974668275,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.1278648974668275,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.math.LongMath",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 410,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 31,
+                                "methods_with_at_least_one_testcase_generated": 31,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.8233782915863841,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.8233782915863841
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 548,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 31,
+                                "methods_with_at_least_one_testcase_generated": 31,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.9986130374479889,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.8502080443828016,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.9299583911234397
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 634,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 31,
+                                "methods_with_at_least_one_testcase_generated": 28,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 3,
+                                "total_bytecode_instruction_coverage_in_class": 0.9216366158113731,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.9216366158113731,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.primitives.Doubles",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 288,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 48,
+                                "methods_with_at_least_one_testcase_generated": 46,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 2,
+                                "total_bytecode_instruction_coverage_in_class": 0.8736383442265795,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.8736383442265795
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 360,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 48,
+                                "methods_with_at_least_one_testcase_generated": 48,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.9041394335511983,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.5718954248366013,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.8235294117647058
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 174,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 48,
+                                "methods_with_at_least_one_testcase_generated": 29,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 19,
+                                "total_bytecode_instruction_coverage_in_class": 0.6157407407407407,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.6157407407407407,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.graph.Graphs",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 297,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 59,
+                                "methods_with_at_least_one_testcase_generated": 57,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 2,
+                                "total_bytecode_instruction_coverage_in_class": 0.37658227848101267,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.37658227848101267
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 325,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 59,
+                                "methods_with_at_least_one_testcase_generated": 59,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.379746835443038,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.1149789029535865,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.37341772151898733
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 31,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 59,
+                                "methods_with_at_least_one_testcase_generated": 21,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 38,
+                                "total_bytecode_instruction_coverage_in_class": 0.15925394548063126,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.15925394548063126,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.TreeMultiset",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 267,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 61,
+                                "methods_with_at_least_one_testcase_generated": 60,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 1,
+                                "total_bytecode_instruction_coverage_in_class": 0.5506709856547894,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.5506709856547894
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 284,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 61,
+                                "methods_with_at_least_one_testcase_generated": 61,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.5640906987505785,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.05599259602036094,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.5603887089310504
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 14,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 61,
+                                "methods_with_at_least_one_testcase_generated": 11,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 50,
+                                "total_bytecode_instruction_coverage_in_class": 0.05599259602036094,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.05599259602036094,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.FilteredEntryMultimap",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 80,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 31,
+                                "methods_with_at_least_one_testcase_generated": 31,
+                                "methods_with_at_least_one_exception": 1,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.6312997347480106,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.6312997347480106
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 84,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 31,
+                                "methods_with_at_least_one_testcase_generated": 31,
+                                "methods_with_at_least_one_exception": 2,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.6312997347480106,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.050397877984084884,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.6312997347480106
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 6,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 31,
+                                "methods_with_at_least_one_testcase_generated": 3,
+                                "methods_with_at_least_one_exception": 1,
+                                "methods_without_any_tests_and_exceptions": 27,
+                                "total_bytecode_instruction_coverage_in_class": 0.06371191135734072,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.06371191135734072,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.io.FileBackedOutputStream",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 64,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 17,
+                                "methods_with_at_least_one_testcase_generated": 17,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.5945945945945946,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.5945945945945946
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 94,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 17,
+                                "methods_with_at_least_one_testcase_generated": 17,
+                                "methods_with_at_least_one_exception": 1,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.8108108108108109,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.6833976833976834,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.5945945945945946
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 66,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 17,
+                                "methods_with_at_least_one_testcase_generated": 15,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 2,
+                                "total_bytecode_instruction_coverage_in_class": 0.749034749034749,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.749034749034749,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.ComparatorOrdering",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 114,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 5,
+                                "methods_with_at_least_one_testcase_generated": 5,
+                                "methods_with_at_least_one_exception": 1,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 1.0
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 126,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 5,
+                                "methods_with_at_least_one_testcase_generated": 5,
+                                "methods_with_at_least_one_exception": 1,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 1.0
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 0,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 5,
+                                "methods_with_at_least_one_testcase_generated": 0,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 5,
+                                "total_bytecode_instruction_coverage_in_class": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.LinkedListMultimap",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 143,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 64,
+                                "methods_with_at_least_one_testcase_generated": 64,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.6976744186046512,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.6976744186046512
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 187,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 64,
+                                "methods_with_at_least_one_testcase_generated": 64,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 1.3272425249169435,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.654485049833887,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 1.2956810631229236
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 49,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 64,
+                                "methods_with_at_least_one_testcase_generated": 35,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 29,
+                                "total_bytecode_instruction_coverage_in_class": 0.33389544688026984,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.33389544688026984,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.LexicographicalOrdering",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 97,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 5,
+                                "methods_with_at_least_one_testcase_generated": 5,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.7317073170731707,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.7317073170731707
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 123,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 5,
+                                "methods_with_at_least_one_testcase_generated": 5,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.7317073170731707,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.7317073170731707
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 0,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 5,
+                                "methods_with_at_least_one_testcase_generated": 0,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 5,
+                                "total_bytecode_instruction_coverage_in_class": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.base.Throwables",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 133,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 20,
+                                "methods_with_at_least_one_testcase_generated": 20,
+                                "methods_with_at_least_one_exception": 2,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.632258064516129,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.632258064516129
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 185,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 20,
+                                "methods_with_at_least_one_testcase_generated": 20,
+                                "methods_with_at_least_one_exception": 2,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.7096774193548387,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.5483870967741935,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.6193548387096774
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 62,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 20,
+                                "methods_with_at_least_one_testcase_generated": 14,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 6,
+                                "total_bytecode_instruction_coverage_in_class": 0.5483870967741935,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.5483870967741935,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.SparseImmutableTable",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 120,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 7,
+                                "methods_with_at_least_one_testcase_generated": 7,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.31893687707641194,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.31893687707641194
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 111,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 7,
+                                "methods_with_at_least_one_testcase_generated": 7,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.3089700996677741,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.3089700996677741
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 0,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 7,
+                                "methods_with_at_least_one_testcase_generated": 0,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 7,
+                                "total_bytecode_instruction_coverage_in_class": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.primitives.ParseRequest",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 9,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 2,
+                                "methods_with_at_least_one_testcase_generated": 2,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 1.0
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 18,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 2,
+                                "methods_with_at_least_one_testcase_generated": 2,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 1.0
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 9,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 2,
+                                "methods_with_at_least_one_testcase_generated": 2,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.primitives.SignedBytes",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 40,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 12,
+                                "methods_with_at_least_one_testcase_generated": 12,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.905829596412556,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.905829596412556
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 101,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 12,
+                                "methods_with_at_least_one_testcase_generated": 12,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.9282511210762332,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.7713004484304933,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.905829596412556
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 92,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 12,
+                                "methods_with_at_least_one_testcase_generated": 10,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 2,
+                                "total_bytecode_instruction_coverage_in_class": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 1.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.thirdparty.publicsuffix.PublicSuffixType",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 8,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 4,
+                                "methods_with_at_least_one_testcase_generated": 4,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.7714285714285715,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.7714285714285715
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 15,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 4,
+                                "methods_with_at_least_one_testcase_generated": 4,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.7714285714285715,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.7714285714285715,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.7714285714285715
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 7,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 4,
+                                "methods_with_at_least_one_testcase_generated": 4,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.7714285714285715,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.7714285714285715,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.ImmutableEnumSet",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 19,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 18,
+                                "methods_with_at_least_one_testcase_generated": 6,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.3783783783783784,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.3783783783783784
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 19,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 18,
+                                "methods_with_at_least_one_testcase_generated": 6,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.3783783783783784,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.3783783783783784
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 1,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 18,
+                                "methods_with_at_least_one_testcase_generated": 1,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 17,
+                                "total_bytecode_instruction_coverage_in_class": 0.018018018018018018,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.018018018018018018,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.net.MediaType",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 154,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 38,
+                                "methods_with_at_least_one_testcase_generated": 34,
+                                "methods_with_at_least_one_exception": 14,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.520048602673147,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.520048602673147
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 277,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 38,
+                                "methods_with_at_least_one_testcase_generated": 38,
+                                "methods_with_at_least_one_exception": 14,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.6561360874848117,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.4264884568651276,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.5407047387606319
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 1601,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 38,
+                                "methods_with_at_least_one_testcase_generated": 16,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 22,
+                                "total_bytecode_instruction_coverage_in_class": 0.46780072904009723,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.46780072904009723,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.primitives.UnsignedLongs",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 84,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 22,
+                                "methods_with_at_least_one_testcase_generated": 22,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.7413533834586467,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.7413533834586467
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 229,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 22,
+                                "methods_with_at_least_one_testcase_generated": 22,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.9503759398496241,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.9473684210526315,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.7338345864661654
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 431,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 22,
+                                "methods_with_at_least_one_testcase_generated": 22,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.9759398496240601,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.9759398496240601,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.collect.FilteredMultimapValues",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 59,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 8,
+                                "methods_with_at_least_one_testcase_generated": 8,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.8275862068965517,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.8275862068965517
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 59,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 8,
+                                "methods_with_at_least_one_testcase_generated": 8,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.8275862068965517,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.8275862068965517
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 0,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 8,
+                                "methods_with_at_least_one_testcase_generated": 0,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 8,
+                                "total_bytecode_instruction_coverage_in_class": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "com.google.common.io.Closeables",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 33,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 4,
+                                "methods_with_at_least_one_testcase_generated": 4,
+                                "methods_with_at_least_one_exception": 3,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.46511627906976744,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.46511627906976744
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 49,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 4,
+                                "methods_with_at_least_one_testcase_generated": 4,
+                                "methods_with_at_least_one_exception": 3,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.46511627906976744,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.46511627906976744,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.46511627906976744
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 1.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 19,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": true,
+                                "total_methods_in_class": 4,
+                                "methods_with_at_least_one_testcase_generated": 4,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.46511627906976744,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.46511627906976744,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.0
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "source": {
+            "type": "github-action",
+            "id": "7135749996-1"
+        },
+        "commit_hash": "0bbb5276d3794ee80a61afe6840a335463e10318",
+        "branch": "main",
+        "build_number": "2023.12",
+        "timestamp": 1701996843,
+        "date": "2023-12-08T00:54:03",
+        "environment": {
+            "host": "087b32e7d848",
+            "OS": "Linux version #59~20.04.1-Ubuntu SMP Tue Oct 17 16:45:08 UTC 2023",
+            "java_version": "openjdk version \"17.0.6\" 2023-01-17 LTS\nOpenJDK Runtime Environment Zulu17.40+19-CA (build 17.0.6+10-LTS)\nOpenJDK 64-Bit Server VM Zulu17.40+19-CA (build 17.0.6+10-LTS, mixed mode, sharing)\n",
+            "gradle_version": "Gradle 7.6.1",
+            "JAVA_HOME": "/usr/lib/jvm/zulu17-ca-amd64",
+            "KOTLIN_HOME": "/opt/kotlin/kotlinc",
+            "PATH": "/__t/Python/3.9.18/x64/bin:/__t/Python/3.9.18/x64:/opt/gradle/gradle-7.6.1/bin:/opt/kotlin/kotlinc/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        }
+    }
+}

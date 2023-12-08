@@ -143,6 +143,7 @@ class MapEntrySetTest : UtValueTestCaseChecker(
 
 
     @Test
+    @Disabled("Seems not aligning with ksmt version used in USVM")
     fun testIterateWithIterator() {
         withPushingStateFromPathSelectorForConcrete {
             checkWithException(

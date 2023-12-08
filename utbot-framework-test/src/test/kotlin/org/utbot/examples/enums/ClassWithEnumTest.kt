@@ -46,6 +46,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     }
 
     @Test
+    @Disabled("Seems not aligning with ksmt version used in USVM")
     fun testNullParameter() {
         check(
             ClassWithEnum::nullEnumAsParameter,

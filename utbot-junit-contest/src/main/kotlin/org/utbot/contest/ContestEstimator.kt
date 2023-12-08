@@ -26,10 +26,13 @@ import org.utbot.contest.Paths.evosuiteReportFile
 import org.utbot.contest.Paths.jarsDir
 import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
+import org.utbot.contest.usvm.jc.JcContainer
+import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -47,7 +50,12 @@ private val javaHome = System.getenv("JAVA_HOME")
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
 
-private const val compileAttempts = 2
+val mainTool: Tool.UtBotBasedTool = Tool.UtBot
+
+// first attempt is for --add-opens
+// second attempt is for removing test methods that still don't compile
+// last attempt is for checking if final result compiles
+private const val compileAttempts = 3
 
 private data class UnnamedPackageInfo(val pack: String, val module: String)
 
@@ -60,7 +68,16 @@ private fun findAllNotExportedPackages(report: String): List<UnnamedPackageInfo>
     }.toList().distinct()
 }
 
-private fun compileClass(testDir: String, classPath: String, testClass: String): Int {
+private fun findErrorLines(report: String): List<Int> {
+    // (\d+) is line number
+    // (:(\d+)) is optional column number
+    val regex = """\.java:(\d+)(:(\d+))?: error""".toRegex()
+    return regex.findAll(report).map {
+        it.groupValues[1].toInt() - 1
+    }.toList().distinct()
+}
+
+fun compileClassAndRemoveUncompilableTests(testDir: String, classPath: String, testClass: String): Int = try {
     val exports = mutableSetOf<UnnamedPackageInfo>()
     var exitCode = 0
 
@@ -91,10 +108,48 @@ private fun compileClass(testDir: String, classPath: String, testClass: String):
             if (errors.isNotEmpty())
                 logger.error { "Compilation errors: $errors" }
             exports += findAllNotExportedPackages(errors)
+            if (attemptNumber >= 1) {
+                val testFile = File(testClass)
+                val testClassLines = testFile.readLines()
+                val testStarts = testClassLines.withIndex()
+                    .filter { it.value.contains(CgAbstractRenderer.TEST_METHOD_START_MARKER) }
+                    .map { it.index }
+                val testEnds = testClassLines.withIndex()
+                    .filter { it.value.contains(CgAbstractRenderer.TEST_METHOD_END_MARKER) }
+                    .map { it.index }
+                val errorLines = findErrorLines(errors)
+                val errorRanges = errorLines.map { errorLine ->
+                    // if error is outside test method, we can't fix that by removing test methods
+                    val testStart = testStarts.filter { it <= errorLine }.maxOrNull() ?: return exitCode
+                    val testEnd = testEnds.filter { it >= errorLine }.minOrNull() ?: return exitCode
+                    testStart..testEnd
+                }.distinct()
+                if (errorRanges.size > testStarts.size / 5.0) {
+                    logger.error { "Over 20% of test are uncompilable" }
+                    logger.error { "Speculating that something is wrong with compilation settings, keeping all tests" }
+                    return exitCode
+                }
+                val linesToRemove = mutableSetOf<Int>()
+                errorRanges.forEach { linesToRemove.addAll(it) }
+                val removedText = testClassLines.withIndex()
+                    .filter { it.index in linesToRemove }
+                    .joinToString("\n") { "${it.index}: ${it.value}" }
+                logger.info { "Removed uncompilable tests:\n$removedText" }
+                testFile.writeText(testClassLines.filterIndexed { i, _ -> i !in linesToRemove }.joinToString("\n"))
+            }
         }
     }
 
-    return exitCode
+    exitCode
+} catch (e: Throwable) {
+    logger.error(e) { "compileClass failed" }
+    1
+} finally {
+    val testFile = File(testClass)
+    testFile.writeText(testFile.readLines().filter {
+        !it.contains(CgAbstractRenderer.TEST_METHOD_START_MARKER)
+                && !it.contains(CgAbstractRenderer.TEST_METHOD_END_MARKER)
+    }.joinToString("\n"))
 }
 
 fun Array<String>.toText() = joinToString(separator = ",")
@@ -125,10 +180,20 @@ object Paths {
 }
 
 @Suppress("unused")
-enum class Tool {
-    UtBot {
-        @OptIn(ObsoleteCoroutinesApi::class)
-        @Suppress("EXPERIMENTAL_API_USAGE")
+interface Tool {
+    sealed class UtBotBasedTool : Tool {
+        abstract fun runGeneration(
+            project: ProjectToEstimate,
+            cut: ClassUnderTest,
+            timeLimit: Long,
+            fuzzingRatio: Double,
+            methodNameFilter: String?,
+            statsForProject: StatsForProject,
+            compiledTestDir: File,
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
+        ) : StatsForClass
+
         override fun run(
             project: ProjectToEstimate,
             cut: ClassUnderTest,
@@ -142,19 +207,21 @@ enum class Tool {
         ) = withUtContext(ContextManager.createNewContext(project.classloader)) {
             val classStats: StatsForClass = try {
                 runGeneration(
-                    project.name,
+                    project,
                     cut,
                     timeLimit,
                     fuzzingRatio,
-                    project.sootClasspathString,
-                    runFromEstimator = true,
-                    expectedExceptions,
-                    methodNameFilter
+                    methodNameFilter,
+                    statsForProject,
+                    compiledTestDir,
+                    classFqn,
+                    expectedExceptions
                 )
             } catch (e: CancellationException) {
                 logger.info { "[$classFqn] finished with CancellationException" }
                 return
             } catch (e: Throwable) {
+                logger.error(e) { "ISOLATION: $e" }
                 logger.info { "ISOLATION: $e" }
                 logger.info { "continue without compilation" }
                 return
@@ -167,7 +234,7 @@ enum class Tool {
                 classStats.testClassFile = testClass
 
                 logger.info().measureTime({ "Compiling class ${testClass.absolutePath}" }) {
-                    val exitCode = compileClass(
+                    val exitCode = compileClassAndRemoveUncompilableTests(
                         compiledTestDir.absolutePath,
                         project.compileClasspathString,
                         testClass.absolutePath
@@ -198,8 +265,66 @@ enum class Tool {
         override fun moveProducedFilesIfNeeded() {
             // don't do anything
         }
-    },
-    EvoSuite {
+    }
+
+    object UtBot : UtBotBasedTool() {
+        @OptIn(ObsoleteCoroutinesApi::class)
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        override fun runGeneration(
+            project: ProjectToEstimate,
+            cut: ClassUnderTest,
+            timeLimit: Long,
+            fuzzingRatio: Double,
+            methodNameFilter: String?,
+            statsForProject: StatsForProject,
+            compiledTestDir: File,
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
+        ): StatsForClass {
+            return runGeneration(
+                project.name,
+                cut,
+                timeLimit,
+                fuzzingRatio,
+                project.sootClasspathString,
+                runFromEstimator = true,
+                expectedExceptions,
+                methodNameFilter
+            )
+        }
+    }
+
+    object USVM : UtBotBasedTool() {
+        @OptIn(ObsoleteCoroutinesApi::class)
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        override fun runGeneration(
+            project: ProjectToEstimate,
+            cut: ClassUnderTest,
+            timeLimit: Long,
+            fuzzingRatio: Double,
+            methodNameFilter: String?,
+            statsForProject: StatsForProject,
+            compiledTestDir: File,
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
+        ): StatsForClass = runUsvmGeneration(
+            project.name,
+            cut,
+            timeLimit,
+            fuzzingRatio,
+            project.sootClasspathString,
+            runFromEstimator = true,
+            expectedExceptions = expectedExceptions,
+            tmpDir = File("."),
+            methodNameFilter = methodNameFilter
+        )
+
+        override fun close() {
+            JcContainer.close()
+        }
+    }
+
+    object EvoSuite : Tool {
         override fun run(
             project: ProjectToEstimate,
             cut: ClassUnderTest,
@@ -272,7 +397,7 @@ enum class Tool {
         }
     };
 
-    abstract fun run(
+    fun run(
         project: ProjectToEstimate,
         cut: ClassUnderTest,
         timeLimit: Long,
@@ -284,10 +409,16 @@ enum class Tool {
         expectedExceptions: ExpectedExceptionsForClass
     )
 
-    abstract fun moveProducedFilesIfNeeded()
+    fun moveProducedFilesIfNeeded()
+
+    fun close() {}
 }
 
 fun main(args: Array<String>) {
+    // See https://dzone.com/articles/how-to-export-all-modules-to-all-modules-at-runtime-in-java?preview=true
+    // `Modules` is `null` on JDK 8 (see comment to StaticComponentContainer.Modules)
+    org.burningwave.core.assembler.StaticComponentContainer.Modules?.exportAllToAll()
+
     val estimatorArgs: Array<String>
     val methodFilter: String?
     val projectFilter: List<String>?
@@ -295,7 +426,7 @@ fun main(args: Array<String>) {
     val tools: List<Tool>
 
     // very special case when you run your project directly from IntellijIDEA omitting command line arguments
-    if (args.isEmpty() && System.getProperty("os.name")?.run { contains("win", ignoreCase = true) } == true) {
+    if (args.isEmpty()) {
         processedClassesThreshold = 9999 //change to change number of classes to run
         val timeLimit = 20 // increase if you want to debug something
         val fuzzingRatio = 0.1 // sets fuzzing ratio to total test generation
@@ -319,7 +450,7 @@ fun main(args: Array<String>) {
         // config for SBST 2022
         methodFilter = null
         projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
-        tools = listOf(Tool.UtBot)
+        tools = listOf(mainTool)
 
         estimatorArgs = arrayOf(
             classesLists,
@@ -339,7 +470,7 @@ fun main(args: Array<String>) {
         processedClassesThreshold = 9999
         methodFilter = null
         projectFilter = null
-        tools = listOf(Tool.UtBot)
+        tools = listOf(mainTool)
     }
 
     JdkInfoService.jdkInfoProvider = ContestEstimatorJdkInfoProvider(javaHome)
@@ -377,7 +508,7 @@ fun runEstimator(
     if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
     }
-    
+
     logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
     if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
@@ -436,52 +567,56 @@ fun runEstimator(
 
     try {
         tools.forEach { tool ->
-            var classIndex = 0
+            try {
+                var classIndex = 0
 
-            outer@ for (project in projects) {
-                if (projectFilter != null && project.name !in projectFilter) continue
+                outer@ for (project in projects) {
+                    if (projectFilter != null && project.name !in projectFilter) continue
 
-                val statsForProject = StatsForProject(project.name)
-                globalStats.projectStats.add(statsForProject)
+                    val statsForProject = StatsForProject(project.name)
+                    globalStats.projectStats.add(statsForProject)
 
-                logger.info { "------------- project [${project.name}] ---- " }
+                    logger.info { "------------- project [${project.name}] ---- " }
 
-                // take all the classes from the corresponding jar if a list of the specified classes is empty
-                val extendedClassFqn = project.classFQNs.ifEmpty { project.classNames }
+                    // take all the classes from the corresponding jar if a list of the specified classes is empty
+                    val extendedClassFqn = project.classFQNs.ifEmpty { project.classNames }
 
-                for (classFqn in extendedClassFqn.filter { classFqnFilter?.equals(it) ?: true }) {
-                    classIndex++
-                    if (classIndex > processedClassesThreshold) {
-                        logger.info { "Reached limit of $processedClassesThreshold classes" }
-                        break@outer
-                    }
+                    for (classFqn in extendedClassFqn.filter { classFqnFilter?.equals(it) ?: true }) {
+                        classIndex++
+                        if (classIndex > processedClassesThreshold) {
+                            logger.info { "Reached limit of $processedClassesThreshold classes" }
+                            break@outer
+                        }
 
-                    try {
-                        val cut =
-                            ClassUnderTest(
-                                project.classloader.loadClass(classFqn).id,
-                                project.outputTestSrcFolder,
-                                project.unzippedDir
+                        try {
+                            val cut =
+                                ClassUnderTest(
+                                    project.classloader.loadClass(classFqn).id,
+                                    project.outputTestSrcFolder,
+                                    project.unzippedDir
+                                )
+
+                            logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
+
+                            tool.run(
+                                project,
+                                cut,
+                                timeLimit,
+                                fuzzingRatio,
+                                methodNameFilter,
+                                statsForProject,
+                                compiledTestDir,
+                                classFqn,
+                                project.expectedExceptions.getForClass(classFqn)
                             )
-
-                        logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
-
-                        tool.run(
-                            project,
-                            cut,
-                            timeLimit,
-                            fuzzingRatio,
-                            methodNameFilter,
-                            statsForProject,
-                            compiledTestDir,
-                            classFqn,
-                            project.expectedExceptions.getForClass(classFqn)
-                        )
-                    }
-                    catch (e: Throwable) {
-                        logger.warn(e) { "===================== ERROR IN [${project.name}] FOR [$classIndex:$classFqn] ============" }
+                        }
+                        catch (e: Throwable) {
+                            logger.warn(e) { "===================== ERROR IN [${project.name}] FOR [$classIndex:$classFqn] ============" }
+                        }
                     }
                 }
+            } finally {
+                tool.close()
             }
         }
     } finally {
@@ -545,7 +680,7 @@ class ProjectToEstimate(
 ) {
     val outputTestSrcFolder = File(testCandidatesDir, name).apply { mkdirs() }
     val unzippedDir = File(unzippedJars, name)
-    val classloader = URLClassLoader(jars.map { it.toUrl() }.toTypedArray(), null)
+    val classloader = URLClassLoader(jars.map { it.toUrl() }.toTypedArray(), ClassLoader.getSystemClassLoader().parent)
     val sootClasspathString get() = jars.joinToString(classPathSeparator)
     val compileClasspathString
         get() = arrayOf(outputTestSrcFolder.absolutePath, sootClasspathString, dependenciesJars)

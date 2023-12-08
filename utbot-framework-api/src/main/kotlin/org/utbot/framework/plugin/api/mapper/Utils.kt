@@ -5,6 +5,8 @@ import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
@@ -12,6 +14,7 @@ import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
+import org.utbot.framework.plugin.api.isSuccess
 
 inline fun <reified T : UtModel> T.mapPreservingType(mapper: UtModelMapper): T =
     mapper.map(this, T::class.java)
@@ -53,6 +56,14 @@ fun EnvironmentModels.mapModels(mapper: UtModelMapper) = EnvironmentModels(
     parameters = parameters.mapModels(mapper),
     executableToCall = executableToCall,
 )
+
+fun UtExecutionResult.mapModelIfExists(mapper: UtModelMapper) = if (this.isSuccess) {
+    val successResult = this as UtExecutionSuccess
+    UtExecutionSuccess(successResult.model.map(mapper))
+} else {
+    this
+}
+
 
 fun UtInstrumentation.mapModels(mapper: UtModelMapper) = when (this) {
     is UtNewInstanceInstrumentation -> copy(instances = instances.mapModels(mapper))

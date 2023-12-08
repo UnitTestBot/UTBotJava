@@ -45,17 +45,27 @@ processResources {
     }
 }
 
-jar {
-    dependsOn classes
-    manifest {
-        attributes 'Main-Class': 'org.utbot.QualityAnalysisKt'
-    }
-
-    dependsOn configurations.runtimeClasspath
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    zip64 = true
-}
+// TODO if you need utbot-analytics fat jar, use shadow jar to create a SEPARATE task for a fat jar.
+//  Do not use main jar for a fat jar, because it breaks Gradle conflict resolution, here's how:
+//    1. utbot-analytics depends on library A version 1.0 (and adds it to own main jar)
+//    2. utbot-junit-contest depends on utbot-analytics and library A version 1.1
+//    3. Both library A version 1.0 and version 1.1 end up on the classpath and it's a matter of chance which one is earlier
+//  If utbot-analytics were to only declare its dependency on library A version 1.0 and not force it by adding it to a
+//  main jar, then Gradle would be able to recognize the conflict of library A version 1.0 and version 1.1 and resolve
+//  it according to a conflict resolution strategy, which by default picks the latest version, which works in most cases.
+//  But if you put library A version 1.0 into some fat jar, Gradle will no longer be able to exclude it from the fat jar
+//  in favor of a newer version when it needs to resolve dependency conflicts.
+//jar {
+//    dependsOn classes
+//    manifest {
+//        attributes 'Main-Class': 'org.utbot.QualityAnalysisKt'
+//    }
+//
+//    dependsOn configurations.runtimeClasspath
+//    from {
+//        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+//    }
+//
+//    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+//    zip64 = true
+//}

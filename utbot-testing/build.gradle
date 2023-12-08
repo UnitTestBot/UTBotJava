@@ -57,6 +57,7 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     testImplementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
 
-    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
-    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
+    // TODO sbft-usvm-merge: UtBot engine expects `com.github.UnitTestBot.ksmt` here
+    implementation group: 'io.ksmt', name: 'ksmt-core', version: ksmtVersion
+    implementation group: 'io.ksmt', name: 'ksmt-z3', version: ksmtVersion
 }

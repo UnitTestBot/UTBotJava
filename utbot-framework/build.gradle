@@ -42,8 +42,9 @@ dependencies {
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
 
-    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
-    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
+    // TODO sbft-usvm-merge: UtBot engine expects `com.github.UnitTestBot.ksmt` here
+    implementation group: 'io.ksmt', name: 'ksmt-core', version: ksmtVersion
+    implementation group: 'io.ksmt', name: 'ksmt-z3', version: ksmtVersion
 
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 }

@@ -4,10 +4,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
+import org.utbot.engine.UsvmSymbolicEngine
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.SymbolicEngineSource
-import org.utbot.framework.process.generated.GenerateParams
 
 /**
  * Constructs [TestFlow] for customization and creates flow producer.
@@ -73,7 +73,12 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
                     ).flattenConcat()
                 }
             }
-            isSymbolicEngineEnabled -> engine.traverse()
+            isSymbolicEngineEnabled -> {
+                when (symbolicEngineType) {
+                    SymbolicEngineSource.UnitTestBot -> engine.traverse()
+                    SymbolicEngineSource.Usvm -> UsvmSymbolicEngine().generateWithUsvm()
+                }
+            }
             else -> emptyFlow()
         }
     }

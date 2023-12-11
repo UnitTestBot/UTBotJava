@@ -1,7 +1,5 @@
-val intellijPluginVersion: String? by rootProject
+val semVer: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
-val apacheCommonsTextVersion: String? by rootProject
-val jacksonVersion: String? by rootProject
 
 // === IDE settings ===
 val projectType: String by rootProject
@@ -54,8 +52,10 @@ tasks {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    test {
-        useJUnitPlatform()
+    patchPluginXml {
+        sinceBuild.set("223")
+        untilBuild.set("232.*")
+        version.set(semVer)
     }
 }
 

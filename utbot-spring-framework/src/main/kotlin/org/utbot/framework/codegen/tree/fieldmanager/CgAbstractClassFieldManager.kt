@@ -45,10 +45,21 @@ abstract class CgAbstractClassFieldManager(context: CgContext) :
 
             val baseVarName = constructBaseVarName(model)
 
-            // `withNameScope` is used to avoid saving names for sub-models of model
+            /*
+            * `withNameScope` is used to avoid saving names for sub-models of model.
+            *
+            * Different models from different executions may have the same id.
+            * Therefore, when creating a variable for a new class field and using existing `currentTestSetId` and `currentExecutionId`,
+            * field`s `model.wrap()` may match one of the values in `annotatedModels`.
+            * To avoid false matches when creating a variable for a new class field, `withTestSetIdScope(-1)` and `withExecutionIdScope(-1)` are used.
+            */
             val createdVariable = withNameScope {
-                variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
-                    ?: error("`CgVariable` cannot be constructed from a $model model")
+                withTestSetIdScope(-1) {
+                    withExecutionIdScope(-1) {
+                        variableConstructor.getOrCreateVariable(model, baseVarName) as? CgVariable
+                            ?: error("`CgVariable` cannot be constructed from a $model model")
+                    }
+                }
             }
             existingVariableNames.add(createdVariable.name)
 

@@ -83,7 +83,7 @@ private fun UtMethodTestSet.summarizeOne(searchDirectory: Path, sourceFile: File
         ) // TODO: looks weird and don't create the real copy
 }
 
-class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {
+open class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {
     private val tagGenerator = TagGenerator()
     private val jimpleBodyAnalysis = ExecutionStructureAnalysis()
 
@@ -239,10 +239,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         descriptionSource: MethodDescriptionSource = MethodDescriptionSource.FUZZER
     ): List<UtExecutionCluster> {
         val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
-        val methodTestSet = when (descriptionSource) {
-                MethodDescriptionSource.FUZZER -> prepareTestSetWithFuzzedExecutions(testSet)
-                MethodDescriptionSource.SYMBOLIC -> prepareTestSetForByteCodeAnalysis(testSet)
-        }
+        val methodTestSet = prepareMethodTestSet(testSet, descriptionSource)
 
         if (methodTestSet.executions.isNotEmpty()) {
             methodTestSet.executions.forEach { utExecution ->
@@ -263,7 +260,11 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                             MethodDescriptionSource.SYMBOLIC -> {
                                 val executableId = testSet.method
                                 val description = FuzzedMethodDescription(executableId).apply {
+                                    packageName = executableId.classId.packageName
+                                    className = executableId.classId.simpleName
                                     compilableName = if (!executableId.isConstructor) executableId.name else null
+                                    canonicalName = executableId.classId.canonicalName
+                                    isNested = executableId.classId.isNested
                                 }
                                 it.suggest(
                                     description,
@@ -307,6 +308,13 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         }
 
         return clustersToReturn.toList()
+    }
+
+    open fun prepareMethodTestSet(testSet: UtMethodTestSet, descriptionSource: MethodDescriptionSource): UtMethodTestSet{
+        return when (descriptionSource) {
+            MethodDescriptionSource.FUZZER -> prepareTestSetWithFuzzedExecutions(testSet)
+            MethodDescriptionSource.SYMBOLIC -> prepareTestSetForByteCodeAnalysis(testSet)
+        }
     }
 
     /** Filter and copies executions with non-empty paths. */

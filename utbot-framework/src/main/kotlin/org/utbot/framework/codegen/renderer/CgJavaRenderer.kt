@@ -226,9 +226,23 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
     }
 
     override fun visit(element: CgConstructorCall) {
-        print("new ")
-        print(element.executableId.classId.asString())
-        renderExecutableCallArguments(element)
+        when(element.type.isInner){
+            true -> {
+                // the first argument of inner classes is outer class
+                print(element.arguments.first().accept(this))
+                print(".new ")
+                print(element.executableId.classId.simpleName)
+
+                print("(")
+                element.arguments.drop(1).renderSeparated()
+                print(")")
+            }
+            false -> {
+                print("new ")
+                print(element.executableId.classId.asString())
+                renderExecutableCallArguments(element)
+            }
+        }
     }
 
     override fun renderRegularImport(regularImport: RegularImport) {

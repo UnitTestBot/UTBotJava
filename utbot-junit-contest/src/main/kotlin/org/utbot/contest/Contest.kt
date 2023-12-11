@@ -47,6 +47,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.utbot.contest.usvm.createJcContainer
+import org.utbot.contest.usvm.jc.JcContainer
+import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.generator.CodeGenerator
@@ -107,15 +110,37 @@ fun main(args: Array<String>) {
 
     println("Started UtBot Contest, classfileDir = $classfileDir, classpathString=$classpathString, outputDir=$outputDir, mocks=$mockStrategyApi")
 
+    // TODO: tmp hack to retrieve tmp dir wrt contest rules
+    val tmpDir = outputDir.resolveSibling("data")
+
     val cpEntries = classpathString.split(File.pathSeparator).map { File(it) }
-    val classLoader = URLClassLoader(cpEntries.map { it.toUrl() }.toTypedArray())
+    val classLoader = URLClassLoader(cpEntries.map { it.toUrl() }.toTypedArray(), null)
     val context = UtContext(classLoader)
 
+    val testCompileCp = System.getenv("UTBOT_CONTEST_TEST_COMPILE_CP")
+    var classpathStringForTestCompile = classpathString
+    if (!testCompileCp.isNullOrBlank()) {
+        classpathStringForTestCompile = "$classpathStringForTestCompile${File.pathSeparator}$testCompileCp"
+    }
 
     withUtContext(context) {
-        // Initialize the soot before a contest is started.
-        // This saves the time budget for real work instead of soot initialization.
-        TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+        when (mainTool) {
+            Tool.USVM -> {
+                // Initialize the JacoDB and start executor before contest is started.
+                // This saves the time budget for real work instead of initialization.
+                runBlocking {
+                    createJcContainer(
+                        tmpDir = tmpDir,
+                        classpathFiles = classpathString.split(File.pathSeparator).map { File(it) }
+                    ).runner.ensureRunnerAlive()
+                }
+            }
+            Tool.UtBot -> {
+                // Initialize the soot before contest is started.
+                // This saves the time budget for real work instead of soot initialization.
+                TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+            }
+        }
 
         logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {
             prepareClass(ConcreteExecutorPool::class.java, "")
@@ -138,20 +163,45 @@ fun main(args: Array<String>) {
             val timeBudgetSec = cmd[2].toLong()
             val cut = ClassUnderTest(classLoader.loadClass(classUnderTestName).id, outputDir, classfileDir.toFile())
 
-            runGeneration(
-                project = "Contest",
-                cut,
-                timeBudgetSec,
-                fuzzingRatio = 0.1,
-                classpathString,
-                runFromEstimator = false,
-                expectedExceptions = ExpectedExceptionsForClass(),
-                methodNameFilter = null
+            when (mainTool) {
+                Tool.USVM -> runUsvmGeneration(
+                    project = "Contest",
+                    cut,
+                    timeBudgetSec,
+                    fuzzingRatio = 0.1,
+                    classpathString,
+                    runFromEstimator = false,
+                    expectedExceptions = ExpectedExceptionsForClass(),
+                    tmpDir = tmpDir,
+                    methodNameFilter = null
+                )
+                Tool.UtBot -> runGeneration(
+                    project = "Contest",
+                    cut,
+                    timeBudgetSec,
+                    fuzzingRatio = 0.1,
+                    classpathString,
+                    runFromEstimator = false,
+                    expectedExceptions = ExpectedExceptionsForClass(),
+                    methodNameFilter = null
+                )
+            }
+
+            val compiledClassFileDir = File(outputDir.absolutePath, "compiledClassFiles")
+            compiledClassFileDir.mkdirs()
+            compileClassAndRemoveUncompilableTests(
+                testDir = compiledClassFileDir.absolutePath,
+                classPath = classpathStringForTestCompile,
+                testClass = cut.generatedTestFile.absolutePath
             )
+            compiledClassFileDir.deleteRecursively()
+
             println("${ContestMessage.READY}")
         }
     }
+
     ConcreteExecutor.defaultPool.close()
+    JcContainer.close()
 }
 
 fun setOptions() {
@@ -161,12 +211,25 @@ fun setOptions() {
     // We need to use assemble model generator to increase readability
     UtSettings.useAssembleModelGenerator = true
     UtSettings.summaryGenerationType = SummariesGenerationType.LIGHT
+    when(mainTool){
+        Tool.USVM -> {
+            UtSettings.enableTestNamesGeneration = true
+            UtSettings.enableDisplayNameGeneration = false
+            UtSettings.enableJavaDocGeneration = true
+        }
+        Tool.UtBot -> {
+            UtSettings.enableDisplayNameGeneration = true
+        }
+    }
+
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true
     UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY
+    UtSettings.maxUnknownCoverageExecutionsPerMethodPerResultType = 10
     UtSettings.ignoreStringLiterals = true
     UtSettings.maximizeCoverageUsingReflection = true
     UtSettings.useSandbox = false
+    UtSettings.addTestMethodMarkers = true
 }
 
 
@@ -417,7 +480,7 @@ fun runGeneration(
     statsForClass
 }
 
-private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
+fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
     //1. all methods from cut
     val methods = javaClazz.declaredMethods
         .filterNot { it.isAbstract }
@@ -495,7 +558,7 @@ internal val Method.isVisibleFromGeneratedTest: Boolean
     get() = (this.modifiers and Modifier.ABSTRACT) == 0
             && (this.modifiers and Modifier.NATIVE) == 0
 
-private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
+fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
     coverage.update(newCoverage, isNewClass)
     // other coverage type updates by empty coverage to respect new class
     val emptyCoverage = newCoverage.copy(

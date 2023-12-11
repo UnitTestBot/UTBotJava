@@ -99,6 +99,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtExecutionWithInstrumentation
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
@@ -201,8 +202,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
 
     protected fun setupInstrumentation() {
         val instrumentation = when (val execution = currentExecution) {
-            is UtSymbolicExecution -> execution.instrumentation
-            is UtFuzzedExecution -> execution.instrumentation
+            is UtExecutionWithInstrumentation -> execution.instrumentation
             else -> return
         }
         if (instrumentation.isEmpty()) return
@@ -659,7 +659,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         }
                         // other primitives and string
                         else -> {
-                            require(expected.type.isPrimitive || expected.type == String::class.java) {
+                            require(expected.type.isPrimitive || expected.type == stringClassId) {
                                 "Expected primitive or String but got ${expected.type}"
                             }
                             assertions[assertEquals](expected, actual)
@@ -1334,10 +1334,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         executionResult
             .onSuccess {
                 methodType = SUCCESSFUL
-
-                require(!constructorCall.classId.isInner) {
-                    "Inner class ${constructorCall.classId} constructor testing is not supported yet"
-                }
 
                 actual = newVar(constructorCall.classId, "actual") {
                     constructorCall(*methodArguments.toTypedArray())

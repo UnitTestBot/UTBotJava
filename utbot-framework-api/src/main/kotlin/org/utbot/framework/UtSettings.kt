@@ -394,6 +394,12 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var minimizeCrashExecutions by getBooleanProperty(true)
 
     /**
+     * Determines maximum number of executions with unknown coverage per method per result type.
+     * In [ContestUsvm] it is useful if concrete fails, so we use symbolic execution result without trace.
+     */
+    var maxUnknownCoverageExecutionsPerMethodPerResultType by getIntProperty(10)
+
+    /**
      * Enable it to calculate unsat cores for hard constraints as well.
      * It may be usefull during debug.
      *
@@ -610,6 +616,16 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * tests per method that are rerun with full context reset in case minimization outputs too many tests.
      */
     var maxSpringContextResetsPerMethod by getIntProperty(25, 0, Int.MAX_VALUE)
+
+    // endregion
+
+    // region codegen options
+
+    /**
+     * Add "test method start marker" and "test method end marker" around each test, can be used to
+     * detect uncompilable tests and remove them.
+     */
+    var addTestMethodMarkers by getBooleanProperty(false)
 
     // endregion
 }

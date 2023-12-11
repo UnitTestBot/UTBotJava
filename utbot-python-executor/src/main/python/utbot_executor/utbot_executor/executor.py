@@ -182,7 +182,7 @@ def _run_calculate_function_value(
     __is_exception = False
 
     _, __start = inspect.getsourcelines(function)
-    __all_code_stmts = filter_instructions(get_instructions(function.__code__), tracer.mode)
+    __all_code_stmts = filter_instructions(get_instructions(function), tracer.mode)
 
     __tracer = tracer
 

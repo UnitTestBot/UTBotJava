@@ -28,22 +28,24 @@ abstract class Z3Initializer : AutoCloseable {
         private val supportedArchs = setOf("amd64", "x86_64", "aarch64")
         private val initializeCallback by lazy {
             System.setProperty("z3.skipLibraryLoad", "true")
-            val arch = System.getProperty("os.arch")
-            require(arch in supportedArchs) { "Not supported arch: $arch" }
+            val archProperty = System.getProperty("os.arch")
+            require(archProperty in supportedArchs) { "Not supported arch: $archProperty" }
 
             val osProperty = System.getProperty("os.name").lowercase()
-            val (ext, allLibraries) = when {
-                osProperty.startsWith("windows") -> ".dll" to vcWinLibrariesToLoadBefore + libraries
-                osProperty.startsWith("linux") -> ".so" to libraries
-                osProperty.startsWith("mac") -> ".dylib" to libraries
+            val (os, ext, allLibraries) = when {
+                osProperty.startsWith("windows") -> Triple("windows", ".dll", vcWinLibrariesToLoadBefore + libraries)
+                osProperty.startsWith("linux") -> Triple("linux", ".so", libraries)
+                osProperty.startsWith("mac") -> Triple("mac", ".dylib", libraries)
                 else -> error("Unknown OS: $osProperty")
             }
 
-            val dist = if (arch == "aarch64") "arm" else "x64"
+            val arch = if (archProperty == "aarch64") "arm" else "x64"
+            val z3DistFolder = "lib/$os/$arch/z3"
 
             val libZ3FilesUrl = Z3Initializer::class.java
                 .classLoader
-                .getResource("lib/$dist/libz3$ext") ?: error("Can't find native library folder")
+                .getResource("$z3DistFolder/libz3$ext")
+                    ?: error("Can't find native library '$z3DistFolder/libz3$ext' in ${System.getProperty("java.class.path")}")
             // can't take resource of parent folder right here because in obfuscated jar parent folder
             // can be missed (e.g., in case if obfuscation was applied)
 
@@ -54,7 +56,7 @@ abstract class Z3Initializer : AutoCloseable {
                 allLibraries.forEach { name ->
                     Z3Initializer::class.java
                         .classLoader
-                        .getResourceAsStream("lib/$dist/$name$ext")
+                        .getResourceAsStream("$z3DistFolder/$name$ext")
                         ?.use { input ->
                             File(tempDir, "$name$ext")
                                 .outputStream()

@@ -53,3 +53,21 @@ def func_abs(x: SupportsAbs[T]):
 
 
 b: int = 10
+
+
+class SupportsCall(Protocol):
+    def __call__(self, *args, **kwargs):
+        ...
+
+
+class HasF(Protocol):
+    f: SupportsCall
+
+
+class SupportsSpecificCall(Protocol):
+    def __call__(self, *args, **kwargs) -> HasF:
+        ...
+
+
+class HasSpecificF(Protocol):
+    f: SupportsSpecificCall

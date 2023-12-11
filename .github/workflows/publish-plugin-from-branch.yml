@@ -83,7 +83,7 @@ jobs:
 
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
-          gradle clean buildPlugin --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
+          gradle clean buildPlugin --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
           cd ${{ matrix.configuration.directory }}/build/distributions
           unzip ${{ matrix.configuration.directory }}-${{ env.VERSION }}.zip
           rm ${{ matrix.configuration.directory }}-${{ env.VERSION }}.zip

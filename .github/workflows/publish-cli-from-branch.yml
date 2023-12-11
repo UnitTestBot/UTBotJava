@@ -89,7 +89,7 @@ jobs:
     - name: Build UTBot CLI
       run: |
         cd "${{ matrix.configuration.dir }}"
-        gradle clean build --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
+        gradle clean build --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
 
     - name: Archive UTBot CLI
       if: ${{ inputs.upload-artifact == 'true' }}

@@ -3,9 +3,30 @@ plugins {
 }
 apply plugin: 'jacoco'
 
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    maven {
+        url = uri('https://maven.pkg.github.com/UnitTestBot/usvm')
+        credentials {
+            username = project.githubActor // System.getenv("GITHUB_ACTOR")
+            password = project.githubToken // System.getenv("GITHUB_TOKEN")
+        }
+    }
+}
+
 configurations {
     fetchInstrumentationJar
+    approximations
+    usvmApproximationsApi
+    usvmInstrumentationCollector
+    usvmInstrumentationRunner
+    generatedTestCompile
 }
+
+def approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
+def approximationsVersion = "bfce4eedde"
 
 compileJava {
     options.compilerArgs << '-XDignore.symbol.file'
@@ -13,7 +34,9 @@ compileJava {
 
 compileTestJava {
     options.fork = true
-    options.compilerArgs << "-XDignore.symbol.file"
+    options.forkOptions.executable = "javac"
+    options.forkOptions.javaHome = file(System.getProperty("java.home"))
+    options.compilerArgs << "-XDignore.symbol.file=true"
 }
 
 def testProjects = [
@@ -29,6 +52,7 @@ def testProjects = [
         'build/output/test/seata-core-0.5.0',
         'build/output/test/spoon',
         'build/output/test/spoon-core-7.0.0',
+        'build/output/test/samples',
 ]
 
 sourceSets {
@@ -43,7 +67,10 @@ sourceSets {
 
 test {
     useJUnit()
-    jvmArgs =[
+    if (JavaVersion.current() < JavaVersion.VERSION_1_9) {
+        jvmArgs = []
+    } else {
+        jvmArgs = [
             "--add-opens", "java.base/java.util.concurrent.atomic=ALL-UNNAMED",
             "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED",
             "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
@@ -94,7 +121,8 @@ test {
             "--add-opens", "java.base/jdk.internal.util.xml.impl=ALL-UNNAMED",
             "--add-opens", "java.base/jdk.internal.vm=ALL-UNNAMED",
             "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
-    ]
+        ]
+    }
     finalizedBy jacocoTestReport
 }
 
@@ -133,17 +161,47 @@ dependencies {
     }
     implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.2'
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2Version
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1'
+    implementation group: 'com.google.guava', name: 'guava', version: guavaVersion
     // need for tests
     implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
     implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     implementation 'junit:junit:4.13.2'
+
+    generatedTestCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
+    generatedTestCompile group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
+    generatedTestCompile 'junit:junit:4.13.2'
+
+    implementation "org.burningwave:core:12.62.7"
+
+    implementation group: "org.usvm", name: "usvm-core", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm-api", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm-instrumentation", version: usvmVersion
+    implementation group: "org.usvm", name: "usvm-jvm-instrumentation-collectors", version: usvmVersion
+
+    implementation group: "org.jacodb", name: "jacodb-core", version: jacoDbVersion
+    implementation group: "org.jacodb", name: "jacodb-analysis", version: jacoDbVersion
+    implementation group: "org.jacodb", name: "jacodb-approximations", version: jacoDbVersion
+
+    // TODO uvms-sbft-hack: UtBot has `fastutil:8.3.0` on the classpath that overrides classes from
+    //  `fastutil-core:8.5.11` that USVM adds. Solution: bump `fastutil` version to `8.5.11`
+    runtimeOnly("it.unimi.dsi:fastutil:8.5.11")
+
     testImplementation fileTree(dir: 'src/main/resources/projects/', include: '*/*.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-1.2.0.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-standalone-runtime-1.2.0.jar')
 
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
+
+    approximations "$approximationsRepo:approximations:$approximationsVersion"
+    usvmApproximationsApi "org.usvm:usvm-jvm-api:$usvmVersion"
+    usvmInstrumentationCollector "org.usvm:usvm-jvm-instrumentation-collectors:$usvmVersion"
+    usvmInstrumentationRunner "org.usvm:usvm-jvm-instrumentation:$usvmVersion"
+    usvmInstrumentationRunner "org.usvm:usvm-jvm-instrumentation-collectors:$usvmVersion"
 }
 
 processResources {
@@ -162,6 +220,10 @@ jar {
         attributes 'Implementation-Title': 'UtBot JUnit contest'
         attributes 'JAR-Type': 'Fat JAR'
     }
+
+    processResources.exclude("classes/**")
+    processResources.exclude("projects/**")
+    processResources.exclude("evosuite/**")
 
     version '1.0'
 
@@ -197,4 +259,101 @@ task monitoringJar(type: Jar) {
     }
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// TODO usvm-sbft-saloed: replace with runner from usvm (unavailable due to huge jar size)
+task usvmInstrumentationRunnerJar(type: Jar) {
+    archiveBaseName = "usvm-instrumentation-runner"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes(
+                "Main-Class": "org.usvm.instrumentation.rd.InstrumentedProcessKt",
+                "Premain-Class": "org.usvm.instrumentation.agent.Agent",
+                "Can-Retransform-Classes": "true",
+                "Can-Redefine-Classes": "true"
+        )
+    }
+
+    from {
+        configurations.usvmInstrumentationRunner.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
+task run(type: JavaExec) {
+    mainClass.set("org.utbot.contest.ContestEstimatorKt")
+    classpath = sourceSets.main.runtimeClasspath
+    workingDir = project.rootProject.projectDir
+
+    def usvmApproximationJarPath = configurations.approximations.resolvedConfiguration.files.find()
+    def usvmApproximationApiJarPath = configurations.usvmApproximationsApi.resolvedConfiguration.files.find()
+    environment "usvm.jvm.api.jar.path", usvmApproximationApiJarPath.absolutePath
+    environment "usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath
+    systemProperty("org.jacodb.impl.storage.defaultBatchSize", 2000)
+
+    def usvmInstrumentationCollectorJarPath = configurations.usvmInstrumentationCollector.resolvedConfiguration.files.find()
+    environment "usvm-jvm-collectors-jar", usvmInstrumentationCollectorJarPath.absolutePath
+
+    dependsOn(usvmInstrumentationRunnerJar)
+    environment "usvm-jvm-instrumentation-jar", usvmInstrumentationRunnerJar.outputs.files.singleFile
+
+    // "JAVA_HOME" specifies Java path for instrumented process and JacoDB,
+    // while `System.getProperty('java.home')` is Java used by this process.
+    // We want both of them to be the same and we also need JDK (not JRE), since we use `javac` to compile tests.
+    def javaHome = System.getProperty('java.home')
+    def jreSuffix = "${File.separatorChar}jre"
+    if (javaHome.endsWith(jreSuffix)) javaHome = javaHome.dropRight(jreSuffix.length())
+    environment "JAVA_HOME", javaHome
+}
+
+tasks.register("generateRuntool") {
+    dependsOn(jar, usvmInstrumentationRunnerJar)
+
+    doLast {
+        def distDir = buildDir.toPath().resolve("utbot-usvm-runtool").toFile()
+        copy {
+            from jar.outputs
+            into distDir
+            rename { "utbot-usvm-tool.jar" }
+        }
+
+        copy {
+            from configurations.usvmApproximationsApi.resolvedConfiguration.files.find()
+            into distDir
+            rename { "usvm-api.jar" }
+        }
+
+        copy {
+            from configurations.approximations.resolvedConfiguration.files.find()
+            into distDir
+            rename { "usvm-approximations.jar" }
+        }
+
+        copy {
+            from configurations.usvmInstrumentationCollector.resolvedConfiguration.files.find()
+            into distDir
+            rename { "usvm-jvm-collectors.jar" }
+        }
+
+        copy {
+            from usvmInstrumentationRunnerJar.outputs
+            into distDir
+            rename { "usvm-jvm-instrumentation.jar" }
+        }
+
+        copy {
+            from projectDir.toPath().resolve("usvm-runtool")
+            into distDir
+            rename { "runtool" }
+        }
+
+        def libsDir = distDir.toPath().resolve("lib").toFile()
+        configurations.generatedTestCompile.resolvedConfiguration.files.forEach { f ->
+            copy {
+                from f
+                into libsDir
+            }
+        }
+    }
 }

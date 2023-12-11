@@ -71,7 +71,7 @@ jobs:
       
     - name: Build UTBot Rider plugin
       run: |
-        gradle clean :utbot-rider:buildPlugin --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }} -PincludeRiderInBuild=true
+        gradle clean :utbot-rider:buildPlugin  --no-daemon --build-cache --no-parallel -PgithubActor=${{ github.actor }} -PgithubToken=${{ secrets.PACKAGES_RO_TOKEN }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }} -PincludeRiderInBuild=true
         cd utbot-rider/build/distributions
         unzip utbot-rider-${{ env.VERSION }}.zip
         rm utbot-rider-${{ env.VERSION }}.zip

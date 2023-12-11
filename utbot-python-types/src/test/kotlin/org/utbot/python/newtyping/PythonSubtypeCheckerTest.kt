@@ -127,4 +127,22 @@ internal class PythonSubtypeCheckerTest {
 
         assertTrue(checkIfRightIsSubtypeOfLeft(abstractSetOfAny, setOfAny, pythonTypeStorage))
     }
+
+    @Test
+    fun testSupportsCall() {
+        val hasF = storage.definitions["subtypes"]!!["HasF"]!!.getUtBotType()
+        val classS = storage.definitions["subtypes"]!!["S"]!!.getUtBotType()
+
+        assertTrue(checkIfRightIsSubtypeOfLeft(hasF, classS, pythonTypeStorage))
+    }
+
+    @Test
+    fun testSupportsSpecificCall() {
+        val hasF = storage.definitions["subtypes"]!!["HasSpecificF"]!!.getUtBotType()
+        val classS = storage.definitions["subtypes"]!!["S"]!!.getUtBotType()
+        val classR = storage.definitions["subtypes"]!!["RImpl"]!!.getUtBotType()
+
+        assertFalse(checkIfRightIsSubtypeOfLeft(hasF, classS, pythonTypeStorage))
+        assertTrue(checkIfRightIsSubtypeOfLeft(hasF, classR, pythonTypeStorage))
+    }
 }

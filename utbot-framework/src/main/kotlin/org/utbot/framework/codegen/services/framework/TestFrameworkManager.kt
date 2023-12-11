@@ -426,8 +426,10 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
         )
         val testAnnotation = collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
         if (testAnnotation is CgMultipleArgsAnnotation) {
+            // TODO: think about argument priorities, currently we always add on the last position
             testAnnotation.arguments += expected
         } else {
+            // TODO: what is we have `CgSingleArgAnnotation` without argument name and would like to add one more?
             statementConstructor.addAnnotation(
                 classId = testFramework.testAnnotationId,
                 namedArguments = listOf(expected),

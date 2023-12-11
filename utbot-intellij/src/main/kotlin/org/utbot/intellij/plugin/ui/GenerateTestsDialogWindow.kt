@@ -88,6 +88,7 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.SpringModule.*
 import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.SymbolicEngineSource
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -214,6 +215,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
         }
     private val parametrizedTestSources = JCheckBox("Parameterized tests")
+
+    private val useExperimentalEngine = JCheckBox("Experimental symbolic engine")
 
     private lateinit var panel: DialogPanel
 
@@ -411,6 +414,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             row("Testing framework:") {
                 cell(testFrameworks)
             }
+
+            row {
+                cell(useExperimentalEngine)
+                contextHelp("USVM symbolic engine will be used")
+            }.enabledIf(ComboBoxPredicate(springConfig) {
+                model.projectType == ProjectType.PureJvm
+            })
 
             if (model.projectType == ProjectType.Spring) {
                 row("Spring configuration:") {
@@ -705,6 +715,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.mockStrategy = mockStrategies.item
         model.parametrizedTestSource =
             if (parametrizedTestSources.isSelected) ParametrizedTestSource.PARAMETRIZE else ParametrizedTestSource.DO_NOT_PARAMETRIZE
+        model.symbolicEngineSource =
+            if (useExperimentalEngine.isSelected) SymbolicEngineSource.Usvm else SymbolicEngineSource.UnitTestBot
 
         model.mockFramework = MOCKITO
         model.staticsMocking = if (staticsMocking.isSelected) MockitoStaticMocking else NoStaticMocking
@@ -901,6 +913,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = (settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
+                && model.projectType == ProjectType.PureJvm)
+
+        useExperimentalEngine.isSelected = (settings.symbolicEngineSource == SymbolicEngineSource.Usvm
                 && model.projectType == ProjectType.PureJvm)
 
         codegenLanguages.item = model.codegenLanguage
@@ -1212,6 +1227,18 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             updateControlsEnabledStatus()
         }
 
+        useExperimentalEngine.addActionListener {_ ->
+            if (useExperimentalEngine.isSelected) {
+                mockStrategies.isEnabled = false
+                mockStrategies.item = MockStrategyApi.NO_MOCKS
+
+                staticsMocking.isEnabled = false
+                staticsMocking.isSelected = false
+            } else {
+                updateControlsEnabledStatus()
+            }
+        }
+
         springTestType.addActionListener { event ->
             val comboBox = event.source as ComboBox<*>
             val item = comboBox.item as SpringTestType
@@ -1382,7 +1409,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun updateControlsEnabledStatus() {
-        mockStrategies.isEnabled = true
+        mockStrategies.isEnabled = !useExperimentalEngine.isSelected
 
         updateParametrizationEnabled()
         updateStaticMockEnabled()

@@ -55,6 +55,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         // testflow
         field("generationTimeout", PredefinedType.long)
         field("isSymbolicEngineEnabled", PredefinedType.bool)
+        field("symbolicEngineType", PredefinedType.string)
         field("isFuzzingEnabled", PredefinedType.bool)
         field("fuzzingValue", PredefinedType.double)
         // method filters

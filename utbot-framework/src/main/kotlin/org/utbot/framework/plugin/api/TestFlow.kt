@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.SymbolicEngineSource
 import org.utbot.framework.process.generated.GenerateParams
 
 /**
@@ -18,6 +19,7 @@ fun testFlow(block: TestFlow.() -> Unit): UtBotSymbolicEngine.() -> Flow<UtResul
  */
 fun defaultTestFlow(timeout: Long) = testFlow {
     isSymbolicEngineEnabled = true
+    symbolicEngineType = SymbolicEngineSource.UnitTestBot
     generationTimeout = timeout
     isFuzzingEnabled = UtSettings.useFuzzing
     if (generationTimeout > 0) {
@@ -41,6 +43,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
             field = maxOf(0, value)
         }
     var isSymbolicEngineEnabled = true
+    var symbolicEngineType = SymbolicEngineSource.UnitTestBot
     var isFuzzingEnabled = false
     var fuzzingValue: Double = 0.1
         set(value) {

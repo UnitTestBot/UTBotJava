@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.SymbolicEngineSource
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -77,6 +78,7 @@ class GenerateTestsModel(
     lateinit var mockFramework: MockFramework
     lateinit var staticsMocking: StaticsMocking
     lateinit var parametrizedTestSource: ParametrizedTestSource
+    lateinit var symbolicEngineSource: SymbolicEngineSource
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
     var useTaintAnalysis: Boolean = false

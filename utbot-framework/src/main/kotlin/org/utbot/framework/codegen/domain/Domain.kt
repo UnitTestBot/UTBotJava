@@ -691,6 +691,30 @@ enum class ParametrizedTestSource(
     }
 }
 
+enum class SymbolicEngineSource(
+    override val id: String,
+    override val displayName: String,
+    override val description: String = "Use $displayName symbolic engine"
+) : CodeGenerationSettingItem {
+    UnitTestBot(
+        id = "UnitTestBot",
+        displayName = "UnitTestBot",
+        description = "Use UnitTestBot symbolic engine",
+    ),
+    Usvm(
+        id = "USVM",
+        displayName = "USVM",
+        description = "Use USVM symbolic engine",
+    );
+
+    override fun toString(): String = id
+
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: SymbolicEngineSource = SymbolicEngineSource.UnitTestBot
+        override val allItems: List<SymbolicEngineSource> = SymbolicEngineSource.values().toList()
+    }
+}
+
 enum class ProjectType {
     /**
      * Standard JVM project without DI frameworks

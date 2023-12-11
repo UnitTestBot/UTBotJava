@@ -1,8 +1,8 @@
 <!--suppress HttpUrlsUsage -->
 <idea-plugin>
 
-    <id>org.utbot.pycharm</id>
-    <name>UnitTestBot PyCharm</name>
+    <id>org.utbot.python</id>
+    <name>UnitTestBot for Python</name>
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.platform</depends>
 

@@ -4,7 +4,7 @@ import org.parsers.python.Node
 import org.parsers.python.PythonConstants
 import org.parsers.python.ast.*
 
-data class ParsedFunctionDefinition(val name: Name, val body: Block)
+data class ParsedFunctionDefinition(val name: Name, val body: Block, val decorators: List<ParsedDecorator>)
 data class ParsedClassDefinition(val name: Name, val body: Block)
 data class ParsedForStatement(val forVariable: ForVariable, val iterable: Node)
 sealed class ForVariable
@@ -30,11 +30,13 @@ data class ParsedDotName(val head: Node, val tail: Node)
 data class ParsedFunctionCall(val function: Node, val args: List<Node>)
 data class ParsedComparison(val cases: List<PrimitiveComparison>)
 data class PrimitiveComparison(val left: Node, val op: Delimiter, val right: Node)
+data class ParsedDecorator(val name: Name, val arguments: InvocationArguments? = null)
 
 fun parseFunctionDefinition(node: FunctionDefinition): ParsedFunctionDefinition? {
     val name = (node.children().first { it is Name } ?: return null) as Name
     val body = (node.children().find { it is Block } ?: return null) as Block
-    return ParsedFunctionDefinition(name, body)
+    val decoratorNodes = node.children().filterIsInstance<Decorators>().firstOrNull()
+    return ParsedFunctionDefinition(name, body, parseDecorators(decoratorNodes))
 }
 
 fun parseClassDefinition(node: ClassDefinition): ParsedClassDefinition? {
@@ -189,4 +191,23 @@ fun parseComparison(node: Comparison): ParsedComparison {
         primitives.add(PrimitiveComparison(children[i], children[i + 1] as Delimiter, children[i + 2]))
     }
     return ParsedComparison(primitives)
+}
+
+fun parseDecorators(decoratorNodes: Decorators?): List<ParsedDecorator> {
+    return decoratorNodes?.children()?.let {
+        val decoratorIndexes =
+            it.mapIndexedNotNull { index, node -> if (node is Delimiter && node.tokenType == PythonConstants.TokenType.AT) index + 1 else null }
+        decoratorIndexes.mapNotNull { index ->
+            val decorator = it[index]
+            when (decorator) {
+                is Name -> ParsedDecorator(decorator)
+                is FunctionCall -> {
+                    val name = decorator.children().filterIsInstance<Name>().first()
+                    val args = decorator.children().filterIsInstance<InvocationArguments>().first()
+                    ParsedDecorator(name, args)
+                }
+                else -> null
+            }
+        }
+    } ?: emptyList()
 }

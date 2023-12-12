@@ -17,7 +17,7 @@ def test_execution():
         '/home/vyacheslav/Projects/utbot_executor/utbot_executor/tests/my_func.py',
         '0x1'
     )
-    response = executor.run_function(request)
+    response = executor.run_reduce_function(request)
 
     assert isinstance(response, ExecutionSuccessResponse)
 

@@ -3,13 +3,15 @@ import importlib
 import json
 import sys
 from typing import Dict, Iterable, Union
+
+from utbot_executor.deep_serialization.iterator_wrapper import IteratorWrapper
 from utbot_executor.deep_serialization.memory_objects import (
     MemoryObject,
     ReprMemoryObject,
     ListMemoryObject,
     DictMemoryObject,
     ReduceMemoryObject,
-    MemoryDump,
+    MemoryDump, IteratorMemoryObject,
 )
 from utbot_executor.deep_serialization.utils import PythonId, TypeInfo
 
@@ -27,6 +29,9 @@ class MemoryObjectEncoder(json.JSONEncoder):
                 base_json["value"] = o.value
             elif isinstance(o, (ListMemoryObject, DictMemoryObject)):
                 base_json["items"] = o.items
+            elif isinstance(o, IteratorMemoryObject):
+                base_json["items"] = o.items
+                base_json["exception"] = o.exception
             elif isinstance(o, ReduceMemoryObject):
                 base_json["constructor"] = o.constructor
                 base_json["args"] = o.args
@@ -51,7 +56,7 @@ class MemoryDumpEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def as_repr_object(dct: Dict) -> Union[MemoryObject, Dict]:
+def as_reduce_object(dct: Dict) -> Union[MemoryObject, Dict]:
     if "strategy" in dct:
         obj: MemoryObject
         if dct["strategy"] == "repr":
@@ -78,6 +83,15 @@ def as_repr_object(dct: Dict) -> Union[MemoryObject, Dict]:
             )
             obj.comparable = dct["comparable"]
             return obj
+        if dct["strategy"] == "iterator":
+            obj = IteratorMemoryObject.__new__(IteratorMemoryObject)
+            obj.items = dct["items"]
+            obj.exception = dct["exception"]
+            obj.typeinfo = TypeInfo(
+                kind=dct["typeinfo"]["kind"], module=dct["typeinfo"]["module"]
+            )
+            obj.comparable = dct["comparable"]
+            return obj
         if dct["strategy"] == "reduce":
             obj = ReduceMemoryObject.__new__(ReduceMemoryObject)
             obj.constructor = TypeInfo(
@@ -97,7 +111,7 @@ def as_repr_object(dct: Dict) -> Union[MemoryObject, Dict]:
 
 
 def deserialize_memory_objects(memory_dump: str) -> MemoryDump:
-    parsed_data = json.loads(memory_dump, object_hook=as_repr_object)
+    parsed_data = json.loads(memory_dump, object_hook=as_reduce_object)
     return MemoryDump(parsed_data["objects"])
 
 
@@ -110,12 +124,19 @@ class DumpLoader:
     def reload_id(self) -> MemoryDump:
         new_memory_objects: Dict[PythonId, MemoryObject] = {}
         for id_, obj in self.memory_dump.objects.items():
-            new_memory_object = copy.deepcopy(obj)
-            read_id = self.dump_id_to_real_id[id_]
-            new_memory_object.obj = self.memory[read_id]
+            try:
+                new_memory_object = copy.deepcopy(obj)
+            except TypeError as _:
+                new_memory_object = self
+            real_id = self.dump_id_to_real_id[id_]
+            new_memory_object.obj = self.memory[real_id]
             if isinstance(new_memory_object, ReprMemoryObject):
                 pass
             elif isinstance(new_memory_object, ListMemoryObject):
+                new_memory_object.items = [
+                    self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
+                ]
+            elif isinstance(new_memory_object, IteratorMemoryObject):
                 new_memory_object.items = [
                     self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
                 ]
@@ -135,7 +156,7 @@ class DumpLoader:
                 new_memory_object.dictitems = self.dump_id_to_real_id[
                     new_memory_object.dictitems
                 ]
-            new_memory_objects[self.dump_id_to_real_id[id_]] = new_memory_object
+            new_memory_objects[real_id] = new_memory_object
         return MemoryDump(new_memory_objects)
 
     @staticmethod
@@ -184,6 +205,14 @@ class DumpLoader:
 
             for key, value in dump_object.items.items():
                 real_object[self.load_object(key)] = self.load_object(value)
+        elif isinstance(dump_object, IteratorMemoryObject):
+            real_object = IteratorWrapper.from_list(
+                [self.load_object(item) for item in dump_object.items],
+                eval(dump_object.exception.qualname)
+            )
+            id_ = PythonId(str(id(real_object)))
+            self.dump_id_to_real_id[python_id] = id_
+            self.memory[id_] = real_object
         elif isinstance(dump_object, ReduceMemoryObject):
             constructor = eval(dump_object.constructor.qualname)
             args = self.load_object(dump_object.args)
@@ -200,20 +229,14 @@ class DumpLoader:
                 state = self.load_object(dump_object.state)
                 if isinstance(state, dict):
                     for field, value in state.items():
-                        try:
-                            setattr(real_object, field, value)
-                        except AttributeError:
-                            pass
+                        setattr(real_object, field, value)
                 elif hasattr(real_object, "__setstate__"):
                     real_object.__setstate__(state)
                 if isinstance(state, tuple) and len(state) == 2:
                     _, slotstate = state
                     if slotstate:
                         for key, value in slotstate.items():
-                            try:
-                                setattr(real_object, key, value)
-                            except AttributeError:
-                                pass
+                            setattr(real_object, key, value)
 
                 listitems = self.load_object(dump_object.listitems)
                 if isinstance(listitems, Iterable):

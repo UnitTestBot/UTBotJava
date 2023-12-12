@@ -1,5 +1,7 @@
 val semVer: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
+val apacheCommonsTextVersion: String? by rootProject
+val jacksonVersion: String? by rootProject
 
 // === IDE settings ===
 val projectType: String by rootProject

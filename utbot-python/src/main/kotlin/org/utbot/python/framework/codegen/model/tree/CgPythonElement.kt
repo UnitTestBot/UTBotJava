@@ -1,24 +1,22 @@
 package org.utbot.python.framework.codegen.model.tree
 
-import org.utbot.framework.codegen.domain.models.CgAnnotation
-import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgElement
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgMethod
-import org.utbot.framework.codegen.domain.models.CgMethodCall
-import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgStatement
-import org.utbot.framework.codegen.domain.models.CgTestMethod
-import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.renderer.CgVisitor
-import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.*
+import org.utbot.python.framework.api.python.util.pythonDictClassId
+import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonIteratorClassId
+import org.utbot.python.framework.api.python.util.pythonListClassId
+import org.utbot.python.framework.api.python.util.pythonRangeClassId
+import org.utbot.python.framework.api.python.util.pythonSetClassId
+import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonVisitor
 
 interface CgPythonElement : CgElement {
@@ -37,6 +35,8 @@ interface CgPythonElement : CgElement {
                 is CgPythonTree -> visitor.visit(element)
                 is CgPythonWith -> visitor.visit(element)
                 is CgPythonNamedArgument -> visitor.visit(element)
+                is CgPythonIterator -> visitor.visit(element)
+                is CgPythonZip -> visitor.visit(element)
                 else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
             }
         } else {
@@ -95,6 +95,14 @@ class CgPythonRange(
     )
 }
 
+class CgPythonZip(
+    val first: CgValue,
+    val second: CgValue
+): CgValue, CgPythonElement {
+    override val type: ClassId
+        get() = PythonClassId("builtins.zip")
+}
+
 class CgPythonList(
     val elements: List<CgValue>
 ) : CgValue, CgPythonElement {
@@ -117,6 +125,13 @@ class CgPythonDict(
     val elements: Map<CgValue, CgValue>
 ) : CgValue, CgPythonElement {
     override val type: PythonClassId = pythonDictClassId
+}
+
+class CgPythonIterator(
+    val elements: List<CgValue>,
+    val stopException: PythonClassId,
+) : CgValue, CgPythonElement {
+    override val type: PythonClassId = pythonIteratorClassId
 }
 
 data class CgPythonWith(

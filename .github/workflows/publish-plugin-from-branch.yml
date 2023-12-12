@@ -87,7 +87,6 @@ jobs:
           cd ${{ matrix.configuration.directory }}/build/distributions
           unzip ${{ matrix.configuration.directory }}-${{ env.VERSION }}.zip
           rm ${{ matrix.configuration.directory }}-${{ env.VERSION }}.zip
-
       - name: Archive UTBot IntelliJ IDEA plugin
         if: ${{ inputs.upload-artifact == 'true' }}
         uses: actions/upload-artifact@v3

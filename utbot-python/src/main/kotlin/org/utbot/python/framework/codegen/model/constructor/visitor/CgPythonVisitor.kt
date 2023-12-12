@@ -14,7 +14,9 @@ interface CgPythonVisitor<R> : CgVisitor<R> {
     fun visit(element: CgPythonTuple): R
     fun visit(element: CgPythonList): R
     fun visit(element: CgPythonSet): R
+    fun visit(element: CgPythonIterator): R
     fun visit(element: CgPythonTree): R
     fun visit(element: CgPythonWith): R
     fun visit(element: CgPythonNamedArgument): R
+    fun visit(element: CgPythonZip): R
 }

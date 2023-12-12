@@ -15,6 +15,11 @@ object ExecutionRequestSerializer {
     }
 }
 
+enum class MemoryMode {
+    PICKLE,
+    REDUCE
+}
+
 data class ExecutionRequest(
     val functionName: String,
     val functionModule: String,
@@ -23,6 +28,7 @@ data class ExecutionRequest(
     val argumentsIds: List<String>,
     val kwargumentsIds: Map<String, String>,
     val serializedMemory: String,
+    val memoryMode: MemoryMode,
     val filepath: String,
     val coverageId: String,
 )

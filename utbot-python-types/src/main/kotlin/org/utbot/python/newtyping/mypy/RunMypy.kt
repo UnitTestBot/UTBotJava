@@ -19,7 +19,7 @@ class MypyBuildDirectory(
     val fileForMypyStdout = File(root, mypyStdoutFilename)
     val fileForMypyStderr = File(root, mypyStderrFilename)
     val fileForMypyExitStatus = File(root, mypyExitStatusFilename)
-    private val dirForCache = File(root, mypyCacheDirectoryName)
+    val dirForCache = File(root, mypyCacheDirectoryName)
 
     init {
         val configContent = """

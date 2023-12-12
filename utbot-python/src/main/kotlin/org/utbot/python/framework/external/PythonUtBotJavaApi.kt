@@ -54,9 +54,9 @@ object PythonUtBotJavaApi {
             executionTimeout,
         )
         logger.info("Loading information about Python types...")
-        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+        val mypyConfig = processor.sourceCodeAnalyze()
         logger.info("Generating tests...")
-        return processor.testGenerate(mypyStorage)
+        return processor.testGenerate(mypyConfig)
     }
 
     /**

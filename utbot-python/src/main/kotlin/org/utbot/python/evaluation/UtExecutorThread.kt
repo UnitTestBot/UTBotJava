@@ -1,11 +1,13 @@
 package org.utbot.python.evaluation
 
+import mu.KotlinLogging
 import java.net.SocketException
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
+private val logger = KotlinLogging.logger {}
 
 class UtExecutorThread {
     enum class Status {
@@ -18,12 +20,17 @@ class UtExecutorThread {
             val executor = Executors.newSingleThreadExecutor()
             val future = executor.submit(Task(worker))
 
+            logger.debug("Running with timeout $executionTimeout")
+
             val result = try {
                 Status.OK to future.get(executionTimeout, TimeUnit.MILLISECONDS)
             } catch (ex: TimeoutException) {
                 future.cancel(true)
                 Status.TIMEOUT to null
             }
+
+            logger.debug("Stopped running. Result: {}", result.first)
+
             executor.shutdown()
             return result
         }

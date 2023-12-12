@@ -1,10 +1,10 @@
 from __future__ import annotations
+
 import dataclasses
 import importlib
 import logging
 import pickle
 from typing import NewType
-
 from utbot_executor.deep_serialization.config import PICKLE_PROTO
 
 PythonId = NewType("PythonId", str)
@@ -89,7 +89,7 @@ def get_constructor_info(constructor: object, obj: object) -> TypeInfo:
         result = TypeInfo(constructor.__module__, constructor.__qualname__)
 
     if result.kind == "object.__new__" and obj.__new__.__module__ is None:
-        result = TypeInfo(obj.__module__, f"{obj.__class__.__name__}.__new__")
+        result = TypeInfo(obj.__module__, f"{obj.__class__.__qualname__}.__new__")
     return result
 
 

@@ -41,7 +41,7 @@ fun checkSuggestedSignatureWithDMypy(
     timeout: Long? = null
 ): Boolean {
     val annotationMap =
-        (method.definition.meta.args.map { it.name } zip method.definition.type.arguments).associate {
+        (method.argumentsNames zip method.methodType.arguments).associate {
             Pair(it.first, it.second)
         }
     val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule, additionalVars)

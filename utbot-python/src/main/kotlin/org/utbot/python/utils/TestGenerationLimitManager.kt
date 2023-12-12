@@ -9,7 +9,7 @@ class TestGenerationLimitManager(
     var executions: Int = 150,
     var invalidExecutions: Int = 10,
     var cacheNodeExecutions: Int = 20,
-    var fakeNodeExecutions: Int = 1,
+    var fakeNodeExecutions: Int = 40,
     var missedLines: Int? = null,
     val isRootManager: Boolean = false,
 ) {
@@ -37,6 +37,10 @@ class TestGenerationLimitManager(
 
     fun addFakeNodeExecutions() {
         fakeNodeExecutions -= 1
+    }
+
+    fun restartFakeNode() {
+        fakeNodeExecutions = initFakeNodeExecutions
     }
 
     fun isCancelled(): Boolean {
@@ -75,5 +79,11 @@ object MaxCoverageWithTimeoutMode : LimitManagerMode {
 object ExecutionWithTimoutMode : LimitManagerMode {
     override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
         return ExecutionMode.isCancelled(manager) || TimeoutMode.isCancelled(manager)
+    }
+}
+
+object FakeWithTimeoutMode : LimitManagerMode {
+    override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
+        return manager.fakeNodeExecutions <= 0 || TimeoutMode.isCancelled(manager)
     }
 }

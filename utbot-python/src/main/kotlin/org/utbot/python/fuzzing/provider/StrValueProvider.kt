@@ -1,30 +1,30 @@
 package org.utbot.python.fuzzing.provider
 
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.seeds.RegexValue
 import org.utbot.fuzzing.seeds.StringValue
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.python.fuzzing.FuzzedUtType
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.fuzzing.PythonValueProvider
 import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isPattern
 import org.utbot.python.fuzzing.provider.utils.transformQuotationMarks
 import org.utbot.python.fuzzing.provider.utils.transformRawString
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonTypeName
 
-object StrValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: UtType): Boolean {
+object StrValueProvider : PythonValueProvider {
+    override fun accept(type: FuzzedUtType): Boolean {
         return type.pythonTypeName() == pythonStrClassId.canonicalName
     }
 
     private fun getConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<String> {
         return concreteValues
-            .filter { accept(it.type) }
+            .filter { accept(it.type.toFuzzed()) }
             .map { it.value as String }
     }
 
@@ -40,7 +40,7 @@ object StrValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodD
             .map { it.transformRawString().transformQuotationMarks() }
     }
 
-    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
+    override fun generate(description: PythonMethodDescription, type: FuzzedUtType) = sequence {
         val strConstants = getStrConstants(description.concreteValues) + listOf(
             "pythön",
             "foo",
@@ -50,11 +50,12 @@ object StrValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodD
 
         val regexConstants = getRegexConstants(description.concreteValues)
         regexConstants.forEach {
-            yieldStrings(RegexValue(it, description.random), StringValue::value)
+            val maxLength = listOf(16, 256, 2048).random(description.random).coerceAtLeast(it.length)
+            yieldStrings(RegexValue(it, description.random, maxLength), StringValue::value)
         }
     }
 
-    private suspend fun <T : KnownValue<T>> SequenceScope<Seed<UtType, PythonFuzzedValue>>.yieldStrings(value: T, block: T.() -> Any) {
+    private suspend fun <T : KnownValue<T>> SequenceScope<Seed<FuzzedUtType, PythonFuzzedValue>>.yieldStrings(value: T, block: T.() -> Any) {
         yield(Seed.Known(value) {
             PythonFuzzedValue(
                 PythonTree.fromString(block(it).toString()),

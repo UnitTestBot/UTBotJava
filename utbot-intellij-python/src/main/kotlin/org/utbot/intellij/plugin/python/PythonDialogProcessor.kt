@@ -29,6 +29,7 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import org.utbot.python.PyDecorator
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.utils.RequirementsInstaller
@@ -187,10 +188,17 @@ object PythonDialogProcessor {
                         val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
                         val containingClassId = it.containingClass?.qualifiedName?.let{ cls -> PythonClassId(cls) }
                         PythonMethodHeader(
-                                functionName,
-                                moduleFilename,
-                                containingClassId,
-                            )
+                            functionName,
+                            moduleFilename,
+                            containingClassId,
+                            it.decoratorList?.decorators?.mapNotNull { decorator ->
+                                decorator.name?.let { name ->
+                                    PyDecorator.decoratorByName(
+                                        name
+                                    )
+                                }
+                            } ?: emptyList()
+                        )
                     }
                     .toSet()
                     .toList()
@@ -296,7 +304,7 @@ object PythonDialogProcessor {
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 0.5)
 
-                        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+                        val mypyConfig = processor.sourceCodeAnalyze()
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 1.0)
 
@@ -309,7 +317,7 @@ object PythonDialogProcessor {
                             model.timeout,
                         )
                         try {
-                            val testSets = processor.testGenerate(mypyStorage)
+                            val testSets = processor.testGenerate(mypyConfig)
                             timerHandler.cancel(true)
                             if (testSets.isEmpty()) return@forEachIndexed
 
@@ -321,7 +329,7 @@ object PythonDialogProcessor {
 
                             logger.info(
                                 "Finished test generation for the following functions: ${
-                                    testSets.joinToString { it.method.name }
+                                    testSets.map { it.method.name }.toSet().joinToString()
                                 }"
                             )
                         } finally {

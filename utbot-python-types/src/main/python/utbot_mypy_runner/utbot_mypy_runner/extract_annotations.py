@@ -1,15 +1,13 @@
 import json
-import typing as tp
-from collections import defaultdict
-
 import mypy.nodes
 import mypy.types
-
-import utbot_mypy_runner.mypy_main as mypy_main
+import typing as tp
 import utbot_mypy_runner.expression_traverser as expression_traverser
+import utbot_mypy_runner.mypy_main as mypy_main
 import utbot_mypy_runner.names
-from utbot_mypy_runner.utils import get_borders
+from collections import defaultdict
 from utbot_mypy_runner.nodes import *
+from utbot_mypy_runner.utils import get_borders
 
 
 class ExpressionType:
@@ -87,14 +85,14 @@ def get_result_from_mypy_build(build_result: mypy_main.build.BuildResult, source
             only_types = mypy_file.path not in source_paths
 
             try:
-                definition = get_definition_from_symbol_node(symbol_table_node, Meta(module), only_types)
+                definitions = get_definition_from_symbol_node(symbol_table_node, Meta(module), name, only_types)
             except NoTypeVarBindingException:
                 # Bad definition, like this one: 
                 # https://github.com/sqlalchemy/sqlalchemy/blob/rel_2_0_20/lib/sqlalchemy/orm/mapped_collection.py#L521
-                definition = None
+                definitions = {}
 
-            if definition is not None:
-                annotation_dict[module][name] = definition
+            for def_name, definition in definitions.items():
+                annotation_dict[module][def_name] = definition
 
     def processor(line, col, end_line, end_col, type_, meta):
         expression_types[module_for_types].append(

@@ -1,28 +1,60 @@
 package org.utbot.python.fuzzing
 
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.UtError
 import org.utbot.fuzzer.FuzzedContext
-import org.utbot.fuzzing.*
+import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.Description
+import org.utbot.fuzzing.Feedback
+import org.utbot.fuzzing.Fuzzing
+import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.Statistic
+import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.coverage.PyInstruction
+import org.utbot.python.engine.ExecutionFeedback
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonUtExecution
-import org.utbot.python.fuzzing.provider.*
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
+import org.utbot.python.fuzzing.provider.BoolValueProvider
+import org.utbot.python.fuzzing.provider.BytearrayValueProvider
+import org.utbot.python.fuzzing.provider.BytesValueProvider
+import org.utbot.python.fuzzing.provider.ComplexValueProvider
+import org.utbot.python.fuzzing.provider.ConstantValueProvider
+import org.utbot.python.fuzzing.provider.DictValueProvider
+import org.utbot.python.fuzzing.provider.FloatValueProvider
+import org.utbot.python.fuzzing.provider.IntValueProvider
+import org.utbot.python.fuzzing.provider.IteratorValueProvider
+import org.utbot.python.fuzzing.provider.ListValueProvider
+import org.utbot.python.fuzzing.provider.NoneValueProvider
+import org.utbot.python.fuzzing.provider.OptionalValueProvider
+import org.utbot.python.fuzzing.provider.RePatternValueProvider
+import org.utbot.python.fuzzing.provider.ReduceValueProvider
+import org.utbot.python.fuzzing.provider.SetValueProvider
+import org.utbot.python.fuzzing.provider.StrValueProvider
+import org.utbot.python.fuzzing.provider.SubtypeValueProvider
+import org.utbot.python.fuzzing.provider.TupleFixSizeValueProvider
+import org.utbot.python.fuzzing.provider.TupleValueProvider
+import org.utbot.python.fuzzing.provider.TypeAliasValueProvider
+import org.utbot.python.fuzzing.provider.UnionValueProvider
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.InferredTypeFeedback
 import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.pythonModuleName
+import org.utbot.python.newtyping.pythonName
+import org.utbot.python.newtyping.pythonTypeName
+import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.ExecutionWithTimoutMode
+import org.utbot.python.utils.FakeWithTimeoutMode
 import org.utbot.python.utils.TestGenerationLimitManager
-import org.utbot.python.utils.TimeoutMode
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
+
+typealias PythonValueProvider = ValueProvider<FuzzedUtType, PythonFuzzedValue, PythonMethodDescription>
 
 data class PythonFuzzedConcreteValue(
     val type: UtType,
@@ -30,27 +62,39 @@ data class PythonFuzzedConcreteValue(
     val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
 )
 
+data class FuzzedUtType(
+    val utType: UtType,
+    val fuzzAny: Boolean = false,
+) {
+
+    fun isAny(): Boolean = utType.isAny()
+    fun pythonName(): String = utType.pythonName()
+    fun pythonTypeName(): String = utType.pythonTypeName()
+    fun pythonModuleName(): String = utType.pythonModuleName()
+    fun pythonTypeRepresentation(): String = utType.pythonTypeRepresentation()
+
+    companion object {
+        fun FuzzedUtType.activateAny() = FuzzedUtType(this.utType, true)
+        fun FuzzedUtType.activateAnyIf(parent: FuzzedUtType) = FuzzedUtType(this.utType, parent.fuzzAny)
+        fun Collection<FuzzedUtType>.activateAny() = this.map { it.activateAny() }
+        fun Collection<FuzzedUtType>.activateAnyIf(parent: FuzzedUtType) = this.map { it.activateAnyIf(parent) }
+        fun UtType.toFuzzed() = FuzzedUtType(this)
+        fun Collection<UtType>.toFuzzed() = this.map { it.toFuzzed() }
+    }
+}
+
 class PythonMethodDescription(
     val name: String,
-    parameters: List<UtType>,
     val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
     val pythonTypeStorage: PythonTypeHintsStorage,
     val tracer: Trie<PyInstruction, *>,
     val random: Random,
     val limitManager: TestGenerationLimitManager,
     val type: FunctionType,
-) : Description<UtType>(parameters)
-
-sealed interface FuzzingExecutionFeedback
-class ValidExecution(val utFuzzedExecution: PythonUtExecution): FuzzingExecutionFeedback
-class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
-class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
-class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
-class CachedExecutionFeedback(val cachedFeedback: FuzzingExecutionFeedback) : FuzzingExecutionFeedback
-object FakeNodeFeedback : FuzzingExecutionFeedback
+) : Description<FuzzedUtType>(type.arguments.toFuzzed())
 
 data class PythonExecutionResult(
-    val fuzzingExecutionFeedback: FuzzingExecutionFeedback,
+    val executionFeedback: ExecutionFeedback,
     val fuzzingPlatformFeedback: PythonFeedback
 )
 
@@ -59,7 +103,7 @@ data class PythonFeedback(
     val result: Trie.Node<PyInstruction> = Trie.emptyNode(),
     val typeInferenceFeedback: InferredTypeFeedback = InvalidTypeFeedback,
     val fromCache: Boolean = false,
-) : Feedback<UtType, PythonFuzzedValue> {
+) : Feedback<FuzzedUtType, PythonFuzzedValue> {
     fun fromCache(): PythonFeedback {
         return PythonFeedback(
             control = control,
@@ -87,6 +131,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     DictValueProvider,
     TupleValueProvider,
     TupleFixSizeValueProvider,
+    OptionalValueProvider,
     UnionValueProvider,
     BytesValueProvider,
     BytearrayValueProvider,
@@ -94,6 +139,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     RePatternValueProvider,
     ConstantValueProvider,
     TypeAliasValueProvider,
+    IteratorValueProvider,
     SubtypeValueProvider(typeStorage)
 )
 
@@ -112,11 +158,12 @@ fun pythonAnyTypeValueProviders() = listOf(
 class PythonFuzzing(
     private val pythonTypeStorage: PythonTypeHintsStorage,
     private val typeInferenceAlgorithm: BaselineAlgorithm,
+    private val globalIsCancelled: () -> Boolean,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
-) : Fuzzing<UtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
+) : Fuzzing<FuzzedUtType, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
-    private fun generateDefault(description: PythonMethodDescription, type: UtType)= sequence {
-        pythonDefaultValueProviders(pythonTypeStorage).asSequence().forEach { provider ->
+    private fun generateDefault(providers: List<PythonValueProvider>, description: PythonMethodDescription, type: FuzzedUtType)= sequence {
+        providers.asSequence().forEach { provider ->
             if (provider.accept(type)) {
                 logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
                 yieldAll(provider.generate(description, type))
@@ -124,16 +171,27 @@ class PythonFuzzing(
         }
     }
 
-    override fun generate(description: PythonMethodDescription, type: UtType): Sequence<Seed<UtType, PythonFuzzedValue>> {
-        var providers = emptyList<Seed<UtType, PythonFuzzedValue>>().asSequence()
+    private fun generateAnyProviders(description: PythonMethodDescription, type: FuzzedUtType) = sequence {
+        pythonAnyTypeValueProviders().asSequence().forEach { provider ->
+            logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()} with activated any" }
+            yieldAll(provider.generate(description, type))
+        }
+    }
+
+    override fun generate(description: PythonMethodDescription, type: FuzzedUtType): Sequence<Seed<FuzzedUtType, PythonFuzzedValue>> {
+        val providers = mutableSetOf<Seed<FuzzedUtType, PythonFuzzedValue>>()
 
         if (type.isAny()) {
-            logger.debug("Any does not have provider")
+            if (type.fuzzAny) {
+                providers += generateAnyProviders(description, type)
+            } else {
+                logger.debug("Any does not have provider")
+            }
         } else {
-            providers += generateDefault(description, type)
+            providers += generateDefault(pythonDefaultValueProviders(pythonTypeStorage), description, type)
         }
 
-        return providers
+        return providers.asSequence()
     }
 
     override suspend fun handle(description: PythonMethodDescription, values: List<PythonFuzzedValue>): PythonFeedback {
@@ -147,19 +205,17 @@ class PythonFuzzing(
         return result
     }
 
-    private suspend fun forkType(description: PythonMethodDescription, stats: Statistic<UtType, PythonFuzzedValue>) {
+    private suspend fun forkType(description: PythonMethodDescription, stats: Statistic<FuzzedUtType, PythonFuzzedValue>) {
         val type: UtType? = typeInferenceAlgorithm.expandState()
         if (type != null) {
-            val newTypes = (type as FunctionType).arguments
             val d = PythonMethodDescription(
                 description.name,
-                newTypes,
                 description.concreteValues,
                 description.pythonTypeStorage,
                 description.tracer,
                 description.random,
                 TestGenerationLimitManager(ExecutionWithTimoutMode, description.limitManager.until),
-                type
+                type as FunctionType
             )
             if (!d.limitManager.isCancelled()) {
                 logger.debug { "Fork new type" }
@@ -167,18 +223,21 @@ class PythonFuzzing(
             }
             logger.debug { "Fork ended" }
         } else {
-            description.limitManager.mode = TimeoutMode
+            description.limitManager.mode = FakeWithTimeoutMode
         }
     }
 
     override suspend fun isCancelled(
         description: PythonMethodDescription,
-        stats: Statistic<UtType, PythonFuzzedValue>
+        stats: Statistic<FuzzedUtType, PythonFuzzedValue>
     ): Boolean {
+        if (globalIsCancelled()) {
+            return true
+        }
         if (description.limitManager.isCancelled() || description.parameters.any { it.isAny() }) {
             forkType(description, stats)
             if (description.limitManager.isRootManager) {
-                return TimeoutMode.isCancelled(description.limitManager)
+                return FakeWithTimeoutMode.isCancelled(description.limitManager)
             }
         }
         return description.limitManager.isCancelled()

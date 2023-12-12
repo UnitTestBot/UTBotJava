@@ -29,6 +29,7 @@ $ python -m utbot_executor <hostname> <port> <logfile> [<loglevel DEBUG | INFO |
   "argumentsIds": ["1", "2"],
   "kwargumentsIds": ["4", "5"],
   "serializedMemory": "string",
+  "memoryMode": "REDUCE",
   "filepath": ["/home/user/my_project/my_module/submod1.py"],
   "coverageId": "1"
 }
@@ -41,6 +42,7 @@ $ python -m utbot_executor <hostname> <port> <logfile> [<loglevel DEBUG | INFO |
 * `argumentsIds` - list of argument's ids
 * `kwargumentsIds` - list of keyword argument's ids
 * `serializedMemory` - serialized memory throw `deep_serialization` algorithm
+* `memoryMode` - serialization mode (`PICKLE`, `REDUCE`)
 * `filepath` - path to the tested function's containing file
 * `coverageId` - special id witch will be used for sending information about covered lines
 

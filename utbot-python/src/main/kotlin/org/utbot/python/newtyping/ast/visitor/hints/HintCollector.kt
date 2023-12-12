@@ -3,6 +3,7 @@ package org.utbot.python.newtyping.ast.visitor.hints
 import org.parsers.python.Node
 import org.parsers.python.PythonConstants
 import org.parsers.python.ast.*
+import org.utbot.python.PythonMethod
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.*
 import org.utbot.python.newtyping.ast.visitor.Collector
@@ -15,14 +16,14 @@ import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import java.util.*
 
 class HintCollector(
-    private val function: PythonFunctionDefinition,
+    private val function: PythonMethod,
     private val storage: PythonTypeHintsStorage,
     private val mypyTypes: Map<Pair<Int, Int>, UtType>,
     private val globalNamesStorage: GlobalNamesStorage,
     private val moduleOfSources: String
 ) : Collector() {
     private val parameterToNode: Map<String, HintCollectorNode> =
-        (function.meta.args.map { it.name } zip function.type.arguments).associate {
+        (function.argumentsNames zip function.methodType.arguments).associate {
             it.first to HintCollectorNode(it.second)
         }
     private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
@@ -30,7 +31,7 @@ class HintCollector(
     private val blockStack = Stack<Block>()
 
     init {
-        val argNames = function.meta.args.map { it.name }
+        val argNames = function.argumentsNames
         assert(argNames.all { it != "" })
         identificationToNode[null] = mutableMapOf()
         argNames.forEach {
@@ -45,7 +46,7 @@ class HintCollector(
             if (!allNodes.contains(it.value))
                 collectAllNodes(it.value, allNodes)
         }
-        result = HintCollectorResult(parameterToNode, function.type, allNodes)
+        result = HintCollectorResult(parameterToNode, function.methodType, allNodes)
     }
 
     private fun collectAllNodes(cur: HintCollectorNode, visited: MutableSet<HintCollectorNode>) {

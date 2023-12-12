@@ -1,17 +1,18 @@
 package org.utbot.python.evaluation
 
 import mu.KotlinLogging
+import org.apache.logging.log4j.LogManager
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.python.FunctionArguments
+import org.utbot.python.coverage.PythonCoverageMode
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
 import java.lang.Long.max
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketException
 import java.net.SocketTimeoutException
-import org.apache.logging.log4j.LogManager
-import org.utbot.python.coverage.PythonCoverageMode
 
 private val logger = KotlinLogging.logger {}
 
@@ -21,6 +22,7 @@ class PythonWorkerManager(
     val until: Long,
     private val coverageMeasureMode: PythonCoverageMode = PythonCoverageMode.Instructions,
     private val sendCoverageContinuously: Boolean = true,
+    private val doNotGenerateStateAssertions: Boolean,
     val pythonCodeExecutorConstructor: (PythonWorker) -> PythonCodeExecutor,
 ) {
     var timeout: Long = 0
@@ -41,18 +43,24 @@ class PythonWorkerManager(
             process.destroy()
         }
         val logLevel = LogManager.getRootLogger().level.name()
-        process = startProcess(listOf(
-            pythonPath,
-            "-m", "utbot_executor",
-            "localhost",
-            serverSocket.localPort.toString(),
-            coverageReceiver.address().first,
-            coverageReceiver.address().second,
-            "--logfile", logfile.absolutePath,
-            "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
-            "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
-            sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
-        ))
+        if (serverSocket.isClosed) {
+            serverSocket.accept()
+        }
+        process = startProcess(
+            listOf(
+                pythonPath,
+                "-m", "utbot_executor",
+                "localhost",
+                serverSocket.localPort.toString(),
+                coverageReceiver.address().first,
+                coverageReceiver.address().second,
+                "--logfile", logfile.absolutePath,
+                "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
+                "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
+                sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
+                doNotGenerateStateAssertions.toGenerateStateAssertionsString()  // "--generate_state_assertions", "--no-generate_state_assertions"
+            )
+        )
         timeout = max(until - processStartTime, 0)
         if (this::workerSocket.isInitialized && !workerSocket.isClosed) {
             workerSocket.close()
@@ -65,6 +73,9 @@ class PythonWorkerManager(
             logger.debug { "utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}, stdout: ${result.stdout}." }
             process.destroy()
             throw TimeoutException("Worker not connected")
+        } catch (e: SocketException) {
+            logger.debug { e.message }
+            throw SocketException("Worker not connected: $e")
         }
         logger.debug { "Worker connected successfully" }
 
@@ -75,7 +86,7 @@ class PythonWorkerManager(
 
     fun disconnect() {
         workerSocket.close()
-        process.destroy()
+        process.destroyForcibly()
     }
 
     private fun reconnect() {
@@ -95,6 +106,23 @@ class PythonWorkerManager(
     ): PythonEvaluationResult {
         val evaluationResult = try {
             codeExecutor.runWithCoverage(fuzzedValues, additionalModulesToImport, coverageId)
+        } catch (_: SocketTimeoutException) {
+            logger.debug { "Socket timeout" }
+            reconnect()
+            PythonEvaluationTimeout()
+        }
+        if (evaluationResult is PythonEvaluationError || evaluationResult is PythonEvaluationTimeout) {
+            reconnect()
+        }
+        return evaluationResult
+    }
+
+    fun runWithCoverage(
+        pickledArguments: String,
+        coverageId: String
+    ): PythonEvaluationResult {
+        val evaluationResult = try {
+            codeExecutor.runWithCoverage(pickledArguments, coverageId)
         } catch (_: SocketTimeoutException) {
             logger.debug { "Socket timeout" }
             reconnect()
@@ -131,6 +159,14 @@ class PythonWorkerManager(
                 "--send_coverage"
             } else {
                 "--no-send_coverage"
+            }
+        }
+
+        fun Boolean.toGenerateStateAssertionsString(): String {
+            return if (this) {
+                "--no-generate_state_assertions"
+            } else {
+                "--generate_state_assertions"
             }
         }
     }

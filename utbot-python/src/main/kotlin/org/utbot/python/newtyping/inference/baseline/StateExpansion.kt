@@ -5,8 +5,7 @@ import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.addEdge
 import org.utbot.python.newtyping.pythonAnnotationParameters
 import org.utbot.python.newtyping.pythonDescription
-import java.util.LinkedList
-import java.util.Queue
+import java.util.*
 
 fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeHintsStorage): BaselineAlgorithmState? {
     if (state.anyNodes.isEmpty())
@@ -48,7 +47,7 @@ private fun expandNodes(
             addEdge(newEdge)
         }
     }
-    return BaselineAlgorithmState(newNodeMap.values.toSet() + allNewNodes, generalRating, storage)
+    return BaselineAlgorithmState(newNodeMap.values.toSet() + allNewNodes, generalRating, storage, state.additionalVars)
 }
 
 private fun expansionBFS(

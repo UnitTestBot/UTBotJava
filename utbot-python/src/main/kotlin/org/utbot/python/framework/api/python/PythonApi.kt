@@ -87,7 +87,7 @@ class PythonTreeModel(
     }
 }
 
-class PythonUtExecution(
+open class PythonUtExecution(
     val stateInit: EnvironmentModels,
     stateBefore: EnvironmentModels,
     stateAfter: EnvironmentModels,
@@ -134,3 +134,15 @@ class PythonUtExecution(
         )
     }
 }
+
+class PythonSymbolicUtExecution(
+    stateBefore: EnvironmentModels,
+    stateAfter: EnvironmentModels,
+    diffIds: List<Long>,
+    result: UtExecutionResult,
+    arguments: List<PythonArgument>,
+    coverage: Coverage? = null,
+    summary: List<DocStatement>? = null,
+    testMethodName: String? = null,
+    displayName: String? = null,
+) : PythonUtExecution(stateBefore, stateBefore, stateAfter, diffIds, result, arguments, coverage, summary, testMethodName, displayName)

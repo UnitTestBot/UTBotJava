@@ -3,6 +3,7 @@ import dataclasses
 import datetime
 import importlib.metadata
 import json
+import pickle
 import re
 import sys
 import typing
@@ -28,6 +29,11 @@ def template_test_assert(obj: typing.Any, imports: typing.List[str]):
     assert obj == get_deserialized_obj(obj, imports)
 
 
+def template_test_assert_for_generators(obj: typing.Any, imports: typing.List[str]):
+    items = list(obj)
+    assert items == list(get_deserialized_obj(iter(items), imports).content)
+
+
 @pytest.mark.parametrize(
     "obj",
     [
@@ -47,6 +53,10 @@ def template_test_assert(obj: typing.Any, imports: typing.List[str]):
         ({},),
         ((1, 2, 3),),
         (tuple(),),
+        (pickle.dumps(((2, [1, 2]), {})),),
+        ("123\n   \t   ",),
+        (b"123\n   \t   ",),
+        ("\n  123\n   \t   \n",),
     ],
 )
 def test_primitives(obj: typing.Any):
@@ -78,12 +88,12 @@ class MyDataClass:
     "obj,imports",
     [
         (
-                MyDataClass(1, "a", [1, 2], {"a": b"c"}),
-                ["tests.test_deep_serialization"],
+            MyDataClass(1, "a", [1, 2], {"a": b"c"}),
+            ["tests.test_deep_serialization"],
         ),
         (
-                MyDataClass(1, "a--------------\n\t", [], {}),
-                ["tests.test_deep_serialization"],
+            MyDataClass(1, "a--------------\n\t", [], {}),
+            ["tests.test_deep_serialization"],
         ),
     ],
 )
@@ -102,10 +112,10 @@ class MyClass:
         if not isinstance(other, MyClass):
             return False
         return (
-                self.a == other.a
-                and self.b == other.b
-                and self.c == other.c
-                and self.d == other.d
+            self.a == other.a
+            and self.b == other.b
+            and self.c == other.c
+            and self.d == other.d
         )
 
 
@@ -126,12 +136,12 @@ class EmptyInitClass:
     "obj,imports",
     [
         (
-                MyClass(1, "a", [1, 2], {"a": b"c"}),
-                ["tests.test_deep_serialization"],
+            MyClass(1, "a", [1, 2], {"a": b"c"}),
+            ["tests.test_deep_serialization"],
         ),
         (
-                MyClass(1, "a--------------\n\t", [], {}),
-                ["tests.test_deep_serialization"],
+            MyClass(1, "a--------------\n\t", [], {}),
+            ["tests.test_deep_serialization"],
         ),
         (EmptyClass(), ["tests.test_deep_serialization"]),
         (EmptyInitClass(), ["tests.test_deep_serialization"]),
@@ -154,10 +164,10 @@ class MyClassWithSlots:
         if not isinstance(other, MyClassWithSlots):
             return False
         return (
-                self.a == other.a
-                and self.b == other.b
-                and self.c == other.c
-                and self.d == other.d
+            self.a == other.a
+            and self.b == other.b
+            and self.c == other.c
+            and self.d == other.d
         )
 
     def __str__(self):
@@ -172,17 +182,47 @@ class MyClassWithSlots:
     "obj,imports",
     [
         (
-                MyClassWithSlots(1, "a", [1, 2], {"a": b"c"}),
-                ["tests.test_deep_serialization", "copyreg"],
+            MyClassWithSlots(1, "a", [1, 2], {"a": b"c"}),
+            ["tests.test_deep_serialization", "copyreg"],
         ),
         (
-                MyClassWithSlots(1, "a--------------\n\t", [], {}),
-                ["tests.test_deep_serialization", "copyreg"],
+            MyClassWithSlots(1, "a--------------\n\t", [], {}),
+            ["tests.test_deep_serialization", "copyreg"],
         ),
     ],
 )
 def test_classes_with_slots(obj: typing.Any, imports: typing.List[str]):
     template_test_assert(obj, imports)
+
+
+def square_iter(x: int):
+    for i in range(x):
+        yield i**2
+
+
+@pytest.mark.parametrize(
+    "obj,imports",
+    [
+        (
+            range(10),
+            ["tests.test_deep_serialization", "copyreg"],
+        ),
+        (
+            map(int, "1 1 2 3 4 12 1 239".split()),
+            ["tests.test_deep_serialization", "copyreg"],
+        ),
+        (
+            square_iter(5),
+            ["tests.test_deep_serialization", "copyreg"],
+        ),
+        (
+            iter([1, 2, 5]),
+            ["tests.test_deep_serialization", "copyreg"],
+        ),
+    ],
+)
+def test_base_generators(obj: typing.Any, imports: typing.List[str]):
+    template_test_assert_for_generators(obj, imports)
 
 
 def test_comparable():
@@ -193,7 +233,7 @@ def test_comparable():
 
 
 def test_complex():
-    obj = complex(real=float('-inf'), imag=float('nan'))
+    obj = complex(real=float("-inf"), imag=float("nan"))
     serialized_obj_ids, _, serialized_memory_dump = serialize_objects_dump([obj], True)
     memory_dump = json_converter.deserialize_memory_objects(serialized_memory_dump)
     assert not memory_dump.objects[serialized_obj_ids[0]].comparable
@@ -204,7 +244,7 @@ def test_complex_state():
         def __init__(self, c):
             self.c = c
 
-    obj = A(complex(real=float('-inf'), imag=float('nan')))
+    obj = A(complex(real=float("-inf"), imag=float("nan")))
     serialized_obj_ids, _, serialized_memory_dump = serialize_objects_dump([obj], True)
     memory_dump = json_converter.deserialize_memory_objects(serialized_memory_dump)
     deserialized_obj = memory_dump.objects[serialized_obj_ids[0]]
@@ -334,16 +374,16 @@ def test_recursive_object():
     "obj,imports",
     [
         (
-                collections.Counter("abcababa"),
-                ["tests.test_deep_serialization", "collections"],
+            collections.Counter("abcababa"),
+            ["tests.test_deep_serialization", "collections"],
         ),
         (
-                collections.UserDict({1: "a"}),
-                ["tests.test_deep_serialization", "collections"],
+            collections.UserDict({1: "a"}),
+            ["tests.test_deep_serialization", "collections"],
         ),
         (
-                collections.deque([1, 2, 3]),
-                ["tests.test_deep_serialization", "collections"],
+            collections.deque([1, 2, 3]),
+            ["tests.test_deep_serialization", "collections"],
         ),
     ],
 )
@@ -374,20 +414,20 @@ def test_strategy(obj: typing.Any, strategy: str):
     [
         (re.compile(r"\d+jflsf"), ["tests.test_deep_serialization", "re"]),
         (
-                collections.abc.KeysView,
-                ["tests.test_deep_serialization", "collections"],
+            collections.abc.KeysView,
+            ["tests.test_deep_serialization", "collections"],
         ),
         (
-                collections.abc.KeysView({}),
-                [
-                    "tests.test_deep_serialization",
-                    "collections",
-                    "collections.abc",
-                ],
+            collections.abc.KeysView({}),
+            [
+                "tests.test_deep_serialization",
+                "collections",
+                "collections.abc",
+            ],
         ),
         (
-                importlib.metadata.SelectableGroups([["1", "2"]]),
-                ["tests.test_deep_serialization", "importlib.metadata"],
+            importlib.metadata.SelectableGroups([["1", "2"]]),
+            ["tests.test_deep_serialization", "importlib.metadata"],
         ),
     ],
 )
@@ -401,7 +441,7 @@ T = typing.TypeVar("T")
 @pytest.mark.skipif(
     sys.version_info.major <= 3 and sys.version_info.minor < 11,
     reason="typing.TypeVarTuple (PEP 646) has been added in Python 3.11",
-    )
+)
 def test_type_var_tuple():
     globals()["T2"] = typing.TypeVarTuple("T2")
     obj = typing.TypeVarTuple("T2")

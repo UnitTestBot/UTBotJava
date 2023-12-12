@@ -1,8 +1,6 @@
 package org.utbot.python.framework.codegen.model.constructor.visitor
 
 import org.apache.commons.text.StringEscapeUtils
-import org.utbot.common.WorkaroundReason
-import org.utbot.common.workaround
 import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.framework.codegen.domain.RegularImport
@@ -537,6 +535,12 @@ internal class CgPythonRenderer(
         print(")")
     }
 
+    override fun visit(element: CgPythonZip) {
+        print("zip(")
+        listOf(element.first, element.second).renderSeparated()
+        print(")")
+    }
+
     override fun visit(element: CgPythonList) {
         print("[")
         element.elements.renderSeparated()
@@ -564,6 +568,12 @@ internal class CgPythonRenderer(
             element.elements.toList().renderSeparated()
             print("}")
         }
+    }
+
+    override fun visit(element: CgPythonIterator) {
+        print("iter([")
+        element.elements.renderSeparated()
+        print("])")
     }
 
     override fun visit(element: CgPythonTree) {

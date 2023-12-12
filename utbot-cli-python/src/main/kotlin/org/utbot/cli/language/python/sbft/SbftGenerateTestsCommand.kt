@@ -8,6 +8,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
@@ -16,12 +17,7 @@ import org.utbot.cli.language.python.findCurrentPythonModule
 import org.utbot.cli.language.python.toAbsolutePath
 import org.utbot.cli.language.python.writeToFileAndSave
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
-import org.utbot.python.MypyConfig
-import org.utbot.python.PythonMethodHeader
-import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.PythonTestGenerationProcessor
-import org.utbot.python.TestFileInformation
-import org.utbot.python.UsvmConfig
+import org.utbot.python.*
 import org.utbot.python.code.PythonCode
 import org.utbot.python.coverage.CoverageOutputFormat
 import org.utbot.python.coverage.PythonCoverageMode
@@ -114,6 +110,10 @@ class SbftGenerateTestsCommand : CliktCommand(
         help = "Do not generate state assertions for all functions excluding functions with None return value."
     )
         .flag(default = false)
+
+    private val searchMode by option("--mode")
+        .enum<InputSearchMode> { it.name }
+        .default(InputSearchMode.BOTH)
 
     private val javaCmd by option(
         "--java-cmd",
@@ -273,6 +273,7 @@ class SbftGenerateTestsCommand : CliktCommand(
                 prohibitedExceptions = if (prohibitedExceptions == listOf("-")) emptyList() else prohibitedExceptions,
                 checkUsvm = checkUsvm,
                 doNotGenerateStateAssertions = doNotGenerateStateAssertions,
+                inputSearchMode = searchMode
             )
             val processor = SbftCliProcessor(config)
 

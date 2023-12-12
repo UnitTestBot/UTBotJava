@@ -34,6 +34,7 @@ class PythonTestGenerationConfig(
     val prohibitedExceptions: List<String> = defaultProhibitedExceptions,
     val checkUsvm: Boolean = false,
     val doNotGenerateStateAssertions: Boolean = false,
+    val inputSearchMode: InputSearchMode = InputSearchMode.BOTH
 ) {
     companion object {
         val defaultProhibitedExceptions = listOf(
@@ -60,4 +61,14 @@ data class UsvmConfig(
         val usvmJavaCmd = "${System.getProperty("java.home")}/bin/java"
         val defaultConfig = UsvmConfig(usvmJavaCmd, usvmDirectory)
     }
+}
+
+@Suppress("unused")
+enum class InputSearchMode(
+    val fuzzingEnabled: Boolean,
+    val symbolicEnabled: Boolean
+) {
+    FUZZING(true, false),
+    SYMBOLIC(false, true),
+    BOTH(true, true)
 }

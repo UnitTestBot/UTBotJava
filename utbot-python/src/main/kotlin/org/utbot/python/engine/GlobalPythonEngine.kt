@@ -105,26 +105,36 @@ class GlobalPythonEngine(
     }
 
     fun run() {
-        val fuzzing = thread(
-            start = true,
-            isDaemon = false,
-            name = "Fuzzer"
-        ) {
-            logger.info { " >>>>>>> Start fuzzer >>>>>>> " }
-            runFuzzing()
-            logger.info { " <<<<<<< Finish fuzzer <<<<<<< " }
+        val threads = mutableListOf<Thread>()
+        if (configuration.inputSearchMode.fuzzingEnabled) {
+            val fuzzing = thread(
+                start = true,
+                isDaemon = false,
+                name = "Fuzzer"
+            ) {
+                logger.info { " >>>>>>> Start fuzzer >>>>>>> " }
+                runFuzzing()
+                logger.info { " <<<<<<< Finish fuzzer <<<<<<< " }
+            }
+            threads.add(fuzzing)
+        } else {
+            logger.info { "Fuzzing disabled." }
         }
-        val symbolic = thread(
-            start = true,
-            isDaemon = false,
-            name = "Symbolic"
-        ) {
-            logger.info { " ------- Start symbolic ------- " }
-            runSymbolic()
-            logger.info { " ======= Finish symbolic ======= " }
+        if (configuration.inputSearchMode.symbolicEnabled) {
+            val symbolic = thread(
+                start = true,
+                isDaemon = false,
+                name = "Symbolic"
+            ) {
+                logger.info { " ------- Start symbolic ------- " }
+                runSymbolic()
+                logger.info { " ======= Finish symbolic ======= " }
+            }
+            threads.add(symbolic)
+        } else {
+            logger.info { "Symbolic disabled." }
         }
-        fuzzing.join()
-        symbolic.join()
+        threads.forEach { it.join() }
     }
 
     fun debugUsvmRun() {

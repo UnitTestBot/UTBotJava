@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
+import org.utbot.framework.fuzzer.ReferencePreservingIntIdGenerator
 
 class IdGeneratorTest {
     private enum class Size { S, M, L, XL }

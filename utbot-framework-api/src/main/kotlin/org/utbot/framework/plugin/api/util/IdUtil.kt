@@ -589,6 +589,23 @@ val ExecutableId.isMethod: Boolean
 val ExecutableId.isConstructor: Boolean
     get() = this is ConstructorId
 
+fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
+    val arrayIdName = "[${elementType.arrayLikeName}"
+    return when (elementType) {
+        is BuiltinClassId -> BuiltinClassId(
+            canonicalName = "${elementType.canonicalName}[]",
+            simpleName = "${elementType.simpleName}[]",
+            elementClassId = elementType,
+            isNullable = isNullable
+        )
+        else -> ClassId(
+            name = arrayIdName,
+            elementClassId = elementType,
+            isNullable = isNullable
+        )
+    }
+}
+
 /**
  * Construct MethodId
  */

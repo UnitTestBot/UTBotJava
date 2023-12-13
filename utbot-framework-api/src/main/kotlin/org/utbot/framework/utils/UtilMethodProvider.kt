@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.CgClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.arrayLikeName
+import org.utbot.framework.plugin.api.util.arrayTypeOf
 import org.utbot.framework.plugin.api.util.baseStreamClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinConstructorId
@@ -21,11 +21,6 @@ import sun.misc.Unsafe
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.lang.reflect.Method
-
-val utilClassIdPlaceholder = BuiltinClassId(
-    simpleName = "UtilClassPlaceholder",
-    canonicalName = "UtilClassPlaceholder",
-)
 
 /**
  * Set of ids of all possible util methods for a given class.
@@ -261,20 +256,3 @@ internal fun ClassId.utilMethodId(
     isStatic: Boolean = true
 ): MethodId =
     BuiltinMethodId(this, name, returnType, arguments.toList(), isStatic = isStatic)
-
-fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
-    val arrayIdName = "[${elementType.arrayLikeName}"
-    return when (elementType) {
-        is BuiltinClassId -> BuiltinClassId(
-            canonicalName = "${elementType.canonicalName}[]",
-            simpleName = "${elementType.simpleName}[]",
-            elementClassId = elementType,
-            isNullable = isNullable
-        )
-        else -> ClassId(
-            name = arrayIdName,
-            elementClassId = elementType,
-            isNullable = isNullable
-        )
-    }
-}

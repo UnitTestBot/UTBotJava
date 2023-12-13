@@ -31,6 +31,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.util.arrayTypeOf
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.byteClassId
@@ -54,7 +55,6 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.underlyingType
-import org.utbot.framework.utils.arrayTypeOf
 import soot.Scene
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier

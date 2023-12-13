@@ -20,3 +20,5 @@ open class FuzzedValue(
     val model: UtModel,
     var summary: String? = null,
 )
+
+fun UtModel.fuzzed(block: FuzzedValue.() -> Unit = {}): FuzzedValue = FuzzedValue(this).apply(block)

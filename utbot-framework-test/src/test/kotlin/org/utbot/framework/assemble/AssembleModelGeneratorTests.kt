@@ -49,6 +49,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.framework.plugin.api.util.arrayTypeOf
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
@@ -56,7 +57,6 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
-import org.utbot.framework.utils.arrayTypeOf
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.full.functions
 

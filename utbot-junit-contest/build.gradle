@@ -192,6 +192,7 @@ dependencies {
 
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 
+    //TODO: currently unused; their jars should be added to resources/lib if we want to switch to USVM instrumentation
     approximations "$approximationsRepo:approximations:$approximationsVersion"
 
     usvmApproximationsApi "$usvmRepo:usvm-jvm-api:$usvmVersion"

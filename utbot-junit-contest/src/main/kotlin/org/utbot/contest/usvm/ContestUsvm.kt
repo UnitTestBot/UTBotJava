@@ -35,6 +35,7 @@ import org.utbot.framework.codegen.domain.junitByVersion
 import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.constructor
@@ -43,7 +44,6 @@ import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
-import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.usvm.summarizeAll
 import org.utbot.usvm.converter.JcToUtExecutionConverter

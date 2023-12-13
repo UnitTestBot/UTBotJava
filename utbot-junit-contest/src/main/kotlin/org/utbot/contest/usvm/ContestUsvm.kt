@@ -64,7 +64,6 @@ fun runUsvmGeneration(
     project: String,
     cut: ClassUnderTest,
     timeLimitSec: Long,
-    fuzzingRatio: Double,
     classpathString: String,
     runFromEstimator: Boolean,
     expectedExceptions: ExpectedExceptionsForClass,

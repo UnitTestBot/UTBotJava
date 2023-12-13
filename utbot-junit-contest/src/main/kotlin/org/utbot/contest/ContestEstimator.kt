@@ -26,7 +26,6 @@ import org.utbot.contest.Paths.evosuiteReportFile
 import org.utbot.contest.Paths.jarsDir
 import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
-import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
@@ -38,6 +37,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.predictors.MLPredictorFactoryImpl
+import org.utbot.usvm.jc.JcContainer
 import kotlin.math.min
 
 private val logger = KotlinLogging.logger {}
@@ -311,7 +311,6 @@ interface Tool {
             project.name,
             cut,
             timeLimit,
-            fuzzingRatio,
             project.sootClasspathString,
             runFromEstimator = true,
             expectedExceptions = expectedExceptions,

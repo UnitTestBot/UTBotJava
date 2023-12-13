@@ -31,7 +31,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.arrayLikeName
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.byteClassId

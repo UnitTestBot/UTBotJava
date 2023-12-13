@@ -64,7 +64,7 @@ class JcToUtExecutionConverter(
     private val toValueConverter = Descriptor2ValueConverter(utContext.classLoader)
 
     private val instToModelConverter = UTestInstToUtModelConverter(jcExecution.uTest, jcClasspath, idGenerator, utilMethodProvider)
-    private var jcToUtModelConverter = JcToUtModelConverter(idGenerator, jcClasspath, instToModelConverter)
+    private var jcToUtModelConverter = JcToUtModelConverter(idGenerator, instToModelConverter)
     private var uTestProcessResult = instToModelConverter.processUTest()
 
     fun convert() = jcExecution.uTestExecutionResultWrappers.firstNotNullOfOrNull { result ->

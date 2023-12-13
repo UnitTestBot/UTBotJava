@@ -9,8 +9,8 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.constructors
-import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
 import org.jacodb.approximation.JcEnrichedVirtualField
 import org.usvm.UConcreteHeapRef
@@ -34,18 +34,14 @@ import org.usvm.instrumentation.testcase.api.UTestMockObject
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.machine.JcContext
-import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.JcMocker
+import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
-import org.utbot.usvm.jc.JcExecution
-import org.utbot.usvm.jc.UTestConcreteExecutionResult
-import org.utbot.usvm.jc.UTestSymbolicExceptionResult
-import org.utbot.usvm.jc.UTestSymbolicSuccessResult
 
 private val logger = KotlinLogging.logger {}
 

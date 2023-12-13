@@ -48,7 +48,6 @@ data class UtCyclicReferenceModel(
 
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
-    private val jcClasspath: JcClasspath,
     private val instToUtModelConverter: UTestInstToUtModelConverter,
 ) {
     private val descriptorToModelCache =

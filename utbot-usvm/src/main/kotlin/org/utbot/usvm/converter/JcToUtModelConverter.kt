@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.api.UTestExpression

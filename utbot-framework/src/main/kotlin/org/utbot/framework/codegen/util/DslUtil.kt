@@ -1,13 +1,9 @@
 package org.utbot.framework.codegen.util
 
-import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.models.CgArrayElementAccess
 import org.utbot.framework.codegen.domain.models.CgDecrement
 import org.utbot.framework.codegen.domain.models.CgEqualTo
 import org.utbot.framework.codegen.domain.models.CgExpression
-import org.utbot.framework.codegen.domain.models.CgGetClass
-import org.utbot.framework.codegen.domain.models.CgGetJavaClass
-import org.utbot.framework.codegen.domain.models.CgGetKotlinClass
 import org.utbot.framework.codegen.domain.models.CgGetLength
 import org.utbot.framework.codegen.domain.models.CgGreaterThan
 import org.utbot.framework.codegen.domain.models.CgIncrement
@@ -15,8 +11,6 @@ import org.utbot.framework.codegen.domain.models.CgLessThan
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.tree.CgMethodConstructor
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId

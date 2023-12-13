@@ -3,9 +3,9 @@ package org.utbot.framework.codegen.domain
 import org.utbot.framework.DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
 import org.utbot.framework.codegen.domain.builtin.mockitoClassId
 import org.utbot.framework.codegen.domain.builtin.ongoingStubbingClassId
-import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.tree.argumentsClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.CgClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem

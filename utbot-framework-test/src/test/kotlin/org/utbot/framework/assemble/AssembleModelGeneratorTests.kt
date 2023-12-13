@@ -37,7 +37,6 @@ import org.utbot.examples.assemble.DefaultFieldWithDirectAccessor
 import org.utbot.examples.assemble.DefaultFieldWithSetter
 import org.utbot.examples.assemble.DefaultPackagePrivateField
 import org.utbot.examples.assemble.StaticField
-import org.utbot.framework.codegen.tree.arrayTypeOf
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -57,6 +56,7 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
+import org.utbot.framework.utils.arrayTypeOf
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.full.functions
 

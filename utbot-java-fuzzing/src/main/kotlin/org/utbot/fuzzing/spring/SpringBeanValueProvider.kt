@@ -2,6 +2,7 @@ package org.utbot.fuzzing.spring
 
 import org.utbot.common.dynamicPropertiesOf
 import org.utbot.common.withValue
+import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.plugin.api.util.SpringModelUtils.persistMethodIdOrNull
@@ -9,7 +10,6 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.providers.SPRING_BEAN_PROP

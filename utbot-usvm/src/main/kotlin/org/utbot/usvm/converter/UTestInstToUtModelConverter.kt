@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 import mu.KotlinLogging
 import org.jacodb.api.JcClasspath

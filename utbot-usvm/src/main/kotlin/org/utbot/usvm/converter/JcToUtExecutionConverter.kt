@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 import mu.KotlinLogging
 import org.jacodb.api.JcClassOrInterface
@@ -18,11 +18,6 @@ import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.utbot.common.isPublic
-import org.utbot.contest.usvm.jc.JcExecution
-import org.utbot.contest.usvm.jc.UTestConcreteExecutionResult
-import org.utbot.contest.usvm.jc.UTestResultWrapper
-import org.utbot.contest.usvm.jc.UTestSymbolicExceptionResult
-import org.utbot.contest.usvm.jc.UTestSymbolicSuccessResult
 import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.Coverage
@@ -50,6 +45,11 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.utils.UtilMethodProvider
+import org.utbot.usvm.jc.JcExecution
+import org.utbot.usvm.jc.UTestConcreteExecutionResult
+import org.utbot.usvm.jc.UTestResultWrapper
+import org.utbot.usvm.jc.UTestSymbolicExceptionResult
+import org.utbot.usvm.jc.UTestSymbolicSuccessResult
 import java.util.IdentityHashMap
 
 private val logger = KotlinLogging.logger {}

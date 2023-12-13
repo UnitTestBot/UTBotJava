@@ -1,12 +1,12 @@
 package org.utbot.framework.context.simple
 
 import org.utbot.framework.context.JavaFuzzingContext
+import org.utbot.framework.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.defaultValueProviders

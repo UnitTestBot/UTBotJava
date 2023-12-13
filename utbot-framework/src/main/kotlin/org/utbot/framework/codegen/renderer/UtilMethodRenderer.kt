@@ -2,7 +2,6 @@ package org.utbot.framework.codegen.renderer
 
 import org.utbot.framework.codegen.domain.StaticImport
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
-import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.plugin.api.ClassId
@@ -11,6 +10,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.utils.UtilMethodProvider
 import java.lang.invoke.CallSite
 import java.lang.invoke.LambdaMetafactory
 import java.lang.invoke.MethodHandle

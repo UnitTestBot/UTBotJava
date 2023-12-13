@@ -1201,6 +1201,19 @@ class BuiltinClassId(
     }
 }
 
+class CgClassId(
+    name: String,
+    elementClassId: ClassId? = null,
+    override val typeParameters: TypeParameters = TypeParameters(),
+    override val isNullable: Boolean = true,
+) : ClassId(name, elementClassId) {
+    constructor(
+        classId: ClassId,
+        typeParameters: TypeParameters = TypeParameters(),
+        isNullable: Boolean = true,
+    ) : this(classId.name, classId.elementClassId, typeParameters, isNullable)
+}
+
 /**
  * Field id. Contains field name.
  *

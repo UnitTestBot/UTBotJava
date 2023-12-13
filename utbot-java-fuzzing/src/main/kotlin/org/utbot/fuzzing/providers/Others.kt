@@ -1,10 +1,10 @@
 package org.utbot.fuzzing.providers
 
+import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.hex

@@ -2,6 +2,8 @@ package org.utbot.fuzzing.providers
 
 import mu.KotlinLogging
 import org.utbot.framework.UtSettings
+import org.utbot.framework.fuzzer.IdGenerator
+import org.utbot.framework.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -26,8 +28,6 @@ import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdGenerator
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider

@@ -1,11 +1,11 @@
 package org.utbot.fuzzing.providers
 
+import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.*
 

@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.utbot.framework.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -14,7 +15,6 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzing.samples.DeepNested
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.providers.NullValueProvider
 import org.utbot.fuzzing.samples.AccessibleObjects
 import org.utbot.fuzzing.samples.FailToGenerateListGeneric

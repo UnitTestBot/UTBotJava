@@ -1,11 +1,14 @@
 package org.utbot.framework.codegen.generator
 
 import mu.KotlinLogging
+import org.utbot.framework.codegen.domain.builtin.shallowlyFixUtilClassIds
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.mapModels
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -42,6 +45,11 @@ abstract class AbstractCodeGenerator(params: CodeGeneratorParams) {
         testSets: Collection<UtMethodTestSet>,
         testClassCustomName: String? = null,
     ): CodeGeneratorResult {
+        @Suppress("NAME_SHADOWING")
+        val testSets = testSets.mapModels(UtModelDeepMapper { model ->
+            model.shallowlyFixUtilClassIds(actualUtilClassId = context.utilsClassId)
+        })
+
         val cgTestSets = testSets.map { CgMethodTestSet(it) }.toList()
         return withCustomContext(testClassCustomName) {
             context.withTestClassFileScope {

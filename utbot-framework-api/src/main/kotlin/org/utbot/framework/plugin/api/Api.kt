@@ -57,6 +57,8 @@ import kotlin.contracts.contract
 import org.utbot.common.isAbstract
 import org.utbot.framework.plugin.api.mapper.UtModelMapper
 import org.utbot.framework.plugin.api.mapper.map
+import org.utbot.framework.plugin.api.mapper.mapModelIfExists
+import org.utbot.framework.plugin.api.mapper.mapModels
 import org.utbot.framework.plugin.api.mapper.mapPreservingType
 import org.utbot.framework.plugin.api.util.SpringModelUtils
 import org.utbot.framework.process.OpenModulesContainer
@@ -72,6 +74,11 @@ data class UtMethodTestSet(
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
 )
+
+fun UtMethodTestSet.mapModels(mapper: UtModelMapper): UtMethodTestSet =
+    copy(executions = executions.map { it.mapModels(mapper) })
+
+fun Collection<UtMethodTestSet>.mapModels(mapper: UtModelMapper) = map { it.mapModels(mapper) }
 
 data class Step(
     val stmt: Stmt,
@@ -145,11 +152,70 @@ abstract class UtExecution(
         displayName: String? = this.displayName,
     ): UtExecution
 
+    open fun mapModels(mapper: UtModelMapper) = copy(
+        stateBefore = stateBefore.mapModels(mapper),
+        stateAfter = stateAfter.mapModels(mapper),
+        result = result.mapModelIfExists(mapper)
+    )
+
     val executableToCall get() = stateBefore.executableToCall
 }
 
-interface UtExecutionWithInstrumentation {
-    val instrumentation: List<UtInstrumentation>
+abstract class UtExecutionWithInstrumentation(
+    stateBefore: EnvironmentModels,
+    stateAfter: EnvironmentModels,
+    result: UtExecutionResult,
+    coverage: Coverage? = null,
+    summary: List<DocStatement>? = null,
+    testMethodName: String? = null,
+    displayName: String? = null,
+    val instrumentation: List<UtInstrumentation>,
+) : UtExecution(
+    stateBefore = stateBefore,
+    stateAfter = stateAfter,
+    result = result,
+    coverage = coverage,
+    summary = summary,
+    testMethodName = testMethodName,
+    displayName = displayName,
+) {
+    abstract fun copy(
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
+        instrumentation: List<UtInstrumentation> = this.instrumentation,
+    ): UtExecution
+
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?,
+    ): UtExecution = copy(
+        stateBefore = stateBefore,
+        stateAfter = stateAfter,
+        result = result,
+        instrumentation = instrumentation,
+        coverage = coverage,
+        summary = summary,
+        testMethodName = testMethodName,
+        displayName = displayName,
+    )
+
+    override fun mapModels(mapper: UtModelMapper): UtExecution =
+        copy(
+            stateBefore = stateBefore.mapModels(mapper),
+            stateAfter = stateAfter.mapModels(mapper),
+            result = result.mapModelIfExists(mapper),
+            instrumentation = instrumentation.map { it.mapModels(mapper) },
+        )
 }
 
 /**
@@ -167,7 +233,7 @@ class UtSymbolicExecution(
     stateBefore: EnvironmentModels,
     stateAfter: EnvironmentModels,
     result: UtExecutionResult,
-    override val instrumentation: List<UtInstrumentation>,
+    instrumentation: List<UtInstrumentation>,
     val path: MutableList<Step>,
     val fullPath: List<Step>,
     coverage: Coverage? = null,
@@ -175,7 +241,16 @@ class UtSymbolicExecution(
     testMethodName: String? = null,
     displayName: String? = null,
     /** Convenient view of the full symbolic path */ val symbolicSteps: List<SymbolicStep> = listOf(),
-) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName), UtExecutionWithInstrumentation {
+) : UtExecutionWithInstrumentation(
+    stateBefore,
+    stateAfter,
+    result,
+    coverage,
+    summary,
+    testMethodName,
+    displayName,
+    instrumentation
+) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
      * It means that it is not possible for a field to be present at 'before' and to be absent at 'after'.
@@ -193,7 +268,8 @@ class UtSymbolicExecution(
         coverage: Coverage?,
         summary: List<DocStatement>?,
         testMethodName: String?,
-        displayName: String?
+        displayName: String?,
+        instrumentation: List<UtInstrumentation>,
     ): UtExecution = UtSymbolicExecution(
         stateBefore = stateBefore,
         stateAfter = stateAfter,
@@ -1351,24 +1427,38 @@ open class ConstructorId(
 
 }
 
-class BuiltinMethodId(
-    classId: ClassId,
-    name: String,
-    returnType: ClassId,
-    parameters: List<ClassId>,
-    bypassesSandbox: Boolean = false,
-    // by default we assume that the builtin method is non-static and public
-    isStatic: Boolean = false,
-    isPublic: Boolean = true,
-    isProtected: Boolean = false,
-    isPrivate: Boolean = false
+data class BuiltinMethodId(
+    override val classId: ClassId,
+    override val name: String,
+    override val returnType: ClassId,
+    override val parameters: List<ClassId>,
+    override val bypassesSandbox: Boolean,
+    override val modifiers: Int,
 ) : MethodId(classId, name, returnType, parameters, bypassesSandbox) {
-    override val modifiers: Int = ModifierFactory {
-        static = isStatic
-        public = isPublic
-        private = isPrivate
-        protected = isProtected
-    }
+    constructor(
+        classId: ClassId,
+        name: String,
+        returnType: ClassId,
+        parameters: List<ClassId>,
+        bypassesSandbox: Boolean = false,
+        // by default we assume that the builtin method is non-static and public
+        isStatic: Boolean = false,
+        isPublic: Boolean = true,
+        isProtected: Boolean = false,
+        isPrivate: Boolean = false
+    ) : this(
+        classId = classId,
+        name = name,
+        returnType = returnType,
+        parameters = parameters,
+        bypassesSandbox = bypassesSandbox,
+        modifiers = ModifierFactory {
+            static = isStatic
+            public = isPublic
+            private = isPrivate
+            protected = isProtected
+        }
+    )
 }
 
 class BuiltinConstructorId(

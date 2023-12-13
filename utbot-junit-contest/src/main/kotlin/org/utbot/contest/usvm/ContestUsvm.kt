@@ -28,9 +28,6 @@ import org.utbot.common.info
 import org.utbot.common.measureTime
 import org.utbot.contest.*
 import org.utbot.contest.junitVersion
-import org.utbot.contest.usvm.jc.JcContainer
-import org.utbot.contest.usvm.jc.JcContainer.Companion.CONTEST_TEST_EXECUTION_TIMEOUT
-import org.utbot.contest.usvm.jc.JcTestExecutor
 import org.utbot.contest.usvm.log.ErrorCountingLoggerAppender
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
@@ -52,6 +49,9 @@ import org.utbot.summary.usvm.summarizeAll
 import org.utbot.usvm.converter.JcToUtExecutionConverter
 import org.utbot.usvm.converter.SimpleInstructionIdProvider
 import org.utbot.usvm.converter.toExecutableId
+import org.utbot.usvm.jc.JcContainer
+import org.utbot.usvm.jc.JcContainer.Companion.TEST_EXECUTION_TIMEOUT
+import org.utbot.usvm.jc.JcTestExecutor
 import java.io.File
 import java.net.URLClassLoader
 import kotlin.time.Duration.Companion.milliseconds
@@ -165,7 +165,7 @@ fun runUsvmGeneration(
             options = UMachineOptions(
                 // TODO usvm-sbft: if we have less than CONTEST_TEST_EXECUTION_TIMEOUT time left, we should try execute
                 //  with smaller timeout, but instrumentation currently doesn't allow to change timeout for individual runs
-                timeout = generationTimeoutMillisWithoutCodegen.milliseconds - alreadySpentBudgetMillis.milliseconds - CONTEST_TEST_EXECUTION_TIMEOUT,
+                timeout = generationTimeoutMillisWithoutCodegen.milliseconds - alreadySpentBudgetMillis.milliseconds - TEST_EXECUTION_TIMEOUT,
                 pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
                 pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
                 solverType = SolverType.Z3, // TODO: usvm-ksmt: Yices doesn't work on old linux

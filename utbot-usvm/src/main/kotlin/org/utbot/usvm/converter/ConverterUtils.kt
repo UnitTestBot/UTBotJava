@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 import org.jacodb.analysis.library.analyzers.thisInstance
 import org.jacodb.api.JcArrayType

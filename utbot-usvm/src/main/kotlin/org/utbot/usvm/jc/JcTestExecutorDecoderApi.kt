@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.jc
+package org.utbot.usvm.jc
 
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField

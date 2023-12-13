@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.jc
+package org.utbot.usvm.jc
 
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
@@ -62,7 +62,7 @@ class JcContainer private constructor(
             cp,
             javaHome.absolutePath,
             persistenceLocation,
-            CONTEST_TEST_EXECUTION_TIMEOUT
+            TEST_EXECUTION_TIMEOUT
         )
         runBlocking {
             db.awaitBackgroundJobs()
@@ -76,7 +76,7 @@ class JcContainer private constructor(
     }
 
     companion object : AutoCloseable {
-        val CONTEST_TEST_EXECUTION_TIMEOUT = 1.seconds
+        val TEST_EXECUTION_TIMEOUT = 1.seconds
 
         private val cache = HashMap<List<File>, JcContainer>()
 

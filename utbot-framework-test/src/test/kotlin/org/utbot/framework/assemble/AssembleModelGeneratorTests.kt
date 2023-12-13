@@ -37,7 +37,6 @@ import org.utbot.examples.assemble.DefaultFieldWithDirectAccessor
 import org.utbot.examples.assemble.DefaultFieldWithSetter
 import org.utbot.examples.assemble.DefaultPackagePrivateField
 import org.utbot.examples.assemble.StaticField
-import org.utbot.framework.codegen.tree.arrayTypeOf
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -50,6 +49,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.framework.plugin.api.util.arrayTypeOf
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId

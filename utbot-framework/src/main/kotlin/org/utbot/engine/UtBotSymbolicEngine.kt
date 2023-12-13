@@ -35,6 +35,7 @@ import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.ConcreteExecutionContext.FuzzingContextParams
+import org.utbot.framework.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*

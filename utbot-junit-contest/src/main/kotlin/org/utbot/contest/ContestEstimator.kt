@@ -26,7 +26,6 @@ import org.utbot.contest.Paths.evosuiteReportFile
 import org.utbot.contest.Paths.jarsDir
 import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
-import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
@@ -38,6 +37,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.predictors.MLPredictorFactoryImpl
+import org.utbot.usvm.jc.JcContainer
 import kotlin.math.min
 
 private val logger = KotlinLogging.logger {}
@@ -311,7 +311,6 @@ interface Tool {
             project.name,
             cut,
             timeLimit,
-            fuzzingRatio,
             project.sootClasspathString,
             runFromEstimator = true,
             expectedExceptions = expectedExceptions,
@@ -428,7 +427,7 @@ fun main(args: Array<String>) {
     // very special case when you run your project directly from IntellijIDEA omitting command line arguments
     if (args.isEmpty()) {
         processedClassesThreshold = 9999 //change to change number of classes to run
-        val timeLimit = 20 // increase if you want to debug something
+        val timeLimit = 30 // increase if you want to debug something
         val fuzzingRatio = 0.1 // sets fuzzing ratio to total test generation
 
         // Uncomment it for debug purposes:
@@ -448,8 +447,8 @@ fun main(args: Array<String>) {
 //        tools = listOf(Tool.EvoSuite)
 
         // config for SBST 2022
-        methodFilter = null
-        projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
+        methodFilter = "com.alibaba.fastjson.asm.ByteVector.*"
+        projectFilter = listOf("fastjson-1.2.50")
         tools = listOf(mainTool)
 
         estimatorArgs = arrayOf(

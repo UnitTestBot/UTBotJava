@@ -8,7 +8,6 @@ import org.utbot.framework.codegen.domain.builtin.setArrayElement
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgAllocateInitializedArray
 import org.utbot.framework.codegen.domain.models.CgArrayInitializer
-import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgValue
@@ -21,6 +20,7 @@ import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.CgClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -31,7 +31,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.arrayLikeName
+import org.utbot.framework.plugin.api.util.arrayTypeOf
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.byteClassId
@@ -215,7 +215,7 @@ private val simpleNamesNotRequiringImports by lazy { findSimpleNamesNotRequiring
 
 /**
  * Some class names do not require imports, but may lead to simple names clash.
- * For example, custom class [Compiler] may clash with [java.lang.Compiler].
+ * For example, custom class `Compiler` may clash with [java.lang.Compiler].
  */
 private fun findSimpleNamesNotRequiringImports(): Set<String> =
     Scene.v().classes
@@ -331,31 +331,6 @@ internal fun newArrayOf(elementType: ClassId, values: List<CgExpression>): CgAll
 
 internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: List<CgExpression>): CgArrayInitializer =
     CgArrayInitializer(arrayType, elementType, values)
-
-
-/**
- * For a given [elementType] returns a [ClassId] of an array with elements of this type.
- * For example, for an id of `int` the result will be an id of `int[]`.
- *
- * @param elementType the element type of the returned array class id
- * @param isNullable a flag whether returned array is nullable or not
- */
-fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
-    val arrayIdName = "[${elementType.arrayLikeName}"
-    return when (elementType) {
-        is BuiltinClassId -> BuiltinClassId(
-            canonicalName = "${elementType.canonicalName}[]",
-            simpleName = "${elementType.simpleName}[]",
-            elementClassId = elementType,
-            isNullable = isNullable
-        )
-        else -> ClassId(
-            name = arrayIdName,
-            elementClassId = elementType,
-            isNullable = isNullable
-        )
-    }
-}
 
 internal fun Class<*>.overridesEquals(): Boolean =
     when {
@@ -475,16 +450,6 @@ internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !this.i
  * Otherwise, return a [UtArrayModel.constModel] of this array model.
  */
 internal operator fun UtArrayModel.get(index: Int): UtModel = stores[index] ?: constModel
-
-
-internal fun ClassId.utilMethodId(
-    name: String,
-    returnType: ClassId,
-    vararg arguments: ClassId,
-    // usually util methods are static, so this argument is true by default
-    isStatic: Boolean = true
-): MethodId =
-    BuiltinMethodId(this, name, returnType, arguments.toList(), isStatic = isStatic)
 
 fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosingClasses)
 

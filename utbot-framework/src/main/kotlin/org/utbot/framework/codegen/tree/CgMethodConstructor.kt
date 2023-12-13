@@ -5,7 +5,6 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -21,7 +20,6 @@ import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.AnnotationTarget
 import org.utbot.framework.codegen.domain.models.CgAllocateArray
 import org.utbot.framework.codegen.domain.models.CgArrayElementAccess
-import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.domain.models.CgDeclaration
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgEqualTo
@@ -46,7 +44,13 @@ import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodType
-import org.utbot.framework.codegen.domain.models.CgTestMethodType.*
+import org.utbot.framework.codegen.domain.models.CgTestMethodType.ARTIFICIAL
+import org.utbot.framework.codegen.domain.models.CgTestMethodType.CRASH
+import org.utbot.framework.codegen.domain.models.CgTestMethodType.FAILING
+import org.utbot.framework.codegen.domain.models.CgTestMethodType.PARAMETRIZED
+import org.utbot.framework.codegen.domain.models.CgTestMethodType.PASSED_EXCEPTION
+import org.utbot.framework.codegen.domain.models.CgTestMethodType.SUCCESSFUL
+import org.utbot.framework.codegen.domain.models.CgTestMethodType.TIMEOUT
 import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgValue
@@ -76,8 +80,10 @@ import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
+import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.CgClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
@@ -112,7 +118,6 @@ import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
-import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTaintAnalysisFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
@@ -161,7 +166,6 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
-import org.utbot.fuzzer.UtFuzzedExecution
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
 import java.security.AccessControlException

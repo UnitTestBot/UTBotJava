@@ -1,11 +1,11 @@
 package org.utbot.fuzzing.providers
 
+import org.utbot.framework.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider

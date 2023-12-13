@@ -2,6 +2,7 @@ package org.utbot.fuzzing.spring.unit
 
 import com.google.common.reflect.TypeResolver
 import mu.KotlinLogging
+import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -10,7 +11,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider

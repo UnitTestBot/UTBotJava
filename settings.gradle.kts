@@ -35,6 +35,8 @@ include("utbot-junit-contest")
 include("utbot-analytics")
 include("utbot-analytics-torch")
 
+include("utbot-usvm")
+
 include("utbot-cli")
 
 include("utbot-api")

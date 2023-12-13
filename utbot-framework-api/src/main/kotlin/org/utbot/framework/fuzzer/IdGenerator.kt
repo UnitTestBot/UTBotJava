@@ -1,6 +1,5 @@
-package org.utbot.fuzzer
+package org.utbot.framework.fuzzer
 
-import org.utbot.framework.plugin.api.UtModel
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -80,5 +79,3 @@ class ReferencePreservingIntIdGenerator(lowerBound: Int = DEFAULT_LOWER_BOUND) :
         const val DEFAULT_LOWER_BOUND: Int = 1500_000_000
     }
 }
-
-fun UtModel.fuzzed(block: FuzzedValue.() -> Unit = {}): FuzzedValue = FuzzedValue(this).apply(block)

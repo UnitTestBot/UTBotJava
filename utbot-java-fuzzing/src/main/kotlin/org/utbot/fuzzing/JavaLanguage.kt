@@ -1,6 +1,7 @@
 package org.utbot.fuzzing
 
 import mu.KotlinLogging
+import org.utbot.framework.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.Instruction

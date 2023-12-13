@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 fun interface InstructionIdProvider {
     fun provideInstructionId(methodSignature: String, instIndex: Int): Long

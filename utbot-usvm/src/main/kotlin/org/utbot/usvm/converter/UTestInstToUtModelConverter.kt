@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 import mu.KotlinLogging
 import org.jacodb.api.JcClasspath
@@ -34,7 +34,7 @@ import org.usvm.instrumentation.testcase.api.UTestSetStaticFieldStatement
 import org.usvm.instrumentation.testcase.api.UTestShortExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.testcase.api.UTestStringExpression
-import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
+import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
@@ -53,7 +53,7 @@ import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.fuzzer.IdGenerator
+import org.utbot.framework.utils.UtilMethodProvider
 
 private val logger = KotlinLogging.logger {}
 

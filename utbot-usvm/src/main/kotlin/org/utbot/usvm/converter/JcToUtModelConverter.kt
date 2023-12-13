@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.testcase.api.UTestExpression
@@ -13,6 +13,7 @@ import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestRefDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants.nameForExistingButNullString
+import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -31,7 +32,6 @@ import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.fuzzer.IdGenerator
 
 enum class EnvironmentStateKind {
     INITIAL, FINAL
@@ -48,7 +48,6 @@ data class UtCyclicReferenceModel(
 
 class JcToUtModelConverter(
     private val idGenerator: IdGenerator<Int>,
-    private val jcClasspath: JcClasspath,
     private val instToUtModelConverter: UTestInstToUtModelConverter,
 ) {
     private val descriptorToModelCache =

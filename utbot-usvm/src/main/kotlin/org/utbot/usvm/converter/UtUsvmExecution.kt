@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.converter
+package org.utbot.usvm.converter
 
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.DocStatement

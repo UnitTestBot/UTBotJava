@@ -1,5 +1,6 @@
 package org.utbot.fuzzing.spring.unit
 
+import org.utbot.framework.fuzzer.IdGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -9,7 +10,6 @@ import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.fuzzed
 import org.utbot.fuzzing.FuzzedDescription
 import org.utbot.fuzzing.JavaValueProvider

@@ -1,4 +1,4 @@
-package org.utbot.contest.usvm.jc
+package org.utbot.usvm.jc
 
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
@@ -9,8 +9,8 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.constructors
-import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
 import org.jacodb.approximation.JcEnrichedVirtualField
 import org.usvm.UConcreteHeapRef
@@ -34,8 +34,8 @@ import org.usvm.instrumentation.testcase.api.UTestMockObject
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.machine.JcContext
-import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.JcMocker
+import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue

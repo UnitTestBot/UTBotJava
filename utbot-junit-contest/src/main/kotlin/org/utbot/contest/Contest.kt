@@ -48,7 +48,6 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.contest.usvm.createJcContainer
-import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.runUsvmGeneration
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.*
@@ -60,6 +59,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isSynthetic
 import org.utbot.framework.util.jimpleBody
 import org.utbot.summary.summarizeAll
+import org.utbot.usvm.jc.JcContainer
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -168,7 +168,6 @@ fun main(args: Array<String>) {
                     project = "Contest",
                     cut,
                     timeBudgetSec,
-                    fuzzingRatio = 0.1,
                     classpathString,
                     runFromEstimator = false,
                     expectedExceptions = ExpectedExceptionsForClass(),

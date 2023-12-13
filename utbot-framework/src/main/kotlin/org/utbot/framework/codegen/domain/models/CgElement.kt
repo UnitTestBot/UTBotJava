@@ -9,6 +9,7 @@ import org.utbot.framework.codegen.renderer.auxiliaryClassTextById
 import org.utbot.framework.codegen.renderer.utilMethodTextById
 import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.CgClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DocClassLinkStmt
@@ -1035,16 +1036,3 @@ data class CgExceptionHandler(
     val exception: CgVariable,
     val statements: List<CgStatement>
 )
-
-class CgClassId(
-    name: String,
-    elementClassId: ClassId? = null,
-    override val typeParameters: TypeParameters = TypeParameters(),
-    override val isNullable: Boolean = true,
-) : ClassId(name, elementClassId) {
-    constructor(
-        classId: ClassId,
-        typeParameters: TypeParameters = TypeParameters(),
-        isNullable: Boolean = true,
-    ) : this(classId.name, classId.elementClassId, typeParameters, isNullable)
-}

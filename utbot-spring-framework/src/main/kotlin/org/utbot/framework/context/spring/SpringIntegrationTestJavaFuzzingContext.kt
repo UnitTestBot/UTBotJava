@@ -3,6 +3,7 @@ package org.utbot.framework.context.spring
 import mu.KotlinLogging
 import org.utbot.common.tryLoadClass
 import org.utbot.framework.context.JavaFuzzingContext
+import org.utbot.framework.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -17,7 +18,6 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.allControllerParamet
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.JavaValueProvider
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.providers.AnyDepthNullValueProvider

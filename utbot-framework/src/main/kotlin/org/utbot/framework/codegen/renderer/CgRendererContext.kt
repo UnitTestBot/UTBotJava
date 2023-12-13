@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.renderer
 
-import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.selectUtilClassId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
@@ -10,6 +9,7 @@ import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.utils.UtilMethodProvider
 
 /**
  * Information from [CgContext] that is relevant for the renderer.

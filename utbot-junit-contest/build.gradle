@@ -4,16 +4,8 @@ plugins {
 apply plugin: 'jacoco'
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
-    maven {
-        url = uri('https://maven.pkg.github.com/UnitTestBot/usvm')
-        credentials {
-            username = project.githubActor // System.getenv("GITHUB_ACTOR")
-            password = project.githubToken // System.getenv("GITHUB_TOKEN")
-        }
-    }
 }
 
 configurations {
@@ -27,6 +19,9 @@ configurations {
 
 def approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
 def approximationsVersion = "bfce4eedde"
+
+def usvmRepo = "com.github.UnitTestBot.usvm"
+def usvmVersion = "72924ad"
 
 compileJava {
     options.compilerArgs << '-XDignore.symbol.file'
@@ -177,11 +172,11 @@ dependencies {
 
     implementation "org.burningwave:core:12.62.7"
 
-    implementation group: "org.usvm", name: "usvm-core", version: usvmVersion
-    implementation group: "org.usvm", name: "usvm-jvm", version: usvmVersion
-    implementation group: "org.usvm", name: "usvm-jvm-api", version: usvmVersion
-    implementation group: "org.usvm", name: "usvm-jvm-instrumentation", version: usvmVersion
-    implementation group: "org.usvm", name: "usvm-jvm-instrumentation-collectors", version: usvmVersion
+    implementation "$usvmRepo:usvm-core:$usvmVersion"
+    implementation "$usvmRepo:usvm-jvm:$usvmVersion"
+    implementation "$usvmRepo:usvm-jvm-api:$usvmVersion"
+    implementation "$usvmRepo:usvm-jvm-instrumentation:$usvmVersion"
+    implementation "$usvmRepo:usvm-jvm-instrumentation-collectors:$usvmVersion"
 
     implementation group: "org.jacodb", name: "jacodb-core", version: jacoDbVersion
     implementation group: "org.jacodb", name: "jacodb-analysis", version: jacoDbVersion
@@ -198,10 +193,11 @@ dependencies {
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 
     approximations "$approximationsRepo:approximations:$approximationsVersion"
-    usvmApproximationsApi "org.usvm:usvm-jvm-api:$usvmVersion"
-    usvmInstrumentationCollector "org.usvm:usvm-jvm-instrumentation-collectors:$usvmVersion"
-    usvmInstrumentationRunner "org.usvm:usvm-jvm-instrumentation:$usvmVersion"
-    usvmInstrumentationRunner "org.usvm:usvm-jvm-instrumentation-collectors:$usvmVersion"
+
+    usvmApproximationsApi "$usvmRepo:usvm-jvm-api:$usvmVersion"
+    usvmInstrumentationCollector "$usvmRepo:usvm-jvm-instrumentation-collectors:$usvmVersion"
+    usvmInstrumentationRunner "$usvmRepo:usvm-jvm-instrumentation:$usvmVersion"
+    usvmInstrumentationRunner "$usvmRepo:usvm-jvm-instrumentation-collectors:$usvmVersion"
 }
 
 processResources {

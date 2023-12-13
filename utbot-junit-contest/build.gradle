@@ -149,7 +149,7 @@ jacocoTestReport {
 dependencies {
     implementation project(":utbot-framework")
     implementation project(":utbot-analytics")
-
+    implementation project(":utbot-usvm")
 
     implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
         exclude group:'com.google.guava', module:'guava'

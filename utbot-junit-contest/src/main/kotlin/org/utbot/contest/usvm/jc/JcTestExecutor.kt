@@ -42,6 +42,10 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
+import org.utbot.usvm.jc.JcExecution
+import org.utbot.usvm.jc.UTestConcreteExecutionResult
+import org.utbot.usvm.jc.UTestSymbolicExceptionResult
+import org.utbot.usvm.jc.UTestSymbolicSuccessResult
 
 private val logger = KotlinLogging.logger {}
 

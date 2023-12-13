@@ -28,9 +28,6 @@ import org.utbot.common.info
 import org.utbot.common.measureTime
 import org.utbot.contest.*
 import org.utbot.contest.junitVersion
-import org.utbot.contest.usvm.converter.JcToUtExecutionConverter
-import org.utbot.contest.usvm.converter.SimpleInstructionIdProvider
-import org.utbot.contest.usvm.converter.toExecutableId
 import org.utbot.contest.usvm.jc.JcContainer
 import org.utbot.contest.usvm.jc.JcContainer.Companion.CONTEST_TEST_EXECUTION_TIMEOUT
 import org.utbot.contest.usvm.jc.JcTestExecutor
@@ -52,6 +49,9 @@ import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.usvm.summarizeAll
+import org.utbot.usvm.converter.JcToUtExecutionConverter
+import org.utbot.usvm.converter.SimpleInstructionIdProvider
+import org.utbot.usvm.converter.toExecutableId
 import java.io.File
 import java.net.URLClassLoader
 import kotlin.time.Duration.Companion.milliseconds

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -16,6 +17,7 @@ import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
+import org.utbot.engine.UsvmSymbolicEngine
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
@@ -173,9 +175,10 @@ open class TestCaseGenerator(
         methods: List<ExecutableId>,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
-        methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
+        utBotTimeout: Long = utBotGenerationTimeoutInMillis,
         userTaintConfigurationProvider: TaintConfigurationProvider? = null,
-        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
+        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(utBotTimeout),
+        usvmTimeoutMillis: Long = 0,
     ): List<UtMethodTestSet> = ConcreteExecutor.defaultPool.use { _ -> // TODO: think on appropriate way to close instrumented processes
         if (isCanceled()) return@use methods.map { UtMethodTestSet(it) }
 
@@ -189,7 +192,7 @@ open class TestCaseGenerator(
             return@use methods.map { method -> UtMethodTestSet(method, errors = method2errors.getValue(method)) }
 
         val executionStartInMillis = System.currentTimeMillis()
-        val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
+        val executionTimeEstimator = ExecutionTimeEstimator(utBotTimeout, methods.size)
 
         val currentUtContext = utContext
 
@@ -199,6 +202,29 @@ open class TestCaseGenerator(
         val conflictTriggers = ConflictTriggers()
         val forceMockListener = ForceMockListener.create(this, conflictTriggers)
         val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
+
+        suspend fun consumeUtResultFlow(utResultFlow: Flow<Pair<ExecutableId, UtResult>>) =
+            utResultFlow.catch {
+                logger.error(it) { "Error in flow" }
+            }
+                .collect { (executableId, utResult) ->
+                    when (utResult) {
+                        is UtExecution -> {
+                            if (utResult is UtSymbolicExecution &&
+                                (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                            ) {
+                                utResult.containsMocking = true
+                            }
+                            method2executions.getValue(executableId) += utResult
+                        }
+
+                        is UtError -> {
+                            method2errors.getValue(executableId).merge(utResult.description, 1, Int::plus)
+                            logger.error(utResult.error) { "UtError occurred" }
+                        }
+                    }
+                }
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
@@ -223,27 +249,7 @@ open class TestCaseGenerator(
                             engineActions.map { engine.apply(it) }
                             engineActions.clear()
 
-                            generate(engine)
-                                .catch {
-                                    logger.error(it) { "Error in flow" }
-                                }
-                                .collect {
-                                    when (it) {
-                                        is UtExecution -> {
-                                            if (it is UtSymbolicExecution &&
-                                                (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
-                                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
-                                            ) {
-                                                it.containsMocking = true
-                                            }
-                                            method2executions.getValue(method) += it
-                                        }
-                                        is UtError -> {
-                                            method2errors.getValue(method).merge(it.description, 1, Int::plus)
-                                            logger.error(it.error) { "UtError occurred" }
-                                        }
-                                    }
-                                }
+                            consumeUtResultFlow(generate(engine).map { utResult -> method to utResult })
                         } catch (e: Exception) {
                             logger.error(e) {"Error in engine"}
                             throw e
@@ -284,6 +290,8 @@ open class TestCaseGenerator(
                     }
                     logger.debug("test generator global scope lifecycle check ended")
                 }
+
+                consumeUtResultFlow(UsvmSymbolicEngine.runUsvmGeneration(methods, classpathForEngine, usvmTimeoutMillis))
             }
         }
 

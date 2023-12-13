@@ -13,6 +13,7 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.SymbolicEngineSource
+import org.utbot.framework.codegen.domain.SymbolicEngineSource.*
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.generator.AbstractCodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
@@ -114,10 +115,17 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)
         logger.debug()
             .measureTime({ "starting generation for ${methods.size} methods, starting with ${methods.first()}" }) {
+                val symbolicEngineSource = SymbolicEngineSource.valueOf(params.symbolicEngineType)
+                val utBotTimeout = when {
+                    !params.isSymbolicEngineEnabled -> params.timeout
+                    symbolicEngineSource == UnitTestBot -> params.timeout
+                    params.isFuzzingEnabled -> (params.fuzzingValue * params.timeout).toLong()
+                    else -> 0L
+                }
+
                 val generateFlow = testFlow {
-                    generationTimeout = params.generationTimeout
-                    isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
-                    symbolicEngineType = SymbolicEngineSource.valueOf(params.symbolicEngineType)
+                    generationTimeout = utBotTimeout
+                    isUtBotSymbolicEngineEnabled = params.isSymbolicEngineEnabled && symbolicEngineSource == UnitTestBot
                     isFuzzingEnabled = params.isFuzzingEnabled
                     fuzzingValue = params.fuzzingValue
                 }
@@ -130,9 +138,10 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                     methods,
                     MockStrategyApi.valueOf(params.mockStrategy),
                     kryoHelper.readObject(params.chosenClassesToMockAlways),
-                    params.timeout,
+                    utBotTimeout,
                     userTaintConfigurationProvider,
                     generate = generateFlow,
+                    usvmTimeoutMillis = params.generationTimeout - utBotTimeout,
                 )
                     .summarizeAll(Paths.get(params.searchDirectory), null)
                     .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }

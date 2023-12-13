@@ -1427,12 +1427,12 @@ open class ConstructorId(
 
 }
 
-data class BuiltinMethodId(
-    override val classId: ClassId,
-    override val name: String,
-    override val returnType: ClassId,
-    override val parameters: List<ClassId>,
-    override val bypassesSandbox: Boolean,
+class BuiltinMethodId(
+    classId: ClassId,
+    name: String,
+    returnType: ClassId,
+    parameters: List<ClassId>,
+    bypassesSandbox: Boolean,
     override val modifiers: Int,
 ) : MethodId(classId, name, returnType, parameters, bypassesSandbox) {
     constructor(
@@ -1441,7 +1441,7 @@ data class BuiltinMethodId(
         returnType: ClassId,
         parameters: List<ClassId>,
         bypassesSandbox: Boolean = false,
-        // by default we assume that the builtin method is non-static and public
+        // by default, we assume that the builtin method is non-static and public
         isStatic: Boolean = false,
         isPublic: Boolean = true,
         isProtected: Boolean = false,
@@ -1458,6 +1458,22 @@ data class BuiltinMethodId(
             private = isPrivate
             protected = isProtected
         }
+    )
+
+    fun copy(
+        classId: ClassId = this.classId,
+        name: String = this.name,
+        returnType: ClassId = this.returnType,
+        parameters: List<ClassId> = this.parameters,
+        bypassesSandbox: Boolean = this.bypassesSandbox,
+        modifiers: Int = this.modifiers,
+    ) = BuiltinMethodId(
+        classId = classId,
+        name = name,
+        returnType = returnType,
+        parameters = parameters,
+        bypassesSandbox = bypassesSandbox,
+        modifiers = modifiers,
     )
 }
 

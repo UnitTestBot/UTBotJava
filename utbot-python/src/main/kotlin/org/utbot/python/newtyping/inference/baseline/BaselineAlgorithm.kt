@@ -2,12 +2,24 @@ package org.utbot.python.newtyping.inference.baseline
 
 import mu.KotlinLogging
 import org.utbot.python.PythonMethod
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.ast.visitor.hints.*
+import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utbot.python.newtyping.ast.visitor.hints.EdgeSource
+import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorNode
+import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorResult
+import org.utbot.python.newtyping.ast.visitor.hints.HintEdgeWithBound
+import org.utbot.python.newtyping.createPythonUnionType
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.inference.*
+import org.utbot.python.newtyping.inference.InferredTypeFeedback
+import org.utbot.python.newtyping.inference.InvalidTypeFeedback
+import org.utbot.python.newtyping.inference.SuccessFeedback
+import org.utbot.python.newtyping.inference.TypeInferenceAlgorithm
+import org.utbot.python.newtyping.inference.addEdge
+import org.utbot.python.newtyping.inference.collectBoundsFromComponent
+import org.utbot.python.newtyping.inference.visitNodesByReverseEdges
 import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
+import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.newtyping.typesAreEqual
 import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
@@ -23,25 +35,35 @@ private val EDGES_TO_LINK = listOf(
 
 private val logger = KotlinLogging.logger {}
 
+data class MethodAndVars(
+    val method: PythonMethod,
+    val additionalVars: String,
+)
+
 class BaselineAlgorithm(
     private val storage: PythonTypeHintsStorage,
-    private val hintCollectorResult: HintCollectorResult,
+    hintCollectorResult: HintCollectorResult,
     private val pythonPath: String,
-    private val pythonMethodCopy: PythonMethod,
+    private val pythonMethod: MethodAndVars,
+    methodModifications: List<MethodAndVars> = emptyList(),
     private val directoriesForSysPath: Set<String>,
     private val moduleToImport: String,
     private val namesInModule: Collection<String>,
     private val initialErrorNumber: Int,
     private val configFile: File,
-    private val additionalVars: String,
     private val randomTypeFrequency: Int = 0,
     private val dMypyTimeout: Long?
 ) : TypeInferenceAlgorithm() {
     private val random = Random(0)
 
+    private val initialPythonMethod: PythonMethod = pythonMethod.method
+
     private val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
-    private val initialState = getInitialState(hintCollectorResult, generalRating)
-    private val states: MutableList<BaselineAlgorithmState> = mutableListOf(initialState)
+    private val initialStates = methodModifications.ifEmpty { listOf(pythonMethod) } .map {
+        getInitialState(hintCollectorResult, generalRating, it.method.argumentsNames, it.method.methodType, it.additionalVars)
+    }
+    private val initialState = initialStates.first()
+    private val states: MutableList<BaselineAlgorithmState> = initialStates.toMutableList()
     private val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
     private var iterationCounter = 0
     private var randomTypeCounter = 0
@@ -49,7 +71,7 @@ class BaselineAlgorithm(
     private val simpleTypes = simplestTypes(storage)
     private val mixtureType = createPythonUnionType(simpleTypes)
 
-    private val openedStates: MutableMap<UtType, Pair<BaselineAlgorithmState, BaselineAlgorithmState>> = mutableMapOf()
+    private val expandedStates: MutableMap<UtType, Pair<BaselineAlgorithmState, BaselineAlgorithmState>> = mutableMapOf()
     private val statistic: MutableMap<UtType, Int> = mutableMapOf()
 
     private val checkedSignatures: MutableSet<UtType> = mutableSetOf()
@@ -60,7 +82,7 @@ class BaselineAlgorithm(
         val newState = expandState(state, storage, state.anyNodes.map { mixtureType })
         if (newState != null) {
             logger.info("Random type: ${newState.signature.pythonTypeRepresentation()}")
-            openedStates[newState.signature] = newState to state
+            expandedStates[newState.signature] = newState to state
             return newState.signature
         }
         return null
@@ -95,40 +117,53 @@ class BaselineAlgorithm(
         val newState = expandState(state, storage)
         if (newState != null) {
             logger.info("Checking new state ${newState.signature.pythonTypeRepresentation()}")
-            if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
+            if (checkSignature(newState.signature as FunctionType, newState.additionalVars, fileForMypyRuns, configFile)) {
                 logger.debug("Found new state!")
-                openedStates[newState.signature] = newState to state
+                expandedStates[newState.signature] = newState to state
                 return newState.signature
             }
         } else if (state.anyNodes.isEmpty()) {
             if (state.signature in checkedSignatures) {
+                logger.debug("Good type ${state.signature.pythonTypeRepresentation()}")
                 return state.signature
             }
-            logger.info("Checking ${state.signature.pythonTypeRepresentation()}")
-            if (checkSignature(state.signature as FunctionType, fileForMypyRuns, configFile)) {
+            logger.debug("Checking ${state.signature.pythonTypeRepresentation()}")
+            if (checkSignature(state.signature as FunctionType, state.additionalVars, fileForMypyRuns, configFile)) {
+                logger.debug("${state.signature.pythonTypeRepresentation()} is good")
                 checkedSignatures.add(state.signature)
                 return state.signature
             } else {
                 states.remove(state)
             }
         } else {
+            logger.debug("Remove ${state.signature.pythonTypeRepresentation()} because of any nodes")
             states.remove(state)
         }
         return expandState()
     }
 
     fun feedbackState(signature: UtType, feedback: InferredTypeFeedback) {
-        val stateInfo = openedStates[signature]
+        val stateInfo = expandedStates[signature]
+        val lauded = statistic[signature] != 0
         if (stateInfo != null) {
             val (newState, parent) = stateInfo
-            when (feedback) {
-                SuccessFeedback -> {
+            when {
+                feedback is SuccessFeedback || lauded -> {
                     states.add(newState)
                     parent.children += 1
                 }
-                InvalidTypeFeedback -> {}
+
+                feedback is InvalidTypeFeedback -> {
+                    states.remove(newState)
+                }
             }
-            openedStates.remove(signature)
+            expandedStates.remove(signature)
+        } else if (feedback is InvalidTypeFeedback && !lauded) {
+            initialStates.forEach {
+                if (typesAreEqual(signature, it.signature)) {
+                    states.remove(it)
+                }
+            }
         }
     }
 
@@ -161,7 +196,7 @@ class BaselineAlgorithm(
                         annotationHandler(initialState.signature)
                     }
                     logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
-                    if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
+                    if (checkSignature(newState.signature as FunctionType, newState.additionalVars, fileForMypyRuns, configFile)) {
                         logger.debug("Found new state!")
                         when (annotationHandler(newState.signature)) {
                             SuccessFeedback -> {
@@ -179,13 +214,10 @@ class BaselineAlgorithm(
         return iterationCounter
     }
 
-    private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {
-        pythonMethodCopy.definition = PythonFunctionDefinition(
-            pythonMethodCopy.definition.meta,
-            signature
-        )
+    private fun checkSignature(signature: FunctionType, newAdditionalVars: String, fileForMypyRuns: File, configFile: File): Boolean {
+        val methodCopy = initialPythonMethod.makeCopyWithNewType(signature)
         return checkSuggestedSignatureWithDMypy(
-            pythonMethodCopy,
+            methodCopy,
             directoriesForSysPath,
             moduleToImport,
             namesInModule,
@@ -193,7 +225,7 @@ class BaselineAlgorithm(
             pythonPath,
             configFile,
             initialErrorNumber,
-            additionalVars,
+            newAdditionalVars,
             timeout = dMypyTimeout
         )
     }
@@ -205,10 +237,12 @@ class BaselineAlgorithm(
 
     private fun getInitialState(
         hintCollectorResult: HintCollectorResult,
-        generalRating: List<UtType>
+        generalRating: List<UtType>,
+        paramNames: List<String>,
+        methodType: FunctionType,
+        additionalVars: String = "",
     ): BaselineAlgorithmState {
-        val paramNames = pythonMethodCopy.arguments.map { it.name }
-        val root = PartialTypeNode(hintCollectorResult.initialSignature, true)
+        val root = PartialTypeNode(methodType, true)
         val allNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf(root)
         val argumentRootNodes = paramNames.map { hintCollectorResult.parameterToNode[it]!! }
         argumentRootNodes.forEachIndexed { index, node ->
@@ -224,7 +258,7 @@ class BaselineAlgorithm(
             )
             addEdge(edge)
         }
-        return BaselineAlgorithmState(allNodes, generalRating, storage)
+        return BaselineAlgorithmState(allNodes, generalRating, storage, additionalVars)
     }
 
     fun laudType(type: FunctionType) {

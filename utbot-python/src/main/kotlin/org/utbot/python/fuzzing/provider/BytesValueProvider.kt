@@ -2,26 +2,25 @@ package org.utbot.python.fuzzing.provider
 
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonBytesClassId
+import org.utbot.python.fuzzing.FuzzedUtType
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.fuzzing.PythonValueProvider
 
-object BytesValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
-    override fun accept(type: UtType): Boolean {
+object BytesValueProvider : PythonValueProvider {
+    override fun accept(type: FuzzedUtType): Boolean {
         return type.pythonTypeName() == pythonBytesClassId.canonicalName
     }
 
-    override fun generate(description: PythonMethodDescription, type: UtType) = sequence {
+    override fun generate(description: PythonMethodDescription, type: FuzzedUtType) = sequence {
         yield(Seed.Recursive(
             construct = Routine.Create(
                 listOf(
                     description.pythonTypeStorage.pythonInt,
-                )
+                ).toFuzzed()
             ) { v ->
                 val value = v.first().tree as PythonTree.PrimitiveNode
                 PythonFuzzedValue(

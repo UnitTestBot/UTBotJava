@@ -2,8 +2,8 @@ package org.utbot.python.framework.codegen
 
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
+import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.services.language.AbstractCgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
@@ -14,7 +14,6 @@ import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgMethodC
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgStatementConstructorImpl
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgVariableConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
-import org.utbot.python.framework.codegen.model.services.access.PythonCgFieldStateManager
 
 object PythonCgLanguageAssistant : AbstractCgLanguageAssistant() {
     override val extension: String
@@ -46,7 +45,6 @@ object PythonCgLanguageAssistant : AbstractCgLanguageAssistant() {
     override fun getStatementConstructorBy(context: CgContext) = PythonCgStatementConstructorImpl(context)
     override fun getVariableConstructorBy(context: CgContext) = PythonCgVariableConstructor(context)
     override fun getMethodConstructorBy(context: CgContext) = PythonCgMethodConstructor(context)
-    override fun getCgFieldStateManager(context: CgContext) = PythonCgFieldStateManager(context)
     override fun getLanguageTestFrameworkManager() = PythonTestFrameworkManager()
     override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer =
         CgPythonRenderer(context, printer)

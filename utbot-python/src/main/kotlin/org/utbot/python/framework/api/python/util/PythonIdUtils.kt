@@ -1,7 +1,7 @@
 package org.utbot.python.framework.api.python.util
 
-import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonClassId
 
 // none annotation can be used in code only since Python 3.10
 val pythonNoneClassId = PythonClassId("types.NoneType")
@@ -20,4 +20,6 @@ val pythonSetClassId = PythonClassId("builtins.set")
 val pythonBytearrayClassId = PythonClassId("builtins.bytearray")
 val pythonBytesClassId = PythonClassId("builtins.bytes")
 val pythonExceptionClassId = PythonClassId("builtins.Exception")
+val pythonIteratorClassId = PythonClassId("typing.Iterator")
 val pythonRePatternClassId = PythonClassId("re.Pattern")
+val pythonStopIterationClassId = PythonClassId("builtins.StopIteration")

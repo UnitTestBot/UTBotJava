@@ -13,7 +13,6 @@ import org.utbot.intellij.plugin.python.table.UtPyClassItem
 import org.utbot.intellij.plugin.python.table.UtPyFunctionItem
 import org.utbot.intellij.plugin.python.table.UtPyTableItem
 import org.utbot.python.utils.RequirementsUtils
-import kotlin.random.Random
 
 inline fun <reified T : PsiElement> getContainingElement(
     element: PsiElement,
@@ -37,13 +36,6 @@ fun getContentRoot(project: Project, file: VirtualFile): VirtualFile {
         .getContentRootForFile(file) ?: error("Source file lies outside of a module")
 }
 
-fun generateRandomString(length: Int): String {
-    val charPool = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-    return (0..length)
-        .map { Random.nextInt(0, charPool.size).let { charPool[it] } }
-        .joinToString("")
-}
-
 fun VirtualFile.isProjectSubmodule(ancestor: VirtualFile?): Boolean {
     return VfsUtil.isUnder(this, setOf(ancestor).toMutableSet())
 }
@@ -52,10 +44,12 @@ fun checkModuleIsInstalled(pythonPath: String, moduleName: String): Boolean {
     return RequirementsUtils.requirementsAreInstalled(pythonPath, listOf(moduleName))
 }
 
-fun fineFunction(function: PyFunction): Boolean =
-    !listOf("__init__", "__new__").contains(function.name) &&
-            function.decoratorList?.decorators?.isNotEmpty() != true  // TODO: add processing of simple decorators
-            //(function.parent !is PyDecorator || (function.parent as PyDecorator).isBuiltin)
+fun fineFunction(function: PyFunction): Boolean {
+    val hasNotConstructorName = !listOf("__init__", "__new__").contains(function.name)
+    val decoratorNames = function.decoratorList?.decorators?.mapNotNull { it?.qualifiedName }
+    val knownDecorators = decoratorNames?.all { it.toString() in listOf("staticmethod") } ?: true
+    return hasNotConstructorName && knownDecorators
+}
 
 fun fineClass(pyClass: PyClass): Boolean =
     getAncestors(pyClass).dropLast(1).all { it !is PyClass && it !is PyFunction } &&

@@ -1,12 +1,13 @@
 import argparse
 import logging
 
+from utbot_executor.config import Config, HostConfig, CoverageConfig, LoggingConfig
 from utbot_executor.listener import PythonExecuteServer
 from utbot_executor.utils import TraceMode
 
 
-def main(hostname: str, port: int, coverage_hostname: str, coverage_port: int, trace_mode: TraceMode, send_coverage: bool):
-    server = PythonExecuteServer(hostname, port, coverage_hostname, coverage_port, trace_mode, send_coverage)
+def main(executor_config: Config):
+    server = PythonExecuteServer(executor_config)
     server.run()
 
 
@@ -28,9 +29,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--coverage_type", choices=["lines", "instructions"], default="instructions"
     )
-    parser.add_argument(
-        "--send_coverage", action=argparse.BooleanOptionalAction
-    )
+    parser.add_argument("--send_coverage", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--generate_state_assertions", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     loglevel = {
@@ -45,6 +45,17 @@ if __name__ == "__main__":
         datefmt="%m/%d/%Y %H:%M:%S",
         level=loglevel,
     )
-    trace_mode = TraceMode.Lines if args.coverage_type == "lines" else TraceMode.Instructions
-    send_coverage = args.send_coverage
-    main(args.hostname, args.port, args.coverage_hostname, args.coverage_port, trace_mode, send_coverage)
+    trace_mode = (
+        TraceMode.Lines if args.coverage_type == "lines" else TraceMode.Instructions
+    )
+
+    config = Config(
+        server=HostConfig(args.hostname, args.port),
+        coverage=CoverageConfig(
+            HostConfig(args.coverage_hostname, args.coverage_port), trace_mode, args.send_coverage
+        ),
+        logging=LoggingConfig(args.logfile, loglevel),
+        state_assertions=args.generate_state_assertions
+    )
+
+    main(config)

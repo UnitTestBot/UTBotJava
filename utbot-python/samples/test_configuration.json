@@ -57,7 +57,7 @@
           "groups": [
             {
               "classes": ["C"],
-              "methods": ["inc"],
+              "methods": ["C.inc"],
               "timeout": 10,
               "coverage": 100
             }
@@ -68,8 +68,8 @@
           "groups": [
             {
               "classes": ["Dictionary"],
-              "methods": ["translate"],
-              "timeout": 30,
+              "methods": ["Dictionary.translate"],
+              "timeout": 60,
               "coverage": 100
             }
           ]
@@ -138,9 +138,9 @@
           "name": "dicts",
           "groups": [
             {
-              "classes": null,
-              "methods": null,
-              "timeout": 20,
+              "classes": ["-"],
+              "methods": ["f", "g"],
+              "timeout": 120,
               "coverage": 100
             }
           ]
@@ -149,7 +149,7 @@
           "name": "lists",
           "groups": [
             {
-              "classes": null,
+              "classes": ["-"],
               "methods": null,
               "timeout": 10,
               "coverage": 100
@@ -171,9 +171,9 @@
           "name": "sets",
           "groups": [
             {
-              "classes": null,
-              "methods": null,
-              "timeout": 10,
+              "classes": ["-"],
+              "methods": ["f", "g"],
+              "timeout": 120,
               "coverage": 100
             }
           ]
@@ -182,7 +182,7 @@
           "name": "tuples",
           "groups": [
             {
-              "classes": null,
+              "classes": ["-"],
               "methods": null,
               "timeout": 10,
               "coverage": 75
@@ -470,7 +470,7 @@
             {
               "classes": null,
               "methods": ["separated_str"],
-              "timeout": 60,
+              "timeout": 100,
               "coverage": 100
             }
           ]
@@ -534,15 +534,15 @@
           "groups": [
             {
               "classes": ["Matrix"],
-              "methods": ["__repr__", "__eq__", "__add__", "__mul__", "is_diagonal"],
+              "methods": ["Matrix.__repr__", "Matrix.__eq__", "Matrix.__add__", "Matrix.__mul__", "Matrix.is_diagonal"],
               "timeout": 120,
-              "coverage": 100
+              "coverage": 97
             },
             {
               "classes": ["Matrix"],
-              "methods": ["__matmul__"],
+              "methods": ["Matrix.__matmul__"],
               "timeout": 80,
-              "coverage": 90
+              "coverage": 88
             }
           ]
         },

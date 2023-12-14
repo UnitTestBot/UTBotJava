@@ -2,27 +2,91 @@ package org.utbot.python.newtyping.ast.visitor.hints
 
 import org.parsers.python.Node
 import org.parsers.python.PythonConstants
-import org.parsers.python.ast.*
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.ast.*
+import org.parsers.python.ast.AdditiveExpression
+import org.parsers.python.ast.Argument
+import org.parsers.python.ast.Assignment
+import org.parsers.python.ast.Block
+import org.parsers.python.ast.Comparison
+import org.parsers.python.ast.Conjunction
+import org.parsers.python.ast.DedentToken
+import org.parsers.python.ast.Delimiter
+import org.parsers.python.ast.Disjunction
+import org.parsers.python.ast.DotName
+import org.parsers.python.ast.ForStatement
+import org.parsers.python.ast.FunctionCall
+import org.parsers.python.ast.Group
+import org.parsers.python.ast.IfStatement
+import org.parsers.python.ast.IndentToken
+import org.parsers.python.ast.Inversion
+import org.parsers.python.ast.InvocationArguments
+import org.parsers.python.ast.Keyword
+import org.parsers.python.ast.MultiplicativeExpression
+import org.parsers.python.ast.Name
+import org.parsers.python.ast.Newline
+import org.parsers.python.ast.NumericalLiteral
+import org.parsers.python.ast.Operator
+import org.parsers.python.ast.ReturnStatement
+import org.parsers.python.ast.Slice
+import org.parsers.python.ast.SliceExpression
+import org.parsers.python.ast.Slices
+import org.parsers.python.ast.Statement
+import org.parsers.python.ast.StringLiteral
+import org.utbot.python.PythonMethod
+import org.utbot.python.newtyping.PythonCallableTypeDescription
+import org.utbot.python.newtyping.PythonOverloadTypeDescription
+import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utbot.python.newtyping.ast.OpAssign
+import org.utbot.python.newtyping.ast.ParsedFunctionCall
+import org.utbot.python.newtyping.ast.SimpleAssign
+import org.utbot.python.newtyping.ast.SimpleForVariable
+import org.utbot.python.newtyping.ast.SimpleSlice
+import org.utbot.python.newtyping.ast.SlicedSlice
+import org.utbot.python.newtyping.ast.TupleSlice
+import org.utbot.python.newtyping.ast.isIdentification
+import org.utbot.python.newtyping.ast.parseAdditiveExpression
+import org.utbot.python.newtyping.ast.parseAssignment
+import org.utbot.python.newtyping.ast.parseComparison
+import org.utbot.python.newtyping.ast.parseConjunction
+import org.utbot.python.newtyping.ast.parseDisjunction
+import org.utbot.python.newtyping.ast.parseDotName
+import org.utbot.python.newtyping.ast.parseForStatement
+import org.utbot.python.newtyping.ast.parseFunctionCall
+import org.utbot.python.newtyping.ast.parseGroup
+import org.utbot.python.newtyping.ast.parseIfStatement
+import org.utbot.python.newtyping.ast.parseInversion
+import org.utbot.python.newtyping.ast.parseList
+import org.utbot.python.newtyping.ast.parseMultiplicativeExpression
+import org.utbot.python.newtyping.ast.parseSliceExpression
+import org.utbot.python.newtyping.ast.signaturesAreCompatible
+import org.utbot.python.newtyping.ast.typeOfNumericalLiteral
 import org.utbot.python.newtyping.ast.visitor.Collector
+import org.utbot.python.newtyping.createBinaryProtocol
+import org.utbot.python.newtyping.createCallableProtocol
+import org.utbot.python.newtyping.createIterableWithCustomReturn
+import org.utbot.python.newtyping.createProtocolWithAttribute
+import org.utbot.python.newtyping.createPythonCallableType
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.getPythonAttributeByName
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
+import org.utbot.python.newtyping.pythonAnyType
+import org.utbot.python.newtyping.pythonDescription
+import org.utbot.python.newtyping.pythonNoneType
+import org.utbot.python.newtyping.supportsBoolProtocol
 import java.util.*
 
 class HintCollector(
-    private val function: PythonFunctionDefinition,
+    private val function: PythonMethod,
     private val storage: PythonTypeHintsStorage,
     private val mypyTypes: Map<Pair<Int, Int>, UtType>,
     private val globalNamesStorage: GlobalNamesStorage,
     private val moduleOfSources: String
 ) : Collector() {
     private val parameterToNode: Map<String, HintCollectorNode> =
-        (function.meta.args.map { it.name } zip function.type.arguments).associate {
+        (function.argumentsNames zip function.methodType.arguments).associate {
             it.first to HintCollectorNode(it.second)
         }
     private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
@@ -30,7 +94,7 @@ class HintCollector(
     private val blockStack = Stack<Block>()
 
     init {
-        val argNames = function.meta.args.map { it.name }
+        val argNames = function.argumentsNames
         assert(argNames.all { it != "" })
         identificationToNode[null] = mutableMapOf()
         argNames.forEach {
@@ -45,7 +109,7 @@ class HintCollector(
             if (!allNodes.contains(it.value))
                 collectAllNodes(it.value, allNodes)
         }
-        result = HintCollectorResult(parameterToNode, function.type, allNodes)
+        result = HintCollectorResult(parameterToNode, function.methodType, allNodes)
     }
 
     private fun collectAllNodes(cur: HintCollectorNode, visited: MutableSet<HintCollectorNode>) {

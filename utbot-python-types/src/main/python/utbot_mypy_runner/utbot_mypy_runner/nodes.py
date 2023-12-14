@@ -1,11 +1,9 @@
-import typing as tp
-from collections import defaultdict
 import copy
-import sys
-
 import mypy.nodes
 import mypy.types
-
+import sys
+import typing as tp
+from collections import defaultdict
 
 added_keys: tp.List[str] = []
 annotation_node_dict: tp.Dict[str, "AnnotationNode"] = {}
@@ -563,10 +561,24 @@ def get_definition_from_node(node: mypy.nodes.Node, meta: Meta, only_types: bool
 def get_definition_from_symbol_node(
     table_node: mypy.nodes.SymbolTableNode,
     meta: Meta,
+    base_name: str,
     only_types: bool = False
-) -> tp.Optional[Definition]:
+) -> tp.Dict[str, Definition]:
     if table_node.node is None or not (table_node.node.fullname.startswith(meta.module_name)) \
             or not isinstance(table_node.node, mypy.nodes.Node):  # this check is only for mypy
-        return None
+        return {}
 
-    return get_definition_from_node(table_node.node, meta, only_types)
+    definitions = {}
+    base_def = get_definition_from_node(table_node.node, meta, only_types)
+    if base_def is not None:
+        definitions[base_name] = base_def
+
+    try:
+        defn = table_node.node.defn
+        if isinstance(defn, mypy.nodes.ClassDef):
+            for inner_class in filter(lambda x: isinstance(x, mypy.nodes.ClassDef), table_node.node.defn.defs.body):
+                definitions[f"{base_name}.{inner_class.name}"] = get_definition_from_node(inner_class.info, meta, only_types)
+    except AttributeError:
+        pass
+
+    return definitions

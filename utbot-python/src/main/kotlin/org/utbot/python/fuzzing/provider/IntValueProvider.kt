@@ -3,26 +3,26 @@ package org.utbot.python.fuzzing.provider
 import org.utbot.fuzzing.Configuration
 import org.utbot.fuzzing.Mutation
 import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.BitVectorValue
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.seeds.Signed
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.fuzzing.FuzzedUtType
+import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.fuzzing.PythonValueProvider
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigInteger
 import kotlin.random.Random
 
-object IntValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodDescription> {
+object IntValueProvider : PythonValueProvider {
     private val randomStubWithNoUsage = Random(0)
     private val configurationStubWithNoUsage = Configuration()
 
-    override fun accept(type: UtType): Boolean {
+    override fun accept(type: FuzzedUtType): Boolean {
         return type.pythonTypeName() == pythonIntClassId.canonicalName
     }
 
@@ -34,7 +34,7 @@ object IntValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodD
 
     private fun getIntConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<BitVectorValue> {
         return concreteValues
-            .filter { accept(it.type) }
+            .filter { accept(it.type.toFuzzed()) }
             .map { fuzzedValue ->
                 (fuzzedValue.value as BigInteger).let {
                     BitVectorValue.fromBigInteger(it)
@@ -42,7 +42,7 @@ object IntValueProvider : ValueProvider<UtType, PythonFuzzedValue, PythonMethodD
             }
     }
 
-    override fun generate(description: PythonMethodDescription, type: UtType) = sequence<Seed<UtType, PythonFuzzedValue>> {
+    override fun generate(description: PythonMethodDescription, type: FuzzedUtType) = sequence<Seed<FuzzedUtType, PythonFuzzedValue>> {
         val bits = 128
         val integerConstants = getIntConstants(description.concreteValues)
         val modifiedConstants = integerConstants.flatMap { value ->

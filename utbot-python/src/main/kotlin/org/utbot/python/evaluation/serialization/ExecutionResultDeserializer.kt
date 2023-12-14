@@ -18,6 +18,7 @@ object ExecutionResultDeserializer {
                 .withSubtype(ListMemoryObject::class.java, "list")
                 .withSubtype(DictMemoryObject::class.java, "dict")
                 .withSubtype(ReduceMemoryObject::class.java, "reduce")
+                .withSubtype(IteratorMemoryObject::class.java, "iterator")
         )
         .addLast(KotlinJsonAdapterFactory())
         .build()
@@ -35,7 +36,11 @@ object ExecutionResultDeserializer {
     }
 
     fun parseMemoryDump(content: String): MemoryDump? {
-        return jsonAdapterMemoryDump.fromJson(content)
+        return if (content.isNotEmpty()) {
+            jsonAdapterMemoryDump.fromJson(content)
+        } else {
+            null
+        }
     }
 }
 

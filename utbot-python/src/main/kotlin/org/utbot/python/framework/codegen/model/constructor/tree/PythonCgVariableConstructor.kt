@@ -10,13 +10,26 @@ import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonMethodId
+import org.utbot.python.framework.api.python.PythonModel
+import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.PythonTreeModel
+import org.utbot.python.framework.api.python.RawPythonAnnotation
 import org.utbot.python.framework.api.python.util.comparePythonTree
 import org.utbot.python.framework.api.python.util.pythonDictClassId
 import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
-import org.utbot.python.framework.codegen.model.tree.*
+import org.utbot.python.framework.codegen.model.tree.CgPythonDict
+import org.utbot.python.framework.codegen.model.tree.CgPythonIndex
+import org.utbot.python.framework.codegen.model.tree.CgPythonIterator
+import org.utbot.python.framework.codegen.model.tree.CgPythonList
+import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
+import org.utbot.python.framework.codegen.model.tree.CgPythonSet
+import org.utbot.python.framework.codegen.model.tree.CgPythonTree
+import org.utbot.python.framework.codegen.model.tree.CgPythonTuple
 
 class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(cgContext) {
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
@@ -95,6 +108,11 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                         keys.flatMap { it.second } + values.flatMap { it.second }
                     )
                 }
+            }
+
+            is PythonTree.IteratorNode -> {
+                val items = objectNode.items.values.map { pythonBuildObject(it) }
+                Pair(CgPythonIterator(items.map {it.first}), items.flatMap { it.second })
             }
 
             is PythonTree.ReduceNode -> {

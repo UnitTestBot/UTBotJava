@@ -14,6 +14,7 @@ object PythonObjectParser {
                 .withSubtype(ListMemoryObject::class.java, "list")
                 .withSubtype(DictMemoryObject::class.java, "dict")
                 .withSubtype(ReduceMemoryObject::class.java, "reduce")
+                .withSubtype(IteratorMemoryObject::class.java, "iterator")
         )
         .addLast(KotlinJsonAdapterFactory())
         .build()
@@ -81,6 +82,14 @@ class DictMemoryObject(
     val items: Map<String, String>,
 ) : MemoryObject(id, typeinfo, comparable)
 
+class IteratorMemoryObject(
+    id: String,
+    typeinfo: TypeInfo,
+    comparable: Boolean,
+    val items: List<String>,
+    val exception: TypeInfo,
+) : MemoryObject(id, typeinfo, comparable)
+
 class ReduceMemoryObject(
     id: String,
     typeinfo: TypeInfo,
@@ -103,7 +112,7 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
                 id,
                 typeinfo,
                 this.comparable,
-                this.repr.replace("\n", "\\\n").replace("\r", "\\\r")
+                this.repr.replace("\n", "\\n").replace("\r", "\\r")
             )
         }
 
@@ -138,6 +147,12 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
             DictMemoryObject(id, typeinfo, this.comparable, items)
         }
 
+        is PythonTree.IteratorNode -> {
+            val items = this.items.entries
+                .map { it.value.toMemoryObject(memoryDump) }
+            IteratorMemoryObject(id, typeinfo, this.comparable, items, TypeInfo(this.exception.moduleName, this.exception.typeName))
+        }
+
         is PythonTree.ReduceNode -> {
             val argsIds = PythonTree.ListNode(this.args.withIndex().associate { it.index to it.value }.toMutableMap())
             val draft = ReduceMemoryObject(
@@ -152,7 +167,7 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
                 "",
                 "",
                 "",
-                )
+            )
             memoryDump.addObject(draft)
 
             val stateObjId = if (this.customState) {
@@ -232,6 +247,18 @@ fun MemoryObject.toPythonTree(
                         is PythonTree.ListNode -> draft.items[index] = value
                         else -> {}
                     }
+                }
+                draft
+            }
+
+            is IteratorMemoryObject -> {
+                val draft = PythonTree.IteratorNode(id, mutableMapOf(), PythonClassId(exception.module, exception.kind))
+
+                visited[this.id] = draft
+
+                items.mapIndexed { index, valueId ->
+                    val value = memoryDump.getById(valueId).toPythonTree(memoryDump, visited)
+                    draft.items[index] = value
                 }
                 draft
             }

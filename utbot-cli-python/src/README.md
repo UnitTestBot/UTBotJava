@@ -6,25 +6,25 @@
 
  - Required Java version: 11.
 
- - Prefered Python version: 3.8+.
+ - Preferred Python version: 3.11+.
 
     Make sure that your Python has `pip` installed (this is usually the case). [Read more about pip installation](https://pip.pypa.io/en/stable/installation/).
 
     Before running utbot install pip requirements (or use `--install-requirements` flag in `generate_python` command):
 
-        python -m pip install mypy==1.0 utbot_executor==0.4.31 utbot_mypy_runner==0.2.8
+        python -m pip install mypy==1.0 utbot_executor==0.9.16 utbot_mypy_runner==0.2.16
 
 ## Basic usage
 
 Generate tests:
 
-    java -jar utbot-cli.jar generate_python dir/file_with_sources.py -p <PYTHON_PATH> -o generated_tests.py -s dir
+    java -jar utbot-cli-python.jar generate_python dir/file_with_sources.py -p <PYTHON_PATH> -o generated_tests.py -s dir
 
 This will generate tests for top-level functions from `file_with_sources.py`.
 
 Run generated tests:
 
-    java -jar utbot-cli.jar run_python generated_tests.py -p <PYTHON_PATH>
+    java -jar utbot-cli-python.jar run_python generated_tests.py -p <PYTHON_PATH>
 
 ### `generate_python` options
   

@@ -31,7 +31,8 @@ class BaselineAlgorithmEdge(
 class BaselineAlgorithmState(
     val nodes: Set<BaselineAlgorithmNode>,
     val generalRating: List<UtType>,
-    typeStorage: PythonTypeHintsStorage
+    typeStorage: PythonTypeHintsStorage,
+    val additionalVars: String = "",
 ) {
     val signature: UtType
         get() = nodes.find { it.isRoot }!!.partialType

@@ -4,6 +4,7 @@ val ultimateEdition: String by settings
 
 val ideType: String by settings
 val buildType: String by settings
+val pycharmIdeType: String by settings
 
 val javaIde: String by settings
 val pythonIde: String by settings
@@ -65,6 +66,12 @@ include("utbot-spring-analyzer")
 include("utbot-spring-sample")
 include("utbot-spring-test")
 
+if (pycharmIdeType.split(",").contains(ideType)) {
+    include("utbot-python-pycharm")
+} else {
+    include("utbot-intellij-main")
+}
+
 if (javaIde.split(",").contains(ideType)) {
     include("utbot-intellij")
 }
@@ -93,4 +100,3 @@ if (projectType == ultimateEdition) {
 }
 
 include("utbot-light")
-include("utbot-intellij-main")

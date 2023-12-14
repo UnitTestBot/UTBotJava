@@ -31,12 +31,11 @@ import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationConfig
-import org.utbot.python.utils.RequirementsInstaller
 import org.utbot.python.TestFileInformation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.newtyping.mypy.dropInitFile
-import org.utbot.python.utils.PythonVersionChecker
+import org.utbot.python.utils.RequirementsInstaller
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
@@ -125,24 +124,16 @@ object PythonDialogProcessor {
                 title = "Python test generation error"
             )
         } else {
-            if (!PythonVersionChecker.checkPythonVersion(pythonPath)) {
-                showErrorDialogLater(
-                    project,
-                    message = "Please use Python 3.10 or newer",
-                    title = "Python test generation error"
-                )
-            } else {
-                val dialog = createDialog(
-                    project,
-                    elementsToShow,
-                    focusedElement,
-                    pythonPath,
-                )
-                if (!dialog.showAndGet()) {
-                    return
-                }
-                createTests(project, dialog.model)
+            val dialog = createDialog(
+                project,
+                elementsToShow,
+                focusedElement,
+                pythonPath,
+            )
+            if (!dialog.showAndGet()) {
+                return
             }
+            createTests(project, dialog.model)
         }
     }
 

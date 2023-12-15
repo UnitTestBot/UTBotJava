@@ -43,7 +43,7 @@ fun checkFrameworkDependencies(dependencyPaths: String?) {
 //        )
 //    }
 
-    val mockFrameworkPatterns = MockFramework.allItems.map { it.patterns() }
+    val mockFrameworkPatterns = MockFramework.allItems.map { it.manifestPatterns() }
     val mockFrameworkFound = dependencyNames.matchesAnyOf(mockFrameworkPatterns) ||
             dependencyPathsSequence.any { checkDependencyIsFatJar(it) }
 

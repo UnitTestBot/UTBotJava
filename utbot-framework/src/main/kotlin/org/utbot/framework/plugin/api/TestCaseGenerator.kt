@@ -291,7 +291,15 @@ open class TestCaseGenerator(
                     logger.debug("test generator global scope lifecycle check ended")
                 }
 
-                consumeUtResultFlow(UsvmSymbolicEngine.runUsvmGeneration(methods, classpathForEngine, usvmTimeoutMillis))
+                // retrieves from cache ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
+                consumeUtResultFlow(
+                    UsvmSymbolicEngine.runUsvmGeneration(
+                        methods = methods,
+                        classpath = classpathForEngine,
+                        concreteExecutionContext = concreteExecutionContext,
+                        timeoutMillis = usvmTimeoutMillis,
+                        )
+                )
             }
         }
 

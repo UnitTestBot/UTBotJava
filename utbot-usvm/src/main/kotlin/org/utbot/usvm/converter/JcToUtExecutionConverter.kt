@@ -36,6 +36,7 @@ import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
+import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtTimeoutException
@@ -53,6 +54,11 @@ import org.utbot.usvm.jc.UTestSymbolicSuccessResult
 import java.util.IdentityHashMap
 
 private val logger = KotlinLogging.logger {}
+
+data class UtExecutionInitialState(
+    val stateBefore: EnvironmentModels,
+    val instrumentations: List<UtInstrumentation>,
+)
 
 class JcToUtExecutionConverter(
     private val jcExecution: JcExecution,
@@ -77,6 +83,11 @@ class JcToUtExecutionConverter(
             }
             .getOrNull()
     } ?: error("Failed to construct UtExecution for all uTestExecutionResultWrappers on ${jcExecution.method.method}")
+
+    fun convertInitialStateOnly(): UtExecutionInitialState = UtExecutionInitialState(
+        stateBefore = constructStateBeforeFromUTest(),
+        instrumentations = uTestProcessResult.instrumentation
+    )
 
     private fun convert(uTestResultWrapper: UTestResultWrapper): UtExecution? {
         val coverage = convertCoverage(getTrace(uTestResultWrapper), jcExecution.method.enclosingType.jcClass)

@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.utils.UtilMethodProvider
 
 /**
  * Can be used in `UtModel`s to denote class containing util methods,

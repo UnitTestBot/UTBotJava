@@ -63,21 +63,17 @@ class JcTestExecutor(
         state: JcState,
         stringConstants: Map<String, UConcreteHeapRef>,
         classConstants: Map<JcType, UConcreteHeapRef>,
+        allowSymbolicResult: Boolean
     ): JcExecution? {
         val model = state.models.first()
-
-        val ctx = state.ctx
-
         val mocker = state.memory.mocker as JcMocker
-//        val staticMethodMocks = mocker.statics TODO global mocks?????????????????????????
-        val methodMocks = mocker.symbols
 
-        val resolvedMethodMocks = methodMocks.entries.groupBy({ model.eval(it.key) }, { it.value })
+        val resolvedMethodMocks = mocker.symbols
+            .entries
+            .groupBy({ model.eval(it.key) }, { it.value })
             .mapValues { it.value.flatten() }
 
-        val memoryScope = MemoryScope(ctx, model, model, stringConstants, classConstants, resolvedMethodMocks, method)
-
-        val uTest = memoryScope.createUTest()
+        val uTest = createUTest(method, state, stringConstants, classConstants)
 
         val concreteResult = runCatching {
             runBlocking {
@@ -88,16 +84,27 @@ class JcTestExecutor(
             .getOrNull()
 
         val symbolicResult by lazy {
-            when (val methodResult = state.methodResult) {
-                is JcMethodResult.JcException -> UTestSymbolicExceptionResult(methodResult.type)
-                is JcMethodResult.Success -> {
-                    val resultScope = MemoryScope(ctx, model, state.memory, stringConstants, classConstants, resolvedMethodMocks, method)
-                    val resultExpr = resultScope.resolveExpr(methodResult.value, method.returnType)
-                    val resultInitializer = resultScope.decoderApi.initializerInstructions()
-                    UTestSymbolicSuccessResult(resultInitializer, resultExpr)
+            if (allowSymbolicResult) {
+                when (val methodResult = state.methodResult) {
+                    is JcMethodResult.JcException -> UTestSymbolicExceptionResult(methodResult.type)
+                    is JcMethodResult.Success -> {
+                        val resultScope = MemoryScope(
+                            state.ctx,
+                            model,
+                            state.memory,
+                            stringConstants,
+                            classConstants,
+                            resolvedMethodMocks,
+                            method
+                        )
+                        val resultExpr = resultScope.resolveExpr(methodResult.value, method.returnType)
+                        val resultInitializer = resultScope.decoderApi.initializerInstructions()
+                        UTestSymbolicSuccessResult(resultInitializer, resultExpr)
+                    }
+
+                    JcMethodResult.NoCall -> null
                 }
-                JcMethodResult.NoCall -> null
-            }
+            } else null
         }
 
         val testExecutionResult = concreteResult?.uTestExecutionResult
@@ -113,9 +120,7 @@ class JcTestExecutor(
             if (testExecutionResult is UTestExecutionSuccessResult || testExecutionResult is UTestExecutionExceptionResult) {
                 concreteResult
             } else {
-                symbolicResult
-                    ?: concreteResult
-                    ?: error("Can't create JcExecution, there's no symbolic nor concrete result for ${method.method}")
+                symbolicResult ?: concreteResult
             }
 
         val coverage = resolveCoverage(method, state)
@@ -124,12 +129,35 @@ class JcTestExecutor(
             method = method,
             uTest = uTest,
             uTestExecutionResultWrappers = sequence {
-                yield(preferableResult)
+                preferableResult?.let { yield(it) }
                 if (preferableResult !== symbolicResult)
                     symbolicResult?.let { yield(it) }
             },
             coverage = coverage
         )
+    }
+
+    fun createUTest(
+        method: JcTypedMethod,
+        state: JcState,
+        stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>,
+    ): UTest {
+        val model = state.models.first()
+        val ctx = state.ctx
+
+        val mocker = state.memory.mocker as JcMocker
+        // val staticMethodMocks = mocker.statics TODO global mocks?????????????????????????
+        val methodMocks = mocker.symbols
+
+        val resolvedMethodMocks = methodMocks
+            .entries
+            .groupBy({ model.eval(it.key) }, { it.value })
+            .mapValues { it.value.flatten() }
+
+        val memoryScope = MemoryScope(ctx, model, model, stringConstants, classConstants, resolvedMethodMocks, method)
+
+        return memoryScope.createUTest()
     }
 
     @Suppress("UNUSED_PARAMETER")

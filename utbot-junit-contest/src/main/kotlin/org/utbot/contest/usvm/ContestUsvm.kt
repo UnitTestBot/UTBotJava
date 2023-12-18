@@ -1,13 +1,8 @@
 package org.utbot.contest.usvm
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.jcdbSignature
-import org.jacodb.api.ext.toType
 import org.jacodb.approximation.Approximations
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.objectweb.asm.Type
@@ -15,20 +10,24 @@ import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorFairnessStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.JcTarget
-import org.usvm.instrumentation.util.jcdbSignature
 import org.usvm.machine.JcMachine
-import org.usvm.machine.state.JcState
-import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.types.ClassScorer
 import org.usvm.types.TypeScorer
 import org.usvm.types.scoreClassNode
-import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.info
 import org.utbot.common.measureTime
-import org.utbot.contest.*
+import org.utbot.contest.ClassUnderTest
+import org.utbot.contest.ExpectedExceptionsForClass
+import org.utbot.contest.StatsForClass
+import org.utbot.contest.StatsForMethod
+import org.utbot.contest.forceStaticMocking
 import org.utbot.contest.junitVersion
+import org.utbot.contest.prepareClass
+import org.utbot.contest.setOptions
+import org.utbot.contest.staticsMocking
+import org.utbot.contest.updateCoverage
 import org.utbot.contest.usvm.log.ErrorCountingLoggerAppender
+import org.utbot.contest.writeTestClass
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.junitByVersion
@@ -37,12 +36,12 @@ import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.framework.minimization.minimizeExecutions
-import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.constructor
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.usvm.summarizeAll
@@ -52,6 +51,9 @@ import org.utbot.usvm.converter.toExecutableId
 import org.utbot.usvm.jc.JcContainer
 import org.utbot.usvm.jc.JcContainer.Companion.TEST_EXECUTION_TIMEOUT
 import org.utbot.usvm.jc.JcTestExecutor
+import org.utbot.usvm.jc.findMethodOrNull
+import org.utbot.usvm.jc.typedMethod
+import org.utbot.usvm.machine.analyzeAsync
 import java.io.File
 import java.net.URLClassLoader
 import kotlin.time.Duration.Companion.milliseconds
@@ -181,7 +183,8 @@ fun runUsvmGeneration(
                             method = state.entrypoint.typedMethod,
                             state = state,
                             stringConstants = jcMachine.stringConstants,
-                            classConstants = jcMachine.classConstants
+                            classConstants = jcMachine.classConstants,
+                            allowSymbolicResult = true
                         ) ?: return@analyzeAsync
                     }.getOrElse { e ->
                         logger.error(e) { "executor.execute(${state.entrypoint}) failed" }
@@ -260,53 +263,6 @@ fun createJcContainer(
     // TODO: require usePersistence=false for ClassScorer
     installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
     loadByteCode(classpathFiles)
-}
-
-fun JcClasspath.findMethodOrNull(method: ExecutableId): JcMethod? =
-    findClass(method.classId.name).declaredMethods.firstOrNull {
-        it.name == method.name && it.jcdbSignature == method.jcdbSignature
-    }
-
-val JcMethod.typedMethod: JcTypedMethod get() = enclosingClass.toType().declaredMethods.first {
-    it.name == name && it.method.jcdbSignature == jcdbSignature
-}
-
-val ExecutableId.jcdbSignature: String get() = when (this) {
-    is ConstructorId -> constructor.jcdbSignature
-    is MethodId -> method.jcdbSignature
-}
-
-fun JcMachine.analyzeAsync(
-    forceTerminationTimeout: Long,
-    methods: List<JcMethod>,
-    targets: List<JcTarget>,
-    callback: (JcState) -> Unit
-) {
-    val utContext = utContext
-    // TODO usvm-sbft: sometimes `machine.analyze` or `executor.execute` hangs forever,
-    //  completely ignoring timeout specified for it, so additional hard time out is enforced here.
-    //  Hard timeout seems to be working ok so far, however it may leave machine or executor in an inconsistent state.
-    //  Also, `machine` or `executor` may catch `ThreadDeath` and still continue working (that is in fact what happens,
-    //  but throwing `ThreadDeath` every 500 ms seems to eventually work).
-    ThreadBasedExecutor.threadLocal.invokeWithTimeout(forceTerminationTimeout, threadDeathThrowPeriodMillis = 500) {
-        withUtContext(utContext) {
-            analyze(
-                methods = methods,
-                statesCollector = object : StatesCollector<JcState> {
-                    override var count: Int = 0
-                        private set
-
-                    override fun addState(state: JcState) {
-                        count++
-                        callback(state)
-                    }
-                },
-                targets = targets
-            )
-        }
-    }?.onFailure { e ->
-        logger.error(e) { "analyzeAsync failed" }
-    } ?: logger.error { "analyzeAsync time exceeded hard time out" }
 }
 
 private inline fun <T> accumulateMeasureTime(

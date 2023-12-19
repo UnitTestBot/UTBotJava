@@ -87,6 +87,7 @@ class GenerateTestsModel(
 
     lateinit var springSettings: SpringSettings
     lateinit var springTestType: SpringTestType
+    lateinit var springProfileNames: String
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
     val preClasspathCollectionPromises: MutableList<Promise<*>> = mutableListOf()

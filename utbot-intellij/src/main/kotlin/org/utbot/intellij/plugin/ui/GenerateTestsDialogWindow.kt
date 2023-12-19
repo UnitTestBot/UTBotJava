@@ -99,6 +99,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.SpringConfiguration
 import org.utbot.framework.plugin.api.SpringTestType.*
+import org.utbot.framework.plugin.api.SpringProfileNames
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
@@ -166,7 +167,6 @@ private const val SAME_PACKAGE_LABEL = "same as for sources"
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 
 private const val NO_SPRING_CONFIGURATION_OPTION = "No configuration"
-private const val DEFAULT_SPRING_PROFILE_NAME = "default"
 
 private const val ACTION_GENERATE = "Generate Tests"
 private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
@@ -202,7 +202,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private val springTestType = createComboBox(SpringTestType.values()).also { it.setMinimumAndPreferredWidth(300) }
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
-    private val profileNames = JBTextField(23).apply { emptyText.text = DEFAULT_SPRING_PROFILE_NAME }
+    private val springProfileNames = JBTextField(23).apply { emptyText.text = SpringProfileNames.defaultItem.toString() }
 
     private val timeoutSpinner =
         JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
@@ -243,6 +243,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             "@Configuration" to configurationClasses.map(shortenedJavaConfigurationClasses::getValue),
             "XML configuration" to xmlConfigurationFiles.map(shortenedSpringXMLConfigurationFiles::getValue)
         )
+    }
+
+    private fun shortenConfigurationNameByFullname(fullname: String): String? {
+        val allShortenConfigurationNames = shortenConfigurationNames().flatMap { it.second }
+        return allShortenConfigurationNames.firstOrNull { fullname.endsWith(it) }
     }
 
     private fun <T : CodeGenerationSettingItem> createComboBox(values: Array<T>) : ComboBox<T> {
@@ -428,7 +433,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     ComboBoxPredicate(springConfig) { isSpringConfigSelected() && !isXmlSpringConfigUsed() }
                 )
                 row("Active profile(s):") {
-                    cell(profileNames)
+                    cell(springProfileNames)
                     contextHelp(
                         "One or several comma-separated names.<br>" +
                                 "If all names are incorrect, default profile is used"
@@ -736,12 +741,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
                     PresentSpringSettings(
                         configuration = config,
-                        profiles = parseProfileExpression(profileNames.text, DEFAULT_SPRING_PROFILE_NAME).toList()
+                        profiles = parseProfileExpression(springProfileNames.text, SpringProfileNames.defaultItem.toString()).toList()
                     )
                 }
             }
 
         model.springTestType = springTestType.item
+        model.springProfileNames = springProfileNames.text
 
         val settings = model.project.service<Settings>()
         with(settings) {
@@ -883,20 +889,22 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                         if (settings.fuzzingValue == 0.0) 0.0
                         else settings.fuzzingValue.coerceAtLeast(0.3)
                 }
+                springConfig.item = when (settings.springConfig) {
+                    is AbsentSpringSettings -> NO_SPRING_CONFIGURATION_OPTION
+                    is PresentSpringSettings -> shortenConfigurationNameByFullname((settings.springConfig as PresentSpringSettings).configuration.fullDisplayName)
+                        ?: NO_SPRING_CONFIGURATION_OPTION
+                }
             }
             else -> {}
         }
 
-        mockStrategies.item = when (model.projectType) {
-            ProjectType.Spring -> MockStrategyApi.springDefaultItem
+        mockStrategies.item = when (model.projectType == ProjectType.Spring && springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
+            true -> MockStrategyApi.springDefaultItem
             else -> settings.mockStrategy
         }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = (settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
                 && model.projectType == ProjectType.PureJvm)
-
-        mockStrategies.isEnabled = true
-        staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
         codegenLanguages.item = model.codegenLanguage
 
@@ -914,8 +922,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 updateParametrizationEnabled()
             }
             ProjectType.Spring -> {
+                springProfileNames.text = settings.springProfileNames
                 springTestType.item =
                     if (isSpringConfigSelected()) settings.springTestType else SpringTestType.defaultItem
+                updateMockStrategy(springTestType.item)
                 updateSpringSettings()
                 updateTestFrameworksList(springTestType.item)
             }
@@ -923,6 +933,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             ProjectType.JavaScript -> { }
         }
 
+        mockStrategies.isEnabled = !isSpringConfigSelected()
+        updateStaticMockEnabled()
         updateMockStrategyList()
 
         itemsToHelpTooltip.forEach { (box, tooltip) ->
@@ -1192,7 +1204,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
                 springTestType.item = SpringTestType.defaultItem
 
-                profileNames.text = ""
+                springProfileNames.text = ""
             }
 
             if (isSpringConfigSelected() && springTestType.item == UNIT_TEST) {
@@ -1208,17 +1220,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val item = comboBox.item as SpringTestType
 
             updateTestFrameworksList(item)
-
-            when (item) {
-                UNIT_TEST -> {
-                    mockStrategies.item = MockStrategyApi.springDefaultItem
-                    staticsMocking.isSelected = true
-                }
-                INTEGRATION_TEST -> {
-                    mockStrategies.item = MockStrategyApi.springIntegrationTestItem
-                    staticsMocking.isSelected = false
-                }
-            }
+            updateMockStrategy(item)
             updateMockStrategyList()
             updateControlsEnabledStatus()
         }
@@ -1229,6 +1231,21 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
             testPackageField.text = if (packageNameIsNeeded) testPackageName else ""
             testPackageField.isEnabled = !testPackageField.isEnabled
+        }
+    }
+
+    private fun updateMockStrategy(springTestType: SpringTestType){
+        when (springTestType) {
+            UNIT_TEST -> {
+                if(springConfig.item != NO_SPRING_CONFIGURATION_OPTION){
+                    mockStrategies.item = MockStrategyApi.springDefaultItem
+                    staticsMocking.isSelected = true
+                }
+            }
+            INTEGRATION_TEST -> {
+                mockStrategies.item = MockStrategyApi.springIntegrationTestItem
+                staticsMocking.isSelected = false
+            }
         }
     }
 
@@ -1384,10 +1401,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         if (isSpringConfigSelected()) {
             mockStrategies.isEnabled = false
-            profileNames.isEnabled = true
+            springProfileNames.isEnabled = true
             springTestType.isEnabled = !isXmlSpringConfigUsed()
         } else {
-            profileNames.isEnabled = false
+            springProfileNames.isEnabled = false
             springTestType.isEnabled = false
         }
     }

@@ -7,8 +7,10 @@ import org.jacodb.api.JcDatabase
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.classpaths.UnknownClasses
 import org.jacodb.impl.jacodb
+import org.usvm.instrumentation.executor.InstrumentationProcessPaths
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
+import org.usvm.util.ApproximationPaths
 import org.usvm.util.classpathWithApproximations
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
@@ -51,8 +53,12 @@ class JcContainer private constructor(
                     persistent(location = persistenceLocation, clearOnStart = false)
                 }
             }
-            // TODO ApproximationPaths(JcJars.approximationsJar, ...)
-            val cp = db.classpathWithApproximations(classpath, listOf(UnknownClasses))
+
+            val approximationPaths = ApproximationPaths(
+                usvmApiJarPath = JcJars.approximationsApiJar.absolutePath,
+                usvmApproximationsJarPath = JcJars.approximationsJar.absolutePath,
+                )
+            val cp = db.classpathWithApproximations(classpath, listOf(UnknownClasses), approximationPaths)
             db to cp
         }
         this.db = db
@@ -61,8 +67,11 @@ class JcContainer private constructor(
             JcRuntimeTraceInstrumenterFactory::class,
             cpPath,
             cp,
-            // TODO InstrumentedProcessPaths(JcJars.runnerJar, collectorsJar, javaHome.absolutePath)
-            javaHome.absolutePath,
+            InstrumentationProcessPaths(
+                pathToUsvmInstrumentationJar = JcJars.runnerJar.absolutePath,
+                pathToUsvmCollectorsJar = JcJars.collectorsJar.absolutePath,
+                pathToJava = javaHome.absolutePath,
+                ),
             persistenceLocation,
             TEST_EXECUTION_TIMEOUT
         )

@@ -12,7 +12,7 @@
 
     Before running utbot install pip requirements (or use `--install-requirements` flag in `generate_python` command):
 
-        python -m pip install mypy==1.0 utbot_executor==0.9.16 utbot_mypy_runner==0.2.16
+        python -m pip install mypy==1.0 utbot_executor==0.9.19 utbot_mypy_runner==0.2.16
 
 ## Basic usage
 

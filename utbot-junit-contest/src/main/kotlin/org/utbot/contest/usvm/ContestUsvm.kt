@@ -261,6 +261,7 @@ fun createJcContainer(
 ) {
     // TODO usvm-sbft: we may want to tune these JcSettings for contest
     // TODO: require usePersistence=false for ClassScorer
+    // ApproximationPaths(JcJars.approximationsJar, ...) в ClassScorer
     installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
     loadByteCode(classpathFiles)
 }

@@ -864,7 +864,7 @@ private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
     return result.exceptionOrNull()?.javaClass?.name == UtMockAssumptionViolatedException::class.java.name
 }
 
-private fun UtConcreteExecutionResult.processedFailure(): UtConcreteExecutionProcessedFailure?
+fun UtConcreteExecutionResult.processedFailure(): UtConcreteExecutionProcessedFailure?
     = result as? UtConcreteExecutionProcessedFailure
 
 private fun checkStaticMethodsMock(execution: UtSymbolicExecution) =

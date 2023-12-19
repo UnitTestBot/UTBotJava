@@ -42,6 +42,7 @@ import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.mapModels
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
@@ -85,8 +86,8 @@ class JcToUtExecutionConverter(
     } ?: error("Failed to construct UtExecution for all uTestExecutionResultWrappers on ${jcExecution.method.method}")
 
     fun convertInitialStateOnly(): UtExecutionInitialState = UtExecutionInitialState(
-        stateBefore = constructStateBeforeFromUTest(),
-        instrumentations = uTestProcessResult.instrumentation
+        stateBefore = constructStateBeforeFromUTest().applyCommonMappings(),
+        instrumentations = uTestProcessResult.instrumentation.applyCommonMappings()
     )
 
     private fun convert(uTestResultWrapper: UTestResultWrapper): UtExecution? {
@@ -176,11 +177,8 @@ class JcToUtExecutionConverter(
                 }
         } ?: return null
 
-        return utUsvmExecution
-            .mapModels(jcToUtModelConverter.utCyclicReferenceModelResolver)
-            .mapModels(constructAssemblingMapper())
-            .mapModels(constructAssembleToCompositeModelMapper())
-            .mapModels(constructConstArrayModelMapper())
+
+        return utUsvmExecution.applyCommonMappings()
     }
 
     private fun constructAssemblingMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
@@ -353,4 +351,25 @@ class JcToUtExecutionConverter(
         //  I assume they are counted as part of `<clinit>` method
         instructionsCount = jcClass.declaredMethods.sumOf { it.instList.size.toLong() }
     )
+
+    private val commonMappers: List<UtModelDeepMapper> = listOf(
+        jcToUtModelConverter.utCyclicReferenceModelResolver,
+        constructAssemblingMapper(),
+        constructAssembleToCompositeModelMapper(),
+        constructConstArrayModelMapper(),
+    )
+    private fun UtExecution.applyCommonMappings(): UtExecution {
+        commonMappers.forEach { mapper -> this.mapModels(mapper) }
+        return this
+    }
+
+    private fun EnvironmentModels.applyCommonMappings(): EnvironmentModels {
+        commonMappers.forEach { this.mapModels(it) }
+        return this
+    }
+
+    private fun List<UtInstrumentation>.applyCommonMappings(): List<UtInstrumentation> {
+        commonMappers.forEach { mapper -> this.map { instr -> instr.mapModels(mapper) } }
+        return this
+    }
 }

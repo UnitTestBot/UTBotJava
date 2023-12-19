@@ -1,7 +1,5 @@
 package org.utbot.engine
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.jacodb.approximation.Approximations
@@ -24,10 +22,10 @@ import org.utbot.framework.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
+import org.utbot.framework.plugin.api.UtConcreteExecutionProcessedFailure
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
@@ -36,6 +34,7 @@ import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrument
 import org.utbot.usvm.converter.JcToUtExecutionConverter
 import org.utbot.usvm.converter.SimpleInstructionIdProvider
 import org.utbot.usvm.converter.UtExecutionInitialState
+import org.utbot.usvm.converter.UtUsvmExecution
 import org.utbot.usvm.converter.toExecutableId
 import org.utbot.usvm.jc.JcContainer
 import org.utbot.usvm.jc.JcExecution
@@ -56,73 +55,75 @@ object UsvmSymbolicEngine {
         classpath: String,
         concreteExecutionContext: ConcreteExecutionContext,
         timeoutMillis: Long
-    ): Flow<Pair<ExecutableId, UtResult>> = flow {
-        var analysisResult: AnalysisResult? = null
+    ): List<Pair<ExecutableId, UtResult>> {
 
+        val collectedExecutions = mutableListOf<Pair<ExecutableId, UtResult>>()
         val classpathFiles = classpath.split(File.pathSeparator).map { File(it) }
-        val jcContainer = createJcContainer(classpathFiles)
 
-        val jcMethods = methods
-            .mapNotNull { methodId -> jcContainer.cp.findMethodOrNull(methodId).also {
-                if (it == null) {
-                    logger.error { "Method [$methodId] not found in jcClasspath [${jcContainer.cp}]" }
+        createJcContainer(classpathFiles).use { jcContainer ->
+            val jcMethods = methods
+                .mapNotNull { methodId ->
+                    jcContainer.cp.findMethodOrNull(methodId).also {
+                        if (it == null) {
+                            logger.error { "Method [$methodId] not found in jcClasspath [${jcContainer.cp}]" }
+                        }
+                    }
                 }
-            }
-        }
 
-        JcMachine(
-            cp = jcContainer.cp,
-            options = UMachineOptions(
-                timeout = timeoutMillis.milliseconds,
-                pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
-                pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
-                solverType = SolverType.Z3,
-            )
-        ).use { jcMachine ->
-            jcMachine.analyzeAsync(
-                forceTerminationTimeout = (timeoutMillis * 1.1 + 2000).toLong(),
-                methods = jcMethods,
-                targets = emptyList()
-            ) { state ->
-                val jcExecutionConstruction = constructJcExecution(jcMachine, state, jcContainer)
-
-                val jcExecution = jcExecutionConstruction.jcExecution
-                val executableId = jcExecution.method.method.toExecutableId(jcContainer.cp)
-
-                val executionConverter = JcToUtExecutionConverter(
-                    jcExecution = jcExecution,
-                    jcClasspath = jcContainer.cp,
-                    idGenerator = ReferencePreservingIntIdGenerator(),
-                    instructionIdProvider = SimpleInstructionIdProvider(),
-                    utilMethodProvider = UtilMethodProviderPlaceholder,
+            JcMachine(
+                cp = jcContainer.cp,
+                options = UMachineOptions(
+                    timeout = timeoutMillis.milliseconds,
+                    pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
+                    pathSelectorFairnessStrategy = PathSelectorFairnessStrategy.COMPLETELY_FAIR,
+                    solverType = SolverType.Z3,
                 )
+            ).use { jcMachine ->
+                jcMachine.analyzeAsync(
+                    forceTerminationTimeout = (timeoutMillis * 1.1 + 2000).toLong(),
+                    methods = jcMethods,
+                    targets = emptyList()
+                ) { state ->
+                    val jcExecution = constructJcExecution(jcMachine, state, jcContainer)
 
-                val utResult = if (jcExecutionConstruction.useUsvmExecutor) {
-                    executionConverter.convert()
-                } else {
-                    val initialState = executionConverter.convertInitialStateOnly()
-                    val concreteExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpath)
-                        .apply { this.classLoader = utContext.classLoader }
+                    val executableId = jcExecution.method.method.toExecutableId(jcContainer.cp)
 
-                    runStandardConcreteExecution(concreteExecutor, executableId, initialState)
-                }
+                    val executionConverter = JcToUtExecutionConverter(
+                        jcExecution = jcExecution,
+                        jcClasspath = jcContainer.cp,
+                        idGenerator = ReferencePreservingIntIdGenerator(),
+                        instructionIdProvider = SimpleInstructionIdProvider(),
+                        utilMethodProvider = UtilMethodProviderPlaceholder,
+                    )
 
-                utResult?.let {
-                    analysisResult = AnalysisResult(executableId, it)
+                    val utResult = runCatching {
+                        executionConverter.convert()
+                    }.getOrElse { e ->
+                        logger.warn(e) { "JcToUtExecutionConverter.convert(${jcExecution.method.method}) failed" }
+
+                        val initialState = executionConverter.convertInitialStateOnly()
+                        val concreteExecutor =
+                            ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpath)
+                                .apply { this.classLoader = utContext.classLoader }
+
+                        runStandardConcreteExecution(concreteExecutor, executableId, initialState)
+                    }
+
+                    utResult?.let {
+                        collectedExecutions.add(executableId to it)
+                    }
                 }
             }
         }
 
-        analysisResult?.let {
-            emit(it.executableId to it.utResult)
-        }
+        return collectedExecutions
     }
 
     private fun constructJcExecution(
         jcMachine: JcMachine,
         state: JcState,
         jcContainer: JcContainer,
-    ): JcExecutionConstruction {
+    ): JcExecution {
         val executor = JcTestExecutor(jcContainer.cp, jcContainer.runner)
 
         val realJcExecution = runCatching {
@@ -133,16 +134,16 @@ object UsvmSymbolicEngine {
                 classConstants = jcMachine.classConstants,
                 allowSymbolicResult = false
             )
-        }.getOrElse { null }
-
-        realJcExecution?.let {
-            return JcExecutionConstruction(
-                jcExecution = it,
-                useUsvmExecutor = true,
-            )
+        }.getOrElse { e ->
+            logger.warn(e) { "executor.execute(${state.entrypoint}) failed" }
+            null
         }
 
-        val jcExecutionWithUTest = JcExecution(
+        realJcExecution?.let {
+            return it
+        }
+
+        return JcExecution(
             method = state.entrypoint.typedMethod,
             uTest = executor.createUTest(
                 method = state.entrypoint.typedMethod,
@@ -152,11 +153,6 @@ object UsvmSymbolicEngine {
             ),
             uTestExecutionResultWrappers = emptySequence(),
             coverage = JcCoverage(emptyMap()),
-        )
-
-        return JcExecutionConstruction(
-            jcExecution = jcExecutionWithUTest,
-            useUsvmExecutor = false,
         )
     }
 
@@ -175,15 +171,17 @@ object UsvmSymbolicEngine {
                 )
             }
 
-            UtSymbolicExecution(
-                initialState.stateBefore,
-                concreteExecutionResult.stateAfter,
-                concreteExecutionResult.result,
-                concreteExecutionResult.newInstrumentation ?: initialState.instrumentations,
-                mutableListOf(),
-                listOf(),
-                concreteExecutionResult.coverage
-            )
+            concreteExecutionResult.processedFailure()?.let { failure ->
+                logger.warn { "Instrumented process failed with exception ${failure.exception} " +
+                        "before concrete execution started" }
+                null
+            } ?: UtUsvmExecution(
+                    initialState.stateBefore,
+                    concreteExecutionResult.stateAfter,
+                    concreteExecutionResult.result,
+                    concreteExecutionResult.coverage,
+                    instrumentation = concreteExecutionResult.newInstrumentation ?: initialState.instrumentations,
+                )
         } catch (e: CancellationException) {
             logger.debug(e) { "Cancellation happened" }
             null
@@ -203,17 +201,12 @@ object UsvmSymbolicEngine {
         classpath = classpathFiles,
         javaHome = JdkInfoService.provide().path.toFile(),
     ) {
-        installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
+        installFeatures(
+            InMemoryHierarchy,
+            Approximations,
+            // ApproximationPaths(JcJars.approximationsJar, ...)
+            ClassScorer(TypeScorer, ::scoreClassNode)
+        )
         loadByteCode(classpathFiles)
     }
-
-    data class JcExecutionConstruction(
-        val jcExecution: JcExecution,
-        val useUsvmExecutor: Boolean,
-    )
-
-    data class AnalysisResult(
-        val executableId: ExecutableId,
-        val utResult: UtResult,
-    )
 }

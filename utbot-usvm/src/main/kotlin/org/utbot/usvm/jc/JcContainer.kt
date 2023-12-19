@@ -51,6 +51,7 @@ class JcContainer private constructor(
                     persistent(location = persistenceLocation, clearOnStart = false)
                 }
             }
+            // TODO ApproximationPaths(JcJars.approximationsJar, ...)
             val cp = db.classpathWithApproximations(classpath, listOf(UnknownClasses))
             db to cp
         }
@@ -60,6 +61,7 @@ class JcContainer private constructor(
             JcRuntimeTraceInstrumenterFactory::class,
             cpPath,
             cp,
+            // TODO InstrumentedProcessPaths(JcJars.runnerJar, collectorsJar, javaHome.absolutePath)
             javaHome.absolutePath,
             persistenceLocation,
             TEST_EXECUTION_TIMEOUT

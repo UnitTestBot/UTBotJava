@@ -203,28 +203,23 @@ open class TestCaseGenerator(
         val forceMockListener = ForceMockListener.create(this, conflictTriggers)
         val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
 
-        suspend fun consumeUtResultFlow(utResultFlow: Flow<Pair<ExecutableId, UtResult>>) =
-            utResultFlow.catch {
-                logger.error(it) { "Error in flow" }
-            }
-                .collect { (executableId, utResult) ->
-                    when (utResult) {
-                        is UtExecution -> {
-                            if (utResult is UtSymbolicExecution &&
-                                (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
-                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
-                            ) {
-                                utResult.containsMocking = true
-                            }
-                            method2executions.getValue(executableId) += utResult
-                        }
-
-                        is UtError -> {
-                            method2errors.getValue(executableId).merge(utResult.description, 1, Int::plus)
-                            logger.error(utResult.error) { "UtError occurred" }
-                        }
+        fun consumeUtResult(executableId: ExecutableId, utResult: UtResult) =
+            when (utResult) {
+                is UtExecution -> {
+                    if (utResult is UtSymbolicExecution &&
+                        (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                    ) {
+                        utResult.containsMocking = true
                     }
+                    method2executions.getValue(executableId) += utResult
                 }
+
+                is UtError -> {
+                    method2errors.getValue(executableId).merge(utResult.description, 1, Int::plus)
+                    logger.error(utResult.error) { "UtError occurred" }
+                }
+            }
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
@@ -249,9 +244,15 @@ open class TestCaseGenerator(
                             engineActions.map { engine.apply(it) }
                             engineActions.clear()
 
-                            consumeUtResultFlow(generate(engine).map { utResult -> method to utResult })
+                            generate(engine)
+                                .catch {
+                                    logger.error(it) { "Error in flow" }
+                                }
+                                .collect { utResult ->
+                                    consumeUtResult(method, utResult)
+                                }
                         } catch (e: Exception) {
-                            logger.error(e) {"Error in engine"}
+                            logger.error(e) { "Error in engine" }
                             throw e
                         }
                     }
@@ -291,15 +292,9 @@ open class TestCaseGenerator(
                     logger.debug("test generator global scope lifecycle check ended")
                 }
 
-                // retrieves from cache ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
-                consumeUtResultFlow(
-                    UsvmSymbolicEngine.runUsvmGeneration(
-                        methods = methods,
-                        classpath = classpathForEngine,
-                        concreteExecutionContext = concreteExecutionContext,
-                        timeoutMillis = usvmTimeoutMillis,
-                        )
-                )
+                UsvmSymbolicEngine
+                    .runUsvmGeneration(methods, classpathForEngine, concreteExecutionContext, usvmTimeoutMillis)
+                    .forEach { (executableId, usvmExecution) -> consumeUtResult(executableId, usvmExecution) }
             }
         }
 

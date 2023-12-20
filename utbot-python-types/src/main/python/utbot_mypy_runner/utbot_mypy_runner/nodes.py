@@ -573,12 +573,13 @@ def get_definition_from_symbol_node(
     if base_def is not None:
         definitions[base_name] = base_def
 
-    try:
-        defn = table_node.node.defn
+    node = table_node.node
+    if isinstance(node, mypy.nodes.TypeInfo):
+        defn = node.defn
         if isinstance(defn, mypy.nodes.ClassDef):
-            for inner_class in filter(lambda x: isinstance(x, mypy.nodes.ClassDef), table_node.node.defn.defs.body):
-                definitions[f"{base_name}.{inner_class.name}"] = get_definition_from_node(inner_class.info, meta, only_types)
-    except AttributeError:
-        pass
+            for inner_class in filter(lambda x: isinstance(x, mypy.nodes.ClassDef), defn.defs.body):
+                definitions[f"{base_name}.{inner_class.name}"] = (
+                    get_definition_from_node(inner_class.info, meta, only_types)
+                )
 
     return definitions

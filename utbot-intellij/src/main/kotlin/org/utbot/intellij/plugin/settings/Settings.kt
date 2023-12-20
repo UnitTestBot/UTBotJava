@@ -23,6 +23,7 @@ private fun fromGenerateTestsModel(model: GenerateTestsModel): Settings.State {
         runInspectionAfterTestGeneration = model.runInspectionAfterTestGeneration,
         forceStaticMocking = model.forceStaticMocking,
         parametrizedTestSource = model.parametrizedTestSource,
+        symbolicEngineSource = model.symbolicEngineSource,
         classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
         springTestType = model.springTestType,
         springConfig = model.springConfig,

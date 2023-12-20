@@ -80,7 +80,9 @@ class JcTestExecutor(
                 UTestConcreteExecutionResult(runner.executeAsync(uTest))
             }
         }
-            .onFailure { e -> logger.warn(e) { "Recoverable: runner.executeAsync(uTest) failed on ${method.method}" } }
+            .onFailure { e ->
+                logger.warn(e) { "Recoverable: runner.executeAsync(uTest) failed on ${method.method}" }
+            }
             .getOrNull()
 
         val symbolicResult by lazy {

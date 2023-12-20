@@ -906,17 +906,24 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             else -> {}
         }
 
+        useExperimentalEngine.isSelected = (settings.symbolicEngineSource == SymbolicEngineSource.Usvm
+                && model.projectType == ProjectType.PureJvm)
+
         mockStrategies.item = when (model.projectType) {
             ProjectType.Spring ->
                 if (isSpringConfigSelected()) MockStrategyApi.springDefaultItem else settings.mockStrategy
-            else -> settings.mockStrategy
+            else -> if (settings.symbolicEngineSource == SymbolicEngineSource.Usvm) {
+                MockStrategyApi.NO_MOCKS
+            } else {
+                settings.mockStrategy
+            }
         }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = (settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
                 && model.projectType == ProjectType.PureJvm)
 
-        useExperimentalEngine.isSelected = (settings.symbolicEngineSource == SymbolicEngineSource.Usvm
-                && model.projectType == ProjectType.PureJvm)
+        mockStrategies.isEnabled = true
+        staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
         codegenLanguages.item = model.codegenLanguage
 
@@ -944,8 +951,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             ProjectType.Python,
             ProjectType.JavaScript -> { }
         }
-
-        mockStrategies.isEnabled = !isSpringConfigSelected()
+        mockStrategies.isEnabled =
+            settings.symbolicEngineSource == SymbolicEngineSource.UnitTestBot && !isSpringConfigSelected()
         updateStaticMockEnabled()
         updateMockStrategyList()
 

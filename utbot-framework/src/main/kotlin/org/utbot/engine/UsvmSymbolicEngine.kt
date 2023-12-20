@@ -101,7 +101,6 @@ object UsvmSymbolicEngine {
                         executionConverter.convert()
                     }.getOrElse { e ->
                         logger.warn(e) { "JcToUtExecutionConverter.convert(${jcExecution.method.method}) failed" }
-
                         val initialState = executionConverter.convertInitialStateOnly()
                         val concreteExecutor =
                             ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpath)

@@ -14,6 +14,7 @@ import org.usvm.machine.JcMachine
 import org.usvm.types.ClassScorer
 import org.usvm.types.TypeScorer
 import org.usvm.types.scoreClassNode
+import org.usvm.util.ApproximationPaths
 import org.utbot.common.info
 import org.utbot.common.measureTime
 import org.utbot.contest.ClassUnderTest
@@ -50,6 +51,7 @@ import org.utbot.usvm.converter.SimpleInstructionIdProvider
 import org.utbot.usvm.converter.toExecutableId
 import org.utbot.usvm.jc.JcContainer
 import org.utbot.usvm.jc.JcContainer.Companion.TEST_EXECUTION_TIMEOUT
+import org.utbot.usvm.jc.JcJars
 import org.utbot.usvm.jc.JcTestExecutor
 import org.utbot.usvm.jc.findMethodOrNull
 import org.utbot.usvm.jc.typedMethod
@@ -261,8 +263,11 @@ fun createJcContainer(
 ) {
     // TODO usvm-sbft: we may want to tune these JcSettings for contest
     // TODO: require usePersistence=false for ClassScorer
-    // ApproximationPaths(JcJars.approximationsJar, ...) в ClassScorer
-    installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode))
+    val approximationPaths = ApproximationPaths(
+        usvmApiJarPath = JcJars.approximationsApiJar.absolutePath,
+        usvmApproximationsJarPath = JcJars.approximationsJar.absolutePath,
+    )
+    installFeatures(InMemoryHierarchy, Approximations, ClassScorer(TypeScorer, ::scoreClassNode, approximationPaths))
     loadByteCode(classpathFiles)
 }
 

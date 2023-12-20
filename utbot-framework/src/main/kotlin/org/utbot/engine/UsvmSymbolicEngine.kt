@@ -14,6 +14,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.types.ClassScorer
 import org.usvm.types.TypeScorer
 import org.usvm.types.scoreClassNode
+import org.usvm.util.ApproximationPaths
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProviderPlaceholder
@@ -22,7 +23,6 @@ import org.utbot.framework.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtConcreteExecutionProcessedFailure
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtResult
@@ -38,6 +38,7 @@ import org.utbot.usvm.converter.UtUsvmExecution
 import org.utbot.usvm.converter.toExecutableId
 import org.utbot.usvm.jc.JcContainer
 import org.utbot.usvm.jc.JcExecution
+import org.utbot.usvm.jc.JcJars
 import org.utbot.usvm.jc.JcTestExecutor
 import org.utbot.usvm.jc.findMethodOrNull
 import org.utbot.usvm.jc.typedMethod
@@ -201,11 +202,14 @@ object UsvmSymbolicEngine {
         classpath = classpathFiles,
         javaHome = JdkInfoService.provide().path.toFile(),
     ) {
+        val approximationPaths = ApproximationPaths(
+            usvmApiJarPath = JcJars.approximationsApiJar.absolutePath,
+            usvmApproximationsJarPath = JcJars.approximationsJar.absolutePath,
+        )
         installFeatures(
             InMemoryHierarchy,
             Approximations,
-            // ApproximationPaths(JcJars.approximationsJar, ...)
-            ClassScorer(TypeScorer, ::scoreClassNode)
+            ClassScorer(TypeScorer, ::scoreClassNode, approximationPaths)
         )
         loadByteCode(classpathFiles)
     }

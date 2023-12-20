@@ -18,7 +18,13 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 // TODO usvm-sbft-refactoring: copied from `usvm/usvm-jvm/test`, extract this class back to USVM project
-class JcContainer private constructor(
+/**
+ * NOTE that JcContainer can also be instantiated with [JcContainer.getOrCreate] method.
+ *
+ * Calling constructor directly should be used if you definitely want to create
+ * new JcContainer instead of trying it get it from containers cache.
+ */
+class JcContainer(
     usePersistence: Boolean,
     persistenceDir: File,
     classpath: List<File>,
@@ -91,7 +97,7 @@ class JcContainer private constructor(
 
         private val cache = HashMap<List<File>, JcContainer>()
 
-        operator fun invoke(
+        fun getOrCreate(
             usePersistence: Boolean,
             persistenceDir: File,
             classpath: List<File>,

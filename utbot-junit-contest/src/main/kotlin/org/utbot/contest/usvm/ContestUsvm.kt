@@ -255,7 +255,7 @@ fun runUsvmGeneration(
 fun createJcContainer(
     tmpDir: File,
     classpathFiles: List<File>
-) = JcContainer(
+) = JcContainer.getOrCreate(
     usePersistence = false,
     persistenceDir = tmpDir,
     classpath = classpathFiles,

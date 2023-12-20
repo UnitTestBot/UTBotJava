@@ -6,7 +6,7 @@
 
  - Required Java version: 11.
 
- - Preferred Python version: 3.11+.
+ - Preferred Python version: 3.11 (3.9 and 3.10 also supported but with limited functionality).
 
     Make sure that your Python has `pip` installed (this is usually the case). [Read more about pip installation](https://pip.pypa.io/en/stable/installation/).
 

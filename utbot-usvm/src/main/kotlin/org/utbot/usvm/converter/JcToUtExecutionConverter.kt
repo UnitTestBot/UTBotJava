@@ -359,17 +359,22 @@ class JcToUtExecutionConverter(
         constructConstArrayModelMapper(),
     )
     private fun UtExecution.applyCommonMappings(): UtExecution {
-        commonMappers.forEach { mapper -> this.mapModels(mapper) }
-        return this
+        var mappedExecution = this
+        commonMappers.forEach { mapper -> mappedExecution = mappedExecution.mapModels(mapper) }
+        return mappedExecution
     }
 
     private fun EnvironmentModels.applyCommonMappings(): EnvironmentModels {
-        commonMappers.forEach { this.mapModels(it) }
-        return this
+        var mappedEnvironmentalModels = this
+        commonMappers.forEach { mapper -> mappedEnvironmentalModels = mappedEnvironmentalModels.mapModels(mapper) }
+        return mappedEnvironmentalModels
     }
 
     private fun List<UtInstrumentation>.applyCommonMappings(): List<UtInstrumentation> {
-        commonMappers.forEach { mapper -> this.map { instr -> instr.mapModels(mapper) } }
-        return this
+        var mappedInstrumentation = this
+        commonMappers.forEach {
+            mapper -> mappedInstrumentation = mappedInstrumentation.map { instr -> instr.mapModels(mapper) }
+        }
+        return mappedInstrumentation
     }
 }

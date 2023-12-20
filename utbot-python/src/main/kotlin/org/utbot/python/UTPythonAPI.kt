@@ -119,7 +119,7 @@ class PythonBaseMethod(
         val argKinds = meta.argumentKinds
         if (argKinds.any { !isRequired(it) }) {
             val originalDef = definition
-            val shortType = meta.removeNotRequiredArgs(originalDef.type) ?: return null
+            val shortType = meta.removeNotRequiredArgs(originalDef.type)
             val shortMeta = PythonFuncItemDescription(
                 originalDef.meta.name,
                 originalDef.meta.args.filterIndexed { index, _ -> isRequired(argKinds[index]) }

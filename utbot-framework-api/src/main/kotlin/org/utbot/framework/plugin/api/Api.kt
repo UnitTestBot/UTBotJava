@@ -1532,11 +1532,11 @@ class SpringProfileNames(
     override fun toString() = defaultItem
 
     companion object : CodeGenerationSettingTextField {
-        override val defaultItem = "default";
+        override val defaultItem = "default"
     }
 }
 
-const val NO_SPRING_CONFIGURATION_OPTION = "No configuration";
+const val NO_SPRING_CONFIGURATION_OPTION = "No configuration"
 
 class SpringConfig(
     override val defaultItem: String,
@@ -1545,7 +1545,7 @@ class SpringConfig(
     override fun toString() = defaultItem
 
     companion object : CodeGenerationSettingTextField {
-        override val defaultItem = NO_SPRING_CONFIGURATION_OPTION;
+        override val defaultItem = NO_SPRING_CONFIGURATION_OPTION
     }
 }
 

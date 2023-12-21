@@ -201,7 +201,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private val springTestType = createComboBox(SpringTestType.values()).also { it.setMinimumAndPreferredWidth(300) }
     private val springConfig = createComboBoxWithSeparatorsForSpringConfigs(shortenConfigurationNames())
-    private val springProfileNames = JBTextField(23).apply { emptyText.text = SpringProfileNames.defaultItem.toString() }
+    private val springProfileNames = JBTextField(23).apply { emptyText.text = SpringProfileNames.defaultItem }
 
     private val timeoutSpinner =
         JBIntSpinner(TimeUnit.MILLISECONDS.toSeconds(model.timeout).toInt(), 1, Int.MAX_VALUE, 1).also {
@@ -894,8 +894,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             else -> {}
         }
 
-        mockStrategies.item = when (model.projectType == ProjectType.Spring && springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
-            true -> MockStrategyApi.springDefaultItem
+        mockStrategies.item = when (model.projectType) {
+            ProjectType.Spring ->
+                if (isSpringConfigSelected()) MockStrategyApi.springDefaultItem else settings.mockStrategy
             else -> settings.mockStrategy
         }
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
@@ -984,7 +985,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun configureSpringTestFrameworkIfRequired() {
-        if (springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
+        if (isSpringConfigSelected()) {
 
             SpringModule.installedItems
                 .forEach { configureSpringTestDependency(it) }
@@ -1233,7 +1234,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun updateMockStrategy(springTestType: SpringTestType){
         when (springTestType) {
             UNIT_TEST -> {
-                if(springConfig.item != NO_SPRING_CONFIGURATION_OPTION){
+                if(isSpringConfigSelected()){
                     mockStrategies.item = MockStrategyApi.springDefaultItem
                     staticsMocking.isSelected = true
                 }
@@ -1334,7 +1335,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
                 this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (springConfig.item != NO_SPRING_CONFIGURATION_OPTION) {
+                if (isSpringConfigSelected()) {
                     SpringModule.installedItems
                         // only first missing test framework is shown to avoid overflowing ComboBox
                         .firstOrNull { !it.testFrameworkInstalled }

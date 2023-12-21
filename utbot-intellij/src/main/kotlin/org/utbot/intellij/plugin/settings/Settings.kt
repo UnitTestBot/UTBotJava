@@ -25,7 +25,7 @@ private fun fromGenerateTestsModel(model: GenerateTestsModel): Settings.State {
         parametrizedTestSource = model.parametrizedTestSource,
         classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
         springTestType = model.springTestType,
-        springConfig = model.springSettings,
+        springConfig = model.springConfig,
         springProfileNames = model.springProfileNames,
         fuzzingValue = model.fuzzingValue,
         runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,

@@ -103,6 +103,7 @@ import org.utbot.framework.plugin.api.SpringProfileNames
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
+import org.utbot.framework.plugin.api.NO_SPRING_CONFIGURATION_OPTION
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.id
@@ -165,8 +166,6 @@ private const val RECENTS_KEY = "org.utbot.recents"
 private const val SAME_PACKAGE_LABEL = "same as for sources"
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
-
-private const val NO_SPRING_CONFIGURATION_OPTION = "No configuration"
 
 private const val ACTION_GENERATE = "Generate Tests"
 private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
@@ -741,12 +740,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
                     PresentSpringSettings(
                         configuration = config,
-                        profiles = parseProfileExpression(springProfileNames.text, SpringProfileNames.defaultItem.toString()).toList()
+                        profiles = parseProfileExpression(springProfileNames.text, SpringProfileNames.defaultItem).toList()
                     )
                 }
             }
 
         model.springTestType = springTestType.item
+        model.springConfig = springConfig.item.toString()
         model.springProfileNames = springProfileNames.text
 
         val settings = model.project.service<Settings>()
@@ -889,11 +889,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                         if (settings.fuzzingValue == 0.0) 0.0
                         else settings.fuzzingValue.coerceAtLeast(0.3)
                 }
-                springConfig.item = when (settings.springConfig) {
-                    is AbsentSpringSettings -> NO_SPRING_CONFIGURATION_OPTION
-                    is PresentSpringSettings -> shortenConfigurationNameByFullname((settings.springConfig as PresentSpringSettings).configuration.fullDisplayName)
-                        ?: NO_SPRING_CONFIGURATION_OPTION
-                }
+                springConfig.item = settings.springConfig
             }
             else -> {}
         }

@@ -1525,19 +1525,30 @@ enum class SpringTestType(
     }
 }
 
-enum class SpringProfileNames(
-    override val id: String,
-    override val displayName: String,
-    override val description: String,
-) : CodeGenerationSettingItem {
-    DEFAULT_SPRING_PROFILE_NAME("default", "default", "Generate tests with default profile");
+class SpringProfileNames(
+    override val defaultItem: String,
+) : CodeGenerationSettingTextField {
 
-    override fun toString() = id
+    override fun toString() = defaultItem
 
     companion object : CodeGenerationSettingTextField {
-        override val defaultItem = DEFAULT_SPRING_PROFILE_NAME
+        override val defaultItem = "default";
     }
 }
+
+const val NO_SPRING_CONFIGURATION_OPTION = "No configuration";
+
+class SpringConfig(
+    override val defaultItem: String,
+) : CodeGenerationSettingTextField {
+
+    override fun toString() = defaultItem
+
+    companion object : CodeGenerationSettingTextField {
+        override val defaultItem = NO_SPRING_CONFIGURATION_OPTION;
+    }
+}
+
 /**
  * Describes information about beans obtained from Spring analysis process.
  *
@@ -1582,7 +1593,7 @@ interface CodeGenerationSettingBox {
 }
 
 interface CodeGenerationSettingTextField {
-    val defaultItem: CodeGenerationSettingItem
+    val defaultItem: String
 }
 
 enum class MockStrategyApi(

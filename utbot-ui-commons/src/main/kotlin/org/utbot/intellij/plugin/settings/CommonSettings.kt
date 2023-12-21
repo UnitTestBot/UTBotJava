@@ -40,8 +40,8 @@ import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.domain.UnknownTestFramework
 import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.isSummarizationCompatible
-import org.utbot.framework.plugin.api.SpringSettings
 import org.utbot.framework.plugin.api.SpringProfileNames
+import org.utbot.framework.plugin.api.SpringConfig
 
 @State(
     name = "UtBotSettings",
@@ -68,8 +68,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
         var springTestType: SpringTestType = SpringTestType.defaultItem,
-        var springConfig: SpringSettings = SpringSettings.AbsentSpringSettings,
-        var springProfileNames: String = SpringProfileNames.defaultItem.toString(),
+        var springConfig: String = SpringConfig.defaultItem,
+        var springProfileNames: String = SpringProfileNames.defaultItem,
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
@@ -178,7 +178,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     val springTestType: SpringTestType get() = state.springTestType
 
-    val springConfig: SpringSettings get() = state.springConfig
+    val springConfig: String get() = state.springConfig
 
     val springProfileNames: String get() = state.springProfileNames
 

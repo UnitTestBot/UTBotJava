@@ -18,6 +18,7 @@ import org.usvm.types.scoreClassNode
 import org.usvm.util.ApproximationPaths
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
+import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProviderPlaceholder
 import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.fuzzer.ReferencePreservingIntIdGenerator
@@ -28,6 +29,8 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -110,6 +113,13 @@ object UsvmSymbolicEngine {
                                 .apply { this.classLoader = utContext.classLoader }
 
                         runStandardConcreteExecution(concreteExecutor, executableId, initialState)
+                    }
+
+                    if(utResult is UtExecution) {
+                        val assembleModelGenerator = AssembleModelGenerator(executableId.classId.packageName)
+                        utResult.mapModels(UtModelDeepMapper { model ->
+                            assembleModelGenerator.createAssembleModels(listOf(model)).getValue(model)
+                        })
                     }
 
                     utResult?.let {

@@ -103,7 +103,7 @@ object UsvmSymbolicEngine {
                         utilMethodProvider = UtilMethodProviderPlaceholder,
                     )
 
-                    val utResult = runCatching {
+                    var utResult = runCatching {
                         executionConverter.convert()
                     }.getOrElse { e ->
                         logger.warn(e) { "JcToUtExecutionConverter.convert(${jcExecution.method.method}) failed" }
@@ -117,7 +117,7 @@ object UsvmSymbolicEngine {
 
                     if(utResult is UtExecution) {
                         val assembleModelGenerator = AssembleModelGenerator(executableId.classId.packageName)
-                        utResult.mapModels(UtModelDeepMapper { model ->
+                        utResult = utResult.mapModels(UtModelDeepMapper { model ->
                             assembleModelGenerator.createAssembleModels(listOf(model)).getValue(model)
                         })
                     }

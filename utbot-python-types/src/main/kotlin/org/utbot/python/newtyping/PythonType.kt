@@ -218,6 +218,7 @@ class PythonCallableTypeDescription(
 
     fun removeNonPositionalArgs(type: UtType): FunctionType {
         val functionType = castToCompatibleTypeApi(type)
+        require(functionType.parameters.all { it is TypeParameter })
         val argsCount = argumentKinds.count { it == ArgKind.ARG_POS }
         return createPythonCallableType(
             functionType.parameters.size,
@@ -238,6 +239,7 @@ class PythonCallableTypeDescription(
 
     fun removeNotRequiredArgs(type: UtType): FunctionType {
         val functionType = castToCompatibleTypeApi(type)
+        require(functionType.parameters.all { it is TypeParameter })
         return createPythonCallableType(
             functionType.parameters.size,
             argumentKinds.filter { isRequired(it) },

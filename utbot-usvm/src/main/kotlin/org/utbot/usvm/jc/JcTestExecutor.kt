@@ -45,6 +45,13 @@ import org.usvm.model.UModelBase
 
 private val logger = KotlinLogging.logger {}
 
+data class MemoryScopeDescriptor(
+    val method: JcTypedMethod,
+    val state: JcState,
+    val stringConstants: Map<String, UConcreteHeapRef>,
+    val classConstants: Map<JcType, UConcreteHeapRef>,
+)
+
 /**
  * A class, responsible for resolving a single [JcExecution] for a specific method from a symbolic state.
  *
@@ -55,13 +62,8 @@ class JcTestExecutor(
     val classpath: JcClasspath,
     private val runner: UTestConcreteExecutor
 ) {
-    private val memoryScopeCache = mutableMapOf<MemoryScopeDescriptor, MemoryScope>()
-    data class MemoryScopeDescriptor(
-        val method: JcTypedMethod,
-        val state: JcState,
-        val stringConstants: Map<String, UConcreteHeapRef>,
-        val classConstants: Map<JcType, UConcreteHeapRef>,
-    )
+
+
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
@@ -72,8 +74,9 @@ class JcTestExecutor(
         classConstants: Map<JcType, UConcreteHeapRef>,
         allowSymbolicResult: Boolean
     ): JcExecution? {
-        val uTest = createUTest(method, state, stringConstants, classConstants)
+        val memoryScopeDescriptor = MemoryScopeDescriptor(method, state, stringConstants, classConstants)
 
+        val uTest = createUTest(memoryScopeDescriptor)
         val concreteResult = runCatching {
             runBlocking {
                 UTestConcreteExecutionResult(runner.executeAsync(uTest))
@@ -84,7 +87,6 @@ class JcTestExecutor(
             }
             .getOrNull()
 
-        val memoryScopeDescriptor = MemoryScopeDescriptor(method, state, stringConstants, classConstants)
 
         val symbolicResult by lazy {
             if (allowSymbolicResult) {
@@ -132,42 +134,35 @@ class JcTestExecutor(
         )
     }
 
-    fun createUTest(
-        method: JcTypedMethod,
-        state: JcState,
-        stringConstants: Map<String, UConcreteHeapRef>,
-        classConstants: Map<JcType, UConcreteHeapRef>,
-    ): UTest {
-        val memoryScopeDescriptor = MemoryScopeDescriptor(method, state, stringConstants, classConstants)
+    fun createUTest(memoryScopeDescriptor: MemoryScopeDescriptor): UTest {
         val memoryScope = createMemoryScope(memoryScopeDescriptor)
-
         return memoryScope.createUTest()
     }
 
-    private fun createMemoryScope(descriptor: MemoryScopeDescriptor): MemoryScope =
-        memoryScopeCache.getOrPut(descriptor) {
-            val model = descriptor.state.models.first()
-            val ctx = descriptor.state.ctx
+    private fun createMemoryScope(descriptor: MemoryScopeDescriptor): MemoryScope {
+        val model = descriptor.state.models.first()
+        val ctx = descriptor.state.ctx
 
-            val mocker = descriptor.state.memory.mocker as JcMocker
-            // val staticMethodMocks = mocker.statics TODO global mocks?????????????????????????
-            val methodMocks = mocker.symbols
+        val mocker = descriptor.state.memory.mocker as JcMocker
+        // val staticMethodMocks = mocker.statics TODO global mocks?????????????????????????
+        val methodMocks = mocker.symbols
 
-            val resolvedMethodMocks = methodMocks
-                .entries
-                .groupBy({ model.eval(it.key) }, { it.value })
-                .mapValues { it.value.flatten() }
+        val resolvedMethodMocks = methodMocks
+            .entries
+            .groupBy({ model.eval(it.key) }, { it.value })
+            .mapValues { it.value.flatten() }
 
-            MemoryScope(
-                ctx,
-                model,
-                model,
-                descriptor.stringConstants,
-                descriptor.classConstants,
-                resolvedMethodMocks,
-                descriptor.method,
-            )
-        }
+        return MemoryScope(
+            ctx,
+            model,
+            model,
+            descriptor.stringConstants,
+            descriptor.classConstants,
+            resolvedMethodMocks,
+            descriptor.method,
+        )
+    }
+
 
     @Suppress("UNUSED_PARAMETER")
     private fun resolveCoverage(method: JcTypedMethod, state: JcState): JcCoverage {

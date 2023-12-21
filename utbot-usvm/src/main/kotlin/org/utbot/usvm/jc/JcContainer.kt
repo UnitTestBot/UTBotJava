@@ -12,8 +12,9 @@ import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.util.ApproximationPaths
 import org.usvm.util.classpathWithApproximations
+import org.utbot.framework.UtSettings
 import java.io.File
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = KotlinLogging.logger {}
 
@@ -79,7 +80,7 @@ class JcContainer(
                 pathToJava = javaHome.absolutePath,
                 ),
             persistenceLocation,
-            TEST_EXECUTION_TIMEOUT
+            testExecutionTimeout
         )
         runBlocking {
             db.awaitBackgroundJobs()
@@ -93,13 +94,8 @@ class JcContainer(
     }
 
     companion object : AutoCloseable {
-        fun specifyContainerTimeout(timeout: Long) {
-            testExecutionTimeout = timeout.seconds
-        }
-
-        private var testExecutionTimeout = 1.seconds
-
-        val TEST_EXECUTION_TIMEOUT = testExecutionTimeout
+        val testExecutionTimeout
+            get() = UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis.milliseconds
 
         private val cache = HashMap<List<File>, JcContainer>()
 

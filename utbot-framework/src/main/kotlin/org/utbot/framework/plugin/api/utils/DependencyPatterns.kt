@@ -58,6 +58,16 @@ fun MockFramework.patterns(): Patterns {
     return Patterns(moduleLibraryPatterns, libraryPatterns)
 }
 
+fun MockFramework.manifestPatterns(): Patterns {
+    val moduleLibraryPatterns = when (this) {
+        MockFramework.MOCKITO -> mockitoManifestPatterns
+    }
+    val libraryPatterns = when (this) {
+        MockFramework.MOCKITO -> mockitoManifestPatterns
+    }
+    return Patterns(moduleLibraryPatterns, libraryPatterns)
+}
+
 val JUNIT_4_JAR_PATTERN = Regex("junit-4(\\.1[2-9])(\\.[0-9]+)?")
 val JUNIT_4_MVN_PATTERN = Regex("junit:junit:4(\\.1[2-9])(\\.[0-9]+)?")
 val junit4Patterns = listOf(JUNIT_4_JAR_PATTERN, JUNIT_4_MVN_PATTERN)
@@ -87,9 +97,10 @@ val testNgModulePatterns = listOf(TEST_NG_BASIC_MODULE_PATTERN)
 val MOCKITO_JAR_PATTERN = Regex("mockito-core-[3-9](\\.[0-9]+){2}")
 val MOCKITO_MVN_PATTERN = Regex("org\\.mockito:mockito-core:[3-9](\\.[0-9]+){2}")
 val mockitoPatterns = listOf(MOCKITO_JAR_PATTERN, MOCKITO_MVN_PATTERN)
+val mockitoModulePatterns = listOf(MOCKITO_JAR_PATTERN, MOCKITO_MVN_PATTERN)
 
-val MOCKITO_BASIC_MODULE_PATTERN = Regex("mockito-core")
-val mockitoModulePatterns = listOf(MOCKITO_BASIC_MODULE_PATTERN)
+val MOCKITO_MANIFEST_PATTERN = Regex("mockito-core")
+val mockitoManifestPatterns = listOf(MOCKITO_MANIFEST_PATTERN)
 
 const val MOCKITO_EXTENSIONS_FOLDER = "mockito-extensions"
 const val MOCKITO_MOCKMAKER_FILE_NAME = "org.mockito.plugins.MockMaker"

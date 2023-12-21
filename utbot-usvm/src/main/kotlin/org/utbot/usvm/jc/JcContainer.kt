@@ -93,7 +93,13 @@ class JcContainer(
     }
 
     companion object : AutoCloseable {
-        val TEST_EXECUTION_TIMEOUT = 1.seconds
+        fun specifyContainerTimeout(timeout: Long) {
+            testExecutionTimeout = timeout.seconds
+        }
+
+        private var testExecutionTimeout = 1.seconds
+
+        val TEST_EXECUTION_TIMEOUT = testExecutionTimeout
 
         private val cache = HashMap<List<File>, JcContainer>()
 

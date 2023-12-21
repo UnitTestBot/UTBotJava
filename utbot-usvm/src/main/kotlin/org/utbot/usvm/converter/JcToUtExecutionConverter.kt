@@ -182,8 +182,13 @@ class JcToUtExecutionConverter(
     }
 
     private fun constructAssemblingMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
-        // TODO usvm-sbft: support constructors with parameters here if it is really required
-        // Unfortunately, it is not possible to use [AssembleModelGeneral] as it requires soot being initialized.
+        /*
+        Unfortunately, sometimes it is not possible to use [AssembleModelGeneral]
+        as it requires soot being initialized. Soot is not used in `ContestUsvm`.
+
+         After that, even if Soot is initialized, it required some refactoring to move
+         some AssembleModelGenerated API related features to `utbot-framework-api`.
+        */
         if (model !is UtAssembleModel
             || utilMethodProvider.createInstanceMethodId != model.instantiationCall.statement
             || model.modificationsChain.isNotEmpty()) {
@@ -195,6 +200,7 @@ class JcToUtExecutionConverter(
             .params
             .single() as UtPrimitiveModel).value.toString()
 
+        // TODO usvm-sbft: support constructors with parameters here if it is really required
         val defaultConstructor = ClassId(instantiatingClassName)
             .jClass
             .constructors
@@ -358,23 +364,18 @@ class JcToUtExecutionConverter(
         constructAssembleToCompositeModelMapper(),
         constructConstArrayModelMapper(),
     )
-    private fun UtExecution.applyCommonMappings(): UtExecution {
-        var mappedExecution = this
-        commonMappers.forEach { mapper -> mappedExecution = mappedExecution.mapModels(mapper) }
-        return mappedExecution
-    }
-
-    private fun EnvironmentModels.applyCommonMappings(): EnvironmentModels {
-        var mappedEnvironmentalModels = this
-        commonMappers.forEach { mapper -> mappedEnvironmentalModels = mappedEnvironmentalModels.mapModels(mapper) }
-        return mappedEnvironmentalModels
-    }
-
-    private fun List<UtInstrumentation>.applyCommonMappings(): List<UtInstrumentation> {
-        var mappedInstrumentation = this
-        commonMappers.forEach {
-            mapper -> mappedInstrumentation = mappedInstrumentation.map { instr -> instr.mapModels(mapper) }
+    private fun UtExecution.applyCommonMappings(): UtExecution =
+        commonMappers.fold(this) { mappedExecution, mapper ->
+            mappedExecution.mapModels(mapper)
         }
-        return mappedInstrumentation
-    }
+
+    private fun EnvironmentModels.applyCommonMappings(): EnvironmentModels =
+        commonMappers.fold(this) { mappedEnvironmentalModels, mapper ->
+            mappedEnvironmentalModels.mapModels(mapper)
+        }
+
+    private fun List<UtInstrumentation>.applyCommonMappings(): List<UtInstrumentation> =
+        commonMappers.fold(this) { mappedInstrumentation, mapper ->
+            mappedInstrumentation.map { instr -> instr.mapModels(mapper) }
+        }
 }

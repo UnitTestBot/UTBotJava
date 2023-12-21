@@ -9,6 +9,7 @@ import org.usvm.PathSelectorFairnessStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.JcCoverage
+import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 import org.usvm.machine.JcMachine
 import org.usvm.machine.state.JcState
 import org.usvm.types.ClassScorer
@@ -40,6 +41,7 @@ import org.utbot.usvm.jc.JcContainer
 import org.utbot.usvm.jc.JcExecution
 import org.utbot.usvm.jc.JcJars
 import org.utbot.usvm.jc.JcTestExecutor
+import org.utbot.usvm.jc.UTestConcreteExecutionResult
 import org.utbot.usvm.jc.findMethodOrNull
 import org.utbot.usvm.jc.typedMethod
 import org.utbot.usvm.machine.analyzeAsync
@@ -57,6 +59,8 @@ object UsvmSymbolicEngine {
         concreteExecutionContext: ConcreteExecutionContext,
         timeoutMillis: Long
     ): List<Pair<ExecutableId, UtResult>> {
+
+        JcContainer.specifyContainerTimeout(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
 
         val collectedExecutions = mutableListOf<Pair<ExecutableId, UtResult>>()
         val classpathFiles = classpath.split(File.pathSeparator).map { File(it) }
@@ -126,7 +130,7 @@ object UsvmSymbolicEngine {
     ): JcExecution {
         val executor = JcTestExecutor(jcContainer.cp, jcContainer.runner)
 
-        val realJcExecution = runCatching {
+        var realJcExecution = runCatching {
             executor.execute(
                 method = state.entrypoint.typedMethod,
                 state = state,
@@ -139,8 +143,15 @@ object UsvmSymbolicEngine {
             null
         }
 
-        realJcExecution?.let {
-            return it
+        if (realJcExecution != null) {
+            // We should not rely on `UTestExecutionTimedOutResult` from usvm instrumentation as
+            // it sometimes hides another problems like `IllegalStateMonitorException` and so on.
+            realJcExecution = realJcExecution.copy(
+                uTestExecutionResultWrappers = realJcExecution
+                    .uTestExecutionResultWrappers
+                    .filterNot { it is UTestConcreteExecutionResult && it.uTestExecutionResult is UTestExecutionTimedOutResult })
+
+            return realJcExecution
         }
 
         return JcExecution(

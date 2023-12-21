@@ -908,6 +908,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         useExperimentalEngine.isSelected = (settings.symbolicEngineSource == SymbolicEngineSource.Usvm
                 && model.projectType == ProjectType.PureJvm)
+        useExperimentalEngine.isEnabled = model.projectType == ProjectType.PureJvm
 
         mockStrategies.item = when (model.projectType) {
             ProjectType.Spring ->

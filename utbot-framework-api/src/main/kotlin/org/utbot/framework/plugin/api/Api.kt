@@ -281,7 +281,9 @@ class UtSymbolicExecution(
         summary = summary,
         testMethodName = testMethodName,
         displayName = displayName
-    )
+    ).also {
+        it.containsMocking = containsMocking
+    }
 
     override fun toString(): String = buildString {
         append("UtSymbolicExecution(")
@@ -328,7 +330,9 @@ class UtSymbolicExecution(
         summary = summary,
         testMethodName = testMethodName,
         displayName = displayName
-    )
+    ).also {
+        it.containsMocking = containsMocking
+    }
 }
 
 /**

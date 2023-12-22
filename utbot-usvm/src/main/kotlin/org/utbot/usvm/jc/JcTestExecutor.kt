@@ -65,15 +65,8 @@ class JcTestExecutor(
         classConstants: Map<JcType, UConcreteHeapRef>,
         allowSymbolicResult: Boolean
     ): JcExecution? {
-        val model = state.models.first()
-        val mocker = state.memory.mocker as JcMocker
-
-        val resolvedMethodMocks = mocker.symbols
-            .entries
-            .groupBy({ model.eval(it.key) }, { it.value })
-            .mapValues { it.value.flatten() }
-
-        val uTest = createUTest(method, state, stringConstants, classConstants)
+        val memoryScope = createMemoryScope(state, stringConstants, classConstants, method)
+        val uTest = memoryScope.createUTest()
 
         val concreteResult = runCatching {
             runBlocking {
@@ -90,17 +83,8 @@ class JcTestExecutor(
                 when (val methodResult = state.methodResult) {
                     is JcMethodResult.JcException -> UTestSymbolicExceptionResult(methodResult.type)
                     is JcMethodResult.Success -> {
-                        val resultScope = MemoryScope(
-                            state.ctx,
-                            model,
-                            state.memory,
-                            stringConstants,
-                            classConstants,
-                            resolvedMethodMocks,
-                            method
-                        )
-                        val resultExpr = resultScope.resolveExpr(methodResult.value, method.returnType)
-                        val resultInitializer = resultScope.decoderApi.initializerInstructions()
+                        val resultExpr = memoryScope.resolveExpr(methodResult.value, method.returnType)
+                        val resultInitializer = memoryScope.decoderApi.initializerInstructions()
                         UTestSymbolicSuccessResult(resultInitializer, resultExpr)
                     }
 
@@ -145,6 +129,16 @@ class JcTestExecutor(
         stringConstants: Map<String, UConcreteHeapRef>,
         classConstants: Map<JcType, UConcreteHeapRef>,
     ): UTest {
+        val memoryScope = createMemoryScope(state, stringConstants, classConstants, method)
+        return memoryScope.createUTest()
+    }
+
+    private fun createMemoryScope(
+        state: JcState,
+        stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>,
+        method: JcTypedMethod
+    ): MemoryScope {
         val model = state.models.first()
         val ctx = state.ctx
 
@@ -158,8 +152,7 @@ class JcTestExecutor(
             .mapValues { it.value.flatten() }
 
         val memoryScope = MemoryScope(ctx, model, model, stringConstants, classConstants, resolvedMethodMocks, method)
-
-        return memoryScope.createUTest()
+        return memoryScope
     }
 
     @Suppress("UNUSED_PARAMETER")

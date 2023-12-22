@@ -47,7 +47,6 @@ import org.utbot.usvm.jc.JcTestExecutor
 import org.utbot.usvm.jc.UTestConcreteExecutionResult
 import org.utbot.usvm.jc.findMethodOrNull
 import org.utbot.usvm.jc.typedMethod
-import org.utbot.usvm.jc.MemoryScopeDescriptor
 import org.utbot.usvm.machine.analyzeAsync
 import java.io.File
 import java.util.concurrent.CancellationException
@@ -167,16 +166,14 @@ object UsvmSymbolicEngine {
             return realJcExecution
         }
 
-        val memoryScopeDescriptor = MemoryScopeDescriptor(
-            state.entrypoint.typedMethod,
-            state,
-            jcMachine.stringConstants,
-            jcMachine.classConstants,
-        )
-
         return JcExecution(
             method = state.entrypoint.typedMethod,
-            uTest = executor.createUTest(memoryScopeDescriptor),
+            uTest = executor.createUTest(
+                method = state.entrypoint.typedMethod,
+                state = state,
+                stringConstants = jcMachine.stringConstants,
+                classConstants = jcMachine.classConstants,
+            ),
             uTestExecutionResultWrappers = emptySequence(),
             coverage = JcCoverage(emptyMap()),
         )

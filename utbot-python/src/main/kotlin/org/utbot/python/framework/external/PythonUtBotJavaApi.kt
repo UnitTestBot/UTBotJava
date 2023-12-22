@@ -6,7 +6,11 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.python.*
+import org.utbot.python.PythonMethodHeader
+import org.utbot.python.PythonTestGenerationConfig
+import org.utbot.python.PythonTestGenerationProcessor
+import org.utbot.python.PythonTestSet
+import org.utbot.python.TestFileInformation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
@@ -54,9 +58,9 @@ object PythonUtBotJavaApi {
             executionTimeout,
         )
         logger.info("Loading information about Python types...")
-        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+        val mypyConfig = processor.sourceCodeAnalyze()
         logger.info("Generating tests...")
-        return processor.testGenerate(mypyStorage)
+        return processor.testGenerate(mypyConfig)
     }
 
     /**

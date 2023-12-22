@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import copyreg
 import inspect
 import logging
+import pickle
 import re
 import sys
 import typing
 from itertools import zip_longest
-import pickle
 from typing import Any, Callable, Dict, List, Optional, Set, Type, Iterable
 
 from utbot_executor.deep_serialization.config import PICKLE_PROTO
+from utbot_executor.deep_serialization.iterator_wrapper import IteratorWrapper
 from utbot_executor.deep_serialization.utils import (
     PythonId,
     get_kind,
@@ -32,11 +32,13 @@ class MemoryObject:
     is_draft: bool
     deserialized_obj: object
     obj: object
+    id_: PythonId | None = None
 
     def __init__(self, obj: object) -> None:
         self.is_draft = True
         self.typeinfo = get_kind(obj)
         self.obj = obj
+        self.id_ = PythonId(str(id(self.obj)))
 
     def _initialize(
         self, deserialized_obj: object = None, comparable: bool = True
@@ -49,7 +51,9 @@ class MemoryObject:
         self._initialize()
 
     def id_value(self) -> str:
-        return str(id(self.obj))
+        if self.id_ is not None:
+            return self.id_
+        return PythonId(str(id(self.obj)))
 
     def __repr__(self) -> str:
         if hasattr(self, "obj"):
@@ -140,10 +144,51 @@ class DictMemoryObject(MemoryObject):
         deserialized_obj = self.deserialized_obj
         equals_len = len(self.obj) == len(deserialized_obj)
         comparable = equals_len and all(
-            serializer.get_by_id(value_id).comparable
-            for value_id in self.items.values()
+            serializer.get_by_id(value_id).comparable and serializer.get_by_id(key_id).comparable
+            for key_id, value_id in self.items.items()
         )
 
+        super()._initialize(deserialized_obj, comparable)
+
+    def __repr__(self) -> str:
+        if hasattr(self, "obj"):
+            return str(self.obj)
+        return f"{self.typeinfo.kind}{self.items}"
+
+
+class IteratorMemoryObject(MemoryObject):
+    strategy: str = "iterator"
+    items: List[PythonId]
+    exception: TypeInfo
+
+    MAX_SIZE = 1_000
+
+    def __init__(self, iterator_object: object) -> None:
+        self.items = []
+        if not isinstance(iterator_object, IteratorWrapper):
+            iterator_object = IteratorWrapper(iterator_object)
+        super().__init__(iterator_object)
+
+    def initialize(self) -> None:
+        self.obj: IteratorWrapper
+        serializer = PythonSerializer()
+        self.comparable = False
+
+        for item in self.obj.content:
+            elem_id = serializer.write_object_to_memory(item)
+            self.items.append(elem_id)
+        self.exception = get_kind(self.obj.stop_exception)
+
+        items = [
+            serializer.get_by_id(elem_id)
+            for elem_id in self.items
+        ]
+        comparable = all(
+            item.comparable
+            for item in items
+        )
+
+        deserialized_obj = IteratorWrapper.from_list(items)
         super()._initialize(deserialized_obj, comparable)
 
     def __repr__(self) -> str:
@@ -307,20 +352,14 @@ class ReduceMemoryObject(MemoryObject):
             state = serializer[self.state]
             if isinstance(state, dict):
                 for key, value in state.items():
-                    try:
-                        setattr(deserialized_obj, key, value)
-                    except AttributeError:
-                        pass
+                    setattr(deserialized_obj, key, value)
             elif hasattr(deserialized_obj, "__setstate__"):
                 deserialized_obj.__setstate__(state)
             elif isinstance(state, tuple) and len(state) == 2:
                 _, slotstate = state
                 if slotstate:
                     for key, value in slotstate.items():
-                        try:
-                            setattr(deserialized_obj, key, value)
-                        except AttributeError:
-                            pass
+                        setattr(deserialized_obj, key, value)
 
             items = serializer[self.listitems]
             if isinstance(items, Iterable):
@@ -332,7 +371,10 @@ class ReduceMemoryObject(MemoryObject):
                 for key, value in dictitems.items():
                     deserialized_obj[key] = value
 
-        comparable = self.obj == deserialized_obj
+        try:
+            comparable = self.obj == deserialized_obj
+        except:
+            comparable = False
 
         super()._initialize(deserialized_obj, comparable)
 
@@ -356,6 +398,14 @@ class DictMemoryObjectProvider(MemoryObjectProvider):
     def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
         if type(obj) == dict:
             return DictMemoryObject
+        return None
+
+
+class IteratorMemoryObjectProvider(MemoryObjectProvider):
+    @staticmethod
+    def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
+        if isinstance(obj, (typing.Iterator, IteratorWrapper)):
+            return IteratorMemoryObject
         return None
 
 
@@ -402,6 +452,7 @@ class PythonSerializer:
     providers: List[MemoryObjectProvider] = [
         ListMemoryObjectProvider,
         DictMemoryObjectProvider,
+        IteratorMemoryObjectProvider,
         ReduceMemoryObjectProvider,
         ReprMemoryObjectProvider,
         ReduceExMemoryObjectProvider,

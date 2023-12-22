@@ -2,8 +2,8 @@ package org.utbot.python.evaluation
 
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
-import org.utbot.python.evaluation.serialization.MemoryDump
 import org.utbot.python.coverage.PyInstruction
+import org.utbot.python.evaluation.serialization.MemoryDump
 
 interface PythonCodeExecutor {
     val method: PythonMethod
@@ -20,6 +20,11 @@ interface PythonCodeExecutor {
     fun runWithCoverage(
         fuzzedValues: FunctionArguments,
         additionalModulesToImport: Set<String>,
+        coverageId: String,
+    ): PythonEvaluationResult
+
+    fun runWithCoverage(
+        pickledArguments: String,
         coverageId: String,
     ): PythonEvaluationResult
 

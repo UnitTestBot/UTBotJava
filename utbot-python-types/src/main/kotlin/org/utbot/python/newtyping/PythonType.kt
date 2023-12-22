@@ -1,7 +1,15 @@
 package org.utbot.python.newtyping
 
-import org.utbot.python.newtyping.general.*
+import org.utbot.python.newtyping.general.CompositeType
+import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
+import org.utbot.python.newtyping.general.FunctionType
+import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.Name
+import org.utbot.python.newtyping.general.TypeCreator
+import org.utbot.python.newtyping.general.TypeMetaDataWithName
+import org.utbot.python.newtyping.general.TypeParameter
+import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.general.getOrigin
 import org.utbot.python.newtyping.utils.isRequired
 
 sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
@@ -210,6 +218,7 @@ class PythonCallableTypeDescription(
 
     fun removeNonPositionalArgs(type: UtType): FunctionType {
         val functionType = castToCompatibleTypeApi(type)
+        require(functionType.parameters.all { it is TypeParameter })
         val argsCount = argumentKinds.count { it == ArgKind.ARG_POS }
         return createPythonCallableType(
             functionType.parameters.size,
@@ -230,6 +239,7 @@ class PythonCallableTypeDescription(
 
     fun removeNotRequiredArgs(type: UtType): FunctionType {
         val functionType = castToCompatibleTypeApi(type)
+        require(functionType.parameters.all { it is TypeParameter })
         return createPythonCallableType(
             functionType.parameters.size,
             argumentKinds.filter { isRequired(it) },

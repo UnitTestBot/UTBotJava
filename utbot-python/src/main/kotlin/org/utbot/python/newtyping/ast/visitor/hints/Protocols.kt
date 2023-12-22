@@ -1,11 +1,5 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.CompositeTypeCreator
-import org.utbot.python.newtyping.general.FunctionTypeCreator
-import org.utbot.python.newtyping.general.Name
-import org.utbot.python.newtyping.general.UtType
-
 enum class Operation(val method: String) {
     Add("__add__"),
     Sub("__sub__"),

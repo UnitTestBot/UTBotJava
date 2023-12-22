@@ -24,3 +24,4 @@ venv/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+utbot_executor.iml

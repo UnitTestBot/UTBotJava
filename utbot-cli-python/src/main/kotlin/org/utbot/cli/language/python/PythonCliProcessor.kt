@@ -1,20 +1,22 @@
 package org.utbot.cli.language.python
 
-import mu.KLogger
+import mu.KotlinLogging
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestSet
 
+private val logger = KotlinLogging.logger {}
+
 class PythonCliProcessor(
     override val configuration: PythonTestGenerationConfig,
-    private val output: String,
-    private val logger: KLogger,
+    private val testWriter: TestWriter,
     private val coverageOutput: String?,
     private val executionCounterOutput: String?,
 ) : PythonTestGenerationProcessor() {
 
     override fun saveTests(testsCode: String) {
-        writeToFileAndSave(output, testsCode)
+        testWriter.addTestCode(testsCode)
+//        writeToFileAndSave(output, testsCode)
     }
 
     override fun notGeneratedTestsAction(testedFunctions: List<String>) {

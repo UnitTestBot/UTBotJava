@@ -4,10 +4,12 @@ import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.framework.api.python.util.pythonDictClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonIteratorClassId
 import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonObjectClassId
 import org.utbot.python.framework.api.python.util.pythonSetClassId
+import org.utbot.python.framework.api.python.util.pythonStopIterationClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.framework.api.python.util.toPythonRepr
@@ -20,18 +22,20 @@ import java.util.concurrent.atomic.AtomicLong
 
 
 object PythonTree {
+
+    const val MAX_ITERATOR_SIZE = 1000
+
     fun isRecursiveObject(tree: PythonTreeNode): Boolean {
         return isRecursiveObjectDFS(tree, mutableSetOf())
     }
 
-    private fun isRecursiveObjectDFS(tree: PythonTreeNode, visited: MutableSet<PythonTreeNode>): Boolean {
+    private fun isRecursiveObjectDFS(tree: PythonTreeNode, visited: Set<PythonTreeNode>): Boolean {
         if (tree is PrimitiveNode) {
             return false
         }
         if (visited.contains(tree))
             return true
-        visited.add(tree)
-        return tree.children.any { isRecursiveObjectDFS(it, visited) }
+        return tree.children.any { isRecursiveObjectDFS(it, visited + tree) }
     }
 
     fun containsFakeNode(tree: PythonTreeNode): Boolean {
@@ -78,6 +82,7 @@ object PythonTree {
                 return false
             }
             return this.wrap() == other.wrap()
+//            return this.id == other.id
         }
 
         override fun hashCode(): Int {
@@ -210,6 +215,26 @@ object PythonTree {
             } else {
                 false
             }
+        }
+    }
+
+    class IteratorNode(
+        id: Long,
+        val items: MutableMap<Int, PythonTreeNode>,
+        val exception: PythonClassId = pythonStopIterationClassId,
+    ) : PythonTreeNode(id, pythonIteratorClassId) {
+
+        constructor(items: MutableMap<Int, PythonTreeNode>, stopException: PythonClassId = pythonStopIterationClassId) : this(PythonIdGenerator.createId(), items, stopException)
+
+        override val children: List<PythonTreeNode>
+            get() = items.values.toList()
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is ListNode)
+                children.zip(other.children).all {
+                    it.first.typeEquals(it.second)
+                }
+            else false
         }
     }
 

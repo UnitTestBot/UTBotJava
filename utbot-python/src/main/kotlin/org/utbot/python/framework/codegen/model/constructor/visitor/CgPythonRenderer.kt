@@ -1,10 +1,6 @@
 package org.utbot.python.framework.codegen.model.constructor.visitor
 
 import org.apache.commons.text.StringEscapeUtils
-import org.utbot.common.WorkaroundReason
-import org.utbot.common.workaround
-import org.utbot.python.framework.codegen.model.PythonImport
-import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
 import org.utbot.framework.codegen.domain.models.CgAbstractMultilineComment
@@ -55,9 +51,9 @@ import org.utbot.framework.codegen.domain.models.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinter
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
-import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.plugin.api.ClassId
@@ -66,9 +62,23 @@ import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.codegen.model.PythonImport
+import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.constructor.util.dropBuiltins
-import org.utbot.python.framework.codegen.model.tree.*
-import java.lang.StringBuilder
+import org.utbot.python.framework.codegen.model.tree.CgPythonAssertEquals
+import org.utbot.python.framework.codegen.model.tree.CgPythonDict
+import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
+import org.utbot.python.framework.codegen.model.tree.CgPythonIndex
+import org.utbot.python.framework.codegen.model.tree.CgPythonIterator
+import org.utbot.python.framework.codegen.model.tree.CgPythonList
+import org.utbot.python.framework.codegen.model.tree.CgPythonNamedArgument
+import org.utbot.python.framework.codegen.model.tree.CgPythonRange
+import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
+import org.utbot.python.framework.codegen.model.tree.CgPythonSet
+import org.utbot.python.framework.codegen.model.tree.CgPythonTree
+import org.utbot.python.framework.codegen.model.tree.CgPythonTuple
+import org.utbot.python.framework.codegen.model.tree.CgPythonWith
+import org.utbot.python.framework.codegen.model.tree.CgPythonZip
 import org.utbot.python.framework.codegen.utils.toRelativeRawPath
 
 internal class CgPythonRenderer(
@@ -537,6 +547,12 @@ internal class CgPythonRenderer(
         print(")")
     }
 
+    override fun visit(element: CgPythonZip) {
+        print("zip(")
+        listOf(element.first, element.second).renderSeparated()
+        print(")")
+    }
+
     override fun visit(element: CgPythonList) {
         print("[")
         element.elements.renderSeparated()
@@ -564,6 +580,12 @@ internal class CgPythonRenderer(
             element.elements.toList().renderSeparated()
             print("}")
         }
+    }
+
+    override fun visit(element: CgPythonIterator) {
+        print("iter([")
+        element.elements.renderSeparated()
+        print("])")
     }
 
     override fun visit(element: CgPythonTree) {
@@ -635,4 +657,3 @@ internal class CgPythonRenderer(
             .replace("\\f", "\\u000C")
             .replace("\\xxx", "\\\u0058\u0058\u0058")
 }
-

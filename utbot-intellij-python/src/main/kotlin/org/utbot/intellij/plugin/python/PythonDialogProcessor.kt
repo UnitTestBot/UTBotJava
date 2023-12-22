@@ -72,18 +72,18 @@ object PythonDialogProcessor {
     private fun runIndicatorWithTimeHandler(indicator: ProgressIndicator, range: ProgressRange, text: String, globalCount: Int, globalShift: Int, timeout: Long): ScheduledFuture<*> {
         val startTime = System.currentTimeMillis()
         return AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
-                val innerTimeoutRatio =
-                    ((System.currentTimeMillis() - startTime).toDouble() / timeout)
-                        .coerceIn(0.0, 1.0)
-                updateIndicator(
-                    indicator,
-                    range,
-                    text,
-                    innerTimeoutRatio,
-                    globalCount,
-                    globalShift,
-                )
-            }, 0, 100, TimeUnit.MILLISECONDS)
+            val innerTimeoutRatio =
+                ((System.currentTimeMillis() - startTime).toDouble() / timeout)
+                    .coerceIn(0.0, 1.0)
+            updateIndicator(
+                indicator,
+                range,
+                text,
+                innerTimeoutRatio,
+                globalCount,
+                globalShift,
+            )
+        }, 0, 100, TimeUnit.MILLISECONDS)
     }
 
     private fun updateIndicatorTemplate(
@@ -163,28 +163,28 @@ object PythonDialogProcessor {
 
     private fun findSelectedPythonMethods(model: PythonTestLocalModel): List<PythonMethodHeader> {
         return ReadAction.nonBlocking<List<PythonMethodHeader>> {
-                model.selectedElements
-                    .filter { model.selectedElements.contains(it) }
-                    .flatMap {
-                        when (it) {
-                            is PyFunction -> listOf(it)
-                            is PyClass -> it.methods.toList()
-                            else -> emptyList()
-                        }
+            model.selectedElements
+                .filter { model.selectedElements.contains(it) }
+                .flatMap {
+                    when (it) {
+                        is PyFunction -> listOf(it)
+                        is PyClass -> it.methods.toList()
+                        else -> emptyList()
                     }
-                    .filter { fineFunction(it) }
-                    .mapNotNull {
-                        val functionName = it.name ?: return@mapNotNull null
-                        val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
-                        val containingClassId = it.containingClass?.qualifiedName?.let{ cls -> PythonClassId(cls) }
-                        PythonMethodHeader(
-                                functionName,
-                                moduleFilename,
-                                containingClassId,
-                            )
-                    }
-                    .toSet()
-                    .toList()
+                }
+                .filter { fineFunction(it) }
+                .mapNotNull {
+                    val functionName = it.name ?: return@mapNotNull null
+                    val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
+                    val containingClassId = it.containingClass?.qualifiedName?.let{ cls -> PythonClassId(cls) }
+                    PythonMethodHeader(
+                        functionName,
+                        moduleFilename,
+                        containingClassId,
+                    )
+                }
+                .toSet()
+                .toList()
         }.executeSynchronously() ?: emptyList()
     }
 
@@ -287,7 +287,7 @@ object PythonDialogProcessor {
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 0.5)
 
-                        val (mypyStorage, _) = processor.sourceCodeAnalyze()
+                        val mypyConfig = processor.sourceCodeAnalyze()
 
                         localUpdateIndicator(ProgressRange.ANALYZE, "Analyze module ${model.currentPythonModule}", 1.0)
 
@@ -300,7 +300,7 @@ object PythonDialogProcessor {
                             model.timeout,
                         )
                         try {
-                            val testSets = processor.testGenerate(mypyStorage)
+                            val testSets = processor.testGenerate(mypyConfig)
                             timerHandler.cancel(true)
                             if (testSets.isEmpty()) return@forEachIndexed
 
@@ -312,7 +312,7 @@ object PythonDialogProcessor {
 
                             logger.info(
                                 "Finished test generation for the following functions: ${
-                                    testSets.joinToString { it.method.name }
+                                    testSets.map { it.method.name }.toSet().joinToString()
                                 }"
                             )
                         } finally {

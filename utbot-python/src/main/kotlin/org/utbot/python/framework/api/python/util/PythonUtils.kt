@@ -13,7 +13,9 @@ fun String.toSnakeCase(): String {
         else if (c.isUpperCase()) {
             (if (index > 0) "_" else "") + c.lowercase()
         } else c
-    }.joinToString("")
+    }
+        .joinToString("")
+        .replace(".", "_")
 }
 
 fun String.toPythonRepr(): String {

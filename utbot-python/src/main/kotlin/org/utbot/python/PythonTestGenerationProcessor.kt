@@ -5,7 +5,6 @@ import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -30,15 +29,18 @@ import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.PythonSystemImport
 import org.utbot.python.framework.codegen.model.PythonUserImport
+import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.PythonFunctionDefinition
 import org.utbot.python.newtyping.general.CompositeType
 import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
-import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonName
 import org.utbot.python.utils.TemporaryFileManager
+import org.utbot.python.utils.convertToTime
+import org.utbot.python.utils.separateTimeout
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
@@ -48,42 +50,41 @@ private val logger = KotlinLogging.logger {}
 // TODO: add asserts that one or less of containing classes and only one file
 abstract class PythonTestGenerationProcessor {
     abstract val configuration: PythonTestGenerationConfig
-    private val mypyBuildRoot = TemporaryFileManager.assignTemporaryFile(tag = "mypyBuildRoot")
 
-    fun sourceCodeAnalyze(): Pair<MypyInfoBuild, List<MypyReportLine>> {
-        return readMypyAnnotationStorageAndInitialErrors(
+    fun sourceCodeAnalyze(): MypyConfig {
+        return sourceCodeAnalyze(
+            configuration.sysPathDirectories,
             configuration.pythonPath,
-            configuration.testFileInformation.testedFilePath,
-            configuration.testFileInformation.moduleName,
-            MypyBuildDirectory(mypyBuildRoot, configuration.sysPathDirectories)
+            configuration.testFileInformation,
         )
     }
 
-    fun testGenerate(mypyStorage: MypyInfoBuild): List<PythonTestSet> {
-        val startTime = System.currentTimeMillis()
-
+    fun testGenerate(mypyConfig: MypyConfig): List<PythonTestSet> {
         val testCaseGenerator = PythonTestCaseGenerator(
-            withMinimization = configuration.withMinimization,
-            directoriesForSysPath = configuration.sysPathDirectories,
-            curModule = configuration.testFileInformation.moduleName,
-            pythonPath = configuration.pythonPath,
-            fileOfMethod = configuration.testFileInformation.testedFilePath,
-            isCancelled = configuration.isCanceled,
-            timeoutForRun = configuration.timeoutForRun,
-            sourceFileContent = configuration.testFileInformation.testedFileContent,
-            mypyStorage = mypyStorage,
-            mypyReportLine = emptyList(),
-            coverageMode = configuration.coverageMeasureMode,
-            sendCoverageContinuously = configuration.sendCoverageContinuously,
+            configuration = configuration,
+            mypyConfig = mypyConfig,
         )
 
-        val until = startTime + configuration.timeout
+        val oneFunctionTimeout = separateTimeout(configuration.timeout, configuration.testedMethods.size)
+        val countOfFunctions = configuration.testedMethods.size
+        val startTime = System.currentTimeMillis()
+
         val tests = configuration.testedMethods.mapIndexedNotNull { index, methodHeader ->
-            val methodsLeft = configuration.testedMethods.size - index
-            val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
+            if (configuration.isCanceled()) {
+                return emptyList()
+            }
+            val usedTime = System.currentTimeMillis() - startTime
+            val expectedTime = index * oneFunctionTimeout
+            val localOneFunctionTimeout = if (usedTime < expectedTime) {
+                separateTimeout(configuration.timeout - usedTime, countOfFunctions - index)
+            } else {
+                oneFunctionTimeout
+            }
+            val localUntil = System.currentTimeMillis() + localOneFunctionTimeout
+            logger.info { "Local timeout ${configuration.timeout / configuration.testedMethods.size}ms. Until ${localUntil.convertToTime()}" }
             try {
                 val method = findMethodByHeader(
-                    mypyStorage,
+                    mypyConfig.mypyStorage,
                     methodHeader,
                     configuration.testFileInformation.moduleName,
                     configuration.testFileInformation.testedFileContent
@@ -93,24 +94,30 @@ abstract class PythonTestGenerationProcessor {
                 logger.warn { "Skipping method ${e.methodName}: did not find its function definition" }
                 null
             }
-        }
-        val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
+        }.flatten()
+        val notEmptyTests = tests.filter { it.executions.isNotEmpty() }
 
-        if (emptyTestSets.isNotEmpty()) {
-            notGeneratedTestsAction(emptyTestSets.map { it.method.name })
+        val emptyTests = tests
+            .groupBy { it.method }
+            .filter { it.value.all { testSet -> testSet.executions.isEmpty() } }
+            .map { it.key.name }
+
+        if (emptyTests.isNotEmpty()) {
+            notGeneratedTestsAction(emptyTests)
         }
 
         return notEmptyTests
     }
 
     fun testCodeGenerate(testSets: List<PythonTestSet>): String {
+        if (testSets.isEmpty()) return ""
         val containingClassName = getContainingClassName(testSets)
         val classId = PythonClassId(configuration.testFileInformation.moduleName, containingClassName)
 
         val methodIds = testSets.associate { testSet ->
             testSet.method to PythonMethodId(
                 classId,
-                testSet.method.name,
+                testSet.method.renderMethodName(),
                 RawPythonAnnotation(pythonAnyClassId.name),
                 testSet.method.arguments.map { argument ->
                     argument.annotation?.let { annotation ->
@@ -128,7 +135,7 @@ abstract class PythonTestGenerationProcessor {
             methodIds[testSet.method] as ExecutableId to params
         }.toMutableMap()
 
-        val allImports = collectImports(testSets)
+        val collectedImports = collectImports(testSets)
 
         val context = UtContext(this::class.java.classLoader)
         withUtContext(context) {
@@ -140,17 +147,16 @@ abstract class PythonTestGenerationProcessor {
                 hangingTestsTimeout = HangingTestsTimeout(configuration.timeoutForRun),
                 runtimeExceptionTestsBehaviour = configuration.runtimeExceptionTestsBehaviour,
             )
+            codegen.context.existingVariableNames = codegen.context.existingVariableNames.addAll(collectedImports.flatMap { listOfNotNull(it.moduleName, it.rootModuleName, it.importName) })
             val testCode = codegen.pythonGenerateAsStringWithTestReport(
                 testSets.map { testSet ->
-                    val intRange = testSet.executions.indices
-                    val clusterInfo = listOf(Pair(UtClusterInfo("FUZZER"), intRange))
                     CgMethodTestSet(
                         executableId = methodIds[testSet.method] as ExecutableId,
                         executions = testSet.executions,
-                        clustersInfo = clusterInfo,
+                        clustersInfo = testSet.clustersInfo,
                     )
                 },
-                allImports
+                collectedImports,
             ).generatedCode
             return testCode
         }
@@ -163,7 +169,7 @@ abstract class PythonTestGenerationProcessor {
     abstract fun processCoverageInfo(testSets: List<PythonTestSet>)
 
     private fun getContainingClassName(testSets: List<PythonTestSet>): String {
-        val containingClasses = testSets.map { it.method.containingPythonClass?.pythonName() ?: "TopLevelFunctions" }
+        val containingClasses = testSets.map { it.method.containingPythonClass?.pythonName()?.replace(".", "") ?: "TopLevelFunctions" }
         return containingClasses.toSet().first()
     }
 
@@ -228,27 +234,46 @@ abstract class PythonTestGenerationProcessor {
     ): PythonMethod {
         var containingClass: CompositeType? = null
         val containingClassName = method.containingPythonClassId?.simpleName
-        val functionDef = if (containingClassName == null) {
-            mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
+        val definition = if (containingClassName == null) {
+            mypyStorage.definitions[curModule]?.get(method.name)?.getUtBotDefinition()
         } else {
             containingClass =
-                mypyStorage.definitions[curModule]!![containingClassName]!!.getUtBotType() as CompositeType
-            mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
+                mypyStorage.definitions[curModule]?.get(containingClassName)?.getUtBotType() as? CompositeType
+                    ?: throw SelectedMethodIsNotAFunctionDefinition(method.name)
+            val descr = containingClass.pythonDescription()
+            if (descr !is PythonConcreteCompositeTypeDescription)
+                throw SelectedMethodIsNotAFunctionDefinition(method.name)
+            mypyStorage.definitions[curModule]?.get(containingClassName)?.type?.asUtBotType?.getPythonAttributes()?.first {
                 it.meta.name == method.name
             }
-        } as? PythonFunctionDefinition ?: throw SelectedMethodIsNotAFunctionDefinition(method.name)
-
+        } ?: throw SelectedMethodIsNotAFunctionDefinition(method.name)
         val parsedFile = PythonParser(sourceFileContent).Module()
         val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
+        val decorators = funcDef.decorators.map { PyDecorator.decoratorByName(it.name.toString()) }
 
-        return PythonMethod(
-            name = method.name,
-            moduleFilename = method.moduleFilename,
-            containingPythonClass = containingClass,
-            codeAsString = funcDef.body.source,
-            definition = functionDef,
-            ast = funcDef.body
-        )
+        if (definition is PythonFunctionDefinition) {
+            return PythonBaseMethod(
+                name = method.name,
+                moduleFilename = method.moduleFilename,
+                containingPythonClass = containingClass,
+                codeAsString = funcDef.body.source,
+                definition = definition,
+                ast = funcDef.body
+            )
+        } else if (decorators == listOf(PyDecorator.StaticMethod)) {
+            return PythonDecoratedMethod(
+                name = method.name,
+                moduleFilename = method.moduleFilename,
+                containingPythonClass = containingClass,
+                codeAsString = funcDef.body.source,
+                definition = definition,
+                ast = funcDef.body,
+                decorator = decorators.first()
+            )
+        } else {
+            throw SelectedMethodIsNotAFunctionDefinition(method.name)
+        }
+
     }
 
     private fun relativizePaths(rootPath: Path?, paths: Set<String>): Set<String> =
@@ -291,6 +316,25 @@ abstract class PythonTestGenerationProcessor {
         val covered = coverageInfo.covered.map { it.toJson() }
         val notCovered = coverageInfo.notCovered.map { it.toJson() }
         return "{\"covered\": [${covered.joinToString(", ")}], \"notCovered\": [${notCovered.joinToString(", ")}]}"
+    }
+
+    companion object {
+        fun sourceCodeAnalyze(
+            sysPathDirectories: Set<String>,
+            pythonPath: String,
+            testFileInformation: TestFileInformation,
+        ): MypyConfig {
+            val mypyBuildRoot = TemporaryFileManager.assignTemporaryFile(tag = "mypyBuildRoot")
+            val buildDirectory = MypyBuildDirectory(mypyBuildRoot, sysPathDirectories)
+            val (mypyInfoBuild, mypyReportLines) = readMypyAnnotationStorageAndInitialErrors(
+                pythonPath,
+                testFileInformation.testedFilePath,
+                testFileInformation.moduleName,
+                buildDirectory
+            )
+            return MypyConfig(mypyInfoBuild, mypyReportLines, buildDirectory)
+        }
+
     }
 }
 

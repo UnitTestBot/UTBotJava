@@ -1,6 +1,5 @@
 package org.utbot.python.framework.codegen.model
 
-import org.utbot.framework.codegen.generator.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -12,6 +11,7 @@ import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
+import org.utbot.framework.codegen.generator.CodeGeneratorResult
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
@@ -106,7 +106,7 @@ class PythonCodeGenerator(
 
         imports.forEach { renderer.renderPythonImport(it) }
 
-        val paramNames = method.definition.meta.args.map { it.name }
+        val paramNames = method.argumentsNames
         val parameters = paramNames.map { argument ->
             "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }
@@ -121,7 +121,7 @@ class PythonCodeGenerator(
             additionalVars,
             "",
             functionName,
-        ) + method.codeAsString.split("\n").map { "    $it" }
-       return mypyCheckCode.joinToString("\n")
+        ) + method.codeAsString.split("\n")
+        return mypyCheckCode.joinToString("\n")
     }
 }

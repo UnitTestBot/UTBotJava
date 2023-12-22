@@ -4,18 +4,32 @@ import kotlinx.coroutines.runBlocking
 import org.parsers.python.PythonParser
 import org.parsers.python.ast.ClassDefinition
 import org.parsers.python.ast.FunctionDefinition
-import org.utbot.python.PythonMethod
-import org.utbot.python.newtyping.*
+import org.utbot.python.PythonBaseMethod
+import org.utbot.python.newtyping.PythonFunctionDefinition
+import org.utbot.python.newtyping.PythonTypeHintsStorage
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.CompositeType
 import org.utbot.python.newtyping.general.UtType
+import org.utbot.python.newtyping.getPythonAttributeByName
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
-import org.utbot.python.newtyping.mypy.*
+import org.utbot.python.newtyping.inference.baseline.MethodAndVars
+import org.utbot.python.newtyping.mypy.GlobalNamesStorage
+import org.utbot.python.newtyping.mypy.MypyBuildDirectory
+import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import org.utbot.python.newtyping.mypy.dropInitFile
+import org.utbot.python.newtyping.mypy.getErrorNumber
+import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.newtyping.utils.getOffsetLine
-import org.utbot.python.utils.*
+import org.utbot.python.utils.Cleaner
+import org.utbot.python.utils.Fail
+import org.utbot.python.utils.Optional
+import org.utbot.python.utils.RequirementsUtils
+import org.utbot.python.utils.Success
+import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -84,7 +98,7 @@ class TypeInferenceProcessor(
             }
             val namesStorage = GlobalNamesStorage(mypyBuild)
             val collector =
-                HintCollector(pythonMethod.definition, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
+                HintCollector(pythonMethod, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
             val visitor = Visitor(listOf(collector))
             visitor.visit(pythonMethod.ast)
 
@@ -92,7 +106,8 @@ class TypeInferenceProcessor(
                 typeStorage,
                 collector.result,
                 pythonPath,
-                pythonMethod,
+                MethodAndVars(pythonMethod, ""),
+                emptyList(),
                 directoriesForSysPath,
                 moduleOfSourceFile,
                 namesInModule,
@@ -103,7 +118,6 @@ class TypeInferenceProcessor(
                     getOffsetLine(sourceFileContent, pythonMethod.ast.endOffset)
                 ),
                 mypyBuild.buildRoot.configFile,
-                "",
                 dMypyTimeout = null
             )
 
@@ -122,7 +136,7 @@ class TypeInferenceProcessor(
         }
     }
 
-    private fun getPythonMethod(mypyInfoBuild: MypyInfoBuild, typeStorage: PythonTypeHintsStorage): Optional<PythonMethod> {
+    private fun getPythonMethod(mypyInfoBuild: MypyInfoBuild, typeStorage: PythonTypeHintsStorage): Optional<PythonBaseMethod> {
         if (className == null) {
             val funcDef = parsedFile.children().firstNotNullOfOrNull { node ->
                 val res = (node as? FunctionDefinition)?.let { parseFunctionDefinition(it) }
@@ -133,7 +147,7 @@ class TypeInferenceProcessor(
                 mypyInfoBuild.definitions[moduleOfSourceFile]!![functionName]!!.getUtBotDefinition() as? PythonFunctionDefinition
                     ?: return Fail("$functionName is not a function")
 
-            val result = PythonMethod(
+            val result = PythonBaseMethod(
                 functionName,
                 path.toString(),
                 null,
@@ -153,14 +167,14 @@ class TypeInferenceProcessor(
         } ?: return Fail("Couldn't find method $functionName in class $className")
 
         val typeOfClass = mypyInfoBuild.definitions[moduleOfSourceFile]!![className]!!.getUtBotType()
-            as? CompositeType ?: return Fail("$className is not a class")
+                as? CompositeType ?: return Fail("$className is not a class")
 
         val defOfFunc = typeOfClass.getPythonAttributeByName(typeStorage, functionName) as? PythonFunctionDefinition
             ?: return Fail("$functionName is not a function")
 
         println(defOfFunc.type.pythonTypeRepresentation())
 
-        val result = PythonMethod(
+        val result = PythonBaseMethod(
             functionName,
             path.toString(),
             typeOfClass,

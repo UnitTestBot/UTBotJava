@@ -64,6 +64,10 @@ object UsvmSymbolicEngine {
         timeoutMillis: Long
     ): List<Pair<ExecutableId, UtResult>> {
 
+        if (timeoutMillis == 0L) {
+            return emptyList()
+        }
+
         val collectedExecutions = mutableListOf<Pair<ExecutableId, UtResult>>()
         val classpathFiles = classpath.split(File.pathSeparator).map { File(it) }
 

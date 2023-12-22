@@ -20,13 +20,10 @@ val utilClassIdPlaceholder = utJavaUtilsClassId
 object UtilMethodProviderPlaceholder : UtilMethodProvider(utilClassIdPlaceholder)
 
 fun UtModel.shallowlyFixUtilClassIds(actualUtilClassId: ClassId) = when (this) {
-    is UtAssembleModel -> UtAssembleModel(
-        id = id,
-        classId = classId,
-        modelName = modelName,
-        instantiationCall = instantiationCall.shallowlyFixUtilClassId(actualUtilClassId),
-        origin = origin,
-        modificationsChainProvider = { modificationsChain.map { it.shallowlyFixUtilClassId(actualUtilClassId) } }
+    is UtAssembleModel -> copy(
+       modificationsChain = modificationsChain.map { statement ->
+           statement.shallowlyFixUtilClassId(actualUtilClassId)
+       }
     )
     else -> this
 }

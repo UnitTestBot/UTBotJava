@@ -128,11 +128,20 @@ class SbftGenerateTestsCommand : CliktCommand(
     private val checkUsvm by option("--check-usvm", help = "Check usvm (ONLY FOR USVM).")
         .flag(default = false)
 
+    private val onlyToplevel by option(
+        "--only-toplevel"
+    )
+        .flag(default = false)
+
     private fun getPythonMethods(): List<List<PythonMethodHeader>> {
         val parsedModule = PythonParser(sourceFileContent).Module()
 
         val topLevelFunctions = PythonCode.getTopLevelFunctions(parsedModule)
-        val topLevelClasses = PythonCode.getTopLevelClasses(parsedModule)
+        val topLevelClasses =
+            if (onlyToplevel)
+                emptyList()
+            else
+                PythonCode.getTopLevelClasses(parsedModule)
 
         val functions = topLevelFunctions
             .mapNotNull { parseFunctionDefinition(it) }

@@ -309,6 +309,12 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var engineProcessLogConfigFile by getStringProperty("")
 
     /**
+     * Optional arguments to the engine java process. One may want to
+     * increase heap size in order to give Soot more room for analysis.
+     */
+    var engineProcessJavaOptionalArguments by getStringProperty("")
+
+    /**
      * The property is useful only for the IntelliJ IDEs.
      * If the property is set in true the engine process opens a debug port.
      * @see runInstrumentedProcessWithDebug

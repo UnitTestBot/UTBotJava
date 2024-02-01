@@ -10,8 +10,8 @@ repositories {
     maven {
         url = uri('https://maven.pkg.github.com/UnitTestBot/usvm')
         credentials {
-            username = project.githubActor // System.getenv("GITHUB_ACTOR")
-            password = project.githubToken // System.getenv("GITHUB_TOKEN")
+            username = System.getenv("GITHUB_ACTOR")
+            password = System.getenv("GITHUB_TOKEN")
         }
     }
 }

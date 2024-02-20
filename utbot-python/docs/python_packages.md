@@ -16,11 +16,13 @@ To use Gradle tasks for Python packages, add the following properties in `gradle
 
 ## utbot_mypy_runner
 
+How this module is stored in a separate repository: https://github.com/UnitTestBot/PythonTypesAPI.
+
 ### Version
 
-Write version in file `utbot-python-types/src/main/resources/utbot_mypy_runner_version`.
+Write version in file `src/main/resources/utbot_mypy_runner_version`.
 
-Gradle task `utbot-python-types:setVersion` will update `pyproject.toml`.
+Gradle task `setVersion` will update `pyproject.toml`.
 
 ### Usage of local version
 

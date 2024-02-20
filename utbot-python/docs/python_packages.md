@@ -24,6 +24,9 @@ Write version in file `src/main/resources/utbot_mypy_runner_version`.
 
 Gradle task `setVersion` will update `pyproject.toml`.
 
+If you want to use some other version locally (for example, version that is not yet published), set the version
+in file `utbot-python/src/main/resources/local_pip_setup/local_utbot_mypy_version`.
+
 ### Usage of local version
 
 Add the following files locally (they are listed in `.gitignore`):
@@ -32,6 +35,9 @@ Add the following files locally (they are listed in `.gitignore`):
 
     Add here absolute path to `utbot_mypy_runner/dist` directory.
 
+- `utbot-python/src/main/resources/local_pip_setup/local_utbot_mypy_version`
+
+    Add here the version of local package. This will override the version from module `PythonTypesAPI`.
 
 - `utbot-python/src/main/resources/local_pip_setup/use_local_python_packages`
 

@@ -59,6 +59,8 @@ tasks {
     }
 }
 
+val pythonTypesAPIHash: String by rootProject
+
 dependencies {
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
@@ -67,6 +69,7 @@ dependencies {
 
     //Family
     implementation(project(":utbot-python"))
+    implementation("com.github.UnitTestBot:PythonTypesAPI:$pythonTypesAPIHash")
 }
 
 intellij {

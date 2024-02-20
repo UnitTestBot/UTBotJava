@@ -29,7 +29,7 @@ import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
-import org.utpython.types.mypy.dropInitFile
+import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.Fail
 import org.utbot.python.utils.RequirementsInstaller

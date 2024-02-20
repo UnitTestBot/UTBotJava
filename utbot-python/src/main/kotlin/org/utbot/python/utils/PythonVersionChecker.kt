@@ -1,7 +1,5 @@
 package org.utbot.python.utils
 
-import org.utpython.types.utils.runCommand
-
 object PythonVersionChecker {
     private val minimalPythonVersion = Triple(3, 10, 0)
 

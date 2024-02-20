@@ -34,7 +34,7 @@ import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.TestFileInformation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
-import org.utpython.types.mypy.dropInitFile
+import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utbot.python.utils.RequirementsInstaller
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit

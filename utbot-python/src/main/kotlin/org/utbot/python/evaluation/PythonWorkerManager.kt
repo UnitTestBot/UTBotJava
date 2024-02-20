@@ -8,8 +8,8 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.coverage.PythonCoverageMode
 import org.utbot.python.utils.TemporaryFileManager
-import org.utpython.types.utils.getResult
-import org.utpython.types.utils.startProcess
+import org.utbot.python.utils.getResult
+import org.utbot.python.utils.startProcess
 import java.lang.Long.max
 import java.net.ServerSocket
 import java.net.Socket

@@ -6,7 +6,7 @@ import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
 import org.utbot.python.utils.TemporaryFileManager
 import org.utpython.types.mypy.getErrorNumber
 import org.utpython.types.mypy.getErrorsAndNotes
-import org.utpython.types.utils.runCommand
+import org.utbot.python.utils.runCommand
 import java.io.File
 
 private val logger = KotlinLogging.logger {}

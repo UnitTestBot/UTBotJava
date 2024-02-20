@@ -16,10 +16,10 @@ import org.utpython.types.general.UtType
 import org.utpython.types.getPythonAttributeByName
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.inference.baseline.MethodAndVars
+import org.utbot.python.newtyping.mypy.dropInitFile
 import org.utpython.types.mypy.GlobalNamesStorage
 import org.utpython.types.mypy.MypyBuildDirectory
 import org.utpython.types.mypy.MypyInfoBuild
-import org.utpython.types.mypy.dropInitFile
 import org.utpython.types.mypy.getErrorNumber
 import org.utpython.types.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utpython.types.pythonTypeRepresentation

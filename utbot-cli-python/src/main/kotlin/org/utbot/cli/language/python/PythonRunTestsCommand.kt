@@ -8,8 +8,8 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
-import org.utbot.python.utils.CmdResult
-import org.utbot.python.utils.runCommand
+import org.utpython.types.utils.CmdResult
+import org.utpython.types.utils.runCommand
 import java.io.File
 import java.nio.file.Paths
 

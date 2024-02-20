@@ -1,10 +1,10 @@
 package org.utbot.python.newtyping.inference.baseline
 
-import org.utbot.python.newtyping.PythonTypeHintsStorage
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.inference.addEdge
-import org.utbot.python.newtyping.pythonAnnotationParameters
-import org.utbot.python.newtyping.pythonDescription
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.general.UtType
+import org.utpython.types.inference.addEdge
+import org.utpython.types.pythonAnnotationParameters
+import org.utpython.types.pythonDescription
 import java.util.*
 
 fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeHintsStorage): BaselineAlgorithmState? {

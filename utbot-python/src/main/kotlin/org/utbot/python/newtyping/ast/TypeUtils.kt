@@ -2,9 +2,9 @@ package org.utbot.python.newtyping.ast
 
 import org.parsers.python.PythonConstants
 import org.parsers.python.ast.NumericalLiteral
-import org.utbot.python.newtyping.PythonTypeHintsStorage
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonAnyType
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.general.UtType
+import org.utpython.types.pythonAnyType
 
 fun typeOfNumericalLiteral(node: NumericalLiteral, storage: PythonTypeHintsStorage): UtType =
     when (node.type) {

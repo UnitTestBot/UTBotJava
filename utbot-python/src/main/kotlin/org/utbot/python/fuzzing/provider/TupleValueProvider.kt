@@ -10,10 +10,10 @@ import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.pythonAnnotationParameters
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.typesAreEqual
+import org.utpython.types.PythonSubtypeChecker
+import org.utpython.types.pythonAnnotationParameters
+import org.utpython.types.pythonAnyType
+import org.utpython.types.typesAreEqual
 
 object TupleValueProvider : PythonValueProvider {
     override fun accept(type: FuzzedUtType): Boolean {

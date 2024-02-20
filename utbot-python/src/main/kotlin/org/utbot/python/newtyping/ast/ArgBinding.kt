@@ -1,8 +1,8 @@
 package org.utbot.python.newtyping.ast
 
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.PythonTypeHintsStorage
-import org.utbot.python.newtyping.general.FunctionType
+import org.utpython.types.PythonSubtypeChecker
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.general.FunctionType
 
 // TODO: consider different types of parameters
 fun signaturesAreCompatible(

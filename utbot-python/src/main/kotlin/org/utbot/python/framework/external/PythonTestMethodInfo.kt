@@ -1,7 +1,7 @@
 package org.utbot.python.framework.external
 
 import org.utbot.python.PythonMethod
-import org.utbot.python.newtyping.pythonTypeName
+import org.utpython.types.pythonTypeName
 
 class PythonTestMethodInfo(
     val methodName: PythonObjectName,

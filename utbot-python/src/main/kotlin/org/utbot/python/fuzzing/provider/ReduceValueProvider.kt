@@ -31,15 +31,15 @@ import org.utbot.python.fuzzing.provider.utils.isMagic
 import org.utbot.python.fuzzing.provider.utils.isPrivate
 import org.utbot.python.fuzzing.provider.utils.isProperty
 import org.utbot.python.fuzzing.provider.utils.isProtected
-import org.utbot.python.newtyping.PythonCallableTypeDescription
-import org.utbot.python.newtyping.PythonCompositeTypeDescription
-import org.utbot.python.newtyping.PythonDefinition
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.getPythonAttributeByName
-import org.utbot.python.newtyping.getPythonAttributes
-import org.utbot.python.newtyping.pythonDescription
-import org.utbot.python.newtyping.pythonNoneType
-import org.utbot.python.newtyping.pythonTypeName
+import org.utpython.types.PythonCallableTypeDescription
+import org.utpython.types.PythonCompositeTypeDescription
+import org.utpython.types.PythonDefinition
+import org.utpython.types.general.FunctionType
+import org.utpython.types.getPythonAttributeByName
+import org.utpython.types.getPythonAttributes
+import org.utpython.types.pythonDescription
+import org.utpython.types.pythonNoneType
+import org.utpython.types.pythonTypeName
 
 object ReduceValueProvider : PythonValueProvider {
     private val unsupportedTypes = listOf(

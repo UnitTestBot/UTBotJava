@@ -9,7 +9,7 @@ import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
-import org.utbot.python.newtyping.PythonTypeAliasDescription
+import org.utpython.types.PythonTypeAliasDescription
 
 object TypeAliasValueProvider : PythonValueProvider {
     override fun accept(type: FuzzedUtType): Boolean {

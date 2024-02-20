@@ -81,7 +81,6 @@ if (pythonIde.split(",").contains(ideType)) {
     include("utbot-cli-python")
     include("utbot-intellij-python")
     include("utbot-python-parser")
-    include("utbot-python-types")
     include("utbot-python-executor")
 }
 

@@ -1,18 +1,18 @@
 package org.utbot.python.engine.fuzzing.typeinference
 
 import org.utbot.python.PythonMethod
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.PythonTypeHintsStorage
-import org.utbot.python.newtyping.PythonTypeVarDescription
-import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.TypeParameter
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.general.getBoundedParameters
-import org.utbot.python.newtyping.general.hasBoundedParameters
-import org.utbot.python.newtyping.getPythonAttributeByName
-import org.utbot.python.newtyping.pythonDescription
-import org.utbot.python.newtyping.pythonTypeName
+import org.utpython.types.PythonSubtypeChecker
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.PythonTypeVarDescription
+import org.utpython.types.general.DefaultSubstitutionProvider
+import org.utpython.types.general.FunctionType
+import org.utpython.types.general.TypeParameter
+import org.utpython.types.general.UtType
+import org.utpython.types.general.getBoundedParameters
+import org.utpython.types.general.hasBoundedParameters
+import org.utpython.types.getPythonAttributeByName
+import org.utpython.types.pythonDescription
+import org.utpython.types.pythonTypeName
 import org.utbot.python.utils.PriorityCartesianProduct
 
 private const val MAX_SUBSTITUTIONS = 10

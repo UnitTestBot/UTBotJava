@@ -1,6 +1,6 @@
 package org.utbot.python.newtyping.inference
 
-import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utpython.types.pythonTypeRepresentation
 
 fun main() {
     TypeInferenceProcessor(

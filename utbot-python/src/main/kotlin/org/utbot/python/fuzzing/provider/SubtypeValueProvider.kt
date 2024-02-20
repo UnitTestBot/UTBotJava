@@ -10,13 +10,13 @@ import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
 import org.utbot.python.fuzzing.provider.utils.isConcreteType
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
-import org.utbot.python.newtyping.PythonProtocolDescription
-import org.utbot.python.newtyping.PythonSubtypeChecker.Companion.checkIfRightIsSubtypeOfLeft
-import org.utbot.python.newtyping.PythonTypeHintsStorage
-import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonDescription
+import org.utpython.types.PythonConcreteCompositeTypeDescription
+import org.utpython.types.PythonProtocolDescription
+import org.utpython.types.PythonSubtypeChecker.Companion.checkIfRightIsSubtypeOfLeft
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.general.DefaultSubstitutionProvider
+import org.utpython.types.pythonAnyType
+import org.utpython.types.pythonDescription
 
 class SubtypeValueProvider(
     private val typeStorage: PythonTypeHintsStorage

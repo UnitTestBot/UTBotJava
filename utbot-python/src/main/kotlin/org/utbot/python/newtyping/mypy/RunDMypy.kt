@@ -4,7 +4,9 @@ import mu.KotlinLogging
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
 import org.utbot.python.utils.TemporaryFileManager
-import org.utbot.python.utils.runCommand
+import org.utpython.types.mypy.getErrorNumber
+import org.utpython.types.mypy.getErrorsAndNotes
+import org.utpython.types.utils.runCommand
 import java.io.File
 
 private val logger = KotlinLogging.logger {}

@@ -6,14 +6,14 @@ import org.parsers.python.ast.NumericalLiteral
 import org.parsers.python.ast.SliceExpression
 import org.parsers.python.ast.StringLiteral
 import org.parsers.python.ast.UnaryExpression
-import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utpython.types.PythonTypeHintsStorage
 import org.utbot.python.newtyping.ast.SimpleSlice
 import org.utbot.python.newtyping.ast.TupleSlice
 import org.utbot.python.newtyping.ast.parseSliceExpression
 import org.utbot.python.newtyping.ast.typeOfNumericalLiteral
 import org.utbot.python.newtyping.ast.visitor.Collector
-import org.utbot.python.newtyping.createPythonTupleType
-import org.utbot.python.newtyping.general.UtType
+import org.utpython.types.createPythonTupleType
+import org.utpython.types.general.UtType
 import java.math.BigDecimal
 import java.math.BigInteger
 

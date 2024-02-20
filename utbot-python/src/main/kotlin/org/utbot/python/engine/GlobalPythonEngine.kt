@@ -5,12 +5,12 @@ import org.utbot.python.MypyConfig
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationConfig
 import org.utbot.python.engine.fuzzing.FuzzingEngine
-import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utpython.types.PythonTypeHintsStorage
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
-import org.utbot.python.newtyping.mypy.GlobalNamesStorage
-import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import org.utpython.types.mypy.GlobalNamesStorage
+import org.utpython.types.mypy.MypyInfoBuild
 import kotlin.concurrent.thread
 
 private val logger = KotlinLogging.logger {}

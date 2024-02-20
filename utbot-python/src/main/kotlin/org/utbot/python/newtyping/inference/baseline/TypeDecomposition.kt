@@ -1,8 +1,8 @@
 package org.utbot.python.newtyping.inference.baseline
 
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.inference.addEdge
+import org.utpython.types.*
+import org.utpython.types.general.UtType
+import org.utpython.types.inference.addEdge
 
 data class DecompositionResult(
     val root: BaselineAlgorithmNode,

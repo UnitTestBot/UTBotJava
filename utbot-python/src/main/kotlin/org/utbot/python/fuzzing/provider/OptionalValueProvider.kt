@@ -9,9 +9,9 @@ import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
-import org.utbot.python.newtyping.PythonNoneTypeDescription
-import org.utbot.python.newtyping.PythonUnionTypeDescription
-import org.utbot.python.newtyping.pythonAnnotationParameters
+import org.utpython.types.PythonNoneTypeDescription
+import org.utpython.types.PythonUnionTypeDescription
+import org.utpython.types.pythonAnnotationParameters
 
 object OptionalValueProvider : PythonValueProvider {
     override fun accept(type: FuzzedUtType): Boolean {

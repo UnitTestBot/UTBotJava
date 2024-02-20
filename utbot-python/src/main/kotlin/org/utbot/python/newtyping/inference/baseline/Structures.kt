@@ -1,10 +1,10 @@
 package org.utbot.python.newtyping.inference.baseline
 
-import org.utbot.python.newtyping.PythonTypeHintsStorage
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithValue
-import org.utbot.python.newtyping.inference.TypeInferenceNode
-import org.utbot.python.newtyping.pythonAnyType
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.general.UtType
+import org.utpython.types.inference.TypeInferenceEdgeWithValue
+import org.utpython.types.inference.TypeInferenceNode
+import org.utpython.types.pythonAnyType
 
 sealed class BaselineAlgorithmNode(val isRoot: Boolean) : TypeInferenceNode {
     override val ingoingEdges: MutableList<BaselineAlgorithmEdge> = mutableListOf()

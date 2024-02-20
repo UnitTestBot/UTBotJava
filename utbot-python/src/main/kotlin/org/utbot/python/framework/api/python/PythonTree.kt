@@ -13,8 +13,8 @@ import org.utbot.python.framework.api.python.util.pythonStopIterationClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.framework.api.python.util.toPythonRepr
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonTypeName
+import org.utpython.types.general.UtType
+import org.utpython.types.pythonTypeName
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.*

@@ -4,8 +4,8 @@ import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.UtType
+import org.utpython.types.*
+import org.utpython.types.general.UtType
 
 fun UtType.isAny(): Boolean {
     return meta is PythonAnyTypeDescription

@@ -3,8 +3,9 @@ package org.utbot.python.newtyping.inference
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorNode
 import org.utbot.python.newtyping.ast.visitor.hints.HintEdge
 import org.utbot.python.newtyping.ast.visitor.hints.HintEdgeWithBound
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonAnyType
+import org.utpython.types.general.UtType
+import org.utpython.types.inference.TypeInferenceEdgeWithBound
+import org.utpython.types.pythonAnyType
 
 fun visitNodesByReverseEdges(
     node: HintCollectorNode,

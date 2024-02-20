@@ -19,8 +19,8 @@ import org.utbot.python.evaluation.PythonEvaluationSuccess
 import org.utbot.python.evaluation.serialization.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonUtExecution
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utpython.types.general.UtType
+import org.utpython.types.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 

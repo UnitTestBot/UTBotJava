@@ -1,7 +1,9 @@
 package org.utbot.python.utils
 
 import org.utbot.python.UtbotExecutor
-import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import org.utpython.types.mypy.MypyInfoBuild
+import org.utpython.types.utils.CmdResult
+import org.utpython.types.utils.runCommand
 
 object RequirementsUtils {
     private val utbotMypyRunnerVersion =

@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.python.PythonMethod
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
-import org.utbot.python.newtyping.general.UtType
+import org.utpython.types.general.UtType
 
 
 object PythonCodeGenerator {

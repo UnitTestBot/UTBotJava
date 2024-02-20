@@ -7,19 +7,19 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.newtyping.PythonCallableTypeDescription
-import org.utbot.python.newtyping.PythonDefinition
-import org.utbot.python.newtyping.PythonDefinitionDescription
-import org.utbot.python.newtyping.PythonFuncItemDescription
-import org.utbot.python.newtyping.PythonFunctionDefinition
-import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonDescription
-import org.utbot.python.newtyping.pythonName
-import org.utbot.python.newtyping.pythonTypeRepresentation
-import org.utbot.python.newtyping.utils.isNamed
-import org.utbot.python.newtyping.utils.isRequired
+import org.utpython.types.PythonCallableTypeDescription
+import org.utpython.types.PythonDefinition
+import org.utpython.types.PythonDefinitionDescription
+import org.utpython.types.PythonFuncItemDescription
+import org.utpython.types.PythonFunctionDefinition
+import org.utpython.types.general.CompositeType
+import org.utpython.types.general.FunctionType
+import org.utpython.types.pythonAnyType
+import org.utpython.types.pythonDescription
+import org.utpython.types.pythonName
+import org.utpython.types.pythonTypeRepresentation
+import org.utpython.types.utils.isNamed
+import org.utpython.types.utils.isRequired
 
 data class PythonArgument(
     val name: String,

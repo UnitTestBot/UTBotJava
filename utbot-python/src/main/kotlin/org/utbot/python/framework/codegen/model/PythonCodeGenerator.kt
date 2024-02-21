@@ -22,10 +22,10 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonModules
-import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utpython.types.general.UtType
+import org.utpython.types.pythonAnyType
+import org.utpython.types.pythonModules
+import org.utpython.types.pythonTypeRepresentation
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,

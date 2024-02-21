@@ -24,6 +24,7 @@ dependencies {
     implementation group: 'com.github.ajalt.clikt', name: 'clikt', version: cliktVersion
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2Version
+    implementation group: 'com.github.UnitTestBot', name: 'PythonTypesAPI', version: pythonTypesAPIHash
 }
 
 processResources {

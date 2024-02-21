@@ -10,7 +10,7 @@ import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
-import org.utbot.python.newtyping.pythonAnnotationParameters
+import org.utpython.types.pythonAnnotationParameters
 
 object DictValueProvider : PythonValueProvider {
     override fun accept(type: FuzzedUtType): Boolean {

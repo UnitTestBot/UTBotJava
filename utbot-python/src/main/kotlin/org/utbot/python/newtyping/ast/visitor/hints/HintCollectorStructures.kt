@@ -1,11 +1,11 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.inference.TypeInferenceEdge
-import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
-import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithValue
-import org.utbot.python.newtyping.inference.TypeInferenceNode
+import org.utpython.types.general.FunctionType
+import org.utpython.types.general.UtType
+import org.utpython.types.inference.TypeInferenceEdge
+import org.utpython.types.inference.TypeInferenceEdgeWithBound
+import org.utpython.types.inference.TypeInferenceEdgeWithValue
+import org.utpython.types.inference.TypeInferenceNode
 
 sealed class HintEdge(
     override val from: HintCollectorNode,

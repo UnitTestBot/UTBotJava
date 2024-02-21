@@ -8,7 +8,7 @@ import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.utbot.python.newtyping.inference.TypeInferenceProcessor
-import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utpython.types.pythonTypeRepresentation
 import org.utbot.python.utils.Fail
 import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.Success

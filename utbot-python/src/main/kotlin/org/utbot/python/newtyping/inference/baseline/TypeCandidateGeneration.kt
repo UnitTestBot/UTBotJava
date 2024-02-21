@@ -1,13 +1,14 @@
 package org.utbot.python.newtyping.inference.baseline
 
 import mu.KotlinLogging
-import org.utbot.python.newtyping.*
+import org.utpython.types.*
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorResult
-import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.general.getBoundedParameters
-import org.utbot.python.newtyping.general.getOrigin
+import org.utpython.types.general.DefaultSubstitutionProvider
+import org.utpython.types.general.UtType
+import org.utpython.types.general.getBoundedParameters
+import org.utpython.types.general.getOrigin
 import org.utbot.python.newtyping.inference.collectBoundsFromEdges
+import org.utpython.types.PythonTypeHintsStorage
 
 private val logger = KotlinLogging.logger {}
 

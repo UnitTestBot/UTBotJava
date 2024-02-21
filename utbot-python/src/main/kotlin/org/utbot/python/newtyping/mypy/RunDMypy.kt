@@ -4,6 +4,8 @@ import mu.KotlinLogging
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
 import org.utbot.python.utils.TemporaryFileManager
+import org.utpython.types.mypy.getErrorNumber
+import org.utpython.types.mypy.getErrorsAndNotes
 import org.utbot.python.utils.runCommand
 import java.io.File
 

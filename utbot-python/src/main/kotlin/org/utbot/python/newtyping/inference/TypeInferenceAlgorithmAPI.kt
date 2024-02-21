@@ -1,6 +1,6 @@
 package org.utbot.python.newtyping.inference
 
-import org.utbot.python.newtyping.general.UtType
+import org.utpython.types.general.UtType
 
 abstract class TypeInferenceAlgorithm {
     abstract suspend fun run(

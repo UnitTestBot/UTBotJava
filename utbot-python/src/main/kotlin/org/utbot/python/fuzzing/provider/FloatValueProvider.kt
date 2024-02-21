@@ -12,7 +12,7 @@ import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.newtyping.pythonTypeName
+import org.utpython.types.pythonTypeName
 import java.math.BigDecimal
 import java.math.BigInteger
 

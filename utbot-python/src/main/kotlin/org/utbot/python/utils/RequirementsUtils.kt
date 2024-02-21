@@ -1,11 +1,12 @@
 package org.utbot.python.utils
 
 import org.utbot.python.UtbotExecutor
-import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import org.utpython.types.mypy.MypyInfoBuild
 
 object RequirementsUtils {
-    private val utbotMypyRunnerVersion =
-        MypyInfoBuild::class.java.getResource("/utbot_mypy_runner_version")!!.readText()
+    private val utbotMypyRunnerVersion =  // local_pip_setup should be used only for debugging
+        RequirementsUtils::class.java.getResource("/local_pip_setup/local_utbot_mypy_version")?.readText()
+            ?: MypyInfoBuild::class.java.getResource("/utbot_mypy_runner_version")!!.readText()
     private val utbotExecutorVersion =
         UtbotExecutor::class.java.getResource("/utbot_executor_version")!!.readText()
     private val useLocalPythonPackages =  // "true" must be set only for debugging

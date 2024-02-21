@@ -6,7 +6,7 @@ import org.utbot.python.fuzzing.FuzzedUtType
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
-import org.utbot.python.newtyping.PythonNoneTypeDescription
+import org.utpython.types.PythonNoneTypeDescription
 
 object NoneValueProvider : PythonValueProvider {
     override fun accept(type: FuzzedUtType): Boolean {

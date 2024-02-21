@@ -4,7 +4,7 @@ import org.parsers.python.PythonParser
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.code.PythonCode
 
-fun main() {
+/*fun main() {
     val content = """
     class A:
         @decorator
@@ -13,6 +13,6 @@ fun main() {
     """.trimIndent()
 
     val root = PythonParser(content).Module()
-    // val y = PythonCode.findFunctionDefinition(root, PythonMethodHeader("func", "", null))
+    val y = PythonCode.findFunctionDefinition(root, PythonMethodHeader("func", "", null))
     val x = root
-}
+}*/

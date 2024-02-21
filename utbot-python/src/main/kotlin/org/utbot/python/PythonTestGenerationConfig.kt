@@ -4,9 +4,9 @@ import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.python.coverage.CoverageOutputFormat
 import org.utbot.python.coverage.PythonCoverageMode
-import org.utbot.python.newtyping.mypy.MypyBuildDirectory
-import org.utbot.python.newtyping.mypy.MypyInfoBuild
-import org.utbot.python.newtyping.mypy.MypyReportLine
+import org.utpython.types.mypy.MypyBuildDirectory
+import org.utpython.types.mypy.MypyInfoBuild
+import org.utpython.types.mypy.MypyReportLine
 import java.nio.file.Path
 
 data class TestFileInformation(

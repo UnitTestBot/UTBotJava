@@ -12,10 +12,10 @@ import org.utbot.python.evaluation.serialization.MemoryMode
 import org.utbot.python.evaluation.serialization.PythonExecutionResult
 import org.utbot.python.evaluation.serialization.SuccessExecution
 import org.utbot.python.evaluation.serialization.serializeObjects
-import org.utbot.python.newtyping.PythonCallableTypeDescription
-import org.utbot.python.newtyping.pythonDescription
-import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.newtyping.utils.isNamed
+import org.utpython.types.PythonCallableTypeDescription
+import org.utpython.types.pythonDescription
+import org.utpython.types.pythonTypeName
+import org.utpython.types.utils.isNamed
 import java.net.SocketException
 
 class PythonCodeSocketExecutor(

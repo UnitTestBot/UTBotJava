@@ -7,7 +7,7 @@ WORKDIR /usr/src/
 RUN apt-get update \
     && apt-get install -y -q --no-install-recommends \
       curl \
-    && curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh \
+    && curl -sL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh \
     && /bin/sh nodesource_setup.sh \
     && apt-get install -y -q --no-install-recommends \
       nodejs \

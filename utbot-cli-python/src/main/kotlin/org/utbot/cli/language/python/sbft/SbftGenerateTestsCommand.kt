@@ -287,7 +287,8 @@ class SbftGenerateTestsCommand : CliktCommand(
                 prohibitedExceptions = if (prohibitedExceptions == listOf("-")) emptyList() else prohibitedExceptions,
                 checkUsvm = checkUsvm,
                 doNotGenerateStateAssertions = doNotGenerateStateAssertions,
-                inputSearchMode = searchMode
+                inputSearchMode = searchMode,
+                pathSelector = pathSelector
             )
             val processor = SbftCliProcessor(config)
 

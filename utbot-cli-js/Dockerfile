@@ -8,7 +8,7 @@ RUN apt-get update \
     && apt-get install -y -q --no-install-recommends \
       curl \
     && curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh \
-    && /bin/sh nodesource_setup.sh \
+    && /bin/bash nodesource_setup.sh \
     && apt-get install -y -q --no-install-recommends \
       nodejs \
     && rm -rf /var/lib/apt/lists/*

@@ -3,6 +3,7 @@ val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
 val log4j2Version: String? by rootProject
+val usvmPythonRunnerHash: String by rootProject
 
 dependencies {
     api(project(":utbot-fuzzing"))
@@ -10,7 +11,8 @@ dependencies {
     api(project(":utbot-python-parser"))
     api(project(":utbot-python-types"))
     api(project(":utbot-python-executor"))
-    api("org.usvm:usvm-python-runner:b087c5c")
+    api("org.usvm:usvm-python-runner:${usvmPythonRunnerHash}")
+    api("org.usvm:usvm-python-commons:${usvmPythonRunnerHash}")
 
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")

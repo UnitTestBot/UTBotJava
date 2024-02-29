@@ -1,5 +1,6 @@
 package org.utbot.python
 
+import org.usvm.python.ps.PyPathSelectorType
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.python.coverage.CoverageOutputFormat
@@ -34,7 +35,8 @@ class PythonTestGenerationConfig(
     val prohibitedExceptions: List<String> = defaultProhibitedExceptions,
     val checkUsvm: Boolean = false,
     val doNotGenerateStateAssertions: Boolean = false,
-    val inputSearchMode: InputSearchMode = InputSearchMode.BOTH
+    val inputSearchMode: InputSearchMode = InputSearchMode.BOTH,
+    val pathSelector: PyPathSelectorType = PyPathSelectorType.BaselinePriorityDfs
 ) {
     companion object {
         val defaultProhibitedExceptions = listOf(

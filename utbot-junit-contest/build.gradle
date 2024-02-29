@@ -3,19 +3,6 @@ plugins {
 }
 apply plugin: 'jacoco'
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven { url 'https://jitpack.io' }
-    maven {
-        url = uri('https://maven.pkg.github.com/UnitTestBot/usvm')
-        credentials {
-            username = System.getenv("GITHUB_ACTOR")
-            password = System.getenv("GITHUB_TOKEN")
-        }
-    }
-}
-
 configurations {
     fetchInstrumentationJar
     approximations

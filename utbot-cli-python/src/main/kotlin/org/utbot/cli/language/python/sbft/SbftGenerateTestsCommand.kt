@@ -12,6 +12,7 @@ import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
+import org.usvm.python.ps.PyPathSelectorType
 import org.utbot.cli.language.python.CliRequirementsInstaller
 import org.utbot.cli.language.python.findCurrentPythonModule
 import org.utbot.cli.language.python.toAbsolutePath
@@ -114,6 +115,10 @@ class SbftGenerateTestsCommand : CliktCommand(
     private val searchMode by option("--mode")
         .enum<InputSearchMode> { it.name }
         .default(InputSearchMode.BOTH)
+
+    private val pathSelector by option("--path-selector")
+        .enum<PyPathSelectorType> { it.name }
+        .default(PyPathSelectorType.BaselinePriorityDfs)
 
     private val javaCmd by option(
         "--java-cmd",

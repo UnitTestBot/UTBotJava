@@ -65,7 +65,8 @@ class GlobalPythonEngine(
             configuration.usvmConfig.javaCmd,
             mypyConfig.mypyBuildDirectory.root.canonicalPath,
             configuration.sysPathDirectories,
-            extractVenvConfig(configuration.pythonPath)
+            extractVenvConfig(configuration.pythonPath),
+            configuration.pathSelector
         )
         val runner = SymbolicExecutionEvaluator(
             method,

@@ -172,16 +172,6 @@ dependencies {
 
     implementation "org.burningwave:core:12.62.7"
 
-    implementation "$usvmRepo:usvm-core:$usvmVersion"
-    implementation "$usvmRepo:usvm-jvm:$usvmVersion"
-    implementation "$usvmRepo:usvm-jvm-api:$usvmVersion"
-    implementation "$usvmRepo:usvm-jvm-instrumentation:$usvmVersion"
-    implementation "$usvmRepo:usvm-jvm-instrumentation-collectors:$usvmVersion"
-
-    implementation group: "org.jacodb", name: "jacodb-core", version: jacoDbVersion
-    implementation group: "org.jacodb", name: "jacodb-analysis", version: jacoDbVersion
-    implementation group: "org.jacodb", name: "jacodb-approximations", version: jacoDbVersion
-
     // TODO uvms-sbft-hack: UtBot has `fastutil:8.3.0` on the classpath that overrides classes from
     //  `fastutil-core:8.5.11` that USVM adds. Solution: bump `fastutil` version to `8.5.11`
     runtimeOnly("it.unimi.dsi:fastutil:8.5.11")

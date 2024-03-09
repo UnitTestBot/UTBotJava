@@ -7,16 +7,25 @@ import org.jacodb.api.JcDatabase
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.classpaths.UnknownClasses
 import org.jacodb.impl.jacodb
+import org.usvm.instrumentation.executor.InstrumentationProcessPaths
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
+import org.usvm.util.ApproximationPaths
 import org.usvm.util.classpathWithApproximations
+import org.utbot.framework.UtSettings
 import java.io.File
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = KotlinLogging.logger {}
 
 // TODO usvm-sbft-refactoring: copied from `usvm/usvm-jvm/test`, extract this class back to USVM project
-class JcContainer private constructor(
+/**
+ * NOTE that JcContainer can also be instantiated with [JcContainer.getOrCreate] method.
+ *
+ * Calling constructor directly should be used if you definitely want to create
+ * new JcContainer instead of trying it get it from containers cache.
+ */
+class JcContainer(
     usePersistence: Boolean,
     persistenceDir: File,
     classpath: List<File>,
@@ -51,7 +60,12 @@ class JcContainer private constructor(
                     persistent(location = persistenceLocation, clearOnStart = false)
                 }
             }
-            val cp = db.classpathWithApproximations(classpath, listOf(UnknownClasses))
+
+            val approximationPaths = ApproximationPaths(
+                usvmApiJarPath = JcJars.approximationsApiJar.absolutePath,
+                usvmApproximationsJarPath = JcJars.approximationsJar.absolutePath,
+                )
+            val cp = db.classpathWithApproximations(classpath, listOf(UnknownClasses), approximationPaths)
             db to cp
         }
         this.db = db
@@ -60,9 +74,13 @@ class JcContainer private constructor(
             JcRuntimeTraceInstrumenterFactory::class,
             cpPath,
             cp,
-            javaHome.absolutePath,
+            InstrumentationProcessPaths(
+                pathToUsvmInstrumentationJar = JcJars.runnerJar.absolutePath,
+                pathToUsvmCollectorsJar = JcJars.collectorsJar.absolutePath,
+                pathToJava = javaHome.absolutePath,
+                ),
             persistenceLocation,
-            TEST_EXECUTION_TIMEOUT
+            testExecutionTimeout
         )
         runBlocking {
             db.awaitBackgroundJobs()
@@ -76,11 +94,12 @@ class JcContainer private constructor(
     }
 
     companion object : AutoCloseable {
-        val TEST_EXECUTION_TIMEOUT = 1.seconds
+        val testExecutionTimeout
+            get() = UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis.milliseconds
 
         private val cache = HashMap<List<File>, JcContainer>()
 
-        operator fun invoke(
+        fun getOrCreate(
             usePersistence: Boolean,
             persistenceDir: File,
             classpath: List<File>,

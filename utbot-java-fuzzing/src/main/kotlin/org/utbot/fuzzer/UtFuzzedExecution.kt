@@ -22,8 +22,17 @@ class UtFuzzedExecution(
     displayName: String? = null,
     val fuzzingValues:  List<FuzzedValue>? = null,
     val fuzzedMethodDescription:  FuzzedMethodDescription? = null,
-    override val instrumentation: List<UtInstrumentation> = emptyList(),
-) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName), UtExecutionWithInstrumentation {
+    instrumentation: List<UtInstrumentation> = emptyList(),
+) : UtExecutionWithInstrumentation(
+    stateBefore,
+    stateAfter,
+    result,
+    coverage,
+    summary,
+    testMethodName,
+    displayName,
+    instrumentation
+) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
      * It means that it is not possible for a field to be present at 'before' and to be absent at 'after'.
@@ -39,7 +48,8 @@ class UtFuzzedExecution(
         coverage: Coverage?,
         summary: List<DocStatement>?,
         testMethodName: String?,
-        displayName: String?
+        displayName: String?,
+        instrumentation: List<UtInstrumentation>,
     ): UtExecution {
         return UtFuzzedExecution(
             stateBefore,

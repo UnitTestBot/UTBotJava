@@ -18,15 +18,15 @@ val usvmInstrumentationRunner: Configuration by configurations.creating {}
 dependencies {
     implementation(project(":utbot-framework-api"))
 
-    implementation(group = "org.jacodb", name = "jacodb-core", version = jacoDbVersion)
-    implementation(group = "org.jacodb", name = "jacodb-analysis", version = jacoDbVersion)
-    implementation(group = "org.jacodb", name = "jacodb-approximations", version = jacoDbVersion)
+    api(group = "org.jacodb", name = "jacodb-core", version = jacoDbVersion)
+    api(group = "org.jacodb", name = "jacodb-analysis", version = jacoDbVersion)
+    api(group = "org.jacodb", name = "jacodb-approximations", version = jacoDbVersion)
 
-    implementation(group = usvmRepo, name = "usvm-core", version = usvmVersion)
-    implementation(group = usvmRepo, name = "usvm-jvm", version = usvmVersion)
-    implementation(group = usvmRepo, name = "usvm-jvm-api", version = usvmVersion)
-    implementation(group = usvmRepo, name = "usvm-jvm-instrumentation", version = usvmVersion)
-    implementation(group = usvmRepo, name = "usvm-jvm-instrumentation-collectors", version = usvmVersion)
+    api(group = usvmRepo, name = "usvm-core", version = usvmVersion)
+    api(group = usvmRepo, name = "usvm-jvm", version = usvmVersion)
+    api(group = usvmRepo, name = "usvm-jvm-api", version = usvmVersion)
+    api(group = usvmRepo, name = "usvm-jvm-instrumentation", version = usvmVersion)
+    api(group = usvmRepo, name = "usvm-jvm-instrumentation-collectors", version = usvmVersion)
 
     approximations("$approximationsRepo:approximations:$approximationsVersion")
 

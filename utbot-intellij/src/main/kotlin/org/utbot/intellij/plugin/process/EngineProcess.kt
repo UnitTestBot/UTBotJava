@@ -15,6 +15,7 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.SymbolicEngineSource
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
@@ -229,6 +230,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         timeout: Long,
         generationTimeout: Long,
         isSymbolicEngineEnabled: Boolean,
+        symbolicEngineSource: SymbolicEngineSource,
         isFuzzingEnabled: Boolean,
         fuzzingValue: Double,
         searchDirectory: String,
@@ -242,6 +244,7 @@ class EngineProcess private constructor(val project: Project, private val classN
             timeout,
             generationTimeout,
             isSymbolicEngineEnabled,
+            symbolicEngineSource.name,
             isFuzzingEnabled,
             fuzzingValue,
             searchDirectory,

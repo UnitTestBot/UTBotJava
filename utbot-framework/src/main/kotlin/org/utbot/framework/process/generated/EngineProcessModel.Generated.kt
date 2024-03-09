@@ -75,7 +75,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 7072495177628793247L
+        const val serializationHash = -6931237043403275202L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -188,7 +188,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:106]
+ * #### Generated from [EngineProcessModel.kt:107]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -251,7 +251,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:110]
+ * #### Generated from [EngineProcessModel.kt:111]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -308,7 +308,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:99]
+ * #### Generated from [EngineProcessModel.kt:100]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -371,7 +371,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:103]
+ * #### Generated from [EngineProcessModel.kt:104]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -437,6 +437,7 @@ data class GenerateParams (
     val timeout: Long,
     val generationTimeout: Long,
     val isSymbolicEngineEnabled: Boolean,
+    val symbolicEngineType: String,
     val isFuzzingEnabled: Boolean,
     val fuzzingValue: Double,
     val searchDirectory: String,
@@ -455,11 +456,12 @@ data class GenerateParams (
             val timeout = buffer.readLong()
             val generationTimeout = buffer.readLong()
             val isSymbolicEngineEnabled = buffer.readBool()
+            val symbolicEngineType = buffer.readString()
             val isFuzzingEnabled = buffer.readBool()
             val fuzzingValue = buffer.readDouble()
             val searchDirectory = buffer.readString()
             val taintConfigPath = buffer.readNullable { buffer.readString() }
-            return GenerateParams(methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory, taintConfigPath)
+            return GenerateParams(methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, symbolicEngineType, isFuzzingEnabled, fuzzingValue, searchDirectory, taintConfigPath)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateParams)  {
@@ -469,6 +471,7 @@ data class GenerateParams (
             buffer.writeLong(value.timeout)
             buffer.writeLong(value.generationTimeout)
             buffer.writeBool(value.isSymbolicEngineEnabled)
+            buffer.writeString(value.symbolicEngineType)
             buffer.writeBool(value.isFuzzingEnabled)
             buffer.writeDouble(value.fuzzingValue)
             buffer.writeString(value.searchDirectory)
@@ -494,6 +497,7 @@ data class GenerateParams (
         if (timeout != other.timeout) return false
         if (generationTimeout != other.generationTimeout) return false
         if (isSymbolicEngineEnabled != other.isSymbolicEngineEnabled) return false
+        if (symbolicEngineType != other.symbolicEngineType) return false
         if (isFuzzingEnabled != other.isFuzzingEnabled) return false
         if (fuzzingValue != other.fuzzingValue) return false
         if (searchDirectory != other.searchDirectory) return false
@@ -510,6 +514,7 @@ data class GenerateParams (
         __r = __r*31 + timeout.hashCode()
         __r = __r*31 + generationTimeout.hashCode()
         __r = __r*31 + isSymbolicEngineEnabled.hashCode()
+        __r = __r*31 + symbolicEngineType.hashCode()
         __r = __r*31 + isFuzzingEnabled.hashCode()
         __r = __r*31 + fuzzingValue.hashCode()
         __r = __r*31 + searchDirectory.hashCode()
@@ -526,6 +531,7 @@ data class GenerateParams (
             print("timeout = "); timeout.print(printer); println()
             print("generationTimeout = "); generationTimeout.print(printer); println()
             print("isSymbolicEngineEnabled = "); isSymbolicEngineEnabled.print(printer); println()
+            print("symbolicEngineType = "); symbolicEngineType.print(printer); println()
             print("isFuzzingEnabled = "); isFuzzingEnabled.print(printer); println()
             print("fuzzingValue = "); fuzzingValue.print(printer); println()
             print("searchDirectory = "); searchDirectory.print(printer); println()
@@ -539,7 +545,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:65]
+ * #### Generated from [EngineProcessModel.kt:66]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -602,7 +608,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:118]
+ * #### Generated from [EngineProcessModel.kt:119]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -695,7 +701,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:127]
+ * #### Generated from [EngineProcessModel.kt:128]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -827,7 +833,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:94]
+ * #### Generated from [EngineProcessModel.kt:95]
  */
 data class MethodDescription (
     val name: String,
@@ -896,7 +902,7 @@ data class MethodDescription (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:132]
+ * #### Generated from [EngineProcessModel.kt:133]
  */
 data class PerformParams (
     val engineProcessTask: ByteArray
@@ -953,7 +959,7 @@ data class PerformParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:69]
+ * #### Generated from [EngineProcessModel.kt:70]
  */
 data class RenderParams (
     val testSetsId: Long,
@@ -1100,7 +1106,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:87]
+ * #### Generated from [EngineProcessModel.kt:88]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1163,7 +1169,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:91]
+ * #### Generated from [EngineProcessModel.kt:92]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1415,7 +1421,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:113]
+ * #### Generated from [EngineProcessModel.kt:114]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

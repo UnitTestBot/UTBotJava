@@ -37,6 +37,7 @@ import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
 import org.utbot.common.isWindows
 import org.utbot.framework.SummariesGenerationType
+import org.utbot.framework.codegen.domain.SymbolicEngineSource
 import org.utbot.framework.codegen.domain.UnknownTestFramework
 import org.utbot.framework.plugin.api.SpringTestType
 import org.utbot.framework.plugin.api.isSummarizationCompatible
@@ -66,6 +67,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
+        var symbolicEngineSource: SymbolicEngineSource = SymbolicEngineSource.defaultItem,
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
         var springTestType: SpringTestType = SpringTestType.defaultItem,
         var springConfig: String = SpringConfig.defaultItem,
@@ -98,6 +100,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (forceStaticMocking != other.forceStaticMocking) return false
             if (treatOverflowAsError != other.treatOverflowAsError) return false
             if (parametrizedTestSource != other.parametrizedTestSource) return false
+            if (symbolicEngineSource != other.symbolicEngineSource) return false
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
             if (springTestType != other.springTestType) return false
             if (springConfig != other.springConfig) return false
@@ -124,6 +127,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + forceStaticMocking.hashCode()
             result = 31 * result + treatOverflowAsError.hashCode()
             result = 31 * result + parametrizedTestSource.hashCode()
+            result = 31 * result + symbolicEngineSource.hashCode()
             result = 31 * result + classesToMockAlways.contentHashCode()
             result = 31 * result + springTestType.hashCode()
             result = 31 * result + springConfig.hashCode()
@@ -173,6 +177,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     val treatOverflowAsError: TreatOverflowAsError get() = state.treatOverflowAsError
 
     val parametrizedTestSource: ParametrizedTestSource get() = state.parametrizedTestSource
+
+    val symbolicEngineSource: SymbolicEngineSource get() = state.symbolicEngineSource
 
     val classesToMockAlways: Set<String> get() = state.classesToMockAlways.toSet()
 

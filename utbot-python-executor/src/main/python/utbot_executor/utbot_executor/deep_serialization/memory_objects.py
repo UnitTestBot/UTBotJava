@@ -8,6 +8,7 @@ import sys
 import typing
 from itertools import zip_longest
 from typing import Any, Callable, Dict, List, Optional, Set, Type, Iterable
+import numpy as np
 
 from utbot_executor.deep_serialization.config import PICKLE_PROTO
 from utbot_executor.deep_serialization.iterator_wrapper import IteratorWrapper
@@ -41,7 +42,7 @@ class MemoryObject:
         self.id_ = PythonId(str(id(self.obj)))
 
     def _initialize(
-        self, deserialized_obj: object = None, comparable: bool = True
+            self, deserialized_obj: object = None, comparable: bool = True
     ) -> None:
         self.deserialized_obj = deserialized_obj
         self.comparable = comparable
@@ -112,6 +113,30 @@ class ListMemoryObject(MemoryObject):
             deserialized_obj = set(deserialized_obj)
 
         comparable = all(serializer.get_by_id(elem).comparable for elem in self.items)
+
+        super()._initialize(deserialized_obj, comparable)
+
+class NdarrayMemoryObject(MemoryObject):
+    strategy: str = "ndarray"
+    items: List[PythonId] = []
+
+    def __init__(self, ndarray_object: object) -> None:
+        self.items: List[PythonId] = []
+        super().__init__(ndarray_object)
+
+    def initialize(self) -> None:
+        serializer = PythonSerializer()
+        self.deserialized_obj = []  # for recursive collections
+        self.comparable = False  # for recursive collections
+
+        for elem in self.obj:
+            elem_id = serializer.write_object_to_memory(elem)
+            self.items.append(elem_id)
+            self.deserialized_obj.append(serializer[elem_id])
+
+        deserialized_obj = self.deserialized_obj
+        comparable = all(serializer.get_by_id(elem).comparable for elem in self.items)
+        # comparable = True
 
         super()._initialize(deserialized_obj, comparable)
 
@@ -264,10 +289,10 @@ class ReduceMemoryObject(MemoryObject):
 
         is_reconstructor = constructor_kind.qualname == "copyreg._reconstructor"
         is_reduce_user_type = (
-            len(self.reduce_value[1]) == 3
-            and isinstance(self.reduce_value[1][0], type(self.obj))
-            and self.reduce_value[1][1] is object
-            and self.reduce_value[1][2] is None
+                len(self.reduce_value[1]) == 3
+                and isinstance(self.reduce_value[1][0], type(self.obj))
+                and self.reduce_value[1][1] is object
+                and self.reduce_value[1][2] is None
         )
         is_reduce_ex_user_type = len(self.reduce_value[1]) == 1 and isinstance(
             self.reduce_value[1][0], type(self.obj)
@@ -294,8 +319,8 @@ class ReduceMemoryObject(MemoryObject):
                 len(inspect.signature(init_method).parameters),
             )
             if (
-                not init_from_object
-                and len(inspect.signature(init_method).parameters) == 1
+                    not init_from_object
+                    and len(inspect.signature(init_method).parameters) == 1
             ) or init_from_object:
                 logging.debug("init with one argument! %s", init_method)
                 constructor_arguments = []
@@ -317,9 +342,9 @@ class ReduceMemoryObject(MemoryObject):
         if is_reconstructor and is_user_type:
             constructor_arguments = self.reduce_value[1]
             if (
-                len(constructor_arguments) == 3
-                and constructor_arguments[-1] is None
-                and constructor_arguments[-2] == object
+                    len(constructor_arguments) == 3
+                    and constructor_arguments[-1] is None
+                    and constructor_arguments[-2] == object
             ):
                 del constructor_arguments[1:]
             callable_constructor = object.__new__
@@ -392,6 +417,12 @@ class ListMemoryObjectProvider(MemoryObjectProvider):
             return ListMemoryObject
         return None
 
+class NdarrayMemoryObjectProvider(MemoryObjectProvider):
+    @staticmethod
+    def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
+        if type(obj) == np.ndarray:
+            return NdarrayMemoryObject
+        return None
 
 class DictMemoryObjectProvider(MemoryObjectProvider):
     @staticmethod
@@ -425,6 +456,7 @@ class ReduceExMemoryObjectProvider(MemoryObjectProvider):
         return None
 
 
+
 class ReprMemoryObjectProvider(MemoryObjectProvider):
     @staticmethod
     def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
@@ -456,6 +488,7 @@ class PythonSerializer:
         ReduceMemoryObjectProvider,
         ReprMemoryObjectProvider,
         ReduceExMemoryObjectProvider,
+        NdarrayMemoryObjectProvider
     ]
 
     def __new__(cls):

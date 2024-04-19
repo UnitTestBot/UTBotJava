@@ -50,6 +50,7 @@ def serialize_objects_dump(objs: List[Any], clear_visited: bool = False) -> Tupl
         serializer.write_object_to_memory(obj)
         for obj in objs
     ]
+
     return ids, serializer.memory, serialize_memory_dump(serializer.memory)
 
 

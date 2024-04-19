@@ -44,7 +44,7 @@ __all__ = ["PythonExecutor"]
 
 
 def _update_states(
-    init_memory_dump: MemoryDump, before_memory_dump: MemoryDump
+        init_memory_dump: MemoryDump, before_memory_dump: MemoryDump
 ) -> MemoryDump:
     for id_, obj in before_memory_dump.objects.items():
         if id_ in init_memory_dump.objects:
@@ -246,9 +246,9 @@ class PythonExecutor:
 
 
 def _serialize_state(
-    args: List[Any],
-    kwargs: Dict[str, Any],
-    result: Any = None,
+        args: List[Any],
+        kwargs: Dict[str, Any],
+        result: Any = None,
 ) -> Tuple[List[PythonId], Dict[str, PythonId], PythonId, MemoryDump, str]:
     """Serialize objects from args, kwargs and result.
 
@@ -267,13 +267,13 @@ def _serialize_state(
 
 
 def _run_calculate_function_value(
-    function: types.FunctionType,
-    args: List[Any],
-    kwargs: Dict[str, Any],
-    fullpath: str,
-    state_init: str,
-    tracer: UtTracer,
-    state_assertions: bool,
+        function: types.FunctionType,
+        args: List[Any],
+        kwargs: Dict[str, Any],
+        fullpath: str,
+        state_init: str,
+        tracer: UtTracer,
+        state_assertions: bool,
 ) -> ExecutionResponse:
     """Calculate function evaluation result.
 

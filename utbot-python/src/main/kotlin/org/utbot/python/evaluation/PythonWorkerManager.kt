@@ -82,7 +82,7 @@ class PythonWorkerManager(
                 coverageReceiver.address().first,
                 coverageReceiver.address().second,
                 "--logfile", logfile.absolutePath,
-                "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
+                "--loglevel", "DEBUG",  // "DEBUG", "INFO", "WARNING", "ERROR"
                 "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
                 sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
                 doNotGenerateStateAssertions.toDoNotGenerateStateAssertionsString(), // "--generate_state_assertions", // "--no-generate_state_assertions"

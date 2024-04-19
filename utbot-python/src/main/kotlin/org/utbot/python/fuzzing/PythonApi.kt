@@ -21,6 +21,7 @@ import org.utbot.python.fuzzing.provider.ComplexValueProvider
 import org.utbot.python.fuzzing.provider.ConstantValueProvider
 import org.utbot.python.fuzzing.provider.DictValueProvider
 import org.utbot.python.fuzzing.provider.FloatValueProvider
+import org.utbot.python.fuzzing.provider.NDArrayValueProvider
 import org.utbot.python.fuzzing.provider.IntValueProvider
 import org.utbot.python.fuzzing.provider.IteratorValueProvider
 import org.utbot.python.fuzzing.provider.ListValueProvider
@@ -140,6 +141,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     ConstantValueProvider,
     TypeAliasValueProvider,
     IteratorValueProvider,
+    NDArrayValueProvider,
     SubtypeValueProvider(typeStorage)
 )
 
@@ -180,7 +182,6 @@ class PythonFuzzing(
 
     override fun generate(description: PythonMethodDescription, type: FuzzedUtType): Sequence<Seed<FuzzedUtType, PythonFuzzedValue>> {
         val providers = mutableSetOf<Seed<FuzzedUtType, PythonFuzzedValue>>()
-
         if (type.isAny()) {
             if (type.fuzzAny) {
                 providers += generateAnyProviders(description, type)

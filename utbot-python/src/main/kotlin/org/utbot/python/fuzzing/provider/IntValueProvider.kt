@@ -43,7 +43,7 @@ object IntValueProvider : PythonValueProvider {
     }
 
     override fun generate(description: PythonMethodDescription, type: FuzzedUtType) = sequence<Seed<FuzzedUtType, PythonFuzzedValue>> {
-        val bits = 128
+        val bits = 32
         val integerConstants = getIntConstants(description.concreteValues)
         val modifiedConstants = integerConstants.flatMap { value ->
             listOf(

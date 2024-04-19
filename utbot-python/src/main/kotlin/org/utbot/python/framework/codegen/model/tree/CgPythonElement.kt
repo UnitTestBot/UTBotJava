@@ -17,6 +17,7 @@ import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonRangeClassId
 import org.utbot.python.framework.api.python.util.pythonSetClassId
 import org.utbot.python.framework.api.python.util.pythonTupleClassId
+import org.utbot.python.framework.api.python.util.pythonNdarrayClassId
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonVisitor
 
 interface CgPythonElement : CgElement {
@@ -37,6 +38,7 @@ interface CgPythonElement : CgElement {
                 is CgPythonNamedArgument -> visitor.visit(element)
                 is CgPythonIterator -> visitor.visit(element)
                 is CgPythonZip -> visitor.visit(element)
+                is CgPythonNdarray -> visitor.visit(element)
                 else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
             }
         } else {
@@ -121,6 +123,13 @@ class CgPythonSet(
     override val type: PythonClassId = pythonSetClassId
 }
 
+class CgPythonNdarray(
+    val elements: List<CgValue>
+) : CgValue, CgPythonElement {
+    override val type: PythonClassId = pythonNdarrayClassId
+}
+
+
 class CgPythonDict(
     val elements: Map<CgValue, CgValue>
 ) : CgValue, CgPythonElement {
@@ -145,3 +154,6 @@ class CgPythonNamedArgument(
 ) : CgValue, CgPythonElement {
     override val type: ClassId = value.type
 }
+
+
+

@@ -19,6 +19,7 @@ object ExecutionResultDeserializer {
                 .withSubtype(DictMemoryObject::class.java, "dict")
                 .withSubtype(ReduceMemoryObject::class.java, "reduce")
                 .withSubtype(IteratorMemoryObject::class.java, "iterator")
+                .withSubtype(NdarrayMemoryObject::class.java, "ndarray")
         )
         .addLast(KotlinJsonAdapterFactory())
         .build()

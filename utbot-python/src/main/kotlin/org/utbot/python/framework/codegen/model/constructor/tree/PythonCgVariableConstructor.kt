@@ -22,14 +22,7 @@ import org.utbot.python.framework.api.python.util.pythonDictClassId
 import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
-import org.utbot.python.framework.codegen.model.tree.CgPythonDict
-import org.utbot.python.framework.codegen.model.tree.CgPythonIndex
-import org.utbot.python.framework.codegen.model.tree.CgPythonIterator
-import org.utbot.python.framework.codegen.model.tree.CgPythonList
-import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
-import org.utbot.python.framework.codegen.model.tree.CgPythonSet
-import org.utbot.python.framework.codegen.model.tree.CgPythonTree
-import org.utbot.python.framework.codegen.model.tree.CgPythonTuple
+import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(cgContext) {
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
@@ -72,6 +65,11 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                     val items = objectNode.items.values.map { pythonBuildObject(it) }
                     Pair(CgPythonList(items.map { it.first }), items.flatMap { it.second })
                 }
+            }
+
+            is PythonTree.NdarrayNode -> {
+                val items = objectNode.items.values.map { pythonBuildObject(it) }
+                Pair(CgPythonNdarray(items.map { it.first }), items.flatMap { it.second })
             }
 
             is PythonTree.TupleNode -> {
@@ -194,6 +192,8 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 return Pair(obj, context.currentBlock.toList())
             }
 
+
+            // TODO: NDArray
             else -> {
                 throw UnsupportedOperationException()
             }

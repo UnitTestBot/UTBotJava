@@ -15,6 +15,7 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonTree
 import org.utbot.python.framework.codegen.model.tree.CgPythonTuple
 import org.utbot.python.framework.codegen.model.tree.CgPythonWith
 import org.utbot.python.framework.codegen.model.tree.CgPythonZip
+import org.utbot.python.framework.codegen.model.tree.CgPythonNdarray
 
 interface CgPythonVisitor<R> : CgVisitor<R> {
 
@@ -26,6 +27,7 @@ interface CgPythonVisitor<R> : CgVisitor<R> {
     fun visit(element: CgPythonDict): R
     fun visit(element: CgPythonTuple): R
     fun visit(element: CgPythonList): R
+    fun visit(element: CgPythonNdarray): R
     fun visit(element: CgPythonSet): R
     fun visit(element: CgPythonIterator): R
     fun visit(element: CgPythonTree): R

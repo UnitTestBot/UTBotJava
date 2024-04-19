@@ -9,7 +9,8 @@ class TestWriter {
 
     fun generateTestCode(): String {
         val (importLines, code) = testCode.fold(mutableListOf<String>() to StringBuilder()) { acc, s ->
-            val lines = s.split(System.lineSeparator())
+//            val lines = s.split(System.lineSeparator())
+            val lines = s.split("(\\r\\n|\\r|\\n)".toRegex())
             val firstClassIndex = lines.indexOfFirst { it.startsWith("class") }
             lines.take(firstClassIndex).forEach { line -> if (line !in acc.first) acc.first.add(line) }
             lines.drop(firstClassIndex).forEach { line -> acc.second.append(line + System.lineSeparator()) }

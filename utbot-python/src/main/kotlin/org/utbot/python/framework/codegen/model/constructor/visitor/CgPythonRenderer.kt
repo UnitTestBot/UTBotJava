@@ -71,6 +71,7 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonIndex
 import org.utbot.python.framework.codegen.model.tree.CgPythonIterator
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
+import org.utbot.python.framework.codegen.model.tree.CgPythonNdarray
 import org.utbot.python.framework.codegen.model.tree.CgPythonNamedArgument
 import org.utbot.python.framework.codegen.model.tree.CgPythonRange
 import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
@@ -557,6 +558,17 @@ internal class CgPythonRenderer(
         print("[")
         element.elements.renderSeparated()
         print("]")
+    }
+
+    override fun visit(element: CgPythonNdarray) {
+        if (element.elements.isEmpty()) {
+            print("numpy.array([])")
+        } else{
+            print("numpy.array([")
+            element.elements.renderSeparated()
+            print("])")
+        }
+
     }
 
     override fun visit(element: CgPythonTuple) {

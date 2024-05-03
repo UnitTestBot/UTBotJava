@@ -141,7 +141,7 @@ fun pythonDefaultValueProviders(typeStorage: PythonTypeHintsStorage) = listOf(
     ConstantValueProvider,
     TypeAliasValueProvider,
     IteratorValueProvider,
-    NDArrayValueProvider,
+    NDArrayValueProvider(typeStorage),
     SubtypeValueProvider(typeStorage)
 )
 

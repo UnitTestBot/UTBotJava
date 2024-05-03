@@ -157,9 +157,10 @@ object PythonTree {
     }
     class NdarrayNode(
         id: Long,
-        val items: MutableMap<Int, PythonTreeNode>
+        val items: MutableMap<Int, PythonTreeNode>,
+        val dimention: List<Int>
     ) : PythonTreeNode(id, pythonNdarrayClassId) {
-        constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+        constructor(items: MutableMap<Int, PythonTreeNode>, dimention: List<Int>) : this(PythonIdGenerator.createId(), items, dimention)
 
         override val children: List<PythonTreeNode>
             get() = items.values.toList()

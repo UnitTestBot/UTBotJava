@@ -321,8 +321,8 @@ fun MemoryObject.toPythonTree(
 
             is NdarrayMemoryObject -> {
                 val draft = when (this.qualname) {
-                    "np.ndarray" -> PythonTree.NdarrayNode(id, mutableMapOf())
-                    "numpy.ndarray" -> PythonTree.NdarrayNode(id, mutableMapOf())
+                    "np.ndarray" -> PythonTree.NdarrayNode(id, mutableMapOf(), listOf())
+                    "numpy.ndarray" -> PythonTree.NdarrayNode(id, mutableMapOf(), listOf())
                     else -> PythonTree.ListNode(id, mutableMapOf())
                 }
                 visited[this.id] = draft

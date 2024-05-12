@@ -112,6 +112,7 @@ class ListMemoryObject(MemoryObject):
         elif self.typeinfo.fullname == "builtins.set":
             deserialized_obj = set(deserialized_obj)
 
+
         comparable = all(serializer.get_by_id(elem).comparable for elem in self.items)
 
         super()._initialize(deserialized_obj, comparable)
@@ -119,6 +120,7 @@ class ListMemoryObject(MemoryObject):
 class NdarrayMemoryObject(MemoryObject):
     strategy: str = "ndarray"
     items: List[PythonId] = []
+    dimensions: List[int] = []
 
     def __init__(self, ndarray_object: object) -> None:
         self.items: List[PythonId] = []
@@ -129,21 +131,23 @@ class NdarrayMemoryObject(MemoryObject):
         self.deserialized_obj = []  # for recursive collections
         self.comparable = False  # for recursive collections
 
-        for elem in self.obj:
-            elem_id = serializer.write_object_to_memory(elem)
-            self.items.append(elem_id)
-            self.deserialized_obj.append(serializer[elem_id])
+        temp_object = self.obj.copy().flatten()
+
+        self.dimensions = self.obj.shape
+        if temp_object.shape != (0, ):
+            for elem in temp_object:
+                elem_id = serializer.write_object_to_memory(elem)
+                self.items.append(elem_id)
+                self.deserialized_obj.append(serializer[elem_id])
 
         deserialized_obj = self.deserialized_obj
-        comparable = all(serializer.get_by_id(elem).comparable for elem in self.items)
-        # comparable = True
-
+        comparable = all(serializer.get_by_id(elem).comparable for elem in self.items) if self.deserialized_obj != [] else True
         super()._initialize(deserialized_obj, comparable)
 
     def __repr__(self) -> str:
         if hasattr(self, "obj"):
             return str(self.obj)
-        return f"{self.typeinfo.kind}{self.items}"
+        return f"{self.typeinfo.kind}{self.items}{self.dimensions}"
 
 
 class DictMemoryObject(MemoryObject):
@@ -413,7 +417,7 @@ class MemoryObjectProvider(object):
 class ListMemoryObjectProvider(MemoryObjectProvider):
     @staticmethod
     def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
-        if any(type(obj) == t for t in (list, set, tuple, frozenset)):
+        if any(type(obj) == t for t in (list, set, tuple, frozenset)) and type(obj) != np.ndarray:
             return ListMemoryObject
         return None
 
@@ -482,13 +486,13 @@ class PythonSerializer:
     visited: Set[PythonId] = set()
 
     providers: List[MemoryObjectProvider] = [
+        NdarrayMemoryObjectProvider,
         ListMemoryObjectProvider,
         DictMemoryObjectProvider,
         IteratorMemoryObjectProvider,
         ReduceMemoryObjectProvider,
         ReprMemoryObjectProvider,
         ReduceExMemoryObjectProvider,
-        NdarrayMemoryObjectProvider
     ]
 
     def __new__(cls):

@@ -31,7 +31,7 @@ class MemoryObjectEncoder(json.JSONEncoder):
             elif isinstance(o, NdarrayMemoryObject):
                 base_json["items"] = o.items
                 base_json["comparable"] = True
-                # raise AttributeError(base_json)
+                base_json["dimensions"] = o.dimensions
             elif isinstance(o, (ListMemoryObject, DictMemoryObject)):
                 base_json["items"] = o.items
             elif isinstance(o, IteratorMemoryObject):
@@ -59,8 +59,9 @@ class MemoryDumpEncoder(json.JSONEncoder):
                 "module": o.module,
             }
         if isinstance(o, np.ndarray):
-            # raise TypeError(f'Object {o.tolist()}, type: {type(o)}')
-            return all(o.tolist())
+            raise NotImplementedError("np.ndarray is not supported")
+        if isinstance(o, np.bool_):
+            return bool(o)
         return json.JSONEncoder.default(self, o)
 
 
@@ -91,6 +92,7 @@ def as_reduce_object(dct: Dict) -> Union[MemoryObject, Dict]:
                 kind=dct["typeinfo"]["kind"], module=dct["typeinfo"]["module"]
             )
             obj.comparable = dct["comparable"]
+            obj.dimensions = dct["dimensions"]
             return obj
 
         if dct["strategy"] == "dict":
@@ -160,6 +162,7 @@ class DumpLoader:
                 new_memory_object.items = [
                     self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
                 ]
+                new_memory_object.dimensions = obj.dimensions
             elif isinstance(new_memory_object, IteratorMemoryObject):
                 new_memory_object.items = [
                     self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
@@ -220,17 +223,27 @@ class DumpLoader:
 
                 for item in dump_object.items:
                     real_object.append(self.load_object(item))
+
         elif isinstance(dump_object, NdarrayMemoryObject):
-            # print(f"Hi", file=sys.stderr)
             real_object = []
 
             id_ = PythonId(str(id(real_object)))
             self.dump_id_to_real_id[python_id] = id_
             self.memory[id_] = real_object
 
+            temp_list = []
             for item in dump_object.items:
-                real_object = np.append(real_object, self.load_object(item))
-                # real_object.append()
+                temp_list.append(self.load_object(item))
+
+            dt = np.dtype(type(temp_list[0]) if len(temp_list) > 0 else np.int64)
+            temp_list = np.array(temp_list, dtype=dt)
+
+            real_object = np.ndarray(
+                shape=dump_object.dimensions,
+                dtype=dt,
+                buffer=temp_list
+            )
+
         elif isinstance(dump_object, DictMemoryObject):
             real_object = {}
 

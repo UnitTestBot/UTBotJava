@@ -107,6 +107,7 @@ class NdarrayMemoryObject(
     typeinfo: TypeInfo,
     comparable: Boolean,
     val items: List<String>,
+    val dimensions: List<Int>
 ) : MemoryObject(id, typeinfo, comparable)
 
 fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boolean = false): String {
@@ -124,10 +125,11 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
             )
         }
 
-        is PythonTree.NdarrayNode -> { // TODO: Optimize for ndarray
+        is PythonTree.NDArrayNode -> { // TODO: Optimize for ndarray
             val items = this.items.entries
                 .map { it.value.toMemoryObject(memoryDump) }
-            NdarrayMemoryObject(id, typeinfo, this.comparable, items) // TODO: Ndarray to memory object
+            val dimensions = this.dimensions
+            NdarrayMemoryObject(id, typeinfo, this.comparable, items, dimensions) // TODO: Ndarray to memory object
         }
 
         is PythonTree.ListNode -> {
@@ -321,8 +323,7 @@ fun MemoryObject.toPythonTree(
 
             is NdarrayMemoryObject -> {
                 val draft = when (this.qualname) {
-                    "np.ndarray" -> PythonTree.NdarrayNode(id, mutableMapOf(), listOf())
-                    "numpy.ndarray" -> PythonTree.NdarrayNode(id, mutableMapOf(), listOf())
+                    "numpy.ndarray" -> PythonTree.NDArrayNode(id, mutableMapOf(), this.dimensions)
                     else -> PythonTree.ListNode(id, mutableMapOf())
                 }
                 visited[this.id] = draft
@@ -330,7 +331,7 @@ fun MemoryObject.toPythonTree(
                 items.mapIndexed { index, valueId ->
                     val value = memoryDump.getById(valueId).toPythonTree(memoryDump, visited)
                     when (draft) {
-                        is PythonTree.NdarrayNode -> draft.items[index] = value
+                        is PythonTree.NDArrayNode -> draft.items[index] = value
                         else -> {}
                     }
                 }

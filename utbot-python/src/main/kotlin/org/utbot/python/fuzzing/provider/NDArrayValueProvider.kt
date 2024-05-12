@@ -10,7 +10,6 @@ import org.utbot.python.fuzzing.FuzzedUtType.Companion.toFuzzed
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.PythonValueProvider
-import org.utbot.python.fuzzing.provider.utils.*
 import org.utpython.types.*
 import kotlin.math.abs
 
@@ -41,20 +40,18 @@ class NDArrayValueProvider(
                 )
             ) {
                 PythonFuzzedValue(
-
-                    PythonTree.NdarrayNode(
+                    PythonTree.NDArrayNode(
                         emptyMap<Int, PythonTree.PythonTreeNode>().toMutableMap(), // Generate new Python IntNode
                         ((it.first().tree as PythonTree.ListNode).items as Map<Int, PythonTree.PrimitiveNode>).values.map { node ->
-                            abs(node.repr.take(3).toInt()) % 10
+                            abs(node.repr.take(3).toInt()) % 7 // TODO: Fix this
                         }
                     ), "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },
-            // TODO: Call to modify
             modify = sequence {
                 yield(Routine.Call((0 until 10000). map{param[1]}.toFuzzed()) { instance, arguments ->
-                    val obj = instance.tree as PythonTree.NdarrayNode
-                    (0 until obj.dimention.fold(1, Int::times)).map {
+                    val obj = instance.tree as PythonTree.NDArrayNode
+                    (0 until obj.dimensions.fold(1, Int::times)).map {
                         obj.items[it] = arguments.get(it).tree
                     }
 

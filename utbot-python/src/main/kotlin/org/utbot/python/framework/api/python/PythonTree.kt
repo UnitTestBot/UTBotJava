@@ -155,22 +155,27 @@ object PythonTree {
             else false
         }
     }
-    class NdarrayNode(
+    class NDArrayNode(
         id: Long,
         val items: MutableMap<Int, PythonTreeNode>,
-        val dimention: List<Int>
+        val dimensions: List<Int>
     ) : PythonTreeNode(id, pythonNdarrayClassId) {
-        constructor(items: MutableMap<Int, PythonTreeNode>, dimention: List<Int>) : this(PythonIdGenerator.createId(), items, dimention)
+        constructor(items: MutableMap<Int, PythonTreeNode>, dimensions: List<Int>) : this(PythonIdGenerator.createId(), items, dimensions)
 
         override val children: List<PythonTreeNode>
             get() = items.values.toList()
 
         override fun typeEquals(other: Any?): Boolean {
-            return if (other is NdarrayNode)
+            return if (other is NDArrayNode)
                 children.zip(other.children).all {
                     it.first.typeEquals(it.second)
                 }
             else false
+        }
+
+
+        override fun toString(): String {
+            return "ndarray[${items.values}], shape: ($dimensions)"
         }
     }
 

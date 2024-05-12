@@ -192,7 +192,7 @@ internal class CgPythonRenderer(
         println("\"\"\"")
     }
 
-    override fun visit(element: CgDocRegularStmt){
+    override fun visit(element: CgDocRegularStmt) {
         if (element.isEmpty()) return
 
         println(element.stmt)
@@ -561,13 +561,16 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonNdarray) {
-        if (element.elements.isEmpty()) {
-            print("numpy.array([])")
-        } else{
-            print("numpy.array([")
-            element.elements.renderSeparated()
-            print("])")
-        }
+
+        print("numpy.ndarray(")
+        print("dtype=" + element.dtype + ",")
+        print("shape=(")
+
+        print(element.shape.joinToString(",") { it.toString() })
+        print("), buffer=numpy.array([")
+        element.elements.renderSeparated()
+        print("]))")
+
 
     }
 

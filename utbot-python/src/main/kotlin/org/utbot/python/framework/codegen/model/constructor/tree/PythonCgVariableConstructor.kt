@@ -67,9 +67,11 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 }
             }
 
-            is PythonTree.NdarrayNode -> {
+            is PythonTree.NDArrayNode -> {
                 val items = objectNode.items.values.map { pythonBuildObject(it) }
-                Pair(CgPythonNdarray(items.map { it.first }), items.flatMap { it.second })
+                val shape = objectNode.dimensions
+                val type = objectNode.items.values.firstOrNull()?.type?.typeName
+                Pair(CgPythonNdarray(items.map { it.first }, shape, type?: "int"), items.flatMap { it.second })
             }
 
             is PythonTree.TupleNode -> {

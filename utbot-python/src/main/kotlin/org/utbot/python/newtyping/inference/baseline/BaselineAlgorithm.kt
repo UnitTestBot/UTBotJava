@@ -76,7 +76,7 @@ class BaselineAlgorithm(
 
     private val checkedSignatures: MutableSet<UtType> = mutableSetOf()
 
-    private fun getRandomType(): UtType? {
+    private fun getRandomType(): UtType? { // TODO: Remove random type when ndarray
         val weights = states.map { 1.0 / (it.anyNodes.size * it.anyNodes.size + 1) }
         val state = weightedRandom(states, weights, random)
         val newState = expandState(state, storage, state.anyNodes.map { mixtureType })
@@ -109,7 +109,7 @@ class BaselineAlgorithm(
                 val laudedType = getLaudedType()
                 if (laudedType != null) return laudedType
             }
-            val randomType = getRandomType()
+            val randomType = getRandomType() // TODO: Not to do when ndarray (via pythonMethod )
             if (randomType != null) return randomType
         }
 

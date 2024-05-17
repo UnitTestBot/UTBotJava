@@ -95,6 +95,8 @@ def get_constructor_info(constructor: object, obj: object) -> TypeInfo:
 
 
 def has_reduce(py_object: object) -> bool:
+    if get_kind(py_object).module == "numpy":
+        return False
     reduce = getattr(py_object, "__reduce__", None)
     if reduce is None:
         return False
@@ -161,6 +163,10 @@ def check_eval(py_object: object) -> bool:
     except Exception:
         return False
 
+try:
+    import numpy as np
+except ImportError:
+    pass
 
 def has_repr(py_object: object) -> bool:
     reprable_types = [
@@ -171,11 +177,13 @@ def has_repr(py_object: object) -> bool:
         bytes,
         bytearray,
         str,
-        # tuple,
-        # list,
-        # dict,
-        # set,
-        # frozenset,
+        np.int64,
+        np.int32,
+        np.int16,
+        np.int8,
+        np.float32,
+        np.float16,
+        np.float64,
         type,
     ]
     if type(py_object) in reprable_types:

@@ -18,7 +18,7 @@ private val logger = KotlinLogging.logger {}
 class UtBotPythonCli : CliktCommand(name = "UnitTestBot Python Command Line Interface") {
     private val verbosity by option("--verbosity", help = "Changes verbosity level, case insensitive")
         .enum<Level>(ignoreCase = true)
-        .default(Level.DEBUG)
+        .default(Level.INFO)
 
     override fun run() = setVerbosity(verbosity)
 

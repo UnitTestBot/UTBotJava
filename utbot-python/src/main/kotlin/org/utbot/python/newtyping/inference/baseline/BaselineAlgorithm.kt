@@ -24,6 +24,7 @@ import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 import kotlin.random.Random
+import org.utpython.types.pythonTypeName
 
 private val EDGES_TO_LINK = listOf(
     EdgeSource.Identification,
@@ -109,7 +110,8 @@ class BaselineAlgorithm(
                 val laudedType = getLaudedType()
                 if (laudedType != null) return laudedType
             }
-            val randomType = getRandomType() // TODO: Not to do when ndarray (via pythonMethod )
+            val isNDArray = pythonMethod.method.methodType.arguments.any{ it.pythonTypeName() == "numpy.ndarray" }
+            val randomType = if (!isNDArray) { getRandomType() } else { null }
             if (randomType != null) return randomType
         }
 

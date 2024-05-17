@@ -315,7 +315,7 @@ class FuzzingEngine(
                         Throwable(stackTraceMessage)
                     )
                     description.limitManager.addInvalidExecution()
-                    logger.debug(stackTraceMessage)
+                    logger.warn(stackTraceMessage)
                     PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
                 }
 

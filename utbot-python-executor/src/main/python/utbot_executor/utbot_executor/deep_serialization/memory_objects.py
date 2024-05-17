@@ -421,7 +421,7 @@ class MemoryObjectProvider(object):
 class ListMemoryObjectProvider(MemoryObjectProvider):
     @staticmethod
     def get_serializer(obj: object) -> Optional[Type[MemoryObject]]:
-        if any(type(obj) == t for t in (list, set, tuple, frozenset)) and type(obj) != np.ndarray:
+        if any(type(obj) == t for t in (list, set, tuple, frozenset)):
             return ListMemoryObject
         return None
 

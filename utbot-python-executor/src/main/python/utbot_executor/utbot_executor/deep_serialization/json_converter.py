@@ -14,7 +14,11 @@ from utbot_executor.deep_serialization.memory_objects import (
     MemoryDump, IteratorMemoryObject, NdarrayMemoryObject,
 )
 from utbot_executor.deep_serialization.utils import PythonId, TypeInfo
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    import sys
+    print("numpy is not installed", file=sys.stderr)
 
 
 class MemoryObjectEncoder(json.JSONEncoder):

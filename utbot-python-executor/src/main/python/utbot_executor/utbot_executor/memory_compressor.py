@@ -3,8 +3,11 @@ import typing
 from utbot_executor.deep_serialization.memory_objects import MemoryDump
 from utbot_executor.deep_serialization.utils import PythonId
 
-import numpy as np
-
+try:
+    import numpy as np
+except ImportError:
+    import sys
+    print("numpy is not installed", file=sys.stderr)
 
 def compress_memory(
         ids: typing.List[PythonId],

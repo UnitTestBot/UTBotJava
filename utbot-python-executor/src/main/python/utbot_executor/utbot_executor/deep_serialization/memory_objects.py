@@ -8,7 +8,11 @@ import sys
 import typing
 from itertools import zip_longest
 from typing import Any, Callable, Dict, List, Optional, Set, Type, Iterable
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    import sys
+    print("numpy is not installed", file=sys.stderr)
 
 from utbot_executor.deep_serialization.config import PICKLE_PROTO
 from utbot_executor.deep_serialization.iterator_wrapper import IteratorWrapper

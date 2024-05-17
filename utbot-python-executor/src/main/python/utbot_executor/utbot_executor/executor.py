@@ -87,8 +87,9 @@ class PythonExecutor:
                         globals()[submodule_name] = importlib.import_module(
                             submodule_name
                         )
-                    except ModuleNotFoundError:
+                    except ModuleNotFoundError as e:
                         logging.warning("Import submodule %s failed", submodule_name)
+                        raise e
                 logging.debug("Submodule #%d: OK", i)
 
     def run_function(self, request: ExecutionRequest) -> ExecutionResponse:
@@ -115,6 +116,9 @@ class PythonExecutor:
             self.add_imports(request.imports)
             loader.add_syspaths(request.syspaths)
             loader.add_imports(request.imports)
+        except ModuleNotFoundError as _:
+            logging.debug("Error \n%s", traceback.format_exc())
+            return ExecutionFailResponse("fail", traceback.format_exc())
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
             return ExecutionFailResponse("fail", traceback.format_exc())

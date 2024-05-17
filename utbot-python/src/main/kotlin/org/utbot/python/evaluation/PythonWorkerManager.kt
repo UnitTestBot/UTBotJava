@@ -81,8 +81,8 @@ class PythonWorkerManager(
                 serverSocket.localPort.toString(),
                 coverageReceiver.address().first,
                 coverageReceiver.address().second,
-                "--logfile", "C:\\Users\\Andrew\\Desktop\\Huawei\\Tests\\test_cli\\out\\log.log", // TODO: Remove
-                "--loglevel", "DEBUG",  // "DEBUG", "INFO", "WARNING", "ERROR"
+                "--logfile", logfile.absolutePath,
+                "--loglevel", logLevel,  // "DEBUG", "INFO", "WARNING", "ERROR"
                 "--coverage_type", coverageMeasureMode.toString(),  // "lines", "instructions"
                 sendCoverageContinuously.toSendCoverageContinuouslyString(),  // "--send_coverage", "--no-send_coverage"
                 doNotGenerateStateAssertions.toDoNotGenerateStateAssertionsString(), // "--generate_state_assertions", // "--no-generate_state_assertions"

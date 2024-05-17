@@ -126,7 +126,7 @@ class CgPythonSet(
 class CgPythonNdarray(
     val elements: List<CgValue>,
     val shape: List<Int>,
-    val dtype: String
+    val dtype: PythonClassId
 ) : CgValue, CgPythonElement {
     override val type: PythonClassId = pythonNdarrayClassId
 }

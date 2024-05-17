@@ -563,7 +563,9 @@ internal class CgPythonRenderer(
     override fun visit(element: CgPythonNdarray) {
 
         print("numpy.ndarray(")
-        print("dtype=" + element.dtype + ",")
+        print("dtype=")
+        print(element.dtype.toString().removePrefix("builtins."))
+        print(",")
         print("shape=(")
 
         print(element.shape.joinToString(",") { it.toString() })

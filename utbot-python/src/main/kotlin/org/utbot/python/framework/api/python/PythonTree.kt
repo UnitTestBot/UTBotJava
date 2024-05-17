@@ -167,6 +167,7 @@ object PythonTree {
 
         override fun typeEquals(other: Any?): Boolean {
             return if (other is NDArrayNode)
+                dimensions == other.dimensions &&
                 children.zip(other.children).all {
                     it.first.typeEquals(it.second)
                 }
@@ -175,7 +176,7 @@ object PythonTree {
 
 
         override fun toString(): String {
-            return "ndarray[${items.values}], shape: ($dimensions)"
+            return "ndarray${items.values}, shape: $dimensions"
         }
     }
 

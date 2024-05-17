@@ -43,13 +43,13 @@ class NDArrayValueProvider(
                     PythonTree.NDArrayNode(
                         emptyMap<Int, PythonTree.PythonTreeNode>().toMutableMap(), // Generate new Python IntNode
                         ((it.first().tree as PythonTree.ListNode).items as Map<Int, PythonTree.PrimitiveNode>).values.map { node ->
-                            abs(node.repr.take(3).toInt()) % 7 // TODO: Fix this
+                            abs(node.repr.take(2).toInt())
                         }
                     ), "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },
             modify = sequence {
-                yield(Routine.Call((0 until 10000). map{param[1]}.toFuzzed()) { instance, arguments ->
+                yield(Routine.Call((0 until 10000).map { param[1] }.toFuzzed()) { instance, arguments ->
                     val obj = instance.tree as PythonTree.NDArrayNode
                     (0 until obj.dimensions.fold(1, Int::times)).map {
                         obj.items[it] = arguments.get(it).tree

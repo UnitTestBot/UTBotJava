@@ -107,8 +107,18 @@ class PythonCodeGenerator(
         imports.forEach { renderer.renderPythonImport(it) }
 
         val paramNames = method.argumentsNames
-        val parameters = paramNames.map { argument ->
-            "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
+        val parameters: List<String> = paramNames.map { argument ->
+            if (methodAnnotations[argument]?.meta.toString() == "numpy.ndarray") {
+                val re = """, .*[^]]""".toRegex()
+                val type = re.find(methodAnnotations[argument]?.pythonTypeRepresentation().toString())?.value
+                val newAnnotation: String =
+                    type?.let {
+                        methodAnnotations[argument]?.pythonTypeRepresentation().toString()
+                            .replace(it, ", ${pythonAnyType.pythonTypeRepresentation()}")
+                    } ?: pythonAnyType.pythonTypeRepresentation()
+                "${argument}: $newAnnotation"
+            } else
+                "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }
 
         val functionPrefix = "__mypy_check"

@@ -5,6 +5,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonNdarrayClassId
 import org.utbot.python.framework.api.python.util.pythonBytearrayClassId
 import org.utbot.python.framework.api.python.util.pythonBytesClassId
 import org.utbot.python.framework.api.python.util.pythonComplexClassId
@@ -56,6 +57,8 @@ object ReduceValueProvider : PythonValueProvider {
         pythonStrClassId.canonicalName,
         pythonBoolClassId.canonicalName,
         pythonObjectClassId.canonicalName,
+        pythonNdarrayClassId.canonicalName
+
     )
 
     override fun accept(type: FuzzedUtType): Boolean {

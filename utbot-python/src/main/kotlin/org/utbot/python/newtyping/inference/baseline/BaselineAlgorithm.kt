@@ -24,6 +24,7 @@ import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 import kotlin.random.Random
+import org.utpython.types.pythonTypeName
 
 private val EDGES_TO_LINK = listOf(
     EdgeSource.Identification,
@@ -76,7 +77,7 @@ class BaselineAlgorithm(
 
     private val checkedSignatures: MutableSet<UtType> = mutableSetOf()
 
-    private fun getRandomType(): UtType? {
+    private fun getRandomType(): UtType? { // TODO: Remove random type when ndarray
         val weights = states.map { 1.0 / (it.anyNodes.size * it.anyNodes.size + 1) }
         val state = weightedRandom(states, weights, random)
         val newState = expandState(state, storage, state.anyNodes.map { mixtureType })
@@ -109,7 +110,8 @@ class BaselineAlgorithm(
                 val laudedType = getLaudedType()
                 if (laudedType != null) return laudedType
             }
-            val randomType = getRandomType()
+            val isNDArray = pythonMethod.method.methodType.arguments.any{ it.pythonTypeName() == "numpy.ndarray" }
+            val randomType = if (!isNDArray) { getRandomType() } else { null }
             if (randomType != null) return randomType
         }
 

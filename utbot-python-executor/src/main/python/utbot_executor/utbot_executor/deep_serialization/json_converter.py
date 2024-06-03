@@ -11,9 +11,14 @@ from utbot_executor.deep_serialization.memory_objects import (
     ListMemoryObject,
     DictMemoryObject,
     ReduceMemoryObject,
-    MemoryDump, IteratorMemoryObject,
+    MemoryDump, IteratorMemoryObject, NdarrayMemoryObject,
 )
 from utbot_executor.deep_serialization.utils import PythonId, TypeInfo
+try:
+    import numpy as np
+except ImportError:
+    import sys
+    print("numpy is not installed", file=sys.stderr)
 
 
 class MemoryObjectEncoder(json.JSONEncoder):
@@ -27,6 +32,10 @@ class MemoryObjectEncoder(json.JSONEncoder):
             }
             if isinstance(o, ReprMemoryObject):
                 base_json["value"] = o.value
+            elif isinstance(o, NdarrayMemoryObject):
+                base_json["items"] = o.items
+                base_json["comparable"] = True
+                base_json["dimensions"] = o.dimensions
             elif isinstance(o, (ListMemoryObject, DictMemoryObject)):
                 base_json["items"] = o.items
             elif isinstance(o, IteratorMemoryObject):
@@ -53,6 +62,10 @@ class MemoryDumpEncoder(json.JSONEncoder):
                 "kind": o.kind,
                 "module": o.module,
             }
+        if isinstance(o, np.ndarray):
+            raise NotImplementedError("np.ndarray is not supported")
+        if isinstance(o, np.bool_):
+            return bool(o)
         return json.JSONEncoder.default(self, o)
 
 
@@ -75,6 +88,17 @@ def as_reduce_object(dct: Dict) -> Union[MemoryObject, Dict]:
             )
             obj.comparable = dct["comparable"]
             return obj
+
+        if dct["strategy"] == "ndarray":
+            obj = NdarrayMemoryObject.__new__(NdarrayMemoryObject)
+            obj.items = dct["items"]
+            obj.typeinfo = TypeInfo(
+                kind=dct["typeinfo"]["kind"], module=dct["typeinfo"]["module"]
+            )
+            obj.comparable = dct["comparable"]
+            obj.dimensions = dct["dimensions"]
+            return obj
+
         if dct["strategy"] == "dict":
             obj = DictMemoryObject.__new__(DictMemoryObject)
             obj.items = dct["items"]
@@ -138,6 +162,11 @@ class DumpLoader:
                 new_memory_object.items = [
                     self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
                 ]
+            elif isinstance(new_memory_object, NdarrayMemoryObject):
+                new_memory_object.items = [
+                    self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
+                ]
+                new_memory_object.dimensions = obj.dimensions
             elif isinstance(new_memory_object, IteratorMemoryObject):
                 new_memory_object.items = [
                     self.dump_id_to_real_id[id_] for id_ in new_memory_object.items
@@ -198,6 +227,27 @@ class DumpLoader:
 
                 for item in dump_object.items:
                     real_object.append(self.load_object(item))
+
+        elif isinstance(dump_object, NdarrayMemoryObject):
+            real_object = []
+
+            id_ = PythonId(str(id(real_object)))
+            self.dump_id_to_real_id[python_id] = id_
+            self.memory[id_] = real_object
+
+            temp_list = []
+            for item in dump_object.items:
+                temp_list.append(self.load_object(item))
+
+            dt = np.dtype(type(temp_list[0]) if len(temp_list) > 0 else np.int64)
+            temp_list = np.array(temp_list, dtype=dt)
+
+            real_object = np.ndarray(
+                shape=dump_object.dimensions,
+                dtype=dt,
+                buffer=temp_list
+            )
+
         elif isinstance(dump_object, DictMemoryObject):
             real_object = {}
 
@@ -250,7 +300,7 @@ class DumpLoader:
                     for key, dictitem in dictitems.items():
                         real_object[key] = dictitem
         else:
-            raise TypeError(f"Invalid type {dump_object}")
+            raise TypeError(f"Invalid type {dump_object}, type: {type(dump_object)}")
 
         id_ = PythonId(str(id(real_object)))
         self.dump_id_to_real_id[python_id] = id_
@@ -279,6 +329,10 @@ def main():
             "builtins.tuple",
             "builtins.bytes",
             "builtins.type",
+            "numpy.ndarray"
         ]
     )
     print(loader.load_object(PythonId("140239390887040")))
+
+if __name__ == '__main__':
+    main()

@@ -5,6 +5,7 @@ import org.utbot.python.framework.api.python.util.pythonDictClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonIteratorClassId
+import org.utbot.python.framework.api.python.util.pythonNdarrayClassId
 import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonObjectClassId
@@ -152,6 +153,30 @@ object PythonTree {
                     it.first.typeEquals(it.second)
                 }
             else false
+        }
+    }
+    class NDArrayNode(
+        id: Long,
+        val items: MutableMap<Int, PythonTreeNode>,
+        val dimensions: List<Int>
+    ) : PythonTreeNode(id, pythonNdarrayClassId) {
+        constructor(items: MutableMap<Int, PythonTreeNode>, dimensions: List<Int>) : this(PythonIdGenerator.createId(), items, dimensions)
+
+        override val children: List<PythonTreeNode>
+            get() = items.values.toList()
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is NDArrayNode)
+                dimensions == other.dimensions &&
+                children.zip(other.children).all {
+                    it.first.typeEquals(it.second)
+                }
+            else false
+        }
+
+
+        override fun toString(): String {
+            return "ndarray${items.values}, shape: $dimensions"
         }
     }
 

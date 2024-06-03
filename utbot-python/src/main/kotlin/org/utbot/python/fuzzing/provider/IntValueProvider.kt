@@ -17,6 +17,7 @@ import org.utbot.python.fuzzing.PythonValueProvider
 import org.utbot.python.fuzzing.provider.utils.generateSummary
 import java.math.BigInteger
 import kotlin.random.Random
+import org.utpython.types.pythonTypeName
 
 object IntValueProvider : PythonValueProvider {
     private val randomStubWithNoUsage = Random(0)
@@ -43,7 +44,12 @@ object IntValueProvider : PythonValueProvider {
     }
 
     override fun generate(description: PythonMethodDescription, type: FuzzedUtType) = sequence<Seed<FuzzedUtType, PythonFuzzedValue>> {
-        val bits = 128
+        val isNDArray: Boolean = description.type.arguments.any { it.pythonTypeName() == "numpy.ndarray" }
+        val bits = if (isNDArray) {
+            32
+        } else {
+            128
+        }
         val integerConstants = getIntConstants(description.concreteValues)
         val modifiedConstants = integerConstants.flatMap { value ->
             listOf(

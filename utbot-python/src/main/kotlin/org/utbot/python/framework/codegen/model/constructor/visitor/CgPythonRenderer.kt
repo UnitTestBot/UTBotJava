@@ -71,6 +71,7 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonIndex
 import org.utbot.python.framework.codegen.model.tree.CgPythonIterator
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
+import org.utbot.python.framework.codegen.model.tree.CgPythonNdarray
 import org.utbot.python.framework.codegen.model.tree.CgPythonNamedArgument
 import org.utbot.python.framework.codegen.model.tree.CgPythonRange
 import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
@@ -191,7 +192,7 @@ internal class CgPythonRenderer(
         println("\"\"\"")
     }
 
-    override fun visit(element: CgDocRegularStmt){
+    override fun visit(element: CgDocRegularStmt) {
         if (element.isEmpty()) return
 
         println(element.stmt)
@@ -557,6 +558,22 @@ internal class CgPythonRenderer(
         print("[")
         element.elements.renderSeparated()
         print("]")
+    }
+
+    override fun visit(element: CgPythonNdarray) {
+
+        print("numpy.ndarray(")
+        print("dtype=")
+        print(element.dtype.toString().removePrefix("builtins."))
+        print(",")
+        print("shape=(")
+
+        print(element.shape.joinToString(",") { it.toString() })
+        print("), buffer=numpy.array([")
+        element.elements.renderSeparated()
+        print("]))")
+
+
     }
 
     override fun visit(element: CgPythonTuple) {

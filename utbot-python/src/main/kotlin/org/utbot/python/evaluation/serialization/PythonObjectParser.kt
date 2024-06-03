@@ -15,6 +15,7 @@ object PythonObjectParser {
                 .withSubtype(DictMemoryObject::class.java, "dict")
                 .withSubtype(ReduceMemoryObject::class.java, "reduce")
                 .withSubtype(IteratorMemoryObject::class.java, "iterator")
+                .withSubtype(NdarrayMemoryObject::class.java, "ndarray")
         )
         .addLast(KotlinJsonAdapterFactory())
         .build()
@@ -101,6 +102,14 @@ class ReduceMemoryObject(
     val dictitems: String
 ) : MemoryObject(id, typeinfo, comparable)
 
+class NdarrayMemoryObject(
+    id: String,
+    typeinfo: TypeInfo,
+    comparable: Boolean,
+    val items: List<String>,
+    val dimensions: List<Int>
+) : MemoryObject(id, typeinfo, comparable)
+
 fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boolean = false): String {
     val id = this.id.toString()
     if (memoryDump.contains(id) && !reload) return id
@@ -114,6 +123,13 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump, reload: Boo
                 this.comparable,
                 this.repr.replace("\n", "\\n").replace("\r", "\\r")
             )
+        }
+
+        is PythonTree.NDArrayNode -> { // TODO: Optimize for ndarray
+            val items = this.items.entries
+                .map { it.value.toMemoryObject(memoryDump) }
+            val dimensions = this.dimensions
+            NdarrayMemoryObject(id, typeinfo, this.comparable, items, dimensions) // TODO: Ndarray to memory object
         }
 
         is PythonTree.ListNode -> {
@@ -303,6 +319,23 @@ fun MemoryObject.toPythonTree(
                             memoryDump.getById(it.value).toPythonTree(memoryDump, visited)
                 }
                 prevObj
+            }
+
+            is NdarrayMemoryObject -> {
+                val draft = when (this.qualname) {
+                    "numpy.ndarray" -> PythonTree.NDArrayNode(id, mutableMapOf(), this.dimensions)
+                    else -> PythonTree.ListNode(id, mutableMapOf())
+                }
+                visited[this.id] = draft
+
+                items.mapIndexed { index, valueId ->
+                    val value = memoryDump.getById(valueId).toPythonTree(memoryDump, visited)
+                    when (draft) {
+                        is PythonTree.NDArrayNode -> draft.items[index] = value
+                        else -> {}
+                    }
+                }
+                draft
             }
         }
         obj.comparable = this.comparable

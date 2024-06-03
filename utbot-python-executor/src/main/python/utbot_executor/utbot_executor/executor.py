@@ -44,7 +44,7 @@ __all__ = ["PythonExecutor"]
 
 
 def _update_states(
-    init_memory_dump: MemoryDump, before_memory_dump: MemoryDump
+        init_memory_dump: MemoryDump, before_memory_dump: MemoryDump
 ) -> MemoryDump:
     for id_, obj in before_memory_dump.objects.items():
         if id_ in init_memory_dump.objects:
@@ -87,8 +87,9 @@ class PythonExecutor:
                         globals()[submodule_name] = importlib.import_module(
                             submodule_name
                         )
-                    except ModuleNotFoundError:
+                    except ModuleNotFoundError as e:
                         logging.warning("Import submodule %s failed", submodule_name)
+                        raise e
                 logging.debug("Submodule #%d: OK", i)
 
     def run_function(self, request: ExecutionRequest) -> ExecutionResponse:
@@ -115,6 +116,9 @@ class PythonExecutor:
             self.add_imports(request.imports)
             loader.add_syspaths(request.syspaths)
             loader.add_imports(request.imports)
+        except ModuleNotFoundError as _:
+            logging.debug("Error \n%s", traceback.format_exc())
+            return ExecutionFailResponse("fail", traceback.format_exc())
         except Exception as _:
             logging.debug("Error \n%s", traceback.format_exc())
             return ExecutionFailResponse("fail", traceback.format_exc())
@@ -246,9 +250,9 @@ class PythonExecutor:
 
 
 def _serialize_state(
-    args: List[Any],
-    kwargs: Dict[str, Any],
-    result: Any = None,
+        args: List[Any],
+        kwargs: Dict[str, Any],
+        result: Any = None,
 ) -> Tuple[List[PythonId], Dict[str, PythonId], PythonId, MemoryDump, str]:
     """Serialize objects from args, kwargs and result.
 
@@ -267,13 +271,13 @@ def _serialize_state(
 
 
 def _run_calculate_function_value(
-    function: types.FunctionType,
-    args: List[Any],
-    kwargs: Dict[str, Any],
-    fullpath: str,
-    state_init: str,
-    tracer: UtTracer,
-    state_assertions: bool,
+        function: types.FunctionType,
+        args: List[Any],
+        kwargs: Dict[str, Any],
+        fullpath: str,
+        state_init: str,
+        tracer: UtTracer,
+        state_assertions: bool,
 ) -> ExecutionResponse:
     """Calculate function evaluation result.
 

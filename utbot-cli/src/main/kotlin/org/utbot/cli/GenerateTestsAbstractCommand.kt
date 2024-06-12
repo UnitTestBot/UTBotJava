@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.unique
 import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.double
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.utbot.common.PathUtil.classFqnToPath
@@ -25,14 +26,7 @@ import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.summary.summarizeAll
 import java.io.File
@@ -131,6 +125,12 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         .long()
         .default(LONG_GENERATION_TIMEOUT)
 
+    private val fuzzingRation by option(
+        "--fuzzing-ratio",
+        help = "Specify the ratio between symbolic engine and fuzzing"
+    )
+        .double()
+
     protected open val classLoader: URLClassLoader by lazy {
         val urls = classPath!!
             .split(File.pathSeparator)
@@ -138,7 +138,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
                 uri.toPath().toURL()
             }
             .toTypedArray()
-        URLClassLoader(urls)
+        URLClassLoader(urls, null)
     }
 
     abstract override fun run()
@@ -162,7 +162,15 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
             targetMethods,
             mockStrategy,
             chosenClassesToMockAlways,
-            generationTimeout
+            generationTimeout,
+            generate = fuzzingRation?.let { rat ->
+                testFlow {
+                    generationTimeout = this@GenerateTestsAbstractCommand.generationTimeout
+                    isSymbolicEngineEnabled = rat < 1.0
+                    isFuzzingEnabled = rat > 0.0
+                    fuzzingValue = rat
+                }
+            } ?: defaultTestFlow(generationTimeout)
         ).let {
             if (sourceCodeFile != null) it.summarizeAll(searchDirectory, sourceCodeFile.toFile()) else it
         }

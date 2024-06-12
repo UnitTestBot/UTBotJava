@@ -50,6 +50,7 @@ classes {
 }
 
 jar {
+    zip64 = true
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.language.python.ApplicationKt'
         attributes 'Bundle-SymbolicName': 'org.utbot.cli.language.python'

@@ -57,6 +57,7 @@ classes {
 }
 
 jar {
+    zip64 = true
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.go.ApplicationKt'
         attributes 'Bundle-SymbolicName': 'org.utbot.cli.go'

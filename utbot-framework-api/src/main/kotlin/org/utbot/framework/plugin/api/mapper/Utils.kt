@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api.mapper
 
 import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtDirectGetFieldModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -50,12 +51,15 @@ fun UtStatementCallModel.mapModels(mapper: UtModelMapper): UtStatementCallModel 
         )
     }
 
-fun EnvironmentModels.mapModels(mapper: UtModelMapper) = EnvironmentModels(
-    thisInstance = thisInstance?.map(mapper),
-    statics = statics.mapModelValues(mapper),
-    parameters = parameters.mapModels(mapper),
-    executableToCall = executableToCall,
-)
+fun EnvironmentModels.mapModels(mapper: UtModelMapper) = when (this) {
+    MissingState -> MissingState
+    else -> EnvironmentModels(
+        thisInstance = thisInstance?.map(mapper),
+        statics = statics.mapModelValues(mapper),
+        parameters = parameters.mapModels(mapper),
+        executableToCall = executableToCall,
+    )
+}
 
 fun UtExecutionResult.mapModelIfExists(mapper: UtModelMapper) = if (this.isSuccess) {
     val successResult = this as UtExecutionSuccess

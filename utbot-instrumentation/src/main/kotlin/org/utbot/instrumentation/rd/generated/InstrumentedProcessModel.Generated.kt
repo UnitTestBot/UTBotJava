@@ -22,6 +22,7 @@ class InstrumentedProcessModel private constructor(
     private val _addPaths: RdCall<AddPathsParams, Unit>,
     private val _warmup: RdCall<Unit, Unit>,
     private val _setInstrumentation: RdCall<SetInstrumentationParams, Unit>,
+    private val _getResultOfInstrumentation: RdCall<GetResultOfInstrumentationParams, GetResultOfInstrumentationResult>,
     private val _invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>,
     private val _collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult>,
     private val _computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>,
@@ -35,6 +36,8 @@ class InstrumentedProcessModel private constructor(
         override fun registerSerializersCore(serializers: ISerializers)  {
             serializers.register(AddPathsParams)
             serializers.register(SetInstrumentationParams)
+            serializers.register(GetResultOfInstrumentationParams)
+            serializers.register(GetResultOfInstrumentationResult)
             serializers.register(InvokeMethodCommandParams)
             serializers.register(InvokeMethodCommandResult)
             serializers.register(CollectCoverageParams)
@@ -64,7 +67,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 8567129171874407469L
+        const val serializationHash = -1792926381265506685L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -86,6 +89,11 @@ class InstrumentedProcessModel private constructor(
      * The main process sends [instrumentation] to the instrumented process
      */
     val setInstrumentation: RdCall<SetInstrumentationParams, Unit> get() = _setInstrumentation
+    
+    /**
+     * This command is sent to the instrumented process from the [ConcreteExecutor] to get instrumentation result
+     */
+    val getResultOfInstrumentation: RdCall<GetResultOfInstrumentationParams, GetResultOfInstrumentationResult> get() = _getResultOfInstrumentation
     
     /**
      * The main process requests the instrumented process to execute a method with the given [signature],
@@ -122,6 +130,7 @@ class InstrumentedProcessModel private constructor(
         _addPaths.async = true
         _warmup.async = true
         _setInstrumentation.async = true
+        _getResultOfInstrumentation.async = true
         _invokeMethodCommand.async = true
         _collectCoverage.async = true
         _computeStaticField.async = true
@@ -133,6 +142,7 @@ class InstrumentedProcessModel private constructor(
         bindableChildren.add("addPaths" to _addPaths)
         bindableChildren.add("warmup" to _warmup)
         bindableChildren.add("setInstrumentation" to _setInstrumentation)
+        bindableChildren.add("getResultOfInstrumentation" to _getResultOfInstrumentation)
         bindableChildren.add("invokeMethodCommand" to _invokeMethodCommand)
         bindableChildren.add("collectCoverage" to _collectCoverage)
         bindableChildren.add("computeStaticField" to _computeStaticField)
@@ -146,6 +156,7 @@ class InstrumentedProcessModel private constructor(
         RdCall<AddPathsParams, Unit>(AddPathsParams, FrameworkMarshallers.Void),
         RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void),
         RdCall<SetInstrumentationParams, Unit>(SetInstrumentationParams, FrameworkMarshallers.Void),
+        RdCall<GetResultOfInstrumentationParams, GetResultOfInstrumentationResult>(GetResultOfInstrumentationParams, GetResultOfInstrumentationResult),
         RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>(InvokeMethodCommandParams, InvokeMethodCommandResult),
         RdCall<CollectCoverageParams, CollectCoverageResult>(CollectCoverageParams, CollectCoverageResult),
         RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>(ComputeStaticFieldParams, ComputeStaticFieldResult),
@@ -162,6 +173,7 @@ class InstrumentedProcessModel private constructor(
             print("addPaths = "); _addPaths.print(printer); println()
             print("warmup = "); _warmup.print(printer); println()
             print("setInstrumentation = "); _setInstrumentation.print(printer); println()
+            print("getResultOfInstrumentation = "); _getResultOfInstrumentation.print(printer); println()
             print("invokeMethodCommand = "); _invokeMethodCommand.print(printer); println()
             print("collectCoverage = "); _collectCoverage.print(printer); println()
             print("computeStaticField = "); _computeStaticField.print(printer); println()
@@ -176,6 +188,7 @@ class InstrumentedProcessModel private constructor(
             _addPaths.deepClonePolymorphic(),
             _warmup.deepClonePolymorphic(),
             _setInstrumentation.deepClonePolymorphic(),
+            _getResultOfInstrumentation.deepClonePolymorphic(),
             _invokeMethodCommand.deepClonePolymorphic(),
             _collectCoverage.deepClonePolymorphic(),
             _computeStaticField.deepClonePolymorphic(),
@@ -247,7 +260,7 @@ data class AddPathsParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:29]
+ * #### Generated from [InstrumentedProcessModel.kt:38]
  */
 data class CollectCoverageParams (
     val clazz: ByteArray
@@ -304,7 +317,7 @@ data class CollectCoverageParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:33]
+ * #### Generated from [InstrumentedProcessModel.kt:42]
  */
 data class CollectCoverageResult (
     val coverageInfo: ByteArray
@@ -361,7 +374,7 @@ data class CollectCoverageResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:37]
+ * #### Generated from [InstrumentedProcessModel.kt:46]
  */
 data class ComputeStaticFieldParams (
     val fieldId: ByteArray
@@ -418,7 +431,7 @@ data class ComputeStaticFieldParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:41]
+ * #### Generated from [InstrumentedProcessModel.kt:50]
  */
 data class ComputeStaticFieldResult (
     val result: ByteArray
@@ -475,7 +488,127 @@ data class ComputeStaticFieldResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:45]
+ * #### Generated from [InstrumentedProcessModel.kt:18]
+ */
+data class GetResultOfInstrumentationParams (
+    val className: String,
+    val methodSignature: String
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<GetResultOfInstrumentationParams> {
+        override val _type: KClass<GetResultOfInstrumentationParams> = GetResultOfInstrumentationParams::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetResultOfInstrumentationParams  {
+            val className = buffer.readString()
+            val methodSignature = buffer.readString()
+            return GetResultOfInstrumentationParams(className, methodSignature)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetResultOfInstrumentationParams)  {
+            buffer.writeString(value.className)
+            buffer.writeString(value.methodSignature)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as GetResultOfInstrumentationParams
+        
+        if (className != other.className) return false
+        if (methodSignature != other.methodSignature) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + className.hashCode()
+        __r = __r*31 + methodSignature.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("GetResultOfInstrumentationParams (")
+        printer.indent {
+            print("className = "); className.print(printer); println()
+            print("methodSignature = "); methodSignature.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [InstrumentedProcessModel.kt:23]
+ */
+data class GetResultOfInstrumentationResult (
+    val result: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<GetResultOfInstrumentationResult> {
+        override val _type: KClass<GetResultOfInstrumentationResult> = GetResultOfInstrumentationResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetResultOfInstrumentationResult  {
+            val result = buffer.readByteArray()
+            return GetResultOfInstrumentationResult(result)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetResultOfInstrumentationResult)  {
+            buffer.writeByteArray(value.result)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as GetResultOfInstrumentationResult
+        
+        if (!(result contentEquals other.result)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + result.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("GetResultOfInstrumentationResult (")
+        printer.indent {
+            print("result = "); result.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [InstrumentedProcessModel.kt:54]
  */
 data class GetSpringRepositoriesParams (
     val classId: ByteArray
@@ -532,7 +665,7 @@ data class GetSpringRepositoriesParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:49]
+ * #### Generated from [InstrumentedProcessModel.kt:58]
  */
 data class GetSpringRepositoriesResult (
     val springRepositoryIds: ByteArray
@@ -589,7 +722,7 @@ data class GetSpringRepositoriesResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:18]
+ * #### Generated from [InstrumentedProcessModel.kt:27]
  */
 data class InvokeMethodCommandParams (
     val classname: String,
@@ -664,7 +797,7 @@ data class InvokeMethodCommandParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:25]
+ * #### Generated from [InstrumentedProcessModel.kt:34]
  */
 data class InvokeMethodCommandResult (
     val result: ByteArray
@@ -784,7 +917,7 @@ data class SetInstrumentationParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:53]
+ * #### Generated from [InstrumentedProcessModel.kt:62]
  */
 data class TryLoadingSpringContextResult (
     val springContextLoadingResult: ByteArray

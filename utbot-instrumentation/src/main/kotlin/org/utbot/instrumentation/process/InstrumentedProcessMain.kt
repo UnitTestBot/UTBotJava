@@ -11,10 +11,12 @@ import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.process.generated.CollectCoverageResult
 import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
 import org.utbot.instrumentation.process.generated.instrumentedProcessModel
+import org.utbot.instrumentation.process.generated.GetResultOfInstrumentationResult
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
@@ -145,6 +147,13 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
         Agent.dynamicClassTransformer.transformer = instrumentation
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
         instrumentation.run { setupAdditionalRdResponses(kryoHelper, watchdog) }
+    }
+    watchdog.measureTimeForActiveCall(getResultOfInstrumentation, "Getting instrumentation result") { params ->
+        HandlerClassesLoader.loadClass(params.className)
+        val result = (instrumentation as UtExecutionInstrumentation).getResultOfInstrumentation(
+            params.className, params.methodSignature
+        )
+        GetResultOfInstrumentationResult(kryoHelper.writeObject(result))
     }
     watchdog.measureTimeForActiveCall(addPaths, "User and dependency classpath setup") { params ->
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()

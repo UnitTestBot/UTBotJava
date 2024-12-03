@@ -1,5 +1,7 @@
 name: "[M] Run chosen tests"
 
+permissions: read-all
+
 on: 
   workflow_dispatch:
     inputs:

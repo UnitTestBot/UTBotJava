@@ -1,5 +1,7 @@
 name: "UTBot Java: build and run tests"
 
+permissions: read-all
+
 on:  
   push:
     branches:

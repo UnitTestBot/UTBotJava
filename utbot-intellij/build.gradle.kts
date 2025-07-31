@@ -45,7 +45,7 @@ project.tasks.asMap["runIde"]?.enabled = false
 // === IDE settings ===
 
 plugins {
-    id("org.jetbrains.intellij") version "1.13.1"
+    id("org.jetbrains.intellij") version "1.17.4"
 }
 
 intellij {

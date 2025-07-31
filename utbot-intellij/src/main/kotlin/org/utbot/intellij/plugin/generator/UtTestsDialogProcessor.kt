@@ -413,6 +413,7 @@ object UtTestsDialogProcessor {
                                             timeout = model.timeout,
                                             generationTimeout = model.timeout,
                                             isSymbolicEngineEnabled = useEngine,
+                                            symbolicEngineSource = model.symbolicEngineSource,
                                             isFuzzingEnabled = useFuzzing,
                                             fuzzingValue = project.service<Settings>().fuzzingValue,
                                             searchDirectory = searchDirectory.pathString,

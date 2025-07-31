@@ -36,11 +36,13 @@ import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
+import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementCallModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.mapper.UtModelDeepMapper
+import org.utbot.framework.plugin.api.mapper.mapModels
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
@@ -53,6 +55,11 @@ import org.utbot.usvm.jc.UTestSymbolicSuccessResult
 import java.util.IdentityHashMap
 
 private val logger = KotlinLogging.logger {}
+
+data class UtExecutionInitialState(
+    val stateBefore: EnvironmentModels,
+    val instrumentations: List<UtInstrumentation>,
+)
 
 class JcToUtExecutionConverter(
     private val jcExecution: JcExecution,
@@ -77,6 +84,11 @@ class JcToUtExecutionConverter(
             }
             .getOrNull()
     } ?: error("Failed to construct UtExecution for all uTestExecutionResultWrappers on ${jcExecution.method.method}")
+
+    fun convertInitialStateOnly(): UtExecutionInitialState = UtExecutionInitialState(
+        stateBefore = constructStateBeforeFromUTest().applyCommonMappings(),
+        instrumentations = uTestProcessResult.instrumentation.applyCommonMappings()
+    )
 
     private fun convert(uTestResultWrapper: UTestResultWrapper): UtExecution? {
         val coverage = convertCoverage(getTrace(uTestResultWrapper), jcExecution.method.enclosingType.jcClass)
@@ -165,16 +177,18 @@ class JcToUtExecutionConverter(
                 }
         } ?: return null
 
-        return utUsvmExecution
-            .mapModels(jcToUtModelConverter.utCyclicReferenceModelResolver)
-            .mapModels(constructAssemblingMapper())
-            .mapModels(constructAssembleToCompositeModelMapper())
-            .mapModels(constructConstArrayModelMapper())
+
+        return utUsvmExecution.applyCommonMappings()
     }
 
     private fun constructAssemblingMapper(): UtModelDeepMapper = UtModelDeepMapper { model ->
-        // TODO usvm-sbft: support constructors with parameters here if it is really required
-        // Unfortunately, it is not possible to use [AssembleModelGeneral] as it requires soot being initialized.
+        /*
+        Unfortunately, sometimes it is not possible to use [AssembleModelGeneral]
+        as it requires soot being initialized. Soot is not used in `ContestUsvm`.
+
+         After that, even if Soot is initialized, it required some refactoring to move
+         some AssembleModelGenerated API related features to `utbot-framework-api`.
+        */
         if (model !is UtAssembleModel
             || utilMethodProvider.createInstanceMethodId != model.instantiationCall.statement
             || model.modificationsChain.isNotEmpty()) {
@@ -186,6 +200,7 @@ class JcToUtExecutionConverter(
             .params
             .single() as UtPrimitiveModel).value.toString()
 
+        // TODO usvm-sbft: support constructors with parameters here if it is really required
         val defaultConstructor = ClassId(instantiatingClassName)
             .jClass
             .constructors
@@ -342,4 +357,25 @@ class JcToUtExecutionConverter(
         //  I assume they are counted as part of `<clinit>` method
         instructionsCount = jcClass.declaredMethods.sumOf { it.instList.size.toLong() }
     )
+
+    private val commonMappers: List<UtModelDeepMapper> = listOf(
+        jcToUtModelConverter.utCyclicReferenceModelResolver,
+        constructAssemblingMapper(),
+        constructAssembleToCompositeModelMapper(),
+        constructConstArrayModelMapper(),
+    )
+    private fun UtExecution.applyCommonMappings(): UtExecution =
+        commonMappers.fold(this) { mappedExecution, mapper ->
+            mappedExecution.mapModels(mapper)
+        }
+
+    private fun EnvironmentModels.applyCommonMappings(): EnvironmentModels =
+        commonMappers.fold(this) { mappedEnvironmentalModels, mapper ->
+            mappedEnvironmentalModels.mapModels(mapper)
+        }
+
+    private fun List<UtInstrumentation>.applyCommonMappings(): List<UtInstrumentation> =
+        commonMappers.fold(this) { mappedInstrumentation, mapper ->
+            mappedInstrumentation.map { instr -> instr.mapModels(mapper) }
+        }
 }

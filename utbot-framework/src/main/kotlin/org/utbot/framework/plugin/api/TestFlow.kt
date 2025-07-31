@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
-import org.utbot.framework.process.generated.GenerateParams
 
 /**
  * Constructs [TestFlow] for customization and creates flow producer.
@@ -17,7 +16,7 @@ fun testFlow(block: TestFlow.() -> Unit): UtBotSymbolicEngine.() -> Flow<UtResul
  * Creates default flow that uses [UtSettings] for customization.
  */
 fun defaultTestFlow(timeout: Long) = testFlow {
-    isSymbolicEngineEnabled = true
+    isUtBotSymbolicEngineEnabled = true
     generationTimeout = timeout
     isFuzzingEnabled = UtSettings.useFuzzing
     if (generationTimeout > 0) {
@@ -40,7 +39,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
         set(value) {
             field = maxOf(0, value)
         }
-    var isSymbolicEngineEnabled = true
+    var isUtBotSymbolicEngineEnabled = true
     var isFuzzingEnabled = false
     var fuzzingValue: Double = 0.1
         set(value) {
@@ -61,7 +60,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
         return when {
             generationTimeout == 0L -> emptyFlow()
             isFuzzingEnabled -> {
-                when (val value = if (isSymbolicEngineEnabled) (fuzzingValue * generationTimeout).toLong() else generationTimeout) {
+                when (val value = if (isUtBotSymbolicEngineEnabled) (fuzzingValue * generationTimeout).toLong() else generationTimeout) {
                     0L -> engine.traverse()
                     generationTimeout -> engine.fuzzing(System.currentTimeMillis() + value)
                     else -> flowOf(
@@ -70,7 +69,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
                     ).flattenConcat()
                 }
             }
-            isSymbolicEngineEnabled -> engine.traverse()
+            isUtBotSymbolicEngineEnabled -> engine.traverse()
             else -> emptyFlow()
         }
     }

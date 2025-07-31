@@ -1,6 +1,7 @@
 package org.utbot.framework.process
 
 import org.utbot.common.osSpecificJavaExecutable
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.rd.rdPortArgument
 import java.io.File
@@ -26,11 +27,14 @@ abstract class AbstractRDProcessCompanion(
         val debugArgument =
             "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue},quiet=y,address=$debugPort"
                 .takeIf { runWithDebug }
-
         add(javaExecutablePathString.pathString)
         val javaVersionSpecificArgs = OpenModulesContainer.javaVersionSpecificArguments
         if (javaVersionSpecificArgs.isNotEmpty()) {
             addAll(javaVersionSpecificArgs)
+        }
+        UtSettings.engineProcessJavaOptionalArguments.split("\\s+".toRegex()).
+        takeIf {it.size > 1 || it[0].isNotEmpty() }?.forEach {
+            add(it)
         }
         debugArgument?.let { add(it) }
     }

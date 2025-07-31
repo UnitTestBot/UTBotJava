@@ -39,8 +39,8 @@ dependencies {
 
     // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
     //implementation group: 'junit', name: 'junit', version: '4.13.1'
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.13.4'
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.13.4'
 
     // TODO sbft-usvm-merge: UtBot engine expects `com.github.UnitTestBot.ksmt` here
     implementation group: 'io.ksmt', name: 'ksmt-core', version: ksmtVersion

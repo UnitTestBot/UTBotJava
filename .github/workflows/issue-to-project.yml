@@ -1,5 +1,7 @@
 name: Add issues to UTBot Java project
 
+permissions: read-all
+
 on:
   issues:
     types:

@@ -1,5 +1,7 @@
 name: "[M] UTBot Java: collect statistics"
 
+permissions: read-all
+
 on:
   workflow_call:
     inputs:

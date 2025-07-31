@@ -1,5 +1,7 @@
 name: "[M] UTBot Java: build and run tests"
 
+permissions: read-all
+
 on:
   workflow_dispatch:
     inputs:
@@ -42,6 +44,7 @@ env:
 
 jobs:
   prepare-matrices:
+    permissions: read-all
     runs-on: ubuntu-latest
     # Outputs are used for passing data to dependent jobs.
     outputs:
@@ -72,6 +75,7 @@ jobs:
 
 
   framework-tests:
+    permissions: read-all
     needs: prepare-matrices
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
@@ -161,6 +165,7 @@ jobs:
 
 
   spring-tests:
+    permissions: read-all
     runs-on: ubuntu-20.04
     container:
       image: unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0

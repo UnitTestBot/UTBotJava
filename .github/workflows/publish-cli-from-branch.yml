@@ -1,5 +1,7 @@
 name: "[M] CLI: publish as archive"
 
+permissions: read-all
+
 on: 
   workflow_call:
     inputs:

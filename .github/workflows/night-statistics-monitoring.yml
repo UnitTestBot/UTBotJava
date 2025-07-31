@@ -1,5 +1,7 @@
 name: "UTBot Java: night statistics monitoring"
 
+permissions: read-all
+
 on:
    schedule:
      - cron: '0 0 * * *'

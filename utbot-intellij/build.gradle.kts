@@ -103,7 +103,7 @@ intellij {
     type.set(ideTypeOrAndroidStudio)
 }
 
-val remoteRobotVersion = "0.11.16"
+val remoteRobotVersion = "0.11.23"
 
 tasks {
     compileKotlin {

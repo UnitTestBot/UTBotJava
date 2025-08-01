@@ -5,7 +5,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.util.Isolated
 import kotlin.system.measureNanoTime
@@ -13,7 +13,7 @@ import kotlin.system.measureNanoTime
 fun getBasicCoverageTime_fib(count: Int): Double {
     var time: Long
     ConcreteExecutor(
-        CoverageInstrumentation.Factory,
+        InstructionCoverageInstrumentation.Factory,
         Fibonacci::class.java.protectionDomain.codeSource.location.path
     ).use {
         val fib = Isolated(Fibonacci::calc, it)

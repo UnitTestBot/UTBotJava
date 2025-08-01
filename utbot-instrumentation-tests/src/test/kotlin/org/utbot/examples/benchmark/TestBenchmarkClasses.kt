@@ -4,7 +4,7 @@ import org.utbot.examples.samples.benchmark.Fibonacci
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import java.math.BigInteger
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
@@ -18,7 +18,7 @@ class TestBenchmarkClasses {
     @Disabled("Ask Sergey to check")
     fun testRepeater() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             Repeater::class.java.protectionDomain.codeSource.location.path
         ).use {
             val dc0 = Repeater(", ")

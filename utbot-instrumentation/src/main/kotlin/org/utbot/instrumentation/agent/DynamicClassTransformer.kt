@@ -4,6 +4,7 @@ import com.jetbrains.rd.util.error
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import org.utbot.common.asPathToFile
+import org.utbot.framework.TraceInstrumentationType
 import org.utbot.framework.plugin.api.util.UtContext
 import java.lang.instrument.ClassFileTransformer
 import java.nio.file.Paths
@@ -21,6 +22,8 @@ class DynamicClassTransformer : ClassFileTransformer {
     lateinit var transformer: ClassFileTransformer
 
     var useBytecodeTransformation by Delegates.notNull<Boolean>()
+    lateinit var traceInstrumentationType: TraceInstrumentationType
+
     private val pathsToUserClasses = mutableSetOf<String>()
 
     fun addUserPaths(paths: Iterable<String>) {

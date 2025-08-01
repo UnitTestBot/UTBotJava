@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.util.InstrumentedProcessError
 import org.utbot.instrumentation.util.StaticEnvironment
@@ -18,13 +18,13 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-class TestCoverageInstrumentation {
+class TestInstructionCoverageInstrumentation {
     lateinit var utContext: AutoCloseable
 
     @Test
     fun testCatchTargetException() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -41,7 +41,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testIfBranches() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -63,7 +63,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testWrongArgumentsException() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -86,7 +86,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testMultipleRunsInsideCoverage() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -121,7 +121,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testSameResult() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -143,7 +143,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testResult() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -160,7 +160,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testEmptyMethod() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
@@ -176,7 +176,7 @@ class TestCoverageInstrumentation {
     @Test
     fun testTernaryOperator() {
         ConcreteExecutor(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             StaticSubstitutionExamples::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = StaticSubstitutionExamples()

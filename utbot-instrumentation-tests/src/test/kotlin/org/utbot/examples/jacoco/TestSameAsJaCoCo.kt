@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInfo
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.withInstrumentation
 import java.io.InputStream
@@ -123,7 +123,7 @@ private fun methodCoverageWithJaCoCo(kClass: KClass<*>, method: KCallable<*>, ex
 
 private fun methodCoverage(kClass: KClass<*>, method: KCallable<*>, executions: List<ArgumentList>): Pair<Int, Int> {
     return withInstrumentation(
-        CoverageInstrumentation.Factory,
+        InstructionCoverageInstrumentation.Factory,
         kClass.java.protectionDomain.codeSource.location.path
     ) { executor ->
         for (execution in executions) {

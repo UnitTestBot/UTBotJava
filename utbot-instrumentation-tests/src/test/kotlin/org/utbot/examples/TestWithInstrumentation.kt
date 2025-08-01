@@ -6,7 +6,7 @@ import org.utbot.examples.samples.staticenvironment.StaticExampleClass
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.InstructionCoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.withInstrumentation
 import kotlin.reflect.full.declaredMembers
@@ -20,7 +20,7 @@ class TestWithInstrumentation {
     @Test
     fun testStaticMethodCall() {
         withInstrumentation(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
         ) { executor ->
             val res1 = executor.execute(StaticExampleClass::inc, arrayOf())
@@ -70,7 +70,7 @@ class TestWithInstrumentation {
     @Test
     fun testInnerClasses() {
         withInstrumentation(
-            CoverageInstrumentation.Factory,
+            InstructionCoverageInstrumentation.Factory,
             ClassWithInnerClasses::class.java.protectionDomain.codeSource.location.path
         ) { executor ->
             val innerClazz = ClassWithInnerClasses.InnerClass::class.java

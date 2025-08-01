@@ -130,7 +130,8 @@ class InstrumentedProcess private constructor(
             proc.instrumentedProcessModel.setInstrumentation.startSuspending(
                 proc.lifetime, SetInstrumentationParams(
                     proc.kryoHelper.writeObject(instrumentationFactory),
-                    UtSettings.useBytecodeTransformation
+                    UtSettings.useBytecodeTransformation,
+                    proc.kryoHelper.writeObject(UtSettings.traceInstrumentationType)
                 )
             )
             logger.trace("start commands sent")

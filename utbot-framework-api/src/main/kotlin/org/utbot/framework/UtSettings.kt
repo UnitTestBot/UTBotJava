@@ -487,6 +487,11 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var useBytecodeTransformation by getBooleanProperty(false)
 
     /**
+     * Type of trace instrumentation.
+     */
+    var traceInstrumentationType by getEnumProperty(TraceInstrumentationType.INSTRUCTION)
+
+    /**
      * Limit for number of generated tests per method (in each region)
      */
     var maxTestsPerMethodInRegion by getIntProperty(50, 1, Integer.MAX_VALUE)
@@ -786,4 +791,17 @@ enum class ExploreThrowableDepth {
      * Do not skip statements.
      */
     EXPLORE_ALL_STATEMENTS
+}
+
+enum class TraceInstrumentationType {
+
+    /**
+     * Insert probes before each bytecode instruction.
+     */
+    INSTRUCTION,
+
+    /**
+     * Insert probes into the [control flow graph](https://www.eclemma.org/jacoco/trunk/doc/flow.html).
+     */
+    BRANCH
 }

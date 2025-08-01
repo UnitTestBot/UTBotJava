@@ -2,27 +2,22 @@ package org.utbot.instrumentation.instrumentation.coverage
 
 import kotlinx.coroutines.runBlocking
 import org.utbot.common.withAccessibility
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeWithStaticsInstrumentation
-import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
+import org.utbot.instrumentation.process.generated.CollectCoverageParams
 import org.utbot.instrumentation.util.CastProbesArrayException
 import org.utbot.instrumentation.util.NoProbesArrayException
-import java.security.ProtectionDomain
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.instrumentation.process.generated.CollectCoverageParams
 
 data class CoverageInfo(
     val methodToInstrRange: Map<String, IntRange>,
     val visitedInstrs: List<Int>
 )
 
-/**
- * This instrumentation allows collecting coverage after several calls.
- */
-class CoverageInstrumentation : Instrumentation<Result<*>> {
+abstract class CoverageInstrumentation : Instrumentation<Result<*>> {
     private val invokeWithStatics = InvokeWithStaticsInstrumentation()
 
     /**
@@ -62,7 +57,7 @@ class CoverageInstrumentation : Instrumentation<Result<*>> {
             val visitedLines = visitedLinesField.get(null) as? BooleanArray
                 ?: throw CastProbesArrayException()
 
-            val methodToInstrRange = Instrumenter(clazz).computeMapOfRanges()
+            val methodToInstrRange = computeMapOfRanges(clazz)
 
             val res = CoverageInfo(methodToInstrRange, visitedLines.mapIndexed { idx, b ->
                 if (b) idx else null
@@ -74,30 +69,8 @@ class CoverageInstrumentation : Instrumentation<Result<*>> {
         }
     }
 
-    /**
-     * Transforms bytecode such way that it becomes possible to get a coverage.
-     *
-     * Adds set of instructions which marks the executed instruction as completed. Uses static boolean array for this.
-     */
-    override fun transform(
-        loader: ClassLoader?,
-        className: String,
-        classBeingRedefined: Class<*>?,
-        protectionDomain: ProtectionDomain?,
-        classfileBuffer: ByteArray
-    ): ByteArray {
-        val instrumenter = Instrumenter(classfileBuffer)
+    abstract fun <T : Any> computeMapOfRanges(clazz: Class<out T>): Map<String, IntRange>
 
-        val staticArrayStrategy = StaticArrayStrategy(className, Settings.PROBES_ARRAY_NAME)
-        instrumenter.visitInstructions(staticArrayStrategy)
-        instrumenter.addStaticField(staticArrayStrategy)
-
-        return instrumenter.classByteCode
-    }
-
-    object Factory : Instrumentation.Factory<Result<*>, CoverageInstrumentation> {
-        override fun create(): CoverageInstrumentation = CoverageInstrumentation()
-    }
 }
 
 /**
@@ -107,6 +80,8 @@ fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.collectCoverage(clazz: 
     withProcess {
         val clazzByteArray = kryoHelper.writeObject(clazz)
 
-        kryoHelper.readObject(instrumentedProcessModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo)
+        kryoHelper.readObject(
+            instrumentedProcessModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo
+        )
     }
 }

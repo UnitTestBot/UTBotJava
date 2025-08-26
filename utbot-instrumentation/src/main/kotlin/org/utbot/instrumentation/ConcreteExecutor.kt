@@ -22,10 +22,13 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.ConcreteContextLoadingResult
 import org.utbot.framework.plugin.api.SpringRepositoryId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.instrumentation.execution.ResultOfInstrumentation
 import org.utbot.instrumentation.process.generated.ComputeStaticFieldParams
+import org.utbot.instrumentation.process.generated.GetResultOfInstrumentationParams
 import org.utbot.instrumentation.process.generated.GetSpringRepositoriesParams
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.rd.InstrumentedProcess
@@ -313,3 +316,12 @@ fun <T> ConcreteExecutor<*, *>.computeStaticField(fieldId: FieldId): Result<T> =
         kryoHelper.readObject(result.result)
     }
 }
+
+fun ConcreteExecutor<*, *>.getInstrumentationResult(methodUnderTest: ExecutableId): ResultOfInstrumentation =
+    runBlocking {
+        withProcess {
+            val params = GetResultOfInstrumentationParams(methodUnderTest.classId.name, methodUnderTest.signature)
+            val result = instrumentedProcessModel.getResultOfInstrumentation.startSuspending(lifetime, params)
+            kryoHelper.readObject(result.result)
+        }
+    }

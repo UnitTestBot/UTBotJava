@@ -139,6 +139,9 @@ class SimpleUtExecutionInstrumentation(
         )
     }
 
+    override fun getResultOfInstrumentation(className: String, methodSignature: String): ResultOfInstrumentation =
+        ResultOfInstrumentation(traceHandler.processingStorage.getInstructionsIds(className, methodSignature))
+
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =
         delegateInstrumentation.getStaticField(fieldId).map { value ->
             UtModelConstructor.createOnlyUserClassesConstructor(

@@ -18,6 +18,7 @@ import org.utbot.framework.plugin.api.util.SpringModelUtils.mockMvcPerformMethod
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.process.kryo.KryoHelper
 import org.utbot.instrumentation.instrumentation.ArgumentList
+import org.utbot.instrumentation.instrumentation.execution.ResultOfInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.PreliminaryUtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -128,6 +129,9 @@ class SpringUtExecutionInstrumentation(
             getNonRepositoryRelevantBeans(clazz).forEach { beanName -> springApi.resetBean(beanName) }
         }
     }
+
+    override fun getResultOfInstrumentation(className: String, methodSignature: String): ResultOfInstrumentation =
+        delegateInstrumentation.getResultOfInstrumentation(className, methodSignature)
 
     override fun getStaticField(fieldId: FieldId): Result<*> = delegateInstrumentation.getStaticField(fieldId)
 
